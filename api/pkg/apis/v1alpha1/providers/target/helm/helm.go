@@ -512,12 +512,14 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			}
 			installClient := configureInstallClient(component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
 			upgradeClient := configureUpgradeClient(&helmProp.Chart, &deployment, actionConfig, postRender)
-
+			// Check if the release exists
+			releaseExists := checkReleaseExists(actionConfig, component.Component.Name)
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
-			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
-				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply: %+v", err)
-					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply chart", providerName), v1alpha2.HelmActionFailed)
+			if releaseExists {
+				// try to upgrade
+				if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
@@ -529,7 +531,24 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 						metrics.UpdateOperationType,
 						v1alpha2.HelmChartApplyFailed.String(),
 					)
-
+					return ret, err
+				}
+			} else {
+				// Try to install
+				if _, err := installClient.Run(chart, helmProp.Values); err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to install: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to install chart", providerName), v1alpha2.HelmActionFailed)
+					ret[component.Component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.UpdateFailed,
+						Message: err.Error(),
+					}
+					providerOperationMetrics.ProviderOperationErrors(
+						helm,
+						functionName,
+						metrics.ApplyOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.HelmChartApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -696,6 +715,16 @@ func configureInstallClient(name string, componentProps *HelmChartProperty, depl
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient
 }
+func checkReleaseExists(config *action.Configuration, releaseName string) bool {
+	historyClient := action.NewHistory(config)
+	historyClient.Max = 1
+	if _, err := historyClient.Run(releaseName); err != nil {
+		if strings.Contains(err.Error(), "release: not found") {
+			return false
+		}
+	}
+	return true
+}
 
 func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) *action.Upgrade {
 	upgradeClient := action.NewUpgrade(config)
@@ -706,7 +735,7 @@ func configureUpgradeClient(componentProps *HelmChartProperty, deployment *model
 		upgradeClient.Namespace = deployment.Instance.Spec.Scope
 	}
 	upgradeClient.ResetValues = true
-	upgradeClient.Install = true
+	upgradeClient.Install = false
 	upgradeClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
