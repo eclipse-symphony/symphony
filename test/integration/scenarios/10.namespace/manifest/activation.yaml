@@ -1,7 +1,7 @@
 apiVersion: workflow.symphony/v1
 kind: Activation
 metadata:
-  name: 05activation
+  name: 10activation
 spec:
-  campaign: "05campaign:v1"
+  campaign: "10campaign:v1"
   

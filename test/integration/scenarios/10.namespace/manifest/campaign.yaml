@@ -1,9 +1,9 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: 05campaign-v-v1
+  name: 10campaign-v-v1
 spec:  
-  rootResource: 05campaign
+  rootResource: 10campaign
   firstStage: mock1
   stages:
     mock1:
