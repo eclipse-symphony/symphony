@@ -107,7 +107,7 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 		if val != "" {
 			bVal, err := strconv.ParseBool(val)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'wait' setting of K8s reference provider", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'noWait' setting of K8s target provider", v1alpha2.BadConfig)
 			}
 			ret.NoWait = bVal
 		}
@@ -119,7 +119,7 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 		if val != "" {
 			bVal, err := strconv.ParseBool(val)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'inCluster' setting of K8s reference provider", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'inCluster' setting of K8s target provider", v1alpha2.BadConfig)
 			}
 			ret.InCluster = bVal
 		}
@@ -423,9 +423,9 @@ func (i *K8sTargetProvider) removeService(ctx context.Context, namespace string,
 	})
 	if waitErr != nil {
 		if waitErr == context.DeadlineExceeded {
-			log.ErrorfCtx(ctx, "P (K8s Target Provider): Timeout waiting for service %s in namespace %s to be deleted.", serviceName, namespace)
+			log.ErrorfCtx(ctx, "P (K8s Target): Timeout waiting for service %s in namespace %s to be deleted.", serviceName, namespace)
 		} else {
-			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while waiting for service deletion: %v", waitErr)
+			log.ErrorfCtx(ctx, "P (K8s Target): Error while waiting for service deletion: %v", waitErr)
 		}
 		return waitErr
 	}
@@ -447,24 +447,24 @@ func (i *K8sTargetProvider) pollCheck(ctx context.Context, isDelete bool, pollFu
 	waitErr := wait.PollUntilContextTimeout(ctx, pollInterval, timeoutDuration, true, func(ctx context.Context) (bool, error) {
 		err := pollFunc()
 		if err != nil && !k8s_errors.IsNotFound(err) {
-			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while checking deletion: %v", err)
+			log.ErrorfCtx(ctx, "P (K8s Target): Error while checking deletion: %v", err)
 			return false, err
 		}
 
 		if isDelete {
 			if err != nil {
-				log.DebugfCtx(ctx, "P (K8s Target Provider): has been deleted.")
+				log.DebugfCtx(ctx, "P (K8s Target): has been deleted.")
 				return true, nil
 			}
-			log.DebugfCtx(ctx, "P (K8s Target Provider): Waiting for to be deleted...")
+			log.DebugfCtx(ctx, "P (K8s Target): Waiting for to be deleted...")
 			return false, nil
 
 		} else {
 			if err != nil {
-				log.DebugfCtx(ctx, "P (K8s Target Provider):  Waiting for to be created...")
+				log.DebugfCtx(ctx, "P (K8s Target):  Waiting for to be created...")
 				return false, nil
 			}
-			log.DebugfCtx(ctx, "P (K8s Target Provider): has been created.")
+			log.DebugfCtx(ctx, "P (K8s Target): has been created.")
 			return true, nil
 		}
 
@@ -501,9 +501,9 @@ func (i *K8sTargetProvider) removeDeployment(ctx context.Context, namespace stri
 
 	if waitErr != nil {
 		if waitErr == context.DeadlineExceeded {
-			log.ErrorfCtx(ctx, "P (K8s Target Provider): Timeout waiting for deployment %s in namespace %s to be deleted.", name, namespace)
+			log.ErrorfCtx(ctx, "P (K8s Target): Timeout waiting for deployment %s in namespace %s to be deleted.", name, namespace)
 		} else {
-			log.ErrorfCtx(ctx, "P (K8s Target Provider): Error while waiting for deployment deletion: %v", waitErr)
+			log.ErrorfCtx(ctx, "P (K8s Target): Error while waiting for deployment deletion: %v", waitErr)
 		}
 		return waitErr
 	}
@@ -606,7 +606,7 @@ func (i *K8sTargetProvider) createNamespace(ctx context.Context, namespace strin
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (K8s Target Provider): createNamespace namespace - %s", namespace)
+	log.InfofCtx(ctx, "  P (K8s Target): createNamespace namespace - %s", namespace)
 
 	if namespace == "" || namespace == "default" {
 		return nil
@@ -682,9 +682,9 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 
 	if waitErr != nil {
 		if waitErr == context.DeadlineExceeded {
-			log.ErrorfCtx(ctx, " P (K8s Target Provider): Timeout waiting for deployment %s in namespace %s to be ready.", name, namespace)
+			log.ErrorfCtx(ctx, " P (K8s Target): Timeout waiting for deployment %s in namespace %s to be ready.", name, namespace)
 		} else {
-			log.ErrorfCtx(ctx, " P (K8s Target Provider): Error while waiting for deployment to be ready: %v", waitErr)
+			log.ErrorfCtx(ctx, " P (K8s Target): Error while waiting for deployment to be ready: %v", waitErr)
 		}
 		return waitErr
 	}
@@ -790,7 +790,7 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, namespace stri
 		}
 	}
 
-	log.DebugCtx(ctx, "  P (K8s Target Provider): creating namespace")
+	log.DebugCtx(ctx, "  P (K8s Target): creating namespace")
 	err = i.createNamespace(ctx, namespace)
 	if err != nil {
 		log.DebugfCtx(ctx, "  P (K8s Target): failed to create namespace: %s", err.Error())
@@ -1354,11 +1354,11 @@ func createProjector(projector string) (IK8sProjector, error) {
 func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) {
 	duration, err := time.ParseDuration(timeout)
 	if err != nil {
-		log.ErrorfCtx(ctx, "  P (K8s Target Provider): failed to parse timeout duration: %v", err)
+		log.ErrorfCtx(ctx, "  P (K8s Target): failed to parse timeout duration: %v", err)
 		return 0, err
 	}
 	if duration < 0 {
-		log.ErrorfCtx(ctx, "  P (K8s Target Provider): timeout cannot be negative: %s", timeout)
+		log.ErrorfCtx(ctx, "  P (K8s Target): timeout cannot be negative: %s", timeout)
 		return 0, errors.New("Timeout can not be negative.")
 	}
 	return duration, nil
