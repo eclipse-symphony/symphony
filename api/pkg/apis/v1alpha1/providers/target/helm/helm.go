@@ -527,7 +527,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			releaseExists := checkReleaseExists(actionConfig, component.Component.Name)
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if releaseExists {
-				// try to upgrade
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
 				if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
@@ -545,7 +545,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 			} else {
-				// Try to install
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
 				if _, err := installClient.Run(chart, helmProp.Values); err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to install: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to install chart", providerName), v1alpha2.HelmActionFailed)
