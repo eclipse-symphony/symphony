@@ -442,10 +442,10 @@
             "name": "sites-manager",
             "type": "managers.symphony.sites",
             "properties": {
-              "providers.persistentstate": "memeory"              
+              "providers.persistentstate": "memory"              
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -455,11 +455,11 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.persistentstate": "memeory",
+              "providers.persistentstate": "memory",
               "singleton": "true"                         
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -505,11 +505,11 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.persistentstate": "memeory",
+              "providers.persistentstate": "memory",
               "singleton": "true"              
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               },
@@ -529,11 +529,11 @@
             "name": "catalog-container-manager",
             "type": "managers.symphony.catalogcontainers",
             "properties": {
-              "providers.persistentstate": "memeory",
+              "providers.persistentstate": "memory",
               "singleton": "true" 
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -549,11 +549,11 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.persistentstate": "memeory",
+              "providers.persistentstate": "memory",
               "singleton": "true"
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               },
