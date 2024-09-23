@@ -291,6 +291,7 @@ func (i *K8sTargetProvider) getDeployment(ctx context.Context, namespace string,
 		return nil, err
 	}
 	if deployment.DeletionTimestamp != nil {
+		log.InfofCtx(ctx, "  P (K8s Target): Deployment %s is deleting, will not be included", name)
 		return nil, nil
 	}
 	components, err := deploymentToComponents(ctx, *deployment)
@@ -664,15 +665,28 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 		if err != nil {
 			return err
 		}
-		if d.Status.UpdatedReplicas == *d.Spec.Replicas &&
-			d.Status.ReadyReplicas == *d.Spec.Replicas &&
-			d.Status.AvailableReplicas == *d.Spec.Replicas &&
-			d.Status.UnavailableReplicas == 0 {
-			log.InfofCtx(ctx, " P (K8s Target Provider): Deployment %s in namespace %s is ready.", name, namespace)
-			return nil
-		} else {
+		// If paused deployment will never be ready
+		if d.Spec.Paused {
 			return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
 		}
+		// Find RS associated with deployment
+		newReplicaSet, err := GetNewReplicaSet(d, i.Client.AppsV1())
+		if err != nil || newReplicaSet == nil {
+			return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
+		}
+		if !DeploymentReady(log, ctx, newReplicaSet, d) {
+			return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
+		}
+		return nil
+		// if d.Status.UpdatedReplicas == *d.Spec.Replicas &&
+		// 	d.Status.ReadyReplicas == *d.Spec.Replicas &&
+		// 	d.Status.AvailableReplicas == *d.Spec.Replicas &&
+		// 	d.Status.UnavailableReplicas == 0 {
+		// 	log.InfofCtx(ctx, " P (K8s Target Provider): Deployment %s in namespace %s is ready.", name, namespace)
+		// 	return nil
+		// } else {
+		// 	return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
+		// }
 	})
 
 	if waitErr != nil {
@@ -715,8 +729,32 @@ func (i *K8sTargetProvider) upsertService(ctx context.Context, namespace string,
 		return err
 	}
 	waitErr := i.pollCheck(ctx, false, func() error {
-		_, err := i.Client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
-		return err
+		s, err := i.Client.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if s.Spec.Type == apiv1.ServiceTypeExternalName {
+			return nil
+		}
+
+		// Ensure that the service cluster IP is not empty
+		if s.Spec.ClusterIP == "" {
+			log.InfofCtx(ctx, "  P (K8s Target): Service does not have cluster IP address: %s/%s", s.GetNamespace(), s.GetName())
+			return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("services").GroupResource(), name) // consider inprogress as not found
+		}
+		// This checks if the service has a LoadBalancer and that balancer has an Ingress defined
+		if s.Spec.Type == apiv1.ServiceTypeLoadBalancer {
+			// do not wait when at least 1 external IP is set
+			if len(s.Spec.ExternalIPs) > 0 {
+				log.InfofCtx(ctx, "  P (K8s Target): Service %s/%s has external IP addresses (%v), marking as ready", s.GetNamespace(), s.GetName(), s.Spec.ExternalIPs)
+				return nil
+			}
+			if s.Status.LoadBalancer.Ingress == nil {
+				log.InfofCtx(ctx, "  P (K8s Target): Service does not have load balancer ingress IP address: %s/%s", s.GetNamespace(), s.GetName())
+				return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("services").GroupResource(), name) // consider inprogress as not found
+			}
+		}
+		return nil
 	})
 	if waitErr != nil {
 		if waitErr == context.DeadlineExceeded {
