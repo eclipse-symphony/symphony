@@ -678,15 +678,6 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 			return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
 		}
 		return nil
-		// if d.Status.UpdatedReplicas == *d.Spec.Replicas &&
-		// 	d.Status.ReadyReplicas == *d.Spec.Replicas &&
-		// 	d.Status.AvailableReplicas == *d.Spec.Replicas &&
-		// 	d.Status.UnavailableReplicas == 0 {
-		// 	log.InfofCtx(ctx, " P (K8s Target Provider): Deployment %s in namespace %s is ready.", name, namespace)
-		// 	return nil
-		// } else {
-		// 	return k8s_errors.NewNotFound(v1.SchemeGroupVersion.WithResource("deployments").GroupResource(), name) // consider inprogress as not found
-		// }
 	})
 
 	if waitErr != nil {
