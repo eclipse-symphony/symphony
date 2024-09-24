@@ -128,10 +128,11 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1:v1", "target1:v1", "solution1:v1, target2:v1"},
+		"names":    []interface{}{"instance1:v1", "target1:v1", "notexist"},
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), v1alpha2.NotFound.String())
 }
 
 type AuthResponse struct {
@@ -172,82 +173,90 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, solution.ObjectMeta.Namespace)
 			response = solution
-		case "/catalogs/registry":
-			response = []model.CatalogState{
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "hq-target1-v-v1",
-					},
-					Spec: &model.CatalogSpec{
-						CatalogType: "target",
-						Properties: map[string]interface{}{
-							"spec": &model.TargetSpec{
-								DisplayName: "target1",
-							},
-							"metadata": &model.ObjectMeta{
-								Name:      "target1:v1",
-								Namespace: "objNS",
-							},
-						},
-					},
+		case "/catalogs/registry/hq-target1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-target1-v-v1",
 				},
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "hq-instance1-v-v1",
-					},
-					Spec: &model.CatalogSpec{
-						CatalogType: "instance",
-						Properties: map[string]interface{}{
-							"spec": model.InstanceSpec{},
-							"metadata": &model.ObjectMeta{
-								Namespace: "objNS",
-								Name:      "instance1:v1",
-							},
+				Spec: &model.CatalogSpec{
+					CatalogType: "target",
+					Properties: map[string]interface{}{
+						"spec": &model.TargetSpec{
+							DisplayName: "target1",
 						},
-					},
-				},
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "hq-solution1-v-v1",
-					},
-					Spec: &model.CatalogSpec{
-						CatalogType: "solution",
-						Properties: map[string]interface{}{
-							"spec": model.SolutionSpec{
-								DisplayName: "solution1",
-							},
-							"metadata": &model.ObjectMeta{
-								Namespace: "objNS",
-								Name:      "instance1:v1",
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "hq-catalog1-v-v1",
-					},
-					Spec: &model.CatalogSpec{
-						CatalogType: "catalog",
-						Properties: map[string]interface{}{
-							"spec": model.CatalogSpec{
-								CatalogType: "config",
-								Properties:  map[string]interface{}{},
-							},
-							"metadata": &model.ObjectMeta{
-								Namespace: "objNS",
-								Name:      "catalog1:v1",
-							},
+						"metadata": &model.ObjectMeta{
+							Name:      "target1:v1",
+							Namespace: "objNS",
 						},
 					},
 				},
 			}
-		case "catalogs/registry/catalog1-v-v1":
+			response = catalog
+		case "/catalogs/registry/hq-instance1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-instance1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					CatalogType: "instance",
+					Properties: map[string]interface{}{
+						"spec": model.InstanceSpec{},
+						"metadata": &model.ObjectMeta{
+							Namespace: "objNS",
+							Name:      "instance1:v1",
+						},
+					},
+				},
+			}
+			response = catalog
+		case "/catalogs/registry/hq-solution1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-solution1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					CatalogType: "solution",
+					Properties: map[string]interface{}{
+						"spec": model.SolutionSpec{
+							DisplayName: "solution1",
+						},
+						"metadata": &model.ObjectMeta{
+							Namespace: "objNS",
+							Name:      "instance1:v1",
+						},
+					},
+				},
+			}
+			response = catalog
+		case "/catalogs/registry/hq-catalog1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-catalog1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					CatalogType: "catalog",
+					Properties: map[string]interface{}{
+						"spec": model.CatalogSpec{
+							CatalogType: "config",
+							Properties:  map[string]interface{}{},
+						},
+						"metadata": &model.ObjectMeta{
+							Namespace: "objNS",
+							Name:      "catalog1:v1",
+						},
+					},
+				},
+			}
+			response = catalog
+		case "/catalogs/registry/catalog1-v-v1":
 			var catalog model.CatalogState
 			err := json.Unmarshal(body, &catalog)
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, catalog.ObjectMeta.Namespace)
 			response = catalog
+		case "/catalogs/registry/hq-notexist":
+			http.Error(w, "catalog not found", http.StatusNotFound)
+			return
 		default:
 			response = AuthResponse{
 				AccessToken: "test-token",
