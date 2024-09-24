@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -216,11 +215,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 		}
 	}
-
-	// put instance type catalogs at the end since they may depend on solution and target
-	sort.Slice(prefixedNames, func(i, j int) bool {
-		return catalogs[prefixedNames[i]].Spec.CatalogType != "instance" && catalogs[prefixedNames[j]].Spec.CatalogType == "instance"
-	})
 
 	createdObjectList := make(map[string]bool, 0)
 	for _, catalogName := range prefixedNames {
