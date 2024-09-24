@@ -74,6 +74,8 @@ func (s *MemoryStateProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
+// MemoryStateProvider Upsert will store object in the memory map
+// It bumps generation automatically when "spec" is changed on objects with metadata field
 func (s *MemoryStateProvider) Upsert(ctx context.Context, entry states.UpsertRequest) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -343,8 +345,13 @@ func (a *MemoryStateProvider) ReturnDeepCopy(s states.StateEntry) (states.StateE
 func (a *MemoryStateProvider) BumpGeneration(ctx context.Context, new map[string]interface{}, old map[string]interface{}) {
 	var newGeneration int64 = 0
 	if old != nil {
-		// If spec changes, bump generation
-		oldObjectMeta := old["metadata"].(model.ObjectMeta)
+		// If old state exists, bump generation if spec is changed
+		var oldObjectMeta model.ObjectMeta
+		if old["metadata"] == nil {
+			oldObjectMeta = model.ObjectMeta{}
+		} else {
+			oldObjectMeta = old["metadata"].(model.ObjectMeta)
+		}
 		oldSpecPtr := old["spec"]
 		newSpecPtr := new["spec"]
 		if oldSpecPtr != nil && newSpecPtr != nil {
@@ -362,6 +369,7 @@ func (a *MemoryStateProvider) BumpGeneration(ctx context.Context, new map[string
 		}
 	}
 
+	// Store metadata field as ObjectMeta in the memory state
 	var newObjectMeta model.ObjectMeta
 	jData, _ := json.Marshal(new["metadata"])
 	json.Unmarshal(jData, &newObjectMeta)
