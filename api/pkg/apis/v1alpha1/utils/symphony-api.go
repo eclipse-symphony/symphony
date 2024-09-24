@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -727,7 +728,7 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	ret.Targets = targets
 	ret.SolutionName = key
 	// set the target generation to the deployment
-	ret.Generation = target.ObjectMeta.Generation
+	ret.Generation = strconv.FormatInt(target.ObjectMeta.Generation, 10)
 	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
@@ -746,7 +747,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	ret.Generation = instance.ObjectMeta.Generation
+	ret.Generation = strconv.FormatInt(instance.ObjectMeta.Generation, 10)
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)

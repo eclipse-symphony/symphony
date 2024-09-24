@@ -8,6 +8,7 @@ package vendors
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -214,7 +215,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			c.Context.Publish("activation", v1alpha2.Event{
 				Body: v1alpha2.ActivationData{
 					Campaign:             activation.Spec.Campaign,
-					ActivationGeneration: entry.ObjectMeta.Generation,
+					ActivationGeneration: strconv.FormatInt(entry.ObjectMeta.Generation, 10),
 					Activation:           id,
 					Stage:                activation.Spec.Stage,
 					Inputs:               activation.Spec.Inputs,

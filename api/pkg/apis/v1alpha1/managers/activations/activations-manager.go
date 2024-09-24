@@ -103,7 +103,7 @@ func getActivationState(body interface{}, etag string) (model.ActivationState, e
 	if activationState.Spec == nil {
 		activationState.Spec = &model.ActivationSpec{}
 	}
-	activationState.ObjectMeta.Generation = etag
+	activationState.ObjectMeta.ETag = etag
 	if activationState.Status == nil {
 		activationState.Status = &model.ActivationStatus{}
 	}
@@ -147,7 +147,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
-			ETag: state.ObjectMeta.Generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
