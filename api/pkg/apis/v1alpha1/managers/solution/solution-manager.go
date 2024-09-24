@@ -456,7 +456,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
 		someStepsRan = true
-		retryCount := 5
+		retryCount := 3
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
 		// an error condition can't be resolved quickly.
 		var stepError error
