@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -181,18 +182,24 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 
 	mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize %v in namespace %s", prefixedNames, namespace)
 
+	// Fail fast check
 	catalogs := make(map[string]model.CatalogState)
 	errorMessage := "Failed to get all catalogs: "
-	anyCatalogNotExist := false
-	for _, object := range prefixedNames {
-		object := api_utils.ConvertReferenceToObjectName(object)
-		catalog, err := i.ApiClient.GetCatalog(ctx, object, namespace, i.Config.User, i.Config.Password)
+	anyCatalogInvalid := false
+	for _, objectRef := range prefixedNames {
+		objectName := api_utils.ConvertReferenceToObjectName(objectRef)
+		catalog, err := i.ApiClient.GetCatalog(ctx, objectName, namespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, object, err.Error())
-			anyCatalogNotExist = anyCatalogNotExist || strings.Contains(err.Error(), v1alpha2.NotFound.String())
+			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectName, err.Error())
+			anyCatalogInvalid = anyCatalogInvalid || strings.Contains(err.Error(), v1alpha2.NotFound.String())
 			continue
 		}
-		catalogs[object] = catalog
+		if !checkCatalog(&catalog) {
+			errorMessage = fmt.Sprintf("%s %s(reason: catalog doesn't have a valid Spec.CatalogType).", errorMessage, objectName)
+			anyCatalogInvalid = true
+			continue
+		}
+		catalogs[objectRef] = catalog
 	}
 	if len(catalogs) < len(prefixedNames) {
 		mLog.ErrorCtx(ctx, errorMessage)
@@ -203,15 +210,21 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			metrics.RunOperationType,
 			v1alpha2.CatalogsGetFailed.String(),
 		)
-		if anyCatalogNotExist {
+		if anyCatalogInvalid {
 			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.BadRequest)
 		} else {
 			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 		}
 	}
 
+	// put instance type catalogs at the end since they may depend on solution and target
+	sort.Slice(prefixedNames, func(i, j int) bool {
+		return catalogs[prefixedNames[i]].Spec.CatalogType != "instance" && catalogs[prefixedNames[j]].Spec.CatalogType == "instance"
+	})
+
 	createdObjectList := make(map[string]bool, 0)
-	for _, catalog := range catalogs {
+	for _, catalogName := range prefixedNames {
+		catalog := catalogs[catalogName]
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
 		annotation_name := os.Getenv("ANNOTATION_KEY")
@@ -558,4 +571,14 @@ func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}
 		objectMeta.Namespace = "default"
 	}
 	return objectMeta
+}
+
+func checkCatalog(catalog *model.CatalogState) bool {
+	if catalog.Spec == nil {
+		return false
+	}
+	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" {
+		return true
+	}
+	return false
 }
