@@ -31,11 +31,11 @@ var (
 	testActivationsWithWrongStage  = "test/integration/scenarios/08.webhook/manifest/activationWithWrongStage.yaml"
 	testActivationsWithLongRunning = "test/integration/scenarios/08.webhook/manifest/activationLongRunning.yaml"
 
-	testCatalog          = "test/integration/scenarios/05.catalog/catalogs/config.yaml"
-	testCatalogContainer = "test/integration/scenarios/05.catalog/catalogs/config-container.yaml"
-	testSchema           = "test/integration/scenarios/05.catalog/catalogs/schema.yaml"
-	testSchemaContainer  = "test/integration/scenarios/05.catalog/catalogs/schema-container.yaml"
-	testWrongSchema      = "test/integration/scenarios/05.catalog/catalogs/wrongconfig.yaml"
+	testCatalog          = "test/integration/scenarios/05.catalogNconfigmap/catalogs/config.yaml"
+	testCatalogContainer = "test/integration/scenarios/05.catalogNconfigmap/catalogs/config-container.yaml"
+	testSchema           = "test/integration/scenarios/05.catalogNconfigmap/catalogs/schema.yaml"
+	testSchemaContainer  = "test/integration/scenarios/05.catalogNconfigmap/catalogs/schema-container.yaml"
+	testWrongSchema      = "test/integration/scenarios/05.catalogNconfigmap/catalogs/wrongconfig.yaml"
 	testChildCatalog     = "test/integration/scenarios/08.webhook/manifest/childCatalog.yaml"
 
 	testCircularParentContainer = "test/integration/scenarios/08.webhook/manifest/parent-container.yaml"
