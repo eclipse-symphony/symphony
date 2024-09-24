@@ -182,23 +182,23 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize %v in namespace %s", prefixedNames, namespace)
 
 	// Fail fast check
-	catalogs := make(map[string]model.CatalogState)
+	catalogs := []model.CatalogState{}
 	errorMessage := "Failed to get all catalogs: "
 	anyCatalogInvalid := false
 	for _, objectRef := range prefixedNames {
 		objectName := api_utils.ConvertReferenceToObjectName(objectRef)
 		catalog, err := i.ApiClient.GetCatalog(ctx, objectName, namespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectName, err.Error())
+			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectRef, err.Error())
 			anyCatalogInvalid = anyCatalogInvalid || strings.Contains(err.Error(), v1alpha2.NotFound.String())
 			continue
 		}
 		if !checkCatalog(&catalog) {
-			errorMessage = fmt.Sprintf("%s %s(reason: catalog doesn't have a valid Spec.CatalogType).", errorMessage, objectName)
+			errorMessage = fmt.Sprintf("%s %s(reason: catalog doesn't have a valid Spec.CatalogType).", errorMessage, objectRef)
 			anyCatalogInvalid = true
 			continue
 		}
-		catalogs[objectRef] = catalog
+		catalogs = append(catalogs, catalog)
 	}
 	if len(catalogs) < len(prefixedNames) {
 		mLog.ErrorCtx(ctx, errorMessage)
@@ -217,8 +217,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 
 	createdObjectList := make(map[string]bool, 0)
-	for _, catalogName := range prefixedNames {
-		catalog := catalogs[catalogName]
+	for _, catalog := range catalogs {
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
 		annotation_name := os.Getenv("ANNOTATION_KEY")
