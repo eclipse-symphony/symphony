@@ -526,6 +526,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			var deployment model.DeploymentSpec
 			deployment, err = utils.CreateSymphonyDeploymentFromTarget(ctx, target, namespace)
 			if err != nil {
+				log.ErrorfCtx(ctx, " M (Job): error reconciling target %s: %s", targetName, err.Error())
 				return err
 			}
 			switch job.Action {
