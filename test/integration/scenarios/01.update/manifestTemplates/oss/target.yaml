@@ -15,6 +15,8 @@ spec:
   - bindings:
     - config:
         inCluster: "true"
+        noWait: "false"
+        timeout: "5m"
       provider: providers.target.k8s
       role: instance
     - config:

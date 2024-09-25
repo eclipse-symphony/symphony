@@ -1,0 +1,12 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: k8s-target
+spec:   
+  topologies:
+  - bindings:
+    - role: http
+      provider: providers.target.http
+      config:
+        url: "https://www.bing.com/"
+        method: "GET"

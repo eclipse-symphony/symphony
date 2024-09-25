@@ -146,14 +146,15 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(BuildDefaultTarget(), ""), nil)
 		apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-		err = (&controllers.InstanceReconciler{
-			Client:                 k8sManager.GetClient(),
-			Scheme:                 k8sManager.GetScheme(),
-			ReconciliationInterval: 2 * time.Second,
-			DeleteTimeOut:          6 * time.Second,
-			PollInterval:           1 * time.Second,
-			ApiClient:              apiClient,
-		}).SetupWithManager(k8sManager)
+		err = (&controllers.InstanceQueueingReconciler{
+			InstanceReconciler: controllers.InstanceReconciler{
+				Client:                 k8sManager.GetClient(),
+				Scheme:                 k8sManager.GetScheme(),
+				ReconciliationInterval: 2 * time.Second,
+				DeleteTimeOut:          6 * time.Second,
+				PollInterval:           1 * time.Second,
+				ApiClient:              apiClient,
+			}}).SetupWithManager(k8sManager)
 		Expect(err).ToNot(HaveOccurred())
 
 		go func() {

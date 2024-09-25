@@ -341,7 +341,7 @@ func TestDeployment(t *testing.T) {
 	_, err = provider.Get(context.Background(), deployment, []model.ComponentStep{})
 	assert.Nil(t, err)
 
-	provider.Init(K8sTargetProviderConfig{DeploymentStrategy: SERVICES})
+	provider.Init(K8sTargetProviderConfig{DeploymentStrategy: SERVICES, NoWait: true})
 
 	projector, _ := createProjector("")
 	ctx, _ := observability.StartSpan("K8s Target Provider test", context.Background(), &map[string]string{
@@ -448,7 +448,7 @@ func TestFillServiceMeta(t *testing.T) {
 
 func TestApply(t *testing.T) {
 	provider := &K8sTargetProvider{}
-	_ = provider.Init(K8sTargetProviderConfig{DeleteEmptyNamespace: true})
+	_ = provider.Init(K8sTargetProviderConfig{DeleteEmptyNamespace: true, NoWait: true})
 	client := fake.NewSimpleClientset()
 	provider.Client = client
 
@@ -517,7 +517,8 @@ func TestApply(t *testing.T) {
 
 	provider.Init(K8sTargetProviderConfig{
 		DeleteEmptyNamespace: true,
-		DeploymentStrategy:   "services"})
+		DeploymentStrategy:   "services",
+		NoWait:               true})
 
 	_, err = provider.Apply(context.Background(), deployment, updateStep, false)
 	assert.Nil(t, err)
