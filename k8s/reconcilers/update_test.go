@@ -94,6 +94,8 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 		var object *solutionv1.Instance
 		var reconcileResult reconcile.Result
 		var reconcileError error
+		var reconcileResultPolling reconcile.Result
+		var reconcileErrorPolling error
 
 		BeforeEach(func() {
 			By("setting up the reconciler")
@@ -119,13 +121,15 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
-			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 		})
 
 		When("object is successfully deployed", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("setting up the api client with a successful response")
 
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
@@ -136,11 +140,11 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				apiClient.AssertExpectations(GinkgoT())
 			})
 			It("should have status Succeeded", func() {
-				Expect(reconcileError).NotTo(HaveOccurred())
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 				Expect(object.Status.ProvisioningStatus.Status).To(Equal("Succeeded"))
 			})
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 
@@ -164,7 +168,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				})
 
 				It("should requue after some time", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
@@ -173,6 +177,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					By("setting up the api client with an pending response")
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.State = model.SummaryStatePending
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -182,13 +187,14 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				})
 
 				It("should requue after some time", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
 			Context("api returns an error when queried for summary", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with an error response")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("test error"))
 				})
 
@@ -198,7 +204,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 
 				It("should requeue because of error", func() {
 					Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("test error")) // TODO: this is not ideal. Error should be in a separate field
-					Expect(reconcileError).To(HaveOccurred())
+					Expect(reconcileErrorPolling).To(HaveOccurred())
 				})
 
 				It("should have status Reconciling", func() {
@@ -239,6 +245,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			Context("api returns a summary indicating deployment is in progress", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with a successful deployment queued response")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -246,14 +253,17 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					apiClient.AssertExpectations(GinkgoT())
 				})
 
-				It("should not return an error", func() {
+				It("queueing should not return an error", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
+				})
+				It("polling should not return an error", func() {
+					Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 				})
 				It("should have status Reconciling", func() {
 					Expect(object.Status.ProvisioningStatus.Status).To(Equal("Reconciling"))
 				})
 				It("should requue after some time", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 				It("should updpate the compoent status with progress", func() {
 					Expect(object.Status.Properties["targets.default-target.comp1"]).To(ContainSubstring("updated"))
@@ -276,14 +286,17 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 						apiClient.AssertExpectations(GinkgoT())
 					})
 
-					It("should not return an error", func() {
+					It("queueing should not return an error", func() {
 						Expect(reconcileError).NotTo(HaveOccurred())
+					})
+					It("polling should not return an error", func() {
+						Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 					})
 					It("should have status Reconciling", func() {
 						Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
 					})
 					It("should requue after some time", func() {
-						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+						Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 					})
 				})
 
@@ -331,7 +344,10 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 						Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Reconciling"))
 					})
 					It("should requue after some time", func() {
-						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+						Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
+					})
+					It("should requue after some time", func() {
+						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 					})
 				})
 
@@ -366,6 +382,11 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					It("should not requeue due to error", func() {
 						Expect(reconcileError).NotTo(HaveOccurred())
 					})
+
+					It("polling should not requeue due to error", func() {
+						Expect(reconcileErrorPolling).NotTo(HaveOccurred())
+					})
+
 					It("should have status Failed", func() {
 						Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
 					})

@@ -144,10 +144,10 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 }
 
 // attemptUpdate attempts to update the instance
-func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
-	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
+	if !controllerutil.ContainsFinalizer(object, r.finalizerName) && !isRemoval {
 		controllerutil.AddFinalizer(object, r.finalizerName)
 		// updates the object in Kubernetes cluster
 		if err := r.kubeClient.Update(ctx, object); err != nil {
@@ -155,35 +155,97 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
 	}
-
-	if object.GetAnnotations()[operationStartTimeKey] == "" || utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
-		r.patchOperationStartTime(object, operationStartTimeKey)
-		if err := r.kubeClient.Update(ctx, object); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object with operation start time")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
-		}
-	}
-
 	// Get reconciliation interval
 	reconciliationInterval, timeout := r.deriveReconcileInterval(log, ctx, object)
 
-	// If the object hasn't reached a terminal state and the time since the operation started is greater than the
-	// apply timeout, we should update the status with a terminal error and return
-	startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
-	if err != nil {
-		diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
-		return metrics.StatusUpdateFailed, ctrl.Result{}, err
-	}
-	if time.Since(startTime) > timeout && !utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
-		diagnostic.InfoWithCtx(log, ctx, "Failed to completely reconcile within the allocated time.", "timeout", timeout)
-		if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
-			terminalErr: v1alpha2.NewCOAError(nil, "failed to completely reconcile within the allocated time", v1alpha2.TimedOut),
-		}, log); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
+	if isRemoval {
+		// Timeout will be deletion timestamp + delete timeout duration
+		timeout := object.GetDeletionTimestamp().Time.Add(r.deleteTimeOut)
+
+		if metav1.Now().Time.After(timeout) {
+			return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+		}
+	} else {
+		if object.GetAnnotations()[operationStartTimeKey] == "" || utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
+			r.patchOperationStartTime(object, operationStartTimeKey)
+			if err := r.kubeClient.Update(ctx, object); err != nil {
+				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
+				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			}
+		}
+		// If the object hasn't reached a terminal state and the time since the operation started is greater than the
+		// apply timeout, we should update the status with a terminal error and return
+		startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
+		if err != nil {
+			diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
-		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
-		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+		if time.Since(startTime) > timeout {
+			diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
+			return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+		}
+	}
+
+	if err := r.queueDeploymentJob(ctx, object, isRemoval, true, operationStartTimeKey); err != nil {
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
+		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
+	}
+
+	diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
+	if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{deploymentQueued: true}, log); err != nil {
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
+		return metrics.StatusUpdateFailed, ctrl.Result{}, err
+	}
+
+	if isRemoval || reconciliationInterval == 0 {
+		// remove, don't need to reconcile
+		// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
+		diagnostic.InfoWithCtx(log, ctx, "Won't queue a new job because of reconcile policy or remove", "isRemoval", isRemoval)
+		return metrics.DeploymentQueued, ctrl.Result{}, nil
+	} else {
+		diagnostic.InfoWithCtx(log, ctx, "Queueing deployment job because of reconciliation interval", "requeueAfter", reconciliationInterval)
+		return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+	}
+}
+
+func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// populate diagnostics and activities from annotations
+	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
+	// Get reconciliation interval
+	reconciliationInterval, timeout := r.deriveReconcileInterval(log, ctx, object)
+	if isRemoval {
+		// Timeout will be deletion timestamp + delete timeout duration
+		timeout := object.GetDeletionTimestamp().Time.Add(r.deleteTimeOut)
+
+		if metav1.Now().Time.After(timeout) {
+			diagnostic.InfoWithCtx(log, ctx, "Operation timed out", "timeout", r.deleteTimeOut)
+			r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
+				terminalErr: v1alpha2.NewCOAError(nil, "failed to completely delete the resource within the allocated time", v1alpha2.TimedOut),
+			}, log)
+			return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+		}
+	} else {
+		if object.GetAnnotations()[operationStartTimeKey] == "" {
+			return metrics.DeploymentPolling, ctrl.Result{RequeueAfter: r.pollInterval}, nil
+		}
+		// If the object hasn't reached a terminal state and the time since the operation started is greater than the
+		// apply timeout, we should update the status with a terminal error and return
+		startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
+		if err != nil {
+			diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
+			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		}
+		if time.Since(startTime) > timeout {
+			diagnostic.InfoWithCtx(log, ctx, "Failed to completely poll within the allocated time.", "timeout", timeout)
+			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
+				terminalErr: v1alpha2.NewCOAError(nil, "failed to completely reconcile within the allocated time", v1alpha2.TimedOut),
+			}, log); err != nil {
+				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
+				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			}
+			diagnostic.InfoWithCtx(log, ctx, "Repollinging after timeout", "requeueAfter", reconciliationInterval)
+			return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
+		}
 	}
 
 	summary, err := r.getDeploymentSummary(ctx, object)
@@ -196,26 +258,20 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 				nonTerminalErr: err,
 			}, log); err != nil {
 				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with non-terminal error")
-				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+				return metrics.StatusUpdateFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
 			}
-			diagnostic.InfoWithCtx(log, ctx, "Requeueing after failed to get deployment summary")
-			return metrics.GetDeploymentSummaryFailed, ctrl.Result{}, err
+			diagnostic.InfoWithCtx(log, ctx, "Repolling after failed to get deployment summary")
+			return metrics.GetDeploymentSummaryFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
 		} else {
 			// It's not found in api so we should mark as reconciling, queue a job and check back in POLL seconds
 			diagnostic.InfoWithCtx(log, ctx, "Deployment summary not found, queueing job")
-			if err := r.queueDeploymentJob(ctx, object, false, false, operationStartTimeKey); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
-			}
-
-			diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
-				return metrics.StatusUpdateFailed, ctrl.Result{}, err
-			}
-			diagnostic.InfoWithCtx(log, ctx, "Will check after deployment queued", "requeueAfter", r.pollInterval)
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
+	}
+
+	if !r.hasParity(ctx, object, summary, log) || (reconciliationInterval != 0 && time.Since(summary.Time) > reconciliationInterval) {
+		diagnostic.InfoWithCtx(log, ctx, "Looks like queueing is pending will check after polling interval", "requeueAfter", r.pollInterval)
+		return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 	}
 
 	switch summary.State {
@@ -236,198 +292,50 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		diagnostic.InfoWithCtx(log, ctx, "Deployment is running, checking after poll interval", "requeueAfter", r.pollInterval)
 		return metrics.DeploymentStatusPolled, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 	case apimodel.SummaryStateDone:
-		// If the generation doesn't match the current generation, it means the api finished reconciling a previous
-		// generation so we need to queue a new job and check back in POLL seconds. Due to current limitations in the
-		// api, if the api is currently busy reconciling a different object, it will successfully queue this job but
-		// the api would not send a summary object back. This means we might queue multiple jobs for the same generation
-		// but it's better than not queueing a job at all.
-		diagnostic.InfoWithCtx(log, ctx, "Deployment is done, checking for parity")
-		if !r.hasParity(ctx, object, summary, log) {
-			diagnostic.InfoWithCtx(log, ctx, "Queueing deployment job because of parity mismatch")
-			if err = r.queueDeploymentJob(ctx, object, false, true, operationStartTimeKey); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
-			}
-
-			diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
-				return metrics.StatusUpdateFailed, ctrl.Result{}, err
-			}
-			diagnostic.InfoWithCtx(log, ctx, "Will check after deployment queued", "requeueAfter", r.pollInterval)
-			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
-		}
-
-		// There's parity, so we should update the status to a terminal state and proceed based on the reconcile policy
 		diagnostic.InfoWithCtx(log, ctx, "Updating object status when deployment is done")
 		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
-
-		// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
-		diagnostic.InfoWithCtx(log, ctx, "Won't queue a new job because of reconcile policy")
-		if reconciliationInterval == 0 {
-			return metrics.DeploymentSucceeded, ctrl.Result{}, nil
+		if object.GetStatus().ProvisioningStatus.Status == string(utilsmodel.ProvisioningStatusFailed) {
+			diagnostic.InfoWithCtx(log, ctx, "provisioning status is failed")
+			return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 		}
+		// TODO: handle crash consistency that finalizer removal fails
 
-		// The reconcile policy is periodic (interval > 0 and state == active). We should check if the difference
-		// in time between the summary time and the current time is greater than the reconciliation interval
-		// If it is, we should queue a new job to the api and check back in POLL seconds
-		// else we should queue a reconciliation and check back in the difference between the summary time and the current time
-		if time.Since(summary.Time) > reconciliationInterval {
-			diagnostic.InfoWithCtx(log, ctx, "Queueing deployment job because of currentTime - summaryTime > reconciliationInterval")
-			if err = r.queueDeploymentJob(ctx, object, false, true, operationStartTimeKey); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-				return r.handleDeploymentError(ctx, object, summary, reconciliationInterval, err, log)
+		if isRemoval {
+			diagnostic.InfoWithCtx(log, ctx, "Clean up deployment summary")
+			err = r.deleteDeploymentSummary(ctx, object)
+			if err != nil {
+				diagnostic.InfoWithCtx(log, ctx, "failed to clean up deployment summary")
+				return metrics.DeleteDeploymentSummaryFailed, ctrl.Result{}, err
+
 			}
-
-			diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
+			diagnostic.InfoWithCtx(log, ctx, "Removing finalizer")
+			if err := r.concludeDeletion(ctx, object); err != nil {
+				diagnostic.ErrorWithCtx(log, ctx, err, "failed to remove finalizer")
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
-			diagnostic.InfoWithCtx(log, ctx, "Will check after deployment queued", "requeueAfter", r.pollInterval)
-			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
+			diagnostic.InfoWithCtx(log, ctx, "Deletion concluded")
+			// remove, don't need to reconcile
+			return metrics.DeploymentSucceeded, ctrl.Result{}, nil
+		} else {
+			// If the reconcile policy is once (interval == 0 or state==inactive), we should not queue a new job and return
+			if reconciliationInterval == 0 {
+				diagnostic.InfoWithCtx(log, ctx, "Won't polling a new job because of reconcile policy")
+				return metrics.DeploymentSucceeded, ctrl.Result{}, nil
+			} else {
+				diagnostic.InfoWithCtx(log, ctx, "Polling a new job because of reconcile policy", "requeueAfter", reconciliationInterval-time.Since(summary.Time))
+				return metrics.DeploymentSucceeded, ctrl.Result{RequeueAfter: reconciliationInterval - time.Since(summary.Time)}, nil
+			}
 		}
-		diagnostic.InfoWithCtx(log, ctx, "Queueing deployment job because of reconciliation interval", "requeueAfter", reconciliationInterval-time.Since(summary.Time))
-		diagnostic.InfoWithCtx(log, ctx, "Update concluded")
-		return metrics.DeploymentSucceeded, ctrl.Result{RequeueAfter: reconciliationInterval - time.Since(summary.Time)}, nil
 	default:
 		diagnostic.ErrorWithCtx(log, ctx, errors.New("should not reach here"), "invalid deployment summary state")
 		return metrics.StatusNoOp, ctrl.Result{}, fmt.Errorf("should not reach here")
 	}
 }
 
-// attemptRemove attempts to remove the object
-func (r *DeploymentReconciler) AttemptRemove(ctx context.Context, object Reconcilable, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
-	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
-	status := metrics.StatusNoOp
-	if !controllerutil.ContainsFinalizer(object, r.finalizerName) {
-		diagnostic.InfoWithCtx(log, ctx, "Finalizer not found, object is already removed")
-		return metrics.StatusNoOp, ctrl.Result{}, nil
-	}
-
-	// Timeout will be deletion timestamp + delete timeout duration
-	timeout := object.GetDeletionTimestamp().Time.Add(r.deleteTimeOut)
-
-	if metav1.Now().Time.After(timeout) {
-		// If the timeout has been reached, Update the status with a terminal error and remove finalizer after a brief delay
-		// so that ARM can sycnchroniize the failure
-		diagnostic.InfoWithCtx(log, ctx, "Operation timed out", "timeout", r.deleteTimeOut)
-		r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
-			terminalErr: v1alpha2.NewCOAError(nil, "failed to completely delete the resource within the allocated time", v1alpha2.TimedOut),
-		}, log)
-		diagnostic.InfoWithCtx(log, ctx, "Delaying finalizer removal", "delay", r.deleteSyncDelay)
-		r.delayFunc(r.deleteSyncDelay)
-		diagnostic.InfoWithCtx(log, ctx, "Removing finalizer")
-		return metrics.DeploymentTimedOut, ctrl.Result{}, r.concludeDeletion(ctx, object)
-	}
-
-	// Grab summary
-	summary, err := r.getDeploymentSummary(ctx, object)
-	// If there was an error and it was not a 404, we should update the status and return the error so the reconciler can retry
-	if err != nil && !v1alpha2.IsNotFound(err) {
-		diagnostic.ErrorWithCtx(log, ctx, err, "failed to get deployment summary")
-		if _, uErr := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{nonTerminalErr: err}, log); uErr != nil {
-			diagnostic.ErrorWithCtx(log, ctx, uErr, "failed to update object status with non-terminal error")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, uErr
-		}
-		diagnostic.InfoWithCtx(log, ctx, "Requeueing after failed to get deployment summary")
-		return metrics.GetDeploymentSummaryFailed, ctrl.Result{}, err
-	}
-
-	// Since the summary is not found, we should queue a job and check back in POLL seconds
-	if err != nil {
-		diagnostic.InfoWithCtx(log, ctx, "Deployment summary not found, queueing job")
-		if err = r.queueDeploymentJob(ctx, object, true, false, operationStartTimeKey); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-			return r.handleDeleteDeploymentError(ctx, object, summary, err, log)
-		}
-		diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
-		}
-		diagnostic.InfoWithCtx(log, ctx, "Will check after deployment queued", "requeueAfter", r.pollInterval)
-		return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
-	}
-
-	switch summary.State {
-	case apimodel.SummaryStatePending:
-		diagnostic.InfoWithCtx(log, ctx, "Deployment is pending, checking after poll interval", "requeueAfter", r.pollInterval)
-		// do nothing and check back in POLL seconds
-		return metrics.StatusNoOp, ctrl.Result{RequeueAfter: r.pollInterval}, nil
-	case apimodel.SummaryStateRunning:
-		// if there is a parity mismatch between the object and the summary, the api is probably busy reconciling
-		// a previous revision, so we'll only make sure the status is Non-terminal
-		// But if they are the same, it's currently reconciling this generatation
-		// we'll update the status and also the current progress. Either way, we'll check back in POLL seconds
-		diagnostic.InfoWithCtx(log, ctx, "Updating object status when deployment is running")
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
-		}
-		diagnostic.InfoWithCtx(log, ctx, "Deployment is running, checking after poll interval", "requeueAfter", r.pollInterval)
-		return metrics.DeploymentStatusPolled, ctrl.Result{RequeueAfter: r.pollInterval}, nil
-	case apimodel.SummaryStateDone:
-		// If the generation doesn't match the current generation, it means the api finished reconciling a previous
-		// generation so we need to queue a new job and check back in POLL seconds. Due to current limitations in the
-		// api, if the api is currently busy reconciling a different object, it will successfully queue this job but
-		// the api would not send a summary object back. This means we might queue multiple jobs for the same generation
-		// but it's better than not queueing a job at all.
-		if !r.hasParity(ctx, object, summary, log) {
-			diagnostic.InfoWithCtx(log, ctx, "Queueing deployment job because of parity mismatch")
-			if err = r.queueDeploymentJob(ctx, object, true, true, operationStartTimeKey); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-				return r.handleDeleteDeploymentError(ctx, object, summary, err, log)
-			}
-
-			// We've queued a job so we should update the status and check back in POLL seconds
-			diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{deploymentQueued: true}, log); err != nil {
-				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
-				return metrics.StatusUpdateFailed, ctrl.Result{}, err
-			}
-			diagnostic.InfoWithCtx(log, ctx, "Will check after deployment queued", "requeueAfter", r.pollInterval)
-			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
-		}
-
-		// There's parity, so we should update the status to a terminal state and conclude the deletion
-		diagnostic.InfoWithCtx(log, ctx, "Updating object status when deployment is done")
-		_, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log)
-		if err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
-		}
-
-		diagnostic.InfoWithCtx(log, ctx, "Delaying finalizer removal when provisioning status is failed", "delay", r.deleteSyncDelay)
-		if object.GetStatus().ProvisioningStatus.Status == string(utilsmodel.ProvisioningStatusFailed) {
-			r.delayFunc(r.deleteSyncDelay)
-		}
-
-		// TODO: handle crash consistency that finalizer removal fails
-		diagnostic.InfoWithCtx(log, ctx, "Clean up deployment summary")
-		err = r.deleteDeploymentSummary(ctx, object)
-		if err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to clean up deployment summary")
-			return metrics.DeleteDeploymentSummaryFailed, ctrl.Result{}, err
-		}
-
-		diagnostic.InfoWithCtx(log, ctx, "Removing finalizer")
-		if err := r.concludeDeletion(ctx, object); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to remove finalizer")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
-		}
-		diagnostic.InfoWithCtx(log, ctx, "Deletion concluded")
-		return metrics.DeploymentSucceeded, ctrl.Result{}, nil
-	default:
-		diagnostic.ErrorWithCtx(log, ctx, errors.New("should not reach here"), "invalid deployment summary state")
-		return status, ctrl.Result{}, fmt.Errorf("should not reach here")
-	}
-}
-
-func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, reconcileInterval time.Duration, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
+func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, isRemoval bool, reconcileInterval time.Duration, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
 	patchOptions := patchStatusOptions{}
 	if isTermnalError(err, termialErrors) {
 		patchOptions.terminalErr = err
@@ -447,29 +355,6 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 		return metrics.DeploymentFailed, ctrl.Result{RequeueAfter: reconcileInterval}, nil
 	}
 	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Deployment job failed due to non-terminal error.")
-	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
-}
-func (r *DeploymentReconciler) handleDeleteDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
-	patchOptions := patchStatusOptions{}
-	if isTermnalError(err, termialErrors) {
-		patchOptions.terminalErr = err
-	} else {
-		patchOptions.nonTerminalErr = err
-	}
-
-	// update the object status
-	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions, log); err != nil {
-		return metrics.StatusUpdateFailed, ctrl.Result{}, err
-	}
-
-	// If there was a terminal error, then we want to conclude the deletion
-	// but give the api a chance to synchronize the failure before removing the finalizer
-	if patchOptions.terminalErr != nil {
-		r.delayFunc(r.deleteSyncDelay)
-		diagnostic.ErrorWithCtx(log, ctx, patchOptions.terminalErr, "Delete deployment job failed due to terminal error.")
-		return metrics.DeploymentFailed, ctrl.Result{}, r.concludeDeletion(ctx, object)
-	}
-	diagnostic.ErrorWithCtx(log, ctx, patchOptions.nonTerminalErr, "Delete deployment job failed due to non-terminal error.")
 	return metrics.QueueDeploymentFailed, ctrl.Result{}, patchOptions.nonTerminalErr
 }
 
