@@ -688,6 +688,9 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 						}
 					}
 				}
+			} else {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref and it is not because of access issue: %+v", herr)
+				return "", err
 			}
 		}
 
