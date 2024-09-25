@@ -11,7 +11,7 @@ spec:
     spec: 
       type: config
       properties:
-        test.dot.serviceType: "LoadBalancer"
+        test.dot.serviceType: "NodePort"
         testA:
           testB:
             images:

@@ -36,6 +36,7 @@ const (
 	StatusNoOp         OperationStatus = "NoOp"
 	StatusUpdateFailed OperationStatus = "StatusUpdateFailed"
 	// deployment operation status
+	DeploymentPolling             OperationStatus = "DeploymentPolling"
 	DeploymentQueued              OperationStatus = "DeploymentQueued"
 	DeploymentStatusPolled        OperationStatus = "DeploymentStatusPolled"
 	DeploymentSucceeded           OperationStatus = "DeploymentSucceeded"
