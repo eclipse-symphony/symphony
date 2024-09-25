@@ -18,5 +18,5 @@ type ISecretProvider interface {
 }
 
 type IExtSecretProvider interface {
-	Get(name string, field string, localContext interface{}) (string, error)
+	Get(ctx context.Context, name string, field string, localContext interface{}) (string, error)
 }

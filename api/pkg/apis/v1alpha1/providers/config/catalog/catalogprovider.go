@@ -95,15 +95,18 @@ func (m *CatalogConfigProvider) unwindOverrides(ctx context.Context, override st
 	override = utils.ConvertReferenceToObjectName(override)
 	catalog, err := m.ApiClient.GetCatalog(ctx, override, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
+		clog.ErrorCtx(ctx, "  P (Catalog): Unwind overrides error:", err)
 		return "", err
 	}
 	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
-		return m.traceValue(v, localcontext, dependencyList)
+		return m.traceValue(ctx, v, localcontext, dependencyList)
 	}
 	if catalog.Spec.ParentName != "" {
 		return m.unwindOverrides(ctx, catalog.Spec.ParentName, field, namespace, localcontext, dependencyList)
 	}
-	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
+	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, override), v1alpha2.NotFound)
+	clog.ErrorCtx(ctx, "  P (Catalog): Unwind overrides error:", err)
+	return "", err
 }
 
 func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field string, localcontext interface{}) (interface{}, error) {
@@ -113,11 +116,12 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	clog.DebugfCtx(ctx, " M (Catalog): Read, object: %s, field: %s", object, field)
+	clog.DebugfCtx(ctx, "  P (Catalog): Read, object: %s, field: %s", object, field)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = utils.ConvertReferenceToObjectName(object)
 	catalog, err := m.ApiClient.GetCatalog(ctx, object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
+		clog.ErrorCtx(ctx, "  P (Catalog): Read error:", err)
 		return "", err
 	}
 
@@ -126,7 +130,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	if localcontext != nil {
 		if evalContext, ok := localcontext.(coa_utils.EvaluationContext); ok {
 			if coa_utils.HasCircularDependency(object, field, evalContext) {
-				clog.ErrorfCtx(ctx, " M (Catalog): Read detect circular dependency. Object: %s, field: %s, ", object, field)
+				clog.ErrorfCtx(ctx, "  P (Catalog): Read detect circular dependency. Object: %s, field: %s, ", object, field)
 				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", object, field), v1alpha2.BadConfig)
 			}
 			dependencyList = coa_utils.DeepCopyDependencyList(evalContext.ParentConfigs)
@@ -135,7 +139,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	}
 
 	if v, ok := utils.JsonParseProperty(catalog.Spec.Properties, field); ok {
-		return m.traceValue(v, localcontext, dependencyList)
+		return m.traceValue(ctx, v, localcontext, dependencyList)
 	}
 
 	if catalog.Spec.ParentName != "" {
@@ -148,6 +152,7 @@ func (m *CatalogConfigProvider) Read(ctx context.Context, object string, field s
 	}
 
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration '%s'", field, object), v1alpha2.NotFound)
+	clog.ErrorCtx(ctx, "  P (Catalog): Read error:", err)
 	return "", err
 }
 
@@ -158,18 +163,20 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	clog.DebugfCtx(ctx, " M (Catalog): ReadObject, object: %s", object)
+	clog.DebugfCtx(ctx, "  P (Catalog): ReadObject, object: %s", object)
 	namespace := utils.GetNamespaceFromContext(localcontext)
 	object = utils.ConvertReferenceToObjectName(object)
 
 	catalog, err := m.ApiClient.GetCatalog(ctx, object, namespace, m.Config.User, m.Config.Password)
 	if err != nil {
+		clog.ErrorCtx(ctx, "  P (Catalog): ReadObject error:", err)
 		return nil, err
 	}
 	ret := map[string]interface{}{}
 	for k, v := range catalog.Spec.Properties {
-		tv, err := m.traceValue(v, localcontext, nil)
+		tv, err := m.traceValue(ctx, v, localcontext, nil)
 		if err != nil {
+			clog.ErrorCtx(ctx, "  P (Catalog): ReadObject error:", err)
 			return nil, err
 		}
 		// line 189-196 extracts the returned map and merge the keys with the parent
@@ -187,12 +194,13 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 	return ret, nil
 }
 
-func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {
+func (m *CatalogConfigProvider) traceValue(ctx context.Context, v interface{}, localcontext interface{}, dependencyList map[string]map[string]bool) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
 		context.DeploymentSpec = m.Context.VencorContext.EvaluationContext.DeploymentSpec
+		context.Context = ctx
 		if localcontext != nil {
 			if ltx, ok := localcontext.(coa_utils.EvaluationContext); ok {
 				context.Inputs = ltx.Inputs
@@ -211,19 +219,21 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 		}
 		v, err := parser.Eval(*context)
 		if err != nil {
+			clog.ErrorCtx(ctx, "  P (Catalog): trace value error:", err)
 			return "", err
 		}
 		switch vt := v.(type) {
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v, localcontext, dependencyList)
+			return m.traceValue(ctx, v, localcontext, dependencyList)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v, localcontext, dependencyList)
+			tv, err := m.traceValue(ctx, v, localcontext, dependencyList)
 			if err != nil {
+				clog.ErrorCtx(ctx, "  P (Catalog): trace value error:", err)
 				return "", err
 			}
 			ret = append(ret, tv)
@@ -232,8 +242,9 @@ func (m *CatalogConfigProvider) traceValue(v interface{}, localcontext interface
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v, localcontext, dependencyList)
+			tv, err := m.traceValue(ctx, v, localcontext, dependencyList)
 			if err != nil {
+				clog.ErrorCtx(ctx, "  P (Catalog): trace value error:", err)
 				return "", err
 			}
 			ret[k] = tv
@@ -253,15 +264,17 @@ func (m *CatalogConfigProvider) Set(ctx context.Context, object string, field st
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	clog.DebugfCtx(ctx, " M (Catalog): Set, object: %s, field: %s", object, field)
+	clog.DebugfCtx(ctx, "  P (Catalog): Set, object: %s, field: %s", object, field)
 	catalog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
+		clog.ErrorCtx(ctx, "  P (Catalog): Set error:", err)
 		return err
 	}
 	catalog.Spec.Properties[field] = value
 	data, _ := json.Marshal(catalog)
 	return m.ApiClient.UpsertCatalog(ctx, object, data, m.Config.User, m.Config.Password)
 }
+
 func (m *CatalogConfigProvider) SetObject(ctx context.Context, object string, value map[string]interface{}) error {
 	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
 		"method": "SetObject",
@@ -270,9 +283,10 @@ func (m *CatalogConfigProvider) SetObject(ctx context.Context, object string, va
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	clog.DebugfCtx(ctx, " M (Catalog): SetObject, object: %s", object)
+	clog.DebugfCtx(ctx, "  P (Catalog): SetObject, object: %s", object)
 	catalog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
+		clog.ErrorCtx(ctx, "  P (Catalog): SetObject error:", err)
 		return err
 	}
 	catalog.Spec.Properties = map[string]interface{}{}
@@ -282,6 +296,7 @@ func (m *CatalogConfigProvider) SetObject(ctx context.Context, object string, va
 	data, _ := json.Marshal(catalog)
 	return m.ApiClient.UpsertCatalog(ctx, object, data, m.Config.User, m.Config.Password)
 }
+
 func (m *CatalogConfigProvider) Remove(ctx context.Context, object string, field string) error {
 	ctx, span := observability.StartSpan("Catalog Provider", ctx, &map[string]string{
 		"method": "Remove",
@@ -290,12 +305,14 @@ func (m *CatalogConfigProvider) Remove(ctx context.Context, object string, field
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	clog.DebugfCtx(ctx, " M (Catalog): Remove, object: %s, field: %s", object, field)
+	clog.DebugfCtx(ctx, "  P (Catalog): Remove, object: %s, field: %s", object, field)
 	catlog, err := m.getCatalogInDefaultNamespace(ctx, object)
 	if err != nil {
+		clog.ErrorCtx(ctx, "  P (Catalog): Remove error:", err)
 		return err
 	}
 	if _, ok := catlog.Spec.Properties[field]; !ok {
+		clog.ErrorCtx(ctx, "  P (Catalog): Remove: field not found.")
 		return v1alpha2.NewCOAError(nil, "field not found", v1alpha2.NotFound)
 	}
 	delete(catlog.Spec.Properties, field)
@@ -311,7 +328,7 @@ func (m *CatalogConfigProvider) RemoveObject(ctx context.Context, object string)
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	clog.DebugfCtx(ctx, " M (Catalog): RemoveObject, object: %s", object)
+	clog.DebugfCtx(ctx, "  P (Catalog): RemoveObject, object: %s", object)
 	object = utils.ConvertReferenceToObjectName(object)
 	return m.ApiClient.DeleteCatalog(ctx, object, m.Config.User, m.Config.Password)
 }
