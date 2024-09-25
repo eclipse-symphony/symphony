@@ -765,7 +765,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 			}
 
-			return context.ConfigProvider.Get(FormatAsString(obj), FormatAsString(field), overlays, context)
+			return context.ConfigProvider.Get(context.Context, FormatAsString(obj), FormatAsString(field), overlays, context)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$config() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "secret":
@@ -781,7 +781,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			return context.SecretProvider.Get(FormatAsString(obj), FormatAsString(field), context)
+			return context.SecretProvider.Get(context.Context, FormatAsString(obj), FormatAsString(field), context)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$secret() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "instance":
@@ -889,6 +889,7 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			parser := newExpressionParser(text)
 			n, err := parser.Eval(context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Parser evaluate failed: %v", err)
 				return nil, err
 			}
 			results = append(results, n)
@@ -1456,12 +1457,14 @@ func enumerateProperties(js interface{}, context utils.EvaluationContext) (inter
 				parser := NewParser(strVal)
 				val, err := parser.Eval(context)
 				if err != nil {
+					log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 					return nil, err
 				}
 				v[key] = val
 			} else {
 				nestedProps, err := enumerateProperties(val, context)
 				if err != nil {
+					log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 					return nil, err
 				}
 				v[key] = nestedProps
@@ -1471,6 +1474,7 @@ func enumerateProperties(js interface{}, context utils.EvaluationContext) (inter
 		for i, val := range v {
 			nestedProps, err := enumerateProperties(val, context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 				return nil, err
 			}
 			v[i] = nestedProps
