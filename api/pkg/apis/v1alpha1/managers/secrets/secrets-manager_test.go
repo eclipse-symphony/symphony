@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"context"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -9,6 +10,8 @@ import (
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+var ctx = context.Background()
 
 func TestSecretsManager_Init(t *testing.T) {
 	secretProvider := mocksecret.MockSecretProvider{}
@@ -34,7 +37,7 @@ func TestObjectFieldGetWithProviderSpecified(t *testing.T) {
 		},
 	}
 	assert.Nil(t, err)
-	val, err := manager.Get("mock::obj", "field", nil)
+	val, err := manager.Get(ctx, "mock::obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj>>field", val)
 }
@@ -42,12 +45,13 @@ func TestObjectFieldGetWithProviderSpecified(t *testing.T) {
 func TestObjectFieldGetWithOneProvider(t *testing.T) {
 	provider := mocksecret.MockSecretProvider{}
 	err := provider.Init(mocksecret.MockSecretProviderConfig{})
+	assert.Nil(t, err)
 	manager := SecretsManager{
 		SecretProviders: map[string]secret.ISecretProvider{
 			"mock": &provider,
 		},
 	}
-	val, err := manager.Get("obj", "field", nil)
+	val, err := manager.Get(ctx, "obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj>>field", val)
 }
@@ -67,7 +71,7 @@ func TestObjectFieldGetWithMoreProviders(t *testing.T) {
 		Precedence: []string{"mock1", "mock2"},
 	}
 	assert.Nil(t, err)
-	val, err := manager.Get("obj", "field", nil)
+	val, err := manager.Get(ctx, "obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj>>field", val)
 }
