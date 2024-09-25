@@ -400,7 +400,13 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		metrics.ApplyScriptOperation,
 		metrics.DeleteOperationType,
 	)
-
+	providerOperationMetrics.ProviderOperationLatency(
+		applyTime,
+		script,
+		functionName,
+		metrics.ApplyOperation,
+		metrics.UpdateOperationType,
+	)
 	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
