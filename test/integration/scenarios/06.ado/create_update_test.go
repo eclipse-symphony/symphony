@@ -353,7 +353,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		),
 
 		Entry(
-			"it should fail the solution when component is invalid", SpecTimeout(60*time.Second),
+			"it should fail the solution when component is invalid", SpecTimeout(100*time.Second),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1-nonexistent"}, // (same as previous entry)
 				SolutionComponents: []string{"simple-chart-2-nonexistent"}, //

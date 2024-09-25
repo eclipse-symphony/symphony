@@ -16,7 +16,6 @@ import (
 	solution_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
-	"gopls-workspace/predicates"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
 	"gopls-workspace/utils/diagnostic"
@@ -29,10 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // InstanceReconciler reconciles a Instance object
@@ -79,52 +76,11 @@ const (
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrllog.FromContext(ctx)
-	diagnostic.InfoWithCtx(log, ctx, "Reconciling Instance", "Name", req.Name, "Namespace", req.Namespace)
-
-	// Initialize reconcileTime for latency metrics
-	reconcileTime := time.Now()
-
-	// Get instance
-	instance := &solution_v1.Instance{}
-	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
-		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Instance object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	reconciliationType := metrics.CreateOperationType
-	resultType := metrics.ReconcileSuccessResult
-	reconcileResult := ctrl.Result{}
-	deploymentOperationType := metrics.DeploymentQueued
-	var err error
-
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	} else { // remove
-		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptRemove(ctx, instance, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
-		}
-	}
-
-	r.m.ControllerReconcileLatency(
-		reconcileTime,
-		reconciliationType,
-		resultType,
-		metrics.InstanceResourceType,
-		deploymentOperationType,
-	)
-
-	return reconcileResult, err
-}
+// func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// 	log := ctrllog.FromContext(ctx)
+// 	log.Info("shouldn't be called here")
+// 	return ctrl.Result{}, nil
+// }
 
 func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	log := ctrllog.FromContext(ctx)
@@ -181,29 +137,6 @@ func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler
 		reconcilers.WithFinalizerName(instanceFinalizerName),
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
 	)
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	var err error
-	if r.m, err = metrics.New(); err != nil {
-		return err
-	}
-
-	if r.dr, err = r.buildDeploymentReconciler(); err != nil {
-		return err
-	}
-
-	generationChange := predicate.GenerationChangedPredicate{}
-	operationIdPredicate := predicates.OperationIdPredicate{}
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&solution_v1.Instance{}).
-		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
-		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
-			r.handleSolution)).
-		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
-			r.handleTarget)).
-		Complete(r)
 }
 
 func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object) []ctrl.Request {
