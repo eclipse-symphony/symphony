@@ -28,6 +28,9 @@ var dynamicclientlog = logf.Log.WithName("dynamicclient")
 
 func SetClient(config *rest.Config) error {
 	var err error
+	// to do: read this from config
+	config.QPS = 300
+	config.Burst = 300
 	dynamicClient, err = dynamic.NewForConfig(config)
 	if err != nil {
 		return err

@@ -50,9 +50,9 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	defer testhelpers.Cleanup(TEST_NAME)
-
-	err := testhelpers.SetupCluster()
+	cancel, tunnelPid, err := testhelpers.SetupClusterWithTunnel()
+	defer testhelpers.CleanupWithTunnel(cancel, tunnelPid, TEST_NAME)
+	
 	if err != nil {
 		return err
 	}
