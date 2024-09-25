@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: redis-server
+spec:  
+  rootResource: solutioncontainer0
+  components:
+  - name: deployment-gate
+    type: http
+    properties:
+      http.url: "https://www.bing.com/"

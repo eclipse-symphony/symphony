@@ -179,13 +179,29 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		namespace = "default"
 	}
 
-	mLog.DebugfCtx(ctx, "  P (Materialize Processor): masterialize %v in namespace %s", prefixedNames, namespace)
+	mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize %v in namespace %s", prefixedNames, namespace)
 
-	var catalogs []model.CatalogState
-	catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace, i.Config.User, i.Config.Password)
-
-	if err != nil {
-		mLog.ErrorfCtx(ctx, "Failed to get catalogs: %s", err.Error())
+	// Fail fast check
+	catalogs := []model.CatalogState{}
+	errorMessage := "Failed to get all catalogs: "
+	anyCatalogInvalid := false
+	for _, objectRef := range prefixedNames {
+		objectName := api_utils.ConvertReferenceToObjectName(objectRef)
+		catalog, err := i.ApiClient.GetCatalog(ctx, objectName, namespace, i.Config.User, i.Config.Password)
+		if err != nil {
+			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectRef, err.Error())
+			anyCatalogInvalid = anyCatalogInvalid || strings.Contains(err.Error(), v1alpha2.NotFound.String())
+			continue
+		}
+		if !checkCatalog(&catalog) {
+			errorMessage = fmt.Sprintf("%s %s(reason: catalog doesn't have a valid Spec.CatalogType).", errorMessage, objectRef)
+			anyCatalogInvalid = true
+			continue
+		}
+		catalogs = append(catalogs, catalog)
+	}
+	if len(catalogs) < len(prefixedNames) {
+		mLog.ErrorCtx(ctx, errorMessage)
 		providerOperationMetrics.ProviderOperationErrors(
 			materialize,
 			functionName,
@@ -193,325 +209,331 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			metrics.RunOperationType,
 			v1alpha2.CatalogsGetFailed.String(),
 		)
-		return outputs, false, err
-	}
-	creationCount := 0
-	for _, catalog := range catalogs {
-		for _, object := range prefixedNames {
-			object := api_utils.ConvertReferenceToObjectName(object)
-			if catalog.ObjectMeta.Name == object {
-				label_key := os.Getenv("LABEL_KEY")
-				label_value := os.Getenv("LABEL_VALUE")
-				annotation_name := os.Getenv("ANNOTATION_KEY")
-				if label_key != "" && label_value != "" {
-					// Check if metadata exists, if not create it
-					metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
-					if !ok {
-						metadata = make(map[string]interface{})
-						catalog.Spec.Properties["metadata"] = metadata
-					}
-
-					// Check if labels exists within metadata, if not create it
-					labels, ok := metadata["labels"].(map[string]string)
-					if !ok {
-						labels = make(map[string]string)
-						metadata["labels"] = labels
-					}
-
-					// Add the label
-					labels[label_key] = label_value
-				}
-				objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
-				name := catalog.ObjectMeta.Name
-				if s, ok := inputs["__origin"]; ok {
-					name = strings.TrimPrefix(catalog.ObjectMeta.Name, fmt.Sprintf("%s-", s))
-				}
-				switch catalog.Spec.CatalogType {
-				case "instance":
-					var instanceState model.InstanceState
-					err = json.Unmarshal(objectData, &instanceState)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidInstanceCatalog.String(),
-						)
-						return outputs, false, err
-					}
-
-					if instanceState.ObjectMeta.Name == "" {
-						mLog.ErrorfCtx(ctx, "Instance name is empty: catalog - %s", name)
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidInstanceCatalog.String(),
-						)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
-					objectData, _ := json.Marshal(instanceState)
-					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
-					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
-					err = i.ApiClient.CreateInstance(ctx, instanceState.ObjectMeta.Name, objectData, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to create instance %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.CreateInstanceFromCatalogFailed.String(),
-						)
-						return outputs, false, err
-					}
-					creationCount++
-				case "solution":
-					var solutionState model.SolutionState
-					err = json.Unmarshal(objectData, &solutionState)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidSolutionCatalog.String(),
-						)
-						return outputs, false, err
-					}
-
-					if solutionState.ObjectMeta.Name == "" {
-						mLog.ErrorfCtx(ctx, "Solution name is empty: catalog - %s", name)
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidSolutionCatalog.String(),
-						)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty solution name: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					solutionName := solutionState.ObjectMeta.Name
-					parts := strings.Split(solutionName, constants.ReferenceSeparator)
-					if len(parts) == 2 {
-						solutionState.Spec.RootResource = parts[0]
-						solutionState.Spec.Version = parts[1]
-					} else {
-						mLog.ErrorfCtx(ctx, "Solution name is invalid: solution - %s, catalog - %s", solutionName, name)
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidSolutionCatalog.String(),
-						)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					if annotation_name != "" {
-						solutionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
-					}
-					mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
-					_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-					if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
-						mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
-						solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
-						containerObjectData, _ := json.Marshal(solutionContainerState)
-						observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solution container %v in namespace %s", solutionState.Spec.RootResource, namespace)
-						err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
-						if err != nil {
-							mLog.ErrorfCtx(ctx, "Failed to create solution container %s: %s", solutionState.Spec.RootResource, err.Error())
-							providerOperationMetrics.ProviderOperationErrors(
-								materialize,
-								functionName,
-								metrics.ProcessOperation,
-								metrics.RunOperationType,
-								v1alpha2.ParentObjectCreateFailed.String(),
-							)
-							return outputs, false, err
-						}
-					} else if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to get solution container %s: %s", solutionState.Spec.RootResource, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.ParentObjectMissing.String(),
-						)
-						return outputs, false, err
-					}
-
-					solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
-					objectData, _ := json.Marshal(solutionState)
-					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-					err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to create solution %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.CreateSolutionFromCatalogFailed.String(),
-						)
-						return outputs, false, err
-					}
-					creationCount++
-				case "target":
-					var targetState model.TargetState
-					err = json.Unmarshal(objectData, &targetState)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to unmarshal target state for catalog %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidTargetCatalog.String(),
-						)
-						return outputs, false, err
-					}
-
-					if targetState.ObjectMeta.Name == "" {
-						mLog.ErrorfCtx(ctx, "Target name is empty: catalog - %s", name)
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidTargetCatalog.String(),
-						)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
-					objectData, _ := json.Marshal(targetState)
-					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
-					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
-					err = i.ApiClient.CreateTarget(ctx, targetState.ObjectMeta.Name, objectData, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to create target %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.CreateTargetFromCatalogFailed.String(),
-						)
-						return outputs, false, err
-					}
-					creationCount++
-				default:
-					// Check wrapped catalog structure and extract wrapped catalog name
-					var catalogState model.CatalogState
-					err = json.Unmarshal(objectData, &catalogState)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidCatalogCatalog.String(),
-						)
-						return outputs, false, err
-					}
-
-					if catalogState.ObjectMeta.Name == "" {
-						mLog.ErrorfCtx(ctx, "Catalog name is empty %s", name)
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidCatalogCatalog.String(),
-						)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty catalog name: %s", name), v1alpha2.BadRequest)
-					}
-
-					catalogName := catalogState.ObjectMeta.Name
-					parts := strings.Split(catalogName, constants.ReferenceSeparator)
-					if len(parts) == 2 {
-						catalogState.Spec.RootResource = parts[0]
-						catalogState.Spec.Version = parts[1]
-					} else {
-						mLog.ErrorfCtx(ctx, "Catalog name is invalid: catalog - %s, parent catalog - %s", catalogName, name)
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InvalidCatalogCatalog.String(),
-						)
-						return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: catalog - %s", name), v1alpha2.BadRequest)
-					}
-
-					if annotation_name != "" {
-						catalogState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
-					}
-					mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
-					_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-					if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
-						mLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
-						catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
-						containerObjectData, _ := json.Marshal(catalogContainerState)
-						observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create catalog container %v in namespace %s", catalogState.Spec.RootResource, namespace)
-						err = i.ApiClient.CreateCatalogContainer(ctx, catalogState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
-						if err != nil {
-							mLog.ErrorfCtx(ctx, "Failed to create catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
-							providerOperationMetrics.ProviderOperationErrors(
-								materialize,
-								functionName,
-								metrics.ProcessOperation,
-								metrics.RunOperationType,
-								v1alpha2.ParentObjectCreateFailed.String(),
-							)
-							return outputs, false, err
-						}
-					} else if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to get catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.ParentObjectMissing.String(),
-						)
-						return outputs, false, err
-					}
-
-					catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs)
-					objectData, _ := json.Marshal(catalogState)
-					mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-					observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-					err = i.ApiClient.UpsertCatalog(ctx, catalogState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.CreateCatalogFromCatalogFailed.String(),
-						)
-						return outputs, false, err
-					}
-					creationCount++
-				}
-			}
+		if anyCatalogInvalid {
+			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.BadRequest)
+		} else {
+			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 		}
 	}
-	if creationCount < len(objects) {
-		err = v1alpha2.NewCOAError(nil, "failed to create all objects", v1alpha2.InternalError)
+
+	createdObjectList := make(map[string]bool, 0)
+	for _, catalog := range catalogs {
+		label_key := os.Getenv("LABEL_KEY")
+		label_value := os.Getenv("LABEL_VALUE")
+		annotation_name := os.Getenv("ANNOTATION_KEY")
+		if label_key != "" && label_value != "" {
+			// Check if metadata exists, if not create it
+			metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
+			if !ok {
+				metadata = make(map[string]interface{})
+				catalog.Spec.Properties["metadata"] = metadata
+			}
+
+			// Check if labels exists within metadata, if not create it
+			labels, ok := metadata["labels"].(map[string]string)
+			if !ok {
+				labels = make(map[string]string)
+				metadata["labels"] = labels
+			}
+
+			// Add the label
+			labels[label_key] = label_value
+		}
+		objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
+		name := catalog.ObjectMeta.Name
+		if s, ok := inputs["__origin"]; ok {
+			name = strings.TrimPrefix(catalog.ObjectMeta.Name, fmt.Sprintf("%s-", s))
+		}
+		switch catalog.Spec.CatalogType {
+		case "instance":
+			var instanceState model.InstanceState
+			err = json.Unmarshal(objectData, &instanceState)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidInstanceCatalog.String(),
+				)
+				return outputs, false, err
+			}
+
+			if instanceState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "Instance name is empty: catalog - %s", name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidInstanceCatalog.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
+			}
+
+			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
+			objectData, _ := json.Marshal(instanceState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
+			err = i.ApiClient.CreateInstance(ctx, instanceState.ObjectMeta.Name, objectData, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to create instance %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFromCatalogFailed.String(),
+				)
+				return outputs, false, err
+			}
+			createdObjectList[catalog.ObjectMeta.Name] = true
+		case "solution":
+			var solutionState model.SolutionState
+			err = json.Unmarshal(objectData, &solutionState)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidSolutionCatalog.String(),
+				)
+				return outputs, false, err
+			}
+
+			if solutionState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "Solution name is empty: catalog - %s", name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidSolutionCatalog.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty solution name: catalog - %s", name), v1alpha2.BadRequest)
+			}
+
+			solutionName := solutionState.ObjectMeta.Name
+			parts := strings.Split(solutionName, constants.ReferenceSeparator)
+			if len(parts) == 2 {
+				solutionState.Spec.RootResource = parts[0]
+				solutionState.Spec.Version = parts[1]
+			} else {
+				mLog.ErrorfCtx(ctx, "Solution name is invalid: solution - %s, catalog - %s", solutionName, name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidSolutionCatalog.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: catalog - %s", name), v1alpha2.BadRequest)
+			}
+
+			if annotation_name != "" {
+				solutionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
+			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
+			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
+			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+				mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
+				solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
+				containerObjectData, _ := json.Marshal(solutionContainerState)
+				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solution container %v in namespace %s", solutionState.Spec.RootResource, namespace)
+				err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
+				if err != nil {
+					mLog.ErrorfCtx(ctx, "Failed to create solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+					providerOperationMetrics.ProviderOperationErrors(
+						materialize,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.ParentObjectCreateFailed.String(),
+					)
+					return outputs, false, err
+				}
+			} else if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.ParentObjectMissing.String(),
+				)
+				return outputs, false, err
+			}
+
+			solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
+			objectData, _ := json.Marshal(solutionState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
+			err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to create solution %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateSolutionFromCatalogFailed.String(),
+				)
+				return outputs, false, err
+			}
+			createdObjectList[catalog.ObjectMeta.Name] = true
+		case "target":
+			var targetState model.TargetState
+			err = json.Unmarshal(objectData, &targetState)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal target state for catalog %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidTargetCatalog.String(),
+				)
+				return outputs, false, err
+			}
+
+			if targetState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "Target name is empty: catalog - %s", name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidTargetCatalog.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
+			}
+
+			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
+			objectData, _ := json.Marshal(targetState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
+			err = i.ApiClient.CreateTarget(ctx, targetState.ObjectMeta.Name, objectData, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to create target %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateTargetFromCatalogFailed.String(),
+				)
+				return outputs, false, err
+			}
+			createdObjectList[catalog.ObjectMeta.Name] = true
+		default:
+			// Check wrapped catalog structure and extract wrapped catalog name
+			var catalogState model.CatalogState
+			err = json.Unmarshal(objectData, &catalogState)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidCatalogCatalog.String(),
+				)
+				return outputs, false, err
+			}
+
+			if catalogState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "Catalog name is empty %s", name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidCatalogCatalog.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty catalog name: %s", name), v1alpha2.BadRequest)
+			}
+
+			catalogName := catalogState.ObjectMeta.Name
+			parts := strings.Split(catalogName, constants.ReferenceSeparator)
+			if len(parts) == 2 {
+				catalogState.Spec.RootResource = parts[0]
+				catalogState.Spec.Version = parts[1]
+			} else {
+				mLog.ErrorfCtx(ctx, "Catalog name is invalid: catalog - %s, parent catalog - %s", catalogName, name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidCatalogCatalog.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: catalog - %s", name), v1alpha2.BadRequest)
+			}
+
+			if annotation_name != "" {
+				catalogState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
+			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
+			_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
+			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+				mLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
+				catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
+				containerObjectData, _ := json.Marshal(catalogContainerState)
+				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create catalog container %v in namespace %s", catalogState.Spec.RootResource, namespace)
+				err = i.ApiClient.CreateCatalogContainer(ctx, catalogState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
+				if err != nil {
+					mLog.ErrorfCtx(ctx, "Failed to create catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
+					providerOperationMetrics.ProviderOperationErrors(
+						materialize,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.ParentObjectCreateFailed.String(),
+					)
+					return outputs, false, err
+				}
+			} else if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.ParentObjectMissing.String(),
+				)
+				return outputs, false, err
+			}
+
+			catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs)
+			objectData, _ := json.Marshal(catalogState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
+			err = i.ApiClient.UpsertCatalog(ctx, catalogState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateCatalogFromCatalogFailed.String(),
+				)
+				return outputs, false, err
+			}
+			createdObjectList[catalog.ObjectMeta.Name] = true
+		}
+	}
+	if len(createdObjectList) < len(objects) {
+		errorMessage := "failed to create all objects:"
+		for _, catalog := range catalogs {
+			if _, ok := createdObjectList[catalog.ObjectMeta.Name]; !ok {
+				errorMessage = fmt.Sprintf("%s %s", errorMessage, catalog.ObjectMeta.Name)
+			}
+		}
+		err = v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 		providerOperationMetrics.ProviderOperationErrors(
 			materialize,
 			functionName,
@@ -542,4 +564,14 @@ func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}
 		objectMeta.Namespace = "default"
 	}
 	return objectMeta
+}
+
+func checkCatalog(catalog *model.CatalogState) bool {
+	if catalog.Spec == nil {
+		return false
+	}
+	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" {
+		return true
+	}
+	return false
 }

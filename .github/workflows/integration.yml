@@ -133,6 +133,10 @@ jobs:
       run: |
         cd test/integration/scenarios/10.namespace/ && mage test
 
+    - name: Run integration tests 09
+      run: |
+        cd test/integration/scenarios/09.stress/ && mage test
+
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v4
       with:

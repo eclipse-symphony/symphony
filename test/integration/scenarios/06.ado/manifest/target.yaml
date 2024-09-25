@@ -9,6 +9,7 @@ spec:
   - bindings:
     - config:
         inCluster: "true"
+        noWait: "true"
       provider: providers.target.k8s
       role: instance
     - config:
