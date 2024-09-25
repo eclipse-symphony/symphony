@@ -7,6 +7,7 @@
 package utils
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -56,7 +57,7 @@ func (t *TestSecretProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (t *TestSecretProvider) Get(object string, field string, localContext interface{}) (string, error) {
+func (t *TestSecretProvider) Get(ctx context.Context, object string, field string, localContext interface{}) (string, error) {
 	return "test", nil
 }
 
@@ -67,11 +68,11 @@ func (t *TestExtConfigProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (t *TestExtConfigProvider) Get(object string, field string, overrides []string, localContext interface{}) (interface{}, error) {
+func (t *TestExtConfigProvider) Get(ctx context.Context, object string, field string, overrides []string, localContext interface{}) (interface{}, error) {
 	return "test", nil
 }
 
-func (t *TestExtConfigProvider) GetObject(object string, overrides []string, localContext interface{}) (map[string]interface{}, error) {
+func (t *TestExtConfigProvider) GetObject(ctx context.Context, object string, overrides []string, localContext interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{"test": "test"}, nil
 }
 

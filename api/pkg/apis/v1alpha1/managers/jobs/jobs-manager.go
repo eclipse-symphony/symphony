@@ -468,7 +468,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//create deployment spec
 			var deployment model.DeploymentSpec
-			deployment, err = utils.CreateSymphonyDeployment(instance, solution, targetCandidates, nil, namespace)
+			deployment, err = utils.CreateSymphonyDeployment(ctx, instance, solution, targetCandidates, nil, namespace)
 			if err != nil {
 				log.ErrorfCtx(ctx, " M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err
@@ -524,8 +524,9 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err
 			}
 			var deployment model.DeploymentSpec
-			deployment, err = utils.CreateSymphonyDeploymentFromTarget(target, namespace)
+			deployment, err = utils.CreateSymphonyDeploymentFromTarget(ctx, target, namespace)
 			if err != nil {
+				log.ErrorfCtx(ctx, " M (Job): error reconciling target %s: %s", targetName, err.Error())
 				return err
 			}
 			switch job.Action {

@@ -464,7 +464,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 }
 
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
-	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
+	res, err := CreateSymphonyDeploymentFromTarget(ctx, model.TargetState{
 		ObjectMeta: model.ObjectMeta{
 			Name: "someTargetName",
 		},
@@ -575,7 +575,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 }
 
 func TestCreateSymphonyDeployment(t *testing.T) {
-	res, err := CreateSymphonyDeployment(model.InstanceState{
+	res, err := CreateSymphonyDeployment(ctx, model.InstanceState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "someOtherId",
 			Namespace: "instanceScope",
@@ -725,7 +725,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 }
 
 func TestAssignComponentsToTargetsWithMixedConstraints(t *testing.T) {
-	res, err := AssignComponentsToTargets([]model.ComponentSpec{
+	res, err := AssignComponentsToTargets(ctx, []model.ComponentSpec{
 		{
 			Name:        "componentName1",
 			Constraints: "${{$equal($property(OS),windows)}}",

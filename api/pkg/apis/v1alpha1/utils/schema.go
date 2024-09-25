@@ -7,6 +7,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -46,7 +47,7 @@ func (s *SchemaResult) ToErrorMessages() string {
 	return strings.Join(errorMessages, ";")
 }
 
-func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationContext *coa_utils.EvaluationContext) (SchemaResult, error) {
+func (s *Schema) CheckProperties(ctx context.Context, properties map[string]interface{}, evaluationContext *coa_utils.EvaluationContext) (SchemaResult, error) {
 	context := evaluationContext
 	if context == nil {
 		context = &coa_utils.EvaluationContext{}
@@ -105,6 +106,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 		if v.Expression != "" {
 			if val, ok := JsonParseProperty(properties, k); ok {
 				context.Value = val
+				context.Context = ctx
 				parser := NewParser(v.Expression)
 				res, err := parser.Eval(*context)
 				if err != nil {
