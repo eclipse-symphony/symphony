@@ -294,8 +294,8 @@ func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, names
 }
 
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
-	s.KeyLockProvider.Lock(namespace + "-" + deployment.Instance.ObjectMeta.Name)
-	defer s.KeyLockProvider.UnLock(namespace + "-" + deployment.Instance.ObjectMeta.Name)
+	s.KeyLockProvider.Lock(namespace + "&&" + deployment.Instance.ObjectMeta.Name) // && used as split character
+	defer s.KeyLockProvider.UnLock(namespace + "&&" + deployment.Instance.ObjectMeta.Name)
 
 	defer func() {
 		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)

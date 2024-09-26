@@ -18,10 +18,25 @@ import (
 
 var sLog = logger.NewLogger("coa.runtime")
 
-type MemoryKeyLockProvider struct {
+type GlobalMemoryKeyLock struct {
 	lm            *LockMap
 	cleanInterval int //seconds
 	purgeDuration int // 12 hours before
+}
+
+var globalMemoryKeyLock *GlobalMemoryKeyLock
+var initLock = sync.Mutex{}
+
+func (gml *GlobalMemoryKeyLock) Lock(key string) {
+	gml.lm.getLockNode(key).Lock()
+}
+
+func (gml *GlobalMemoryKeyLock) UnLock(key string) {
+	gml.lm.getLockNode(key).Unlock()
+	go gml.lm.updateLockLRU(key)
+}
+
+type MemoryKeyLockProvider struct {
 }
 
 type MemoryKeyLockProviderConfig struct {
@@ -39,43 +54,54 @@ func toMemoryKeyLockProviderConfig(config providers.IProviderConfig) (MemoryKeyL
 	return ret, err
 }
 
-func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error {
+func (gml *GlobalMemoryKeyLock) Init(config providers.IProviderConfig) error {
+	sLog.Info("Init GlobalMemoryKeyLock")
 	KeyLockConfig, err := toMemoryKeyLockProviderConfig(config)
 	if err != nil {
 		sLog.Errorf("  P (String Lock): failed to parse provider config %+v", err)
 		return errors.New("expected MemoryKeyLockProviderConfig")
 	}
 	if KeyLockConfig.CleanInterval > 0 {
-		mslp.cleanInterval = KeyLockConfig.CleanInterval
+		gml.cleanInterval = KeyLockConfig.CleanInterval
 	} else {
-		mslp.cleanInterval = 30 // default: 30 seconds
+		gml.cleanInterval = 30 // default: 30 seconds
 	}
 	if KeyLockConfig.PurgeDuration > 0 {
-		mslp.purgeDuration = KeyLockConfig.PurgeDuration
+		gml.purgeDuration = KeyLockConfig.PurgeDuration
 	} else {
-		mslp.purgeDuration = 60 * 60 * 12 // default: 12 hours
+		gml.purgeDuration = 60 * 60 * 12 // default: 12 hours
 	}
-	mslp.lm = NewLockMap()
+	gml.lm = NewLockMap()
 	go func() {
 		for {
-			mslp.lm.clean(-mslp.purgeDuration)
-			time.Sleep(time.Duration(mslp.cleanInterval) * time.Second)
+			gml.lm.clean(-gml.purgeDuration)
+			time.Sleep(time.Duration(gml.cleanInterval) * time.Second)
 		}
 	}()
 	return nil
 }
 
+func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error {
+	initLock.Lock()
+	defer initLock.Unlock()
+	if globalMemoryKeyLock == nil {
+		globalMemoryKeyLock = &GlobalMemoryKeyLock{}
+		return globalMemoryKeyLock.Init(config)
+	}
+	return nil
+}
+
 func (mslp *MemoryKeyLockProvider) Lock(key string) {
-	mslp.lm.getLockNode(key).Lock()
+	globalMemoryKeyLock.lm.getLockNode(key).Lock()
 }
 
 func (mslp *MemoryKeyLockProvider) UnLock(key string) {
-	mslp.lm.getLockNode(key).Unlock()
-	go mslp.lm.updateLockLRU(key)
+	globalMemoryKeyLock.lm.getLockNode(key).Unlock()
+	go globalMemoryKeyLock.lm.updateLockLRU(key)
 }
 
 func (mslp *MemoryKeyLockProvider) TryLock(key string) bool {
-	return mslp.lm.getLockNode(key).TryLock()
+	return globalMemoryKeyLock.lm.getLockNode(key).TryLock()
 }
 
 func (mslp *MemoryKeyLockProvider) TryLockWithTimeout(key string, duration time.Duration) bool {
@@ -164,12 +190,8 @@ func (lm *LockMap) cleanLast(purgeDuration int) bool {
 	}
 
 	node := lm.tail.prev
-	if node.prev != nil {
-		node.prev.next = node.next
-	}
-	if node.next != nil {
-		node.next.prev = node.prev
-	}
+	node.prev.next = node.next
+	node.next.prev = node.prev
 
 	lm.m.Delete(node.key)
 	return true
