@@ -363,6 +363,26 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
+  - catalogevalexpressions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogevalexpressions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
   - catalogs/finalizers
   verbs:
   - update

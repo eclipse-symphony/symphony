@@ -197,7 +197,7 @@ func TestReadObject(t *testing.T) {
 
 	res, err := provider.ReadObject(ctx, "catalog1:v1", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, "name", res["Name"])
+	assert.Equal(t, "name", res["components"].(map[string]interface{})["Name"])
 }
 
 func TestSetandRemove(t *testing.T) {
