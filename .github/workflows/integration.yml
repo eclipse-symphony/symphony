@@ -145,10 +145,3 @@ jobs:
           /tmp/symphony-integration-test-logs/**/*.log
       continue-on-error: true
       if: always()
-        
-
-    
-
-    
-
-    
