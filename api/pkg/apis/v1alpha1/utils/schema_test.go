@@ -23,7 +23,7 @@ func TestCheckIntType(t *testing.T) {
 	properties := map[string]interface{}{
 		"int": "1",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -38,7 +38,7 @@ func TestCheckIntTypeNotMatch(t *testing.T) {
 	properties := map[string]interface{}{
 		"int": "1.1",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["int"].Valid == false)
@@ -55,7 +55,7 @@ func TestCheckFloatType(t *testing.T) {
 	properties := map[string]interface{}{
 		"float": "1.1",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -70,7 +70,7 @@ func TestCheckFloatTypeNotMatch(t *testing.T) {
 	properties := map[string]interface{}{
 		"float": "a",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["float"].Valid == false)
@@ -87,7 +87,7 @@ func TestCheckBoolType(t *testing.T) {
 	properties := map[string]interface{}{
 		"bool": "true",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -102,7 +102,7 @@ func TestCheckBoolTypeNotMatch(t *testing.T) {
 	properties := map[string]interface{}{
 		"bool": "a",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["bool"].Valid == false)
@@ -119,7 +119,7 @@ func TestCheckUintType(t *testing.T) {
 	properties := map[string]interface{}{
 		"uint": "1",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -134,7 +134,7 @@ func TestCheckUintTypeNotMatch(t *testing.T) {
 	properties := map[string]interface{}{
 		"uint": "a",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["uint"].Valid == false)
@@ -151,7 +151,7 @@ func TestCheckStringType(t *testing.T) {
 	properties := map[string]interface{}{
 		"string": "a",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -166,7 +166,7 @@ func TestInvalidType(t *testing.T) {
 	properties := map[string]interface{}{
 		"invalid": "a",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["invalid"].Valid == false)
@@ -185,7 +185,7 @@ func TestNestedType(t *testing.T) {
 			"string": "a",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -202,7 +202,7 @@ func TestNestedInvalidType(t *testing.T) {
 			"string": "a",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["`.person.string`"].Valid == false)
@@ -219,7 +219,7 @@ func TestRequired(t *testing.T) {
 	properties := map[string]interface{}{
 		"required": "a",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -236,7 +236,7 @@ func TestNestedRequired(t *testing.T) {
 			"required": "a",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -249,7 +249,7 @@ func TestRequiredMissing(t *testing.T) {
 		},
 	}
 	properties := map[string]interface{}{}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["required"].Valid == false)
@@ -266,7 +266,7 @@ func TestNestedRequiredMissing(t *testing.T) {
 	properties := map[string]interface{}{
 		"person": map[string]interface{}{},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["`.person.required`"].Valid == false)
@@ -283,7 +283,7 @@ func TestPattern(t *testing.T) {
 	properties := map[string]interface{}{
 		"pattern": "abc",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -300,7 +300,7 @@ func TestNestedPattern(t *testing.T) {
 			"pattern": "abc",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -315,7 +315,7 @@ func TestPatternNotMatch(t *testing.T) {
 	properties := map[string]interface{}{
 		"pattern": "123",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["pattern"].Valid == false)
@@ -332,7 +332,7 @@ func TestEmailPattern(t *testing.T) {
 	properties := map[string]interface{}{
 		"pattern": "test@abc.com",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -347,7 +347,7 @@ func TestEmailPatternNotMatch(t *testing.T) {
 	properties := map[string]interface{}{
 		"pattern": "test",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["pattern"].Valid == false)
@@ -366,7 +366,7 @@ func TestNestedEmailPatternNotMatch(t *testing.T) {
 			"pattern": "test",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 	assert.True(t, result.Errors["`.person.pattern`"].Valid == false)
@@ -383,7 +383,7 @@ func TestExpression(t *testing.T) {
 	properties := map[string]interface{}{
 		"expression": "13",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -400,7 +400,7 @@ func TestNestedExpression(t *testing.T) {
 			"expression": "13",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -415,7 +415,7 @@ func TestInExpression(t *testing.T) {
 	properties := map[string]interface{}{
 		"expression": "bar",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -432,7 +432,7 @@ func TestNestedInExpression(t *testing.T) {
 			"expression": "bar",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.True(t, result.Valid)
 }
@@ -447,7 +447,7 @@ func TestInExpressionMiss(t *testing.T) {
 	properties := map[string]interface{}{
 		"expression": "barbar",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 }
@@ -464,7 +464,7 @@ func TestNestedInExpressionMiss(t *testing.T) {
 			"expression": "barbar",
 		},
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 }
@@ -479,7 +479,7 @@ func TestDottedNameInExpressionMiss(t *testing.T) {
 	properties := map[string]interface{}{
 		"person.expression": "barbar",
 	}
-	result, err := schema.CheckProperties(properties, nil)
+	result, err := schema.CheckProperties(ctx, properties, nil)
 	assert.Nil(t, err)
 	assert.False(t, result.Valid)
 }
