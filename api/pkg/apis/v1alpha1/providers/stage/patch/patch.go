@@ -116,12 +116,13 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStag
 	}
 	return ret, nil
 }
-func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
+func (m *PatchStageProvider) traceValue(ctx context.Context, v interface{}, localContext interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := api_utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
-		context.Value = ctx
+		context.Value = localContext
+		context.Context = ctx
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err
@@ -130,12 +131,12 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v, ctx)
+			return m.traceValue(ctx, v, localContext)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v, ctx)
+			tv, err := m.traceValue(ctx, v, localContext)
 			if err != nil {
 				return "", err
 			}
@@ -145,7 +146,7 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v, ctx)
+			tv, err := m.traceValue(ctx, v, localContext)
 			if err != nil {
 				return "", err
 			}
@@ -279,7 +280,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	for k, v := range catalog.Spec.Properties {
 		var tv interface{}
-		tv, err = i.traceValue(v, inputs["context"])
+		tv, err = i.traceValue(ctx, v, inputs["context"])
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error tracing value %s", k)
 			return nil, false, err

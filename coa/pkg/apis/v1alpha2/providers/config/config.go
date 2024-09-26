@@ -23,6 +23,6 @@ type IConfigProvider interface {
 }
 
 type IExtConfigProvider interface {
-	Get(object string, field string, overrides []string, localContext interface{}) (interface{}, error)
-	GetObject(object string, overrides []string, localContext interface{}) (map[string]interface{}, error)
+	Get(ctx context.Context, object string, field string, overrides []string, localContext interface{}) (interface{}, error)
+	GetObject(ctx context.Context, object string, overrides []string, localContext interface{}) (map[string]interface{}, error)
 }
