@@ -124,7 +124,7 @@ func (c *CatalogValidator) ValidateSchema(ctx context.Context, new model.Catalog
 			}
 
 			// 3). Validate the schema on the catalog which is being created/updated
-			result, err := schemaObj.CheckProperties(new.Spec.Properties, nil)
+			result, err := schemaObj.CheckProperties(ctx, new.Spec.Properties, nil)
 			if err != nil {
 				return &ErrorField{
 					FieldPath:       "spec.metadata.schema",

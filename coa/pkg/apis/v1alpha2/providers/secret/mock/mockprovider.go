@@ -72,6 +72,6 @@ func toMockSecretProviderConfig(config providers.IProviderConfig) (MockSecretPro
 func (m *MockSecretProvider) Read(ctx context.Context, object string, field string, localContext interface{}) (string, error) {
 	return object + ">>" + field, nil
 }
-func (m *MockSecretProvider) Get(object string, field string, localContext interface{}) (string, error) {
+func (m *MockSecretProvider) Get(ctx context.Context, object string, field string, localContext interface{}) (string, error) {
 	return object + ">>" + field, nil
 }
