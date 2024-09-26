@@ -26,6 +26,7 @@ import (
 type SitesManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 func (s *SitesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -33,10 +34,14 @@ func (s *SitesManager) Init(context *contexts.VendorContext, config managers.Man
 	if err != nil {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetParentApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -48,6 +53,7 @@ func (m *SitesManager) GetState(ctx context.Context, name string) (model.SiteSta
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -93,6 +99,7 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	current.Metadata = map[string]interface{}{
 		"version":  "v1",
@@ -160,6 +167,7 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -195,6 +203,7 @@ func (m *SitesManager) DeleteSpec(ctx context.Context, name string) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -216,6 +225,7 @@ func (t *SitesManager) ListState(ctx context.Context) ([]model.SiteState, error)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -249,6 +259,7 @@ func (s *SitesManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var thisSite model.SiteState
 	thisSite, err = s.GetState(ctx, s.VendorContext.SiteInfo.SiteId)
@@ -258,14 +269,12 @@ func (s *SitesManager) Poll() []error {
 	}
 	thisSite.Spec.IsSelf = false
 	jData, _ := json.Marshal(thisSite)
-	utils.UpdateSite(
+	s.apiClient.UpdateSite(
 		ctx,
-		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
 		s.VendorContext.SiteInfo.SiteId,
-		s.VendorContext.SiteInfo.ParentSite.Username,
-		s.VendorContext.SiteInfo.ParentSite.Password,
 		jData,
-	)
+		s.VendorContext.SiteInfo.ParentSite.Username,
+		s.VendorContext.SiteInfo.ParentSite.Password)
 	return nil
 }
 func (s *SitesManager) Reconcil() []error {

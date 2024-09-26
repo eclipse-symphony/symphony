@@ -11,16 +11,21 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWaitInitFromVendorMap(t *testing.T) {
+func TestWaitInitFromVendorMapForNonServiceAccount(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
 	input := map[string]string{
-		"wait.baseUrl":       "http://symphony-service:8080/v1alpha2/",
 		"wait.user":          "admin",
 		"wait.password":      "",
 		"wait.wait.interval": "15",
@@ -28,7 +33,6 @@ func TestWaitInitFromVendorMap(t *testing.T) {
 	}
 	config, err := WaitStageProviderConfigFromVendorMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", config.BaseUrl)
 	assert.Equal(t, "admin", config.User)
 	assert.Equal(t, "", config.Password)
 	assert.Equal(t, 15, config.WaitInterval)
@@ -39,33 +43,18 @@ func TestWaitInitFromVendorMap(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"wait.baseUrl": "",
+		"wait.user": "",
 	}
 	config, err = WaitStageProviderConfigFromVendorMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
+		"wait.user": "admin",
 	}
 	config, err = WaitStageProviderConfigFromVendorMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"wait.user":    "",
-	}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"wait.baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"wait.user":    "admin",
-	}
-	config, err = WaitStageProviderConfigFromVendorMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"wait.baseUrl":       "http://symphony-service:8080/v1alpha2/",
 		"wait.user":          "admin",
 		"wait.password":      "",
 		"wait.wait.interval": "abc",
@@ -74,7 +63,6 @@ func TestWaitInitFromVendorMap(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"wait.baseUrl":       "http://symphony-service:8080/v1alpha2/",
 		"wait.user":          "admin",
 		"wait.password":      "",
 		"wait.wait.interval": "15",
@@ -86,6 +74,8 @@ func TestWaitInitFromVendorMap(t *testing.T) {
 
 func TestWaitProcess(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	config := map[string]string{
 		"baseUrl":       ts.URL + "/",
 		"user":          "admin",

@@ -30,6 +30,7 @@ type StagingManager struct {
 	managers.Manager
 	QueueProvider queue.IQueueProvider
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 const Site_Job_Queue = "site-job-queue"
@@ -45,10 +46,14 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 	} else {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetApiClient()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -62,6 +67,7 @@ func (s *StagingManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.Debug(" M (Staging): Polling...")
 	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
@@ -73,17 +79,13 @@ func (s *StagingManager) Poll() []error {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
 	}
-	siteId := site.(string)
+	siteId := utils.FormatAsString(site)
 	var catalogs []model.CatalogState
-	catalogs, err = utils.GetCatalogs(
-		ctx,
-		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
+	catalogs, err = s.apiClient.GetCatalogs(ctx, "",
 		s.VendorContext.SiteInfo.CurrentSite.Username,
-		s.VendorContext.SiteInfo.CurrentSite.Password,
-		"")
+		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
-		observ_utils.CloseSpanWithError(span, &err)
 		return []error{err}
 	}
 	for _, catalog := range catalogs {
@@ -99,7 +101,7 @@ func (s *StagingManager) Poll() []error {
 		}
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(ctx, getRequest)
-		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.Spec.Generation {
+		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.Generation {
 			continue
 		}
 		if err != nil && !v1alpha2.IsNotFound(err) {
@@ -110,10 +112,12 @@ func (s *StagingManager) Poll() []error {
 			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
+
+		// TODO: clean up the catalog synchronization status for multi-site
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,
-				Body: catalog.Spec.Generation,
+				Body: catalog.ObjectMeta.Generation,
 			},
 			Metadata: map[string]interface{}{
 				"version":   "v1",
@@ -138,6 +142,7 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var job v1alpha2.JobData
 	jData, _ := json.Marshal(event.Body)

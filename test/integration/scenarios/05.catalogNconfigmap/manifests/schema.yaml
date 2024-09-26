@@ -1,0 +1,16 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: schema-v-v1
+spec:
+  rootResource: schema
+  catalogType: schema
+  properties:
+    spec:
+      rules:
+        email:
+          pattern: "<email>"
+        '`.person.bar.foo`':
+          expression: "${{$and($gt($val(),10),$lt($val(),20))}}"
+        email.bar.foo:
+          pattern: "<email>"

@@ -76,3 +76,25 @@ func IsDelayed(err error) bool {
 	}
 	return coaE.State == Delayed
 }
+func IsBadConfig(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return false
+	}
+	return coaE.State == BadConfig
+}
+
+func IsRetriableErr(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return true
+	}
+	switch coaE.State {
+	case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
+		return false
+	case ValidateFailed: // catalog manager
+		return false
+	default:
+		return true
+	}
+}

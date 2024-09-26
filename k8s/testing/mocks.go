@@ -63,9 +63,10 @@ var (
 )
 
 var (
-	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "test-target", Namespace: TestNamespace}
-	DefaultInstanceNamespacedName = types.NamespacedName{Name: "test-instance", Namespace: TestNamespace}
-	DefaultSolutionNamespacedName = types.NamespacedName{Name: "test-solution", Namespace: TestNamespace}
+	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "testtarget", Namespace: TestNamespace}
+	DefaultInstanceNamespacedName = types.NamespacedName{Name: "testinstance", Namespace: TestNamespace}
+	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v-v1", Namespace: TestNamespace}
+	SolutionReferenceName         = "solution:v1"
 
 	TerminalError = v1alpha2.NewCOAError(errors.New(""), "timed out", v1alpha2.TimedOut)
 	NotFoundError = v1alpha2.NewCOAError(errors.New(""), "not found", v1alpha2.NotFound)
@@ -87,9 +88,19 @@ func CreateFakeKubeClientForSolutionAndFabricGroup(objects ...client.Object) cli
 
 	_ = solution_v1.AddToScheme(scheme)
 	_ = fabric_v1.AddToScheme(scheme)
+	clientObj := []client.Object{
+		&solution_v1.Instance{},
+		&fabric_v1.Target{},
+		&solution_v1.Solution{},
+	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
+		WithStatusSubresource(clientObj...).
+		WithIndex(&solution_v1.Instance{}, "spec.solution", func(rawObj client.Object) []string {
+			instance := rawObj.(*solution_v1.Instance)
+			return []string{instance.Spec.Solution}
+		}).
 		Build()
 }
 
@@ -103,9 +114,18 @@ func CreateFakeKubeClientForSolutionGroup(objects ...client.Object) client.Clien
 	}
 
 	_ = solution_v1.AddToScheme(scheme)
+	clientObj := []client.Object{
+		&solution_v1.Instance{},
+		&solution_v1.Solution{},
+	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
+		WithStatusSubresource(clientObj...).
+		WithIndex(&solution_v1.Instance{}, "spec.solution", func(rawObj client.Object) []string {
+			instance := rawObj.(*solution_v1.Instance)
+			return []string{instance.Spec.Solution}
+		}).
 		Build()
 }
 
@@ -118,9 +138,13 @@ func CreateFakeKubeClientForFabricGroup(objects ...client.Object) client.Client 
 	}
 
 	_ = fabric_v1.AddToScheme(scheme)
+	clientObj := []client.Object{
+		&fabric_v1.Target{},
+	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
+		WithStatusSubresource(clientObj...).
 		Build()
 }
 
@@ -248,7 +272,7 @@ func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string
 }
 
 // GetSummary implements ApiClient.
-func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace string) (*model.SummaryResult, error) {
+func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	args := c.Called(ctx, id, namespace)
 	summary := args.Get(0)
 	if summary == nil {
@@ -257,15 +281,20 @@ func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace str
 	return summary.(*model.SummaryResult), args.Error(1)
 }
 
+// DeleteSummary implements ApiClient.
+func (c *MockApiClient) DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error {
+	return nil
+}
+
 // QueueDeploymentJob implements utils.ApiClient.
-func (c *MockApiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec) error {
+func (c *MockApiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error {
 	args := c.Called(ctx, namespace, isDelete, deployment)
 	return args.Error(0)
 }
 
 // QueueJob implements ApiClient.
 // Deprecated and not used.
-func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, isDelete bool, isTarget bool) error {
+func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, isDelete bool, isTarget bool, user string, password string) error {
 	panic("implement me")
 }
 
@@ -304,7 +333,7 @@ func BuildDefaultInstance() *solution_v1.Instance {
 			Target: model.TargetSelector{
 				Name: DefaultTargetNamepsacedName.Name,
 			},
-			Solution: DefaultSolutionNamespacedName.Name,
+			Solution: SolutionReferenceName,
 		},
 	}
 }

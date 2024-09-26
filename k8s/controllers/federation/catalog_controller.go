@@ -16,14 +16,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	federationv1 "gopls-workspace/apis/federation/v1"
+	"gopls-workspace/utils/diagnostic"
 
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // CatalogReconciler reconciles a Site object
 type CatalogReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	// ApiClient is the client for Symphony API
+	ApiClient utils.ApiClient
 }
 
 //+kubebuilder:rbac:groups=federation.symphony,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
@@ -40,17 +43,20 @@ type CatalogReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	ctrlLog := log.FromContext(ctx)
 
+	diagnostic.InfoWithCtx(ctrlLog, ctx, "Reconciling Catalog", "Name", req.Name, "Namespace", req.Namespace)
 	catalog := &federationv1.Catalog{}
 	if err := r.Client.Get(ctx, req.NamespacedName, catalog); err != nil {
+		diagnostic.ErrorWithCtx(ctrlLog, ctx, err, "unable to fetch Catalog")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if catalog.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		jData, _ := json.Marshal(catalog)
-		err := api_utils.CatalogHook(ctx, "http://symphony-service:8080/v1alpha2/", "admin", "", jData)
+		err := r.ApiClient.CatalogHook(ctx, jData, "", "")
 		if err != nil {
+			diagnostic.ErrorWithCtx(ctrlLog, ctx, err, "unable to update Catalog when calling catalogHook")
 			return ctrl.Result{}, err
 		}
 	}

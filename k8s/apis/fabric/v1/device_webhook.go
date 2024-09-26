@@ -12,11 +12,13 @@ import (
 	"gopls-workspace/apis/metrics/v1"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -26,7 +28,7 @@ var deviceWebhookValidationMetrics *metrics.Metrics
 
 func (r *Device) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myDeviceClient = mgr.GetClient()
-
+	// will check in the future if we need to use "uniqueDisplayNameForSolution" here, currently Device is not supported by toolchainorchestrator
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Device{}, ".spec.displayName", func(rawObj client.Object) []string {
 		device := rawObj.(*Device)
 		return []string{device.Spec.DisplayName}
@@ -64,7 +66,7 @@ func (r *Device) Default() {
 var _ webhook.Validator = &Device{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Device) ValidateCreate() error {
+func (r *Device) ValidateCreate() (admission.Warnings, error) {
 	devicelog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -86,11 +88,11 @@ func (r *Device) ValidateCreate() error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Device) ValidateUpdate(old runtime.Object) error {
+func (r *Device) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	devicelog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -112,21 +114,21 @@ func (r *Device) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Device) ValidateDelete() error {
+func (r *Device) ValidateDelete() (admission.Warnings, error) {
 	devicelog.Info("validate delete", "name", r.Name)
 
-	return nil
+	return nil, nil
 }
 
 func (r *Device) validateCreateDevice() error {
 	var devices DeviceList
 	myDeviceClient.List(context.Background(), &devices, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if len(devices.Items) != 0 {
-		return fmt.Errorf("device display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("device display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
@@ -135,10 +137,10 @@ func (r *Device) validateUpdateDevice() error {
 	var devices DeviceList
 	err := myDeviceClient.List(context.Background(), &devices, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		return err
+		return apierrors.NewInternalError(err)
 	}
 	if !(len(devices.Items) == 0 || len(devices.Items) == 1 && devices.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return fmt.Errorf("device display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("device display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }

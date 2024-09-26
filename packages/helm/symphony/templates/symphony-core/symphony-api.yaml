@@ -52,7 +52,6 @@ spec:
                 fieldPath: spec.serviceAccountName
           - name: SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME
             value: '{{ include "symphony.fullname" . }}-controller-manager'
-
         envFrom:
         - secretRef:
             name: {{ include "symphony.fullname" . }}-auth
@@ -79,7 +78,20 @@ spec:
           subPath: proxy-cert.crt
           name: proxy-certstore
         {{- end }}
-
+      {{- if and .Values.redis.enabled .Values.redis.asSidecar }}
+      - name: redis
+        image: {{ .Values.redis.image }}
+        command: ["redis-server", "/usr/var/redis/redis.conf"]
+        ports:
+        - containerPort: {{ .Values.redis.port }}
+        volumeMounts:
+        - name: redis-config
+          mountPath: /usr/var/redis
+        {{- if .Values.redis.persistentVolume.enabled }}
+        - name: redis-data
+          mountPath: /data
+        {{- end }}
+      {{- end}}
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
         env:
@@ -97,7 +109,7 @@ spec:
             - serviceAccountToken:
                 path: symphony-api-token
                 expirationSeconds: 600
-                audience: {{ include "symphony.url" . }}
+                audience: {{ include "symphony.httpsUrl" . }}
         - name: serving-cert
           secret:
             secretName: {{ include "symphony.apiServingCertName" . }}
@@ -108,3 +120,16 @@ spec:
         - name: ssl-certs
           emptyDir: {}
         {{ end }}
+        {{- if and .Values.redis.enabled .Values.redis.asSidecar }}
+        - name: redis-config
+          configMap:
+            name: redis-config-map
+            items:
+            - key: redis.conf
+              path: redis.conf
+        {{- if .Values.redis.persistentVolume.enabled }}
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+        {{- end }}
+        {{- end }}

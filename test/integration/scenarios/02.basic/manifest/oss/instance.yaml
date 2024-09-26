@@ -11,6 +11,10 @@ metadata:
 spec:
   displayName: INSTANCENAME
   scope: SCOPENAME
-  solution: SOLUTIONNAME
+  solution: SOLUTIONREFNAME
+  isDryRun: DRYRUN
   target:
-    name: TARGETNAME
+    name: TARGETREFNAME
+  reconciliationPolicy:
+    state: active
+    interval: 1m

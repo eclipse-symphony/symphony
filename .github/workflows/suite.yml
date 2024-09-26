@@ -5,9 +5,14 @@ name: suite
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
 env:
     ContainerRegistry: "ghcr.io"
     ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
@@ -17,12 +22,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.21
+        go-version: 1.22.4
         
     - name: Set up custom GOPATH
       run: |
@@ -92,21 +97,20 @@ jobs:
     - name: Run ginkgo suite tests
       run: |
         cd test/integration/scenarios/06.ado/ 
-        ginkgo --cover --junit-report=junit-suite-tests.xml -r 
-      continue-on-error: true    
+        ginkgo --cover --junit-report=junit-suite-tests.xml -r
 
     - name: Dump SymphonyLogs For ginkgo suite tests
       run: |
         cd test/localenv/
         mage DumpSymphonyLogsForTest ginkgosuite
-      continue-on-error: true   
-    
+      if: always()
+
     - name: Collect and upload symphony test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: symphony-suite-result
         path: |
           test/integration/scenarios/06.ado/junit-suite-tests.xml
-          /tmp/symhony-integration-test-logs/**/*.log
+          /tmp/symphony-integration-test-logs/**/*.log
       continue-on-error: true
       if: always()

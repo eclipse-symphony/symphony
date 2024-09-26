@@ -28,6 +28,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionBytesV2 []byte
+	var solutionContainerBytes []byte
 	var targetProps map[string]string
 
 	BeforeAll(func(ctx context.Context) {
@@ -52,9 +53,15 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	})
 
 	runner := func(ctx context.Context, testcase TestCase) {
-		By("setting the components for the target")
 		var err error
 
+		By("deploy solution container")
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("setting the components for the target")
 		props := targetProps
 		if testcase.TargetProperties != nil {
 			props = testcase.TargetProperties
@@ -91,7 +98,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		By("setting the components for Solution V2, an invalid solution")
 		solutionBytesV2, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
 			ComponentNames: testcase.SolutionComponentsV2,
-			SolutionName:   "solution-v2",
+			SolutionName:   "solution-v-v2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -101,7 +108,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("preparing the instance bytes with a new operation id for Solution V2")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution-v2",
+			Solution: "solution:v2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -115,7 +122,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("reverting the Instance to use Solution V1")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution",
+			Solution: "solution:v1",
 		})
 		Expect(err).ToNot(HaveOccurred())
 

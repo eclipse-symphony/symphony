@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -49,8 +50,10 @@ func K8SSidecarSpecToAPISidecarSpec(sidecar k8smodel.SidecarSpec) (apimodel.Side
 	if err != nil {
 		return apimodel.SidecarSpec{}, err
 	}
-	sidecarSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	if sidecar.Properties.Raw != nil {
+		sidecarSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	}
 	return sidecarSpec, err
 }
 
@@ -62,8 +65,11 @@ func K8SComponentSpecToAPIComponentSpec(component k8smodel.ComponentSpec) (apimo
 	if err != nil {
 		return apimodel.ComponentSpec{}, err
 	}
-	componentSpec.Properties = make(map[string]interface{})
-	err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	if component.Properties.Raw != nil {
+		componentSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	}
+
 	return componentSpec, err
 }
 
@@ -83,7 +89,6 @@ func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, e
 			Constraints:   target.Spec.Constraints,
 			ForceRedeploy: target.Spec.ForceRedeploy,
 			Topologies:    target.Spec.Topologies,
-			Generation:    target.Spec.Generation,
 		},
 	}
 
@@ -114,7 +119,6 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 			Target:      instance.Spec.Target,
 			Parameters:  instance.Spec.Parameters,
 			Metadata:    instance.Spec.Metadata,
-			Generation:  instance.Spec.Generation,
 			Topologies:  instance.Spec.Topologies,
 			Pipelines:   instance.Spec.Pipelines,
 		},
@@ -164,7 +168,6 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 	ret := make(map[string]fabric_v1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
-
 			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
@@ -190,19 +193,20 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target fabric_v1.Target, namespace string) (apimodel.DeploymentSpec, error) {
+func CreateSymphonyDeploymentFromTarget(ctx context.Context, target fabric_v1.Target, namespace string) (apimodel.DeploymentSpec, error) {
 	targetState, err := K8STargetToAPITargetState(target)
 	if err != nil {
 		return apimodel.DeploymentSpec{}, err
 	}
 
 	var ret apimodel.DeploymentSpec
-	ret, err = api_utils.CreateSymphonyDeploymentFromTarget(targetState, namespace)
+	ret, err = api_utils.CreateSymphonyDeploymentFromTarget(ctx, targetState, namespace)
 	ret.Hash = HashObjects(DeploymentResources{
 		TargetCandidates: []fabric_v1.Target{target},
 	})
 
 	ret.Generation = strconv.Itoa(int(target.ObjectMeta.Generation))
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, err
 }
@@ -227,7 +231,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	}
 
 	var ret apimodel.DeploymentSpec
-	ret, err = api_utils.CreateSymphonyDeployment(instanceState, solutionState, targetStates, nil, objectNamespace)
+	ret, err = api_utils.CreateSymphonyDeployment(ctx, instanceState, solutionState, targetStates, nil, objectNamespace)
 	ret.Hash = HashObjects(DeploymentResources{
 		Instance:         instance,
 		Solution:         solution,
@@ -235,6 +239,24 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	})
 
 	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
+	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, err
+}
+
+func NeedWatchInstance(instance solution_v1.Instance) bool {
+	var interval time.Duration = 30
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
+		parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)
+		if err != nil {
+			parsedInterval = 30
+		}
+		interval = parsedInterval
+	}
+
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.State.IsInActive() || interval == 0 {
+		return false
+	}
+
+	return true
 }

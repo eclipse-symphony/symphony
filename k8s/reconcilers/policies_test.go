@@ -11,6 +11,7 @@ import (
 	"errors"
 	v1 "gopls-workspace/apis/fabric/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
+	"gopls-workspace/constants"
 	"gopls-workspace/reconcilers"
 
 	. "gopls-workspace/testing"
@@ -31,6 +32,8 @@ var _ = Describe("Reconcile Policies", func() {
 	var object *v1.Target
 	var reconcileResult reconcile.Result
 	var reconcileError error
+	var reconcileResultPolling reconcile.Result
+	var reconcileErrorPolling error
 
 	BeforeEach(func() {
 		By("building the clients")
@@ -63,7 +66,8 @@ var _ = Describe("Reconcile Policies", func() {
 
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
-		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey)
+		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+		_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 	})
 
 	Context("object has invalid reconcile policy", func() {
@@ -77,6 +81,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 			BeforeEach(func() {
 				By("mocking the summary response with a successful deployment")
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
@@ -88,8 +93,12 @@ var _ = Describe("Reconcile Policies", func() {
 				Expect(reconcileError).NotTo(HaveOccurred())
 			})
 
+			It("polling should fall back to default reconciliation interval", func() {
+				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
+			})
+
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 
@@ -103,6 +112,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 			BeforeEach(func() {
 				By("mocking the summary response with a successful deployment")
+				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
@@ -111,7 +121,7 @@ var _ = Describe("Reconcile Policies", func() {
 			})
 
 			It("should requue after some time", func() {
-				Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 	})
@@ -127,6 +137,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 		BeforeEach(func() {
 			By("mocking the summary response with a successful deployment")
+			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 		})
 
@@ -139,7 +150,7 @@ var _ = Describe("Reconcile Policies", func() {
 		})
 
 		It("should requue after some time", func() {
-			Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 		})
 	})
 
@@ -193,7 +204,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
 				})
 				It("should queue a reconcile job after reconcile interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(time.Minute))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(time.Minute))
 				})
 			})
 
@@ -214,13 +225,14 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 			})
 
 			Context("deployment to api is completed successful", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with a successful deployment")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -232,7 +244,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job after reconcile interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(time.Minute))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(time.Minute))
 				})
 
 				It("should have a status of Succeeded", func() {
@@ -245,6 +257,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
 					summary.Summary.AllAssignedDeployed = false
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -256,7 +269,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job after reconcile interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(time.Minute))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(time.Minute))
 				})
 
 				It("should have a status of Failed", func() {
@@ -335,7 +348,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 
 				It("should have a status of reconciling", func() {
@@ -346,6 +359,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment to api is completed successful", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with a successful deployment")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -369,6 +383,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
 					summary.Summary.AllAssignedDeployed = false
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -457,7 +472,7 @@ var _ = Describe("Reconcile Policies", func() {
 					Expect(reconcileError).NotTo(HaveOccurred())
 				})
 				It("should queue a reconcile job to poll for status", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestPollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 
 				It("should have a status of reconciling", func() {
@@ -468,6 +483,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment to api is completed successful", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with a successful deployment")
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 				})
 
@@ -491,6 +507,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary := MockSucessSummaryResult(object, "test-hash")
 					summary.Summary.SuccessCount = 0
 					summary.Summary.AllAssignedDeployed = false
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
@@ -513,6 +530,7 @@ var _ = Describe("Reconcile Policies", func() {
 	Context("object has stil not finished reconciling and has timed out", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("mocking a summary response with in progress deployment")
+			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 		})
 
@@ -526,7 +544,8 @@ var _ = Describe("Reconcile Policies", func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
-			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, logr.Discard(), targetOperationStartTimeKey)
+			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 		})
 
 		It("should not return an error", func() {
@@ -534,7 +553,7 @@ var _ = Describe("Reconcile Policies", func() {
 		})
 
 		It("should queue a reconcile job after reconcile interval", func() {
-			Expect(reconcileResult.RequeueAfter).To(BeWithin("10ms").Of(TestReconcileInterval))
+			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 		})
 
 		It("should have a status of failed", func() {

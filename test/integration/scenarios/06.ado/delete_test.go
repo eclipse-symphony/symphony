@@ -19,6 +19,7 @@ var _ = Describe("Delete", Ordered, func() {
 	var instanceBytes []byte
 	var targetBytes []byte
 	var solutionBytes []byte
+	var solutionContainerBytes []byte
 	var specTimeout = 2 * time.Minute
 
 	type DeleteTestCase struct {
@@ -53,8 +54,15 @@ var _ = Describe("Delete", Ordered, func() {
 
 	DescribeTable("when performing create/update operations", Ordered,
 		func(ctx context.Context, testcase DeleteTestCase) {
-			By("setting the components for the target")
 			var err error
+
+			By("deploy solution container")
+			solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("setting the components for the target")
 			targetBytes, err = testhelpers.PatchTarget(defaultTargetManifest, testhelpers.TargetOptions{
 				ComponentNames: testcase.TargetComponents,
 			})
@@ -70,16 +78,16 @@ var _ = Describe("Delete", Ordered, func() {
 			instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			By("deploying the instance")
-			err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
-			Expect(err).ToNot(HaveOccurred())
-
 			By("deploying the target")
 			err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("deploying the solution")
 			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("deploying the instance")
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("verifying the resources before deletion")
@@ -99,24 +107,25 @@ var _ = Describe("Delete", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred())
 		},
 
-		Entry(
-			"it should delete the target when the underlying helm release is already gone", SpecTimeout(specTimeout),
-			DeleteTestCase{
-				TargetComponents:   []string{"simple-chart-1"},
-				SolutionComponents: []string{},
-				PreDeleteExpectation: expectations.All(
-					successfullInstanceExpectation,
-					successfullTargetExpectation,
-					helm.MustNew("simple-chart-1", "azure-iot-operations", helm.WithReleaseCondition(helm.DeployedCondition)),
-				),
-				UnderlyingDeleteCommand: "helm uninstall simple-chart-1 -n azure-iot-operations --wait",
-				OrcResourceToDelete:     &targetBytes,
-				PostDeleteExpectation: expectations.All(
-					successfullInstanceExpectation,
-					absentTargetExpectation,
-				),
-			},
-		),
+		// Target cannot be deleted when instance is present
+		// Entry(
+		// 	"it should delete the target when the underlying helm release is already gone", SpecTimeout(specTimeout),
+		// 	DeleteTestCase{
+		// 		TargetComponents:   []string{"simple-chart-1"},
+		// 		SolutionComponents: []string{},
+		// 		PreDeleteExpectation: expectations.All(
+		// 			successfullInstanceExpectation,
+		// 			successfullTargetExpectation,
+		// 			helm.MustNew("simple-chart-1", "azure-iot-operations", helm.WithReleaseCondition(helm.DeployedCondition)),
+		// 		),
+		// 		UnderlyingDeleteCommand: "helm uninstall simple-chart-1 -n azure-iot-operations --wait",
+		// 		OrcResourceToDelete:     &targetBytes,
+		// 		PostDeleteExpectation: expectations.All(
+		// 			successfullInstanceExpectation,
+		// 			absentTargetExpectation,
+		// 		),
+		// 	},
+		// ),
 
 		Entry(
 			"it should delete the instance when the underlying helm release is already gone", SpecTimeout(specTimeout),
@@ -136,23 +145,24 @@ var _ = Describe("Delete", Ordered, func() {
 				),
 			},
 		),
-		Entry(
-			"it should delete the target when the underlying kubernetes resource is already gone", SpecTimeout(specTimeout),
-			DeleteTestCase{
-				TargetComponents:   []string{"basic-configmap-1"},
-				SolutionComponents: []string{},
-				PreDeleteExpectation: expectations.All(
-					successfullInstanceExpectation,
-					successfullTargetExpectation,
-				),
-				UnderlyingDeleteCommand: "kubectl delete configmap basic-configmap-1 -n azure-iot-operations",
-				OrcResourceToDelete:     &targetBytes,
-				PostDeleteExpectation: expectations.All(
-					successfullInstanceExpectation,
-					absentTargetExpectation,
-				),
-			},
-		),
+		// Target cannot be deleted when instance is present
+		// Entry(
+		// 	"it should delete the target when the underlying kubernetes resource is already gone", SpecTimeout(specTimeout),
+		// 	DeleteTestCase{
+		// 		TargetComponents:   []string{"basic-configmap-1"},
+		// 		SolutionComponents: []string{},
+		// 		PreDeleteExpectation: expectations.All(
+		// 			successfullInstanceExpectation,
+		// 			successfullTargetExpectation,
+		// 		),
+		// 		UnderlyingDeleteCommand: "kubectl delete configmap basic-configmap-1 -n azure-iot-operations",
+		// 		OrcResourceToDelete:     &targetBytes,
+		// 		PostDeleteExpectation: expectations.All(
+		// 			successfullInstanceExpectation,
+		// 			absentTargetExpectation,
+		// 		),
+		// 	},
+		// ),
 
 		Entry(
 			"it should delete the instance when the underlying kubernetes resource is already gone", SpecTimeout(specTimeout),

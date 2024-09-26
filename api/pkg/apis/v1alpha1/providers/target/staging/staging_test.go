@@ -14,6 +14,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -212,13 +213,6 @@ type AuthResponse struct {
 }
 
 func TestApply(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
@@ -250,7 +244,15 @@ func TestApply(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	assert.Nil(t, err)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 
 	provider.Context = &contexts.ManagerContext{
 		SiteInfo: v1alpha2.SiteInfo{
@@ -308,18 +310,10 @@ func TestApply(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-target-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "abc",
@@ -349,8 +343,15 @@ func TestGet(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	assert.Nil(t, err)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 	provider.Context = &contexts.ManagerContext{
 		SiteInfo: v1alpha2.SiteInfo{
 			CurrentSite: v1alpha2.SiteConnection{
@@ -394,17 +395,10 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetCatalogsFailed(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-target-v-v1":
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:
@@ -419,6 +413,14 @@ func TestGetCatalogsFailed(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 	assert.Nil(t, err)
 
 	provider.Context = &contexts.ManagerContext{

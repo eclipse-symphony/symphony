@@ -20,6 +20,11 @@ resources:
 - bases/fabric.symphony_devices.yaml
 - bases/federation.symphony_sites.yaml
 - bases/federation.symphony_catalogs.yaml
+- bases/solution.symphony_solutioncontainers.yaml
+- bases/workflow.symphony_campaigncontainers.yaml
+- bases/federation.symphony_catalogcontainers.yaml
+- bases/monitor.symphony_diagnostics.yaml
+- bases/federation.symphony_catalogevalexpressions.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
@@ -57,6 +62,7 @@ patches:
 - path: patches/cainjection_in_skillpackages.yaml
 - path: patches/cainjection_in_federation_sites.yaml
 - path: patches/cainjection_in_federation_catalogs.yaml
+- path: patches/cainjection_in_monitor_diagnostics.yaml
 # - path: patches/cainjection_in_projectconfigs.yaml
 - path: patches/webhook_in_targets.yaml
 - path: patches/webhook_in_devices.yaml
@@ -69,3 +75,4 @@ patches:
 - path: patches/webhook_in_skillpackages.yaml
 - path: patches/webhook_in_federation_sites.yaml
 - path: patches/webhook_in_federation_catalogs.yaml
+- path: patches/webhook_in_monitor_diagnostics.yaml

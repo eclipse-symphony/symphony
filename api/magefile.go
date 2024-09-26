@@ -9,6 +9,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	//mage:import
@@ -33,19 +34,25 @@ func TestWithCoa() error {
 	return nil
 }
 
+func raceCheckSkipped() bool {
+	return os.Getenv("SKIP_RACE_CHECK") == "true"
+}
+
+func raceOpt() string {
+	if raceCheckSkipped() {
+		return ""
+	}
+	return "-race"
+}
+
 func testHelper() error {
+	testClean := "go clean -testcache"
+	testCmd := fmt.Sprintf("go test %s -timeout 5m -cover -coverprofile=coverage.out ./...", raceOpt())
 	if err := shellcmd.RunAll(
-		"go clean -testcache",
-		"go test -race -timeout 5m -cover -coverprofile=coverage.out ./...",
+		shellcmd.Command(testClean),
+		shellcmd.Command(testCmd),
 	); err != nil {
 		return err
 	}
 	return nil
-}
-
-func DockerBuildTargetAgent() error {
-	return shellcmd.Command("docker-compose -f docker-compose-target-agent.yaml build").Run()
-}
-func DockerBuildPollAgent() error {
-	return shellcmd.Command("docker-compose -f docker-compose-poll-agent.yaml build").Run()
 }

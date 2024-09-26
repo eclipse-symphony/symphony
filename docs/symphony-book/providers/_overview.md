@@ -8,16 +8,17 @@ Common provider types include:
 
 * Proxy, like [HTTP proxy](./http_proxy_provider.md) and [MQTT proxy](./mqtt_proxy_provider.md)
 * [Reference](./reference_provider.md)
-* [Target](./target_provider.md)
-* [Staging](./staging_provider.md)
+* [Target](./target-providers/target_provider.md)
+* [Staging](./target-providers/staging_provider.md)
 * Certificate
 * Probe
 * Pub-Sub
 * Reporter
-* [State](./state-providers/README.md)  
+* [State](./state-providers/_overview.md)  
 * Uploader
   
 ## Develop providers
 
-* [Provider interface](./provider_interface.md)
+* [Target Provider interface](./target-providers/provider_interface.md)
+* [State Provider interface](./state-providers/_overview.md)
 * [Write a Python-based provider](./python_provider.md)

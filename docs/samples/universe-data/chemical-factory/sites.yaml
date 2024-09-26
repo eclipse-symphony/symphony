@@ -1,9 +1,16 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: hq
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-v-v1
 spec:
-  type: asset
+  rootResource: hq
+  catalogType: asset
   properties:
     name: HQ
     address: 1 Microsoft Way
@@ -17,11 +24,18 @@ spec:
     lng: "-122.12826"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: tokyo
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: tokyo-v-v1
 spec:
-  type: asset
+  rootResource: tokyo
+  catalogType: asset
   properties:
     name: "東京"
     address: "東京都港区港南 2-16-3"
@@ -35,11 +49,18 @@ spec:
     lng: "139.74043"  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: new-york
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: new-york-v-v1
 spec:
-  type: asset
+  rootResource: new-york
+  catalogType: asset
   properties:
     name: "New York"
     address: "11 Times Square"
@@ -53,11 +74,18 @@ spec:
     lng: "-73.98076"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: munchen
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: munchen-v-v1
 spec:
-  type: asset
+  rootResource: munchen
+  catalogType: asset
   properties:
     name: "München"
     address: "Walter-Gropius-Straße 5"
@@ -73,9 +101,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-adr
+  name: hq-v-adr
 spec:
-  type: asset
+  rootResource: hq
+  catalogType: asset
   properties:
     name: "HQ Azure Device Registry"    
   parentName: hq
@@ -93,9 +122,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-arc-1
+  name: hq-v-arc1
 spec:
-  type: asset
+  rootResource: hq
+  catalogType: asset
   properties:
     name: "HQ Azure Arc Cluster 1"
   parentName: hq
@@ -113,9 +143,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-arc-2
+  name: hq-v-arc2
 spec:
-  type: asset
+  rootResource: hq
+  catalogType: asset
   properties:
     name: "HQ Azure Arc Cluster 2"
   parentName: hq
@@ -133,9 +164,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-doe-site
+  name: hq-v-doe-site
 spec:
-  type: asset
+  rootResource: hq
+  catalogType: asset
   properties:
     name: "HQ DOE Site"
   parentName: hq
@@ -153,9 +185,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-iot-hub
+  name: hq-v-iot-hub
 spec:
-  type: asset
+  rootResource: hq
+  catalogType: asset
   properties:
     name: "HQ IoT Hub Tenant"
   parentName: hq
@@ -171,11 +204,18 @@ spec:
       foo: bar
 ---
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: area
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: area-1
+  name: area-v-1
 spec:
-  type: asset
+  rootResource: area
+  catalogType: asset
   properties:
     name: "Area 1"
   parentName: hq-doe-site
@@ -183,19 +223,27 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: area-2
+  name: area-v-2
 spec:
-  type: asset
+  rootResource: area
+  catalogType: asset
   properties:
     name: "Area 2"
   parentName: hq-doe-site
 ---
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: line
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-1
+  name: line-v-1
 spec:
-  type: asset
+  rootResource: line
+  catalogType: asset
   properties:
     name: "Production Line 1"
   parentName: area-1
@@ -203,9 +251,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-2
+  name: line-v-2
 spec:
-  type: asset
+  rootResource: line
+  catalogType: asset
   properties:
     name: "Production Line 2"
   parentName: area-1

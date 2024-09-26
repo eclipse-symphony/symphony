@@ -1,26 +1,33 @@
 module github.com/eclipse-symphony/symphony/cli
 
-go 1.19
+go 1.22.4
+
+toolchain go1.22.6
 
 replace github.com/eclipse-symphony/symphony/api => ../api
 
 replace github.com/eclipse-symphony/symphony/coa => ../coa
 
-require github.com/spf13/cobra v1.7.0
+require github.com/spf13/cobra v1.8.1
 
 require (
+	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/eclipse-symphony/symphony/coa v0.0.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	helm.sh/helm/v3 v3.10.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.50.0 // indirect
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
+	helm.sh/helm/v3 v3.15.4 // indirect
 )
 
 require (
-	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/princjef/mageutil v1.0.0
 )
 
@@ -31,6 +38,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	sigs.k8s.io/yaml v1.3.0
+	golang.org/x/sys v0.22.0 // indirect
+	sigs.k8s.io/yaml v1.4.0
 )

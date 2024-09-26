@@ -1,10 +1,17 @@
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: global-config
+  name: config-v-global
 spec: 
-  type: config
-  name: global-config
+  rootResource: config
+  catalogType: config
+  name: config-global
   metadata:
     asset: hq
   properties:
@@ -15,9 +22,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: l3-config
+  name: config-v-l3
 spec: 
-  type: config
+  rootResource: config
+  catalogType: config
   metadata:
     asset: l3
   properties:
@@ -28,9 +36,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: l4-config
+  name: config-v-l4
 spec: 
-  type: config
+  rootResource: config
+  catalogType: config
   metadata:
     asset: l4
   properties:
@@ -41,25 +50,27 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: csad-config
+  name: config-v-csad
 spec: 
-  type: config
-  parentName: global-config
+  rootResource: config
+  catalogType: config
+  parentName: config-v-global
   metadata:
     asset: use-case
   properties:
-    l3: <l3-config>
-    l4: <l4-config>
+    l3: <config-l3>
+    l4: <config-l4>
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-config
+  name: config-v-site
 spec: 
-  type: config
+  rootResource: config
+  catalogType: config
   metadata:
     asset: site
-  parentName: csad-config
+  parentName: config-v-csad
   properties:
     site1: site-value1
     site2: site-value2
@@ -68,12 +79,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-a-config
+  name: config-v-linea
 spec: 
-  type: config
+  rootResource: config
+  catalogType: config
   metadata:
     asset: line-a
-  parentName: site-config
+  parentName: config-v-site
   properties:
     line-a-1: line-a-value1
     line-a-2: line-a-value2
@@ -81,12 +93,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-b-config
+  name: config-v-lineb
 spec: 
-  type: config
+  rootResource: config
+  catalogType: config
   metadata:
     asset: line-b
-  parentName: site-config
+  parentName: config-v-site
   properties:
     line-a-1: line-b-value1
     line-a-2: line-b-value2

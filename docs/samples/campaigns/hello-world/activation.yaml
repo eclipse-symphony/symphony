@@ -3,7 +3,6 @@ kind: Activation
 metadata:
   name: hello-world-activation
 spec:
-  campaign: "hello-world"
-  name: "hello-world-activation"
+  campaign: "hello-world:v1"
   inputs:
-        foo: "bar"        
+    foo: "bar" 

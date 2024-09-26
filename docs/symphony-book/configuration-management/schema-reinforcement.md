@@ -4,7 +4,6 @@ Symphony Catalog object uses an open key-value pair schema, which provides the f
 
 In the case where a stronger schema check is required – just as limiting a configuration field to a certain value range – Symphony allows a Catalog to be annotated with a `schema` metadata that points to a schema definition. Once an Catalog is annotated with a schema, it will be checked against the schema on any update operations – regardless if you are using the REST API or using K8s API calls. Any schema violations will cause the update to be rejected.
 
-
 ## Schema rules
 
 ### Type check
@@ -87,3 +86,25 @@ Some examples:
 
 > **NOTE:** When you have multiple checks specified in a rule, they are applied at the same time. For example, you can specify a field being an integer, mandatory, and has to fall between certain range.
 
+
+## Schema syntax for nested properties
+
+Schema supports nested organizations using jq query syntax. Each layer is specified by `.` and the outside must be quoted with <code>\`\`</code> to notify that it is a jq syntax. For example , given a nested field
+```json
+{
+    "properties": {
+        "nested-layer": {
+            "some-field": "some-value"
+        }
+    }
+}
+```
+the schema should be
+```json
+{
+    "rules": {
+        "`.nested-layer.some-field`": {
+        }
+    }
+}
+```

@@ -8,10 +8,12 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,7 +51,7 @@ func ParseProperty(val string) string {
 
 type EvaluationContext struct {
 	ConfigProvider config.IExtConfigProvider
-	SecretProvider secret.ISecretProvider
+	SecretProvider secret.IExtSecretProvider
 	DeploymentSpec interface{}
 	Properties     map[string]string
 	Inputs         map[string]interface{}
@@ -57,6 +59,8 @@ type EvaluationContext struct {
 	Component      string
 	Value          interface{}
 	Namespace      string
+	ParentConfigs  map[string]map[string]bool
+	Context        context.Context
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {
@@ -70,6 +74,47 @@ func (e *EvaluationContext) Clone() *EvaluationContext {
 		SecretProvider: e.SecretProvider,
 	}
 }
+
+func HasCircularDependency(object string, field string, context EvaluationContext) bool {
+	if context.ParentConfigs == nil {
+		return false
+	}
+	if catalogFields, exist := context.ParentConfigs[object]; exist {
+		if catalogFields[field] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func UpdateDependencyList(object string, field string, dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		dependencyList = make(map[string]map[string]bool)
+	}
+	if _, ok := dependencyList[object]; !ok {
+		dependencyList[object] = make(map[string]bool)
+	}
+	dependencyList[object][field] = true
+	return dependencyList
+}
+
+func DeepCopyDependencyList(dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		return nil
+	}
+
+	newMapConfigs := make(map[string]map[string]bool)
+	for key, innerMap := range dependencyList {
+		newInnerMap := make(map[string]bool)
+		for innerKey, value := range innerMap {
+			newInnerMap[innerKey] = value
+		}
+		newMapConfigs[key] = newInnerMap
+	}
+	return newMapConfigs
+}
+
 func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {
@@ -121,4 +166,34 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	} else {
 		return result, nil
 	}
+}
+func FormatAsString(val interface{}) string {
+	switch tv := val.(type) {
+	case string:
+		return tv
+	case int:
+		return strconv.Itoa(tv)
+	case int32:
+		return strconv.Itoa(int(tv))
+	case int64:
+		return strconv.Itoa(int(tv))
+	case float32:
+		return strconv.FormatFloat(float64(tv), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(tv, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(tv)
+	case map[string]interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	case []interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	default:
+		return fmt.Sprintf("%v", tv)
+	}
+}
+
+func ConvertStringToValidLabel(s string) string {
+	return strings.ReplaceAll(s, " ", "")
 }

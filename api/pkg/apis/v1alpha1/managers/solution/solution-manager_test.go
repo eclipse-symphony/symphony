@@ -19,41 +19,151 @@ import (
 )
 
 func TestFindAgentEmpty(t *testing.T) {
-	agent := findAgent(model.TargetState{
-		Spec: &model.TargetSpec{},
+	deploymentState, _ := NewDeploymentState(model.DeploymentSpec{
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
+		},
 	})
+	agent := findAgentFromDeploymentState(deploymentState, "T1")
 	assert.Equal(t, "", agent)
 }
 func TestFindAgentMatch(t *testing.T) {
-	agent := findAgent(model.TargetState{
-		Spec: &model.TargetSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "symphony-agent",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
+	deploymentState, _ := NewDeploymentState(model.DeploymentSpec{
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "symphony-agent",
+							Properties: map[string]interface{}{
+								model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
+							},
+						},
 					},
 				},
 			},
 		},
 	})
+	agent := findAgentFromDeploymentState(deploymentState, "T1")
 	assert.Equal(t, "symphony-agent", agent)
 }
+
 func TestFindAgentNotMatch(t *testing.T) {
-	agent := findAgent(model.TargetState{
-		Spec: &model.TargetSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "symphony-agent",
-					Properties: map[string]interface{}{
-						model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-api:0.38.0",
+	deploymentState, _ := NewDeploymentState(model.DeploymentSpec{
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "symphony-agent",
+							Properties: map[string]interface{}{
+								model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-api:0.38.0",
+							},
+						},
 					},
 				},
 			},
 		},
 	})
+	agent := findAgentFromDeploymentState(deploymentState, "T1")
 	assert.Equal(t, "", agent)
 }
+
+func TestFindAgentMatchMultiTargets(t *testing.T) {
+	deploymentState, _ := NewDeploymentState(model.DeploymentSpec{
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "symphony-agent1",
+							Properties: map[string]interface{}{
+								model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
+							},
+						},
+					},
+				},
+			},
+			"T2": {
+				Spec: &model.TargetSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "symphony-agent2",
+							Properties: map[string]interface{}{
+								model.ContainerImage: "ghcr.io/eclipse-symphony/symphony-agent:0.38.0",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	agent := findAgentFromDeploymentState(deploymentState, "T1")
+	assert.Equal(t, "symphony-agent1", agent)
+}
+
 func TestSortByDepedenciesSingleChain(t *testing.T) {
 	components := []model.ComponentSpec{
 		{
@@ -279,6 +389,12 @@ func TestMockGet(t *testing.T) {
 	// Test reconcile idempotency
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
+
+	// Test summary deletion
+	err = manager.DeleteSummary(context.Background(), "", "default")
+	assert.Nil(t, err)
+	_, err = manager.GetSummary(context.Background(), "", "default")
+	assert.NotNil(t, err)
 }
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()

@@ -14,11 +14,32 @@ import _ "embed"
 const (
 	FullGroupName                = "symphony"
 	AzureOperationIdKey          = "management.azure.com/operationId"
-	AzureCorrelationId           = "management.azure.com/correlationId"
+	AzureCorrelationIdKey        = "management.azure.com/correlationId"
+	AzureResourceIdKey           = "management.azure.com/resourceId"
+	AzureSystemDataKey           = "management.azure.com/systemData"
+	AzureTenantIdKey             = "management.azure.com/tenantId"
+	AzureLocationKey             = "management.azure.com/location"
+	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	AzureCreatedByKey            = "createdBy"
 	DefaultScope                 = "default"
 	K8S                          = "symphony-k8s"
 	OperationStartTimeKeyPostfix = FullGroupName + "/started-at"
 	FinalizerPostfix             = FullGroupName + "/finalizer"
+	ResourceSeperator            = "-v-"
+	ReferenceSeparator           = ":"
+	ActivityOperation_Write      = "Write"
+	ActivityOperation_Read       = "Read"
+	ActivityOperation_Delete     = "Delete"
+
+	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
+	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
+	TargetOperationNamePrefix            = "targets.fabric." + FullGroupName
+	InstanceOperationNamePrefix          = "instances.solution." + FullGroupName
+	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
+	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
+	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
+	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
+	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
 )
 
 // Environment variables keys

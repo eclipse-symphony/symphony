@@ -5,9 +5,13 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
   workflow_dispatch:
 
 jobs:
@@ -24,12 +28,12 @@ jobs:
       TEST_HELM_CHART: yes
       TEST_CONFIGMAP: yes # requires minikube start
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.21
+        go-version: 1.22.4
         
     - name: Set up custom GOPATH
       run: |
@@ -42,7 +46,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y build-essential
 
     - name: Check docker version and images
-      run: docker --version && docker images
+      run: docker version && docker images
 
     - name: Install kubectl
       run: |
@@ -86,6 +90,7 @@ jobs:
         echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE TEST_CONFIGMAP: $TEST_CONFIGMAP"
         export REPOPATH="${{ github.workspace }}"
         echo "REPOPATH=$REPOPATH"
+        export DOCKER_API_VERSION=1.45
         cd api && mage cleanTest
 
     - name: K8S Test
@@ -119,7 +124,7 @@ jobs:
       if: always()
 
     - name: Upload test assets
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: test-coverage
         path: |

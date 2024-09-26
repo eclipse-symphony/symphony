@@ -1,0 +1,23 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: sitecatalog2-v-v1
+spec:
+  rootResource: sitecatalog2
+  catalogType: catalog
+  properties:
+    metadata: 
+      name: webappconfig2:v1
+    spec: 
+      type: config
+      properties:
+        test.dot.serviceType: "NodePort"
+        testA:
+          testB:
+            images:
+              - image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+                ver: 1
+              - image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+                ver: 2
+              - image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+                ver: 3

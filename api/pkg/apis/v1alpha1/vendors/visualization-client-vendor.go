@@ -26,6 +26,7 @@ var cvLog = logger.NewLogger("coa.runtime")
 
 type VisualizationClientVendor struct {
 	vendors.Vendor
+	apiClient utils.ApiClient
 }
 
 func (s *VisualizationClientVendor) GetInfo() vendors.VendorInfo {
@@ -38,6 +39,10 @@ func (s *VisualizationClientVendor) GetInfo() vendors.VendorInfo {
 
 func (e *VisualizationClientVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
+	if err != nil {
+		return err
+	}
+	e.apiClient, err = utils.GetApiClient()
 	if err != nil {
 		return err
 	}
@@ -66,21 +71,21 @@ func (c *VisualizationClientVendor) onVisClient(request v1alpha2.COARequest) v1a
 	})
 	defer span.End()
 
-	cvLog.Infof("V (VisualizationClient): onVisClient, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	cvLog.InfofCtx(pCtx, "V (VisualizationClient): onVisClient, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onVisClient-POST", pCtx, nil)
 		var packet model.Packet
 		err := json.Unmarshal(request.Body, &packet)
 		if err != nil {
-			cvLog.Errorf("V (VisualizationClient): onVisClient failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cvLog.ErrorfCtx(pCtx, "V (VisualizationClient): onVisClient failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte(err.Error()),
 			})
 		}
 		if !packet.IsValid() {
-			cvLog.Errorf("V (VisualizationClient): onVisClient failed - %s, traceId: %s", "invalid visualization packet", span.SpanContext().TraceID().String())
+			cvLog.ErrorfCtx(pCtx, "V (VisualizationClient): onVisClient failed - %s", "invalid visualization packet")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte("invalid visualization packet"),
@@ -88,14 +93,12 @@ func (c *VisualizationClientVendor) onVisClient(request v1alpha2.COARequest) v1a
 		}
 
 		jData, _ := json.Marshal(packet)
-		err = utils.SendVisualizationPacket(ctx,
-			c.Vendor.Context.SiteInfo.CurrentSite.BaseUrl,
+		err = c.apiClient.SendVisualizationPacket(ctx, jData,
 			c.Vendor.Context.SiteInfo.CurrentSite.Username,
-			c.Vendor.Context.SiteInfo.CurrentSite.Password,
-			jData)
+			c.Vendor.Context.SiteInfo.CurrentSite.Password)
 
 		if err != nil {
-			cvLog.Errorf("V (VisualizationClient): onVisClient failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			cvLog.ErrorfCtx(pCtx, "V (VisualizationClient): onVisClient failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),

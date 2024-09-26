@@ -44,14 +44,22 @@ Example:
 
 ```shell
 # Go installation
-curl -LO "https://go.dev/dl/go1.21.3.linux-amd64.tar.gz"
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz
+curl -LO "https://go.dev/dl/go1.22.4.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.4.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
-
+rm go1.22.4.linux-amd64.tar.gz
 mkdir -p $HOME/go/bin
 
 ```
+
+use `vim ~/.bash_profile` to open the configuration file, append following command:
+```shell
+export GOPATH=~/go
+export GOROOT=/usr/local/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+```
+run `source ~/.bash_profile` to finish the environment variable setting.
 
 ### helm installation
 
@@ -63,7 +71,7 @@ Example:
 wget https://get.helm.sh/helm-v3.9.3-linux-amd64.tar.gz
 tar xvf helm-v3.9.3-linux-amd64.tar.gz
 sudo mv linux-amd64/helm /usr/local/bin
-rm helm-v3.4.1-linux-amd64.tar.gz
+rm helm-v3.9.3-linux-amd64.tar.gz
 rm -rf linux-amd64
 helm version
 ```
@@ -80,6 +88,7 @@ echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check # valid output: kubect
 
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 kubectl version --client
+rm -rf kubectl kubectl.sha256
 ```
 
 ### mage installation
@@ -87,6 +96,8 @@ kubectl version --client
 Example:
 
 https://github.com/magefile/mage#installation
+
+(Please make sure you set go environment variable correctly in previous steps.)
 
 ```shell
 git clone https://github.com/magefile/mage
@@ -99,6 +110,8 @@ go run bootstrap.go
 See all commands with `mage -l`
 
 ```
+> git clone https://github.com/eclipse-symphony/symphony
+> cd symphony/test/localenv
 > mage -l
 
 Use this tool to quickly get started developing in the symphony ecosystem. The tool provides a set of common commands to make development easier for the team. To get started using Minikube, run 'mage build minikube:start minikube:load deploy'.
@@ -181,6 +194,11 @@ To remove symphony from the cluster use
 mage Destroy all,nowait
 ```
 
+If packages version in go.mod is updated, prepare dependencies using
+```
+go mod tidy
+```
+
 # Troubleshooting
 
 If you are seeing strange behavior or getting errors the first thing to try is completely deleting minikube and starting over with a fresh cluster. Many commands will recreate minikube for you automatically, but it is worth checking that minikube is actually getting cleaned up.
@@ -198,13 +216,13 @@ CI integration tests can be run locally with the following command:
 mage test:up
 ```
 
-See [integration test README](../test/integration/README.md) for more details.
+See [integration test README](../integration/README.md) for more details.
 
 # Unit tests
 
 ## Perquisites for running unit tests
 
-In [k8s](../k8s) and [api](../api) folder, we could run unit tests.
+In [k8s](../../k8s) and [api](../../api) folder, we could run unit tests.
 
 To run unit tests, we need to
 
@@ -220,4 +238,4 @@ sudo apt-get install jq
 go env -w CGO_ENABLED=1
 go env CGO_ENABLED
 ```
-Then go to [k8s](../k8s) or [api](../api), run ```mage test``` to launch unit tests.
+Then go to [k8s](../../k8s) or [api](../../api) folder, run ```mage test``` to launch unit tests.

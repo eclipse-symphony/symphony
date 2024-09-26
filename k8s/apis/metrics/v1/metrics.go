@@ -21,23 +21,25 @@ const (
 	ValidResource   string = "Valid"
 	InvalidResource string = "Invalid"
 	//resource type
-	TargetResourceType   string = "Target"
-	InstanceResourceType string = "Instance"
-	CatalogResourceType  string = "Catalog"
-	ModelResourceType    string = "Model"
-	SkillResourceType    string = "Skill"
-	DeviceResourceType   string = "Device"
+	TargetResourceType     string = "Target"
+	InstanceResourceType   string = "Instance"
+	CatalogResourceType    string = "Catalog"
+	ContainerResourceType  string = "Container"
+	ModelResourceType      string = "Model"
+	SkillResourceType      string = "Skill"
+	DeviceResourceType     string = "Device"
+	DiagnosticResourceType string = "Diagnostic"
 )
 
 // Metrics is a metrics tracker for a controller operation.
 type Metrics struct {
-	controllerValidationLatency observability.Histogram
+	controllerValidationLatency observability.Gauge
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.K8S)
 
-	controllerValidationLatency, err := observable.Metrics.Histogram(
+	controllerValidationLatency, err := observable.Metrics.Gauge(
 		"symphony_controller_validation_latency",
 		"measure of overall controller validate latency",
 	)
@@ -68,7 +70,7 @@ func (m *Metrics) ControllerValidationLatency(
 		return
 	}
 
-	m.controllerValidationLatency.Add(
+	m.controllerValidationLatency.Set(
 		latency(startTime),
 		Deployment(
 			validationType,
@@ -78,7 +80,7 @@ func (m *Metrics) ControllerValidationLatency(
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// latency gets the time since the given start in milliseconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	return float64(time.Since(start).Milliseconds())
 }

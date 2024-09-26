@@ -1,9 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: context-based-solution  
+spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: context-based-solution
+  name: context-based-solution-v-v1
 spec:
+  rootResource: context-based-solution
   components:
     - name: context-based-deployment
       type: yaml.k8s
@@ -42,4 +48,4 @@ spec:
       type: config
       properties: 
         # This uses the context of the instance's scope to determine which config to include
-        app-settings: ${{$config($context('$.Instance.Spec.Scope')-config, '')}}
+        app-settings: ${{$config($context('$.Instance.Spec.Scope')-config:v1, '')}}
