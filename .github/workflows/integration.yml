@@ -128,13 +128,14 @@ jobs:
     - name: Run integration tests 08
       run: |
         cd test/integration/scenarios/08.webhook/ && mage test
-    - name: Run integration tests 09
-      run: |
-        cd test/integration/scenarios/09.catalogEval/ && mage test
 
     - name: Run integration tests 09
       run: |
         cd test/integration/scenarios/09.stress/ && mage test
+
+    - name: Run integration tests 11
+      run: |
+        cd test/integration/scenarios/11.catalogEval/ && mage test
 
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v4
