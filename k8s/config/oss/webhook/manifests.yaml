@@ -190,6 +190,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: mcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-monitor-symphony-v1-diagnostic
   failurePolicy: Fail
   name: mdiagnostic.kb.io
@@ -397,6 +418,27 @@ webhooks:
     - DELETE
     resources:
     - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: vcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
   sideEffects: None
 - admissionReviewVersions:
   - v1
