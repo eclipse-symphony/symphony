@@ -367,9 +367,9 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	providerOperationMetrics.ProviderOperationLatency(
 		applyTime,
 		script,
-		functionName,
 		metrics.ApplyScriptOperation,
 		metrics.UpdateOperationType,
+		functionName,
 	)
 
 	deleteTime := time.Now().UTC()
@@ -396,16 +396,16 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	providerOperationMetrics.ProviderOperationLatency(
 		deleteTime,
 		script,
-		functionName,
 		metrics.ApplyScriptOperation,
 		metrics.DeleteOperationType,
+		functionName,
 	)
 	providerOperationMetrics.ProviderOperationLatency(
 		applyTime,
 		script,
-		functionName,
 		metrics.ApplyOperation,
 		metrics.UpdateOperationType,
+		functionName,
 	)
 	return ret, nil
 }

@@ -373,9 +373,9 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		providerOperationMetrics.ProviderOperationLatency(
 			applyTime,
 			ingress,
-			functionName,
 			metrics.ApplyOperation,
 			metrics.UpdateOperationType,
+			functionName,
 		)
 	}
 	deleteTime := time.Now().UTC()
@@ -402,9 +402,9 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		providerOperationMetrics.ProviderOperationLatency(
 			deleteTime,
 			ingress,
-			functionName,
 			metrics.ApplyOperation,
 			metrics.DeleteOperationType,
+			functionName,
 		)
 	}
 	return ret, nil

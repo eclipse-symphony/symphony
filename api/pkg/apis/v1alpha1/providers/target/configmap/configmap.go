@@ -334,9 +334,9 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		providerOperationMetrics.ProviderOperationLatency(
 			applyTime,
 			configmap,
-			functionName,
 			metrics.ApplyOperation,
 			metrics.UpdateOperationType,
+			functionName,
 		)
 	}
 	deleteTime := time.Now().UTC()
@@ -362,9 +362,9 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		providerOperationMetrics.ProviderOperationLatency(
 			deleteTime,
 			configmap,
-			functionName,
 			metrics.ApplyOperation,
 			metrics.DeleteOperationType,
+			functionName,
 		)
 	}
 	return ret, nil

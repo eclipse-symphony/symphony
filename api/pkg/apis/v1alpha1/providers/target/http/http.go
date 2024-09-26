@@ -262,9 +262,9 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	providerOperationMetrics.ProviderOperationLatency(
 		applyTime,
 		httpProvider,
-		functionName,
 		metrics.ApplyOperation,
 		metrics.UpdateOperationType,
+		functionName,
 	)
 	return ret, nil
 }

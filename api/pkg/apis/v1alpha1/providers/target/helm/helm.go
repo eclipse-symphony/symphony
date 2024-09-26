@@ -586,9 +586,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			providerOperationMetrics.ProviderOperationLatency(
 				applyComponentTime,
 				helm,
-				functionName,
 				metrics.ApplyOperation,
 				metrics.UpdateOperationType,
+				functionName,
 			)
 		} else {
 			switch component.Component.Type {
@@ -631,18 +631,18 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		providerOperationMetrics.ProviderOperationLatency(
 			applyComponentTime,
 			helm,
-			functionName,
 			metrics.ApplyOperation,
 			metrics.UpdateOperationType,
+			functionName,
 		)
 	}
 
 	providerOperationMetrics.ProviderOperationLatency(
 		applyTime,
 		helm,
-		functionName,
 		metrics.ApplyOperation,
 		metrics.UpdateOperationType,
+		functionName,
 	)
 
 	return ret, nil

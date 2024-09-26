@@ -569,9 +569,9 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			providerOperationMetrics.ProviderOperationLatency(
 				applyComponentTime,
 				kubectl,
-				functionName,
 				metrics.ApplyOperation,
 				metrics.UpdateOperationType,
+				functionName,
 			)
 		}
 	}
@@ -579,9 +579,9 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	providerOperationMetrics.ProviderOperationLatency(
 		applyTime,
 		kubectl,
-		functionName,
 		metrics.ApplyOperation,
 		metrics.UpdateOperationType,
+		functionName,
 	)
 
 	deleteTime := time.Now().UTC()
@@ -746,9 +746,9 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			providerOperationMetrics.ProviderOperationLatency(
 				deleteComponentTime,
 				kubectl,
-				functionName,
 				metrics.ApplyOperation,
 				metrics.DeleteOperationType,
+				functionName,
 			)
 		}
 	}
@@ -756,16 +756,16 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	providerOperationMetrics.ProviderOperationLatency(
 		deleteTime,
 		kubectl,
-		functionName,
 		metrics.ApplyOperation,
 		metrics.DeleteOperationType,
+		functionName,
 	)
 	providerOperationMetrics.ProviderOperationLatency(
 		applyTime,
 		kubectl,
-		functionName,
 		metrics.ApplyOperation,
 		metrics.UpdateOperationType,
+		functionName,
 	)
 
 	return ret, nil
