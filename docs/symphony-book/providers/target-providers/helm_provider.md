@@ -19,4 +19,6 @@ This provider manages a Helm chart embedded in a component. It supports packaged
 
 2: The chart version is ignored when full chart URL is used in the `helm.repo` property.
 
+3：The chart name will not be use only when prefix is `http` and suffix is not `.tgz`
+
 Find full scenarios at [this location](../../../samples/canary/solution.yaml)
