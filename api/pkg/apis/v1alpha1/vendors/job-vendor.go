@@ -53,39 +53,48 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 		return v1alpha2.NewCOAError(nil, "jobs manager is not supplied", v1alpha2.MissingConfig)
 	}
 	e.myMessages = make([]string, 0)
-	e.Vendor.Context.Subscribe("trace", func(topic string, event v1alpha2.Event) error {
-		msg := utils.FormatAsString(event.Body)
-		e.myMessages = append(e.myMessages, msg)
-		if len(e.myMessages) > 20 {
-			e.myMessages = e.myMessages[1:]
-		}
-		return nil
+	e.Vendor.Context.Subscribe("trace", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg := utils.FormatAsString(event.Body)
+			e.myMessages = append(e.myMessages, msg)
+			if len(e.myMessages) > 20 {
+				e.myMessages = e.myMessages[1:]
+			}
+			return nil
+		},
+		Group: "job",
 	})
-	e.Vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		ctx := context.TODO()
-		if event.Context != nil {
-			ctx = event.Context
-		}
-		err := e.JobsManager.HandleJobEvent(ctx, event)
-		if err != nil && v1alpha2.IsDelayed(err) {
-			go e.Vendor.Context.Publish(topic, event)
-		}
-		// job reconciler already has a retry mechanism, return nil to avoid retrying
-		return nil
+	e.Vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			err := e.JobsManager.HandleJobEvent(ctx, event)
+			if err != nil && v1alpha2.IsDelayed(err) {
+				go e.Vendor.Context.Publish(topic, event)
+			}
+			// job reconciler already has a retry mechanism, return nil to avoid retrying
+			return nil
+		},
 	})
-	e.Vendor.Context.Subscribe("heartbeat", func(topic string, event v1alpha2.Event) error {
-		ctx := context.TODO()
-		if event.Context != nil {
-			ctx = event.Context
-		}
-		return e.JobsManager.HandleHeartBeatEvent(ctx, event)
+	e.Vendor.Context.Subscribe("heartbeat", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			return e.JobsManager.HandleHeartBeatEvent(ctx, event)
+		},
 	})
-	e.Vendor.Context.Subscribe("schedule", func(topic string, event v1alpha2.Event) error {
-		ctx := context.TODO()
-		if event.Context != nil {
-			ctx = event.Context
-		}
-		return e.JobsManager.HandleScheduleEvent(ctx, event)
+	e.Vendor.Context.Subscribe("schedule", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			return e.JobsManager.HandleScheduleEvent(ctx, event)
+		},
 	})
 
 	if err != nil {
