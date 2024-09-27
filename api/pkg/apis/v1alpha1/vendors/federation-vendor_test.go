@@ -273,13 +273,15 @@ func TestFederationOnSyncPost(t *testing.T) {
 	}
 	response := vendor.onSync(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
-	vendor.Context.PubsubProvider.Subscribe("job-report", func(topic string, event v1alpha2.Event) error {
-		jData, _ := json.Marshal(event.Body)
-		var status model.StageStatus
-		err := json.Unmarshal(jData, &status)
-		assert.Nil(t, err)
-		assert.Equal(t, stageStatus.Stage, status.Stage)
-		return nil
+	vendor.Context.PubsubProvider.Subscribe("job-report", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			jData, _ := json.Marshal(event.Body)
+			var status model.StageStatus
+			err := json.Unmarshal(jData, &status)
+			assert.Nil(t, err)
+			assert.Equal(t, stageStatus.Stage, status.Stage)
+			return nil
+		},
 	})
 
 	requestPatch := &v1alpha2.COARequest{

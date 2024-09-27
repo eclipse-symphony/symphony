@@ -51,10 +51,12 @@ func TestVendorContextPublishSubscribe(t *testing.T) {
 	sig := make(chan int)
 	msg := ""
 
-	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg = event.Body.(string)
-		sig <- 1
-		return nil
+	err := v.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg = event.Body.(string)
+			sig <- 1
+			return nil
+		},
 	})
 	assert.Nil(t, err)
 	err = v.Publish("test", v1alpha2.Event{
@@ -68,8 +70,10 @@ func TestVendorContextPublishSubscribe(t *testing.T) {
 
 func TestVendorContextPublishSubscribeWithoutPubSub(t *testing.T) {
 	v := createVendorContextWithoutPubSub()
-	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		return nil
+	err := v.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			return nil
+		},
 	})
 	assert.Nil(t, err)
 	err = v.Publish("test", v1alpha2.Event{
@@ -83,10 +87,12 @@ func TestVendorContextPublishSubscribeBadRequest(t *testing.T) {
 	ch := make(chan struct{})
 	count := 0
 
-	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		count += 1
-		ch <- struct{}{}
-		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+	err := v.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			count += 1
+			ch <- struct{}{}
+			return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+		},
 	})
 	assert.Nil(t, err)
 	err = v.Publish("test", v1alpha2.Event{
@@ -114,10 +120,12 @@ func TestVendorContextPublishSubscribeInternalError(t *testing.T) {
 	ch := make(chan struct{})
 	count := 0
 
-	err := v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		count += 1
-		ch <- struct{}{}
-		return v1alpha2.NewCOAError(nil, "insert internal error", v1alpha2.InternalError)
+	err := v.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			count += 1
+			ch <- struct{}{}
+			return v1alpha2.NewCOAError(nil, "insert internal error", v1alpha2.InternalError)
+		},
 	})
 	assert.Nil(t, err)
 	err = v.Publish("test", v1alpha2.Event{
