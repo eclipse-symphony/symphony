@@ -27,16 +27,14 @@ import (
 var mLog = logger.NewLogger("coa.runtime")
 
 type RedisPubSubProvider struct {
-	Config          RedisPubSubProviderConfig          `json:"config"`
-	Subscribers     map[string][]v1alpha2.EventHandler `json:"subscribers"`
-	Client          *redis.Client
-	Queue           chan RedisMessageWrapper
-	Ctx             context.Context
-	Cancel          context.CancelFunc
-	Context         *contexts.ManagerContext
-	ClaimedMessages map[string]bool
-	TopicLock       map[string]*sync.Mutex
-	MapLock         *sync.Mutex
+	Config      RedisPubSubProviderConfig          `json:"config"`
+	Subscribers map[string][]v1alpha2.EventHandler `json:"subscribers"`
+	Client      *redis.Client
+	Ctx         context.Context
+	Cancel      context.CancelFunc
+	Context     *contexts.ManagerContext
+	WorkerLock  *sync.Mutex
+	IdleWorkers int
 }
 
 type RedisMessageWrapper struct {
@@ -52,23 +50,16 @@ type RedisPubSubProviderConfig struct {
 	Password        string `json:"password,omitempty"`
 	RequiresTLS     bool   `json:"requiresTLS,omitempty"`
 	NumberOfWorkers int    `json:"numberOfWorkers,omitempty"`
-	QueueDepth      int    `json:"queueDepth,omitempty"`
 	ConsumerID      string `json:"consumerID"`
-	MultiInstance   bool   `json:"multiInstance,omitempty"`
 }
 
 const (
-	RedisGroup = "symphony"
-	// defines the interval in which the provider should check for pending messages
-	PendingMessagesScanInterval = 5 * time.Second
-	// defines after how much idle time the provider should check for pending messages that previously claimed
-	// by itself and reset the idle time of them to prevent them from being claimed by other clients
-	ExtendMessageOwnershipWithIdleTime = 30 * time.Second
-	// defines the interval in which the provider should check for pending messages from other clients
-	PendingMessagesScanIntervalOtherClient = 60 * time.Second
-	// defines after how much idle time the provider should check for pending messages that previously claimed
-	// by other clients
-	ClaimMessageFromOtherClientWithIdleTime = 60 * time.Second
+	// ResetIdleTimeInterval
+	ResetIdleTimeInterval = 5 * time.Second
+	// ClaimPendingMessage
+	ClaimMessageInterval = 10 * time.Second
+	// ClaimPendingMessageIdleTime
+	ClaimMessageIdleTime = 30 * time.Second
 )
 
 func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSubProviderConfig, error) {
@@ -94,18 +85,6 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 			ret.RequiresTLS = bVal
 		}
 	}
-	if v, ok := properties["multiInstance"]; ok {
-		val := v //providers.LoadEnv(v)
-		if val != "" {
-			bVal, err := strconv.ParseBool(val)
-			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid bool value in the 'requiresTLS' setting of Redis pub-sub provider", v1alpha2.BadConfig)
-			}
-			ret.MultiInstance = bVal
-		}
-	} else {
-		ret.MultiInstance = false
-	}
 	if v, ok := properties["numberOfWorkers"]; ok {
 		val := v //providers.LoadEnv(v)
 		if val != "" {
@@ -117,19 +96,6 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 		} else {
 			ret.NumberOfWorkers = 1
 		}
-	}
-	if v, ok := properties["queueDepth"]; ok {
-		val := v //providers.LoadEnv(v)
-		if val != "" {
-			n, err := strconv.Atoi(val)
-			if err != nil {
-				return ret, v1alpha2.NewCOAError(err, "invalid int value in the 'queueDepth' setting of Redis pub-sub provider", v1alpha2.BadConfig)
-			}
-			ret.QueueDepth = n
-		}
-	}
-	if ret.QueueDepth <= 0 {
-		ret.QueueDepth = 10
 	}
 	if v, ok := properties["consumerID"]; ok {
 		ret.ConsumerID = v // providers.LoadEnv(v)
@@ -174,9 +140,6 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 	}
 
 	i.Ctx, i.Cancel = context.WithCancel(context.Background())
-	i.ClaimedMessages = make(map[string]bool)
-	i.MapLock = &sync.Mutex{}
-	i.TopicLock = make(map[string]*sync.Mutex)
 
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
@@ -191,53 +154,20 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 			InsecureSkipVerify: !i.Config.RequiresTLS,
 		}
 	}
+	i.IdleWorkers = i.Config.NumberOfWorkers
+	i.WorkerLock = &sync.Mutex{}
 	client := redis.NewClient(options)
 	if _, err := client.Ping(i.Ctx).Result(); err != nil {
 		mLog.Errorf("  P (Redis PubSub): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", i.Config.Host), v1alpha2.InternalError)
 	}
 	i.Client = client
-	i.Queue = make(chan RedisMessageWrapper, int(i.Config.QueueDepth))
-	for k := uint(0); k < uint(i.Config.NumberOfWorkers); k++ {
-		go i.worker()
-	}
-	return nil
-}
-
-func (i *RedisPubSubProvider) worker() {
-	for {
-		select {
-		case <-i.Ctx.Done():
-			return
-		case msg := <-i.Queue:
-			i.processMessage(msg)
-		}
-	}
-}
-func (i *RedisPubSubProvider) processMessage(msg RedisMessageWrapper) error {
-	i.ClaimedMessages[msg.MessageID] = true
-	var evt v1alpha2.Event
-	err := json.Unmarshal([]byte(utils.FormatAsString(msg.Message)), &evt)
-	if err != nil {
-		return v1alpha2.NewCOAError(err, "failed to unmarshal event", v1alpha2.InternalError)
-	}
-	shouldRetry := v1alpha2.EventShouldRetryWrapper(msg.Handler, msg.Topic, evt)
-	//err = msg.Handler(msg.Topic, evt)
-	lock := i.getTopicLock(msg.Topic)
-	lock.Lock()
-	defer lock.Unlock()
-	if shouldRetry {
-		delete(i.ClaimedMessages, msg.MessageID)
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.MessageID), v1alpha2.InternalError)
-	}
-	i.Client.XAck(i.Ctx, msg.Topic, RedisGroup, msg.MessageID)
-	delete(i.ClaimedMessages, msg.MessageID)
 
 	return nil
 }
 
 func (i *RedisPubSubProvider) Publish(topic string, event v1alpha2.Event) error {
-	_, err := i.Client.XAdd(i.Ctx, &redis.XAddArgs{
+	messageId, err := i.Client.XAdd(i.Ctx, &redis.XAddArgs{
 		Stream: topic,
 		Values: map[string]interface{}{"data": event},
 	}).Result()
@@ -245,133 +175,198 @@ func (i *RedisPubSubProvider) Publish(topic string, event v1alpha2.Event) error 
 		mLog.Errorf("  P (Redis PubSub) : failed to publish message %v", err)
 		return v1alpha2.NewCOAError(err, "failed to publish message", v1alpha2.InternalError)
 	}
+	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : published message %s for topic %s", messageId, topic)
 	return nil
 }
 func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHandler) error {
-	err := i.Client.XGroupCreateMkStream(i.Ctx, topic, RedisGroup, "0").Err()
+	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : subscribing to topic %s with Group %s", topic, handler.Group)
+	err := i.Client.XGroupCreateMkStream(i.Ctx, topic, handler.Group, "0").Err()
 	//Ignore BUSYGROUP errors
 	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
 		mLog.Errorf("  P (Redis PubSub) : failed to subscribe %v", err)
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subsceribe to topic %s", topic), v1alpha2.InternalError)
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subscribe to topic %s and group %s", topic, handler.Group), v1alpha2.InternalError)
 	}
 	go i.pollNewMessagesLoop(topic, handler)
-	go i.ClaimMessageLoop(topic, i.Config.ConsumerID, handler, PendingMessagesScanInterval, ExtendMessageOwnershipWithIdleTime)
-	if i.Config.MultiInstance {
-		go i.ClaimMessageLoop(topic, "", handler, PendingMessagesScanIntervalOtherClient, ClaimMessageFromOtherClientWithIdleTime)
-	}
+	go i.ClaimMessageLoop(topic, handler)
 	return nil
 }
 
 func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2.EventHandler) {
-	for {
-		if i.Ctx.Err() != nil {
-			return
-		}
-		streams, err := i.Client.XReadGroup(i.Ctx, &redis.XReadGroupArgs{
-			Group:    RedisGroup,
-			Consumer: i.Config.ConsumerID,
-			Streams:  []string{topic, ">"},
-			Count:    int64(i.Config.QueueDepth),
-			Block:    0,
-		}).Result()
-		if err != nil {
-			mLog.Errorf("  P (Redis PubSub) : failed to poll message %v", err)
-			continue
-		}
-		for _, s := range streams {
-			i.enqueueMessages(s.Stream, handler, s.Messages)
-		}
-		time.Sleep(PendingMessagesScanInterval)
-	}
-}
-
-func (i *RedisPubSubProvider) enqueueMessages(topic string, handler v1alpha2.EventHandler, msgs []redis.XMessage) {
-	for _, msg := range msgs {
-		rmsg := createRedisMessageWrapper(topic, handler, msg)
-		select {
-		case i.Queue <- rmsg:
-		case <-i.Ctx.Done():
-			return
-		}
-	}
-}
-
-func createRedisMessageWrapper(topic string, handler v1alpha2.EventHandler, msg redis.XMessage) RedisMessageWrapper {
-	var data interface{}
-	if dataValue, exists := msg.Values["data"]; exists && dataValue != nil {
-		data = dataValue
-	}
-	return RedisMessageWrapper{
-		Topic:     topic,
-		Message:   data,
-		MessageID: msg.ID,
-		Handler:   handler,
-	}
-}
-
-func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, consumerId string, handler v1alpha2.EventHandler, scanInterval time.Duration, messageIdleTime time.Duration) {
-	i.reclaimPendingMessages(topic, messageIdleTime, consumerId, handler)
-	reclaimTicker := time.NewTicker(scanInterval)
+	i.pollNewMessages(topic, handler)
+	reclaimTicker := time.NewTicker(ClaimMessageInterval)
 	defer reclaimTicker.Stop()
 	for {
 		select {
 		case <-i.Ctx.Done():
 			return
 		case <-reclaimTicker.C:
-			i.reclaimPendingMessages(topic, messageIdleTime, consumerId, handler)
+			i.pollNewMessages(topic, handler)
 		}
 	}
 }
 
-func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, idleTime time.Duration, consumer string, handler v1alpha2.EventHandler) {
-	start := "-"
+func (i *RedisPubSubProvider) pollNewMessages(topic string, handler v1alpha2.EventHandler) {
+	// If worker is claimed but not started, release it in defer function
+	claimWorker := false
+	workerStarted := false
+	defer func() {
+		if claimWorker && !workerStarted {
+			i.ReleaseWorker(topic)
+		}
+	}()
+
 	for {
+		if i.Ctx.Err() != nil {
+			return
+		}
+		claimWorker = false
+		workerStarted = false
+
+		streams, err := i.Client.XReadGroup(i.Ctx, &redis.XReadGroupArgs{
+			Group:    handler.Group,
+			Consumer: i.Config.ConsumerID,
+			Streams:  []string{topic, ">"},
+			Count:    1,
+			Block:    1 * time.Second,
+		}).Result()
+		if err != nil {
+			break
+		}
+		if len(streams) == 1 && len(streams[0].Messages) == 1 {
+			if claimWorker = i.WaitForIdleWorkers(streams[0].Messages[0].ID, time.Second); !claimWorker {
+				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no idle workers, abort current pollNewMessages for topic %s and group %s", topic, handler.Group)
+				return
+			}
+			workerStarted = false
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : new message for topic %s, group %s, messages %s", topic, handler.Group, streams[0].Messages[0].ID)
+			go i.processMessage(topic, handler, &streams[0].Messages[0])
+			workerStarted = true
+		} else {
+			break
+		}
+		mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processed pollnewmessages for topic %s", topic)
+	}
+}
+
+func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, handler v1alpha2.EventHandler) {
+	i.reclaimPendingMessages(topic, handler)
+	reclaimTicker := time.NewTicker(ClaimMessageInterval)
+	defer reclaimTicker.Stop()
+	for {
+		select {
+		case <-i.Ctx.Done():
+			return
+		case <-reclaimTicker.C:
+			i.reclaimPendingMessages(topic, handler)
+		}
+	}
+}
+
+func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, handler v1alpha2.EventHandler) {
+	// If worker is claimed but not started, release it in defer function
+	claimWorker := false
+	workerStarted := false
+	defer func() {
+		if claimWorker && !workerStarted {
+			i.ReleaseWorker(topic)
+		}
+	}()
+	for {
+		claimWorker = false
+		workerStarted = false
 		pendingResult, err := i.Client.XPendingExt(i.Ctx, &redis.XPendingExtArgs{
 			Stream:   topic,
-			Group:    RedisGroup,
-			Start:    start,
+			Group:    handler.Group,
+			Start:    "-",
 			End:      "+",
-			Count:    int64(i.Config.QueueDepth),
-			Idle:     idleTime,
-			Consumer: consumer,
+			Count:    1,
+			Idle:     ClaimMessageIdleTime,
+			Consumer: "",
 		}).Result()
 		if err != nil && !errors.Is(err, redis.Nil) {
 			mLog.Errorf("  P (Redis PubSub) : failed to get pending message %v", err)
-			break
+			return
 		}
-		if len(pendingResult) == 0 {
-			break
+		if len(pendingResult) != 1 {
+			return
 		}
-		start = pendingResult[len(pendingResult)-1].ID
-		msgIDs := make([]string, 0, len(pendingResult))
-		for _, msg := range pendingResult {
-			msgIDs = append(msgIDs, msg.ID)
+		if claimWorker = i.WaitForIdleWorkers(pendingResult[0].ID, time.Second); !claimWorker {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : unable to claim idle workers in %s for topic %s, group %s, message %s", time.Second, topic, handler.Group, pendingResult[0].ID)
+			return
 		}
-		i.XClaimWrapper(topic, idleTime, consumer, msgIDs, handler)
+		msg, succeeded := i.ClaimMessage(topic, handler.Group, ClaimMessageIdleTime, pendingResult[0].ID)
+		if !succeeded {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : failed to claim message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+			continue
+		}
+		go i.processMessage(topic, handler, msg)
+		workerStarted = true
 	}
 }
-func (i *RedisPubSubProvider) XClaimWrapper(topic string, minIdle time.Duration, consumer string, msgIDs []string, handler v1alpha2.EventHandler) {
-	lock := i.getTopicLock(topic)
-	lock.Lock()
-	defer lock.Unlock()
+
+func (i *RedisPubSubProvider) processMessage(topic string, handler v1alpha2.EventHandler, msg *redis.XMessage) error {
+	defer i.ReleaseWorker(topic)
+	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processing message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+
+	// Reset the idle time for the message until process finishes so other processes won't pick it up
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	go i.ResetIdleTimeLoop(topic, handler.Group, msg.ID, stopCh)
+
+	var data interface{}
+	if dataValue, exists := msg.Values["data"]; exists && dataValue != nil {
+		data = dataValue
+	}
+	var evt v1alpha2.Event
+	err := json.Unmarshal([]byte(utils.FormatAsString(data)), &evt)
+	if err != nil {
+		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to unmarshal event for message %s and topic %s, group %s: %v", msg.ID, topic, handler.Group, err.Error())
+		return v1alpha2.NewCOAError(err, "failed to unmarshal event", v1alpha2.InternalError)
+	}
+	shouldRetry := v1alpha2.EventShouldRetryWrapper(handler, topic, evt)
+	if shouldRetry {
+		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : processing failed with retriable error for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.ID), v1alpha2.InternalError)
+	}
+	i.Client.XAck(i.Ctx, topic, handler.Group, msg.ID)
+	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processing succeeded for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+	return nil
+}
+
+func (i *RedisPubSubProvider) ClaimMessage(topic string, group string, minIdle time.Duration, msgID string) (*redis.XMessage, bool) {
 	claimResult, err := i.Client.XClaim(i.Ctx, &redis.XClaimArgs{
 		Stream:   topic,
-		Group:    RedisGroup,
-		Consumer: consumer,
+		Group:    group,
+		Consumer: i.Config.ConsumerID,
 		MinIdle:  minIdle,
-		Messages: msgIDs,
+		Messages: []string{msgID},
 	}).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
-		mLog.Error("  P (Redis PubSub) : failed to reclaim pending message %v", err)
-		return
+		mLog.Error("  P (Redis PubSub) : failed to reclaim pending message %s, topic %s, group %s: %v", msgID, topic, group, err)
+		return nil, false
 	}
-	filteredClaimResult := make([]redis.XMessage, 0, len(claimResult))
-	for _, msg := range claimResult {
-		if _, ok := i.ClaimedMessages[msg.ID]; !ok {
-			filteredClaimResult = append(filteredClaimResult, msg)
+	if len(claimResult) == 1 {
+		return &claimResult[0], true
+	}
+	return nil, false
+}
+
+func (i *RedisPubSubProvider) ResetIdleTimeLoop(topic string, group string, msgID string, stopCh chan struct{}) {
+	ticker := time.NewTicker(ResetIdleTimeInterval)
+	claimIdleTime := ResetIdleTimeInterval - 1*time.Second
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : resetting idle time for message %s for topic %s, group %s", msgID, topic, group)
+			_, succeeded := i.ClaimMessage(topic, group, claimIdleTime, msgID)
+			if !succeeded {
+				mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to reset idle time for message %s for topic %s, group %s", msgID, topic, group)
+			}
+		case <-stopCh:
+			return // Exit the goroutine when the stop signal is received
 		}
 	}
-	i.enqueueMessages(topic, handler, filteredClaimResult)
 }
 
 func toRedisPubSubProviderConfig(config providers.IProviderConfig) (RedisPubSubProviderConfig, error) {
@@ -403,11 +398,36 @@ func generateConsumerIDSuffix() string {
 	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
 
-func (i *RedisPubSubProvider) getTopicLock(topic string) *sync.Mutex {
-	i.MapLock.Lock()
-	defer i.MapLock.Unlock()
-	if _, ok := i.TopicLock[topic]; !ok {
-		i.TopicLock[topic] = &sync.Mutex{}
+func (i *RedisPubSubProvider) WaitForIdleWorkers(msgID string, timeout time.Duration) bool {
+	timeoutChan := time.After(timeout)
+	claimed := false
+	for {
+		select {
+		case <-timeoutChan:
+			return claimed
+		default:
+			if claimed = i.ClaimWorker(msgID); claimed {
+				return true
+			}
+		}
+		time.Sleep(timeout / 10)
 	}
-	return i.TopicLock[topic]
+}
+
+func (i *RedisPubSubProvider) ClaimWorker(msgID string) bool {
+	i.WorkerLock.Lock()
+	defer i.WorkerLock.Unlock()
+	if i.IdleWorkers == 0 {
+		return false
+	}
+	mLog.DebugfCtx(i.Ctx, "  P (Redis PubSub) : claimWorker for message %s, remaining %d", msgID, i.IdleWorkers)
+	i.IdleWorkers--
+	return true
+}
+
+func (i *RedisPubSubProvider) ReleaseWorker(msgID string) {
+	i.WorkerLock.Lock()
+	defer i.WorkerLock.Unlock()
+	i.IdleWorkers++
+	mLog.DebugfCtx(i.Ctx, "  P (Redis PubSub) : releaseWorker for message %s, remaining %d", msgID, i.IdleWorkers)
 }
