@@ -321,9 +321,10 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 					Body:  []byte(err.Error()),
 				})
 			} else {
+				errorMsg := fmt.Sprintf("catalog '%s' is not found in namespace %s", id, namespace)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
-					Body:  []byte(err.Error()),
+					Body:  []byte(errorMsg),
 				})
 			}
 		}
