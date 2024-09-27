@@ -524,16 +524,16 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return nil, err
 			}
 			// Check if the release exists.
-			releaseExists, err := checkReleaseExists(actionConfig, component.Component.Name)
+			releaseExists, err := checkReleaseExists(ctx, actionConfig, component.Component.Name)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): Error checking if chart exists: %+v", err)
 				return nil, err
 			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if releaseExists {
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
+				sLog.Info(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
 				if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
+					sLog.InfofCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
@@ -549,7 +549,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 			} else {
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
+				sLog.InfofCtx(ctx, "  P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
 				if _, err := installClient.Run(chart, helmProp.Values); err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to install: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to install chart", providerName), v1alpha2.HelmActionFailed)
@@ -746,7 +746,9 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil
 }
-func checkReleaseExists(config *action.Configuration, releaseName string) (bool, error) {
+func checkReleaseExists(ctx context.Context, config *action.Configuration, releaseName string) (bool, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): begin to check release exists %s", releaseName)
+
 	if releaseName == "" {
 		return false, fmt.Errorf("Release name is required")
 	}
