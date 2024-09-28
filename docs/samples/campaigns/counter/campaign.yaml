@@ -1,10 +1,4 @@
 apiVersion: workflow.symphony/v1
-<<<<<<< HEAD
-kind: Campaign
-metadata:
-  name: counter-campaign
-spec:
-=======
 kind: CampaignContainer
 metadata:
   name: counter-campaign
@@ -16,7 +10,6 @@ metadata:
   name: counter-campaign-v-v1
 spec:
   rootResource: counter-campaign
->>>>>>> main
   firstStage: "counter"
   selfDriving: true
   stages:

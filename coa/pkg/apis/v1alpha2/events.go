@@ -288,8 +288,8 @@ type ProxySpec struct {
 	Config   ProxyConfigSpec `json:"config,omitempty"`
 }
 
-func (s ScheduleSpec) ShouldFireNow() (bool, error) {
-	dt, err := s.GetTime()
+func (s ActivationData) ShouldFireNow() (bool, error) {
+	dt, err := time.Parse(time.RFC3339, s.Schedule)
 	if err != nil {
 		return false, err
 	}

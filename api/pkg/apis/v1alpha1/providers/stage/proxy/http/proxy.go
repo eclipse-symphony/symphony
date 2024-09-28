@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package proxy
+package http
 
 import (
 	"context"
@@ -24,18 +24,18 @@ import (
 var msLock sync.Mutex
 var sLog = logger.NewLogger("coa.runtime")
 
-type ProxyStageProviderConfig struct {
+type HTTPProxyStageProviderConfig struct {
 	BaseUrl  string `json:"baseUrl"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
-type ProxyStageProvider struct {
-	Config  ProxyStageProviderConfig
+type HTTPProxyStageProvider struct {
+	Config  HTTPProxyStageProviderConfig
 	Context *contexts.ManagerContext
 }
 
-func (s *ProxyStageProvider) Init(config providers.IProviderConfig) error {
+func (s *HTTPProxyStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
 	defer msLock.Unlock()
 	mockConfig, err := toProxyStageProviderConfig(config)
@@ -45,11 +45,11 @@ func (s *ProxyStageProvider) Init(config providers.IProviderConfig) error {
 	s.Config = mockConfig
 	return nil
 }
-func (s *ProxyStageProvider) SetContext(ctx *contexts.ManagerContext) {
+func (s *HTTPProxyStageProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
 }
-func toProxyStageProviderConfig(config providers.IProviderConfig) (ProxyStageProviderConfig, error) {
-	ret := ProxyStageProviderConfig{}
+func toProxyStageProviderConfig(config providers.IProviderConfig) (HTTPProxyStageProviderConfig, error) {
+	ret := HTTPProxyStageProviderConfig{}
 	data, err := json.Marshal(config)
 	if err != nil {
 		return ret, err
@@ -57,15 +57,15 @@ func toProxyStageProviderConfig(config providers.IProviderConfig) (ProxyStagePro
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *ProxyStageProvider) InitWithMap(properties map[string]string) error {
+func (i *HTTPProxyStageProvider) InitWithMap(properties map[string]string) error {
 	config, err := SymphonyStageProviderConfigFromMap(properties)
 	if err != nil {
 		return err
 	}
 	return i.Init(config)
 }
-func SymphonyStageProviderConfigFromMap(properties map[string]string) (ProxyStageProviderConfig, error) {
-	ret := ProxyStageProviderConfig{}
+func SymphonyStageProviderConfigFromMap(properties map[string]string) (HTTPProxyStageProviderConfig, error) {
+	ret := HTTPProxyStageProviderConfig{}
 	baseUrl, err := utils.GetString(properties, "baseUrl")
 	if err != nil {
 		return ret, err
@@ -89,7 +89,7 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (ProxyStag
 	ret.Password = password
 	return ret, nil
 }
-func (m *ProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
+func (m *HTTPProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
@@ -130,15 +130,15 @@ func (m *ProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 	}
 }
 
-func (i *ProxyStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, activationdata v1alpha2.ActivationData) (map[string]interface{}, bool, error) {
-	ctx, span := observability.StartSpan("[Stage] Proxy Provider", ctx, &map[string]string{
+func (i *HTTPProxyStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, activationdata v1alpha2.ActivationData) (map[string]interface{}, bool, error) {
+	ctx, span := observability.StartSpan("[Stage] HTTP Proxy Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
-	var ret model.ActivationStatus
+	var ret model.StageStatus
 	defer observ_utils.CloseSpanWithError(span, &err)
 
-	sLog.Info("  P (Proxy Stage): start process request")
+	sLog.Info("  P (HTTP Proxy Stage): start process request")
 
 	ret, err = utils.CallRemoteProcessor(ctx,
 		activationdata.Proxy.Config.BaseUrl,
@@ -146,15 +146,15 @@ func (i *ProxyStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		activationdata.Proxy.Config.Password,
 		activationdata)
 	if err != nil {
-		sLog.Errorf("  P (Proxy Stage): error calling remote stage processor %s", err.Error())
+		sLog.Errorf("  P (HTTP Proxy Stage): error calling remote stage processor %s", err.Error())
 		return nil, false, err
 	}
-	if ret.ErrorMessage != "" {
-		sLog.Errorf("  P (Proxy Stage): remote stage processor returned an error %s", ret.ErrorMessage)
-		return nil, false, v1alpha2.NewCOAError(nil, ret.ErrorMessage, v1alpha2.InternalError)
+	if ret.Status != v1alpha2.Done {
+		sLog.Errorf("  P (HTTP Proxy Stage): remote stage processor returned an error %s", ret.StatusMessage)
+		return nil, false, v1alpha2.NewCOAError(nil, ret.StatusMessage, ret.Status)
 	}
-	outputs := ret.Outputs
 
-	sLog.Info("  P (Proxy Stage): end process request")
+	outputs := ret.Outputs
+	sLog.Info("  P (HTTP Proxy Stage): end process request")
 	return outputs, false, nil
 }

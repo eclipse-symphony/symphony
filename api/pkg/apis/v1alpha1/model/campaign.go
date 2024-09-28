@@ -32,7 +32,7 @@ type StageSpec struct {
 	StageSelector string                 `json:"stageSelector,omitempty"`
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
-	Schedule      *v1alpha2.ScheduleSpec `json:"schedule,omitempty"`
+	Schedule      string                 `json:"schedule,omitempty"`
 	Proxy         *v1alpha2.ProxySpec    `json:"proxy,omitempty"`
 }
 

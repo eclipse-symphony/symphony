@@ -33,7 +33,7 @@
             "name": "users-manager",
             "type": "managers.symphony.users",
             "properties": {
-              "providers.state": "mem-state"
+              "providers.volatilestate": "mem-state"
             },
             "providers": {
               "mem-state": {
@@ -52,7 +52,7 @@
             "name": "processor-manager",
             "type": "managers.symphony.stage",
             "properties": {
-              "providers.state": "mem-state"
+              "providers.volatilestate": "mem-state"
             },
             "providers": {
               "mem-state": {

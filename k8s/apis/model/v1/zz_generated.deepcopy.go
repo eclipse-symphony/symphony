@@ -347,12 +347,7 @@ func (in *SolutionSpec) DeepCopy() *SolutionSpec {
 func (in *StageSpec) DeepCopyInto(out *StageSpec) {
 	*out = *in
 	in.Config.DeepCopyInto(&out.Config)
-	in.Inputs.DeepCopyInto(&out.Inputs)
-	if in.Schedule != nil {
-		in, out := &in.Schedule, &out.Schedule
-		*out = new(ScheduleSpec)
-		**out = **in
-	}
+	in.Inputs.DeepCopyInto(&out.Inputs)	
 	if in.Proxy != nil {
 		in, out := &in.Proxy, &out.Proxy
 		*out = new(ProxySpec)

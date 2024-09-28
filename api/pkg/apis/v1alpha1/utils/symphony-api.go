@@ -311,8 +311,8 @@ func PublishActivationEvent(context context.Context, baseUrl string, user string
 
 	return nil
 }
-func CallRemoteProcessor(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) (model.ActivationStatus, error) {
-	ret := model.ActivationStatus{}
+func CallRemoteProcessor(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) (model.StageStatus, error) {
+	ret := model.StageStatus{}
 	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
@@ -321,13 +321,17 @@ func CallRemoteProcessor(context context.Context, baseUrl string, user string, p
 	event.Proxy = nil
 	jData, _ := json.Marshal(event)
 	response, err := callRestAPI(context, baseUrl, "processor", "POST", jData, token)
+
 	if err != nil {
+		fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 		return ret, err
 	}
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
+		fmt.Printf("SERIALIZE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 		return ret, err
 	}
+	fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", ret)
 	return ret, nil
 }
 func GetABatchForSite(context context.Context, baseUrl string, site string, user string, password string) (model.SyncPackage, error) {

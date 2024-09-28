@@ -23,7 +23,7 @@ stages:
     name: mock
     provider: providers.stage.mock
     proxy:
-      provider: providers.stage.proxy
+      provider: providers.stage.proxy.http
       config:
         baseUrl: http://localhost:9082/v1alpha2/
         user: admin

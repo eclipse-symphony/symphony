@@ -83,6 +83,13 @@ func (c *ProcessorVendor) onProcess(request v1alpha2.COARequest) v1alpha2.COARes
 		}
 		status := c.StageManager.HandleDirectTriggerEvent(ctx, triggerData)
 		jData, _ := json.Marshal(status)
+
+		if status.Status != v1alpha2.Done {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  jData,
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 			Body:  jData,

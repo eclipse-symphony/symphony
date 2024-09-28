@@ -146,7 +146,7 @@ type StageSpec struct {
 	// +kubebuilder:validation:Schemaless
 	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
-	Schedule        *ScheduleSpec        `json:"schedule,omitempty"`
+	Schedule        string               `json:"schedule,omitempty"`
 	Proxy           *ProxySpec           `json:"proxy,omitempty"`
 }
 
