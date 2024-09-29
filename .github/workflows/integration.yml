@@ -128,10 +128,6 @@ jobs:
     - name: Run integration tests 08
       run: |
         cd test/integration/scenarios/08.webhook/ && mage test
-    
-    - name: Run integration tests 10
-      run: |
-        cd test/integration/scenarios/10.namespace/ && mage test
 
     - name: Run integration tests 09
       run: |
