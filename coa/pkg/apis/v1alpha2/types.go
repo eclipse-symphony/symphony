@@ -135,6 +135,17 @@ const (
 	TargetPropertyNotFound State = 12000
 )
 
+var HttpStatus = map[int]State{
+	200: OK,
+	202: Accepted,
+	400: BadRequest,
+	403: Unauthorized,
+	404: NotFound,
+	405: MethodNotAllowed,
+	409: Conflict,
+	500: InternalError,
+}
+
 func (s State) EqualsWithString(str string) bool {
 	return s.String() == str
 }

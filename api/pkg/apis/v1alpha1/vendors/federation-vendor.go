@@ -255,7 +255,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		if err != nil {
 			if v1alpha2.IsNotFound(err) {
-				errorMsg := fmt.Sprintf("federation '%s' is not found", id)
+				errorMsg := fmt.Sprintf("site '%s' is not found", id)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
 					Body:  []byte(errorMsg),

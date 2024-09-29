@@ -48,16 +48,23 @@ type authResponse struct {
 // SummarySpecError represents an error that includes a SummarySpec in its message
 // field.
 type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code    v1alpha2.State `json:"code"`
+	Message string         `json:"message"`
 }
 
-func (e *SummarySpecError) Error() string {
+func (e SummarySpecError) Error() string {
 	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
+		"failed to invoke Symphony API: [%v] - %s",
 		e.Code,
 		e.Message,
 	)
+}
+
+func IsNotFound(err error) bool {
+	if specError, ok := err.(SummarySpecError); ok {
+		return specError.Code == v1alpha2.NotFound
+	}
+	return v1alpha2.IsNotFound(err)
 }
 
 func GetSymphonyAPIAddressBase() string {
