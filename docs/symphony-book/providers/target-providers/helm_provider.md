@@ -23,4 +23,6 @@ This provider manages a Helm chart embedded in a component. It supports packaged
 
 3: Username and password are only available using oci container registry.
 
+4：The chart name will not be use only when prefix is `http` and suffix is not `.tgz`
+
 Find full scenarios at [this location](../../../samples/canary/solution.yaml)
