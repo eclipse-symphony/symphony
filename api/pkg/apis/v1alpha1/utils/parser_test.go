@@ -1671,7 +1671,8 @@ func TestConfigObjectInExpression(t *testing.T) {
 
 	parser := NewParser("${{$config('<' + 'line-config-' + $instance() + '>', \"\")}}")
 	val, err := parser.Eval(utils.EvaluationContext{
-		Context: ctx, ConfigProvider: provider,
+		Context:        ctx,
+		ConfigProvider: provider,
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
