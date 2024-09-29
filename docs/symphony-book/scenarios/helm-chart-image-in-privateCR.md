@@ -1,9 +1,26 @@
 # Scenario: using private container registry in helm chart
-In symphony context, instead of creating the iamge pull secret in the helm chart and passing the key and password in plain-text, you can pass the password using $secret to the chart values.
+In symphony context, instead of creating the image pull secret in the helm chart and passing the key and password in plain-text, you can pass the password using $secret to the chart values.
 
-You can create a solution file like this:
-The $secret refers to the kubenetes secret. $secret("SECRETNAME", "FIELDNAME")
-The kubenetes secret can either be manually created or synced using secret management tools, like Fortos.
+## 1. Create username and password secret in k8s
+You can create the secrets manually or using secret management tools, like Fortos.
+You should be able to see a secret or two like this:
+```
+apiVersion: v1
+data:
+  password: bXktcGFzc3dvcmQ= # base64 encoded value of 'my-username'
+  username: bXktdXNlcm5hbWU= # base64 encoded value of 'my-password'
+kind: Secret
+metadata:
+  creationTimestamp: "2024-09-29T06:12:32Z"
+  name: my-secret
+  namespace: default
+  resourceVersion: "1226849"
+  uid: 4160bd1e-d245-4ea7-9ca3-690933e28aa5
+type: Opaque
+```
+## 2. Create symphony resources to do the deployment
+### Create solutioncontainer/solution with $secret
+The $secret refers to the kubenetes secret. $secret("SECRETNAME", "FIELDNAME"). And the secret should be in the same namespace as the solution is.
 ```
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
@@ -22,16 +39,50 @@ spec:
     properties:
       chart:
         repo: some_chart_repo
+        version: some_chart_version
         name: some_chart_name
       values:
         imagePullSecrets:
-            name: repo1Pulling
-            username: $secret("repo1pullingsecret", "username")
-            password: $secret("repo1pullingsecret", "pwd")
+            name: repo1secret
+            username: "${{$secret('my-secret', 'username')}}"
+            password: "${{$secret('my-secret', 'password')}}"
             repo: <PlaceHolder>
     type: helm.v3
 ```
+### Create helm target resource
+```
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: test-target
+  annotations: {}
+spec:
+  displayName: test-target
+  scope: default
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+      provider: providers.target.helm
+      role: helm.v3
+```
 
+### Create the instance deployment -- make sure to have helm chart, solution and target ready before deploy the instance.
+```
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  annotations: {}
+  name: test-instance
+spec:
+  displayName: test-instance
+  scope: default
+  solution: test-app:v1
+  target:
+    name: test-target
+```
+
+## 3. Construct the helm chart
 Inside the chart, there would be a secret yaml to create the image pulling secret:
 ```
 apiVersion: v1
@@ -78,4 +129,23 @@ spec:
 ```
 
 You can find a sample chart here:  
-[sample-chart Chart.yaml](../../samples/privateContainerRegistry/Chart.yaml)
+[sample-chart Chart.yaml](../../samples/privateContainerRegistry/helm/Chart.yaml)
+
+## 4. Verification
+First you need to verify the instance:
+```
+kubectl get instance test-instance -o yaml
+```
+You should see .status.provisioningStatus.status is Succeeded
+
+Then you can see the pod created by the helm chart:
+```
+kubectl get pods
+```
+There should be a record starting with privatecontainerregistry.
+
+Finally, you can check if the image pulling from the private container registry succeeds or not:
+```
+kubectl get pod privatecontainerregistry-xxx-xxx
+```
+![Example Image](../../samples/privateContainerRegistry/screenshots/pod.jpg)

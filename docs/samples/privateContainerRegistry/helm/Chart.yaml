@@ -1,8 +1,7 @@
 apiVersion: v2
-name: privateContainerRegistry
+name: privatecontainerregistry
 description: A Helm chart for Kubernetes
 
-t be deployed.
 type: application
 
 version: 0.1.0
