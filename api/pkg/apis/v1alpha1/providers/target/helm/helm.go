@@ -634,7 +634,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 		if isDownloadableUri(chart.Repo) {
 			chartPath = chart.Repo
 		} else {
-			sLog.InfofCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
+			sLog.InfoCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
 			chartPath, err = repo.FindChartInRepoURL(chart.Repo, chart.Name, chart.Version, "", "", "", getter.All(&cli.EnvSettings{}))
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "   P (Helm Target): failed to find helm chart in repo: %+v", err)
@@ -665,7 +665,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 			}
 			if isUnauthorized(err) {
 				if chart.Username != "" && chart.Password != "" {
-					sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
+					sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
 					pullRes, err = pullOCIChartWithBasicAuth(ctx, chart.Repo, chart.Version, chart.Username, chart.Password)
 					if err != nil {
 						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo using basic auth: %+v", err)
@@ -673,13 +673,13 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 					}
 				} else {
 					if isAzureContainerRegistry(host) {
-						sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
+						sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
 						err = loginToACR(ctx, host)
 						if err != nil {
 							sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login to ACR: %+v", err)
 							return "", err
 						}
-						sLog.InfofCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
+						sLog.InfoCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
 
 						pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
 						if err != nil {
