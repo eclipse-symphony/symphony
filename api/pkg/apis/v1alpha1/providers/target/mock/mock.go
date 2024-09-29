@@ -9,6 +9,7 @@ package mock
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -122,22 +123,35 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	if cache[m.Config.ID] == nil {
 		cache[m.Config.ID] = make([]model.ComponentSpec, 0)
 	}
-	for _, c := range step.Components {
-		found := false
-		for i, _ := range cache[m.Config.ID] {
-			if cache[m.Config.ID][i].Name == c.Component.Name {
-				found = true
-				if c.Action == model.ComponentDelete {
-					cache[m.Config.ID] = append(cache[m.Config.ID][:i], cache[m.Config.ID][i+1:]...)
-				}
-				break
+	// for _, c := range step.Components {
+	// 	found := false
+	// 	for i, _ := range cache[m.Config.ID] {
+	// 		if cache[m.Config.ID][i].Name == c.Component.Name {
+	// 			found = true
+	// 			if c.Action == model.ComponentDelete {
+	// 				cache[m.Config.ID] = append(cache[m.Config.ID][:i], cache[m.Config.ID][i+1:]...)
+	// 			}
+	// 			break
+	// 		}
+	// 	}
+	// 	if !found {
+	// 		cache[m.Config.ID] = append(cache[m.Config.ID], c.Component)
+	// 	}
+	// }
+	ret := step.PrepareResultMap()
+	for _, component := range step.Components {
+		if component.Action == "update" {
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Updated,
+				Message: "mock update succeeded",
+			}
+		} else {
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Deleted,
+				Message: fmt.Sprintf("mock %s succeed", component.Action),
 			}
 		}
-		if !found {
-			cache[m.Config.ID] = append(cache[m.Config.ID], c.Component)
-		}
 	}
-	ret := make(map[string]model.ComponentResultSpec)
 	for _, c := range cache[m.Config.ID] {
 		ret[c.Name] = model.ComponentResultSpec{
 			Status:  v1alpha2.OK,

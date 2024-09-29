@@ -13,6 +13,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -703,6 +704,156 @@ func TestMockApplyMultiRoles(t *testing.T) {
 	assert.Equal(t, 1, summary.SuccessCount)
 	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
 }
+
+func TestMockApplydeleteSomeRoles(t *testing.T) {
+	id1 := uuid.New().String()
+	id2 := uuid.New().String()
+	// update with multi roles
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock2",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
+								{
+									Role:     "mock2",
+									Provider: "providers.target.mock2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider2 := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id1})
+	targetProvider2.Init(mock.MockTargetProviderConfig{ID: id2})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := SolutionManager{
+		TargetProviders: map[string]target.ITargetProvider{
+			"mock":  targetProvider,
+			"mock2": targetProvider2,
+		},
+		StateProvider: stateProvider,
+	}
+	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
+	assert.Nil(t, err)
+	assert.Equal(t, 1, summary.SuccessCount)
+	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
+
+	// update one role and verify deleted
+	deployment2 := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "c",
+						Type: "mock",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{c}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	summary, err = manager.Reconcile(context.Background(), deployment2, false, "default", "")
+	assert.Nil(t, err)
+	assert.Equal(t, 1, summary.SuccessCount)
+	assert.Equal(t, 3, len(summary.TargetResults["T1"].ComponentResults))
+	assert.Equal(t, v1alpha2.Deleted, summary.TargetResults["T1"].ComponentResults["a"].Status)
+	assert.Equal(t, v1alpha2.Deleted, summary.TargetResults["T1"].ComponentResults["b"].Status)
+	assert.Equal(t, v1alpha2.Updated, summary.TargetResults["T1"].ComponentResults["c"].Status)
+	// update one role and verify last deleted component is deleted
+	deployment3 := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "d",
+						Type: "mock",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{d}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	summary, err = manager.Reconcile(context.Background(), deployment3, false, "default", "")
+	assert.Nil(t, err)
+	assert.Equal(t, 1, summary.SuccessCount)
+	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
+	assert.Equal(t, v1alpha2.Deleted, summary.TargetResults["T1"].ComponentResults["c"].Status)
+	assert.Equal(t, v1alpha2.Updated, summary.TargetResults["T1"].ComponentResults["d"].Status)
+}
+
 func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	id := uuid.New().String()
 	deployment := model.DeploymentSpec{
@@ -718,7 +869,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 					},
 					{
 						Name: "b",
-						Type: "mock",
+						Type: "mock2",
 					},
 				},
 			},
