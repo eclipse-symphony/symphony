@@ -167,18 +167,12 @@ func (s *ConfigsManager) GetObject(ctx context.Context, object string, overlays 
 	}
 	if len(s.ConfigProviders) == 1 {
 		for _, provider := range s.ConfigProviders {
-			if value, err := s.getObjectWithOverlay(ctx, provider, object, overlays, localContext); err == nil {
-				return value, nil
-			} else {
-				return nil, err
-			}
+			return s.getObjectWithOverlay(ctx, provider, object, overlays, localContext)
 		}
 	}
 	for _, key := range s.Precedence {
 		if provider, ok := s.ConfigProviders[key]; ok {
-			if value, err := s.getObjectWithOverlay(ctx, provider, object, overlays, localContext); err == nil {
-				return value, nil
-			}
+			return s.getObjectWithOverlay(ctx, provider, object, overlays, localContext)
 		}
 	}
 
@@ -190,9 +184,8 @@ func (s *ConfigsManager) GetObject(ctx context.Context, object string, overlays 
 func (s *ConfigsManager) getObjectWithOverlay(ctx context.Context, provider config.IConfigProvider, object string, overlays []string, localContext interface{}) (map[string]interface{}, error) {
 	if len(overlays) > 0 {
 		for _, overlay := range overlays {
-			if overlayObject, err := provider.ReadObject(ctx, overlay, localContext); err == nil {
-				return overlayObject, nil
-			}
+			overlayObject, err := provider.ReadObject(ctx, overlay, localContext)
+			return overlayObject, err
 		}
 	}
 	return provider.ReadObject(ctx, object, localContext)
