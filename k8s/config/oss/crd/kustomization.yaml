@@ -24,6 +24,7 @@ resources:
 - bases/workflow.symphony_campaigncontainers.yaml
 - bases/federation.symphony_catalogcontainers.yaml
 - bases/monitor.symphony_diagnostics.yaml
+- bases/federation.symphony_catalogevalexpressions.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
