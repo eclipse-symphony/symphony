@@ -9,8 +9,6 @@ package model
 import (
 	"time"
 
-	"golang.org/x/exp/maps"
-
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
@@ -48,26 +46,30 @@ const (
 
 type SummaryState int
 
+// func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
+// 	if v, ok := s.TargetResults[target]; !ok {
+// 		s.TargetResults[target] = spec
+// 	} else {
+// 		status := v.Status
+// 		if spec.Status != "OK" {
+// 			status = spec.Status
+// 		}
+// 		message := v.Message
+// 		if spec.Message != "" {
+// 			if message != "" {
+// 				message += "; "
+// 			}
+// 			message += spec.Message
+// 		}
+// 		v.Status = status
+// 		v.Message = message
+// 		maps.Copy(v.ComponentResults, spec.ComponentResults)
+// 		s.TargetResults[target] = v
+// 	}
+// }
+
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
-	if v, ok := s.TargetResults[target]; !ok {
-		s.TargetResults[target] = spec
-	} else {
-		status := v.Status
-		if spec.Status != "OK" {
-			status = spec.Status
-		}
-		message := v.Message
-		if spec.Message != "" {
-			if message != "" {
-				message += "; "
-			}
-			message += spec.Message
-		}
-		v.Status = status
-		v.Message = message
-		maps.Copy(v.ComponentResults, spec.ComponentResults)
-		s.TargetResults[target] = v
-	}
+	s.TargetResults[target] = spec
 }
 
 func (summary *SummaryResult) IsDeploymentFinished() bool {
