@@ -278,14 +278,9 @@ type HeartBeatData struct {
 	JobAction JobAction       `json:"jobaction"`
 }
 
-type ProxyConfigSpec struct {
-	BaseUrl  string `json:"baseUrl,omitempty"`
-	User     string `json:"user,omitempty"`
-	Password string `json:"password,omitempty"`
-}
 type ProxySpec struct {
-	Provider string          `json:"provider,omitempty"`
-	Config   ProxyConfigSpec `json:"config,omitempty"`
+	Provider string                 `json:"provider,omitempty"`
+	Config   map[string]interface{} `json:"config,omitempty"`
 }
 
 func (s ActivationData) ShouldFireNow() (bool, error) {

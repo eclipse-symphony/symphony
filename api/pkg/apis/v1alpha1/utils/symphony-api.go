@@ -323,15 +323,12 @@ func CallRemoteProcessor(context context.Context, baseUrl string, user string, p
 	response, err := callRestAPI(context, baseUrl, "processor", "POST", jData, token)
 
 	if err != nil {
-		fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 		return ret, err
 	}
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
-		fmt.Printf("SERIALIZE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", err)
 		return ret, err
 	}
-	fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %v\n", ret)
 	return ret, nil
 }
 func GetABatchForSite(context context.Context, baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
@@ -970,7 +967,6 @@ func callRestAPI(ctx context.Context, baseUrl string, route string, method strin
 	if err != nil {
 		return nil, err
 	}
-
 	if resp.StatusCode >= 300 {
 		// TODO: Can we remove the following? It doesn't seem right.
 		// I'm afraid some downstream logic is expecting this behavior, though.

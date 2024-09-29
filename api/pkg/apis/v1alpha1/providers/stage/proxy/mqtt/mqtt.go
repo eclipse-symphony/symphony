@@ -10,10 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -27,23 +27,23 @@ import (
 	"github.com/google/uuid"
 )
 
-var msLock sync.Mutex
-
 const (
-	loggerName   = "providers.target.mqtt"
-	providerName = "P (MQTT Stage)"
-	mqtt         = "mqtt"
+	loggerName   = "providers.stage.proxy.mqtt"
+	providerName = "P (MQTT Proxy Stage)"
 )
 
 var (
+	msLock                   sync.Mutex
 	sLog                     = logger.NewLogger(loggerName)
 	providerOperationMetrics *metrics.Metrics
 	once                     sync.Once
 )
 
 type MQTTProxyStageProviderConfig struct {
+}
+
+type MQTTProxyProperties struct {
 	BrokerAddress      string `json:"brokerAddress"`
-	ClientID           string `json:"clientID"`
 	RequestTopic       string `json:"requestTopic"`
 	ResponseTopic      string `json:"responseTopic"`
 	TimeoutSeconds     int    `json:"timeoutSeconds,omitempty"`
@@ -54,9 +54,7 @@ type MQTTProxyStageProviderConfig struct {
 type MQTTProxyStageProvider struct {
 	Config        MQTTProxyStageProviderConfig
 	Context       *contexts.ManagerContext
-	MQTTClient    gmqtt.Client
 	ResponseChans sync.Map
-	Initialized   bool
 }
 
 type ProxyResponse struct {
@@ -68,64 +66,26 @@ type ProxyResponse struct {
 func (s *MQTTProxyStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
 	defer msLock.Unlock()
-	ctx, span := observability.StartSpan("MQTT Stage Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] MQTT Proxy Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfoCtx(ctx, "  P (MQTT Stage): Init()")
+	sLog.InfoCtx(ctx, "  P (MQTT Proxy Stage): Init()")
 
 	mockConfig, err := toProxyStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
 	s.Config = mockConfig
-	id := uuid.New()
-	opts := gmqtt.NewClientOptions().AddBroker(s.Config.BrokerAddress).SetClientID(id.String())
-	opts.SetKeepAlive(time.Duration(s.Config.KeepAliveSeconds) * time.Second)
-	opts.SetPingTimeout(time.Duration(s.Config.PingTimeoutSeconds) * time.Second)
-	opts.CleanSession = true
-	s.MQTTClient = gmqtt.NewClient(opts)
-	if token := s.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
-		sLog.ErrorfCtx(ctx, "  P (MQTT Stage): faild to connect to MQTT broker - %+v", err)
-		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
-	}
-
-	if token := s.MQTTClient.Subscribe(s.Config.ResponseTopic, 1, func(client gmqtt.Client, msg gmqtt.Message) {
-		var response v1alpha2.COAResponse
-		json.Unmarshal(msg.Payload(), &response)
-		proxyResponse := ProxyResponse{
-			IsOK:    response.State == v1alpha2.OK || response.State == v1alpha2.Accepted,
-			State:   response.State,
-			Payload: response.String(),
-		}
-
-		if !proxyResponse.IsOK {
-			proxyResponse.Payload = string(response.Body)
-		}
-
-		if reqId, ok := response.Metadata["request-id"]; ok {
-			if ch, ok := s.ResponseChans.Load(reqId); ok {
-				ch.(chan ProxyResponse) <- proxyResponse
-				s.ResponseChans.Delete(reqId)
-			}
-		}
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			sLog.ErrorfCtx(ctx, "  P (MQTT Stage): faild to connect to subscribe to the response topic - %+v", token.Error())
-			err = v1alpha2.NewCOAError(token.Error(), "failed to subscribe to response topic", v1alpha2.InternalError)
-			return err
-		}
-	}
-	s.Initialized = true
 
 	once.Do(func() {
 		if providerOperationMetrics == nil {
 			providerOperationMetrics, err = metrics.New()
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (MQTT Stage): failed to create metrics - %v", err)
+				sLog.ErrorfCtx(ctx, "  P (MQTT Proxy Stage): failed to create metrics - %v", err)
 			}
 		}
 	})
@@ -145,66 +105,12 @@ func toProxyStageProviderConfig(config providers.IProviderConfig) (MQTTProxyStag
 	return ret, err
 }
 func (i *MQTTProxyStageProvider) InitWithMap(properties map[string]string) error {
-	config, err := SymphonyStageProviderConfigFromMap(properties)
-	if err != nil {
-		return err
+	if len(properties) > 0 {
+		return v1alpha2.NewCOAError(nil, "properties are not supported", v1alpha2.BadRequest)
 	}
-	return i.Init(config)
+	return i.Init(MQTTProxyStageProviderConfig{})
 }
-func SymphonyStageProviderConfigFromMap(properties map[string]string) (MQTTProxyStageProviderConfig, error) {
-	ret := MQTTProxyStageProviderConfig{}
-	if v, ok := properties["brokerAddress"]; ok {
-		ret.BrokerAddress = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "'brokerAdress' is missing in MQTT provider config", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["clientID"]; ok {
-		ret.ClientID = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "'clientID' is missing in MQTT provider config", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["requestTopic"]; ok {
-		ret.RequestTopic = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "'requestTopic' is missing in MQTT provider config", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["responseTopic"]; ok {
-		ret.ResponseTopic = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "'responseTopic' is missing in MQTT provider config", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["timeoutSeconds"]; ok {
-		if num, err := strconv.Atoi(v); err == nil {
-			ret.TimeoutSeconds = num
-		} else {
-			return ret, v1alpha2.NewCOAError(nil, "'timeoutSeconds' is not an integer in MQTT provider config", v1alpha2.BadConfig)
-		}
-	} else {
-		ret.TimeoutSeconds = 8
-	}
-	if v, ok := properties["keepAliveSeconds"]; ok {
-		if num, err := strconv.Atoi(v); err == nil {
-			ret.KeepAliveSeconds = num
-		} else {
-			return ret, v1alpha2.NewCOAError(nil, "'keepAliveSeconds' is not an integer in MQTT provider config", v1alpha2.BadConfig)
-		}
-	} else {
-		ret.KeepAliveSeconds = 2
-	}
-	if v, ok := properties["pingTimeoutSeconds"]; ok {
-		if num, err := strconv.Atoi(v); err == nil {
-			ret.PingTimeoutSeconds = num
-		} else {
-			return ret, v1alpha2.NewCOAError(nil, "'pingTimeoutSeconds' is not an integer in MQTT provider config", v1alpha2.BadConfig)
-		}
-	} else {
-		ret.PingTimeoutSeconds = 1
-	}
-	if ret.TimeoutSeconds <= 0 {
-		ret.TimeoutSeconds = 8
-	}
-	return ret, nil
-}
+
 func (m *MQTTProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
@@ -259,6 +165,63 @@ func (i *MQTTProxyStageProvider) Process(ctx context.Context, mgrContext context
 	data, _ := json.Marshal(activationdata)
 	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 
+	proxyProperties := MQTTProxyProperties{}
+
+	jData, _ := json.Marshal(activationdata.Proxy.Config)
+	err = json.Unmarshal(jData, &proxyProperties)
+	if err != nil {
+		coaError := v1alpha2.NewCOAError(err, "error unmarshalling proxy properties", v1alpha2.BadRequest)
+		sLog.Errorf("  P (MQTT Proxy Stage): error unmarshalling proxy properties %s", coaError.Error())
+		return nil, false, coaError
+	}
+	if proxyProperties.TimeoutSeconds == 0 {
+		proxyProperties.TimeoutSeconds = 5
+	}
+	if proxyProperties.KeepAliveSeconds == 0 {
+		proxyProperties.KeepAliveSeconds = 2
+	}
+	if proxyProperties.PingTimeoutSeconds == 0 {
+		proxyProperties.PingTimeoutSeconds = 1
+	}
+
+	id := uuid.New()
+	opts := gmqtt.NewClientOptions().AddBroker(proxyProperties.BrokerAddress).SetClientID(id.String())
+	opts.SetKeepAlive(time.Duration(proxyProperties.KeepAliveSeconds) * time.Second)
+	opts.SetPingTimeout(time.Duration(proxyProperties.PingTimeoutSeconds) * time.Second)
+	opts.CleanSession = true
+	client := gmqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		sLog.ErrorfCtx(ctx, "  P (MQTT Proxy Stage): faild to connect to MQTT broker - %+v", err)
+		return nil, false, v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
+	}
+	defer client.Disconnect(250)
+	if token := client.Subscribe(proxyProperties.ResponseTopic, 1, func(client gmqtt.Client, msg gmqtt.Message) {
+		var response v1alpha2.COAResponse
+		json.Unmarshal(msg.Payload(), &response)
+		proxyResponse := ProxyResponse{
+			IsOK:    response.State == v1alpha2.OK || response.State == v1alpha2.Accepted,
+			State:   response.State,
+			Payload: response.String(),
+		}
+
+		if !proxyResponse.IsOK {
+			proxyResponse.Payload = string(response.Body)
+		}
+
+		if reqId, ok := response.Metadata["request-id"]; ok {
+			if ch, ok := i.ResponseChans.Load(reqId); ok {
+				ch.(chan ProxyResponse) <- proxyResponse
+				i.ResponseChans.Delete(reqId)
+			}
+		}
+	}); token.Wait() && token.Error() != nil {
+		if token.Error().Error() != "subscription exists" {
+			sLog.ErrorfCtx(ctx, "  P (MQTT Proxy Stage): faild to connect to subscribe to the response topic - %+v", token.Error())
+			err = v1alpha2.NewCOAError(token.Error(), "failed to subscribe to response topic", v1alpha2.InternalError)
+			return nil, false, err
+		}
+	}
+
 	reqId := uuid.New().String()
 	responseChan := make(chan ProxyResponse)
 	i.ResponseChans.Store(reqId, responseChan)
@@ -273,25 +236,28 @@ func (i *MQTTProxyStageProvider) Process(ctx context.Context, mgrContext context
 	}
 	data, _ = json.Marshal(request)
 
-	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 1, false, activationdata); token.Wait() && token.Error() != nil {
-		sLog.ErrorfCtx(ctx, "  P (MQTT Proxy Stage): failed to getting artifacts - %s", token.Error())
+	if token := client.Publish(proxyProperties.RequestTopic, 1, false, data); token.Wait() && token.Error() != nil {
+		sLog.ErrorfCtx(ctx, "  P (MQTT Proxy Stage): failed to publish process request - %s", token.Error())
 		err = token.Error()
 		return nil, false, err
 	}
 
-	timeout := time.After(time.Duration(i.Config.TimeoutSeconds) * time.Second)
+	timeout := time.After(time.Duration(proxyProperties.TimeoutSeconds) * time.Second)
 	select {
 	case resp := <-responseChan:
 		if resp.IsOK {
 			data := []byte(resp.Payload.(string))
-			var ret map[string]interface{}
+			var ret model.StageStatus
 			err = json.Unmarshal(data, &ret)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (MQTT Proxy Stage): failed to deserialize components - %s - %s", err.Error(), fmt.Sprint(data))
 				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
 				return nil, false, err
 			}
-			return ret, false, nil
+			if ret.Status != v1alpha2.Done {
+				return nil, false, v1alpha2.NewCOAError(nil, ret.StatusMessage, ret.Status)
+			}
+			return ret.Outputs, false, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get response - %s - %s", err.Error(), fmt.Sprint(string(data)))

@@ -10,8 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -21,13 +23,19 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var msLock sync.Mutex
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.stage.proxy.http"
+	providerName = "P (HTTP Proxy Stage)"
+)
+
+var (
+	msLock                   sync.Mutex
+	sLog                     = logger.NewLogger(loggerName)
+	once                     sync.Once
+	providerOperationMetrics *metrics.Metrics
+)
 
 type HTTPProxyStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
-	User     string `json:"user"`
-	Password string `json:"password"`
 }
 
 type HTTPProxyStageProvider struct {
@@ -35,14 +43,34 @@ type HTTPProxyStageProvider struct {
 	Context *contexts.ManagerContext
 }
 
+type HTTPPRoxyProperties struct {
+	BaseUrl  string `json:"baseUrl"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+}
+
 func (s *HTTPProxyStageProvider) Init(config providers.IProviderConfig) error {
 	msLock.Lock()
 	defer msLock.Unlock()
+	ctx, span := observability.StartSpan("[Stage] HTTP Proxy Provider", context.TODO(), &map[string]string{
+		"method": "Init",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	mockConfig, err := toProxyStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
 	s.Config = mockConfig
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (HTTP Proxy Stage): failed to create metrics: %+v", err)
+			}
+		}
+	})
 	return nil
 }
 func (s *HTTPProxyStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -58,37 +86,12 @@ func toProxyStageProviderConfig(config providers.IProviderConfig) (HTTPProxyStag
 	return ret, err
 }
 func (i *HTTPProxyStageProvider) InitWithMap(properties map[string]string) error {
-	config, err := SymphonyStageProviderConfigFromMap(properties)
-	if err != nil {
-		return err
+	if len(properties) > 0 {
+		return v1alpha2.NewCOAError(nil, "properties are not supported", v1alpha2.BadRequest)
 	}
-	return i.Init(config)
+	return i.Init(HTTPProxyStageProviderConfig{})
 }
-func SymphonyStageProviderConfigFromMap(properties map[string]string) (HTTPProxyStageProviderConfig, error) {
-	ret := HTTPProxyStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
-	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
-	return ret, nil
-}
+
 func (m *HTTPProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
@@ -137,13 +140,26 @@ func (i *HTTPProxyStageProvider) Process(ctx context.Context, mgrContext context
 	var err error = nil
 	var ret model.StageStatus
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (HTTP Proxy Stage): start process request")
+	sLog.InfoCtx(ctx, "  P (HTTP Proxy Stage): start process request")
+	processTime := time.Now().UTC()
+	functionName := observ_utils.GetFunctionName()
+
+	proxyProperties := HTTPPRoxyProperties{}
+
+	jData, _ := json.Marshal(activationdata.Proxy.Config)
+	err = json.Unmarshal(jData, &proxyProperties)
+	if err != nil {
+		coaError := v1alpha2.NewCOAError(err, "error unmarshalling proxy properties", v1alpha2.BadRequest)
+		sLog.Errorf("  P (HTTP Proxy Stage): error unmarshalling proxy properties %s", coaError.Error())
+		return nil, false, coaError
+	}
 
 	ret, err = utils.CallRemoteProcessor(ctx,
-		activationdata.Proxy.Config.BaseUrl,
-		activationdata.Proxy.Config.User,
-		activationdata.Proxy.Config.Password,
+		proxyProperties.BaseUrl,
+		proxyProperties.User,
+		proxyProperties.Password,
 		activationdata)
 	if err != nil {
 		sLog.Errorf("  P (HTTP Proxy Stage): error calling remote stage processor %s", err.Error())
@@ -155,6 +171,13 @@ func (i *HTTPProxyStageProvider) Process(ctx context.Context, mgrContext context
 	}
 
 	outputs := ret.Outputs
-	sLog.Info("  P (HTTP Proxy Stage): end process request")
+	sLog.InfoCtx(ctx, "  P (HTTP Proxy Stage): end process request")
+	providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		"http-proxy",
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	return outputs, false, nil
 }

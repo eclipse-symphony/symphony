@@ -72,7 +72,7 @@ func (s *PatchStageProvider) Init(config providers.IProviderConfig) error {
 		if providerOperationMetrics == nil {
 			providerOperationMetrics, err = metrics.New()
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Materialize Stage): failed to create metrics: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): failed to create metrics: %+v", err)
 			}
 		}
 	})
