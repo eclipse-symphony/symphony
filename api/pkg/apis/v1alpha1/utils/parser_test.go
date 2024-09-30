@@ -1647,14 +1647,18 @@ func TestConfigInExpression(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("[{\"name\":\"port${{$config(line-config-$instance(), SERVICE_PORT)}}\",\"port\": ${{$config(line-config-$instance(), SERVICE_PORT)}},\"targetPort\":5000}]")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
-		Instance: model.InstanceState{
-			ObjectMeta: model.ObjectMeta{
-				Name: "instance1",
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
+				Spec: &model.InstanceSpec{},
 			},
-			Spec: &model.InstanceSpec{},
 		},
-	}})
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "[{\"name\":\"portline-config-instance1::SERVICE_PORT\",\"port\": line-config-instance1::SERVICE_PORT,\"targetPort\":5000}]", val)
 }
@@ -1666,14 +1670,18 @@ func TestConfigObjectInExpression(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config('<' + 'line-config-' + $instance() + '>', \"\")}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
-		Instance: model.InstanceState{
-			ObjectMeta: model.ObjectMeta{
-				Name: "instance1",
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
+				Spec: &model.InstanceSpec{},
 			},
-			Spec: &model.InstanceSpec{},
 		},
-	}})
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "<line-config-instance1>::\"\"", val)
 }
@@ -1685,7 +1693,10 @@ func TestConfig(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config(abc,def)}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::def", val)
 }
@@ -1696,7 +1707,10 @@ func TestConfigWithExpression(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config(abc*2,def+4)}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc*2::def4", val)
 }
@@ -1707,7 +1721,10 @@ func TestConfigRecursive(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config($config(a,b), $config(c,d))}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a::b::c::d", val)
 }
@@ -1718,7 +1735,10 @@ func TestConfigRecursiveMixed(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config($config(a,b)+c, $config(c,d)+e)+f}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a::bc::c::def", val)
 }
@@ -1734,7 +1754,11 @@ func TestConfigSecretMix(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config($secret(a,b)+c, $secret(c,d)+e)+f}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: configProvider, SecretProvider: secretProvider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: configProvider,
+		SecretProvider: secretProvider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a>>bc::c>>def", val)
 }
@@ -1745,7 +1769,10 @@ func TestConfigWithQuotedStrings(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config('abc',\"def\")}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::\"def\"", val)
 }
@@ -1970,7 +1997,10 @@ func TestConfigCommaConfig(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config(abc,def),$config(ghi,jkl)}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::def,ghi::jkl", val)
 }
