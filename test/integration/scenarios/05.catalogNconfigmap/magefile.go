@@ -11,7 +11,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,40 +21,66 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 // Test config
 const (
-	TEST_NAME = "Symphony Catalog CRUD test scenario"
+	TEST_NAME    = "Symphony Catalog CRUD test scenario"
+	TEST_TIMEOUT = "10m"
 )
 
 var (
 	// catalogs to deploy
 	testCatalogs = []string{
-		"catalogs/instance-container.yaml",
-		"catalogs/solution-container.yaml",
-		"catalogs/target-container.yaml",
-		"catalogs/asset-container.yaml",
-		"catalogs/config-container.yaml",
-		"catalogs/wrongconfig-container.yaml",
-		"catalogs/schema-container.yaml",
+		"manifests/instance-container.yaml",
+		"manifests/solution-container.yaml",
+		"manifests/target-container.yaml",
+		"manifests/asset-container.yaml",
+		"manifests/config-container.yaml",
+		"manifests/wrongconfig-container.yaml",
+		"manifests/schema-container.yaml",
 
-		"catalogs/instance.yaml",
-		"catalogs/solution.yaml",
-		"catalogs/target.yaml",
-		"catalogs/asset.yaml",
+		"manifests/instance.yaml",
+		"manifests/solution.yaml",
+		"manifests/target.yaml",
+		"manifests/asset.yaml",
 	}
-	schemaCatalog = "catalogs/schema.yaml"
-	configCatalog = "catalogs/config.yaml"
-	wrongCatalog  = "catalogs/wrongconfig.yaml"
+
+	// catalogs for namespace test
+	testNamespace = []string{
+		"namespace/config1-container.yaml",
+		"namespace/config1.yaml",
+		"namespace/config2-container.yaml",
+		"namespace/config2.yaml",
+		"namespace/config3-container.yaml",
+		"namespace/config3.yaml",
+		"namespace/campaign-container.yaml",
+		"namespace/campaign.yaml",
+	}
+
+	testActivation = "namespace/activation.yaml"
+	schemaCatalog  = "manifests/schema.yaml"
+	configCatalog  = "manifests/config.yaml"
+	wrongCatalog   = "manifests/wrongconfig.yaml"
+
+	testManifests = []string{
+		"manifests/CatalogforConfigMap1.yaml",
+		"manifests/CatalogforConfigMap2.yaml",
+		"manifests/solution3.yaml",
+		"manifests/target3.yaml",
+		"manifests/instanceForConfigMap.yaml",
+	}
+
+	// Tests to run
+	testVerify = []string{
+		"./verify/...",
+	}
 )
 
 var (
 	NAMESPACES = []string{
 		"default",
-		//"nondefault",
+		"nondefault",
 	}
 )
 
@@ -83,20 +108,23 @@ func Verify() error {
 	//CATALOG CRUD, needs to create a catalog yaml
 	for _, namespace := range NAMESPACES {
 		os.Setenv("NAMESPACE", namespace)
+		err := testhelpers.EnsureNamespace(namespace)
+		if err != nil {
+			return err
+		}
+
+		err = deployNamespaceManifests(namespace)
+		if err != nil {
+			return err
+		}
+
 		// Deploy solution, target and instance catalogs
-		err := createCatalogs(namespace)
+		err = createCatalogs(namespace)
 		if err != nil {
 			return err
 		}
 		// List catalogs
-		var kubeconfig *string
-		if home := homedir.HomeDir(); home != "" {
-			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
-			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		}
-		flag.Parse()
-		config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+		config, err := testhelpers.RestConfig()
 		if err != nil {
 			return err
 		}
@@ -135,8 +163,59 @@ func Verify() error {
 			return err
 		}
 		fmt.Printf("Catalog integration test finished for namespace: %s\n", namespace)
+
+		// Deploy manifests for configmap
+		currentPath, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		for _, manifest := range testManifests {
+			fullPath := filepath.Join(currentPath, manifest)
+			err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+			if err != nil {
+				return err
+			}
+		}
+
+		err = shellcmd.Command("go clean -testcache").Run()
+		if err != nil {
+			return err
+		}
+		os.Setenv("SYMPHONY_FLAVOR", "oss")
+		for _, verify := range testVerify {
+			err := shellcmd.Command(fmt.Sprintf("go test -timeout %s %s", TEST_TIMEOUT, verify)).Run()
+			if err != nil {
+				return err
+			}
+		}
+
 	}
-	fmt.Printf("Catalog integration test finished successfully\n")
+	fmt.Printf("Catalog & configmap integration test finished successfully\n")
+	return nil
+}
+
+// Deploy manifests for namespace
+func deployNamespaceManifests(namespace string) error {
+	// setup campaign
+	currentPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	for _, manifest := range testNamespace {
+		absManifest := filepath.Join(currentPath, manifest)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absManifest, namespace)).Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	// setup activation
+	absActivation := filepath.Join(currentPath, testActivation)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absActivation, namespace)).Run()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

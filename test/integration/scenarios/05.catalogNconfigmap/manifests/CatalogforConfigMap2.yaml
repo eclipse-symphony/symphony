@@ -1,0 +1,14 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: config2-v-vmap2
+spec: 
+  rootResource: config2
+  catalogType: config
+  properties:
+    image: "noimage"
+    further:
+      serviceType: "noServiceType"
+      replicas: "noReplicas"
+      containerPort: "noContainerPort"
+      targetPort: "noTargetPort"

@@ -41,7 +41,8 @@ var _ = Describe("Delete", Ordered, func() {
 
 	AfterAll(func() {
 		By("uninstalling orchestrator from the cluster")
-		err := shell.LocalenvCmd(context.Background(), "mage destroy all")
+		err := shell.LocalenvCmd(context.Background(), "mage DumpSymphonyLogsForTest ginkgosuite_delete")
+		err = shell.LocalenvCmd(context.Background(), "mage destroy all")
 		Expect(err).ToNot(HaveOccurred())
 	})
 

@@ -83,11 +83,13 @@ type (
 	}
 	// HelmChartProperty is the property for the Helm Charts
 	HelmChartProperty struct {
-		Repo    string `json:"repo"`
-		Name    string `json:"name,omitempty"`
-		Version string `json:"version"`
-		Wait    bool   `json:"wait"`
-		Timeout string `json:"timeout,omitempty"`
+		Repo     string `json:"repo"`
+		Name     string `json:"name,omitempty"`
+		Version  string `json:"version"`
+		Wait     bool   `json:"wait"`
+		Timeout  string `json:"timeout,omitempty"`
+		Username string `json:"username,omitempty"`
+		Password string `json:"password,omitempty"`
 	}
 )
 
@@ -372,6 +374,13 @@ func isEmpty(values interface{}) bool {
 	return false
 }
 
+// check if this uri is a downloadable uri
+func isDownloadableUri(uri string) bool {
+	// check if the uri has suffix of .tgz or .tar.gz after removing the query parameter
+	uri = strings.Split(uri, "?")[0]
+	return strings.HasSuffix(uri, ".tgz") || strings.HasSuffix(uri, ".tar.gz")
+}
+
 // downloadFile will download a url to a local file. It's efficient because it will
 func downloadFile(url string, fileName string) error {
 	resp, err := http.Get(url)
@@ -523,12 +532,18 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm upgrade client: %+v", err)
 				return nil, err
 			}
+			// Check if the release exists.
+			releaseExists, err := checkReleaseExists(ctx, actionConfig, component.Component.Name)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): Error checking if chart exists: %+v", err)
+				return nil, err
+			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
-			if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
-				sLog.InfofCtx(ctx, "  P (Helm Target): cannot update chart and use install client: %+v", err)
-				if _, err = installClient.Run(chart, helmProp.Values); err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to apply chart: %+v", err)
-					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply chart", providerName), v1alpha2.HelmActionFailed)
+			if releaseExists {
+				sLog.Info(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
+				if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
+					sLog.InfofCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
@@ -540,7 +555,24 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 						metrics.UpdateOperationType,
 						v1alpha2.HelmChartApplyFailed.String(),
 					)
-
+					return ret, err
+				}
+			} else {
+				sLog.InfofCtx(ctx, "  P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
+				if _, err := installClient.Run(chart, helmProp.Values); err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to install: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to install chart", providerName), v1alpha2.HelmActionFailed)
+					ret[component.Component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.UpdateFailed,
+						Message: err.Error(),
+					}
+					providerOperationMetrics.ProviderOperationErrors(
+						helm,
+						functionName,
+						metrics.ApplyOperation,
+						metrics.UpdateOperationType,
+						v1alpha2.HelmChartApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -619,22 +651,23 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProperty) (fileName string, err error) {
 	fileName = fmt.Sprintf("%s/%s.tgz", tempChartDir, uuid.New().String())
 
-	utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Starting pulling chart, repo - %s, name - %s, version - %s", chart.Repo, chart.Name, chart.Version)
+	utils.EmitUserAuditsLogs(ctx, "   P (Helm Target): Starting pulling chart, repo - %s, name - %s, version - %s", chart.Repo, chart.Name, chart.Version)
 	if strings.HasPrefix(chart.Repo, "http") {
 		var chartPath string
-		if strings.HasSuffix(chart.Repo, ".tgz") {
+		if isDownloadableUri(chart.Repo) {
 			chartPath = chart.Repo
 		} else {
+			sLog.InfoCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
 			chartPath, err = repo.FindChartInRepoURL(chart.Repo, chart.Name, chart.Version, "", "", "", getter.All(&cli.EnvSettings{}))
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to find helm chart in repo: %+v", err)
+				sLog.ErrorfCtx(ctx, "   P (Helm Target): failed to find helm chart in repo: %+v", err)
 				return "", err
 			}
 		}
 
 		err = downloadFile(chartPath, fileName)
 		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to download chart from repo: %+v", err)
+			sLog.ErrorfCtx(ctx, "   P (Helm Target): failed to download chart from repo: %+v", err)
 			return "", err
 		}
 	} else {
@@ -653,23 +686,34 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref: %+v", herr)
 				return "", herr
 			}
-			if isUnauthorized(err) && isAzureContainerRegistry(host) {
-				sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
-				err = loginToACR(ctx, host)
-				if err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login to ACR: %+v", err)
-					return "", err
-				}
-				sLog.InfofCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
+			if isUnauthorized(err) {
+				if chart.Username != "" && chart.Password != "" {
+					sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
+					pullRes, err = pullOCIChartWithBasicAuth(ctx, chart.Repo, chart.Version, chart.Username, chart.Password)
+					if err != nil {
+						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo using basic auth: %+v", err)
+						return "", err
+					}
+				} else {
+					if isAzureContainerRegistry(host) {
+						sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
+						err = loginToACR(ctx, host)
+						if err != nil {
+							sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login to ACR: %+v", err)
+							return "", err
+						}
+						sLog.InfoCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
 
-				pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
-				if err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo after login in: %+v", err)
-					return "", err
+						pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
+						if err != nil {
+							sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo after login in: %+v", err)
+							return "", err
+						}
+					}
 				}
 			} else {
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo: %+v", err)
-				return
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref and it is not because of access issue: %+v", herr)
+				return "", err
 			}
 		}
 
@@ -686,6 +730,32 @@ func pullOCIChart(ctx context.Context, repo, version string) (*registry.PullResu
 	client, err := registry.NewClient()
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create registry client: %+v", err)
+		return nil, err
+	}
+
+	pullRes, err := client.Pull(fmt.Sprintf("%s:%s", strings.TrimPrefix(repo, "oci://"), version), registry.PullOptWithChart(true))
+	if err != nil {
+		return nil, err
+	}
+
+	return pullRes, nil
+}
+
+func pullOCIChartWithBasicAuth(ctx context.Context, repo, version, username, password string) (*registry.PullResult, error) {
+	client, err := registry.NewClient()
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create registry client: %+v", err)
+		return nil, err
+	}
+	host, herr := getHostFromOCIRef(repo)
+	if herr != nil {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref: %+v", herr)
+		return nil, herr
+	}
+
+	client.Login(host, registry.LoginOptBasicAuth(username, password))
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login with basic auth: %+v", err)
 		return nil, err
 	}
 
@@ -723,6 +793,29 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil
 }
+func checkReleaseExists(ctx context.Context, config *action.Configuration, releaseName string) (bool, error) {
+	sLog.InfofCtx(ctx, "  P (Helm Target): begin to check release exists %s", releaseName)
+
+	if releaseName == "" {
+		return false, fmt.Errorf("Release name is required")
+	}
+
+	client := action.NewHistory(config)
+	client.Max = 1
+	releases, err := client.Run(releaseName)
+	if err != nil {
+		if errors.Is(err, driver.ErrReleaseNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if len(releases) > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
 
 func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
 	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
@@ -741,7 +834,7 @@ func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProper
 		upgradeClient.Namespace = deployment.Instance.Spec.Scope
 	}
 	upgradeClient.ResetValues = true
-	upgradeClient.Install = true
+	upgradeClient.Install = false
 	upgradeClient.PostRenderer = postRenderer
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1

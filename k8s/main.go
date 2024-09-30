@@ -43,6 +43,7 @@ import (
 	"gopls-workspace/constants"
 
 	monitorv1 "gopls-workspace/apis/monitor/v1"
+	actioncontrollers "gopls-workspace/controllers/actions"
 	aicontrollers "gopls-workspace/controllers/ai"
 	fabriccontrollers "gopls-workspace/controllers/fabric"
 	federationcontrollers "gopls-workspace/controllers/federation"
@@ -403,6 +404,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
 		os.Exit(1)
 	}
+	if err = (&actioncontrollers.CatalogEvalReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		ApiClient: apiClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
+		os.Exit(1)
+	}
 	if !disableWebhooksServer {
 		dynamicclient.SetClient(mgr.GetConfig())
 		if err = (&fabricv1.Device{}).SetupWebhookWithManager(mgr); err != nil {
@@ -435,6 +444,10 @@ func main() {
 		}
 		if err = (&federationv1.Catalog{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
+			os.Exit(1)
+		}
+		if err = (&federationv1.CatalogEvalExpression{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogEvalExpression")
 			os.Exit(1)
 		}
 		if err = (&workflowv1.Campaign{}).SetupWebhookWithManager(mgr); err != nil {
