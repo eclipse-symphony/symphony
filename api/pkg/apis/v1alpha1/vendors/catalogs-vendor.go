@@ -315,7 +315,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 			state, err = e.CatalogsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			if !v1alpha2.IsNotFound(err) {
+			if !utils.IsNotFound(err) {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),

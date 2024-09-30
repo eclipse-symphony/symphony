@@ -223,7 +223,7 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	})
 
 	if err != nil {
-		if v1alpha2.IsNotFound(err) {
+		if api_utils.IsNotFound(err) {
 			log.DebugfCtx(ctx, " M (Solution): DeleteSummary NoutFound, id: %s, namespace: %s", key, namespace)
 			return nil
 		}
