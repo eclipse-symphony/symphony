@@ -1,0 +1,26 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: test-app  
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: test-app-v-v1
+spec:
+  rootResource: test-app
+  components:
+  - name: privatecontainerregistry
+    properties:
+      chart:
+        repo: some_chart_repo
+        version: some_chart_version
+        name: some_chart_name
+      values:
+        imagePullSecrets:
+            name: repo1secret
+            username: "${{$secret('my-secret', 'username')}}"
+            password: "${{$secret('my-secret', 'password')}}"
+            repo: <PlaceHolder>
+    type: helm.v3
