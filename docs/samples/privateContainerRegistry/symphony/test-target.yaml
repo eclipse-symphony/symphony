@@ -1,0 +1,14 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: test-target
+  annotations: {}
+spec:
+  displayName: test-target
+  scope: default
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+      provider: providers.target.helm
+      role: helm.v3
