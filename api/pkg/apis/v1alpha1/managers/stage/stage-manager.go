@@ -287,7 +287,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfoCtx(ctx, " M (Stage): HandleDirectTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
+	log.InfofCtx(ctx, " M (Stage): HandleDirectTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
 
 	status := model.StageStatus{
 		Stage:     "",

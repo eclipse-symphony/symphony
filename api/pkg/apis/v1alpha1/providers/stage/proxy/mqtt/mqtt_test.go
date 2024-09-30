@@ -170,10 +170,10 @@ func TestFailedProcess(t *testing.T) {
 	assert.Equal(t, err.(v1alpha2.COAError).State, v1alpha2.InternalError)
 }
 func TestNoProcessor(t *testing.T) {
-	// testMQTT := os.Getenv("TEST_MQTT")
-	// if testMQTT == "" {
-	// 	t.Skip("Skipping because TEST_MQTT enviornment variable is not set")
-	// }
+	testMQTT := os.Getenv("TEST_MQTT")
+	if testMQTT == "" {
+		t.Skip("Skipping because TEST_MQTT enviornment variable is not set")
+	}
 
 	config := MQTTProxyStageProviderConfig{}
 	provider := MQTTProxyStageProvider{}

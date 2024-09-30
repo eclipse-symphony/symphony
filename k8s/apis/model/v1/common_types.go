@@ -121,16 +121,11 @@ type SolutionContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
-type ProxyConfigSpec struct {
-	BaseUrl  string `json:"baseUrl,omitempty"`
-	User     string `json:"user,omitempty"`
-	Password string `json:"password,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
 type ProxySpec struct {
-	Provider string          `json:"provider,omitempty"`
-	Config   ProxyConfigSpec `json:"config,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Config runtime.RawExtension `json:"config,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

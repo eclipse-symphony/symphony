@@ -62,14 +62,7 @@ spec:
                     proxy:
                       properties:
                         config:
-                          properties:
-                            baseUrl:
-                              type: string
-                            password:
-                              type: string
-                            user:
-                              type: string
-                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
                         provider:
                           type: string
                       type: object

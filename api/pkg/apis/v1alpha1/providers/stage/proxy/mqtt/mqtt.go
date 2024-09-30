@@ -162,7 +162,6 @@ func (i *MQTTProxyStageProvider) Process(ctx context.Context, mgrContext context
 
 	sLog.InfofCtx(ctx, "  P (MQTT Proxy Stage) process started")
 
-	data, _ := json.Marshal(activationdata)
 	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 
 	proxyProperties := MQTTProxyProperties{}
@@ -225,8 +224,11 @@ func (i *MQTTProxyStageProvider) Process(ctx context.Context, mgrContext context
 	reqId := uuid.New().String()
 	responseChan := make(chan ProxyResponse)
 	i.ResponseChans.Store(reqId, responseChan)
+	// clear proxy before sending
+	activationdata.Proxy = nil
+	data, _ := json.Marshal(activationdata)
 	request := v1alpha2.COARequest{
-		Route:  "process",
+		Route:  "processor",
 		Method: "POST",
 		Body:   data,
 		Metadata: map[string]string{
