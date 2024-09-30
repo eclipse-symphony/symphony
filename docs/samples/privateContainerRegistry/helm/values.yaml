@@ -1,0 +1,3 @@
+image:
+  repository: jessetest.azurecr.io/nginx
+  tag: latest
