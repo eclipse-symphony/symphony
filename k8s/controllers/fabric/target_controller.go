@@ -93,7 +93,6 @@ func (r *TargetReconciler) populateProvisioningError(summaryResult *model.Summar
 		for k, v := range summary.TargetResults {
 			// fill errorObj with target level status
 			errorObj.Code = v.Status
-			errorObj.Message = v.Message
 			errorObj.Target = k
 			errorObj.Details = make([]apimodel.TargetError, 0)
 			// fill errorObj.Details with component level status

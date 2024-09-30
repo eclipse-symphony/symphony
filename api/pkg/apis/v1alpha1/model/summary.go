@@ -7,7 +7,10 @@
 package model
 
 import (
+	"fmt"
 	"time"
+
+	"golang.org/x/exp/maps"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
@@ -18,7 +21,6 @@ type ComponentResultSpec struct {
 }
 type TargetResultSpec struct {
 	Status           string                         `json:"status"`
-	Message          string                         `json:"message,omitempty"`
 	ComponentResults map[string]ComponentResultSpec `json:"components,omitempty"`
 }
 type SummarySpec struct {
@@ -69,7 +71,24 @@ type SummaryState int
 // }
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
-	s.TargetResults[target] = spec
+	if v, ok := s.TargetResults[target]; !ok {
+		s.TargetResults[target] = spec
+	} else {
+		status := "OK"
+		maps.Copy(v.ComponentResults, spec.ComponentResults)
+		if spec.Status != "OK" {
+			status = spec.Status
+		} else {
+			for _, componentStatus := range v.ComponentResults {
+				if componentStatus.Status != v1alpha2.Accepted {
+					status = v.Status
+				}
+			}
+		}
+		v.Status = status
+		s.TargetResults[target] = v
+	}
+	fmt.Printf("spec status %v", spec)
 }
 
 func (summary *SummaryResult) IsDeploymentFinished() bool {
