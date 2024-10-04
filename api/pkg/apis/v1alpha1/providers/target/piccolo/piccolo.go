@@ -23,6 +23,7 @@ import (
 )
 
 const loggerName = "providers.target.piccolo"
+const defaultPiccoloApiServer = "http://0.0.0.0:9090/"
 
 var sLog = logger.NewLogger(loggerName)
 
@@ -40,6 +41,11 @@ func PiccoloTargetProviderConfigFromMap(properties map[string]string) (PiccoloTa
 	ret := PiccoloTargetProviderConfig{}
 	if v, ok := properties["name"]; ok {
 		ret.Name = v
+	}
+	if v, ok := properties["url"]; ok {
+		ret.Url = v
+	} else {
+		ret.Url = defaultPiccoloApiServer
 	}
 	return ret, nil
 }
@@ -97,8 +103,8 @@ func (i *PiccoloTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	for _, component := range references {
 		properties := component.Component.Properties
 		name := properties["workload.name"].(string)
-		workloadType := properties["workload.type"].(string)
-		req, err := http.NewRequest("GET", i.Config.Url+workloadType+"/"+name, nil)
+
+		req, err := http.NewRequest("GET", i.Config.Url+"scenario/"+name, nil)
 		if err != nil {
 			sLog.ErrorCtx(ctx, "  P (Piccolo Target): Unable to make Request")
 			return nil, err
@@ -121,7 +127,6 @@ func (i *PiccoloTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				Properties: make(map[string]interface{}),
 			}
 			component.Properties["workload.name"] = string(name)
-			component.Properties["workload.type"] = string(workloadType)
 			ret = append(ret, component)
 		case http.StatusNotFound:
 			continue
@@ -172,7 +177,7 @@ func (i *PiccoloTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				return ret, err
 			}
 			reqBody := bytes.NewBufferString("https:// scenario path")
-			resp, err := http.Post(i.Config.Url+"create-scenario/"+component.Component.Name, "text/plain", reqBody)
+			resp, err := http.Post(i.Config.Url+"create-scenario/"+name, "text/plain", reqBody)
 			if err != nil {
 				sLog.ErrorCtx(ctx, "  P (Piccolo Target): fail to create resource")
 				return ret, err
@@ -208,7 +213,7 @@ func (*PiccoloTargetProvider) GetValidationRule(ctx context.Context) model.Valid
 	return model.ValidationRule{
 		AllowSidecar: false,
 		ComponentValidationRule: model.ComponentValidationRule{
-			RequiredProperties:    []string{"workload.type", "workload.name"},
+			RequiredProperties:    []string{"workload.name"},
 			OptionalProperties:    []string{},
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
