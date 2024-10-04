@@ -33,14 +33,19 @@ function TargetCard(props: TargetCardProps) {
         setActiveView(key.toString());
     }
 
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
-        <Card>
-            <CardHeader className="flex gap-3 justify-between">
-               {target.metadata.name}     
-               <Tabs color="primary" radius="full" selectedKey={activeView} onSelectionChange={updateActiveView} size='sm'>
-                    <Tab key="properties" title="properties" />
-                    <Tab key="json" title="json" />
-               </Tabs>
+        <Card radius='none' shadow='lg' className='card'
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}>
+            <CardHeader className="flex gap-3 justify-between ">
+               <div className="card_title">{target.metadata.name}</div>
+               {isHovered && (
+                <Tabs color="secondary" radius="full" selectedKey={activeView} onSelectionChange={updateActiveView} size='sm'>
+                        <Tab key="properties" title="properties" />
+                        <Tab key="json" title="json" />
+                </Tabs>)}
             </CardHeader>
             <Divider/>
             <CardBody>    
@@ -59,9 +64,14 @@ function TargetCard(props: TargetCardProps) {
                         <FcOk className="text-[#AAAAF9] text-xl"/> OK
                         </span>
                     )}    
-                    {target.status.properties && target.status.properties.status != 'Succeeded' && (
+                    {target.status.properties && target.status.properties.status === 'Reconciling' && (
                         <span className="flex gap-2">
-                        <FcHighPriority className="text-[#AAAAF9] text-xl"/> Failed
+                        <FcOk className="text-[#AAAAF9] text-xl"/> Reconciling
+                        </span>
+                    )}    
+                    {target.status.properties && target.status.properties.status != 'Succeeded' && target.status.properties.status != 'Reconciling' && (
+                        <span className="flex gap-2">
+                        <FcHighPriority className="text-[#AAAAF9] text-xl"/> {target.status.properties.status}
                         </span>
                     )}                          
                  </div>
