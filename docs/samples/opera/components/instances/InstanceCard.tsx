@@ -62,17 +62,16 @@ function InstanceCard(props: InstanceCardProps) {
         <Card radius='none' shadow='lg' className='card'
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}>
-            <CardHeader className="flex gap-3 justify-between">
+            <CardHeader className="absolute z-10 top-0 flex-col !items-start bg-black/10">
                <div className="card_title">{instance.metadata.name}</div>
                {isHovered && (
-               <Tabs color="primary" radius="full" selectedKey={activeView} onSelectionChange={updateActiveView} size='sm'>
+               <Tabs color="primary" radius="full" selectedKey={activeView} onSelectionChange={updateActiveView} size='sm' className='absolute right-5 top-5'>
                     <Tab key="properties" title="properties" />
                     <Tab key="topology" title="topology" />
                     <Tab key="json" title="json" />
                </Tabs>)}
             </CardHeader>
-            <Divider/>
-            <CardBody>    
+            <CardBody className='absolute top-[80px] h-full bg-white/70'>    
                 {activeView == 'properties' && (
                     <InstanceSpecCard instance={instance.spec} />
                 )}
@@ -85,8 +84,7 @@ function InstanceCard(props: InstanceCardProps) {
                     <div className="w-[600px] h-[400px]"><pre>{json}</pre></div>                
                 )}                
             </CardBody>
-            <Divider/>
-            <CardFooter  className="flex gap-3 justify-between">    
+            <CardFooter  className="absolute bg-black/30 bottom-0 border-t-1 border-zinc-100/50 z-10 justify-between">    
                 <div className="flex gap-2">
                     {instance.status.properties && instance.status.properties.status === 'Succeeded' && (
                         <span className="flex gap-2">

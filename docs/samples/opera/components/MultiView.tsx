@@ -52,7 +52,7 @@ function MultiView(props: MultiViewProps) {
     const [selected, setSelected] = useState("");
     const [selectedColumn, setSelectedColumn] = useState("");    
     const [selectedFilter, setSelectedFilter] = useState(""); // State to hold selected filter
-    const [isHovered, setIsHovered] = useState(false);
+    const [isHovered, setIsHovered] = useState(true);
 
     function handleSelectionChange(key: any) {
         setSelected(key.toString());
