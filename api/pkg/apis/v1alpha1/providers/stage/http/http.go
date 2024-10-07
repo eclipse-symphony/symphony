@@ -194,6 +194,13 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	sLog.InfoCtx(ctx, "  P (Http Stage): start process request")
 	functionName := observ_utils.GetFunctionName()
 	processTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		httpProvider,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
 	// Check all config fields for override in inputs
 	var configMap map[string]interface{}
@@ -483,13 +490,6 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	sLog.InfofCtx(ctx, "  P (Http Stage): process request completed with: %d", resp.StatusCode)
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		httpProvider,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

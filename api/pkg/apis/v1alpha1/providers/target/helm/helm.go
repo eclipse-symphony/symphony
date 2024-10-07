@@ -414,7 +414,15 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
-	applyTime := time.Now().UTC()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		helm,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
+
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -423,7 +431,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			helm,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 
@@ -446,14 +454,13 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			helm,
 			functionName,
 			metrics.HelmActionConfigOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.CreateActionConfigFailed.String(),
 		)
 		return ret, err
 	}
 
 	for _, component := range step.Components {
-		applyComponentTime := time.Now().UTC()
 		var helmProp *HelmProperty
 		helmProp, err = getHelmPropertyFromComponent(component.Component)
 		if component.Action == model.ComponentUpdate {
@@ -468,7 +475,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					helm,
 					functionName,
 					metrics.HelmPropertiesOperation,
-					metrics.GetOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.GetHelmPropertyFailed.String(),
 				)
 
@@ -488,7 +495,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					helm,
 					functionName,
 					metrics.PullChartOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.HelmChartPullFailed.String(),
 				)
 
@@ -509,7 +516,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					helm,
 					functionName,
 					metrics.LoadChartOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.HelmChartLoadFailed.String(),
 				)
 
@@ -551,8 +558,8 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					providerOperationMetrics.ProviderOperationErrors(
 						helm,
 						functionName,
-						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.HelmChartOperation,
+						metrics.ApplyOperationType,
 						v1alpha2.HelmChartApplyFailed.String(),
 					)
 					return ret, err
@@ -569,8 +576,8 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					providerOperationMetrics.ProviderOperationErrors(
 						helm,
 						functionName,
-						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.HelmChartOperation,
+						metrics.ApplyOperationType,
 						v1alpha2.HelmChartApplyFailed.String(),
 					)
 					return ret, err
@@ -582,14 +589,6 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				Status:  v1alpha2.Updated,
 				Message: fmt.Sprintf("No error. %s has been updated", component.Component.Name),
 			}
-
-			providerOperationMetrics.ProviderOperationLatency(
-				applyComponentTime,
-				helm,
-				metrics.ApplyOperation,
-				metrics.UpdateOperationType,
-				functionName,
-			)
 		} else {
 			switch component.Component.Type {
 			case "helm.v3":
@@ -611,7 +610,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 						helm,
 						functionName,
 						metrics.HelmChartOperation,
-						metrics.UpdateOperationType,
+						metrics.ApplyOperationType,
 						v1alpha2.HelmChartUninstallFailed.String(),
 					)
 
@@ -627,23 +626,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): Failed to uninstall helm chart as %v is an invalid helm version", component.Component.Type)
 			}
 		}
-
-		providerOperationMetrics.ProviderOperationLatency(
-			applyComponentTime,
-			helm,
-			metrics.ApplyOperation,
-			metrics.UpdateOperationType,
-			functionName,
-		)
 	}
-
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		helm,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-		functionName,
-	)
 
 	return ret, nil
 }

@@ -131,14 +131,21 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	sLog.InfofCtx(ctx, "  P (HTTP Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
+	functionName := utils.GetFunctionName()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		httpProvider,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
+
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.ObjectMeta.Name,
 		SolutionId: deployment.Instance.Spec.Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
-
-	functionName := utils.GetFunctionName()
-	applyTime := time.Now().UTC()
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -148,7 +155,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			httpProvider,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 		return nil, err
@@ -180,7 +187,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					httpProvider,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.BadConfig.String(),
 				)
 				return ret, err
@@ -201,7 +208,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					httpProvider,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.HttpNewRequestFailed.String(),
 				)
 				return ret, err
@@ -221,7 +228,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					httpProvider,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.HttpSendRequestFailed.String(),
 				)
 				return ret, err
@@ -245,7 +252,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					httpProvider,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.HttpErrorResponse.String(),
 				)
 				return ret, err
@@ -259,13 +266,6 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			sLog.InfofCtx(ctx, "  P (HTTP Target): component %s is not in update action, skipping", component.Component.Name)
 		}
 	}
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		httpProvider,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-		functionName,
-	)
 	return ret, nil
 }
 func (*HttpTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

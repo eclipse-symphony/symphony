@@ -273,7 +273,16 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	sLog.InfofCtx(ctx, "  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
-	applyTime := time.Now().UTC()
+	startTime := time.Now().UTC()
+
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		ingress,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
+
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -282,7 +291,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			ingress,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
@@ -318,8 +327,8 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						providerOperationMetrics.ProviderOperationErrors(
 							ingress,
 							functionName,
-							metrics.ApplyOperation,
-							metrics.UpdateOperationType,
+							metrics.IngressPropertiesOperation,
+							metrics.ApplyOperationType,
 							v1alpha2.BadConfig.String(),
 						)
 						return ret, err
@@ -337,8 +346,8 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						providerOperationMetrics.ProviderOperationErrors(
 							ingress,
 							functionName,
-							metrics.ApplyOperation,
-							metrics.UpdateOperationType,
+							metrics.IngressPropertiesOperation,
+							metrics.ApplyOperationType,
 							v1alpha2.BadConfig.String(),
 						)
 						return ret, err
@@ -362,23 +371,15 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					providerOperationMetrics.ProviderOperationErrors(
 						ingress,
 						functionName,
-						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.IngressOperation,
+						metrics.ApplyOperationType,
 						v1alpha2.IngressApplyFailed.String(),
 					)
 					return ret, err
 				}
 			}
 		}
-		providerOperationMetrics.ProviderOperationLatency(
-			applyTime,
-			ingress,
-			metrics.ApplyOperation,
-			metrics.UpdateOperationType,
-			functionName,
-		)
 	}
-	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Ingress Target): get deleted components: count - %d", len(components))
@@ -391,21 +392,14 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					providerOperationMetrics.ProviderOperationErrors(
 						ingress,
 						functionName,
-						metrics.ApplyOperation,
-						metrics.DeleteOperationType,
+						metrics.IngressOperation,
+						metrics.ApplyOperationType,
 						v1alpha2.IngressApplyFailed.String(),
 					)
 					return ret, err
 				}
 			}
 		}
-		providerOperationMetrics.ProviderOperationLatency(
-			deleteTime,
-			ingress,
-			metrics.ApplyOperation,
-			metrics.DeleteOperationType,
-			functionName,
-		)
 	}
 	return ret, nil
 }
