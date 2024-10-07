@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 )
 
@@ -101,12 +100,11 @@ func (m *Metrics) ProviderOperationLatency(
 
 	m.providerOperationLatency.Set(
 		latency(startTime),
-		Target(
+		TargetWithoutErrorCode(
 			providerType,
 			functionName,
 			operation,
 			operationType,
-			v1alpha2.OK.String(),
 		),
 	)
 }
