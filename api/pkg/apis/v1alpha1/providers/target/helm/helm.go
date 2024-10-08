@@ -518,7 +518,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return nil, err
 			}
 			if releaseExists {
-				sLog.Info(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
+				sLog.Infof(" P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
 				if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
 					sLog.Errorf("  P (Helm Target): failed to upgrade: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
@@ -536,7 +536,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 			} else {
-				sLog.Infof("  P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
+				sLog.Infof(" P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
 				if _, err := installClient.Run(chart, helmProp.Values); err != nil {
 					sLog.Errorf("  P (Helm Target): failed to install: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to install chart", providerName), v1alpha2.HelmActionFailed)
