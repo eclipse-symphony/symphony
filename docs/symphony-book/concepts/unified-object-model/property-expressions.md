@@ -61,7 +61,8 @@ When these functions are used, a valid `EvaluationContext` is required, which in
 |----------|---------|
 |`$config(<config object>, <config key>, [<overrides>])` | Reads a configuration from a config provider |
 |`$context([<JsonPath>])` | Reads the evaluation context value. If a JsonPath is specified, it applies the path to the context value (same as `$val()`) |
-|`$input(<field>)` | Reads campaign activation input `<field>` |
+|`$input(<field>)` | Reads campaign input `<field>` |
+|`$trigger(<field>, <default value>)` | Reads activation input `<field>`, if not exist, use the `<default value>` |
 |`$instance()`| Gets instance name of the current deployment |
 |`$json(<value>)`| Arranges `<value>` into a JSON string |
 |`$output(<stage>, <field>)` | Reads the output `<field>` value from a campaign `<stage>` outputs|
@@ -88,7 +89,7 @@ Symphony also supports common logical operators:
 
 ## Evaluation context
 
-Functions like `$input()`, `$output()`, `instance()`, `property()` and  `$val()` etc. can be only evaluated in an appropriate evaluation context, to which Symphony automatically injects contextual information, such as Campaign activation inputs. When you use Symphony API, the evaluation context is automatically managed so you can use these functions in appropriate contexts without concerns. However, using these functions outside of an appropriate context leads to an error.
+Functions like `$input()`, `$output()`, `trigger()`, `instance()`, `property()` and  `$val()` etc. can be only evaluated in an appropriate evaluation context, to which Symphony automatically injects contextual information, such as Campaign activation inputs. When you use Symphony API, the evaluation context is automatically managed so you can use these functions in appropriate contexts without concerns. However, using these functions outside of an appropriate context leads to an error.
 
 ## Use operators as characters
 

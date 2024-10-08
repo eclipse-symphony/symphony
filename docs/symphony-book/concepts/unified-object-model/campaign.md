@@ -37,7 +37,7 @@ type IStageProvider interface {
 
 Essentially, a stage provider takes the inputs, performs any actions, and returns the outputs. When a stage is invoked, activation inputs are provided through the `inputs` parameter, plus any input parameter declared on the stage itself. For example, if a campaign is activated with inputs `foo` and `bar`, and the stage definition contains an input `baz`, the `inputs` parameter will contain all the three values. 
 
-> **NOTE**: In current version, inputs defined in stage definition override activation inputs. If you do want to keep the activation input, you can use expression `$input(<field name>)` in your stage definition to carry over activation input.
+> **NOTE**: In current version, inputs defined in stage definition. If you do want to get value from the activation input, you can use expression `$trigger(<field name>, <default value>)` in your stage definition to carry over activation input.
 
 ## Stage selectors
 
@@ -70,4 +70,53 @@ deploy:
       names:
       - site-app
       - site-instance
+```
+
+### inputs parsing from campaign stages and activation
+
+For the `inputs` field of each stage, we can leverage `$input()` function to get values for variables. It will take one parameter: the variable name. e.g. we can retrieve built-in information, like `$input(__previousStage)` can help us get the previous stage's name. Another function `$trigger()` will be used (available for all stages in the campaign) to get the inputs variables from the activation inputs field. It will take two parameters: the variable name and the default value (we will try to find the variable from the activation input, if it not exist, return the default value). Below is an example to demonstrate the usage of those two functions.
+
+Activation
+```yaml
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: workflow
+spec:
+  campaign: "campaign:v1"
+  inputs:
+    foo: 1
+```
+
+Campaign
+```yaml
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: campaign-v-v1
+spec:  
+  rootResource: campaign
+  firstStage: mock1
+  stages:
+    mock1:
+      name: mock1
+      provider: providers.stage.mock
+      stageSelector: mock2
+      inputs:
+        ticket: "No.1"
+    mock2:
+      name: mock2
+      provider: providers.stage.mock
+      stageSelector: ""
+      inputs:
+        stcheck: "${{$output($input(__previousStage), __status)}}"
+        sttiket: "${{$output($input(__previousStage), ticket)}}"
+        foo: "${{$trigger(foo, 0)}}"
+  selfDriving: true
 ```
