@@ -561,9 +561,6 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$output() expects 2 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "trigger":
 		if len(n.Args) == 2 {
-			if context.Triggers == nil {
-				return nil, errors.New("a trigger collection is needed to evaluate $trigger")
-			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
@@ -571,6 +568,9 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			defaultVal, err := n.Args[1].Eval(context)
 			if err != nil {
 				return nil, err
+			}
+			if context.Triggers == nil {
+				return defaultVal, nil
 			}
 			property, err := readPropertyInterface(context.Triggers, FormatAsString(key))
 			if err != nil {

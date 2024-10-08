@@ -35,6 +35,7 @@ var log = logger.NewLogger("coa.runtime")
 type StageManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 type TaskResult struct {
@@ -106,6 +107,10 @@ func (s *StageManager) Init(context *contexts.VendorContext, config managers.Man
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetApiClient()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -206,7 +211,16 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 					eCtx := s.VendorContext.EvaluationContext.Clone()
 					eCtx.Context = ctx
 					eCtx.Namespace = namespace
-					eCtx.Triggers = currentStage.Inputs
+					activationState, err := s.apiClient.GetActivation(
+						ctx,
+						activation,
+						namespace,
+						s.VendorContext.SiteInfo.CurrentSite.Username,
+						s.VendorContext.SiteInfo.CurrentSite.Password,
+					)
+					if err == nil && activationState.Spec != nil {
+						eCtx.Triggers = activationState.Spec.Inputs
+					}
 					eCtx.Inputs = status.Inputs
 					log.DebugfCtx(ctx, " M (Stage): ResumeStage evaluation inputs: %v", eCtx.Inputs)
 					if eCtx.Inputs != nil {
@@ -433,8 +447,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Context = ctx
 			eCtx.Namespace = triggerData.Namespace
-			eCtx.Inputs = currentStage.Inputs
 			eCtx.Triggers = triggerData.Inputs
+			eCtx.Inputs = currentStage.Inputs
 			if eCtx.Inputs != nil {
 				if v, ok := eCtx.Inputs["context"]; ok {
 					eCtx.Value = v
@@ -791,13 +805,13 @@ func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace 
 		context.DeploymentSpec = s.Context.VencorContext.EvaluationContext.DeploymentSpec
 		context.Namespace = namespace
 		context.Inputs = inputs
-		context.Triggers = triggers
-		context.Outputs = outputs
 		if context.Inputs != nil {
 			if v, ok := context.Inputs["context"]; ok {
 				context.Value = v
 			}
 		}
+		context.Triggers = triggers
+		context.Outputs = outputs
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err

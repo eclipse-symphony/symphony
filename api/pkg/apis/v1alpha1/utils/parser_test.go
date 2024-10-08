@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	secretmock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -2744,8 +2745,9 @@ func TestTriggerGetDefault(t *testing.T) {
 }
 func TestTriggerMissingTriggers(t *testing.T) {
 	parser := NewParser("${{$trigger(foo, -1)}}")
-	_, err := parser.Eval(utils.EvaluationContext{})
-	assert.NotNil(t, err)
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), val)
 }
 func TestTriggerMissingTriggersWithDefault(t *testing.T) {
 	parser := NewParser("${{$trigger(foo)}}")
@@ -2756,6 +2758,9 @@ func TestTriggerMissingTriggersWithDefault(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
+	cErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadConfig, cErr.State)
 }
 func TestEvaulateValueRange(t *testing.T) {
 	parser := NewParser("${{$and($gt($val(),5), $lt($val(),10))}}")
