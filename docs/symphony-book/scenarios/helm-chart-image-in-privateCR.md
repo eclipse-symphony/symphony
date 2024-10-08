@@ -7,8 +7,8 @@ You should be able to see a secret or two like this:
 ```
 apiVersion: v1
 data:
-  password: bXktcGFzc3dvcmQ= # base64 encoded value of 'my-username'
-  username: bXktdXNlcm5hbWU= # base64 encoded value of 'my-password'
+  password: XXXXXXXXXXXXXXXX # base64 encoded value
+  username: XXXXXXXXXXXXXXXX # base64 encoded value
 kind: Secret
 metadata:
   creationTimestamp: "2024-09-29T06:12:32Z"
