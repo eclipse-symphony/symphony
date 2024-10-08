@@ -8,11 +8,17 @@ package stage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -60,7 +66,7 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 				"test": {
 					Provider: "providers.stage.mock",
 					Inputs: map[string]interface{}{
-						"foo": "${{$if($equal($output(test,foo), 0), $trigger(foo, 0), $output(test,foo))}}",
+						"foo": "${{$output(test,foo)}}",
 					},
 					StageSelector: "${{$if($lt($output(test,foo), 5), test, '')}}",
 					Contexts:      "fake",
@@ -970,10 +976,18 @@ func TestResumeStage(t *testing.T) {
 	manager := StageManager{
 		StateProvider: stateProvider,
 	}
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	manager.VendorContext = &contexts.VendorContext{
 		EvaluationContext: &coa_utils.EvaluationContext{},
 		SiteInfo: v1alpha2.SiteInfo{
 			SiteId: "fake",
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
 		},
 	}
 	manager.Context = &contexts.ManagerContext{
@@ -982,6 +996,10 @@ func TestResumeStage(t *testing.T) {
 			SiteId: "fake",
 		},
 	}
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
+
 	campaignName := "campaign1"
 	activationName := "activation1"
 	activationGen := "1"
@@ -1006,7 +1024,10 @@ func TestResumeStage(t *testing.T) {
 		Status:        v1alpha2.Done,
 		StatusMessage: v1alpha2.Done.String(),
 		Stage:         "test",
-		Outputs:       output,
+		Inputs: map[string]interface{}{
+			"nextStage": "test2",
+		},
+		Outputs: output,
 	}
 	campaign := model.CampaignSpec{
 		SelfDriving: true,
@@ -1014,7 +1035,7 @@ func TestResumeStage(t *testing.T) {
 		Stages: map[string]model.StageSpec{
 			"test": {
 				Provider:      "providers.stage.mock",
-				StageSelector: "test2",
+				StageSelector: "${{$trigger(nextStage,'')}}",
 				Inputs: map[string]interface{}{
 					"ticket": "bar",
 				},
@@ -1043,10 +1064,18 @@ func TestResumeStageFailed(t *testing.T) {
 	manager := StageManager{
 		StateProvider: stateProvider,
 	}
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	manager.VendorContext = &contexts.VendorContext{
 		EvaluationContext: &coa_utils.EvaluationContext{},
 		SiteInfo: v1alpha2.SiteInfo{
 			SiteId: "fake",
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
 		},
 	}
 	manager.Context = &contexts.ManagerContext{
@@ -1055,8 +1084,12 @@ func TestResumeStageFailed(t *testing.T) {
 			SiteId: "fake",
 		},
 	}
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
+
 	campaignName := "campaign1"
-	activationName := "activation1"
+	activationName := "activation2"
 	activationGen := "1"
 	output := map[string]interface{}{}
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
@@ -1096,7 +1129,7 @@ func TestResumeStageFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.ResumeStage(context.TODO(), activation, campaign)
+	_, err = manager.ResumeStage(context.TODO(), activation, campaign)
 	assert.NotNil(t, err)
 	assert.Equal(t, "Bad Request: ResumeStage: campaign is not valid", err.Error())
 }
@@ -1301,4 +1334,62 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 	assert.Equal(t, v1alpha2.Paused, status.Status)
 	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, false, status.IsActive)
+}
+
+type AuthResponse struct {
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
+}
+
+func InitializeMockSymphonyAPI() *httptest.Server {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		log.Info("Mock Symphony API called", "path", r.URL.Path)
+		switch r.URL.Path {
+		case "/activations/registry/activation1":
+			response = model.ActivationState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "activation1",
+				},
+				Spec: &model.ActivationSpec{
+					Campaign: "campaign1",
+					Stage:    "test",
+					Inputs: map[string]interface{}{
+						"nextStage": "test2",
+					},
+				},
+				Status: &model.ActivationStatus{
+					Status:        v1alpha2.Done,
+					StatusMessage: v1alpha2.Done.String(),
+				},
+			}
+		case "/activations/registry/activation2":
+			response = model.ActivationState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "activation2",
+				},
+				Spec: &model.ActivationSpec{
+					Campaign: "campaign1",
+					Stage:    "test",
+					Inputs:   map[string]interface{}{},
+				},
+				Status: &model.ActivationStatus{
+					Status:        v1alpha2.Done,
+					StatusMessage: v1alpha2.Done.String(),
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	return ts
 }

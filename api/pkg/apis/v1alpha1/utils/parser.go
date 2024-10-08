@@ -562,7 +562,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 	case "trigger":
 		if len(n.Args) == 2 {
 			if context.Triggers == nil {
-				return nil, errors.New("a trigger collection is needed to evaluate $trigger")
+				return nil, v1alpha2.NewCOAError(nil, "a trigger collection is needed to evaluate $trigger", v1alpha2.BadConfig)
 			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
