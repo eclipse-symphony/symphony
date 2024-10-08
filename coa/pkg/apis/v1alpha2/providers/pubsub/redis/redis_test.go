@@ -109,9 +109,8 @@ func TestInitWithMap(t *testing.T) {
 	assert.NotNil(t, err)
 	err = provider.InitWithMap(
 		map[string]string{
-			"name":       "test",
-			"host":       "localhost:6379",
-			"queueDepth": "abcd",
+			"name": "test",
+			"host": "localhost:6379",
 		},
 	)
 	assert.NotNil(t, err)
@@ -132,10 +131,12 @@ func TestBasicPubSub(t *testing.T) {
 		NumberOfWorkers: 1,
 	})
 	assert.Nil(t, err)
-	provider.Subscribe("test", func(topic string, message v1alpha2.Event) error {
-		msg = message.Body.(string)
-		sig <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, message v1alpha2.Event) error {
+			msg = message.Body.(string)
+			sig <- 1
+			return nil
+		},
 	})
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
@@ -166,10 +167,12 @@ func TestBasicPubSubTwoProviders(t *testing.T) {
 		ConsumerID:      "c",
 	})
 	assert.Nil(t, err)
-	provider2.Subscribe("test", func(topic string, message v1alpha2.Event) error {
-		msg = message.Body.(string)
-		sig <- 1
-		return nil
+	provider2.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, message v1alpha2.Event) error {
+			msg = message.Body.(string)
+			sig <- 1
+			return nil
+		},
 	})
 	provider1.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
@@ -199,11 +202,13 @@ func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
 		ConsumerID:      "c",
 	})
 	assert.Nil(t, err)
-	provider2.Subscribe("testjob", func(topic string, message v1alpha2.Event) error {
-		jData, _ := json.Marshal(message.Body)
-		json.Unmarshal(jData, &msg)
-		sig <- 1
-		return nil
+	provider2.Subscribe("testjob", v1alpha2.EventHandler{
+		Handler: func(topic string, message v1alpha2.Event) error {
+			jData, _ := json.Marshal(message.Body)
+			json.Unmarshal(jData, &msg)
+			sig <- 1
+			return nil
+		},
 	})
 	provider1.Publish("testjob", v1alpha2.Event{
 		Metadata: map[string]string{
@@ -252,15 +257,21 @@ func TestMultipleSubscriber(t *testing.T) {
 		ConsumerID:      "b",
 	})
 	assert.Nil(t, err)
-	provider2.Subscribe("test", func(topic string, message v1alpha2.Event) error {
-		msg1 = message.Body.(string)
-		sig1 <- 1
-		return nil
+	provider2.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, message v1alpha2.Event) error {
+			msg1 = message.Body.(string)
+			sig1 <- 1
+			return nil
+		},
+		Group: "test0",
 	})
-	provider3.Subscribe("test", func(topic string, message v1alpha2.Event) error {
-		msg2 = message.Body.(string)
-		sig2 <- 1
-		return nil
+	provider3.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, message v1alpha2.Event) error {
+			msg2 = message.Body.(string)
+			sig2 <- 1
+			return nil
+		},
+		Group: "test1",
 	})
 	provider1.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig1
@@ -298,7 +309,6 @@ func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
 		"password":        "123",
 		"requiresTLS":     "true",
 		"numberOfWorkers": "1",
-		"queueDepth":      "10",
 		"consumerID":      "test-consumer",
 	}
 	config, err := RedisPubSubProviderConfigFromMap(configMap)
@@ -308,10 +318,10 @@ func TestRedisPubSubProviderConfigFromMap(t *testing.T) {
 	assert.Equal(t, "123", config.Password)
 	assert.Equal(t, true, config.RequiresTLS)
 	assert.Equal(t, 1, config.NumberOfWorkers)
-	assert.Equal(t, 10, config.QueueDepth)
 	assert.Contains(t, config.ConsumerID, "test-consumer")
 }
 
+// This test mostly test the behavior of redis API rather than pubsub
 func TestRedisStreamBasic(t *testing.T) {
 	testRedis := os.Getenv("TEST_REDIS")
 	if testRedis == "" {
@@ -349,6 +359,7 @@ func TestRedisStreamBasic(t *testing.T) {
 	assert.NotNil(t, streams)
 	assert.Nil(t, err)
 
+	time.Sleep(1 * time.Second)
 	pendingResult, err := client.XPendingExt(Ctx, &redis.XPendingExtArgs{
 		Stream:   topic,
 		Group:    consumerId,

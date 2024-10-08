@@ -83,17 +83,19 @@ func TestInstancesOnInstances(t *testing.T) {
 	}
 	succeededCount := 0
 	sig := make(chan bool)
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "instance1-v1", job.Id)
-		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
-		succeededCount += 1
-		sig <- true
-		return nil
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "instance", event.Metadata["objectType"])
+			assert.Equal(t, "instance1-v1", job.Id)
+			assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	instanceSpec := model.InstanceSpec{}
 	data, _ := json.Marshal(instanceSpec)

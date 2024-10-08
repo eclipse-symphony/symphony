@@ -38,17 +38,19 @@ func TestRemoteProcess(t *testing.T) {
 	provider.SetContext(&ctx)
 	sig := make(chan bool)
 	succeededCount := 0
-	ctx.Subscribe("remote", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "child", event.Metadata["site"])
-		assert.Equal(t, "task", event.Metadata["objectType"])
-		assert.Equal(t, v1alpha2.JobRun, job.Action)
-		succeededCount += 1
-		sig <- true
-		return nil
+	ctx.Subscribe("remote", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "child", event.Metadata["site"])
+			assert.Equal(t, "task", event.Metadata["objectType"])
+			assert.Equal(t, v1alpha2.JobRun, job.Action)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	_, _, err = provider.Process(context.Background(), ctx, map[string]interface{}{
 		"__site": "child",
