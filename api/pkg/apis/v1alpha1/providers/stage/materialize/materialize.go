@@ -139,6 +139,13 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.InfoCtx(ctx, "  P (Materialize Processor): processing inputs")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		materialize,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
 	outputs := make(map[string]interface{})
 
@@ -543,13 +550,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		)
 		return outputs, false, err
 	}
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		materialize,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
+
 	return outputs, false, nil
 }
 

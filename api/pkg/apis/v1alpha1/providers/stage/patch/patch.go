@@ -169,6 +169,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	sLog.InfoCtx(ctx, "  P (Patch Stage): start process request")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		patch,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
@@ -458,12 +465,6 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	}
 	sLog.InfoCtx(ctx, "  P (Patch Stage): end process request")
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		patch,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
+
 	return outputs, false, nil
 }

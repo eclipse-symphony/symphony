@@ -35,6 +35,13 @@ type coaLogger struct {
 
 var CoaVersion string = "unknown"
 
+func GetCoaVersion() string {
+	if envVersion, ok := os.LookupEnv("CHART_VERSION"); ok {
+		return envVersion
+	}
+	return CoaVersion
+}
+
 func newCoaLogger(name string, contextOptions hooks.ContextHookOptions) *coaLogger {
 	newLogger := logrus.New()
 	newLogger.AddHook(hooks.NewContextHookWithOptions(contextOptions))
@@ -73,7 +80,7 @@ func (l *coaLogger) EnableJSONOutput(enabled bool) {
 		logFieldScope:    l.sharedFields[logFieldScope],
 		logFieldType:     LogTypeLog,
 		logFieldInstance: hostname,
-		logFieldCoaVer:   CoaVersion,
+		logFieldCoaVer:   GetCoaVersion(),
 	}
 	l.sharedFieldsLock.Unlock()
 
