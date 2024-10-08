@@ -212,3 +212,15 @@ Symphony full url Endpoint
 {{- define "symphony.emitTimeFieldInUserLogs" -}}
 {{- default "false" .Values.observability.log.emitTimeFieldInUserLogs | quote }}
 {{- end }}
+
+{{- define "RedisPVCStorageClassName" -}}
+{{- $pvcName := "redis-pvc" -}}
+{{- $existingPVC := (lookup "v1" "PersistentVolumeClaim" .Release.Namespace $pvcName) -}}
+{{- if .Values.redis.persistentVolume.storageclass }}
+{{- .Values.redis.persistentVolume.storageclass -}}
+{{- else if $existingPVC  }}
+{{- $existingPVC.spec.storageClassName -}}
+{{- else }}
+{{- .Values.redis.persistentVolume.storageclass -}}
+{{- end -}}
+{{- end -}}
