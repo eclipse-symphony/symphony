@@ -11,7 +11,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,8 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 // Test config
@@ -48,9 +45,23 @@ var (
 		"manifests/target.yaml",
 		"manifests/asset.yaml",
 	}
-	schemaCatalog = "manifests/schema.yaml"
-	configCatalog = "manifests/config.yaml"
-	wrongCatalog  = "manifests/wrongconfig.yaml"
+
+	// catalogs for namespace test
+	testNamespace = []string{
+		"namespace/config1-container.yaml",
+		"namespace/config1.yaml",
+		"namespace/config2-container.yaml",
+		"namespace/config2.yaml",
+		"namespace/config3-container.yaml",
+		"namespace/config3.yaml",
+		"namespace/campaign-container.yaml",
+		"namespace/campaign.yaml",
+	}
+
+	testActivation = "namespace/activation.yaml"
+	schemaCatalog  = "manifests/schema.yaml"
+	configCatalog  = "manifests/config.yaml"
+	wrongCatalog   = "manifests/wrongconfig.yaml"
 
 	testManifests = []string{
 		"manifests/CatalogforConfigMap1.yaml",
@@ -69,6 +80,7 @@ var (
 var (
 	NAMESPACES = []string{
 		"default",
+		"nondefault",
 	}
 )
 
@@ -96,20 +108,23 @@ func Verify() error {
 	//CATALOG CRUD, needs to create a catalog yaml
 	for _, namespace := range NAMESPACES {
 		os.Setenv("NAMESPACE", namespace)
+		err := testhelpers.EnsureNamespace(namespace)
+		if err != nil {
+			return err
+		}
+
+		err = deployNamespaceManifests(namespace)
+		if err != nil {
+			return err
+		}
+
 		// Deploy solution, target and instance catalogs
-		err := createCatalogs(namespace)
+		err = createCatalogs(namespace)
 		if err != nil {
 			return err
 		}
 		// List catalogs
-		var kubeconfig *string
-		if home := homedir.HomeDir(); home != "" {
-			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
-			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		}
-		flag.Parse()
-		config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+		config, err := testhelpers.RestConfig()
 		if err != nil {
 			return err
 		}
@@ -176,6 +191,31 @@ func Verify() error {
 
 	}
 	fmt.Printf("Catalog & configmap integration test finished successfully\n")
+	return nil
+}
+
+// Deploy manifests for namespace
+func deployNamespaceManifests(namespace string) error {
+	// setup campaign
+	currentPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	for _, manifest := range testNamespace {
+		absManifest := filepath.Join(currentPath, manifest)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absManifest, namespace)).Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	// setup activation
+	absActivation := filepath.Join(currentPath, testActivation)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absActivation, namespace)).Run()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
