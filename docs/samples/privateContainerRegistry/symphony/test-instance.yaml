@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  annotations: {}
+  name: test-instance
+spec:
+  displayName: test-instance
+  scope: default
+  solution: test-app:v1
+  target:
+    name: test-target
