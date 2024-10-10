@@ -43,9 +43,16 @@ type PubSubConfig struct {
 	Shared   bool              `json:"shared"`
 	Provider mf.ProviderConfig `json:"provider"`
 }
+
+type KeyLockConfig struct {
+	Shared   bool              `json:"shared"`
+	Provider mf.ProviderConfig `json:"provider"`
+}
+
 type APIConfig struct {
 	Vendors []vendors.VendorConfig `json:"vendors"`
 	PubSub  PubSubConfig           `json:"pubsub,omitempty"`
+	KeyLock KeyLockConfig          `json:"keylock,omitempty"`
 }
 
 type BindingConfig struct {
@@ -58,10 +65,11 @@ type VendorSpec struct {
 	LoopInterval int
 }
 type APIHost struct {
-	Vendors              []VendorSpec
-	Bindings             []bindings.IBinding
-	SharedPubSubProvider pv.IProvider
-	ShutdownGracePeriod  time.Duration
+	Vendors               []VendorSpec
+	Bindings              []bindings.IBinding
+	SharedPubSubProvider  pv.IProvider
+	SharedKeyLockProvider pv.IProvider
+	ShutdownGracePeriod   time.Duration
 }
 
 func overrideWithEnvVariable(value string, env string) string {

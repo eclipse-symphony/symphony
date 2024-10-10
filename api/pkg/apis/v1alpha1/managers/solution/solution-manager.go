@@ -14,7 +14,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
@@ -37,7 +36,6 @@ import (
 
 var (
 	log                 = logger.NewLogger("coa.runtime")
-	lock                sync.Mutex
 	apiOperationMetrics *metrics.Metrics
 )
 
@@ -294,8 +292,8 @@ func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, names
 }
 
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
-	s.KeyLockProvider.Lock(namespace + "&&" + deployment.Instance.ObjectMeta.Name) // && used as split character
-	defer s.KeyLockProvider.UnLock(namespace + "&&" + deployment.Instance.ObjectMeta.Name)
+	s.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
+	defer s.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
 
 	defer func() {
 		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
