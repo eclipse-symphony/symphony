@@ -29,7 +29,7 @@ function Header() {
                 {/* View Menu */}
                 <div className='flex items-center justify-between h-full px-4 w-full'>
                     <Link href='/'>
-                        <Image src='/logo.jpg' alt='One Edge Logo' width={65} height={65} className='cursor-pointer'/>
+                        <Image src='/logo.png' alt='One Edge Logo' width={65} height={65} className='cursor-pointer'/>
                     </Link>
                     <span className='text-white text-lg font-bold'>Opera</span>
                     <div className='text-white hidden sm:flex'>

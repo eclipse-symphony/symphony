@@ -9,9 +9,35 @@ import { CgListTree } from "react-icons/cg";
 interface TargetSpecCardProps {
     target: TargetSpec;
 }
+function renderValue(value:string) {
+    if (value === 'yes') {
+        return <Chip color="success">Yes</Chip>
+    } else if (value === 'no') {
+        return <Chip color="danger">No</Chip>
+    } else {
+        return value
+    }   
+}
 function TargetSpecCard(props: TargetSpecCardProps) {
     const { target } = props;
     return (
+        <>
+            <h3>Properties</h3>
+            <Table removeWrapper>
+                <TableHeader>
+                    <TableColumn>NAME</TableColumn>
+                    <TableColumn>VALUE</TableColumn>      
+                </TableHeader>
+                <TableBody>
+                    {target.properties && Object.keys(target.properties).map((key: string) => (
+                    <TableRow key={key}>
+                        <TableCell>{key}</TableCell>
+                        <TableCell>{renderValue(target.properties[key])}</TableCell>
+                    </TableRow>)
+                    )}
+                </TableBody>
+            </Table>
+            {target.components && target.components.length > 0 && (
         <Table removeWrapper>
             <TableHeader>
                 <TableColumn> </TableColumn>
@@ -99,6 +125,8 @@ function TargetSpecCard(props: TargetSpecCardProps) {
                 )))}                            
             </TableBody>
         </Table>
+    )}
+        </>
     );
 }
 export default TargetSpecCard;

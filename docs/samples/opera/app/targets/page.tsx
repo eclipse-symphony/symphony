@@ -18,6 +18,7 @@ const getTargets = async () => {
 }
 async function TargetsPage() {
   const targets = await getTargets();
+  
   const params = {
     type: 'targets',
     menuItems: [
