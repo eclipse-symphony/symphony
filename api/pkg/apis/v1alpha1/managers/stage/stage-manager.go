@@ -657,7 +657,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		}
 
 		for k, v := range outputs {
-			if !strings.HasPrefix(k, "__") {
+			if !(strings.HasPrefix(k, "__") || strings.HasPrefix(k, "header.")) {
 				status.Outputs[k] = v
 			}
 		}
