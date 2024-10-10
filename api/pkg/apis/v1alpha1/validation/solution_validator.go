@@ -10,7 +10,7 @@ import (
 	"context"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 type SolutionValidator struct {
@@ -82,7 +82,7 @@ func (s *SolutionValidator) ValidateSolutionUniqueName(ctx context.Context, solu
 		return nil
 	}
 	_, err := s.UniqueNameSolutionLookupFunc(ctx, solution.Spec.DisplayName, solution.ObjectMeta.Namespace)
-	if err == nil || !v1alpha2.IsNotFound(err) {
+	if err == nil || !utils.IsNotFound(err) {
 		return &ErrorField{
 			FieldPath:       "spec.displayName",
 			Value:           solution.Spec.DisplayName,

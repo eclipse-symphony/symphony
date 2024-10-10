@@ -310,7 +310,7 @@ func (s *JobsManager) HandleHeartBeatEvent(ctx context.Context, event v1alpha2.E
 				"namespace": namespace,
 			},
 		})
-		if err != nil && v1alpha2.IsNotFound(err) {
+		if err != nil && api_utils.IsNotFound(err) {
 			return nil
 		}
 	}
@@ -339,7 +339,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 		},
 	})
 	if err != nil {
-		if !v1alpha2.IsNotFound(err) {
+		if !api_utils.IsNotFound(err) {
 			log.ErrorfCtx(ctx, " M (Job): error getting heartbeat %s: %s", key, err.Error())
 			return err
 		}

@@ -32,6 +32,13 @@ const (
 	Any    = "any"
 )
 
+func IsNotFound(err error) bool {
+	if apiError, ok := err.(APIError); ok {
+		return apiError.Code == v1alpha2.NotFound
+	}
+	return v1alpha2.IsNotFound(err)
+}
+
 func matchString(src string, target string) bool {
 	if strings.Contains(src, "*") || strings.Contains(src, "%") {
 		p := strings.ReplaceAll(src, "*", ".*")
