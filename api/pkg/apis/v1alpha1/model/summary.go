@@ -26,6 +26,8 @@ type TargetResultSpec struct {
 type SummarySpec struct {
 	TargetCount         int                         `json:"targetCount"`
 	SuccessCount        int                         `json:"successCount"`
+	PlannedDeployment   int                         `json:"plannedDeployment"`
+	CurrentDeployed     int                         `json:"currentDeployed"`
 	TargetResults       map[string]TargetResultSpec `json:"targets,omitempty"`
 	SummaryMessage      string                      `json:"message,omitempty"`
 	Skipped             bool                        `json:"skipped"`

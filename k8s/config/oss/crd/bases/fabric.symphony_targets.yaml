@@ -239,6 +239,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    type: string
                   status:
                     type: string
                 required:
