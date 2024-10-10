@@ -48,7 +48,7 @@ function SideBar() {
         },
         {
             name: "Instances",
-            href: "/coming-soon",
+            href: "/instances",
             icon: IoLogoAppleAr,
         },
         {

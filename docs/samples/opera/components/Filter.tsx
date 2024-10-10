@@ -21,18 +21,14 @@ const Filter: React.FC<FilterProps> = ({ onSelectFilter }) => {
         onSelectFilter(selectedFilter);
     };
 
-    return (
-        <NavbarContent>
-            <Input
-                isClearable={true}                
-                placeholder="Filter"
-                value={selectedFilter}
-                onChange={handleFilterChange}
-            />
-            <Button onClick={handleFilterSubmit}>
-                Apply
-            </Button>
-        </NavbarContent>
+    return (   
+        <Input
+            className="top_navbar_input"
+            isClearable={true}                
+            placeholder="Filter"
+            value={selectedFilter}
+            onChange={handleFilterChange}
+        />                   
     );
 };
 

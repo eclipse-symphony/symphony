@@ -10,15 +10,15 @@
 }
 
 body {
-  background-color: #eee;
+  background-color: #1a1919;
   font-family: "Roboto", sans-serif;  
 }
 
 .sidebar {
   width: 17rem;  
   height: 100vh;
-  background-color: #fff;
-  padding: 1rem;
+  background-color: #ff5e00;
+  padding: 0.3rem;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .sidebar_list {
@@ -33,9 +33,9 @@ body {
   color: black;
   padding: 0.8rem 0.8rem;
   display: flex;
-  background-color: #f3f4f6;
-  margin-bottom: 0.5rem;
-  border-radius: 0.8rem;
+  background-color: #f3f4f6a2;
+  margin-bottom: 0.1rem;
+  border-radius: 0.1rem;
   align-items: center;
 }
 .sidebar_icon {
@@ -67,10 +67,10 @@ body {
   right: 0;
   top: 4.7rem;
   border: none;
-  background-color: #fff;
+  background-color: #ff9102;
   width: 1.5rem;
   height: 1.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ff9102;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -78,6 +78,24 @@ body {
   cursor: pointer;
   transform: translateX(50%);
   font-size: 1.1rem;
+}
+.card{
+  min-width: 500px;
+  min-height: 300px;
+}
+.card_title{
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin-left: 1rem;
+}
+.components-label {
+  font-size: 1.2rem;  
+  margin-left: 1rem;
+}
+.components-header {
+  font-size: 1.2rem;  
+  margin-left: 1rem;
+  font-weight: 600;
 }
 .main_content{
   width: 100%;
@@ -114,9 +132,29 @@ body {
   transform: translateY(-45px);
   height: 100vh;
 }
+.top_navbar_container{
+  width: 100%;    
+}
 .top_navbar {
   width: 100%;  
-  justify-content: start;
+  display: flex;
+  background-color: #272626;
+  justify-content: space-between;
+  height: 48px;
+}
+.top_navbar_input {
+  border: none;  
+  font-size: 1rem;
+  background-color: #ff9102;
+  color: rgba(255, 255, 255, 0.479);
+}
+.top_navbar_button {
+  background-color: #ff9102;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
 .table-cell-no-wrap {
   white-space: nowrap;
