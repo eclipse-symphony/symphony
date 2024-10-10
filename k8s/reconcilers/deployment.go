@@ -539,7 +539,17 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 
 	objectStatus.Properties["deployed"] = successCount
 	objectStatus.Properties["targets"] = targetCount
-	objectStatus.Properties["status-details"] = summary.SummaryMessage
+
+	if status == utilsmodel.ProvisioningStatusReconciling {
+		objectStatus.Properties["status-details"] = fmt.Sprintf(
+			"%v total deployments on %v targets, current completed %v deployments.",
+			summary.PlannedDeployment,
+			summary.TargetCount,
+			summary.CurrentDeployed,
+		)
+	} else {
+		objectStatus.Properties["status-details"] = summary.SummaryMessage
+	}
 }
 
 func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {
@@ -608,6 +618,13 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 		return
 	}
 	summary := summaryResult.Summary
+
+	if summary.PlannedDeployment != 0 {
+		percentComplete := 100. * summary.CurrentDeployed / summary.PlannedDeployment
+		objectStatus.ProvisioningStatus.PercentComplete = strconv.Itoa(int(percentComplete))
+	}
+
+	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus)
 
 	outputMap := objectStatus.ProvisioningStatus.Output
 	// Fill component details into output field
