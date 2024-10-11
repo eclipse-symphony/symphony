@@ -187,6 +187,21 @@ func CreateFakeKubeClientForWorkflowGroup(objects ...client.Object) client.Clien
 		Build()
 }
 
+func MockSucessSummaryResultWithJobID(obj reconcilers.Reconcilable, hash string, jobID string) *model.SummaryResult {
+	return &model.SummaryResult{
+		Summary: model.SummarySpec{
+			TargetCount:         1,
+			SuccessCount:        1,
+			AllAssignedDeployed: true,
+			JobID:               jobID,
+		},
+		Time:           time.Now(),
+		State:          model.SummaryStateDone,
+		Generation:     strconv.Itoa(int(obj.GetGeneration())),
+		DeploymentHash: hash,
+	}
+}
+
 func MockSucessSummaryResult(obj reconcilers.Reconcilable, hash string) *model.SummaryResult {
 	return &model.SummaryResult{
 		Summary: model.SummarySpec{

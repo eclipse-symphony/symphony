@@ -303,18 +303,20 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s",
+	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
 		deployment.Instance.ObjectMeta.Name,
 		deployment.SolutionName,
 		remove,
 		namespace,
-		targetName)
-
+		targetName,
+		deployment.Generation,
+		deployment.JobID)
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
 		TargetCount:         len(deployment.Targets),
 		SuccessCount:        0,
 		AllAssignedDeployed: false,
+		JobID:               deployment.JobID,
 	}
 
 	deploymentType := DeploymentType_Update

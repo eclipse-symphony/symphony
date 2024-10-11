@@ -20,6 +20,7 @@ const (
 	AzureTenantIdKey             = "management.azure.com/tenantId"
 	AzureLocationKey             = "management.azure.com/location"
 	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	SummaryJobIdKey              = "SummaryJobIdKey"
 	AzureCreatedByKey            = "createdBy"
 	DefaultScope                 = "default"
 	K8S                          = "symphony-k8s"

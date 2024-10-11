@@ -186,6 +186,12 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		}
 	}
 
+	r.updateJobID(object, uuid.New().String())
+	if err := r.kubeClient.Update(ctx, object); err != nil {
+		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
+		return metrics.StatusUpdateFailed, ctrl.Result{}, err
+	}
+
 	if err := r.queueDeploymentJob(ctx, object, isRemoval, true, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
 		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
@@ -373,8 +379,16 @@ func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilabl
 	generationMatch := r.generationMatch(object, summary)
 	operationTypeMatch := r.operationTypeMatch(object, summary)
 	deploymentHashMatch := r.deploymentHashMatch(ctx, object, summary)
-	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch)
-	return generationMatch && operationTypeMatch && deploymentHashMatch
+	jobIDMatch := r.jobIDMatch(object, summary)
+	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch, "jobIDMatch", jobIDMatch)
+	return generationMatch && operationTypeMatch && deploymentHashMatch && jobIDMatch
+}
+
+func (r *DeploymentReconciler) jobIDMatch(object Reconcilable, summary *model.SummaryResult) bool {
+	if object == nil || summary == nil { // we don't expect any of these to be nil
+		return false
+	}
+	return summary.Summary.JobID == object.GetAnnotations()[constants.SummaryJobIdKey]
 }
 
 func (r *DeploymentReconciler) generationMatch(object Reconcilable, summary *model.SummaryResult) bool {
@@ -451,6 +465,15 @@ func (r *DeploymentReconciler) patchOperationStartTime(object Reconcilable, oper
 		annotations = make(map[string]string)
 	}
 	annotations[operationStartTimeKey] = time.Now().Format(time.RFC3339)
+	object.SetAnnotations(annotations)
+}
+
+func (r *DeploymentReconciler) updateJobID(object Reconcilable, jobID string) {
+	annotations := object.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations[constants.SummaryJobIdKey] = jobID
 	object.SetAnnotations(annotations)
 }
 

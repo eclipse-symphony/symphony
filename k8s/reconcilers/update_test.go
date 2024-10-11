@@ -6,6 +6,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -96,6 +97,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 		var reconcileError error
 		var reconcileResultPolling reconcile.Result
 		var reconcileErrorPolling error
+		var jobID string
 
 		BeforeEach(func() {
 			By("setting up the reconciler")
@@ -122,6 +124,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 		JustBeforeEach(func(ctx context.Context) {
 			By("calling the reconciler")
 			_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
+			object.GetAnnotations()[constants.SummaryJobIdKey] = jobID
 			_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 		})
 
@@ -130,7 +133,8 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				By("setting up the api client with a successful response")
 
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
+				jobID = uuid.New().String()
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
 			})
 
 			It("should add a finalizer to the object", func() {
@@ -246,7 +250,10 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("setting up the api client with a successful deployment queued response")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
+					jobID = uuid.New().String()
+					summary := MockInProgressSummaryResult(object, "test-hash")
+					summary.Summary.JobID = jobID
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should call api client with correct parameters", func() {
@@ -274,7 +281,8 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			When("api returns a summary for a different version of the object", func() {
 				BeforeEach(func() {
 					By("setting up the api client with a summary response for a different version of the object")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "another-hash"), nil)
+					jobID = uuid.New().String()
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "another-hash", jobID), nil)
 				})
 				Context("successfully queues a deployment job to api", func() {
 					BeforeEach(func(ctx context.Context) {
@@ -322,7 +330,9 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 			When("api returns a summary that's older than the reconcile interval", func() {
 				BeforeEach(func() {
 					By("mocking a summary that's older than the reconcile interval")
+					jobID = uuid.New().String()
 					summary := MockSucessSummaryResult(object, "test-hash")
+					summary.Summary.JobID = jobID
 					summary.Time = summary.Time.Add(-20 * TestReconcileInterval)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})

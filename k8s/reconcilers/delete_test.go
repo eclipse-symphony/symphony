@@ -20,6 +20,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
@@ -37,6 +38,7 @@ var _ = Describe("Attempt Delete", func() {
 	var reconcileResultPolling reconcile.Result
 	var reconcileErrorPolling error
 	var delayer *MockDelayer
+	var jobID string
 
 	BeforeEach(func() {
 		By("building the clients")
@@ -87,12 +89,19 @@ var _ = Describe("Attempt Delete", func() {
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
 		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
+		annotations := object.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[constants.SummaryJobIdKey] = jobID
+		object.SetAnnotations(annotations)
 		_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
 	})
 
 	When("the delete timeout has elapsed elapsed", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("setting the deletion timestamp to a time in the past")
+			jobID = uuid.New().String()
 			object.SetDeletionTimestamp(&metav1.Time{Time: time.Now().Add(-TestReconcileTimout)})
 		})
 
@@ -205,7 +214,8 @@ var _ = Describe("Attempt Delete", func() {
 				By("returning a failed delete summary from the api")
 				summary := MockInProgressDeleteSummaryResult(object, "test-hash")
 				summary.State = model.SummaryStateDone
-
+				jobID = uuid.New().String()
+				summary.Summary.JobID = jobID
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
@@ -233,7 +243,8 @@ var _ = Describe("Attempt Delete", func() {
 				By("returning a successful delete summary from the api")
 				summary := MockSucessSummaryResult(object, "test-hash")
 				summary.Summary.IsRemoval = true
-
+				jobID = uuid.New().String()
+				summary.Summary.JobID = jobID
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
