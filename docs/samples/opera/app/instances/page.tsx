@@ -2,26 +2,24 @@ import React from 'react'
 import { getServerSession } from 'next-auth';
 import MultiView from '@/components/MultiView';
 import { options } from '../api/auth/[...nextauth]/options';
-import {TargetState, User} from '../types';
-const getTargets = async () => {
+import {InstanceState, User} from '../types';
+const getInstances = async () => {
   const session = await getServerSession(options);    
   const symphonyApi = process.env.SYMPHONY_API;
   const userObj: User | undefined = session?.user?? undefined;
-  const res = await fetch( `${symphonyApi}targets/registry`, {
+  const res = await fetch( `${symphonyApi}instances`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${userObj?.accessToken}`,
     }
   });
-  const data = await res.json();
-  console.log(symphonyApi);
-  console.log(data);
+  const data = await res.json();  
   return data;
 }
-async function TargetsPage() {
-  const targets = await getTargets();
+async function InstancessPage() {
+  const instances = await getInstances();
   const params = {
-    type: 'targets',
+    type: 'instances',
     menuItems: [
       {
         name: 'Add Solution',
@@ -29,7 +27,7 @@ async function TargetsPage() {
       }
     ],
     views: ['cards', 'table'],
-    items: targets,
+    items: instances,
     columns: []
   }
   return (
@@ -39,4 +37,4 @@ async function TargetsPage() {
 );
 }
 
-export default TargetsPage;
+export default InstancessPage;
