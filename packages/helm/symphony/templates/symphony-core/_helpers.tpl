@@ -216,11 +216,11 @@ Symphony full url Endpoint
 {{- define "RedisPVCStorageClassName" -}}
 {{- $pvcName := "redis-pvc" -}}
 {{- $existingPVC := (lookup "v1" "PersistentVolumeClaim" .Release.Namespace $pvcName) -}}
-{{- if .Values.redis.persistentVolume.storageclass }}
-{{- .Values.redis.persistentVolume.storageclass -}}
+{{- if .Values.redis.persistentVolume.storageClass }}
+{{- .Values.redis.persistentVolume.storageClass -}}
 {{- else if $existingPVC  }}
 {{- $existingPVC.spec.storageClassName -}}
 {{- else }}
-{{- .Values.redis.persistentVolume.storageclass -}}
+{{- .Values.redis.persistentVolume.storageClass -}}
 {{- end -}}
 {{- end -}}
