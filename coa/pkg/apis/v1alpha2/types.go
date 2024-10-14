@@ -137,22 +137,24 @@ const (
 )
 
 func GetHttpStatus(code int) State {
-	switch code {
-	case 200:
+	switch {
+	case code == 200:
 		return OK
-	case 202:
+	case code == 202:
 		return Accepted
-	case 400:
-		return BadRequest
-	case 403:
+	case code >= 200 && code < 300:
+		return OK
+	case code == 403:
 		return Unauthorized
-	case 404:
+	case code == 404:
 		return NotFound
-	case 405:
+	case code == 405:
 		return MethodNotAllowed
-	case 409:
+	case code == 409:
 		return Conflict
-	case 500:
+	case code >= 400 && code < 500:
+		return BadRequest
+	case code >= 500:
 		return InternalError
 	default:
 		return None
