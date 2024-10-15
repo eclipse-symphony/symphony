@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -44,6 +45,10 @@ var (
 type MaterializeStageProviderConfig struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
+	// TODO: this config is only available for k8s mode right now. Will support them in standalone later
+	WaitForDeployment   bool   `json:"waitForDeployment"`
+	WaitTimeout         string `json:"waitTimeout"`
+	WaitTimeoutDuration time.Duration
 }
 
 type MaterializeStageProvider struct {
@@ -92,6 +97,19 @@ func toMaterializeStageProviderConfig(config providers.IProviderConfig) (Materia
 		return ret, err
 	}
 	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return ret, err
+	}
+	if ret.WaitForDeployment {
+		if ret.WaitTimeout != "" {
+			ret.WaitTimeoutDuration, err = time.ParseDuration(ret.WaitTimeout)
+			if err != nil {
+				return ret, err
+			}
+		} else {
+			ret.WaitTimeoutDuration = 5 * time.Minute
+		}
+	}
 	return ret, err
 }
 func (i *MaterializeStageProvider) InitWithMap(properties map[string]string) error {
@@ -224,6 +242,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 
 	createdObjectList := make(map[string]bool, 0)
+	instanceList := make([]string, 0)
+	targetList := make([]string, 0)
 	for _, catalog := range catalogs {
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
@@ -264,7 +284,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidInstanceCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded instance in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if instanceState.ObjectMeta.Name == "" {
@@ -295,6 +315,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
+			instanceList = append(instanceList, instanceState.ObjectMeta.Name)
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
@@ -308,7 +329,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidSolutionCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solution in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if solutionState.ObjectMeta.Name == "" {
@@ -403,7 +424,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidTargetCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded target in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if targetState.ObjectMeta.Name == "" {
@@ -434,6 +455,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
+			targetList = append(targetList, targetState.ObjectMeta.Name)
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
@@ -448,7 +470,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidCatalogCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded catalog in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if catalogState.ObjectMeta.Name == "" {
@@ -550,7 +572,29 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		)
 		return outputs, false, err
 	}
-
+	// Wait for deployment to finish
+	if i.Config.WaitForDeployment {
+		timeout := time.After(i.Config.WaitTimeoutDuration)
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+	ForLoop:
+		for {
+			select {
+			case <-ticker.C:
+				instanceList = i.filterIncompleteDeployment(ctx, namespace, instanceList, true)
+				targetList = i.filterIncompleteDeployment(ctx, namespace, targetList, false)
+				if len(instanceList) == 0 && len(targetList) == 0 {
+					break ForLoop
+				}
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+			case <-timeout:
+				// Timeout, function was not called
+				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+				mLog.ErrorfCtx(ctx, "  P (Materialize Processor): %s", errorMessage)
+				return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
+			}
+		}
+	}
 	return outputs, false, nil
 }
 
@@ -575,4 +619,34 @@ func checkCatalog(catalog *model.CatalogState) bool {
 		return true
 	}
 	return false
+}
+
+func (i *MaterializeStageProvider) filterIncompleteDeployment(ctx context.Context, namespace string, objectNames []string, isInstance bool) []string {
+	remainingObjects := make([]string, 0)
+	var err error
+	var objectMeta model.ObjectMeta
+	var status model.DeployableStatus
+	for _, objectName := range objectNames {
+		if isInstance {
+			var state model.InstanceState
+			state, err = i.ApiClient.GetInstance(ctx, objectName, namespace, i.Config.User, i.Config.Password)
+			objectMeta = state.ObjectMeta
+			status = state.Status
+		} else {
+			var state model.TargetState
+			state, err = i.ApiClient.GetTarget(ctx, objectName, namespace, i.Config.User, i.Config.Password)
+			objectMeta = state.ObjectMeta
+			status = state.Status
+		}
+		// TODO: check error code
+		if err != nil {
+			remainingObjects = append(remainingObjects, objectName)
+			continue
+		}
+		mLog.InfofCtx(ctx, "  P (Materialize Processor): debug %s, %d, %s", status.Properties[model.Generation], objectMeta.ObjGeneration, status.Properties[model.Status])
+		if status.Properties == nil || status.Properties[model.Generation] != strconv.FormatInt(objectMeta.ObjGeneration, 10) || status.Properties[model.Status] != "Succeeded" {
+			remainingObjects = append(remainingObjects, objectName)
+		}
+	}
+	return remainingObjects
 }

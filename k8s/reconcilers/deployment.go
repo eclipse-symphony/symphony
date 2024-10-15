@@ -560,6 +560,10 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 		}
 	}()
 
+	if summaryResult != nil {
+		objectStatus.Properties[model.Generation] = summaryResult.Generation
+	}
+
 	if opts.terminalErr != nil {
 		objectStatus.Properties["deployed"] = "failed"
 		objectStatus.Properties["targets"] = "failed"
