@@ -907,7 +907,7 @@ spec:
                       type: string
                     type: object
                   percentComplete:
-                    type: string
+                    type: number
                   status:
                     type: string
                 required:
@@ -1880,7 +1880,7 @@ spec:
                       type: string
                     type: object
                   percentComplete:
-                    type: string
+                    type: number
                   status:
                     type: string
                 required:

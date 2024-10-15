@@ -37,7 +37,7 @@ type ComponentError struct {
 type ProvisioningStatus struct {
 	OperationID     string            `json:"operationId"`
 	Status          string            `json:"status"`
-	PercentComplete string            `json:"percentComplete,omitempty"`
+	PercentComplete float64           `json:"percentComplete,omitempty"`
 	FailureCause    string            `json:"failureCause,omitempty"`
 	LogErrors       bool              `json:"logErrors,omitempty"`
 	Error           ErrorType         `json:"error,omitempty"`

@@ -620,8 +620,8 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 	summary := summaryResult.Summary
 
 	if summary.PlannedDeployment != 0 {
-		percentComplete := 100. * summary.CurrentDeployed / summary.PlannedDeployment
-		objectStatus.ProvisioningStatus.PercentComplete = strconv.Itoa(int(percentComplete))
+		percentComplete := 100. * float64(summary.CurrentDeployed) / float64(summary.PlannedDeployment)
+		objectStatus.ProvisioningStatus.PercentComplete = percentComplete
 	}
 
 	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus)
