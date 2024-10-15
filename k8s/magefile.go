@@ -31,7 +31,7 @@ var (
 
 	envTest = bintool.Must(bintool.NewGo(
 		"sigs.k8s.io/controller-runtime/tools/setup-envtest",
-		"latest",
+		"release-0.19",
 	))
 
 	kustomize = bintool.Must(bintool.New(
