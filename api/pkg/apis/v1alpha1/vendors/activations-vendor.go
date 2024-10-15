@@ -214,7 +214,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			c.Context.Publish("activation", v1alpha2.Event{
 				Body: v1alpha2.ActivationData{
 					Campaign:             activation.Spec.Campaign,
-					ActivationGeneration: entry.ObjectMeta.Generation,
+					ActivationGeneration: entry.ObjectMeta.ETag,
 					Activation:           id,
 					Stage:                activation.Spec.Stage,
 					Inputs:               activation.Spec.Inputs,
