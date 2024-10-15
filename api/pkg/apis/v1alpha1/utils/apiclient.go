@@ -120,6 +120,14 @@ func NewAPIError(state v1alpha2.State, msg string) APIError {
 	}
 }
 
+func ToCOAError(apiErr APIError) v1alpha2.COAError {
+	return v1alpha2.COAError{
+		InnerError: apiErr,
+		Message:    apiErr.Message,
+		State:      apiErr.Code,
+	}
+}
+
 func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, user string, passowrd string) (string, error) {
 	return "", nil
 }
