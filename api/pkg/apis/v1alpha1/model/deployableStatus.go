@@ -8,6 +8,11 @@ package model
 
 import "time"
 
+const (
+	Generation string = "generation"
+	Status     string = "status"
+)
+
 type DeployableStatus struct {
 	Properties         map[string]string  `json:"properties,omitempty"`
 	ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
