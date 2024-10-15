@@ -125,5 +125,6 @@ func TestUpdateFailedTargetResultsToSucceed(t *testing.T) {
 	assert.Equal(t, "ERROR", s.TargetResults["target1"].Status)
 	assert.Equal(t, v1alpha2.BadConfig, s.TargetResults["target1"].ComponentResults["component1"].Status)
 	assert.Equal(t, "Component 1 is bad config", s.TargetResults["target1"].ComponentResults["component1"].Message)
+	assert.Equal(t, 0, s.SuccessCount) //ver 0.48.1: UpdateTargetResult no longer updates success count
 
 }
