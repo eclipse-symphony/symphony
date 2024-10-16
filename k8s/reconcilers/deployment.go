@@ -26,6 +26,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/go-logr/logr"
 
@@ -251,7 +252,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 	summary, err := r.getDeploymentSummary(ctx, object)
 	if err != nil {
 		// If the error is anything but 404, we should return the error so the reconciler can retry
-		if !v1alpha2.IsNotFound(err) {
+		if !api_utils.IsNotFound(err) {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to get deployment summary")
 			// updates the object status to reconciling
 			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{

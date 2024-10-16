@@ -10,7 +10,7 @@ import (
 	"context"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 type TargetValidator struct {
@@ -66,7 +66,7 @@ func (t *TargetValidator) ValidateTargetUniqueName(ctx context.Context, target m
 		return nil
 	}
 	_, err := t.UniqueNameTargetLookupFunc(ctx, target.Spec.DisplayName, target.ObjectMeta.Namespace)
-	if err == nil || !v1alpha2.IsNotFound(err) {
+	if err == nil || !utils.IsNotFound(err) {
 		return &ErrorField{
 			FieldPath:       "spec.displayName",
 			Value:           target.Spec.DisplayName,

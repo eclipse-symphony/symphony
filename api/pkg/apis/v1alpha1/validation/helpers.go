@@ -13,6 +13,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -170,7 +171,7 @@ func ConvertErrorFieldsToString(ErrorFields []ErrorField) string {
 func ValidateCreateOrUpdateWrapper(ctx context.Context, validator IValidator, newObj interface{}, oldObj interface{}, errorWhenGetOldObj error) error {
 	var errorFields []ErrorField
 	if errorWhenGetOldObj != nil {
-		if v1alpha2.IsNotFound(errorWhenGetOldObj) {
+		if api_utils.IsNotFound(errorWhenGetOldObj) {
 			errorFields = validator.ValidateCreateOrUpdate(ctx, newObj, nil)
 		} else {
 			return v1alpha2.NewCOAError(errorWhenGetOldObj, "Unable to get previous state from state store when validating the create or update request", v1alpha2.InternalError)
@@ -188,7 +189,7 @@ func ValidateCreateOrUpdateWrapper(ctx context.Context, validator IValidator, ne
 
 func ValidateDeleteWrapper(ctx context.Context, validator IValidator, obj interface{}, errorWhenGetObj error) error {
 	if errorWhenGetObj != nil {
-		if v1alpha2.IsNotFound(errorWhenGetObj) {
+		if api_utils.IsNotFound(errorWhenGetObj) {
 			return nil
 		} else {
 			return v1alpha2.NewCOAError(errorWhenGetObj, "Unable to get current state from state store when validating the delete request", v1alpha2.InternalError)
