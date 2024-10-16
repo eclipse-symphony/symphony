@@ -1,0 +1,99 @@
+{{ $numCards := 3 }}
+{{ $cardWidth := 300 }}
+{{ $deckWidth := mul $numCards $cardWidth }}
+<div class="section-index">
+    {{ $parent := .Page }}
+    {{ $pages := (where .Site.Pages "Section" .Section).ByWeight }}
+    {{ $pages = (where $pages "Type" "!=" "search") }}
+    {{ $pages = (where $pages ".Params.hide_summary" "!=" true) }}
+    {{ $pages = (where $pages ".Parent" "!=" nil) }}
+    {{ $pages = (where $pages "Parent.File.UniqueID" "==" $parent.File.UniqueID) }}
+    {{ if or $parent.Params.no_list (eq (len $pages) 0) }}
+    {{/* If no_list is true or we don't have subpages we don't show a list of subpages */}}
+    {{ else if $parent.Params.simple_list }}
+    {{/* If simple_list is true we show a bulleted list of subpages */}}
+        <ul>
+            {{ range $pages }}
+                {{ $manualLink := cond (isset .Params "manuallink") .Params.manualLink ( cond (isset .Params "manuallinkrelref") (relref . .Params.manualLinkRelref) .RelPermalink) }}
+                <li><a href="{{ $manualLink }}"{{ with .Params.manualLinkTitle }} title="{{ . }}"{{ end }}{{ with .Params.manualLinkTarget }} target="{{ . }}"{{ if eq . "_blank" }} rel="noopener"{{ end }}{{ end }}>{{- .Title -}}</a></li>
+            {{ end }}
+        </ul>
+    {{ else if $parent.Params.card_list }}
+        <input type="text" id="search-input" onkeyup="filterCards()">
+        {{ range $index, $val := $pages }}
+            {{/* If the first card in a card deck */}}
+            {{ if eq (mod (add $index $numCards) $numCards) 0 }}
+                {{/* If the start of the last card deck */}}
+                {{ if ge (add $index $numCards) (len $pages) }}
+                    {{ $deckWidth = (mul (sub (len $pages) $index) $cardWidth) }}
+                {{ end }}
+                <div class="card-deck mb-4" style="width:{{ $deckWidth }}px" >
+            {{ end }}
+            {{ $manualLink := cond (isset .Params "manuallink") .Params.manualLink ( cond (isset .Params "manuallinkrelref") (relref . .Params.manualLinkRelref) .RelPermalink) }}
+            <div class="card mb-4 sample" style="width: {{ $cardWidth }}px; max-width: {{ $cardWidth }}px">
+                <div class="card-header" style="width: 100%">
+                    <b><a href="{{ $manualLink }}"{{ with .Params.manualLinkTitle }} title="{{ . }}"{{ end }}{{ with .Params.manualLinkTarget }} target="{{ . }}"{{ if eq . "_blank" }} rel="noopener"{{ end }}{{ end }}>{{- .Title -}}</a></b>
+                </div>
+                <div class="card-body sample">
+                    <a href="{{ $manualLink }}">
+                        <img src="{{ $manualLink }}/icon.png" alt="Logo for {{ .Title }}">
+                    </a>
+                </div>
+                <div class="card-footer">
+                    <p>{{ .Description | markdownify }}</p>
+                </div>
+            </div>
+            {{ if eq (mod (add $index 1) $numCards) 0 }}
+                </div>
+            {{ end }}
+        {{ end}}
+    {{ else }}
+    {{/* Otherwise we show a nice formatted list of subpages with page descriptions */}}
+    <hr class="panel-line">
+        {{ range $pages }}
+            {{ $manualLink := cond (isset .Params "manuallink") .Params.manualLink ( cond (isset .Params "manuallinkrelref") (relref . .Params.manualLinkRelref) .RelPermalink) }}
+            <div class="entry">
+                <h5>
+                    <a href="{{ $manualLink }}"{{ with .Params.manualLinkTitle }} title="{{ . }}"{{ end }}{{ with .Params.manualLinkTarget }} target="{{ . }}"{{ if eq . "_blank" }} rel="noopener"{{ end }}{{ end }}>{{- .Title -}}</a>
+                </h5>
+                <p>{{ .Description | markdownify }}</p>
+            </div>
+        {{ end }}
+    {{ end }}
+</div>
+
+<script>
+    const defaultTextValue = 'Filter...';
+    let searchBox = document.getElementById('search-input');
+    searchBox.value = defaultTextValue;
+    searchBox.onfocus = function () {
+        if (this.value == defaultTextValue) {
+            // Clears the search box
+            this.value = '';
+        }
+    }
+    searchBox.onblur = function () {
+        if (this.value == '') {
+            // Restores the search box with default value
+            this.value = defaultTextValue;
+        }
+    }
+
+    function filterCards() {
+      // Get the search input value
+      var searchInput = document.getElementById('search-input').value;
+
+      // Get all the cards
+      var cards = document.querySelectorAll('.card');
+
+      // Loop through the cards and show only the ones that match the search input value
+      for (var i = 0; i < cards.length; i++) {
+        var card = cards[i];
+        if (card.textContent.toLowerCase().indexOf(searchInput.toLowerCase()) > -1) {
+          card.style.display = "";
+        } else {
+          card.style.display = "none";
+        }
+      }
+    }
+</script>

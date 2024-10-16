@@ -1,4 +1,0 @@
-baseURL = 'https://symphony-website/'
-languageCode = 'en-us'
-title = 'Symphony Documentation Site'
-theme = 'docsy'
