@@ -13,6 +13,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -160,7 +161,7 @@ func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context,
 	catalog.Spec.RootResource = validation.GetRootResourceFromName(catalog.ObjectMeta.Name)
 	existingCatalog, err := c.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
 	if err != nil {
-		if !v1alpha2.IsNotFound(err) {
+		if !utils.IsNotFound(err) {
 			return err
 		}
 		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
