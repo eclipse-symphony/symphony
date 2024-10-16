@@ -60,6 +60,8 @@ const (
 	ClaimMessageInterval = 10 * time.Second
 	// ClaimPendingMessageIdleTime
 	ClaimMessageIdleTime = 30 * time.Second
+
+	DefaultNumberOfWorkers = 20
 )
 
 func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSubProviderConfig, error) {
@@ -94,7 +96,7 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 			}
 			ret.NumberOfWorkers = n
 		} else {
-			ret.NumberOfWorkers = 1
+			ret.NumberOfWorkers = DefaultNumberOfWorkers
 		}
 	}
 	if v, ok := properties["consumerID"]; ok {
@@ -105,7 +107,7 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSub
 	ret.ConsumerID = ret.ConsumerID + generateConsumerIDSuffix()
 
 	if ret.NumberOfWorkers <= 0 {
-		ret.NumberOfWorkers = 1
+		ret.NumberOfWorkers = DefaultNumberOfWorkers
 	}
 	//TODO: Finish this
 	return ret, nil
@@ -328,7 +330,10 @@ func (i *RedisPubSubProvider) processMessage(topic string, handler v1alpha2.Even
 		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : processing failed with retriable error for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.ID), v1alpha2.InternalError)
 	}
-	i.Client.XAck(i.Ctx, topic, handler.Group, msg.ID)
+	_, err = i.Client.XAck(i.Ctx, topic, handler.Group, msg.ID).Result()
+	if err != nil {
+		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to acknowledge message %s for topic %s, group %s: %v", msg.ID, topic, handler.Group, err)
+	}
 	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processing succeeded for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
 	return nil
 }
