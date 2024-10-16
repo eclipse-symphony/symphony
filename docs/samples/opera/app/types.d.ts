@@ -150,9 +150,37 @@ export interface TargetState {
     status: DeployableStatus;
 }
 
+export interface TargetSelector {
+    name: string;
+    selector: Record<string, string>;
+}
+
+export interface InstanceState {
+    metadata: ObjectMeta;
+    spec: InstanceSpec;
+    status: InstanceStatus;
+}
+
+export interface PipelineSpec {
+    name: string;
+    skill: string;
+    parameters: Record<string, string>;
+}
+
+export interface InstanceSpec {
+    displayName: string;
+    scope: string;
+    parameters: Record<string, string>;
+    metadata: Record<string, string>;
+    solution: string;
+    target: TargetSelector;
+    topologies: TopologySpec[];
+    pipelines: PipelineSpec[];
+    isDryRun: boolean;
+}
+
 export interface SolutionState {
-    id: string; 
-    namespace: string;
+    metadata: ObjectMeta;
     spec: SolutionSpec;
 }
 
