@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const catalogNotFoundMsg = "catalog not found"
+
 func TestMaterializeInitForNonServiceAccount(t *testing.T) {
 	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
 	if UseServiceAccountTokenEnvName != "false" {
@@ -119,6 +121,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 func TestMaterializeProcessFailedCase(t *testing.T) {
 	ts := InitializeMockSymphonyAPI(t, "objNS")
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -132,7 +135,7 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), v1alpha2.NotFound.String())
+	assert.Contains(t, err.Error(), catalogNotFoundMsg)
 }
 
 type AuthResponse struct {
@@ -255,7 +258,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 			assert.Equal(t, expectNs, catalog.ObjectMeta.Namespace)
 			response = catalog
 		case "/catalogs/registry/hq-notexist":
-			http.Error(w, "catalog not found", http.StatusNotFound)
+			http.Error(w, catalogNotFoundMsg, http.StatusNotFound)
 			return
 		default:
 			response = AuthResponse{
