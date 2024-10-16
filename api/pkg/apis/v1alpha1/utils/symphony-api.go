@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -711,7 +712,15 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 	ret.Targets = targets
 	ret.SolutionName = key
 	// set the target generation to the deployment
-	ret.Generation = target.ObjectMeta.Generation
+	targetGeneration, err := strconv.ParseInt(target.ObjectMeta.Generation, 10, 64)
+	if err != nil {
+		targetGeneration = 0
+	}
+	ret.Generation = model.DeploymentGeneration{
+		InstanceGeneration: 0,
+		SolutionGeneration: 0,
+		TargetGeneration:   targetGeneration,
+	}
 	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
@@ -730,7 +739,27 @@ func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState,
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	ret.Generation = instance.ObjectMeta.Generation
+	instanceGeneration, err := strconv.ParseInt(instance.ObjectMeta.Generation, 10, 64)
+	if err != nil {
+		instanceGeneration = 0
+	}
+	solutionGeneration, err := strconv.ParseInt(solution.ObjectMeta.Generation, 10, 64)
+	if err != nil {
+		solutionGeneration = 0
+	}
+	totalTargetGeneration := int64(0)
+	for _, target := range targets {
+		targetGeneration, err := strconv.ParseInt(target.ObjectMeta.Generation, 10, 64)
+		if err != nil {
+			targetGeneration = 0
+		}
+		totalTargetGeneration += targetGeneration
+	}
+	ret.Generation = model.DeploymentGeneration{
+		InstanceGeneration: instanceGeneration,
+		SolutionGeneration: solutionGeneration,
+		TargetGeneration:   totalTargetGeneration,
+	}
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)

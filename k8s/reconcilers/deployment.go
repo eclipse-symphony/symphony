@@ -371,18 +371,10 @@ func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilabl
 	if object == nil || summary == nil { // we don't expect any of these to be nil
 		return false
 	}
-	generationMatch := r.generationMatch(object, summary)
 	operationTypeMatch := r.operationTypeMatch(object, summary)
 	deploymentHashMatch := r.deploymentHashMatch(ctx, object, summary)
-	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch)
-	return generationMatch && operationTypeMatch && deploymentHashMatch
-}
-
-func (r *DeploymentReconciler) generationMatch(object Reconcilable, summary *model.SummaryResult) bool {
-	if object == nil || summary == nil { // we don't expect any of these to be nil
-		return false
-	}
-	return summary.Generation == strconv.FormatInt(object.GetGeneration(), 10)
+	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch)
+	return operationTypeMatch && deploymentHashMatch
 }
 
 func (r *DeploymentReconciler) operationTypeMatch(object Reconcilable, summary *model.SummaryResult) bool {

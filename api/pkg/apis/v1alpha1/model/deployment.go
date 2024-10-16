@@ -12,6 +12,13 @@ import (
 	go_slices "golang.org/x/exp/slices"
 )
 
+// DeploymentGeneration record the generation of instance, solution and target/targets when deployment is calculated
+type DeploymentGeneration struct {
+	InstanceGeneration int64 `json:"instanceGeneration"`
+	TargetGeneration   int64 `json:"targetGeneration"`
+	SolutionGeneration int64 `json:"solutionGeneration"`
+}
+
 type DeploymentSpec struct {
 	SolutionName        string                 `json:"solutionName"`
 	Solution            SolutionState          `json:"solution"`
@@ -22,7 +29,7 @@ type DeploymentSpec struct {
 	ComponentStartIndex int                    `json:"componentStartIndex,omitempty"`
 	ComponentEndIndex   int                    `json:"componentEndIndex,omitempty"`
 	ActiveTarget        string                 `json:"activeTarget,omitempty"`
-	Generation          string                 `json:"generation,omitempty"`
+	Generation          DeploymentGeneration   `json:"generation,omitempty"`
 	ObjectNamespace     string                 `json:"objectNamespace,omitempty"`
 	Hash                string                 `json:"hash,omitempty"`
 	IsDryRun            bool                   `json:"isDryRun,omitempty"`
