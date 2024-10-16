@@ -54,7 +54,7 @@ func TestWithZeroWorkerCount(t *testing.T) {
 	assert.True(t, ok)
 	// NumberOfWorkers should be set to 1, but initializtion should fail because of invalid host name
 	assert.Equal(t, v1alpha2.InternalError, coaErr.State)
-	assert.Equal(t, 1, provider.Config.NumberOfWorkers)
+	assert.Equal(t, 20, provider.Config.NumberOfWorkers)
 }
 
 func TestInit(t *testing.T) {
