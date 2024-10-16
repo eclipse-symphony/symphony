@@ -28,7 +28,6 @@ done <<< "$components"
 scope=$(jq '.instance.scope' "$deployment")
 echo "SCOPE: $scope"
 
-sleep 180
 
 # your script needs to generate an output file that contains a map of component results. For each
 # component result, the status code should be one of
