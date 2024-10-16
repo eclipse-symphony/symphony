@@ -44,22 +44,6 @@ type authResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-// We shouldn't use specific error types
-// SummarySpecError represents an error that includes a SummarySpec in its message
-// field.
-type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-func (e *SummarySpecError) Error() string {
-	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
-		e.Code,
-		e.Message,
-	)
-}
-
 func GetSymphonyAPIAddressBase() string {
 	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
