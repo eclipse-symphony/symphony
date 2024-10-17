@@ -119,6 +119,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	}
 
 	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())
+	deployment.JobID = object.GetAnnotations()[constants.SummaryJobIdKey]
 	if err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to create symphony deployment")
 		return nil, err

@@ -10,8 +10,10 @@ import (
 	"context"
 	"errors"
 
+	"gopls-workspace/constants"
 	. "gopls-workspace/testing"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -39,7 +41,7 @@ var _ = Describe("Target controller", Ordered, func() {
 	var reconcileError error
 	var reconcileResult ctrl.Result
 	var reconcileErrorPolling error
-	var reconcileResultPolling ctrl.Result
+	var jobID string
 
 	BeforeEach(func() {
 		By("setting up the controller")
@@ -87,7 +89,15 @@ var _ = Describe("Target controller", Ordered, func() {
 		JustBeforeEach(func(ctx context.Context) {
 			By("simulating a reconcile event")
 			reconcileResult, reconcileError = controllerQueueing.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
-			reconcileResultPolling, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
+			kubeClient.Get(ctx, DefaultTargetNamepsacedName, target)
+			annotations := target.GetAnnotations()
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			annotations[constants.SummaryJobIdKey] = jobID
+			target.SetAnnotations(annotations)
+			kubeClient.Update(ctx, target)
+			_, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
 		})
 
 		When("the target is created", func() {
@@ -100,8 +110,9 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func() {
 					By("mocking the get summary call to return a successful deployment")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
+					jobID = uuid.New().String()
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(target, hash), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(target, hash, jobID), nil)
 				})
 
 				It("should not return an error", func() {
@@ -116,7 +127,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue after the reconciliation interval", func() {
-					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 				})
 			})
 
@@ -142,8 +153,11 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func() {
 					By("mocking the get summary call to return a successful deployment")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
+					jobID = uuid.New().String()
+					summary := MockFailureSummaryResult(target, hash)
+					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockFailureSummaryResult(target, hash), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should not return an error", func() {
@@ -151,7 +165,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue after the reconciliation interval", func() {
-					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 				})
 
 				It("should have a status of failed", func() {
@@ -200,8 +214,10 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a completed delete deployment from the api")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
+					jobID = uuid.New().String()
 					summary := MockSucessSummaryResult(target, hash)
 					summary.Summary.IsRemoval = true
+					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})

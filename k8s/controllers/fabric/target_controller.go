@@ -114,6 +114,7 @@ func (r *TargetReconciler) populateProvisioningError(summaryResult *model.Summar
 func (r *TargetReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	if target, ok := object.(*symphonyv1.Target); ok {
 		deployment, err := utils.CreateSymphonyDeploymentFromTarget(ctx, *target, object.GetNamespace())
+		deployment.JobID = object.GetAnnotations()[constants.SummaryJobIdKey]
 		if err != nil {
 			return nil, err
 		}

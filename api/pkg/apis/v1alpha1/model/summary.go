@@ -28,6 +28,7 @@ type SummarySpec struct {
 	SuccessCount        int                         `json:"successCount"`
 	TargetResults       map[string]TargetResultSpec `json:"targets,omitempty"`
 	SummaryMessage      string                      `json:"message,omitempty"`
+	JobID               string                      `json:"jobID,omitempty"`
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
