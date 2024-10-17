@@ -125,7 +125,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					})
 
 					It("should requeue after the reconciliation interval", func() {
-						Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 					})
 				})
 				Context("and the deployment failed due to some error", func() {

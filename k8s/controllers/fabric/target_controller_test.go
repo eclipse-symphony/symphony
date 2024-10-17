@@ -41,7 +41,6 @@ var _ = Describe("Target controller", Ordered, func() {
 	var reconcileError error
 	var reconcileResult ctrl.Result
 	var reconcileErrorPolling error
-	var reconcileResultPolling ctrl.Result
 	var jobID string
 
 	BeforeEach(func() {
@@ -98,7 +97,7 @@ var _ = Describe("Target controller", Ordered, func() {
 			annotations[constants.SummaryJobIdKey] = jobID
 			target.SetAnnotations(annotations)
 			kubeClient.Update(ctx, target)
-			reconcileResultPolling, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
+			_, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
 		})
 
 		When("the target is created", func() {
@@ -128,7 +127,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue after the reconciliation interval", func() {
-					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 				})
 			})
 
@@ -166,7 +165,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue after the reconciliation interval", func() {
-					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 				})
 
 				It("should have a status of failed", func() {

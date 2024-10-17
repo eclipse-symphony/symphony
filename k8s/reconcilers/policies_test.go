@@ -102,7 +102,7 @@ var _ = Describe("Reconcile Policies", func() {
 			})
 
 			It("should requue after some time", func() {
-				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 

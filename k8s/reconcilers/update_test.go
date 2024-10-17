@@ -148,7 +148,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 				Expect(object.Status.ProvisioningStatus.Status).To(Equal("Succeeded"))
 			})
 			It("should requue after some time", func() {
-				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
+				Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
 			})
 		})
 
