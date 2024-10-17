@@ -12,7 +12,6 @@ import (
 	"gopls-workspace/constants"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -205,7 +204,11 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target fabric_v1.Ta
 		TargetCandidates: []fabric_v1.Target{target},
 	})
 
-	ret.Generation = strconv.Itoa(int(target.ObjectMeta.Generation))
+	ret.Generation = apimodel.DeploymentGeneration{
+		InstanceGeneration: 0,
+		SolutionGeneration: 0,
+		TargetGeneration:   target.Generation,
+	}
 	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, err
@@ -237,8 +240,15 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 		Solution:         solution,
 		TargetCandidates: targets,
 	})
-
-	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
+	var totalTargetGeneration int64
+	for _, target := range targets {
+		totalTargetGeneration += target.Generation
+	}
+	ret.Generation = apimodel.DeploymentGeneration{
+		InstanceGeneration: instance.Generation,
+		SolutionGeneration: solution.Generation,
+		TargetGeneration:   totalTargetGeneration,
+	}
 	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, err

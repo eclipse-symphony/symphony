@@ -17,7 +17,6 @@ import (
 	solution_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
-	"strconv"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -196,7 +195,7 @@ func MockSucessSummaryResult(obj reconcilers.Reconcilable, hash string) *model.S
 		},
 		Time:           time.Now(),
 		State:          model.SummaryStateDone,
-		Generation:     strconv.Itoa(int(obj.GetGeneration())),
+		Generation:     model.DeploymentGeneration{},
 		DeploymentHash: hash,
 	}
 }
@@ -219,7 +218,7 @@ func MockFailureSummaryResult(obj reconcilers.Reconcilable, hash string) *model.
 		},
 		Time:           time.Now(),
 		State:          model.SummaryStateDone,
-		Generation:     strconv.Itoa(int(obj.GetGeneration())),
+		Generation:     model.DeploymentGeneration{},
 		DeploymentHash: hash,
 	}
 }
@@ -242,7 +241,7 @@ func MockInProgressSummaryResult(obj reconcilers.Reconcilable, hash string) *mod
 		},
 		Time:           time.Now(),
 		State:          model.SummaryStateRunning,
-		Generation:     strconv.Itoa(int(obj.GetGeneration())),
+		Generation:     model.DeploymentGeneration{},
 		DeploymentHash: hash,
 	}
 }
@@ -266,7 +265,7 @@ func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string
 		},
 		Time:           time.Now(),
 		State:          model.SummaryStateRunning,
-		Generation:     strconv.Itoa(int(obj.GetGeneration())),
+		Generation:     model.DeploymentGeneration{},
 		DeploymentHash: hash,
 	}
 }

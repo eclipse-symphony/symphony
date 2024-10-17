@@ -35,11 +35,11 @@ type SummarySpec struct {
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
 }
 type SummaryResult struct {
-	Summary        SummarySpec  `json:"summary"`
-	Generation     string       `json:"generation"`
-	Time           time.Time    `json:"time"`
-	State          SummaryState `json:"state"`
-	DeploymentHash string       `json:"deploymentHash"`
+	Summary        SummarySpec          `json:"summary"`
+	Generation     DeploymentGeneration `json:"generation"`
+	Time           time.Time            `json:"time"`
+	State          SummaryState         `json:"state"`
+	DeploymentHash string               `json:"deploymentHash"`
 }
 
 const (
