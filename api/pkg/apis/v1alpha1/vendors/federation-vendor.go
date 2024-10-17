@@ -9,6 +9,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
@@ -253,10 +254,11 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = f.SitesManager.GetState(ctx, id)
 		}
 		if err != nil {
-			if v1alpha2.IsNotFound(err) {
+			if utils.IsNotFound(err) {
+				errorMsg := fmt.Sprintf("site '%s' is not found", id)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
-					Body:  []byte(err.Error()),
+					Body:  []byte(errorMsg),
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

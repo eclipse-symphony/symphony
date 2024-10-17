@@ -5,7 +5,7 @@ metadata:
   name: redis-pvc
   namespace: {{ .Release.Namespace }}
 spec:
-  storageClassName: {{ .Values.redis.persistentVolume.storageclass }}
+  storageClassName: {{ include "RedisPVCStorageClassName" . }}
   accessModes:
   - {{ .Values.redis.persistentVolume.accessMode }}
   resources:

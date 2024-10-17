@@ -223,7 +223,7 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	})
 
 	if err != nil {
-		if v1alpha2.IsNotFound(err) {
+		if api_utils.IsNotFound(err) {
 			log.DebugfCtx(ctx, " M (Solution): DeleteSummary NoutFound, id: %s, namespace: %s", key, namespace)
 			return nil
 		}
@@ -458,7 +458,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
 		someStepsRan = true
-		retryCount := 3
+		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
 		// an error condition can't be resolved quickly.
 		var stepError error

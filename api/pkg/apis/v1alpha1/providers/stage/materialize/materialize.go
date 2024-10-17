@@ -190,7 +190,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		catalog, err := i.ApiClient.GetCatalog(ctx, objectName, namespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectRef, err.Error())
-			anyCatalogInvalid = anyCatalogInvalid || strings.Contains(err.Error(), v1alpha2.NotFound.String())
+			anyCatalogInvalid = anyCatalogInvalid || api_utils.IsNotFound(err)
 			continue
 		}
 		if !checkCatalog(&catalog) {

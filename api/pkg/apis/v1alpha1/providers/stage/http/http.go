@@ -11,7 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -264,7 +264,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				)
 				return nil, false, err
 			}
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(jData))
+			req.Body = io.NopCloser(bytes.NewBuffer(jData))
 			req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 			req.ContentLength = int64(len(jData))
 		}
@@ -291,7 +291,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	var data []byte
-	data, err = ioutil.ReadAll(resp.Body)
+	data, err = io.ReadAll(resp.Body)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to read request response: %v", err)
 		providerOperationMetrics.ProviderOperationErrors(
@@ -382,7 +382,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			if succeeded {
 				var data []byte
-				data, err = ioutil.ReadAll(waitResp.Body)
+				data, err = io.ReadAll(waitResp.Body)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to read wait request response: %v", err)
 					providerOperationMetrics.ProviderOperationErrors(

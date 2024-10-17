@@ -104,7 +104,7 @@ func (s *StagingManager) Poll() []error {
 		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.Generation {
 			continue
 		}
-		if err != nil && !v1alpha2.IsNotFound(err) {
+		if err != nil && !utils.IsNotFound(err) {
 			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
