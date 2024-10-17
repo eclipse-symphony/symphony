@@ -9369,7 +9369,7 @@ div.drawio .input-group-sm > button,
     display: none !important; } }
 
 /*!
- * Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com
+ * Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
@@ -9377,17 +9377,16 @@ div.drawio .input-group-sm > button,
   font-family: var(--fa-style-family, "Font Awesome 6 Free");
   font-weight: var(--fa-style, 900); }
 
-.fa-solid,
-.fa-regular,
-.fa-brands,
+.fa, .td-search__icon:before,
+.fa-classic,
+.fa-sharp,
 .fas,
 .td-offline-search-results__close-button:after,
+.fa-solid,
 .far,
+.fa-regular,
 .fab,
-.fa-sharp-solid,
-.fa-classic,
-.fa,
-.td-search__icon:before {
+.fa-brands {
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   display: var(--fa-display, inline-block);
@@ -9479,7 +9478,7 @@ div.drawio .input-group-sm > button,
     position: relative; }
 
 .fa-li {
-  left: calc(-1 * var(--fa-li-width, 2em));
+  left: calc(var(--fa-li-width, 2em) * -1);
   position: absolute;
   text-align: center;
   width: var(--fa-li-width, 2em);
@@ -11093,12 +11092,6 @@ readers do not read off random characters that represent icons */
 
 .fa-passport::before {
   content: "\f5ab"; }
-
-.fa-thumbtack-slash::before {
-  content: "\e68f"; }
-
-.fa-thumb-tack-slash::before {
-  content: "\e68f"; }
 
 .fa-heart-pulse::before {
   content: "\f21e"; }
@@ -15411,9 +15404,6 @@ readers do not read off random characters that represent icons */
 .fa-bone::before {
   content: "\f5d7"; }
 
-.fa-table-cells-row-unlock::before {
-  content: "\e691"; }
-
 .fa-user-injured::before {
   content: "\f728"; }
 
@@ -15586,7 +15576,7 @@ readers do not read off random characters that represent icons */
   border-width: 0; }
 
 /*!
- * Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com
+ * Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
@@ -15606,7 +15596,7 @@ readers do not read off random characters that represent icons */
   font-weight: 900; }
 
 /*!
- * Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com
+ * Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
@@ -15726,9 +15716,6 @@ readers do not read off random characters that represent icons */
 
 .fa-jxl:before {
   content: "\e67b"; }
-
-.fa-dart-lang:before {
-  content: "\e693"; }
 
 .fa-hire-a-helper:before {
   content: "\f3b0"; }
@@ -16668,9 +16655,6 @@ readers do not read off random characters that represent icons */
 
 .fa-twitch:before {
   content: "\f1e8"; }
-
-.fa-flutter:before {
-  content: "\e694"; }
 
 .fa-ravelry:before {
   content: "\f2d9"; }

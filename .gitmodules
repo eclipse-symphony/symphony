@@ -1,6 +1,6 @@
 [submodule "docs-site/public"]
 	path = docs-site/public
-	url = git@github.com:eclipse-symphony/symphony-website.git
+	url = git@github.com:eclipse-symphony/docs.git
 	branch = main
 [submodule "docs-site/themes/docsy"]
 	path = docs-site/themes/docsy
@@ -8,3 +8,4 @@
 [submodule "landing/public"]
 	path = landing/public
 	url = git@github.com:eclipse-symphony/symphony-website.git
+	branch = main
