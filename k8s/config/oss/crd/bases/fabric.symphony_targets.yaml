@@ -240,7 +240,8 @@ spec:
                       type: string
                     type: object
                   percentComplete:
-                    type: number
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:
