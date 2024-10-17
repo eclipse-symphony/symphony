@@ -271,6 +271,22 @@ export interface Rule {
     pattern?: string;
     expression?: string;
 }
+
 export interface Schema {
     rules: Record<string, Rule>;
+}
+
+export interface CandidateList {
+    name: string;
+    candidates: Candidate[];
+}
+
+export interface Candidate {
+    name: string;
+}
+
+export interface SymphonyObject {
+    type: string;
+    name: string;
+    properties: Record<string, any>;
 }
