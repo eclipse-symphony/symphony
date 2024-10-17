@@ -117,7 +117,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: state.ObjectMeta.Generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -238,7 +238,7 @@ func getTargetState(body interface{}, etag string) (model.TargetState, error) {
 	if targetState.Spec == nil {
 		targetState.Spec = &model.TargetSpec{}
 	}
-	targetState.ObjectMeta.Generation = etag
+	targetState.ObjectMeta.ETag = etag
 	return targetState, nil
 }
 
