@@ -5,3 +5,6 @@
 	path = landing/public
 	url = git@github.com:eclipse-symphony/symphony-website.git
 	branch = main
+[submodule "docs-site/public"]
+	path = docs-site/public
+	url = git@github.com:eclipse-symphony/docs.git

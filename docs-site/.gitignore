@@ -1,6 +1,5 @@
 resources/_gen
 node_modules
-public
 .cache/
 obj/
 bin/
