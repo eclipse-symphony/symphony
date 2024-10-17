@@ -158,8 +158,15 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	mLog.InfofCtx(ctx, "  P (Create Stage) process started")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
-	outputs := make(map[string]interface{})
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		create,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
+	outputs := make(map[string]interface{})
 	objectType := stage.ReadInputString(inputs, "objectType")
 	objectName := stage.ReadInputString(inputs, "objectName")
 	action := stage.ReadInputString(inputs, "action")
@@ -185,7 +192,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					create,
 					functionName,
 					metrics.ProcessOperation,
-					metrics.DeleteOperationType,
+					metrics.RunOperationType,
 					v1alpha2.DeleteInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to delete instance: %+v", err)
@@ -245,7 +252,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					create,
 					functionName,
 					metrics.ProcessOperation,
-					metrics.UpdateOperationType,
+					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
@@ -269,7 +276,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				create,
 				functionName,
 				metrics.ProcessOperation,
-				metrics.UpdateOperationType,
+				metrics.RunOperationType,
 				v1alpha2.DeploymentNotReached.String(),
 			)
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation reconcile failed: %s", lastSummaryMessage), v1alpha2.InternalError)
@@ -303,12 +310,5 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	outputs["objectName"] = objectName
 
 	mLog.InfofCtx(ctx, "  P (Create Stage) process completed")
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		create,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 	return outputs, false, nil
 }
