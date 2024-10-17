@@ -1,6 +1,6 @@
 #################### default parameters ################################
-logo = "images/apple-touch-icon.png"
-logo_width = "100px"
+logo = "images/symphony_icon_largetext.png"
+logo_width = "200px"
 favicon = "favicons\favicon.ico"
 # OpenGraph / Twitter Card metadata
 description = "Symphony enables end-to-end orchestration experience and addresses it as a distinct concern."
