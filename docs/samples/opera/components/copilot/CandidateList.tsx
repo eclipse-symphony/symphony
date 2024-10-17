@@ -31,7 +31,7 @@ function CandidateListView({ name = "No Name Provided", type }: CandidateListVie
             {candidates.length > 0 ? (
                 <ul>
                     {candidates.map((candidate, index) => (
-                        <li key={index}>{candidate.name}</li>
+                        <li key={index} className="ml-5">{candidate.name}</li>
                     ))}
                 </ul>
             ) : (
