@@ -68,10 +68,12 @@ func TestManagerContextPublishSubscribe(t *testing.T) {
 
 	called := false
 	sig := make(chan bool)
-	m.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		called = true
-		sig <- true
-		return nil
+	m.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			called = true
+			sig <- true
+			return nil
+		},
 	})
 
 	m.Publish("test", v1alpha2.Event{})
@@ -87,9 +89,11 @@ func TestManagerContextPublishSubscribeWithoutPubSub(t *testing.T) {
 	assert.Nil(t, m.PubsubProvider)
 
 	called := false
-	m.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		called = true
-		return nil
+	m.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			called = true
+			return nil
+		},
 	})
 
 	m.Publish("test", v1alpha2.Event{})

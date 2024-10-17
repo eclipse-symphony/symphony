@@ -388,26 +388,28 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 	correlationId := uuid.New().String()
 	resourceId := uuid.New().String()
 	ctx = coalogcontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		assert.NotEqual(t, ctx, event.Context)
-		assert.NotNil(t, event.Context)
-		diagCtx, ok := event.Context.Value(coalogcontexts.DiagnosticLogContextKey).(*coalogcontexts.DiagnosticLogContext)
-		assert.True(t, ok)
-		assert.NotNil(t, diagCtx)
-		assert.Equal(t, correlationId, diagCtx.GetCorrelationId())
-		assert.Equal(t, resourceId, diagCtx.GetResourceId())
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			assert.NotEqual(t, ctx, event.Context)
+			assert.NotNil(t, event.Context)
+			diagCtx, ok := event.Context.Value(coalogcontexts.DiagnosticLogContextKey).(*coalogcontexts.DiagnosticLogContext)
+			assert.True(t, ok)
+			assert.NotNil(t, diagCtx)
+			assert.Equal(t, correlationId, diagCtx.GetCorrelationId())
+			assert.Equal(t, resourceId, diagCtx.GetResourceId())
 
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "scope1", event.Metadata["namespace"])
-		assert.Equal(t, "instance1", job.Id)
-		assert.Equal(t, v1alpha2.JobUpdate, job.Action)
-		succeededCount += 1
-		sig <- true
-		return nil
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "instance", event.Metadata["objectType"])
+			assert.Equal(t, "scope1", event.Metadata["namespace"])
+			assert.Equal(t, "instance1", job.Id)
+			assert.Equal(t, v1alpha2.JobUpdate, job.Action)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	resp := vendor.onQueue(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -432,18 +434,20 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 	vendor.Context.Init(&pubSubProvider)
 	sig := make(chan bool)
 	succeededCount := 0
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "target", event.Metadata["objectType"])
-		assert.Equal(t, "scope1", event.Metadata["namespace"])
-		assert.Equal(t, "target1", job.Id)
-		assert.Equal(t, v1alpha2.JobDelete, job.Action)
-		succeededCount += 1
-		sig <- true
-		return nil
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "target", event.Metadata["objectType"])
+			assert.Equal(t, "scope1", event.Metadata["namespace"])
+			assert.Equal(t, "target1", job.Id)
+			assert.Equal(t, v1alpha2.JobDelete, job.Action)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	resp := vendor.onQueue(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,

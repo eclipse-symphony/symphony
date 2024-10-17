@@ -43,15 +43,18 @@ func (e *EchoVendor) GetMessages() []string {
 func (e *EchoVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	e.myMessages = make([]string, 0)
-	e.Vendor.Context.Subscribe("trace", func(topic string, event v1alpha2.Event) error {
-		e.lock.Lock()
-		defer e.lock.Unlock()
-		msg := utils.FormatAsString(event.Body)
-		e.myMessages = append(e.myMessages, msg)
-		if len(e.myMessages) > 20 {
-			e.myMessages = e.myMessages[1:]
-		}
-		return nil
+	e.Vendor.Context.Subscribe("trace", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			e.lock.Lock()
+			defer e.lock.Unlock()
+			msg := utils.FormatAsString(event.Body)
+			e.myMessages = append(e.myMessages, msg)
+			if len(e.myMessages) > 20 {
+				e.myMessages = e.myMessages[1:]
+			}
+			return nil
+		},
+		Group: "echo",
 	})
 	if err != nil {
 		return err
