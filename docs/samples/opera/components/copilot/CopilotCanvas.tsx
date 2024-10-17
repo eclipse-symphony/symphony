@@ -39,7 +39,7 @@ function CopilotCanvas() {
             <div className={`${rowHeight(targets)}`}><CandidateListView name="Targets" type="target" /></div>
           </div>
           <div className={`flex flex-col ${centerColumnWidth}`}>
-            <div className="flex-1"><ChatBox /></div>
+            <div className="flex-1 max-h-[50%]"><ChatBox /></div>
             <div className="flex-1 p-4"><SystemDiagram /></div>
           </div>
           <div className={`flex-col ${rightColumnWidth}`}>
