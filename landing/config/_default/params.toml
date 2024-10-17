@@ -1,11 +1,11 @@
 #################### default parameters ################################
 logo = "images/apple-touch-icon.png"
-logo_width = "200px"
+logo_width = "100px"
 favicon = "favicons\favicon.ico"
 # OpenGraph / Twitter Card metadata
 description = "Symphony enables end-to-end orchestration experience and addresses it as a distinct concern."
 author = "Project Symphony Leads"
-image = "images/symphony icon_largetext (1).png" # this image will be used as fallback if a page has no image of its own
+image = "images/symphony_icon_largetext.png" # this image will be used as fallback if a page has no image of its own
 # contact form action
 contact_form_action = "#" # contact form works with https://formspree.io
 
