@@ -1,5 +1,5 @@
 #################### default parameters ################################
-logo = "images/symphony icon_largetext (1).png"
+logo = "images/apple-touch-icon.png"
 logo_width = "200px"
 favicon = "favicons\favicon.ico"
 # OpenGraph / Twitter Card metadata
