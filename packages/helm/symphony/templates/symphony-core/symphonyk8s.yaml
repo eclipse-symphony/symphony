@@ -224,6 +224,13 @@ spec:
                       type: string
                     provider:
                       type: string
+                    proxy:
+                      properties:
+                        config:
+                          x-kubernetes-preserve-unknown-fields: true
+                        provider:
+                          type: string
+                      type: object
                     schedule:
                       type: string
                     stageSelector:
