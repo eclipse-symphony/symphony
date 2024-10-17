@@ -35,10 +35,11 @@ type ComponentError struct {
 // Defines the state of the ARM resource for long running operations
 // +kubebuilder:object:generate=true
 type ProvisioningStatus struct {
-	OperationID  string            `json:"operationId"`
-	Status       string            `json:"status"`
-	FailureCause string            `json:"failureCause,omitempty"`
-	LogErrors    bool              `json:"logErrors,omitempty"`
-	Error        ErrorType         `json:"error,omitempty"`
-	Output       map[string]string `json:"output,omitempty"`
+	OperationID     string            `json:"operationId"`
+	Status          string            `json:"status"`
+	PercentComplete int64             `json:"percentComplete,omitempty"`
+	FailureCause    string            `json:"failureCause,omitempty"`
+	LogErrors       bool              `json:"logErrors,omitempty"`
+	Error           ErrorType         `json:"error,omitempty"`
+	Output          map[string]string `json:"output,omitempty"`
 }

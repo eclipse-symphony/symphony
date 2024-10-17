@@ -906,6 +906,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:
@@ -1877,6 +1880,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:
