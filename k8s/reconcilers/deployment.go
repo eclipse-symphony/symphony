@@ -187,7 +187,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		}
 	}
 
-	r.updateJobID(object, uuid.New().String())
+	r.updateJobID(object, strconv.FormatInt(r.getCurJobIdInt64(object)+1, 10))
 	if err := r.kubeClient.Update(ctx, object); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
@@ -474,6 +474,18 @@ func (r *DeploymentReconciler) updateJobID(object Reconcilable, jobID string) {
 	}
 	annotations[constants.SummaryJobIdKey] = jobID
 	object.SetAnnotations(annotations)
+}
+
+func (r *DeploymentReconciler) getCurJobIdInt64(object Reconcilable) int64 {
+	annotations := object.GetAnnotations()
+	if annotations == nil || annotations[constants.SummaryJobIdKey] == "" {
+		return 0
+	}
+	intValue, err := strconv.ParseInt(annotations[constants.SummaryJobIdKey], 10, 64)
+	if err != nil {
+		return 0
+	}
+	return intValue
 }
 
 func (r *DeploymentReconciler) ensureOperationState(annotations map[string]string, objectStatus *k8smodel.DeployableStatus, provisioningState string) {
