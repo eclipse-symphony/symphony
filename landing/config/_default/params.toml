@@ -25,8 +25,8 @@ preloader = "" # use jpg, png, svg or gif format.
 # Navigation buttons
 [navigation_button]
 enable = true
-label = "Get Started"
-link = "https://github.com/eclipse-symphony/symphony/tree/main/docs#get-started"
+label = "Join Our Discord"
+link = "https://discord.gg/JvY8qBkWbw"
 
 # cookies
 [cookies]
