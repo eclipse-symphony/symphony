@@ -398,6 +398,7 @@ func (o *Observability) InitMetric(config ObservabilityConfig) error {
 				semconv.SchemaURL,
 				semconv.ServiceNameKey.String(config.ServiceName),
 				populateMicrosoftResourceId(),
+				populateChartVersion(),
 			),
 		),
 	}
@@ -446,5 +447,17 @@ func populateMicrosoftResourceId() attribute.KeyValue {
 	return attribute.KeyValue{
 		Key:   "microsoft.resourceId",
 		Value: attribute.StringValue(rid),
+	}
+}
+
+func populateChartVersion() attribute.KeyValue {
+	chartVersion, ok := os.LookupEnv("CHART_VERSION")
+	if !ok {
+		return attribute.KeyValue{}
+	}
+
+	return attribute.KeyValue{
+		Key:   "chart_version",
+		Value: attribute.StringValue(chartVersion),
 	}
 }

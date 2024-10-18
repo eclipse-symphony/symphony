@@ -184,6 +184,13 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		script,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	id := uuid.New().String()
 	input := id + ".json"
 	output := id + "-output.json"
@@ -253,13 +260,6 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		return nil, false, err
 	}
 
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		script,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 	return ret, false, nil
 }
 

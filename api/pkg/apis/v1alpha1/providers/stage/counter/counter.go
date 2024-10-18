@@ -107,6 +107,13 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 	mLog.InfofCtx(ctx, "  P (Counter Stage) process started")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		counter,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
 	outputs := make(map[string]interface{})
 	selfState := make(map[string]interface{})
@@ -157,13 +164,6 @@ func (i *CounterStageProvider) Process(ctx context.Context, mgrContext contexts.
 	outputs["__state"] = selfState
 	mLog.InfofCtx(ctx, "  P (Counter Stage) process completed")
 	observ_utils.EmitUserAuditsLogs(ctx, "  P (Counter Stage): Executed counter stage")
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		counter,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 	return outputs, false, nil
 }
 
