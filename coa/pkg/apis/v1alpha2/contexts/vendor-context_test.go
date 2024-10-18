@@ -28,7 +28,7 @@ func (t *TestPubSubProvider) Publish(topic string, event v1alpha2.Event) error {
 	if ok && arr != nil {
 		for _, s := range arr {
 			go func(handler v1alpha2.EventHandler, topic string, event v1alpha2.Event) {
-				handler(topic, event)
+				handler.Handler(topic, event)
 			}(s, topic, event)
 		}
 	}
@@ -76,10 +76,13 @@ func TestVendorContextPublishSubscribe(t *testing.T) {
 
 	called := false
 	sig := make(chan bool)
-	v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		called = true
-		sig <- true
-		return nil
+	v.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			called = true
+			sig <- true
+			return nil
+		},
+		Group: "0",
 	})
 
 	v.Publish("test", v1alpha2.Event{})
@@ -95,9 +98,12 @@ func TestVendorContextPublishSubscribeWithoutPubSub(t *testing.T) {
 	assert.Nil(t, v.PubsubProvider)
 
 	called := false
-	v.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		called = true
-		return nil
+	v.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			called = true
+			return nil
+		},
+		Group: "0",
 	})
 
 	v.Publish("test", v1alpha2.Event{})

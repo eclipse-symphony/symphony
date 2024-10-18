@@ -52,10 +52,12 @@ func TestManagerContextPublishSubscribe(t *testing.T) {
 	sig := make(chan int)
 	msg := ""
 
-	err = m.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg = event.Body.(string)
-		sig <- 1
-		return nil
+	err = m.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg = event.Body.(string)
+			sig <- 1
+			return nil
+		},
 	})
 	assert.Nil(t, err)
 	err = m.Publish("test", v1alpha2.Event{
@@ -73,8 +75,10 @@ func TestManagerContextPublishSubscribeWithoutPubSub(t *testing.T) {
 	assert.NotNil(t, m.Logger)
 	assert.Nil(t, m.PubsubProvider)
 
-	err = m.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		return nil
+	err = m.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			return nil
+		},
 	})
 	assert.Nil(t, err)
 	err = m.Publish("test", v1alpha2.Event{

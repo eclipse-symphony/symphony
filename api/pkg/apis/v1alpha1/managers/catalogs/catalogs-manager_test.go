@@ -152,15 +152,17 @@ func TestUpsertAndGet(t *testing.T) {
 
 	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
-	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "catalog", event.Metadata["objectType"])
-		assert.Equal(t, "name1", job.Id)
-		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
-		return nil
+	manager.Context.Subscribe("catalog", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "catalog", event.Metadata["objectType"])
+			assert.Equal(t, "name1", job.Id)
+			assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
+			return nil
+		},
 	})
 	val, err := manager.GetState(context.Background(), catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
@@ -178,15 +180,17 @@ func TestList(t *testing.T) {
 
 	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
-	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "catalog", event.Metadata["objectType"])
-		assert.Equal(t, "name1", job.Id)
-		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
-		return nil
+	manager.Context.Subscribe("catalog", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "catalog", event.Metadata["objectType"])
+			assert.Equal(t, "name1", job.Id)
+			assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
+			return nil
+		},
 	})
 	val, err := manager.ListState(context.Background(), catalogState.ObjectMeta.Namespace, "", "")
 	assert.Nil(t, err)
@@ -206,15 +210,17 @@ func TestDelete(t *testing.T) {
 
 	err = manager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
 	assert.Nil(t, err)
-	manager.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "catalog", event.Metadata["objectType"])
-		assert.Equal(t, "name1", job.Id)
-		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
-		return nil
+	manager.Context.Subscribe("catalog", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "catalog", event.Metadata["objectType"])
+			assert.Equal(t, "name1", job.Id)
+			assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
+			return nil
+		},
 	})
 	val, err := manager.GetState(context.Background(), catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
