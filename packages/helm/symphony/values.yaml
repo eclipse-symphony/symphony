@@ -35,6 +35,9 @@ zipkin:
   fullnameOverride: symphony-zipkin
 cert-manager:
   fullnameOverride: symphony-cert-manager
+cert:
+  certRenewBeforeTime: 360h
+  certDurationTime: 4320h
 flavor: oss
 redis:
   enabled: true
