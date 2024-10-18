@@ -86,6 +86,20 @@ Symphony Api Container Https Port
 {{- end }}
 
 {{/*
+Symphony certificate duration time
+*/}}
+{{- define "symphony.certDurationTime" -}}
+{{- default "2160h" .Values.cert.certDurationTime }}
+{{- end }}
+
+{{/*
+Symphony certificate renew before time
+*/}}
+{{- define "symphony.certRenewBeforeTime" -}}
+{{- default "360h" .Values.cert.certRenewBeforeTime }}
+{{- end }}
+
+{{/*
 App Selector
 */}}
 {{- define "symphony.appSelector" -}}
@@ -222,5 +236,18 @@ Symphony full url Endpoint
 {{- $existingPVC.spec.storageClassName -}}
 {{- else }}
 {{- .Values.redis.persistentVolume.storageClass -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "CheckRedisPvSetting" -}}
+{{- $configMap := (lookup "v1" "ConfigMap" .Release.Namespace "redis-config-map") -}}
+{{- if not $configMap }}
+true
+{{- else if eq ($configMap.data.pvEnabled | quote) ""}}
+true
+{{- else if ne ($configMap.data.pvEnabled | quote) (.Values.redis.persistentVolume.enabled | quote)}}
+{{- fail (printf ".Values.redis.persistentVolume.enabled is immutable. Unable to change %s to %s" ($configMap.data.pvEnabled | quote) (.Values.redis.persistentVolume.enabled | quote))}}
+{{- else}}
+true
 {{- end -}}
 {{- end -}}

@@ -30,6 +30,7 @@ type SummarySpec struct {
 	CurrentDeployed     int                         `json:"currentDeployed"`
 	TargetResults       map[string]TargetResultSpec `json:"targets,omitempty"`
 	SummaryMessage      string                      `json:"message,omitempty"`
+	JobID               string                      `json:"jobID,omitempty"`
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
