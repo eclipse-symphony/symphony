@@ -86,6 +86,20 @@ Symphony Api Container Https Port
 {{- end }}
 
 {{/*
+Symphony certificate duration time
+*/}}
+{{- define "symphony.certDurationTime" -}}
+{{- default "2160h" .Values.cert.certDurationTime }}
+{{- end }}
+
+{{/*
+Symphony certificate renew before time
+*/}}
+{{- define "symphony.certRenewBeforeTime" -}}
+{{- default "360h" .Values.cert.certRenewBeforeTime }}
+{{- end }}
+
+{{/*
 App Selector
 */}}
 {{- define "symphony.appSelector" -}}
