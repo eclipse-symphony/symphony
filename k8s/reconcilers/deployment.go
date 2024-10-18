@@ -26,6 +26,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/go-logr/logr"
 
@@ -251,7 +252,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 	summary, err := r.getDeploymentSummary(ctx, object)
 	if err != nil {
 		// If the error is anything but 404, we should return the error so the reconciler can retry
-		if !v1alpha2.IsNotFound(err) {
+		if !api_utils.IsNotFound(err) {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to get deployment summary")
 			// updates the object status to reconciling
 			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
@@ -539,7 +540,17 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 
 	objectStatus.Properties["deployed"] = successCount
 	objectStatus.Properties["targets"] = targetCount
-	objectStatus.Properties["status-details"] = summary.SummaryMessage
+
+	if status == utilsmodel.ProvisioningStatusReconciling {
+		objectStatus.Properties["status-details"] = fmt.Sprintf(
+			"%v total deployments on %v targets, current completed %v deployments.",
+			summary.PlannedDeployment,
+			summary.TargetCount,
+			summary.CurrentDeployed,
+		)
+	} else {
+		objectStatus.Properties["status-details"] = summary.SummaryMessage
+	}
 }
 
 func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {
@@ -608,6 +619,13 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 		return
 	}
 	summary := summaryResult.Summary
+
+	if summary.PlannedDeployment != 0 {
+		percentComplete := 100. * summary.CurrentDeployed / summary.PlannedDeployment
+		objectStatus.ProvisioningStatus.PercentComplete = int64(percentComplete)
+	}
+
+	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus)
 
 	outputMap := objectStatus.ProvisioningStatus.Output
 	// Fill component details into output field

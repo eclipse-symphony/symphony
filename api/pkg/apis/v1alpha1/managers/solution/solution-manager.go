@@ -223,7 +223,7 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	})
 
 	if err != nil {
-		if v1alpha2.IsNotFound(err) {
+		if api_utils.IsNotFound(err) {
 			log.DebugfCtx(ctx, " M (Solution): DeleteSummary NoutFound, id: %s, namespace: %s", key, namespace)
 			return nil
 		}
@@ -400,6 +400,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	targetResult := make(map[string]int)
 
+	summary.PlannedDeployment = 0
+	for _, step := range plan.Steps {
+		summary.PlannedDeployment += len(step.Components)
+	}
+	summary.CurrentDeployed = 0
+	s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: start deploy, total %v deployments", summary.PlannedDeployment)
+
 	plannedCount := 0
 	planSuccessCount := 0
 	for _, step := range plan.Steps {
@@ -506,12 +514,16 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			for _, v := range targetResult {
 				successCount += v
 			}
+			summary.CurrentDeployed += successCount
 			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
 			return summary, err
 		}
 		planSuccessCount++
+		summary.CurrentDeployed += len(step.Components)
+		s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
 	}
 
 	mergedState.ClearAllRemoved()
