@@ -5,5 +5,3 @@ metadata:
 spec:
   campaign: "mock-campaign:v1"
   stage: ""
-  inputs:
-    foo: 0

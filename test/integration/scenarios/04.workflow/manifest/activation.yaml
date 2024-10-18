@@ -4,4 +4,5 @@ metadata:
   name: 04workflow
 spec:
   campaign: "04campaign:v1"
-  
+  inputs:
+    namesOnly: true
