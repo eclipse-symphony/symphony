@@ -1,0 +1,69 @@
+{
+  "siteInfo": {
+    "siteId": "hq",
+    "currentSite": {
+      "baseUrl": "",
+      "username": "",
+      "password": ""
+    }
+  },
+  "api": {
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.solution",
+        "loopInterval": 15,
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.persistentstate": "mem-state",  
+              "providers.target": "k8s",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "k8s": {
+                "type": "providers.target.k8s",
+                "config": {
+                  "inCluster": false,
+                  "configType": "path",
+                  "deploymentStrategy": "services"
+                }
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "tcp://20.118.146.198:1883",
+        "clientID": "coa-test-2",
+        "requestTopic": "coa-request",
+        "responseTopic": "coa-response"
+      }
+    }
+  ]
+}
