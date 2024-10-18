@@ -39,14 +39,14 @@ flavor: oss
  
 redis:
   # whether to enable redis pubsub and redis state store
-  enabled: false
+  enabled: true
   # whether to deploy redis as a sidecar of symphony-api
   asSidecar: false
   image: redis/redis-stack-server:7.2.0-v12
   port: 6379
   persistentVolume:
     # whether to enable presistent volume for redis
-    enabled: true
+    enabled: false
     # the storage class where the redis PV is provisioned. Default Sc is used if not specified
     storageClass:
     accessMode: ReadWriteOnce
