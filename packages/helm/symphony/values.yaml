@@ -46,7 +46,7 @@ redis:
   port: 6379
   persistentVolume:
     # whether to enable presistent volume for redis
-    enabled: false
+    enabled: true
     # the storage class where the redis PV is provisioned. Default Sc is used if not specified
     storageClass:
     accessMode: ReadWriteOnce
