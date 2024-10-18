@@ -415,10 +415,10 @@ func (r *DeploymentReconciler) deploymentHashMatch(ctx context.Context, object R
 }
 
 func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Reconcilable, isRemoval bool, operationStartTimeKey string) error {
-	if object.GetAnnotations()[constants.AzureCorrelationIdKey] == object.GetAnnotations()[constants.PreviousAzureCorrelationIdKey] { // self-reconcile
+	if object.GetAnnotations()[constants.AzureCorrelationIdKey] == object.GetAnnotations()[constants.RunningAzureCorrelationIdKey] { // self-reconcile
 		r.updateCorrelationIdMetaData(ctx, object, operationStartTimeKey)
 	} else { // arm triggered
-		object.GetAnnotations()[constants.PreviousAzureCorrelationIdKey] = object.GetAnnotations()[constants.AzureCorrelationIdKey]
+		object.GetAnnotations()[constants.RunningAzureCorrelationIdKey] = object.GetAnnotations()[constants.AzureCorrelationIdKey]
 		if err := r.kubeClient.Update(ctx, object); err != nil {
 			return err
 		}
@@ -450,7 +450,7 @@ func (r *DeploymentReconciler) updateCorrelationIdMetaData(ctx context.Context, 
 	correlationId := uuid.New()
 	r.patchOperationStartTime(object, operationStartTimeKey)
 	object.GetAnnotations()[constants.AzureCorrelationIdKey] = correlationId.String()
-	object.GetAnnotations()[constants.PreviousAzureCorrelationIdKey] = correlationId.String()
+	object.GetAnnotations()[constants.RunningAzureCorrelationIdKey] = correlationId.String()
 	if err := r.kubeClient.Update(ctx, object); err != nil {
 		return err
 	}
