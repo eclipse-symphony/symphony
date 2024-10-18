@@ -7,11 +7,8 @@
 package model
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
@@ -26,6 +23,7 @@ type ActivationState struct {
 	Spec       *ActivationSpec   `json:"spec,omitempty"`
 	Status     *ActivationStatus `json:"status,omitempty"`
 }
+
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
 	Contexts      string                 `json:"contexts,omitempty"`
@@ -35,41 +33,7 @@ type StageSpec struct {
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
-}
-
-// UnmarshalJSON customizes the JSON unmarshalling for StageSpec
-func (s *StageSpec) UnmarshalJSON(data []byte) error {
-	type Alias StageSpec
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(s),
-	}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	// validate if Schedule meet RFC 3339
-	if s.Schedule != "" {
-		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
-		}
-	}
-	return nil
-}
-
-// MarshalJSON customizes the JSON marshalling for StageSpec
-func (s StageSpec) MarshalJSON() ([]byte, error) {
-	type Alias StageSpec
-	if s.Schedule != "" {
-		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
-		}
-	}
-	return json.Marshal(&struct {
-		*Alias
-	}{
-		Alias: (*Alias)(&s),
-	})
+	Proxy         *v1alpha2.ProxySpec    `json:"proxy,omitempty"`
 }
 
 func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -101,7 +65,17 @@ func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !reflect.DeepEqual(s.Schedule, otherS.Schedule) {
 		return false, nil
 	}
-
+	if s.Proxy == nil && otherS.Proxy != nil {
+		return false, nil
+	}
+	if s.Proxy != nil && otherS.Proxy == nil {
+		return false, nil
+	}
+	if s.Proxy != nil && otherS.Proxy != nil {
+		if !reflect.DeepEqual(s.Proxy.Provider, otherS.Proxy.Provider) {
+			return false, nil
+		}
+	}
 	return true, nil
 }
 

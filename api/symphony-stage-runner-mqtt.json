@@ -1,0 +1,79 @@
+{
+  "siteInfo": {
+    "siteId": "symphony-proxy",
+    "currentSite": {
+      "baseUrl": "http://localhost:8098/v1alpha2/",
+      "username": "",
+      "password": ""
+    }
+  },
+  "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.users",
+        "loopInterval": 15,
+        "route": "users",
+        "properties": {
+          "test-users": "true"
+        },
+        "managers": [
+          {
+            "name": "users-manager",
+            "type": "managers.symphony.users",
+            "properties": {
+              "providers.volatilestate": "mem-state"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.processor",
+        "route": "processor",
+        "managers": [
+          {
+            "name": "processor-manager",
+            "type": "managers.symphony.stage",
+            "properties": {
+              "providers.volatilestate": "mem-state"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "tcp://localhost:1883",
+        "clientID": "stage-runner-mqtt",
+        "requestTopic": "test-request",
+        "responseTopic": "test-response"
+      }
+    }
+  ]
+}
