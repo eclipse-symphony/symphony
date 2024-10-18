@@ -187,6 +187,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		}
 	}
 
+	// to do: need to take care, if we adjust the default worker num for a controller, default is 1.
 	r.updateJobID(object, strconv.FormatInt(r.getCurJobIdInt64(object)+1, 10))
 	if err := r.kubeClient.Update(ctx, object); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
