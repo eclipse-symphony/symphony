@@ -29,7 +29,7 @@ FROM ${TARGET_BASE_IMAGE}
 RUN \
     set -x \
     && apt-get update \
-    && apt-get install -y openssl libssl-dev ca-certificates curl jq  android-tools-adb \
+    && apt-get install -y openssl libssl-dev ca-certificates curl jq git android-tools-adb \
     && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
     && chmod +x get_helm.sh \
     && ./get_helm.sh \
