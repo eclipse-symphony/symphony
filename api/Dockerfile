@@ -30,9 +30,6 @@ RUN \
     set -x \
     && apt-get update \
     && apt-get install -y openssl libssl-dev ca-certificates curl jq git android-tools-adb \
-    && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
-    && chmod +x get_helm.sh \
-    && ./get_helm.sh \
     && apt upgrade -y
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO /zoneinfo.zip
