@@ -19,12 +19,15 @@ function ChatBox() {
                     <div key={`${message.role}-${index}`} className="text-white">
                         {message.role === 'user' ? (<span className="text-blue-300 font-bold">You: </span>) : (<span className="text-green-300 font-bold">AI: </span>)}
                         {typeof message.content === 'string'
-                            ? message.content
-                            : message.content
-                            .filter(part => part.type === 'text')
-                            .map((part, partIndex) => (
-                                <div key={partIndex} className="text-white">{part.text}</div>
-                            ))}
+                            ? (message.content)
+                            : Array.isArray(message.content)
+                            ? ((message.content as Array<{ type: string; text: string }>) 
+                                .filter(part => part.type === 'text')
+                                .map((part, partIndex) => (
+                                    <div key={partIndex} className="text-white">{part.text}</div>
+                                ))
+                            ): null
+                        }
                     </div>
                 ): null
             ))}
@@ -56,10 +59,10 @@ function ChatBox() {
                         if (msg.role === 'assistant' && Array.isArray(msg.content)) {
                         // Find the part of the content that is text and contains the JSON string
                         const textPart = msg.content.find(
-                            (part: any) => part.type === 'text' && part.text
+                            (part: any) => part.type === 'text' && 'text' in part
                         );
 
-                        if (textPart) {
+                        if (textPart && 'text' in textPart) { 
                             try {
                                 // Parse the JSON string contained in the text part
                                 const parsedContent = JSON.parse(textPart.text);

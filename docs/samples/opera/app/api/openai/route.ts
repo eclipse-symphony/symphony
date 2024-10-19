@@ -10,5 +10,7 @@ export async function POST(req: Request) {
     messages,
   });
 
-  return Response.json({ messages: responseMessages });
+  return new Response(JSON.stringify({ messages: responseMessages }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }

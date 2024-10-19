@@ -8,7 +8,12 @@ import {
   useEdgesState,
   addEdge,
 } from '@xyflow/react';
- 
+
+import {
+  Node,
+  Edge,
+} from '@xyflow/react'; // Make sure these are the correct types from the library
+
 import '@xyflow/react/dist/style.css';
 import { useGlobalState } from '../GlobalStateProvider'; // Import the global state hook
 
@@ -22,8 +27,8 @@ export default function SystemDiagram() {
     const { objects } = useGlobalState(); // Access objects from global state
 
    
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
  
     useEffect(() => {
          // Separate objects into their respective types
@@ -89,7 +94,7 @@ export default function SystemDiagram() {
       >
         <Controls />
         {/* <MiniMap /> */}
-        <Background variant="dots" gap={12} size={1} />
+        <Background gap={12} size={1} />
       </ReactFlow>
     </div>
   );
