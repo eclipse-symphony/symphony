@@ -616,17 +616,21 @@ func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, ge
 		log.ErrorfCtx(ctx, " M (Solution): failed to get previous summary: %+v", err)
 		return err
 	} else if err == nil {
-		var newId, oldId int64
-		newId, err = strconv.ParseInt(summary.JobID, 10, 64)
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to parse new job id: %+v", err)
-			return v1alpha2.NewCOAError(err, "failed to parse new job id", v1alpha2.BadRequest)
-		}
-		oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
-		if err == nil && oldId > newId {
-			errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
-			log.ErrorfCtx(ctx, " M (Solution): %s", errMsg)
-			return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
+		if summary.JobID != "" && oldSummary.Summary.JobID != "" {
+			var newId, oldId int64
+			newId, err = strconv.ParseInt(summary.JobID, 10, 64)
+			if err != nil {
+				log.ErrorfCtx(ctx, " M (Solution): failed to parse new job id: %+v", err)
+				return v1alpha2.NewCOAError(err, "failed to parse new job id", v1alpha2.BadRequest)
+			}
+			oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
+			if err == nil && oldId > newId {
+				errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
+				log.ErrorfCtx(ctx, " M (Solution): %s", errMsg)
+				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
+			}
+		} else {
+			log.WarnfCtx(ctx, " M (Solution): JobIDs are both empty, skip id check")
 		}
 	}
 	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
