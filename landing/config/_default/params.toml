@@ -9,7 +9,7 @@ image = "images/symphony_icon_largetext.png" # this image will be used as fallba
 # contact form action
 contact_form_action = "#" # contact form works with https://formspree.io
 
-# Type of pages to be rendered with a blog vie
+# Type of pages to be rendered with a blog view
 blogCategoryType = "category"
 
 [variables]
