@@ -176,19 +176,23 @@ func TestPoll(t *testing.T) {
 	job1 := v1alpha2.JobData{}
 	// validate that the sync package was published
 	catalogCnt := 0
-	vendorContext.Subscribe("catalog-sync", func(topic string, event v1alpha2.Event) error {
-		catalogCnt++
-		jobData := event.Body.(v1alpha2.JobData)
-		catalog1 = jobData.Body.(model.CatalogState)
-		sig1 <- 1
-		return nil
+	vendorContext.Subscribe("catalog-sync", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			catalogCnt++
+			jobData := event.Body.(v1alpha2.JobData)
+			catalog1 = jobData.Body.(model.CatalogState)
+			sig1 <- 1
+			return nil
+		},
 	})
 	jobCount := 0
-	vendorContext.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
-		jobCount++
-		job1 = event.Body.(v1alpha2.JobData)
-		sig2 <- 1
-		return nil
+	vendorContext.Subscribe("remote-job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			jobCount++
+			job1 = event.Body.(v1alpha2.JobData)
+			sig2 <- 1
+			return nil
+		},
 	})
 
 	errs := manager.Poll()
