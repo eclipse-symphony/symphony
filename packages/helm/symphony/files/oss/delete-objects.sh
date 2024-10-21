@@ -12,25 +12,38 @@ FEDERATION_GROUP=federation.symphony
 function delete_crds_instances {
   echo "Deleting instances.$SOLUTION_GROUP"
   kubectl delete crds "instances.$SOLUTION_GROUP" --wait --timeout=$TIMEOUTINSTANCE --ignore-not-found || true 
-  remove_finalizers "instances.$SOLUTION_GROUP" 
-
+  if [ $? -ne 0 ]; then
+    echo "Failed to delete CRD instances.$SOLUTION_GROUP, invoking remove_finalizers"
+    remove_finalizers "instances.$SOLUTION_GROUP" &
+  fi
   echo "Deleting solutions.$SOLUTION_GROUP"
   kubectl delete crds "solutions.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
-  remove_finalizers "solutions.$SOLUTION_GROUP"
-
+  if [ $? -ne 0 ]; then
+    echo "Failed to delete CRD solutions.$SOLUTION_GROUP, invoking remove_finalizers"
+    remove_finalizers "solutions.$SOLUTION_GROUP" &
+  fi
   echo "Deleting targets.$FABRIC_GROUP"
   kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUTINSTANCE --ignore-not-found || true 
-  remove_finalizers "targets.$FABRIC_GROUP"
+  if [ $? -ne 0 ]; then
+    echo "Failed to delete CRD targets.$FABRIC_GROUP, invoking remove_finalizers"
+    remove_finalizers "targets.$FABRIC_GROUP" &
+  fi
 }
 
 function delete_crds_campaigns {
   echo "Deleting activations.$WORKFLOW_GROUP"
   kubectl delete crds "activations.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
-  remove_finalizers "activations.$WORKFLOW_GROUP"
-
+  if [ $? -ne 0 ]; then
+    echo "Failed to delete CRD activations.$WORKFLOW_GROUP, invoking remove_finalizers"
+    remove_finalizers "activations.$WORKFLOW_GROUP" &
+  fi
+  
   echo "Deleting campaigns.$WORKFLOW_GROUP"
   kubectl delete crds "campaigns.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
-  remove_finalizers "campaigns.$WORKFLOW_GROUP"
+  if [ $? -ne 0 ]; then
+    echo "Failed to delete CRD campaigns.$WORKFLOW_GROUP, invoking remove_finalizers"
+    remove_finalizers "campaigns.$WORKFLOW_GROUP" &
+  fi
 }
 
 patchResource() {
@@ -89,7 +102,10 @@ resource_types=(
 for resource_type in "${resource_types[@]}"; do
     echo "Deleting $resource_type" &
     kubectl delete crds "$resource_type" --wait --timeout=$TIMEOUT --ignore-not-found || true &
-    remove_finalizers $resource_type &
+    if [ $? -ne 0 ]; then
+      echo "Failed to delete CRD $resource_type, invoking remove_finalizers"
+      remove_finalizers "$resource_type" &
+    fi
 done
 
 delete_crds_instances &
