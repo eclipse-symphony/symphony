@@ -3,6 +3,10 @@
 banner:
   title: "Seamless Orchestration Across Heterogeneous Systems"
   content: "Project Symphony is an Eclipse Foundation open-source orchestration platform that simplifies workload management across diverse devices and service vendors. It integrates existing systems without modification, delivering a unified, consistent workflow for seamless operations"
+  button:
+    enable: true
+    label: "Get Started"
+    link: "https://github.com/eclipse-symphony/symphony/tree/main/docs#symphony-docs"
 
 ##################### Feature ##########################
 feature:
