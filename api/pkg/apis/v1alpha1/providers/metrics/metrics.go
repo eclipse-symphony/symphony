@@ -10,14 +10,12 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 )
 
 const (
 	ValidateRuleOperation             string = "ValidateRule"
 	ApplyScriptOperation              string = "ApplyScript"
-	ApplyOperation                    string = "Apply"
 	ApplyYamlOperation                string = "ApplyYaml"
 	ApplyCustomResource               string = "ApplyCustomResource"
 	ReceiveDataChannelOperation       string = "ReceiveFromDataChannel"
@@ -35,14 +33,17 @@ const (
 	K8SRemoveServiceOperation         string = "K8SRemoveService"
 	K8SRemoveDeploymentOperation      string = "K8SRemoveDeployment"
 	K8SRemoveNamespaceOperation       string = "K8SRemoveNamespace"
+	ConfigMapOperation                string = "ConfigMap"
+	IngressOperation                  string = "Ingress"
+	IngressPropertiesOperation        string = "IngressProperties"
 
 	ProcessOperation string = "Process"
+	ApplyOperation   string = "Apply"
 
 	GetOperationType      string = "Get"
-	UpdateOperationType   string = "Update"
-	DeleteOperationType   string = "Delete"
 	ValidateOperationType string = "Validate"
 	RunOperationType      string = "Run"
+	ApplyOperationType    string = "Apply"
 )
 
 // Metrics is a metrics tracker for a provider operation.
@@ -99,12 +100,11 @@ func (m *Metrics) ProviderOperationLatency(
 
 	m.providerOperationLatency.Set(
 		latency(startTime),
-		Target(
+		TargetWithoutErrorCode(
 			providerType,
 			functionName,
 			operation,
 			operationType,
-			v1alpha2.OK.String(),
 		),
 	)
 }
