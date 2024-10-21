@@ -34,30 +34,31 @@ func TestUpdateTargetResult(t *testing.T) {
 	assert.Equal(t, 0, s.SuccessCount) //ver 0.48.1: UpdateTargetResult no longer updates success count
 }
 
-func TestUpdateFailedTargetResultToSucceed(t *testing.T) {
+func TestUpdateTargetResultWithComponentResults(t *testing.T) {
 	s := &SummarySpec{
 		TargetResults: map[string]TargetResultSpec{
 			"target1": {
-				Status: "ERROR",
+				Status: "OK",
 				ComponentResults: map[string]ComponentResultSpec{
 					"component1": {
-						Status:  v1alpha2.BadConfig,
-						Message: "Component 1 is in bad config",
+						Status:  v1alpha2.Accepted,
+						Message: "Component 1 is accepted",
 					},
 				},
 			},
 		},
 	}
 	s.UpdateTargetResult("target1", TargetResultSpec{
-		Status: "OK",
+		Status: "ERROR",
 		ComponentResults: map[string]ComponentResultSpec{
 			"component1": {
-				Status:  v1alpha2.Accepted,
-				Message: "Component 1 is accepted",
+				Status:  v1alpha2.BadConfig,
+				Message: "Component 1 is in bad config",
 			},
 		},
 	})
-	assert.Equal(t, "OK", s.TargetResults["target1"].Status)
-	assert.Equal(t, v1alpha2.Accepted, s.TargetResults["target1"].ComponentResults["component1"].Status)
-	assert.Equal(t, "Component 1 is accepted", s.TargetResults["target1"].ComponentResults["component1"].Message)
+	assert.Equal(t, "ERROR", s.TargetResults["target1"].Status)
+	assert.Equal(t, v1alpha2.BadConfig, s.TargetResults["target1"].ComponentResults["component1"].Status)
+	assert.Equal(t, "Component 1 is in bad config", s.TargetResults["target1"].ComponentResults["component1"].Message)
+	assert.Equal(t, 0, s.SuccessCount) //ver 0.48.1: UpdateTargetResult no longer updates success count
 }
