@@ -106,6 +106,14 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	mLog.InfoCtx(ctx, "  P (Delay Stage) process started")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		delay,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
+
 	outputs := make(map[string]interface{})
 	outputs[v1alpha2.StatusOutput] = v1alpha2.OK
 
@@ -144,14 +152,6 @@ func (i *DelayStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			time.Sleep(time.Duration(vs) * time.Second)
 		}
 	}
-
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		delay,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 
 	mLog.InfoCtx(ctx, "  P (Delay Stage) process completed")
 	return outputs, false, nil
