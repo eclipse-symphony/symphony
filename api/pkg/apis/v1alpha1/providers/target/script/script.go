@@ -202,7 +202,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	id := uuid.New().String()
 	input := id + ".json"
 	input_ref := id + "-ref.json"
-	output := id + "-output.json"
+	output := id + "-get-output.json"
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
 	file, _ := json.MarshalIndent(deployment, "", " ")

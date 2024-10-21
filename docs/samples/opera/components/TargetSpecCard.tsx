@@ -9,6 +9,15 @@ import { CgListTree } from "react-icons/cg";
 interface TargetSpecCardProps {
     target: TargetSpec;
 }
+function renderValue(value:string) {
+    if (value === 'yes') {
+        return <Chip color="success">Yes</Chip>
+    } else if (value === 'no') {
+        return <Chip color="danger">No</Chip>
+    } else {
+        return value
+    }   
+}
 function TargetSpecCard(props: TargetSpecCardProps) {
     const { target } = props;
     return (
