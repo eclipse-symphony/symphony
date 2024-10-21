@@ -25,4 +25,4 @@ spec:
           {{- end }}          
       restartPolicy: Never
       serviceAccountName: {{ include "symphony.fullname" . }}-hook-sa
-  backoffLimit: 3
+  backoffLimit: 0
