@@ -32,7 +32,7 @@ spec:
         password: ""
       inputs:
         objectType: catalogs
-        namesOnly: true
+        namesOnly: "${{$trigger(namesOnly,false)}}"
     deploy:
       name: deploy
       provider: providers.stage.materialize
