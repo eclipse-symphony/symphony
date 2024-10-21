@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"golang.org/x/exp/maps"
 )
 
 type ComponentResultSpec struct {
@@ -46,7 +47,17 @@ const (
 type SummaryState int
 
 func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
-	s.TargetResults[target] = spec
+	if v, ok := s.TargetResults[target]; !ok {
+		s.TargetResults[target] = spec
+	} else {
+		status := v.Status
+		if spec.Status != "OK" {
+			status = spec.Status
+		}
+		v.Status = status
+		maps.Copy(v.ComponentResults, spec.ComponentResults)
+		s.TargetResults[target] = v
+	}
 }
 
 func (summary *SummaryResult) IsDeploymentFinished() bool {
