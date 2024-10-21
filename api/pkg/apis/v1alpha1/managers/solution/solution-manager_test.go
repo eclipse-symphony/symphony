@@ -8,7 +8,6 @@ package solution
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -703,7 +702,6 @@ func TestMockApplyMultiRoles(t *testing.T) {
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
-	fmt.Printf("summary target %+v", summary.TargetResults["T1"])
 	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
 }
 
@@ -769,7 +767,6 @@ func TestMockApplydeleteSomeRoles(t *testing.T) {
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
-	fmt.Printf("summary target %+v", summary.TargetResults["T1"])
 	assert.Equal(t, 2, len(summary.TargetResults["T1"].ComponentResults))
 
 	// update one role and verify deleted
