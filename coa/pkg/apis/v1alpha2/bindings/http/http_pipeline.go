@@ -79,13 +79,13 @@ func BuildPipeline(config HttpBindingConfig, pubsubProvider pubsub.IPubSubProvid
 				pipelines := make([]observability.PipelineConfig, 0)
 				err := json.Unmarshal(data, &pipelines)
 				if err != nil {
-					return ret, v1alpha2.NewCOAError(nil, "incorrect tracing pipeline configuration format", v1alpha2.BadConfig)
+					return ret, v1alpha2.NewCOAError(err, "incorrect tracing pipeline configuration format", v1alpha2.BadConfig)
 				}
 				config.Pipelines = pipelines
 			}
 			err := tracing.Observability.Init(config)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "failed to initialize tracing middleware", v1alpha2.InternalError)
+				return ret, v1alpha2.NewCOAError(err, "failed to initialize tracing middleware", v1alpha2.InternalError)
 			}
 			ret.Handlers = append(ret.Handlers, tracing.Tracing)
 		case "middleware.http.metrics":
@@ -95,15 +95,15 @@ func BuildPipeline(config HttpBindingConfig, pubsubProvider pubsub.IPubSubProvid
 			config := observability.ObservabilityConfig{}
 			data, err := json.Marshal(c.Properties)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "incorrect metrics confirguration", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "incorrect metrics confirguration", v1alpha2.BadConfig)
 			}
 			err = json.Unmarshal(data, &config)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "incorrect metrics confirguration", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "incorrect metrics confirguration", v1alpha2.BadConfig)
 			}
 			err = metrics.Observability.InitMetric(config)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "failed to initialize metrics middleware", v1alpha2.InternalError)
+				return ret, v1alpha2.NewCOAError(err, "failed to initialize metrics middleware", v1alpha2.InternalError)
 			}
 			if ApiOperationMetrics == nil {
 				metric, err := http.New()
@@ -121,15 +121,15 @@ func BuildPipeline(config HttpBindingConfig, pubsubProvider pubsub.IPubSubProvid
 			config := observability.ObservabilityConfig{}
 			data, err := json.Marshal(c.Properties)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "incorrect log confirguration", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "incorrect log confirguration", v1alpha2.BadConfig)
 			}
 			err = json.Unmarshal(data, &config)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "incorrect log confirguration", v1alpha2.BadConfig)
+				return ret, v1alpha2.NewCOAError(err, "incorrect log confirguration", v1alpha2.BadConfig)
 			}
 			err = log.Observability.InitLog(config)
 			if err != nil {
-				return ret, v1alpha2.NewCOAError(nil, "failed to initialize log middleware", v1alpha2.InternalError)
+				return ret, v1alpha2.NewCOAError(err, "failed to initialize log middleware", v1alpha2.InternalError)
 			}
 			ret.Handlers = append(ret.Handlers, log.Log)
 		default:

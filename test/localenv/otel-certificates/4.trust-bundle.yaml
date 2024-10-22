@@ -1,0 +1,15 @@
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: 'arc-diagnostics-extension-trust-bundle'
+spec:
+  sources:
+    - secret:
+        name: 'arc-diagnostics-extension-root-ca'
+        key: ca.crt
+  target:
+    configMap:
+      key: root-certs.pem
+    namespaceSelector:
+      matchLabels:
+        'arc-diagnostics-extension-client': 'true'
