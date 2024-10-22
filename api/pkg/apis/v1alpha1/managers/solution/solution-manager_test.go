@@ -869,7 +869,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 					},
 					{
 						Name: "b",
-						Type: "mock2",
+						Type: "mock",
 					},
 				},
 			},
