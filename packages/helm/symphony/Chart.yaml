@@ -10,6 +10,7 @@ dependencies:
   - name: cert-manager
     version: "1.13.1"
     repository: "https://charts.jetstack.io"
+    condition: cert-manager.enabled
   - name: zipkin
     version: "0.7.0"
     repository: "https://openzipkin.github.io/zipkin"

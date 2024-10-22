@@ -77,8 +77,9 @@ func TestMetricsOTLPgRPCPipeline(t *testing.T) {
 		Pipelines: []PipelineConfig{
 			{
 				Exporter: ExporterConfig{
-					Type:         v1alpha2.MetricsExporterOTLPgRPC,
-					CollectorUrl: "http://otel-collector.alice-springs.svc.cluster.local:4317",
+					Type:             v1alpha2.MetricsExporterOTLPgRPC,
+					CollectorUrl:     "http://otel-collector.alice-springs.svc.cluster.local:4317",
+					InsecureEndpoint: true,
 				},
 			},
 		},
@@ -92,8 +93,9 @@ func TestTracingOTLPgRPCPipeline(t *testing.T) {
 		Pipelines: []PipelineConfig{
 			{
 				Exporter: ExporterConfig{
-					Type:         v1alpha2.TracingExporterOTLPgRPC,
-					CollectorUrl: "http://otel-collector.alice-springs.svc.cluster.local:4317",
+					Type:             v1alpha2.TracingExporterOTLPgRPC,
+					CollectorUrl:     "http://otel-collector.alice-springs.svc.cluster.local:4317",
+					InsecureEndpoint: true,
 				},
 			},
 		},

@@ -63,6 +63,11 @@ spec:
             name: {{ include "symphony.envConfigName" . }}
 
         volumeMounts:
+        {{- if (not .Values.otlpInsecureGrpc) }}
+        - name: trust-bundle
+          mountPath: "/certs"
+          readOnly: true
+        {{- end }}
         - name: symphony-api-config
           mountPath: /etc/symphony-api/config
         - mountPath: /var/run/secrets/tokens
@@ -100,6 +105,11 @@ spec:
         {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
       {{- end }}
       volumes:
+        {{- if (not .Values.otlpInsecureGrpc) }}
+        - name: trust-bundle
+          configMap:
+            name: {{ .Values.observability.tls.caBundleConfigMap }}
+        {{- end }}
         - name: symphony-api-config
           configMap:
             name: {{ include "symphony.configmapName" . }}

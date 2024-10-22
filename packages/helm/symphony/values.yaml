@@ -34,6 +34,7 @@ observability:
 zipkin:
   fullnameOverride: symphony-zipkin
 cert-manager:
+  enabled: true
   fullnameOverride: symphony-cert-manager
 cert:
   certRenewBeforeTime: 360h
