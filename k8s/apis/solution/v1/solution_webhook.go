@@ -131,7 +131,7 @@ func (r *Solution) ValidateCreate() (admission.Warnings, error) {
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
 	diagnostic.InfoWithCtx(solutionlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
-	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "Solution %s is being created on namespace %s", r.Name, r.Namespace)
 
 	return nil, r.validateCreateSolution(ctx)
 }
@@ -143,7 +143,7 @@ func (r *Solution) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
 	diagnostic.InfoWithCtx(solutionlog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
-	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "Solution %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	oldSolution, ok := old.(*Solution)
 	if !ok {
@@ -161,7 +161,7 @@ func (r *Solution) ValidateDelete() (admission.Warnings, error) {
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, mySolutionReaderClient, context.TODO(), solutionlog)
 
 	diagnostic.InfoWithCtx(solutionlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
-	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
+	observ_utils.EmitUserAuditsLogs(ctx, "Solution %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, r.validateDeleteSolution(ctx)
 }
