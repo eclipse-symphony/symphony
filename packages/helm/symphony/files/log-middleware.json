@@ -4,21 +4,18 @@
       "serviceName": "symphony-api",
       "pipelines": [
         {{- if .Values.otlpLogsEndpointGrpc }}
-        {{- if .Values.observability.otelForwarder.enabled }}
         {
           "exporter": {
-            "type": "log.exporters.otlphttp",
-            "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-forwarder-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
+            "type": "log.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.otlpLogsEndpointGrpc $ }}",
+            {{- if eq .Values.otlpInsecureGrpc true }}
+            "insecureEndpoint": true
+            {{- else }}
+            "insecureEndpoint": false,
+            "serverCAFilePath": "/certs/root-certs.pem"
+            {{- end }}
           }
         }
-        {{- else }}
-        {
-          "exporter": {
-            "type": "log.exporters.otlphttp",
-            "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-collector-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
-          }
-        }
-        {{- end }}
         {{- end }}
       ]
     }
