@@ -1,0 +1,5 @@
+resources:
+  - "../../helm"
+
+patchesStrategicMerge:
+  - manager-patch-trust-bundle.yaml
