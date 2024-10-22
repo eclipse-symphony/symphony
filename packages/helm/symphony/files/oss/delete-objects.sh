@@ -14,19 +14,19 @@ function delete_crds_instances {
   kubectl delete crds "instances.$SOLUTION_GROUP" --wait --timeout=$TIMEOUTINSTANCE --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD instances.$SOLUTION_GROUP, invoking remove_finalizers"
-    remove_finalizers "instances.$SOLUTION_GROUP" &
+    remove_finalizers "instances.$SOLUTION_GROUP"
   fi
   echo "Deleting solutions.$SOLUTION_GROUP"
   kubectl delete crds "solutions.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD solutions.$SOLUTION_GROUP, invoking remove_finalizers"
-    remove_finalizers "solutions.$SOLUTION_GROUP" &
+    remove_finalizers "solutions.$SOLUTION_GROUP"
   fi
   echo "Deleting targets.$FABRIC_GROUP"
   kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUTINSTANCE --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD targets.$FABRIC_GROUP, invoking remove_finalizers"
-    remove_finalizers "targets.$FABRIC_GROUP" &
+    remove_finalizers "targets.$FABRIC_GROUP"
   fi
 }
 
@@ -35,14 +35,14 @@ function delete_crds_campaigns {
   kubectl delete crds "activations.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD activations.$WORKFLOW_GROUP, invoking remove_finalizers"
-    remove_finalizers "activations.$WORKFLOW_GROUP" &
+    remove_finalizers "activations.$WORKFLOW_GROUP"
   fi
-  
+
   echo "Deleting campaigns.$WORKFLOW_GROUP"
   kubectl delete crds "campaigns.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD campaigns.$WORKFLOW_GROUP, invoking remove_finalizers"
-    remove_finalizers "campaigns.$WORKFLOW_GROUP" &
+    remove_finalizers "campaigns.$WORKFLOW_GROUP"
   fi
 }
 
@@ -95,21 +95,22 @@ resource_types=(
   "models.$AI_GROUP"
   "skills.$AI_GROUP"
   "skillpackages.$AI_GROUP"
-  "catalogs.$FEDERATION_GROUP"
   "sites.$FEDERATION_GROUP"
+  "catalogs.$FEDERATION_GROUP"
 )
 
+delete_crds_campaigns 
+
+delete_crds_instances
+
 for resource_type in "${resource_types[@]}"; do
-    echo "Deleting $resource_type" &
-    kubectl delete crds "$resource_type" --wait --timeout=$TIMEOUT --ignore-not-found || true &
+    echo "Deleting $resource_type" 
+    kubectl delete crds "$resource_type" --wait --timeout=$TIMEOUT --ignore-not-found || true 
     if [ $? -ne 0 ]; then
       echo "Failed to delete CRD $resource_type, invoking remove_finalizers"
-      remove_finalizers "$resource_type" &
+      remove_finalizers "$resource_type" 
     fi
 done
-
-delete_crds_instances &
-delete_crds_campaigns &
 
 # Wait for all background jobs to complete
 wait

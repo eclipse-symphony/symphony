@@ -17,12 +17,8 @@ spec:
         command:
         - /bin/bash
         - -c
-        - |-
-          {{- if eq .Values.flavor "azure" }}
-          {{- .Files.Get "files/azure/delete-objects.sh" | nindent 12 }}
-          {{- else }}          
-          {{- .Files.Get "files/oss/delete-objects.sh" | nindent 12 }}
-          {{- end }}          
+        - |-     
+          {{- .Files.Get "files/oss/delete-objects.sh" | nindent 12 }}         
       restartPolicy: Never
       serviceAccountName: {{ include "symphony.fullname" . }}-hook-sa
-  backoffLimit: 0
+  backoffLimit: 1
