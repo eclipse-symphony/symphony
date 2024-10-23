@@ -573,7 +573,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 	// Wait for deployment to finish
 	if i.Config.WaitForDeployment {
-		outputs["deploymentstatus"] = []api_utils.FailedDeployment{}
+		outputs["failedDeployment"] = []api_utils.FailedDeployment{}
 		timeout := time.After(i.Config.WaitTimeoutDuration)
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
@@ -583,9 +583,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			case <-ticker.C:
 				var failed []api_utils.FailedDeployment
 				instanceList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
-				outputs["deploymentstatus"] = append(outputs["deploymentstatus"].([]api_utils.FailedDeployment), failed...)
+				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
 				targetList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
-				outputs["deploymentstatus"] = append(outputs["deploymentstatus"].([]api_utils.FailedDeployment), failed...)
+				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
 				if len(instanceList) == 0 && len(targetList) == 0 {
 					break ForLoop
 				}

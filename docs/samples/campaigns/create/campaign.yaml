@@ -1,0 +1,32 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: create-campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: create-campaign-v-v1
+spec:
+  rootResource: create-campaign
+  firstStage: "create"
+  selfDriving: true
+  stages:
+    create:
+      name: "create"
+      provider: "providers.stage.create"      
+      config:
+        wait.count: 10
+        wait.interval: 20
+      inputs:
+        action: "create"
+        objectName: "site-instance"
+        objectType: "instance"
+        object:
+          metadata: 
+            name: site-instance
+          spec: 
+            solution: site-app:v1
+            target:
+              name: site-k8s-target

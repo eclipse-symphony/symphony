@@ -284,7 +284,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					outputs["objectName"] = objectName
 					mLog.InfofCtx(ctx, "  P (Create Stage) process completed with fail count is %d", len(failed))
 					if len(failed) > 0 {
-						outputs["deploymentstatus"] = failed
+						outputs["failedDeployment"] = failed
 					}
 					return outputs, false, nil
 				}
