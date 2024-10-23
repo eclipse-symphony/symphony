@@ -288,14 +288,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	lock.Lock()
 	defer lock.Unlock()
 
-	defer func() {
-		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
-	}()
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
-
 	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
 	})
@@ -303,18 +295,20 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s",
+	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
 		deployment.Instance.ObjectMeta.Name,
 		deployment.SolutionName,
 		remove,
 		namespace,
-		targetName)
-
+		targetName,
+		deployment.Generation,
+		deployment.JobID)
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
 		TargetCount:         len(deployment.Targets),
 		SuccessCount:        0,
 		AllAssignedDeployed: false,
+		JobID:               deployment.JobID,
 	}
 
 	deploymentType := DeploymentType_Update
@@ -323,7 +317,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 	summary.IsRemoval = remove
 
-	s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+		return summary, err
+	}
 	defer func() {
 		log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
 		if deployment.IsDryRun {
@@ -331,6 +329,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 	}()
+
+	defer func() {
+		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+	}()
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)
@@ -399,6 +405,18 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	someStepsRan := false
 
 	targetResult := make(map[string]int)
+
+	summary.PlannedDeployment = 0
+	for _, step := range plan.Steps {
+		summary.PlannedDeployment += len(step.Components)
+	}
+	summary.CurrentDeployed = 0
+	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+		return summary, err
+	}
+	log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: start deploy, total %v deployments", summary.PlannedDeployment)
 
 	plannedCount := 0
 	planSuccessCount := 0
@@ -487,16 +505,19 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
-				s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", ComponentResults: componentResults})
+				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+				if err != nil {
+					log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+					return summary, err
+				}
 				break
 			} else {
 				targetResult[step.Target] = 0
 				summary.AllAssignedDeployed = false
 				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
+				time.Sleep(5 * time.Second)                                                                                                     //TODO: make this configurable?
 			}
 		}
 		if stepError != nil {
@@ -506,12 +527,20 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			for _, v := range targetResult {
 				successCount += v
 			}
+			summary.CurrentDeployed += successCount
 			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
 			return summary, err
 		}
 		planSuccessCount++
+		summary.CurrentDeployed += len(step.Components)
+		err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		if err != nil {
+			log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+			return summary, err
+		}
+		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
 	}
 
 	mergedState.ClearAllRemoved()
@@ -577,11 +606,33 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 	return targetSpec
 }
 
-func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) {
+func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
-	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, targetCount %d, successCount %d",
-		objectName, state, namespace, summary.TargetCount, summary.SuccessCount)
-	s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, jobid: %s, hash %s, targetCount %d, successCount %d",
+		objectName, state, namespace, summary.JobID, hash, summary.TargetCount, summary.SuccessCount)
+	oldSummary, err := s.GetSummary(ctx, objectName, namespace)
+	if err != nil && !v1alpha2.IsNotFound(err) {
+		log.ErrorfCtx(ctx, " M (Solution): failed to get previous summary: %+v", err)
+		return err
+	} else if err == nil {
+		if summary.JobID != "" && oldSummary.Summary.JobID != "" {
+			var newId, oldId int64
+			newId, err = strconv.ParseInt(summary.JobID, 10, 64)
+			if err != nil {
+				log.ErrorfCtx(ctx, " M (Solution): failed to parse new job id: %+v", err)
+				return v1alpha2.NewCOAError(err, "failed to parse new job id", v1alpha2.BadRequest)
+			}
+			oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
+			if err == nil && oldId > newId {
+				errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
+				log.ErrorfCtx(ctx, " M (Solution): %s", errMsg)
+				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
+			}
+		} else {
+			log.WarnfCtx(ctx, " M (Solution): JobIDs are both empty, skip id check")
+		}
+	}
+	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: fmt.Sprintf("%s-%s", "summary", objectName),
 			Body: model.SummaryResult{
@@ -599,14 +650,15 @@ func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, ge
 			"resource":  Summary,
 		},
 	})
+	return err
 }
 
-func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) {
-	s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
+func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
+	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
 }
 
-func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) {
-	s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
+func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
+	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
 
 func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {

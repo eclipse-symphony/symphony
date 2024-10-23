@@ -20,9 +20,9 @@ const (
 	// LogTypeRequest is Request log type
 	LogTypeRequest = "request"
 	// LogTypeUserAudits is User Audit log type
-	LogTypeUserAudits = "userAudits"
+	LogTypeUserAudits = "UserAuditsLog"
 	// LogTypeUserDiagnostics is User Diagnostic log type
-	LogTypeUserDiagnostics = "userDiagnostics"
+	LogTypeUserDiagnostics = "UserDiagnosticsLog"
 
 	LogCategory_UserAudits      = "UserAudits"
 	LogCategory_UserDiagnostics = "UserDiagnostics"
@@ -170,12 +170,16 @@ func getLoggers() map[string]Logger {
 
 // newUserAuditsLogger creates new Logger instance for user audit log.
 func newUserAuditsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserAudits, LogCategory_UserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+	// hookName will be used as otlpLogger name - https://github.com/open-telemetry/opentelemetry-go-contrib/blob/af75717ac4fb3ba13eaea83b88301723122060cf/bridges/otellogrus/hook.go#L139
+	// otlpLogger name is used as instrumentation_scope.name in open telemetry - https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/logs/bridge-api.md#get-a-logger
+	return newUserLogger(name, LogTypeUserAudits, LogCategory_UserAudits, hooks.ContextHookOptions{DiagnosticLogContextEnabled: false, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: LogTypeUserAudits})
 }
 
 // newUserDiagnosticsLogger creates new Logger instance for user diagnostic log.
 func newUserDiagnosticsLogger(name string) Logger {
-	return newUserLogger(name, LogTypeUserDiagnostics, LogCategory_UserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: name})
+	// hookName will be used as otlpLogger name - https://github.com/open-telemetry/opentelemetry-go-contrib/blob/af75717ac4fb3ba13eaea83b88301723122060cf/bridges/otellogrus/hook.go#L139
+	// otlpLogger name is used as instrumentation_scope.name in open telemetry - https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/logs/bridge-api.md#get-a-logger
+	return newUserLogger(name, LogTypeUserDiagnostics, LogCategory_UserDiagnostics, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: true, Folding: false, OtelLogrusHookEnabled: true, OtelLogrusHookName: LogTypeUserDiagnostics})
 }
 
 func GetGlobalUserAuditsLogger() Logger {
