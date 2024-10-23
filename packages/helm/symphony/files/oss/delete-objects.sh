@@ -1,6 +1,6 @@
 #!/bin/env bash
 set -e
-TIMEOUTINSTANCE="15m"
+TIMEOUTDEPLOYMENT="15m"
 TIMEOUT="1m"
 TIMEOUTFINALIZER=60
 SOLUTION_GROUP=solution.symphony
@@ -11,7 +11,7 @@ FEDERATION_GROUP=federation.symphony
 
 function delete_crds_instances {
   echo "Deleting instances.$SOLUTION_GROUP"
-  kubectl delete crds "instances.$SOLUTION_GROUP" --wait --timeout=$TIMEOUTINSTANCE --ignore-not-found || true 
+  kubectl delete crds "instances.$SOLUTION_GROUP" --wait --timeout=$TIMEOUTDEPLOYMENT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD instances.$SOLUTION_GROUP, invoking remove_finalizers"
     remove_finalizers "instances.$SOLUTION_GROUP"
@@ -23,7 +23,7 @@ function delete_crds_instances {
     remove_finalizers "solutions.$SOLUTION_GROUP"
   fi
   echo "Deleting targets.$FABRIC_GROUP"
-  kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUTINSTANCE --ignore-not-found || true 
+  kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUTDEPLOYMENT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD targets.$FABRIC_GROUP, invoking remove_finalizers"
     remove_finalizers "targets.$FABRIC_GROUP"
