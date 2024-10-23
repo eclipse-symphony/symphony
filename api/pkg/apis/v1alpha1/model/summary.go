@@ -9,9 +9,8 @@ package model
 import (
 	"time"
 
-	"golang.org/x/exp/maps"
-
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"golang.org/x/exp/maps"
 )
 
 type ComponentResultSpec struct {
@@ -20,14 +19,16 @@ type ComponentResultSpec struct {
 }
 type TargetResultSpec struct {
 	Status           string                         `json:"status"`
-	Message          string                         `json:"message,omitempty"`
 	ComponentResults map[string]ComponentResultSpec `json:"components,omitempty"`
 }
 type SummarySpec struct {
 	TargetCount         int                         `json:"targetCount"`
 	SuccessCount        int                         `json:"successCount"`
+	PlannedDeployment   int                         `json:"plannedDeployment"`
+	CurrentDeployed     int                         `json:"currentDeployed"`
 	TargetResults       map[string]TargetResultSpec `json:"targets,omitempty"`
 	SummaryMessage      string                      `json:"message,omitempty"`
+	JobID               string                      `json:"jobID,omitempty"`
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
@@ -56,15 +57,7 @@ func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 		if spec.Status != "OK" {
 			status = spec.Status
 		}
-		message := v.Message
-		if spec.Message != "" {
-			if message != "" {
-				message += "; "
-			}
-			message += spec.Message
-		}
 		v.Status = status
-		v.Message = message
 		maps.Copy(v.ComponentResults, spec.ComponentResults)
 		s.TargetResults[target] = v
 	}

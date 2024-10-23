@@ -75,7 +75,7 @@ const (
 // }
 
 func (r *TargetReconciler) populateProvisioningError(summaryResult *model.SummaryResult, err error, errorObj *apimodel.ErrorType) {
-	errorObj.Code = "Symphony Orchestrator: [500]"
+	errorObj.Code = "Symphony: [500]"
 	if summaryResult != nil {
 		summary := summaryResult.Summary
 
@@ -93,7 +93,7 @@ func (r *TargetReconciler) populateProvisioningError(summaryResult *model.Summar
 		for k, v := range summary.TargetResults {
 			// fill errorObj with target level status
 			errorObj.Code = v.Status
-			errorObj.Message = v.Message
+			errorObj.Message = v.Status
 			errorObj.Target = k
 			errorObj.Details = make([]apimodel.TargetError, 0)
 			// fill errorObj.Details with component level status
@@ -114,6 +114,7 @@ func (r *TargetReconciler) populateProvisioningError(summaryResult *model.Summar
 func (r *TargetReconciler) deploymentBuilder(ctx context.Context, object reconcilers.Reconcilable) (*model.DeploymentSpec, error) {
 	if target, ok := object.(*symphonyv1.Target); ok {
 		deployment, err := utils.CreateSymphonyDeploymentFromTarget(ctx, *target, object.GetNamespace())
+		deployment.JobID = object.GetAnnotations()[constants.SummaryJobIdKey]
 		if err != nil {
 			return nil, err
 		}

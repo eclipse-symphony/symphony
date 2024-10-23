@@ -11,4 +11,5 @@ data:
     appendfsync always
     dir /data
 {{- end }}
+  pvEnabled: {{ .Values.redis.persistentVolume.enabled | quote }}
   

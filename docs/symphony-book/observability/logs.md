@@ -69,7 +69,7 @@ Attributes:
      -> correlationId: Str(2c37ddcd-96e8-4478-9ab4-eb6ed15bb553)
      -> operatingResourceK8SId: Str(default/self)
      -> properties: Str({})
-     -> type: Str(userAudits)
+     -> type: Str(UserAuditsLog)
      -> instance: Str(symphony-api-6b9b548b5b-fmggp)
      -> ver: Str(unknown)
      -> operationName: Str(targets.fabric.symphony/Write)
@@ -87,7 +87,7 @@ callerId | who invokes this operation
 correlationId | the external correlation id provided by external system (e.g. Azure Cloud), if it is missing when the request arrives to binding, the http/mqtt binding will assign a ramdon value
 operatingResourceK8SId | k8s resource id (namespace/resourceName)
 properties | additional auditing properties
-type | log type (userAudits)
+type | log type (UserAuditsLog)
 instance | container name (in K8S) or computer name (in standalone)
 ver | version
 operationName | audit operation name
@@ -107,7 +107,7 @@ Attributes:
      -> category: Str(UserDiagnostics)
      -> properties: Str({})
      -> scope: Str(coa.runtime.user.diagnostics)
-     -> type: Str(userDiagnostics)
+     -> type: Str(UserDiagnosticsLog)
      -> correlationId: Str(8ca7ba3a-4353-4c2e-9a95-74396220b462)
      -> operationName: Str(instances.solution.symphony/Write)
      -> callerId: Str()
@@ -130,7 +130,7 @@ callerId | who invokes this operation
 correlationId | the external correlation id provided by external system (e.g. Azure Cloud), if it is missing when the request arrives to binding, the http/mqtt binding will assign a ramdon value
 operatingResourceK8SId | k8s resource id (namespace/resourceName)
 properties | additional auditing properties
-type | log type (userDiagnostics)
+type | log type (UserDiagnosticsLog)
 instance | container name (in K8S) or computer name (in standalone)
 ver | version
 operationName | audit operation name
@@ -143,8 +143,8 @@ traceContext | otel-tracing trace context
 Log Type | How to emit
 --- | --- 
 Application runtime logs | All console outputs in Symphony-api and Symphony-controller. 
-User audits logs | Any places which invokes `logger.GetUserAuditsLogger.xxx` (added in essential target providers and validation webhooks)
-User diagnostics logs | Any places which invokes `logger.GetUserDiagnosticsLogger.xxx` (added in major functions, defer functions when return error is not nil)
+User audits logs | Any places which invokes `EmitUserAuditsLogs` (added in essential target providers and validation webhooks)
+User diagnostics logs | Any places which invokes `EmitUserDiagnosticsLogs` (added in major functions, defer functions when return error is not nil)
 
 ## Log context
 
@@ -190,21 +190,17 @@ User audits and user diganostics logs are integrated with OTLP via [log bridge A
   "serviceName": "symphony-k8s",
   "pipelines": [
     {{- if .Values.otlpLogsEndpointGrpc }}
-    {{- if .Values.observability.otelForwarder.enabled }}
     {
       "exporter": {
-        "type": "log.exporters.otlphttp",
-        "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-forwarder-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
+        "type": "log.exporters.otlpgrpc",
+        "collectorUrl": "{{ tpl .Values.otlpLogsEndpointGrpc $ }}",
+        {{- if eq .Values.otlpInsecureGrpc true }}
+        "insecureEndpoint": true
+        {{- else }}
+        "insecureEndpoint": false
+        {{- end }}
       }
     }
-    {{- else }}
-    {
-      "exporter": {
-        "type": "log.exporters.otlphttp",
-        "collectorUrl": "http://{{- include "symphony.fullname" . -}}-otel-collector-service.{{ .Release.Namespace }}.svc.cluster.local:4318/v1/logs"
-      }
-    }
-    {{- end }}
     {{- end }}
   ]
 }

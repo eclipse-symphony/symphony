@@ -10,3 +10,5 @@ metadata:
   namespace: system
 spec:
   secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
+  duration: '{{ include "symphony.certDurationTime" . }}'
+  renewBefore: '{{ include "symphony.certRenewBeforeTime" . }}'

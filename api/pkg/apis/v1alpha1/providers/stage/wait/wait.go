@@ -174,6 +174,13 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	log.InfoCtx(ctx, "  P (Wait Processor): processing inputs")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		wait,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	outputs := make(map[string]interface{})
 
 	objectType, ok := inputs["objectType"].(string)
@@ -291,13 +298,6 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["objectType"] = objectType
 			outputs["status"] = "OK"
 			log.InfofCtx(ctx, "  P (Wait Processor): found %v %v", objectType, objects)
-			providerOperationMetrics.ProviderOperationLatency(
-				processTime,
-				wait,
-				metrics.ProcessOperation,
-				metrics.RunOperationType,
-				functionName,
-			)
 			return outputs, false, nil
 		}
 		counter++
