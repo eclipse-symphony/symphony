@@ -701,6 +701,7 @@ func defaultProvisioningErrorBuilder(summaryResult *model.SummaryResult, err err
 		for k, v := range summary.TargetResults {
 			targetObject := apimodel.TargetError{
 				Code:    v.Status,
+				Message: v.Status,
 				Target:  k,
 				Details: make([]apimodel.ComponentError, 0),
 			}
