@@ -45,3 +45,8 @@ const (
 	API                           = "symphony-api"
 	EmitTimeFieldInUserLogs       = "EMIT_TIME_FIELD_IN_USER_LOGS"
 )
+
+const (
+	Generation string = "generation"
+	Status     string = "status"
+)

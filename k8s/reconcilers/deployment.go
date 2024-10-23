@@ -24,6 +24,7 @@ import (
 	"gopls-workspace/utils/diagnostic"
 	utilsmodel "gopls-workspace/utils/model"
 
+	apiconstants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -561,7 +562,7 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 	}()
 
 	if summaryResult != nil {
-		objectStatus.Properties[model.Generation] = summaryResult.Generation
+		objectStatus.Properties[apiconstants.Generation] = summaryResult.Generation
 	}
 
 	if opts.terminalErr != nil {
