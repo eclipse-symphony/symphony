@@ -106,15 +106,12 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
-	generation := ""
-	if state.Spec != nil {
-		generation = state.ObjectMeta.ETag
-	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,

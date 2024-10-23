@@ -146,6 +146,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,

@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -46,9 +45,9 @@ type MaterializeStageProviderConfig struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
 	// TODO: this config is only available for k8s mode right now. Will support them in standalone later
-	WaitForDeployment   bool   `json:"waitForDeployment"`
-	WaitTimeout         string `json:"waitTimeout"`
-	WaitTimeoutDuration time.Duration
+	WaitForDeployment   bool          `json:"waitForDeployment"`
+	WaitTimeout         string        `json:"waitTimeout"`
+	WaitTimeoutDuration time.Duration `json:"-"` // this is not a json field
 }
 
 type MaterializeStageProvider struct {
@@ -574,6 +573,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 	// Wait for deployment to finish
 	if i.Config.WaitForDeployment {
+		outputs["deploymentstatus"] = []api_utils.FailedDeployment{}
 		timeout := time.After(i.Config.WaitTimeoutDuration)
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
@@ -581,8 +581,11 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		for {
 			select {
 			case <-ticker.C:
-				instanceList = i.filterIncompleteDeployment(ctx, namespace, instanceList, true)
-				targetList = i.filterIncompleteDeployment(ctx, namespace, targetList, false)
+				var failed []api_utils.FailedDeployment
+				instanceList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
+				outputs["deploymentstatus"] = append(outputs["deploymentstatus"].([]api_utils.FailedDeployment), failed...)
+				targetList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
+				outputs["deploymentstatus"] = append(outputs["deploymentstatus"].([]api_utils.FailedDeployment), failed...)
 				if len(instanceList) == 0 && len(targetList) == 0 {
 					break ForLoop
 				}
@@ -594,6 +597,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 			}
 		}
+		mLog.InfofCtx(ctx, "  P (Materialize Processor): successfully waited for deployment to finish.")
 	}
 	return outputs, false, nil
 }
@@ -619,34 +623,4 @@ func checkCatalog(catalog *model.CatalogState) bool {
 		return true
 	}
 	return false
-}
-
-func (i *MaterializeStageProvider) filterIncompleteDeployment(ctx context.Context, namespace string, objectNames []string, isInstance bool) []string {
-	remainingObjects := make([]string, 0)
-	var err error
-	var objectMeta model.ObjectMeta
-	var status model.DeployableStatus
-	for _, objectName := range objectNames {
-		if isInstance {
-			var state model.InstanceState
-			state, err = i.ApiClient.GetInstance(ctx, objectName, namespace, i.Config.User, i.Config.Password)
-			objectMeta = state.ObjectMeta
-			status = state.Status
-		} else {
-			var state model.TargetState
-			state, err = i.ApiClient.GetTarget(ctx, objectName, namespace, i.Config.User, i.Config.Password)
-			objectMeta = state.ObjectMeta
-			status = state.Status
-		}
-		// TODO: check error code
-		if err != nil {
-			remainingObjects = append(remainingObjects, objectName)
-			continue
-		}
-		mLog.InfofCtx(ctx, "  P (Materialize Processor): debug %s, %d, %s", status.Properties[model.Generation], objectMeta.ObjGeneration, status.Properties[model.Status])
-		if status.Properties == nil || status.Properties[model.Generation] != strconv.FormatInt(objectMeta.ObjGeneration, 10) || status.Properties[model.Status] != "Succeeded" {
-			remainingObjects = append(remainingObjects, objectName)
-		}
-	}
-	return remainingObjects
 }
