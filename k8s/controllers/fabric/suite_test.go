@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	api "gopls-workspace/apis/fabric/v1"
 
@@ -96,8 +97,9 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 
 		k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 			Scheme: scheme.Scheme,
-			// needs to disable metrics otherwise all controller suite tests will try to bind to the same port (8080)
-			MetricsBindAddress: "0",
+			Metrics: server.Options{
+				BindAddress: "0",
+			},
 		})
 		Expect(err).ToNot(HaveOccurred())
 		k8sClient = k8sManager.GetClient()

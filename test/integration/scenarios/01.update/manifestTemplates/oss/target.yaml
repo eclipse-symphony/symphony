@@ -10,7 +10,7 @@ metadata:
   annotations: {}
 spec:
   displayName: int-virtual-02-v1
-  scope: alice-springs
+  scope: test-scope
   topologies:
   - bindings:
     - config:

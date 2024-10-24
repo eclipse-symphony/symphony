@@ -66,7 +66,6 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	var configFile string
 	var pollIntervalString string
 	var reconcileIntervalString string
 	var deleteTimeOutString string
@@ -80,9 +79,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&configFile, "config", "", "The controller will laod its initial configuration from this file. "+
-		"Omit this flag to use the default configuration value. "+
-		"Command-line flags override configuration from this file.")
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
 	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
@@ -103,22 +99,11 @@ func main() {
 	fmt.Println()
 
 	ctx := ctrl.SetupSignalHandler()
-	var err error
-	ctrlConfig := configv1.ProjectConfig{}
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "33405cb8.symphony",
-	}
-	if configFile != "" {
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
-		if err != nil {
-			setupLog.Error(err, "unable to load the config file")
-			os.Exit(1)
-		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
