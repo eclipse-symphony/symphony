@@ -191,7 +191,8 @@ func TestCreateProcessRemove(t *testing.T) {
 		"action":     "remove",
 		"object":     instance,
 	})
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Instance deletion reconcile timeout")
 }
 
 func TestCreateProcessUnsupported(t *testing.T) {
@@ -241,9 +242,11 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		case "/solution/queue":
 			response = model.SummaryResult{
 				Summary: model.SummarySpec{
-					TargetCount:  1,
-					SuccessCount: 1,
+					TargetCount:         1,
+					SuccessCount:        1,
+					AllAssignedDeployed: true,
 				},
+				State: model.SummaryStateDone,
 			}
 		default:
 			response = AuthResponse{
