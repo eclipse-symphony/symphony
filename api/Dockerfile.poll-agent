@@ -31,11 +31,11 @@ RUN \
     && mv linux-arm64/helm /usr/local/bin/helm \
     && apt upgrade -y
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
-ENV ZONEINFO /zoneinfo.zip
+ENV ZONEINFO=zoneinfo.zip
 COPY --from=build /dist /
 ADD ./api/symphony-k8s-poll-agent.json /
 EXPOSE 8088
 EXPOSE 8089
-ENV LOG_LEVEL Debug
-ENV CONFIG /symphony-k8s-poll-agent.json
+ENV LOG_LEVEL=Debug
+ENV CONFIG=/symphony-k8s-poll-agent.json
 CMD exec /symphony-api -c $CONFIG -l $LOG_LEVEL

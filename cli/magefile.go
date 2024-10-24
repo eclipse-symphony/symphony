@@ -45,11 +45,8 @@ func BuildApi() error {
 	}
 	if err := shellcmd.RunAll(
 		shellcmd.Command("CGO_ENABLED=0 go build -o symphony-api"),
-<<<<<<< HEAD
-=======
 		shellcmd.Command("CGO_ENABLED=0 GOARCH=arm64 go build -o symphony-api-arm64"),
 		shellcmd.Command("CGO_ENABLED=0 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
->>>>>>> bf12851337dc185a2c59ec599e186fa569e711ae
 		shellcmd.Command("CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
 		shellcmd.Command("CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
 	); err != nil {
