@@ -1,0 +1,11 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: config3-v-v1
+spec: 
+  rootResource: config3
+  catalogType: config
+  properties:
+    name: "config3"
+    age: 0
+    job: "invalid"

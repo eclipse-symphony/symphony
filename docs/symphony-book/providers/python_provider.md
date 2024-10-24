@@ -16,7 +16,7 @@ An out-of-process provider is expected to handle the following routes:
 | `/needsupdate` | GET | If an update is needed (returns `200`) or not (returns `500`) |
 | `/needsremove`| GET | if a deletion is needed (returns `200`) or not (returns `500`)|
 
-In the [provider interface](./provider_interface.md) definition, the `NeedsUpdate()` method and the `NeedsRemove()` method take two component arrays as parameters. In the REST interface, the two arrays are combined into a single JSON object:
+The `NeedsUpdate()` method and the `NeedsRemove()` method take two component arrays as parameters. In the REST interface, the two arrays are combined into a single JSON object:
 
 ```json
 {

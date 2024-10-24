@@ -3,6 +3,4 @@ kind: Activation
 metadata:
   name: canary-deployment
 spec:
-  campaign: "canary"
-  name: "canary-deployment"
-  
+  campaign: "canary:v1"

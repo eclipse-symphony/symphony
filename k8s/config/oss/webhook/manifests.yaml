@@ -2,7 +2,6 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -71,6 +70,86 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-solution-symphony-v1-solutioncontainer
+  failurePolicy: Fail
+  name: msolutioncontainer.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-workflow-symphony-v1-campaign
+  failurePolicy: Fail
+  name: mcampaign.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaigns
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-workflow-symphony-v1-campaigncontainer
+  failurePolicy: Fail
+  name: mcampaigncontainer.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaigncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-federation-symphony-v1-catalog
   failurePolicy: Fail
   name: mcatalog.kb.io
@@ -85,11 +164,72 @@ webhooks:
     resources:
     - catalogs
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-federation-symphony-v1-catalogcontainer
+  failurePolicy: Fail
+  name: mcatalogcontainer.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: mcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -109,6 +249,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - targets
   sideEffects: None
@@ -149,8 +290,92 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-solution-symphony-v1-solutioncontainer
+  failurePolicy: Fail
+  name: vsolutioncontainer.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-workflow-symphony-v1-campaign
+  failurePolicy: Fail
+  name: vcampaign.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaigns
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-workflow-symphony-v1-campaigncontainer
+  failurePolicy: Fail
+  name: vcampaigncontainer.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaigncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -169,6 +394,70 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - catalogs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-federation-symphony-v1-catalogcontainer
+  failurePolicy: Fail
+  name: vcatalogcontainer.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: vcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
   sideEffects: None

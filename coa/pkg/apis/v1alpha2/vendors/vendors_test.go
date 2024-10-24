@@ -7,6 +7,7 @@
 package vendors
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -32,7 +33,7 @@ type MockManager struct {
 }
 
 func (m *MockManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		m.stateProvider = stateprovider
 	}
@@ -155,7 +156,7 @@ func TestInitWithProviders(t *testing.T) {
 				Name: "mock",
 				Type: "managers.symphony.mock",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.volatilestate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{},
 			},
@@ -215,9 +216,9 @@ func TestRunLoop(t *testing.T) {
 	m, ok := v.Managers[0].(*MockManager)
 	assert.True(t, ok)
 	go func() {
-		v.RunLoop(1 * time.Second)
+		v.RunLoop(context.TODO(), 1*time.Second)
 	}()
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 	b1 := m.GetPollCnt() > 1
 	b2 := m.GetReconcilCnt() > 1
 	assert.True(t, b1)

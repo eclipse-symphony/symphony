@@ -8,15 +8,11 @@ package model
 
 import (
 	"errors"
-	"time"
 )
 
 type (
-	TargetStatus struct {
-		Properties         map[string]string  `json:"properties,omitempty"`
-		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
-		LastModified       time.Time          `json:"lastModified,omitempty"`
-	}
+	TargetStatus = DeployableStatus
+
 	// TargetState defines the current state of the target
 	TargetState struct {
 		ObjectMeta ObjectMeta   `json:"metadata,omitempty"`
@@ -34,9 +30,7 @@ type (
 		Constraints   string            `json:"constraints,omitempty"`
 		Topologies    []TopologySpec    `json:"topologies,omitempty"`
 		ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
-		Generation    string            `json:"generation,omitempty"`
-		// Defines the version of a particular resource
-		Version string `json:"version,omitempty"`
+		IsDryRun      bool              `json:"isDryRun,omitempty"`
 	}
 )
 

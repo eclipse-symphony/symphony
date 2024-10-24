@@ -7,6 +7,7 @@
 package http
 
 import (
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/valyala/fasthttp"
 )
 
@@ -25,7 +26,7 @@ type CORS struct {
 func (c CORS) CORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		for k, v := range c.Properties {
-			ctx.Response.Header.Set(k, v.(string))
+			ctx.Response.Header.Set(k, utils.FormatAsString(v))
 		}
 		if _, ok := c.Properties["Access-Control-Allow-Headers"]; !ok {
 			ctx.Response.Header.Set("Access-Control-Allow-Headers", corsAllowHeaders)

@@ -16,9 +16,9 @@ func TestInstanceDeepEquals(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -38,9 +38,9 @@ func TestInstanceDeepEquals(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -66,9 +66,9 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -80,9 +80,6 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -97,9 +94,9 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -111,9 +108,6 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -122,9 +116,9 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName1",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName1",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -136,9 +130,6 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -153,9 +144,9 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -167,9 +158,6 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -178,9 +166,9 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName1",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -192,9 +180,6 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -209,9 +194,9 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -223,9 +208,6 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -234,9 +216,9 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default1",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -248,9 +230,6 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -265,9 +244,9 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -279,9 +258,6 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -290,9 +266,9 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -304,9 +280,6 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -321,9 +294,9 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -335,9 +308,6 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -346,9 +316,9 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -360,9 +330,6 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -377,9 +344,9 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 	Instance := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -391,9 +358,6 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},
@@ -402,9 +366,9 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 	other := InstanceState{
 		ObjectMeta: ObjectMeta{
 			Namespace: "Default",
+			Name:      "InstanceName",
 		},
 		Spec: &InstanceSpec{
-			Name:        "InstanceName",
 			DisplayName: "InstanceDisplayName",
 			Solution:    "SolutionName",
 			Target: TargetSelector{
@@ -416,121 +380,6 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 			Pipelines: []PipelineSpec{{
 				Name: "PipelineName1",
 			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
-			Metadata: map[string]string{
-				"foo": "bar",
-			},
-		},
-	}
-	res, err := Instance.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
-	Instance := InstanceState{
-		ObjectMeta: ObjectMeta{
-			Namespace: "Default",
-		},
-		Spec: &InstanceSpec{
-			Name:        "InstanceName",
-			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
-			Target: TargetSelector{
-				Name: "TargetName",
-			},
-			Topologies: []TopologySpec{{
-				Device: "DeviceName",
-			}},
-			Pipelines: []PipelineSpec{{
-				Name: "PipelineName",
-			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
-			Metadata: map[string]string{
-				"foo": "bar",
-			},
-		},
-	}
-	other := InstanceState{
-		ObjectMeta: ObjectMeta{
-			Namespace: "Default",
-		},
-		Spec: &InstanceSpec{
-			Name:        "InstanceName",
-			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
-			Target: TargetSelector{
-				Name: "TargetName",
-			},
-			Topologies: []TopologySpec{{
-				Device: "DeviceName",
-			}},
-			Pipelines: []PipelineSpec{{
-				Name: "PipelineName",
-			}},
-			Arguments: map[string]map[string]string{
-				"foo1": {"foo": "bar"},
-			},
-			Metadata: map[string]string{
-				"foo": "bar",
-			},
-		},
-	}
-	res, err := Instance.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
-	Instance := InstanceState{
-		ObjectMeta: ObjectMeta{
-			Namespace: "Default",
-		},
-		Spec: &InstanceSpec{
-			Name:        "InstanceName",
-			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
-			Target: TargetSelector{
-				Name: "TargetName",
-			},
-			Topologies: []TopologySpec{{
-				Device: "DeviceName",
-			}},
-			Pipelines: []PipelineSpec{{
-				Name: "PipelineName",
-			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo": "bar"},
-			},
-			Metadata: map[string]string{
-				"foo": "bar",
-			},
-		},
-	}
-	other := InstanceState{
-		ObjectMeta: ObjectMeta{
-			Namespace: "Default",
-		},
-		Spec: &InstanceSpec{
-			Name:        "InstanceName",
-			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
-			Target: TargetSelector{
-				Name: "TargetName",
-			},
-			Topologies: []TopologySpec{{
-				Device: "DeviceName",
-			}},
-			Pipelines: []PipelineSpec{{
-				Name: "PipelineName",
-			}},
-			Arguments: map[string]map[string]string{
-				"foo": {"foo1": "bar1"},
-			},
 			Metadata: map[string]string{
 				"foo": "bar",
 			},

@@ -21,9 +21,10 @@ func TestDeploymentDeepEquals(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": TargetState{
@@ -50,9 +51,10 @@ func TestDeploymentDeepEquals(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": TargetState{
@@ -85,9 +87,10 @@ func TestDeploymentDeepEqualsOneEmpty(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": TargetState{
@@ -120,9 +123,10 @@ func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -149,9 +153,10 @@ func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -184,9 +189,10 @@ func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -213,9 +219,10 @@ func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -248,9 +255,10 @@ func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -277,9 +285,10 @@ func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName1",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -312,9 +321,10 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -341,9 +351,10 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo1": {
@@ -376,9 +387,10 @@ func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -405,9 +417,10 @@ func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -440,9 +453,10 @@ func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -469,9 +483,10 @@ func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -504,9 +519,10 @@ func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -533,9 +549,10 @@ func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -568,9 +585,10 @@ func TestDeploymentDeepEqualsActiveTargetNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -597,9 +615,10 @@ func TestDeploymentDeepEqualsActiveTargetNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -661,9 +680,10 @@ func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {
@@ -690,9 +710,10 @@ func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 			},
 		},
 		Instance: InstanceState{
-			Spec: &InstanceSpec{
+			ObjectMeta: ObjectMeta{
 				Name: "InstanceName",
 			},
+			Spec: &InstanceSpec{},
 		},
 		Targets: map[string]TargetState{
 			"foo": {

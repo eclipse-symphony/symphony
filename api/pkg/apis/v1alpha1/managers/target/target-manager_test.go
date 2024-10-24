@@ -75,7 +75,7 @@ func TestReport(t *testing.T) {
 		ReferenceProvider: provider,
 		Reporter:          reporter,
 	}
-	errRep := manager.reportStatus("testDev", "testTar", "testSnapshot", "active", "active", true, "testErr")
+	errRep := manager.reportStatus("testDev", "default", "testTar", "testSnapshot", "active", "active", true, "testErr")
 	assert.Equal(t, []error{}, errRep)
 }
 

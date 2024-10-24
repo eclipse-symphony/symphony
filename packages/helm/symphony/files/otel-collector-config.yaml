@@ -1,0 +1,33 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        {{- if (not .Values.otlpInsecureGrpc) }}
+        tls:
+          cert_file: /etc/oteltls/tls.crt
+          key_file: /etc/oteltls/tls.key
+          reload_interval: 15m
+        {{- end }}
+      http:
+        endpoint: 0.0.0.0:4318
+        {{- if (not .Values.otlpInsecureGrpc) }}
+        tls:
+          cert_file: /etc/oteltls/tls.crt
+          key_file: /etc/oteltls/tls.key
+          reload_interval: 15m
+        {{- end }}
+exporters:
+  logging:
+    loglevel: debug
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [logging]
+    metrics:
+      receivers: [otlp]
+      exporters: [logging]
+    traces:
+      receivers: [otlp]
+      exporters: [logging]

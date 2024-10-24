@@ -8,16 +8,10 @@ package model
 
 import (
 	"errors"
-	"time"
 )
 
 type (
-	InstanceStatus struct {
-		// Important: Run "make" to regenerate code after modifying this file
-		Properties         map[string]string  `json:"properties,omitempty"`
-		ProvisioningStatus ProvisioningStatus `json:"provisioningStatus"`
-		LastModified       time.Time          `json:"lastModified,omitempty"`
-	}
+	InstanceStatus = DeployableStatus
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
@@ -29,19 +23,15 @@ type (
 	// InstanceSpec defines the spec property of the InstanceState
 	// +kubebuilder:object:generate=true
 	InstanceSpec struct {
-		Name        string                       `json:"name"`
-		DisplayName string                       `json:"displayName,omitempty"`
-		Scope       string                       `json:"scope,omitempty"`
-		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
-		Metadata    map[string]string            `json:"metadata,omitempty"`
-		Solution    string                       `json:"solution"`
-		Target      TargetSelector               `json:"target,omitempty"`
-		Topologies  []TopologySpec               `json:"topologies,omitempty"`
-		Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
-		Arguments   map[string]map[string]string `json:"arguments,omitempty"`
-		Generation  string                       `json:"generation,omitempty"`
-		// Defines the version of a particular resource
-		Version string `json:"version,omitempty"`
+		DisplayName string            `json:"displayName,omitempty"`
+		Scope       string            `json:"scope,omitempty"`
+		Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
+		Metadata    map[string]string `json:"metadata,omitempty"`
+		Solution    string            `json:"solution"`
+		Target      TargetSelector    `json:"target,omitempty"`
+		Topologies  []TopologySpec    `json:"topologies,omitempty"`
+		Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
+		IsDryRun    bool              `json:"isDryRun,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
@@ -125,10 +115,6 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a InstanceSpec type")
 	}
 
-	if c.Name != otherC.Name {
-		return false, nil
-	}
-
 	if c.DisplayName != otherC.DisplayName {
 		return false, nil
 	}
@@ -165,10 +151,6 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if !SlicesEqual(c.Pipelines, otherC.Pipelines) {
-		return false, nil
-	}
-
-	if !StringStringMapsEqual(c.Arguments, otherC.Arguments, nil) {
 		return false, nil
 	}
 

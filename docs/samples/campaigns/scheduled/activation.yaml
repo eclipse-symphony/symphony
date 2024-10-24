@@ -3,5 +3,4 @@ kind: Activation
 metadata:
   name: scheduled-activation
 spec:
-  campaign: "scheduled-campaign"
-  name: "scheduled-activation"
+  campaign: "scheduled-campaign:v1"

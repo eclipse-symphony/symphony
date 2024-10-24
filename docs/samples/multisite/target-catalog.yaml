@@ -1,12 +1,19 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: site-k8s-target
 spec:  
-  siteId: hq
-  type: target
-  name: site-k8s-target
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-k8s-target-v-v1
+spec:
+  rootResource: site-k8s-target
+  catalogType: target
   properties:
+    metadata: 
+      name: site-k8s-target
     spec:
       properties:
         group: site

@@ -165,7 +165,7 @@ docker push ghcr.io/eclipse-symphony/symphony-k8s:latest
 ```bash
 cd k8s
 mage helmTemplate
-# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony.yaml.
+# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml.
 ```
 
 > **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solution is found.
@@ -194,9 +194,9 @@ If you plan to use Symphony Agent as a container, run the following commands to 
 
 ```bash
 cd api
-docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.agent --push .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.target-agent --push .
 # or to build for single platform
-docker build -t <Agent image tag> -f ./Dockerfile.agent .
+docker build -t <Agent image tag> -f ./Dockerfile.target-agent .
 ```
 
 To run an agent locally, use Docker:

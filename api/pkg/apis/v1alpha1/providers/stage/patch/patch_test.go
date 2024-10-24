@@ -15,6 +15,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -34,11 +35,7 @@ func TestPatchSolution(t *testing.T) {
 		t.Skip("Skipping becasue TEST_PATCH_SOLUTION is missing or not set to 'yes'")
 	}
 	provider := PatchStageProvider{}
-	err := provider.Init(PatchStageProviderConfig{
-		BaseUrl:  "http://localhost:8082/v1alpha2/",
-		User:     "admin",
-		Password: "",
-	})
+	err := provider.Init(PatchStageProviderConfig{})
 
 	provider.SetContext(&contexts.ManagerContext{
 		VencorContext: &contexts.VendorContext{
@@ -67,11 +64,7 @@ func TestPatchSolutionWholeComponent(t *testing.T) {
 		t.Skip("Skipping becasue TEST_PATCH_SOLUTION is missing or not set to 'yes'")
 	}
 	provider := PatchStageProvider{}
-	err := provider.Init(PatchStageProviderConfig{
-		BaseUrl:  "http://localhost:8082/v1alpha2/",
-		User:     "admin",
-		Password: "",
-	})
+	err := provider.Init(PatchStageProviderConfig{})
 
 	provider.SetContext(&contexts.ManagerContext{
 		VencorContext: &contexts.VendorContext{
@@ -111,15 +104,17 @@ func TestPatchSolutionWholeComponent(t *testing.T) {
 }
 
 func TestPatchInitFromMap(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
 	provider := PatchStageProvider{}
 	input := map[string]string{
-		"baseUrl":  "http://symphony-service:8080/v1alpha2/",
 		"user":     "admin",
 		"password": "",
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
 	assert.Equal(t, "admin", provider.Config.User)
 	assert.Equal(t, "", provider.Config.Password)
 
@@ -128,27 +123,13 @@ func TestPatchInitFromMap(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "",
+		"user": "",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "admin",
+		"user": "admin",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
@@ -156,6 +137,8 @@ func TestPatchInitFromMap(t *testing.T) {
 
 func TestPatchProcessInline(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := PatchStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -215,6 +198,7 @@ func TestPatchProcessInline(t *testing.T) {
 
 func TestPatchProcessCatalog(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := PatchStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -318,8 +302,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Name: "catalog1",
 				},
 				Spec: &model.CatalogSpec{
-					Type: "config",
-					Name: "catalog1",
+					CatalogType: "config",
 					Properties: map[string]interface{}{
 						"testkey":  "0",
 						"testdict": []string{"1"},

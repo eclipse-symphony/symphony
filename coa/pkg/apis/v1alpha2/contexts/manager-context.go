@@ -20,7 +20,7 @@ type ManagerContext struct {
 }
 
 func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error {
-	if c != nil {
+	if c != nil && c.Logger != nil {
 		v.Logger = c.Logger
 	} else {
 		v.Logger = logger.NewLogger("coa.runtime")

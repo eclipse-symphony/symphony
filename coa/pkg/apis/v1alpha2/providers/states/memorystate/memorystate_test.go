@@ -74,6 +74,26 @@ func TestUpSert(t *testing.T) {
 	assert.Equal(t, "123", id)
 }
 
+func TestUpSertWithNamespace(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	id, err := provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "123", id)
+}
+
 func TestList(t *testing.T) {
 	provider := MemoryStateProvider{}
 	err := provider.Init(MemoryStateProvider{})
@@ -92,6 +112,105 @@ func TestList(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(entries))
 	assert.Equal(t, "123", entries[0].ID)
+}
+
+func TestListWithNamespace(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "234",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "234", entries[0].ID)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(entries))
+	assert.True(t, (entries[0].ID == "123" && entries[1].ID == "234") || (entries[1].ID == "123" && entries[0].ID == "234"))
+}
+
+func TestListWithNamespaceTwoObjectWithSameName(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+	})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	entries, _, err = provider.List(context.Background(), states.ListRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(entries))
+	assert.Equal(t, "123", entries[0].ID)
+	assert.Equal(t, "123", entries[1].ID)
 }
 
 func TestDelete(t *testing.T) {
@@ -113,6 +232,39 @@ func TestDelete(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	entries, _, err := provider.List(context.Background(), states.ListRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(entries))
+}
+
+func TestDeleteWithNamespace(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "123",
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entries, _, err := provider.List(context.Background(), states.ListRequest{
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(entries))
 }
@@ -157,6 +309,48 @@ func TestGet(t *testing.T) {
 	assert.Nil(t, err)
 	entity, err := provider.Get(context.Background(), states.GetRequest{
 		ID: "123",
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, entity)
+	assert.Equal(t, "123", entity.ID)
+
+	payload := TestPayload{}
+	data, err := json.Marshal(entity.Body)
+	assert.Nil(t, err)
+	err = json.Unmarshal(data, &payload)
+	assert.Nil(t, err)
+	assert.Equal(t, "Random name", payload.Name)
+	assert.Equal(t, 12345, payload.Value)
+	entity, err = provider.Get(context.Background(), states.GetRequest{
+		ID: "890",
+	})
+	sczErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.NotFound, sczErr.State)
+}
+
+func TestGetWithNamespace(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "123",
+			Body: TestPayload{
+				Name:  "Random name",
+				Value: 12345,
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entity, err := provider.Get(context.Background(), states.GetRequest{
+		ID: "123",
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
 	})
 	assert.Nil(t, err)
 	assert.NotNil(t, entity)
@@ -285,4 +479,347 @@ func TestClone(t *testing.T) {
 	p, err = provider.Clone(nil)
 	assert.NotNil(t, p)
 	assert.Nil(t, err)
+}
+
+func TestLabelFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: "app=test",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+
+func TestLabelFilterWithNamespace(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: "app=test",
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+
+func TestLabelFilterNotEqual(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: "app!=test2",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+func TestLabelFilterNotEqualWithNamespace(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: "app!=test2",
+		Metadata: map[string]interface{}{
+			"namespace": "nondefault",
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+func TestLabelFilterBadFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	_, _, err = provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: "xxxxx",
+	})
+	assert.NotNil(t, err)
+	e, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadRequest, e.State)
+}
+func TestFieldFilterMetadata(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+					"name": "c1",
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "field",
+		FilterValue: "metadata.name=c1",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+func TestFieldFilterDeepMetadataNotEqual(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+					"name": "c1",
+				},
+				"spec": map[string]interface{}{},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "field",
+		FilterValue: "metadata.labels.app!=xxx",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+func TestFieldFilterStatus(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+					"name": "c1",
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"phase": "Running",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "field",
+		FilterValue: "status.phase=Running",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+func TestFieldFilterStatusBadFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+					"name": "c1",
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"phase": "Running",
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	_, _, err = provider.List(context.Background(), states.ListRequest{
+		FilterType:  "field",
+		FilterValue: "status.phase",
+	})
+	assert.NotNil(t, err)
+	e, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadRequest, e.State)
+}
+func TestSpecFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"spec": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "spec",
+		FilterValue: `[?(@.properties.foo=="bar")]`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+func TestStatusFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app": "test",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "status",
+		FilterValue: `[?(@.properties.foo=="bar")]`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
+}
+
+func TestMultipleLabelsFilter(t *testing.T) {
+	provider := MemoryStateProvider{}
+	err := provider.Init(MemoryStateProvider{})
+	assert.Nil(t, err)
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: "",
+			Body: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app":  "test",
+						"app2": "test2",
+					},
+				},
+				"status": map[string]interface{}{
+					"properties": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+	})
+	assert.Nil(t, err)
+	entity, _, err := provider.List(context.Background(), states.ListRequest{
+		FilterType:  "label",
+		FilterValue: `app==test,app2=test2`,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(entity))
 }

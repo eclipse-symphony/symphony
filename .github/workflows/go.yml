@@ -5,9 +5,14 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
 
 jobs:
 
@@ -19,13 +24,16 @@ jobs:
       TEST_MQTT_LOCAL_ENABLED: yes
       TEST_DOCKER_ENABLED: yes
       TEST_K8S_STATE: yes
+      TEST_SYMPHONY_HELM_VERSION: yes
+      TEST_HELM_CHART: yes
+      TEST_CONFIGMAP: yes # requires minikube start
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.19
+        go-version: 1.22.4
         
     - name: Set up custom GOPATH
       run: |
@@ -38,7 +46,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y build-essential
 
     - name: Check docker version and images
-      run: docker --version && docker images
+      run: docker version && docker images
 
     - name: Install kubectl
       run: |
@@ -63,39 +71,63 @@ jobs:
         sudo service mosquitto start
         sudo service mosquitto status
 
+    - name: Install Mage
+      run: |
+        cd ..
+        git clone https://github.com/magefile/mage
+        cd mage
+        go run bootstrap.go
+        cd ..
+
     - name: COA Test
-      run: cd coa && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+      run: cd coa && mage cleanTest
 
     - name: API Build
       run: cd api && go build -o symphony-api
 
     - name: API Test
       run: |
-        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE"
+        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE TEST_CONFIGMAP: $TEST_CONFIGMAP"
         export REPOPATH="${{ github.workspace }}"
         echo "REPOPATH=$REPOPATH"
-        cd api && go test -race -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        export DOCKER_API_VERSION=1.45
+        cd api && mage cleanTest
+
+    - name: K8S Test
+      run: cd k8s && mage operatorTest
 
     - name: target-api-testcoverage-app
       run: |
-        cd api && go test -race -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        cd api
+        COVERAGE=`mage printCoverage`
         echo "coverage=$COVERAGE"
+        go tool cover -html=coverage.out -o coverage-api.html 
       continue-on-error: true
       if: always()
 
     - name: target-k8s-testcoverage-app
       run: |
-        cd k8s && go test -race -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        cd k8s
+        COVERAGE=`mage printCoverage`
         echo "coverage=$COVERAGE"
+        go tool cover -html=coverage.out -o coverage-k8s.html 
       continue-on-error: true
       if: always()
 
     - name: target-coa-testcoverage-app
       run: |
-        cd coa && go test -race -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        cd coa
+        COVERAGE=`mage printCoverage`
         echo "coverage=$COVERAGE"
+        go tool cover -html=coverage.out -o coverage-coa.html 
       continue-on-error: true
       if: always()
+
+    - name: Upload test assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-coverage
+        path: |
+          api/coverage-api.html
+          k8s/coverage-k8s.html
+          coa/coverage-coa.html

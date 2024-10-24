@@ -15,17 +15,30 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.target.mqtt"
+	providerName = "P (MQTT Target)"
+	mqtt         = "mqtt"
+)
+
+var (
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
+)
 
 type MQTTTargetProviderConfig struct {
 	Name               string `json:"name"`
@@ -118,6 +131,7 @@ func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetPr
 func (i *MQTTTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := MQTTTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (MQTT Target): expected MQTTTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -131,20 +145,21 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	_, span := observability.StartSpan("MQTT Target Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("MQTT Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (MQTT Target): Init()")
+	sLog.InfoCtx(ctx, "  P (MQTT Target): Init()")
 
 	if i.Initialized {
 		return nil
 	}
 	updateConfig, err := toMQTTTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (MQTT Target): expected HttpTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): expected MQTTTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -155,7 +170,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	opts.CleanSession = true
 	i.MQTTClient = gmqtt.NewClient(opts)
 	if token := i.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
-		sLog.Errorf("  P (MQTT Target): faild to connect to MQTT broker - %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): faild to connect to MQTT broker - %+v", err)
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
@@ -183,7 +198,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 				var ret []model.ComponentSpec
 				err = json.Unmarshal(response.Body, &ret)
 				if err != nil {
-					sLog.Errorf("  P (MQTT Target): faild to deserialize components from MQTT - %+v, %s", err, string(response.Body))
+					sLog.ErrorfCtx(ctx, "  P (MQTT Target): faild to deserialize components from MQTT - %+v, %s", err, string(response.Body))
 				}
 				proxyResponse.Payload = ret
 			}
@@ -206,13 +221,23 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		}
 	}); token.Wait() && token.Error() != nil {
 		if token.Error().Error() != "subscription exists" {
-			sLog.Errorf("  P (MQTT Target): faild to connect to subscribe to the response topic - %+v", token.Error())
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): faild to connect to subscribe to the response topic - %+v", token.Error())
 			err = v1alpha2.NewCOAError(token.Error(), "failed to subscribe to response topic", v1alpha2.InternalError)
 			return err
 		}
 	}
 	i.Initialized = true
-	return nil
+
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to create metrics - %v", err)
+			}
+		}
+	})
+
+	return err
 }
 func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetProviderConfig, error) {
 	ret := MQTTTargetProviderConfig{}
@@ -228,14 +253,16 @@ func toMQTTTargetProviderConfig(config providers.IProviderConfig) (MQTTTargetPro
 }
 
 func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (MQTT Target): getting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (MQTT Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
+	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 	request := v1alpha2.COARequest{
 		Route:  "instances",
 		Method: "GET",
@@ -244,11 +271,13 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			"call-context":  "TargetProvider-Get",
 			"active-target": deployment.ActiveTarget,
 		},
+		Context: ctx,
 	}
 	data, _ = json.Marshal(request)
 
+	sLog.InfofCtx(ctx, "  P (MQTT Target): start to publish on topic %s", i.Config.RequestTopic)
 	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
-		sLog.Errorf("  P (MQTT Target): failed to getting artifacts - %s, traceId: %s", token.Error(), span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to getting artifacts - %s", token.Error())
 		err = token.Error()
 		return nil, err
 	}
@@ -259,39 +288,41 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			var data []byte
 			data, err = json.Marshal(resp.Payload)
 			if err != nil {
-				sLog.Errorf("  P (MQTT Target): failed to serialize payload - %s - %s, traceId: %s", err.Error(), fmt.Sprint(resp.Payload), span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to serialize payload - %s - %s", err.Error(), fmt.Sprint(resp.Payload))
 				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
 				return nil, err
 			}
 			var ret []model.ComponentSpec
 			err = json.Unmarshal(data, &ret)
 			if err != nil {
-				sLog.Errorf("  P (MQTT Target): failed to deserialize components - %s - %s, traceId: %s", err.Error(), fmt.Sprint(data), span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to deserialize components - %s - %s", err.Error(), fmt.Sprint(data))
 				err = v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.InternalError)
 				return nil, err
 			}
 			return ret, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
-			sLog.Errorf("  P (MQTT Target): failed to get response - %s - %s, traceId: %s", err.Error(), fmt.Sprint(string(data)), span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get response - %s - %s", err.Error(), fmt.Sprint(string(data)))
 			return nil, err
 		}
 	case <-timeout:
 		err = v1alpha2.NewCOAError(nil, "didn't get response to Get() call over MQTT", v1alpha2.InternalError)
-		sLog.Errorf("  P (MQTT Target): request timeout - %s - %s, traceId: %s", err.Error(), fmt.Sprint(string(data)), span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): request timeout - %s - %s", err.Error(), fmt.Sprint(string(data)))
 		return nil, err
 	}
 }
 func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.DeploymentSpec, currentRef []model.ComponentSpec) error {
-	_, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("MQTT Target Provider", ctx, &map[string]string{
 		"method": "Remove",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (MQTT Target): deleting artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (MQTT Target): deleting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
+	ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 	request := v1alpha2.COARequest{
 		Route:  "instances",
 		Method: "DELETE",
@@ -300,11 +331,14 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 			"call-context":  "TargetProvider-Remove",
 			"active-target": deployment.ActiveTarget,
 		},
+		Context: ctx,
 	}
 	data, _ = json.Marshal(request)
 
+	sLog.InfofCtx(ctx, "  P (MQTT Target): start to publish on topic %s", i.Config.RequestTopic)
 	if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 		err = token.Error()
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to publish - %v", err)
 		return err
 	}
 
@@ -316,12 +350,12 @@ func (i *MQTTTargetProvider) Remove(ctx context.Context, deployment model.Deploy
 			return err
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
-			sLog.Errorf("  P (MQTT Target): failed to get correct response - %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get correct response - %v", err)
 			return err
 		}
 	case <-timeout:
 		err = v1alpha2.NewCOAError(nil, "didn't get response to Remove() call over MQTT", v1alpha2.InternalError)
-		sLog.Errorf("  P (MQTT Target): request timeout - %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): request timeout - %v", err)
 		return err
 	}
 }
@@ -332,16 +366,34 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (MQTT Target): applying artifacts: %s - %s, traceId: %s", deployment.Instance.Spec.Scope, deployment.Instance.Spec.Name, span.SpanContext().TraceID().String())
+	sLog.InfofCtx(ctx, "  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
+	functionName := observ_utils.GetFunctionName()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		mqtt,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		providerOperationMetrics.ProviderOperationErrors(
+			mqtt,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.ApplyOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
-		err = nil
+		sLog.DebugCtx(ctx, "  P (MQTT Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
@@ -350,7 +402,8 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
-
+		sLog.InfofCtx(ctx, "  P (MQTT Target): get updated components: count - %d", len(components))
+		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		request := v1alpha2.COARequest{
 			Route:  "instances",
 			Method: "POST",
@@ -359,11 +412,21 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				"call-context":  "TargetProvider-Apply",
 				"active-target": deployment.ActiveTarget,
 			},
+			Context: ctx,
 		}
 		data, _ = json.Marshal(request)
 
+		utils.EmitUserAuditsLogs(ctx, "  P (MQTT Target): Start to send Apply()-Update request over MQTT on topic %s", i.Config.RequestTopic)
+		sLog.InfofCtx(ctx, "  P (MQTT Target): start to publish on topic %s", i.Config.RequestTopic)
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.ApplyOperationType,
+				v1alpha2.MqttPublishFailed.String(),
+			)
 			return ret, err
 		}
 
@@ -384,17 +447,33 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
-				sLog.Errorf("  P (MQTT Target): failed to get correct response from Apply() - %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get correct response from Apply() - %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					mqtt,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.ApplyOperationType,
+					v1alpha2.MqttApplyFailed.String(),
+				)
 				return ret, err
 			}
 		case <-timeout:
 			err = v1alpha2.NewCOAError(nil, "didn't get response to Apply()-Update call over MQTT", v1alpha2.InternalError)
-			sLog.Errorf("  P (MQTT Target): request timeout - %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): request timeout - %v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.ApplyOperationType,
+				v1alpha2.MqttApplyTimeout.String(),
+			)
 			return ret, err
 		}
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (MQTT Target): get deleted components: count - %d", len(components))
+		ctx = coalogcontexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		request := v1alpha2.COARequest{
 			Route:  "instances",
 			Method: "DELETE",
@@ -402,11 +481,20 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			Metadata: map[string]string{
 				"call-context": "TargetProvider-Remove",
 			},
+			Context: ctx,
 		}
 		data, _ = json.Marshal(request)
 
+		utils.EmitUserAuditsLogs(ctx, "  P (MQTT Target): Start to send Apply()-Delete action over MQTT on topic %s", i.Config.RequestTopic)
 		if token := i.MQTTClient.Publish(i.Config.RequestTopic, 0, false, data); token.Wait() && token.Error() != nil {
 			err = token.Error()
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.ApplyOperationType,
+				v1alpha2.MqttPublishFailed.String(),
+			)
 			return ret, err
 		}
 
@@ -418,12 +506,26 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
-				sLog.Errorf("  P (MQTT Target): failed to get correct reponse from Apply() delete action - %v, traceId: %s", err, span.SpanContext().TraceID().String())
+				sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to get correct reponse from Apply() delete action - %v", err)
+				providerOperationMetrics.ProviderOperationErrors(
+					mqtt,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.ApplyOperationType,
+					v1alpha2.MqttApplyFailed.String(),
+				)
 				return ret, err
 			}
 		case <-timeout:
 			err = v1alpha2.NewCOAError(nil, "didn't get response to Apply()-Delete call over MQTT", v1alpha2.InternalError)
-			sLog.Errorf("  P (MQTT Target): request timeout - %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): request timeout - %v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				mqtt,
+				functionName,
+				metrics.ApplyOperation,
+				metrics.ApplyOperationType,
+				v1alpha2.MqttApplyTimeout.String(),
+			)
 			return ret, err
 		}
 	}

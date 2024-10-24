@@ -93,7 +93,11 @@ func listTests(dir string) ([]string, error) {
 	// Read test subfolders
 	for _, entry := range subDirs {
 		if entry.IsDir() {
-			results = append(results, filepath.Join(dir, entry.Name()))
+			dirPath := filepath.Join(dir, entry.Name())
+			filePath := filepath.Join(dirPath, "magefile.go")
+			if _, err := os.Stat(filePath); err == nil {
+				results = append(results, dirPath)
+			}
 		}
 	}
 

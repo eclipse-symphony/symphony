@@ -9,26 +9,33 @@ package materialize
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMaterializeInit(t *testing.T) {
+const catalogNotFoundMsg = "catalog not found"
+
+func TestMaterializeInitForNonServiceAccount(t *testing.T) {
+	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
+	if UseServiceAccountTokenEnvName != "false" {
+		t.Skip("Skipping becasue UseServiceAccountTokenEnvName is not false")
+	}
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
-		"baseUrl":  "http://symphony-service:8080/v1alpha2/",
 		"user":     "admin",
 		"password": "",
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
 	assert.Equal(t, "admin", provider.Config.User)
 	assert.Equal(t, "", provider.Config.Password)
 
@@ -37,32 +44,17 @@ func TestMaterializeInit(t *testing.T) {
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "",
+		"user": "",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 
 	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "",
-	}
-	err = provider.InitWithMap(input)
-	assert.NotNil(t, err)
-
-	input = map[string]string{
-		"baseUrl": "http://symphony-service:8080/v1alpha2/",
-		"user":    "admin",
+		"user": "admin",
 	}
 	err = provider.InitWithMap(input)
 	assert.NotNil(t, err)
 }
-
 func TestMaterializeInitFromVendorMap(t *testing.T) {
 	input := map[string]string{
 		"wait.baseUrl":  "http://symphony-service:8080/v1alpha2/",
@@ -73,12 +65,12 @@ func TestMaterializeInitFromVendorMap(t *testing.T) {
 	assert.Nil(t, err)
 	provider := MaterializeStageProvider{}
 	provider.Init(config)
-	assert.Equal(t, "http://symphony-service:8080/v1alpha2/", provider.Config.BaseUrl)
-	assert.Equal(t, "admin", provider.Config.User)
-	assert.Equal(t, "", provider.Config.Password)
 }
-func TestMaterializeProcess(t *testing.T) {
-	ts := InitializeMockSymphonyAPI()
+func TestMaterializeProcessWithStageNs(t *testing.T) {
+	stageNs := "testns"
+	ts := InitializeMockSymphonyAPI(t, stageNs)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -92,15 +84,19 @@ func TestMaterializeProcess(t *testing.T) {
 			SiteId: "fake",
 		},
 	})
-	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1", "target1", "solution1", "catalog1"},
-		"__origin": "hq",
+	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"names":           []interface{}{"instance1:v1", "target1:v1", "solution1:v1", "catalog1:v1"},
+		"__origin":        "hq",
+		"objectNamespace": stageNs,
 	})
 	assert.Nil(t, err)
+	assert.False(t, paused)
 }
 
-func TestMaterializeProcessFailedCase(t *testing.T) {
-	ts := InitializeMockSymphonyAPI()
+func TestMaterializeProcessWithoutStageNs(t *testing.T) {
+	ts := InitializeMockSymphonyAPI(t, "objNS")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := MaterializeStageProvider{}
 	input := map[string]string{
 		"baseUrl":  ts.URL + "/",
@@ -109,12 +105,37 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
+	provider.SetContext(&contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	})
+	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"names":    []interface{}{"instance1:v1", "target1:v1", "solution1:v1", "catalog1:v1"},
+		"__origin": "hq",
+	})
+	assert.Nil(t, err)
+	assert.False(t, paused)
+}
 
+func TestMaterializeProcessFailedCase(t *testing.T) {
+	ts := InitializeMockSymphonyAPI(t, "objNS")
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := MaterializeStageProvider{}
+	input := map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1", "target1", "solution1, target2"},
+		"names":    []interface{}{"instance1:v1", "target1:v1", "notexist"},
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), catalogNotFoundMsg)
 }
 
 type AuthResponse struct {
@@ -124,106 +145,121 @@ type AuthResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-func InitializeMockSymphonyAPI() *httptest.Server {
+func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
+		body, _ := io.ReadAll(r.Body)
 		switch r.URL.Path {
-		case "/instances/instance1":
-			response = model.InstanceState{
+		case "/instances/instance1-v-v1":
+			instance := model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-instance1",
-				},
-				Spec: &model.InstanceSpec{
-					Name: "hq-instance1",
-				},
-				Status: model.InstanceStatus{},
-			}
-		case "/targets/registry/target1":
-			response = model.TargetState{
-				ObjectMeta: model.ObjectMeta{
-					Name: "hq-target1",
-				},
-				Spec: &model.TargetSpec{
-					DisplayName: "hq-target1",
+					Name: "instance1-v-v1",
 				},
 			}
-		case "/solutions/solution1":
-			response = model.SolutionState{
+			err := json.Unmarshal(body, &instance)
+			assert.Nil(t, err)
+			assert.Equal(t, expectNs, instance.ObjectMeta.Namespace)
+			response = instance
+		case "/targets/registry/target1-v-v1":
+			target := model.TargetState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-solution1",
-				},
-				Spec: &model.SolutionSpec{
-					DisplayName: "hq-solution1",
+					Name: "target1-v-v1",
 				},
 			}
-		case "/catalogs/registry":
-			response = []model.CatalogState{
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "targetcatalog",
-					},
-					Spec: &model.CatalogSpec{
-						Type: "target",
-						Name: "hq-target1",
-						Properties: map[string]interface{}{
-							"spec": &model.TargetSpec{
-								DisplayName: "target1",
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "instancecatalog",
-					},
-					Spec: &model.CatalogSpec{
-						Type: "instance",
-						Name: "hq-instance1",
-						Properties: map[string]interface{}{
-							"spec": model.InstanceSpec{
-								Name: "instance1",
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "solutioncatalog",
-					},
-					Spec: &model.CatalogSpec{
-						Type: "solution",
-						Name: "hq-solution1",
-						Properties: map[string]interface{}{
-							"spec": model.SolutionSpec{
-								DisplayName: "solution1",
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: model.ObjectMeta{
-						Name: "catalog1",
-					},
-					Spec: &model.CatalogSpec{
-						Type: "catalog",
-						Name: "hq-catalog1",
-						Properties: map[string]interface{}{
-							"spec": model.SolutionSpec{
-								DisplayName: "solution1",
-							},
-						},
-					},
-				},
-			}
-		case "catalogs/registry/catalog1":
-			response = model.CatalogState{
+			err := json.Unmarshal(body, &target)
+			assert.Nil(t, err)
+			assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
+			response = target
+		case "/solutions/solution1-v-v1":
+			var solution model.SolutionState
+			err := json.Unmarshal(body, &solution)
+			assert.Nil(t, err)
+			assert.Equal(t, expectNs, solution.ObjectMeta.Namespace)
+			response = solution
+		case "/catalogs/registry/hq-target1-v-v1":
+			catalog := model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
+					Name: "hq-target1-v-v1",
 				},
 				Spec: &model.CatalogSpec{
-					Name: "catalog1",
+					CatalogType: "target",
+					Properties: map[string]interface{}{
+						"spec": &model.TargetSpec{
+							DisplayName: "target1",
+						},
+						"metadata": &model.ObjectMeta{
+							Name:      "target1:v1",
+							Namespace: "objNS",
+						},
+					},
 				},
 			}
+			response = catalog
+		case "/catalogs/registry/hq-instance1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-instance1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					CatalogType: "instance",
+					Properties: map[string]interface{}{
+						"spec": model.InstanceSpec{},
+						"metadata": &model.ObjectMeta{
+							Namespace: "objNS",
+							Name:      "instance1:v1",
+						},
+					},
+				},
+			}
+			response = catalog
+		case "/catalogs/registry/hq-solution1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-solution1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					CatalogType: "solution",
+					Properties: map[string]interface{}{
+						"spec": model.SolutionSpec{
+							DisplayName: "solution1",
+						},
+						"metadata": &model.ObjectMeta{
+							Namespace: "objNS",
+							Name:      "instance1:v1",
+						},
+					},
+				},
+			}
+			response = catalog
+		case "/catalogs/registry/hq-catalog1-v-v1":
+			catalog := model.CatalogState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "hq-catalog1-v-v1",
+				},
+				Spec: &model.CatalogSpec{
+					CatalogType: "catalog",
+					Properties: map[string]interface{}{
+						"spec": model.CatalogSpec{
+							CatalogType: "config",
+							Properties:  map[string]interface{}{},
+						},
+						"metadata": &model.ObjectMeta{
+							Namespace: "objNS",
+							Name:      "catalog1:v1",
+						},
+					},
+				},
+			}
+			response = catalog
+		case "/catalogs/registry/catalog1-v-v1":
+			var catalog model.CatalogState
+			err := json.Unmarshal(body, &catalog)
+			assert.Nil(t, err)
+			assert.Equal(t, expectNs, catalog.ObjectMeta.Namespace)
+			response = catalog
+		case "/catalogs/registry/hq-notexist":
+			http.Error(w, catalogNotFoundMsg, http.StatusNotFound)
+			return
 		default:
 			response = AuthResponse{
 				AccessToken: "test-token",

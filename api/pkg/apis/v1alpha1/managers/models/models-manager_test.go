@@ -28,7 +28,7 @@ func TestInit(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.persistentstate": "memory-state",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,
@@ -43,7 +43,7 @@ func TestInitFail(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state-fail",
+			"providers.persistentstate": "memory-state-fail",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,
@@ -58,7 +58,7 @@ func TestUpsertAndDeleteSpec(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.persistentstate": "memory-state",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,
@@ -89,7 +89,7 @@ func TestUpsertAndListSpec(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.persistentstate": "memory-state",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,
@@ -124,7 +124,7 @@ func TestUpsertAndGetSpec(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state",
+			"providers.persistentstate": "memory-state",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state": stateProvider,
@@ -158,7 +158,7 @@ func TestUpsertSpecFail(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state-fail",
+			"providers.persistentstate": "memory-state-fail",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state-fail": stateProvider,
@@ -187,7 +187,7 @@ func TestListSpecFail(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state-fail",
+			"providers.persistentstate": "memory-state-fail",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state-fail": stateProvider,
@@ -205,7 +205,7 @@ func TestGetSpecFail(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state-fail",
+			"providers.persistentstate": "memory-state-fail",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state-fail": stateProvider,
@@ -226,7 +226,7 @@ func TestUpsertAndListSpecFail(t *testing.T) {
 	manager := ModelsManager{}
 	err = manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "memory-state-fail",
+			"providers.persistentstate": "memory-state-fail",
 		},
 	}, map[string]providers.IProvider{
 		"memory-state-fail": stateProvider,

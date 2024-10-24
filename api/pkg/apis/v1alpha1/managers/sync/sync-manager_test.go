@@ -115,9 +115,7 @@ func InitiazlizeMockSymphonyAPI(siteId string) *httptest.Server {
 							Name: "catalog1",
 						},
 						Spec: &model.CatalogSpec{
-							SiteId: "parent",
-							Name:   "catalog1",
-							Type:   "Instance",
+							CatalogType: "Instance",
 							Properties: map[string]interface{}{
 								"foo": "bar",
 							},
@@ -178,19 +176,23 @@ func TestPoll(t *testing.T) {
 	job1 := v1alpha2.JobData{}
 	// validate that the sync package was published
 	catalogCnt := 0
-	vendorContext.Subscribe("catalog-sync", func(topic string, event v1alpha2.Event) error {
-		catalogCnt++
-		jobData := event.Body.(v1alpha2.JobData)
-		catalog1 = jobData.Body.(model.CatalogState)
-		sig1 <- 1
-		return nil
+	vendorContext.Subscribe("catalog-sync", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			catalogCnt++
+			jobData := event.Body.(v1alpha2.JobData)
+			catalog1 = jobData.Body.(model.CatalogState)
+			sig1 <- 1
+			return nil
+		},
 	})
 	jobCount := 0
-	vendorContext.Subscribe("remote-job", func(topic string, event v1alpha2.Event) error {
-		jobCount++
-		job1 = event.Body.(v1alpha2.JobData)
-		sig2 <- 1
-		return nil
+	vendorContext.Subscribe("remote-job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			jobCount++
+			job1 = event.Body.(v1alpha2.JobData)
+			sig2 <- 1
+			return nil
+		},
 	})
 
 	errs := manager.Poll()
@@ -200,6 +202,6 @@ func TestPoll(t *testing.T) {
 	<-sig2
 	assert.Equal(t, 1, catalogCnt)
 	assert.Equal(t, 1, jobCount)
-	assert.Equal(t, "catalog1", catalog1.Spec.Name)
+	assert.Equal(t, "catalog1", catalog1.ObjectMeta.Name)
 	assert.Equal(t, "job1", job1.Id)
 }

@@ -23,10 +23,10 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.state": "mem-state",  
+              "providers.persistentstate": "mem-state",  
               "providers.target": "k8s",
               "providers.config": "mock-config",  
-              "providers.secret": "mock-secret"  
+              "providers.secret": "mock-secret"
             },
             "providers": {
               "mem-state": {

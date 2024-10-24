@@ -1,0 +1,21 @@
+{{- if .Values.installServiceExt }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.fullname" .}}-service-ext
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: {{ include "symphony.appSelector" . }}
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: {{ .Values.symphony.extension.httpport }}
+    targetPort: {{ include "symphony.apiContainerPortHttp" . }}
+    name: http
+  - protocol: TCP
+    port: {{ .Values.symphony.extension.httpsport }}
+    targetPort: {{ include "symphony.apiContainerPortHttps" . }}
+    name: https
+  {{- end }}

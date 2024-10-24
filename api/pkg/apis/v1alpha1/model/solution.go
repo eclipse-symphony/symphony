@@ -17,9 +17,11 @@ type (
 	}
 
 	SolutionSpec struct {
-		DisplayName string            `json:"displayName,omitempty"`
-		Metadata    map[string]string `json:"metadata,omitempty"`
-		Components  []ComponentSpec   `json:"components,omitempty"`
+		DisplayName  string            `json:"displayName,omitempty"`
+		Metadata     map[string]string `json:"metadata,omitempty"`
+		Components   []ComponentSpec   `json:"components,omitempty"`
+		Version      string            `json:"version,omitempty"`
+		RootResource string            `json:"rootResource,omitempty"`
 	}
 )
 

@@ -29,7 +29,7 @@ With Symphony, users can benefit from a powerful and versatile platform that str
 
 - **Symphony is platform agnostic**
 
-    Symphony was started by Microsoft as a platform-agnostic project, making it an ideal solution for organizations that already use Azure Edge and AI services like [Azure IoT Hub](https://docs.microsoft.com/azure/iot-hub/), [Azure IoT Edge](https://azure.microsoft.com/services/iot-edge/), [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/), [Azure Storage](https://azure.microsoft.com/products/category/storage/), [Azure ML](https://azure.microsoft.com/services/machine-learning/), Mon[Azure Monitor](https://docs.microsoft.com/azure/azure-monitor/)itor, and [Azure Arc](https://learn.microsoft.com/azure/azure-arc/overview). However, Symphony is also fully compatible with other non-Azure services or open-source software tools, allowing organizations to modify the solution to meet their specific needs. This flexibility ensures that Symphony meets customers where they are, making it an ideal solution for organizations of all sizes and complexities.
+    Symphony was started by Microsoft as a platform-agnostic project, making it an ideal solution for organizations that already use Azure Edge and AI services like [Azure IoT Hub](https://docs.microsoft.com/azure/iot-hub/), [Azure IoT Edge](https://azure.microsoft.com/services/iot-edge/), [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/), [Azure Storage](https://azure.microsoft.com/products/category/storage/), [Azure ML](https://azure.microsoft.com/services/machine-learning/), [Azure Monitor](https://docs.microsoft.com/azure/azure-monitor/), and [Azure Arc](https://learn.microsoft.com/azure/azure-arc/overview). However, Symphony is also fully compatible with other non-Azure services or open-source software tools, allowing organizations to modify the solution to meet their specific needs. This flexibility ensures that Symphony meets customers where they are, making it an ideal solution for organizations of all sizes and complexities.
 
 ## Getting Started
 There are several ways to get started with Symphony, including using the CLI tool, Helm, Docker, or the symphony-api binary.
@@ -56,14 +56,14 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.47.2'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.48.28'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
 ### Using Docker
-You can also install Symphony using Docker by running the following command:
+You can also install Symphony using Docker with the bundled `symphony-api.json` or volume mounting your own & injecting its reference via `CONFIG` env:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 ghcr.io/eclipse-symphony/symphony-api:0.47.1
+docker run -d --name symphony-api -p 8080:8080 -e CONFIG=/symphony-api.json ghcr.io/eclipse-symphony/symphony-api:0.48.28
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:

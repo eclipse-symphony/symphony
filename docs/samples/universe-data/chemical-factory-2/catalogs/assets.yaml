@@ -1,11 +1,16 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: hq
 spec:  
-  siteId: hq
-  type: asset
-  name: hq
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: hq-v-v1
+spec:
+  rootResource: hq
+  catalogType: asset
   properties:
     name: HQ
     address: 1 Microsoft Way
@@ -19,97 +24,125 @@ spec:
     lng: "-122.12826"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: infrastructure
 spec:  
-  siteId: hq
-  type: asset
-  name: infrastructure
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: infrastructure-v-v1
+spec:
+  rootResource: infrastructure
+  catalogType: asset
   properties:
     name: "Infrastructure"    
-  parentName: hq
+  parentName: hq-v-v1
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: asset
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: l3
-spec:  
-  siteId: hq
-  type: asset
-  name: l3
+  name: asset-v-13
+spec: 
+  rootResource: asset
+  catalogType: asset
   properties:
     name: "Level 3"    
-  parentName: infrastructure
+  parentName: infrastructure-v-v1
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: l4
-spec:  
-  siteId: hq
-  type: asset
-  name: l4
+  name: asset-v-14
+spec: 
+  rootResource: asset
+  catalogType: asset
   properties:
     name: "Level 4"    
-  parentName: infrastructure
+  parentName: infrastructure-v-v1
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: use
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: use-cases
-spec:  
-  siteId: hq
-  type: asset
-  name: use-cases
+  name: use-v-cases
+spec: 
+  rootResource: use
+  catalogType: asset
   properties:
     name: "Use Cases"    
-  parentName: hq
+  parentName: hq-v-v1
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: csad
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: csad
-spec:  
-  siteId: hq
-  type: asset
-  name: csad
+  name: csad-v-v1
+spec: 
+  rootResource: csad
+  catalogType: asset
   properties:
     name: "CSAD"    
-  parentName: use-cases
+  parentName: use-v-cases
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: site
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site
-spec:  
-  siteId: hq
-  type: asset
-  name: site
+  name: site-v-v1
+spec: 
+  rootResource: site
+  catalogType: asset
   properties:
     name: "Site"    
-  parentName: csad
+  parentName: csad-v-v1
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: line
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-a
-spec:  
-  siteId: hq
-  type: asset
-  name: line-a
+  name: line-v-a
+spec: 
+  rootResource: line
+  catalogType: asset
   properties:
     name: "Line A"    
-  parentName: site
+  parentName: site-v-v1
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-b
-spec:  
-  siteId: hq
-  type: asset
-  name: line-b
+  name: line-v-b
+spec: 
+  rootResource: line
+  catalogType: asset
   properties:
     name: "Line B"    
-  parentName: site
+  parentName: site-v-v1

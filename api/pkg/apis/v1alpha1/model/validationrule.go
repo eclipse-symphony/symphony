@@ -20,6 +20,8 @@ type PropertyDesc struct {
 	SkipIfMissing   bool   `json:"skipIfMissing,omitempty"`
 	PrefixMatch     bool   `json:"prefixMatch,omitempty"`
 	IsComponentName bool   `json:"isComponentName,omitempty"`
+	// This is a stop-gap solution to support change detection for advanced comparison scenarios.
+	PropChanged func(oldProp, newProp any) bool `json:"-"`
 }
 type ComponentValidationRule struct {
 	RequiredComponentType     string         `json:"requiredType"`
@@ -72,7 +74,23 @@ func (v ValidationRule) Validate(components []ComponentSpec) error {
 	return nil
 }
 
+func mergeKeysInOldAndNew(oldValues map[string]interface{}, newValues map[string]interface{}) []string {
+	keys := make(map[string]bool)
+	for k := range oldValues {
+		keys[k] = true
+	}
+	for k := range newValues {
+		keys[k] = true
+	}
+	mergedKeys := make([]string, 0, len(keys))
+	for k := range keys {
+		mergedKeys = append(mergedKeys, k)
+	}
+	return mergedKeys
+}
+
 func detectChanges(properties []PropertyDesc, oldName string, newName string, oldValues map[string]interface{}, newValues map[string]interface{}) bool {
+	// loop all provider's change detection properties
 	for _, p := range properties {
 		if strings.Contains(p.Name, "*") {
 			escapedPattern := regexp.QuoteMeta(p.Name)
@@ -80,7 +98,8 @@ func detectChanges(properties []PropertyDesc, oldName string, newName string, ol
 			regexpPattern := strings.ReplaceAll(escapedPattern, `\*`, ".*")
 			// Compile the regular expression
 			regexpObject := regexp.MustCompile("^" + regexpPattern + "$")
-			for k := range oldValues {
+			mergedKeys := mergeKeysInOldAndNew(oldValues, newValues)
+			for _, k := range mergedKeys {
 				if regexpObject.MatchString(k) {
 					if compareProperties(p, oldValues, newValues, k) {
 						return true
@@ -157,20 +176,33 @@ func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {
 	}
 }
 func compareProperties(c PropertyDesc, old map[string]interface{}, new map[string]interface{}, key string) bool {
-	if v, ok := old[key]; ok {
-		if nv, nok := new[key]; nok {
-			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
-				return true
-			}
-		} else if !c.SkipIfMissing {
+	v, ook := old[key]
+	nv, nok := new[key]
+	if c.PropChanged != nil {
+		return c.PropChanged(v, nv)
+	}
+
+	if ook && nok {
+		// case 1: key exists in both old and new
+		// compare the values, if different, return true
+		if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
 			return true
+		} else {
+			return false
 		}
+	} else if !ook && !nok {
+		// case 2: key does not exist in both old and new
+		// return false to indicate no change
+		return false
 	} else {
+		// case 3: one of them is missing
+		// if the property is optional, no matter it doesn't exist in old or new, return false to indicate no change
 		if !c.SkipIfMissing {
 			return true
+		} else {
+			return false
 		}
 	}
-	return false
 }
 
 func (v ValidationRule) validateComponent(component ComponentSpec) error {

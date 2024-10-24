@@ -7,39 +7,66 @@
 package observability
 
 import (
+	"crypto/tls"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"context"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	exporters "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/exporters"
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"google.golang.org/grpc/credentials"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	resource "go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
+const defaultExporterTimeout = 300
+
 type ObservabilityConfig struct {
-	Pipelines []PipelineConfig `json:"pipelines"`
+	Pipelines   []PipelineConfig `json:"pipelines"`
+	ServiceName string           `json:"serviceName"`
 }
 
 type PipelineConfig struct {
 	Exporter ExporterConfig `json:"exporter"`
 }
+
 type ExporterConfig struct {
-	Type       string        `json:"type"`
-	BackendUrl string        `json:"backendUrl"`
-	Sampler    SamplerConfig `json:"sampler"`
+	Type             string        `json:"type"`
+	BackendUrl       string        `json:"backendUrl"`
+	Sampler          SamplerConfig `json:"sampler"`
+	CollectorUrl     string        `json:"collectorUrl"`
+	Temporality      bool          `json:"temporality"`
+	InsecureEndpoint bool          `json:"insecureEndpoint"`
+	ServerCAFilePath string        `json:"serverCAFilePath"`
+	ClientAuth       ClientAuth    `json:"clientAuth,omitempty"`
 }
+
 type ProcessorConfig struct {
 }
+
 type ProviderConfig struct {
 }
+
 type SamplerConfig struct {
 	SampleRate string `json:"sampleRate"`
 }
@@ -48,20 +75,53 @@ type Observability struct {
 	Tracer         trace.Tracer
 	TracerProvider trace.TracerProvider
 	Buffer         *v1alpha2.SafeBuffer // should be a thread safe buffer
+	Metrics        *metrics
+}
+
+// New returns a new instance of the observability.
+func New(symphonyProject string) Observability {
+	return Observability{
+		Metrics: &metrics{
+			provider: otel.GetMeterProvider(),
+			meter:    otel.GetMeterProvider().Meter(symphonyProject),
+		},
+	}
+}
+
+func populateSpanContextToDiagnosticLogContext(span trace.Span, parent context.Context) context.Context {
+	if span == nil {
+		return parent
+	}
+	traceId := ""
+	spanId := ""
+	if span.SpanContext().IsValid() && span.SpanContext().TraceID().IsValid() {
+		traceId = span.SpanContext().TraceID().String()
+	}
+	if span.SpanContext().IsValid() && span.SpanContext().SpanID().IsValid() {
+		spanId = span.SpanContext().SpanID().String()
+	}
+	return coacontexts.PopulateTraceAndSpanToDiagnosticLogContext(traceId, spanId, parent)
 }
 
 func StartSpan(name string, ctx context.Context, attributes *map[string]string) (context.Context, trace.Span) {
 	span := observ_utils.SpanFromContext(ctx)
 	if span != nil {
 		childCtx, childSpan := otel.Tracer(name).Start(trace.ContextWithSpan(ctx, *span), name)
+		childCtx = coacontexts.InheritActivityLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = coacontexts.InheritDiagnosticLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = populateSpanContextToDiagnosticLogContext(childSpan, childCtx)
 		setSpanAttributes(childSpan, attributes)
 		return childCtx, childSpan
 	} else {
 		childCtx, childSpan := otel.Tracer(name).Start(ctx, name)
+		childCtx = coacontexts.InheritActivityLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = coacontexts.InheritDiagnosticLogContextFromOriginalContext(ctx, childCtx)
+		childCtx = populateSpanContextToDiagnosticLogContext(childSpan, childCtx)
 		setSpanAttributes(childSpan, attributes)
 		return childCtx, childSpan
 	}
 }
+
 func setSpanAttributes(span trace.Span, attributes *map[string]string) {
 	if attributes != nil {
 		for k, v := range *attributes {
@@ -69,13 +129,16 @@ func setSpanAttributes(span trace.Span, attributes *map[string]string) {
 		}
 	}
 }
+
 func EndSpan(ctx context.Context) {
 	span := trace.SpanFromContext(ctx)
 	span.End()
+	coacontexts.ClearTraceAndSpanFromDiagnosticLogContext(&ctx)
 }
+
 func (o *Observability) Init(config ObservabilityConfig) error {
 	for _, p := range config.Pipelines {
-		err := o.createPipeline(p)
+		err := o.createPipeline(p, config.ServiceName)
 		if err != nil {
 			return err
 		}
@@ -84,22 +147,22 @@ func (o *Observability) Init(config ObservabilityConfig) error {
 	otel.SetTextMapPropagator(propagator)
 	return nil
 }
-func (o *Observability) createPipeline(config PipelineConfig) error {
-	err := o.createExporter(config.Exporter)
+func (o *Observability) createPipeline(config PipelineConfig, serviceName string) error {
+	err := o.createExporter(config.Exporter, serviceName)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (o *Observability) createExporter(config ExporterConfig) error {
+func (o *Observability) createExporter(config ExporterConfig, serviceName string) error {
 	var exporter sdktrace.SpanExporter
 	var err error
 	switch config.Type {
 	case v1alpha2.TracingExporterConsole:
 		if o.Buffer == nil {
-			exporter, err = exporters.NewConsoleExporter(nil)
+			exporter, err = exporters.NewTraceConsoleExporter(nil)
 		} else {
-			exporter, err = exporters.NewConsoleExporter(o.Buffer)
+			exporter, err = exporters.NewTraceConsoleExporter(o.Buffer)
 		}
 		if err != nil {
 			return err
@@ -120,7 +183,380 @@ func (o *Observability) createExporter(config ExporterConfig) error {
 		sdktrace.WithSpanProcessor(batcher),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("Symphony API"),
+			semconv.ServiceNameKey.String(serviceName),
+			populateMicrosoftResourceId(),
 		))))
 	return nil
+}
+
+func (o *Observability) InitTrace(config ObservabilityConfig) error {
+	var traceExporters []sdktrace.TracerProviderOption
+	var exporter sdktrace.SpanExporter
+	var err error
+
+	for _, p := range config.Pipelines {
+		switch p.Exporter.Type {
+		case v1alpha2.TracingExporterConsole:
+			if o.Buffer == nil {
+				exporter, err = exporters.NewTraceConsoleExporter(nil)
+			} else {
+				exporter, err = exporters.NewTraceConsoleExporter(o.Buffer)
+			}
+			if err != nil {
+				return err
+			}
+
+			batcher := sdktrace.NewBatchSpanProcessor(exporter)
+
+			traceExporters = append(
+				traceExporters,
+				sdktrace.WithSpanProcessor(batcher),
+			)
+		case v1alpha2.TracingExporterZipkin:
+			exporter, err = exporters.NewZipkinExporter(p.Exporter.BackendUrl, p.Exporter.Sampler.SampleRate)
+			if err != nil {
+				return err
+			}
+
+			batcher := sdktrace.NewBatchSpanProcessor(exporter)
+
+			traceExporters = append(
+				traceExporters,
+				sdktrace.WithSpanProcessor(batcher),
+			)
+		case v1alpha2.TracingExporterOTLPgRPC:
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				time.Second*defaultExporterTimeout,
+			)
+			defer cancel()
+
+			var otlptracegrpcOptions []otlptracegrpc.Option
+			otlptracegrpcOptions = append(
+				otlptracegrpcOptions,
+				otlptracegrpc.WithEndpoint(p.Exporter.CollectorUrl),
+			)
+
+			if p.Exporter.InsecureEndpoint {
+				otlptracegrpcOptions = append(
+					otlptracegrpcOptions,
+					otlptracegrpc.WithInsecure(),
+				)
+			} else {
+				var credentials credentials.TransportCredentials
+				credentials, err = GetTLSCredentialsForGRPCExporter(p.Exporter.ServerCAFilePath, p.Exporter.ClientAuth)
+				if err != nil {
+					return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+				}
+				otlptracegrpcOptions = append(
+					otlptracegrpcOptions,
+					otlptracegrpc.WithTLSCredentials(credentials),
+				)
+			}
+
+			te, err := otlptracegrpc.New(
+				ctx,
+				otlptracegrpcOptions...,
+			)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+			}
+
+			traceExporters = append(
+				traceExporters,
+				sdktrace.WithBatcher(te),
+			)
+		default:
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("exporter type '%s' is not supported", p.Exporter.Type), v1alpha2.BadConfig)
+		}
+	}
+
+	sdkTraceOpts := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
+			),
+		),
+	}
+	sdkTraceOpts = append(
+		sdkTraceOpts,
+		traceExporters...,
+	)
+
+	traceProvider := sdktrace.NewTracerProvider(
+		sdkTraceOpts...,
+	)
+
+	otel.SetTracerProvider(traceProvider)
+
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
+	otel.SetTextMapPropagator(propagator)
+
+	// temporary solution to clean up the meter provider until we have hooks for shutdown sequence in symphony
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		<-sigChan
+
+		traceProvider.Shutdown(context.Background())
+	}()
+
+	return nil
+}
+
+func (o *Observability) InitLog(config ObservabilityConfig) error {
+	var logExporters []sdklog.LoggerProviderOption
+	var exporter sdklog.Exporter
+	var err error
+	for _, p := range config.Pipelines {
+		switch p.Exporter.Type {
+		case v1alpha2.LogExporterConsole:
+			if o.Buffer == nil {
+				exporter, err = exporters.NewLogConsoleExporter(nil)
+			} else {
+				exporter, err = exporters.NewLogConsoleExporter(o.Buffer)
+			}
+			if err != nil {
+				return err
+			}
+
+		case v1alpha2.LogExporterOTLPgRPC:
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				time.Second*defaultExporterTimeout,
+			)
+			defer cancel()
+
+			var otelloggrpcOptions []otlploggrpc.Option
+			otelloggrpcOptions = append(
+				otelloggrpcOptions,
+				otlploggrpc.WithEndpoint(p.Exporter.CollectorUrl),
+			)
+
+			if p.Exporter.InsecureEndpoint {
+				otelloggrpcOptions = append(
+					otelloggrpcOptions,
+					otlploggrpc.WithInsecure(),
+				)
+			} else {
+				var credentials credentials.TransportCredentials
+				credentials, err = GetTLSCredentialsForGRPCExporter(p.Exporter.ServerCAFilePath, p.Exporter.ClientAuth)
+				if err != nil {
+					return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+				}
+				otelloggrpcOptions = append(
+					otelloggrpcOptions,
+					otlploggrpc.WithTLSCredentials(credentials),
+				)
+			}
+
+			exporter, err = otlploggrpc.New(
+				ctx,
+				otelloggrpcOptions...,
+			)
+
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+			}
+
+		case v1alpha2.LogExporterOTLPhTTP:
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				time.Second*defaultExporterTimeout,
+			)
+			defer cancel()
+
+			var otelloghttpOptions []otlploghttp.Option
+			otelloghttpOptions = append(
+				otelloghttpOptions,
+				otlploghttp.WithEndpointURL(p.Exporter.CollectorUrl),
+			)
+
+			if p.Exporter.InsecureEndpoint {
+				otelloghttpOptions = append(
+					otelloghttpOptions,
+					otlploghttp.WithInsecure(),
+				)
+			} else {
+				var credentials *tls.Config
+				credentials, err = GetTLSCredentialsForHTTPExporter(p.Exporter.ServerCAFilePath, p.Exporter.ClientAuth)
+				if err != nil {
+					return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+				}
+				otelloghttpOptions = append(
+					otelloghttpOptions,
+					otlploghttp.WithTLSClientConfig(credentials),
+				)
+			}
+
+			exporter, err = otlploghttp.New(
+				ctx,
+				otelloghttpOptions...,
+			)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+			}
+		default:
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("exporter type '%s' is not supported", p.Exporter.Type), v1alpha2.BadConfig)
+		}
+	}
+
+	batcher := sdklog.NewBatchProcessor(exporter)
+	logExporters = append(
+		logExporters,
+		sdklog.WithProcessor(batcher),
+	)
+	sdkLogOpts := []sdklog.LoggerProviderOption{
+		sdklog.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
+			),
+		),
+	}
+	sdkLogOpts = append(sdkLogOpts, logExporters...)
+	logProvider := sdklog.NewLoggerProvider(
+		sdkLogOpts...,
+	)
+
+	global.SetLoggerProvider(logProvider)
+
+	return nil
+}
+
+func (o *Observability) InitMetric(config ObservabilityConfig) error {
+	var metricExporters []sdkmetric.Option
+
+	for _, p := range config.Pipelines {
+		switch p.Exporter.Type {
+		case v1alpha2.MetricsExporterOTLPgRPC:
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				time.Second*defaultExporterTimeout,
+			)
+			defer cancel()
+
+			var otlpmetricgrpcOptions []otlpmetricgrpc.Option
+
+			otlpmetricgrpcOptions = append(
+				otlpmetricgrpcOptions,
+				otlpmetricgrpc.WithEndpoint(p.Exporter.CollectorUrl),
+			)
+
+			if p.Exporter.InsecureEndpoint {
+				otlpmetricgrpcOptions = append(
+					otlpmetricgrpcOptions,
+					otlpmetricgrpc.WithInsecure(),
+				)
+			} else {
+				var credentials credentials.TransportCredentials
+				credentials, err := GetTLSCredentialsForGRPCExporter(p.Exporter.ServerCAFilePath, p.Exporter.ClientAuth)
+				if err != nil {
+					return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+				}
+				otlpmetricgrpcOptions = append(
+					otlpmetricgrpcOptions,
+					otlpmetricgrpc.WithTLSCredentials(credentials),
+				)
+			}
+
+			if p.Exporter.Temporality {
+				otlpmetricgrpcOptions = append(
+					otlpmetricgrpcOptions,
+					otlpmetricgrpc.WithTemporalitySelector(genevaTemporality),
+				)
+			}
+
+			exporter, err := otlpmetricgrpc.New(
+				ctx,
+				otlpmetricgrpcOptions...,
+			)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, err.Error(), v1alpha2.BadConfig)
+			}
+
+			metricExporters = append(
+				metricExporters,
+				sdkmetric.WithReader(sdkmetric.NewPeriodicReader(
+					exporter,
+					sdkmetric.WithInterval(1*time.Second),
+				)),
+			)
+		default:
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("exporter type '%s' is not supported", p.Exporter.Type), v1alpha2.BadConfig)
+		}
+	}
+
+	sdkMetricOpts := []sdkmetric.Option{
+		sdkmetric.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(config.ServiceName),
+				populateMicrosoftResourceId(),
+				populateChartVersion(),
+			),
+		),
+	}
+	sdkMetricOpts = append(sdkMetricOpts, metricExporters...)
+
+	meterProvider := sdkmetric.NewMeterProvider(
+		// TODO: perhaps adding some k8s information here
+		sdkMetricOpts...,
+	)
+
+	otel.SetMeterProvider(meterProvider)
+
+	return nil
+}
+
+func (o *Observability) Shutdown(ctx context.Context) error {
+	if mp, ok := otel.GetMeterProvider().(v1alpha2.Terminable); ok {
+		return mp.Shutdown(ctx)
+	}
+	if tp, ok := otel.GetTracerProvider().(v1alpha2.Terminable); ok {
+		return tp.Shutdown(ctx)
+	}
+	if tp, ok := global.GetLoggerProvider().(v1alpha2.Terminable); ok {
+		return tp.Shutdown(ctx)
+	}
+	return nil
+}
+
+// Geneva only supports delta temporality.
+func genevaTemporality(ik sdkmetric.InstrumentKind) metricdata.Temporality {
+	switch ik {
+	case sdkmetric.InstrumentKindUpDownCounter,
+		sdkmetric.InstrumentKindObservableUpDownCounter:
+		return metricdata.CumulativeTemporality
+	default:
+		return metricdata.DeltaTemporality
+	}
+}
+
+func populateMicrosoftResourceId() attribute.KeyValue {
+	rid, ok := os.LookupEnv("EXTENSION_RESOURCEID")
+	if !ok {
+		return attribute.KeyValue{}
+	}
+
+	return attribute.KeyValue{
+		Key:   "microsoft.resourceId",
+		Value: attribute.StringValue(rid),
+	}
+}
+
+func populateChartVersion() attribute.KeyValue {
+	chartVersion, ok := os.LookupEnv("CHART_VERSION")
+	if !ok {
+		return attribute.KeyValue{}
+	}
+
+	return attribute.KeyValue{
+		Key:   "chart_version",
+		Value: attribute.StringValue(chartVersion),
+	}
 }

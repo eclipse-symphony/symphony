@@ -1,0 +1,22 @@
+{
+    "type": "middleware.http.log",
+    "properties": {
+      "serviceName": "symphony-api",
+      "pipelines": [
+        {{- if .Values.otlpLogsEndpointGrpc }}
+        {
+          "exporter": {
+            "type": "log.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.otlpLogsEndpointGrpc $ }}",
+            {{- if eq .Values.otlpInsecureGrpc true }}
+            "insecureEndpoint": true
+            {{- else }}
+            "insecureEndpoint": false,
+            "serverCAFilePath": "/certs/root-certs.pem"
+            {{- end }}
+          }
+        }
+        {{- end }}
+      ]
+    }
+  }

@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"dev.azure.com/msazure/One/_git/symphony.git/test/integration/lib/testhelpers"
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,54 +54,58 @@ var (
 
 var (
 	// Manifest templates
-	manifestTemplates = map[string]string{
-		"target":   fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
-		"instance": fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
-		"solution": fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, "oss"),
+	containerManifestTemplates = []string{
+		fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
+	}
+
+	manifestTemplates = []string{
+		fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
+		fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, "oss"),
+		fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
 	}
 
 	// Manifests to deploy
-	testManifests = map[string]string{
-		"target":   fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, "oss"),
-		"instance": fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, "oss"),
-		"solution": fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, "oss"),
+	testManifests = []string{
+		fmt.Sprintf("%s/%s/target.yaml", testManifestsFolder, "oss"),
+		fmt.Sprintf("%s/%s/solution.yaml", testManifestsFolder, "oss"),
+		fmt.Sprintf("%s/%s/instance.yaml", testManifestsFolder, "oss"),
 	}
 
 	testCases = []TestCase{
 		{
-			Name:                "Initial Symphony Target Deployment",
+			Name:                "Initial Symphony Target Deployment with nginx ingress",
 			Target:              "target",
-			ComponentsToAdd:     []string{"e4k", "e4k-broker"},
-			PodsToVerify:        []string{"azedge-dmqtt-backend", "azedge-dmqtt-frontend"},
+			ComponentsToAdd:     []string{"nginx-ingress"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Target to add bluefin-extension",
+			Name:                "Update Symphony Target to add redis",
 			Target:              "target",
-			ComponentsToAdd:     []string{"e4k", "e4k-broker", "bluefin-extension"},
-			PodsToVerify:        []string{"azedge-dmqtt-backend", "azedge-dmqtt-frontend", "bluefin-operator-controller"},
+			ComponentsToAdd:     []string{"nginx-ingress", "redis"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Solution to add bluefin-instance and bluefin-pipeline",
+			Name:                "Update Symphony Solution to add bitnami nginx",
 			Target:              "solution",
-			ComponentsToAdd:     []string{"bluefin-instance", "bluefin-pipeline"},
-			PodsToVerify:        []string{"azedge-dmqtt-backend", "azedge-dmqtt-frontend", "bluefin-operator-controller", "bluefin-scheduler-0", "bluefin-runner-worker-0"},
+			ComponentsToAdd:     []string{"bitnami-nginx"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "nginx"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Solution to remove bluefin-instance and bluefin-pipeline",
+			Name:                "Update Symphony Solution to remove bitnami nginx and add prometheus",
 			Target:              "solution",
-			ComponentsToAdd:     []string{},
-			PodsToVerify:        []string{"azedge-dmqtt-backend", "azedge-dmqtt-frontend", "bluefin-operator-controller"},
-			DeletedPodsToVerify: []string{"bluefin-scheduler-0", "bluefin-runner-worker-0"},
+			ComponentsToAdd:     []string{"prometheus-server"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "instance"},
+			DeletedPodsToVerify: []string{"nginx"},
 		},
 		{
-			Name:                "Update Symphony Target to remove bluefin-extension and e4k",
+			Name:                "Update Symphony Target to remove nginx ingress and redis",
 			Target:              "target",
 			ComponentsToAdd:     []string{},
 			PodsToVerify:        []string{},
-			DeletedPodsToVerify: []string{"azedge-dmqtt-backend", "azedge-dmqtt-frontend", "bluefin-operator-controller"},
+			DeletedPodsToVerify: []string{"proxy-nginx-ingress-controller", "target-runtime-self"},
 		},
 	}
 )
@@ -121,6 +125,19 @@ func TestScenario_Update_AllNamespaces(t *testing.T) {
 }
 
 func Scenario_Update(t *testing.T, namespace string) {
+	// Deploy base manifests
+	for _, manifest := range containerManifestTemplates {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+		require.NoError(t, err)
+	}
+	for _, manifest := range manifestTemplates {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+		require.NoError(t, err)
+	}
 	for _, test := range testCases {
 		fmt.Printf("[Test case]: %s\n", test.Name)
 
@@ -130,14 +147,16 @@ func Scenario_Update(t *testing.T, namespace string) {
 			fmt.Sprintf("%s/%s", testManifestsFolder, "oss"), test.Target, test.ComponentsToAdd)
 		require.NoError(t, err)
 
-		// Deploy the manifests
-		for k, manifest := range testManifests {
+		// Deploy the modified manifests
+		for _, manifest := range testManifests {
 			fullPath, err := filepath.Abs(manifest)
 			require.NoError(t, err)
-			// if file doesn't exist in temporary test folder, deploy its template
+			// skip deploying unchanged manifest to test instance Watch logic
+			// i.e. target and solution changes should trigger instance reconciler
 			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-				fullPath, err = filepath.Abs(manifestTemplates[k])
-				require.NoError(t, err)
+				continue
+				// fullPath, err = filepath.Abs(manifestTemplates[k])
+				// require.NoError(t, err)
 			}
 			err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
 			require.NoError(t, err)
@@ -231,7 +250,7 @@ func verifyPodsExist(t *testing.T, test TestCase, toFind []string) {
 	for {
 		i++
 		// List all pods in the namespace
-		pods, err := kubeClient.CoreV1().Pods("alice-springs").List(context.Background(), metav1.ListOptions{})
+		pods, err := kubeClient.CoreV1().Pods("test-scope").List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		// Verify that the pods we expect are running
@@ -275,7 +294,7 @@ func verifyPodsDeleted(t *testing.T, test TestCase, toFind []string) {
 	for {
 		i++
 		// List all pods in the namespace
-		pods, err := kubeClient.CoreV1().Pods("alice-springs").List(context.Background(), metav1.ListOptions{})
+		pods, err := kubeClient.CoreV1().Pods("test-scope").List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
 		// Verify that the pods we expect are deleted
@@ -283,7 +302,7 @@ func verifyPodsDeleted(t *testing.T, test TestCase, toFind []string) {
 		for _, s := range toFind {
 			found := false
 			for _, pod := range pods.Items {
-				if strings.Contains(pod.Name, s) {
+				if strings.HasPrefix(pod.Name, s) {
 					found = true
 					break
 				}

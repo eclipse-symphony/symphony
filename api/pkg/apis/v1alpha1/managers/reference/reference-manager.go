@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -48,7 +49,7 @@ func (s *ReferenceManager) Init(context *contexts.VendorContext, config managers
 		return err
 	}
 
-	stateProvider, err := managers.GetStateProvider(config, providers)
+	stateProvider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateProvider
 	} else {
@@ -219,7 +220,8 @@ func (s *ReferenceManager) Get(refType string, id string, namespace string, grou
 		ID: entityId,
 	})
 	if err == nil {
-		data, _ := json.Marshal(entity.Body)
+		var data []byte
+		data, err = json.Marshal(entity.Body)
 		cachedItem := CachedItem{}
 		if err == nil {
 			err := json.Unmarshal(data, &cachedItem)
@@ -319,14 +321,14 @@ func getParameterMap(data []byte, skill string, alias string) (map[string]string
 	if err == nil {
 		coll := params.(map[string]interface{})
 		for k, p := range coll {
-			dict[k] = p.(string)
+			dict[k] = utils.FormatAsString(p)
 		}
 	}
 	params, err = jsonpath.JsonPathLookup(obj, "$.spec.parameters")
 	if err == nil {
 		coll := params.(map[string]interface{})
 		for k, p := range coll {
-			dict[k] = p.(string)
+			dict[k] = utils.FormatAsString(p)
 		}
 	}
 	if skill != "" && alias != "" {

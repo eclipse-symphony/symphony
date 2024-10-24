@@ -1,6 +1,8 @@
-module dev.azure.com/msazure/One/_git/symphony.git/localenv
+module github.com/eclipse-symphony/symphony/test/localenv
 
-go 1.20
+go 1.22.4
+
+toolchain go1.22.6
 
 require (
 	github.com/magefile/mage v1.14.0

@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: scheduled-campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: scheduled-campaign-v-v1
 spec:
+  rootResource: scheduled-campaign
   firstStage: "stage1"
   selfDriving: true
   stages:
@@ -13,10 +20,7 @@ spec:
       contexts: "tokyo"
       inputs:
         operation: mock
-      schedule:
-        date: "2023-10-23"
-        time: "1:40:00PM"
-        zone: "America/Los_Angeles"
+      schedule: "2023-10-23T21:40:00-08:00"
     stage2:
       name: "stage2"
       provider: "providers.stage.remote"      
@@ -24,10 +28,7 @@ spec:
       contexts: "tokyo"
       inputs:
         operation: mock
-      schedule:
-        date: "2023-10-23"
-        time: "1:40:20PM"
-        zone: "America/Los_Angeles"
+      schedule: "2023-10-23T21:40:20-08:00"
     stage3:
       name: "stage3"
       provider: "providers.stage.remote"      
@@ -35,7 +36,4 @@ spec:
       contexts: "tokyo"
       inputs:
         operation: mock
-      schedule:
-        date: "2023-10-23"
-        time: "1:41:00PM"
-        zone: "America/Los_Angeles"
+      schedule: "2023-10-23T21:41:00-08:00"

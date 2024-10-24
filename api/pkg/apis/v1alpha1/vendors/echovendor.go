@@ -9,6 +9,7 @@ package vendors
 import (
 	"sync"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -42,15 +43,18 @@ func (e *EchoVendor) GetMessages() []string {
 func (e *EchoVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	e.myMessages = make([]string, 0)
-	e.Vendor.Context.Subscribe("trace", func(topic string, event v1alpha2.Event) error {
-		e.lock.Lock()
-		defer e.lock.Unlock()
-		msg := event.Body.(string)
-		e.myMessages = append(e.myMessages, msg)
-		if len(e.myMessages) > 20 {
-			e.myMessages = e.myMessages[1:]
-		}
-		return nil
+	e.Vendor.Context.Subscribe("trace", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			e.lock.Lock()
+			defer e.lock.Unlock()
+			msg := utils.FormatAsString(event.Body)
+			e.myMessages = append(e.myMessages, msg)
+			if len(e.myMessages) > 20 {
+				e.myMessages = e.myMessages[1:]
+			}
+			return nil
+		},
+		Group: "echo",
 	})
 	if err != nil {
 		return err
@@ -74,7 +78,7 @@ func (o *EchoVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Echo Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Echo Vendor", request.Context, &map[string]string{
 		"method": "onHello",
 	})
 	defer span.End()
@@ -92,12 +96,13 @@ func (c *EchoVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		resp := v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        []byte(message),
-			ContentType: "application/text",
+			ContentType: "text/plain",
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, resp)
 	case fasthttp.MethodPost:
 		c.Vendor.Context.Publish("trace", v1alpha2.Event{
-			Body: string(request.Body),
+			Body:    string(request.Body),
+			Context: ctx,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

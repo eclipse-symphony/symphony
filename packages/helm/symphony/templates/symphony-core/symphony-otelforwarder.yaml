@@ -1,0 +1,112 @@
+{{- if and .Values.otlpLogsEndpointGrpc .Values.observability.otelForwarder.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-config
+  namespace: {{ .Release.Namespace }}
+data:
+  otel-forwarder-config.yaml: |-
+    {{ tpl (.Files.Get "files/otel-forwarder-config.yaml") . | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder
+  labels:
+    app: {{ include "symphony.appSelector" . }}-otel-forwarder
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "symphony.appSelector" . }}-otel-forwarder
+  template:
+    metadata:
+      labels:
+        app: {{ include "symphony.appSelector" . }}-otel-forwarder
+    spec:
+      # read prometheus metrics from manager and exports to mdm
+      containers:
+        - name: otel-collector
+          image: "{{ .Values.observability.otelForwarder.image }}"
+          command: ["/otelcol-contrib", "--config=/conf/otel-forwarder-config.yaml"]
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+            requests:
+              cpu: "200m"
+              memory: "400Mi"
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: otel-collector-conf
+              mountPath: /conf
+            - name: varlog
+              mountPath: /var/log
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            {{- if (not .Values.otlpInsecureGrpc) }}
+            - name: trust-bundle
+              mountPath: "/certs"
+              readOnly: true
+            {{- end }}
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: '{{ include "symphony.fullname" . }}-otel-forwarder'
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: otel-collector-conf
+          configMap:
+            name: {{ include "symphony.fullname" . }}-otel-forwarder-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        {{- if (not .Values.otlpInsecureGrpc) }}
+        - name: trust-bundle
+          configMap:
+            name : {{ .Values.observability.tls.caBundleConfigMap }}
+        {{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-clusterrole
+rules:
+- apiGroups: [""]
+  resources: ["pods", "namespaces", "nodes"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: {{ include "symphony.fullname" . }}-otel-forwarder
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "symphony.fullname" . }}-otel-forwarder-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

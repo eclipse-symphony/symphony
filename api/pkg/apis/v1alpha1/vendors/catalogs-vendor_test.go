@@ -13,6 +13,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -25,22 +26,20 @@ import (
 
 var catalogState = model.CatalogState{
 	ObjectMeta: model.ObjectMeta{
-		Name: "name1",
+		Name: "name1-v-v1",
 	},
 	Spec: &model.CatalogSpec{
-		SiteId: "site1",
-		Name:   "name1",
-		Type:   "catalog",
+		CatalogType: "catalog",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",
 		},
-		ParentName: "parent1",
-		Generation: "1",
+		//ParentName: "parent1",
 		Metadata: map[string]string{
 			"metadata1": "value1",
 			"metadata2": "value2",
 		},
+		RootResource: "name1",
 	},
 }
 
@@ -54,21 +53,20 @@ func CreateSimpleChain(root string, length int, CTManager catalogs.CatalogsManag
 	json.Unmarshal(jData, &newCatalog)
 
 	newCatalog.ObjectMeta.Name = root
-	newCatalog.Spec.Name = root
 	newCatalog.Spec.ParentName = ""
-	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
+	newCatalog.Spec.RootResource = validation.GetRootResourceFromName(root)
+	err := CTManager.UpsertState(context.Background(), newCatalog.ObjectMeta.Name, newCatalog)
 	if err != nil {
 		return err
 	}
 	for i := 1; i < length; i++ {
-		tmp := newCatalog.Spec.Name
+		tmp := newCatalog.ObjectMeta.Name
 		var childCatalog model.CatalogState
 		jData, _ := json.Marshal(newCatalog)
 		json.Unmarshal(jData, &childCatalog)
-		childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, i)
+		childCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, i)
 		childCatalog.Spec.ParentName = tmp
-		childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
-		err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
+		err := CTManager.UpsertState(context.Background(), childCatalog.ObjectMeta.Name, childCatalog)
 		if err != nil {
 			return err
 		}
@@ -86,10 +84,10 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager catalogs.CatalogsM
 	jData, _ := json.Marshal(catalog)
 	json.Unmarshal(jData, &newCatalog)
 
-	newCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, 0)
-	newCatalog.ObjectMeta.Name = newCatalog.Spec.Name
+	newCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, 0)
 	newCatalog.Spec.ParentName = ""
-	err := CTManager.UpsertState(context.Background(), newCatalog.Spec.Name, newCatalog)
+	newCatalog.Spec.RootResource = validation.GetRootResourceFromName(root)
+	err := CTManager.UpsertState(context.Background(), newCatalog.ObjectMeta.Name, newCatalog)
 	if err != nil {
 		return err
 	}
@@ -101,10 +99,9 @@ func CreateSimpleBinaryTree(root string, depth int, CTManager catalogs.CatalogsM
 			var childCatalog model.CatalogState
 			jData, _ := json.Marshal(newCatalog)
 			json.Unmarshal(jData, &childCatalog)
-			childCatalog.Spec.Name = fmt.Sprintf("%s-%d", root, count)
-			childCatalog.ObjectMeta.Name = childCatalog.Spec.Name
+			childCatalog.ObjectMeta.Name = fmt.Sprintf("%s-%d", root, count)
 			childCatalog.Spec.ParentName = fmt.Sprintf("%s-%d", root, parentIndex)
-			err := CTManager.UpsertState(context.Background(), childCatalog.Spec.Name, childCatalog)
+			err := CTManager.UpsertState(context.Background(), childCatalog.ObjectMeta.Name, childCatalog)
 			if err != nil {
 				return err
 			}
@@ -136,7 +133,7 @@ func CatalogVendorInit() CatalogsVendor {
 				Name: "catalog-manager",
 				Type: "managers.symphony.catalogs",
 				Properties: map[string]string{
-					"providers.state": "StateProvider",
+					"providers.persistentstate": "StateProvider",
 				},
 			},
 		},
@@ -160,11 +157,12 @@ func TestCatalogGetEndpoints(t *testing.T) {
 	vendor := CatalogVendorInit()
 	endpoints := vendor.GetEndpoints()
 	assert.NotNil(t, endpoints)
-	assert.Equal(t, "catalogs/check", endpoints[len(endpoints)-1].Route)
+	assert.Equal(t, "catalogs/status", endpoints[len(endpoints)-1].Route)
 }
 
 func TestCatalogOnCheck(t *testing.T) {
 	vendor := CatalogVendorInit()
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
@@ -179,14 +177,11 @@ func TestCatalogOnCheck(t *testing.T) {
 
 	var catalogState = model.CatalogState{
 		Spec: &model.CatalogSpec{
-			SiteId: "site1",
-			Type:   "catalog",
+			CatalogType: "catalog",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
 			},
-			ParentName: "parent1",
-			Generation: "1",
 			Metadata: map[string]string{
 				"metadata1": "value1",
 				"metadata2": "value2",
@@ -196,23 +191,34 @@ func TestCatalogOnCheck(t *testing.T) {
 	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
-	// The check should fail. This is a bug
+
 	response = vendor.onCheck(*requestPost)
-	assert.Equal(t, v1alpha2.OK, response.State)
+	assert.Equal(t, v1alpha2.BadRequest, response.State)
+	assert.Contains(t, string(response.Body), "rootResource must be a non-empty string")
 
 	requestPost.Body = []byte("Invalid input")
 	response = vendor.onCheck(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.Spec.Metadata = map[string]string{
-		"schema": "EmailCheckSchema",
+	catalogState = model.CatalogState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "test1-v-v1",
+			Namespace: "default",
+		},
+		Spec: &model.CatalogSpec{
+			CatalogType: "config",
+			Metadata: map[string]string{
+				"schema": "emailcheckschema:v1",
+			},
+			RootResource: "test1",
+		},
 	}
 	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	response = vendor.onCheck(*requestPost)
-	assert.Equal(t, v1alpha2.InternalError, response.State)
+	assert.Equal(t, v1alpha2.BadRequest, response.State)
+	assert.Contains(t, string(response.Body), "could not find the required schema")
 
 	schema := utils.Schema{
 		Rules: map[string]utils.Rule{
@@ -221,27 +227,28 @@ func TestCatalogOnCheck(t *testing.T) {
 			},
 		},
 	}
-	catalogState.Spec.Properties = map[string]interface{}{
-		"spec": schema,
+	schemaCatalog := model.CatalogState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "emailcheckschema-v-v1",
+			Namespace: "default",
+		},
+		Spec: &model.CatalogSpec{
+			CatalogType: "schema",
+			Properties: map[string]interface{}{
+				"spec": schema,
+			},
+			RootResource: "emailcheckschema",
+		},
 	}
-	catalogState.Spec.Name = "EmailCheckSchema"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
-	catalogState.Spec.ParentName = ""
-	catalogState.Spec.Metadata = nil
-	b, err = json.Marshal(catalogState)
+	b, err = json.Marshal(schemaCatalog)
 	assert.Nil(t, err)
 	requestPost.Body = b
 	requestPost.Parameters = map[string]string{
-		"__name": catalogState.ObjectMeta.Name,
+		"__name": schemaCatalog.ObjectMeta.Name,
 	}
 	response = vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.OK, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
-	catalogState.Spec.Metadata = map[string]string{
-		"schema": "EmailCheckSchema",
-	}
 	b, err = json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -266,20 +273,19 @@ func TestCatalogOnCheckNotSupport(t *testing.T) {
 
 func TestCatalogOnCatalogsGet(t *testing.T) {
 	vendor := CatalogVendorInit()
-
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "name1-v-v1",
 		},
 	}
 
 	response := vendor.onCatalogs(*requestGet)
 	assert.Equal(t, v1alpha2.NotFound, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
+	catalogState.ObjectMeta.Name = "name1-v-v1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
@@ -300,7 +306,7 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	var summary model.CatalogState
 	err = json.Unmarshal(response.Body, &summary)
 	assert.Nil(t, err)
-	assert.Equal(t, catalogState.Spec.Name, summary.Spec.Name)
+	assert.Equal(t, catalogState.ObjectMeta.Name, summary.ObjectMeta.Name)
 
 	requestGet.Parameters = nil
 	response = vendor.onCatalogs(*requestGet)
@@ -309,26 +315,25 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(summarys))
-	assert.Equal(t, catalogState.Spec.Name, summarys[0].Spec.Name)
+	assert.Equal(t, catalogState.ObjectMeta.Name, summarys[0].ObjectMeta.Name)
 }
 
 func TestCatalogOnCatalogsPost(t *testing.T) {
 	vendor := CatalogVendorInit()
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 		Body:    []byte("wrongObject"),
 		Parameters: map[string]string{
-			"__name": catalogState.Spec.Name,
+			"__name": catalogState.ObjectMeta.Name,
 		},
 	}
 
 	response := vendor.onCatalogs(*requestPost)
 	assert.Equal(t, v1alpha2.InternalError, response.State)
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -346,7 +351,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "name1-v-v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -354,12 +359,14 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 	var summarys model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, catalogState.Spec.Name, summarys.Spec.Name)
+	assert.Equal(t, catalogState.ObjectMeta.Name, summarys.ObjectMeta.Name)
 }
 
 func TestCatalogOnCatalogsDelete(t *testing.T) {
 	vendor := CatalogVendorInit()
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
+	catalogState.ObjectMeta.Name = "name1-v-v1"
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
@@ -368,8 +375,6 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		},
 	}
 
-	catalogState.Spec.Name = "test1"
-	catalogState.ObjectMeta.Name = catalogState.Spec.Name
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost.Body = b
@@ -386,7 +391,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodDelete,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "name1-v-v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestDelete)
@@ -396,7 +401,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "test1",
+			"__name": "name1-v-v1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -420,6 +425,7 @@ func TestCatalogOnCatalogsNotSupport(t *testing.T) {
 
 func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 	vendor := CatalogVendorInit()
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -429,19 +435,20 @@ func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 		},
 	}
 
-	catalogState.Spec.Type = "config"
-	err := CreateSimpleChain("root", 4, *vendor.CatalogsManager, catalogState)
+	catalogState.Spec.CatalogType = "config"
+	err := CreateSimpleChain("root-v-v1", 4, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
 	response := vendor.onCatalogsGraph(*requestGet)
 	var summarys map[string][]model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, 4, len(summarys["root"]))
+	assert.Equal(t, 4, len(summarys["root-v-v1"]))
 }
 
 func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
 	vendor := CatalogVendorInit()
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -451,15 +458,15 @@ func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
 		},
 	}
 
-	catalogState.Spec.Type = "asset"
-	err := CreateSimpleBinaryTree("root", 3, *vendor.CatalogsManager, catalogState)
+	catalogState.Spec.CatalogType = "asset"
+	err := CreateSimpleBinaryTree("root-v-v1", 3, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
 	response := vendor.onCatalogsGraph(*requestGet)
 	var summarys map[string][]model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, 7, len(summarys["root-0"]))
+	assert.Equal(t, 7, len(summarys["root-v-v1-0"]))
 }
 
 func TestCatalogOnCatalogsGraphGetUnknownTemplate(t *testing.T) {
@@ -494,10 +501,12 @@ func TestCatalogOnCatalogsGraphMethodNotAllowed(t *testing.T) {
 
 func TestCatalogSubscribe(t *testing.T) {
 	vendor := CatalogVendorInit()
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+
 	origin := "parent"
 	vendor.Context.Publish("catalog-sync", v1alpha2.Event{
 		Metadata: map[string]string{
-			"objectType": catalogState.Spec.Type,
+			"objectType": catalogState.Spec.CatalogType,
 			"origin":     origin,
 		},
 		Body: v1alpha2.JobData{
@@ -511,7 +520,7 @@ func TestCatalogSubscribe(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": fmt.Sprintf("%s-%s", origin, catalogState.Spec.Name),
+			"__name": fmt.Sprintf("%s-%s", origin, catalogState.ObjectMeta.Name),
 		},
 	}
 	response := vendor.onCatalogs(*requestGet)

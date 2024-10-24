@@ -3,8 +3,7 @@ kind: Activation
 metadata:
   name: mock-activation
 spec:
-  campaign: "mock-campaign"
-  name: "mock-activation"
+  campaign: "mock-campaign:v1"
   stage: ""
   inputs:
     foo: 0

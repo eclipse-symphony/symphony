@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
+	"sigs.k8s.io/yaml"
 )
 
 func createDevicesVendor() DevicesVendor {
@@ -48,7 +49,7 @@ func TestDevicesVendorInit(t *testing.T) {
 				Name: "devices-manager",
 				Type: "managers.symphony.devices",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -125,7 +126,7 @@ func TestPostAndGet(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, res.State)
 	var state model.DeviceState
 
-	err = json.Unmarshal(res.Body, &state)
+	err = yaml.Unmarshal(res.Body, &state)
 	assert.Nil(t, err)
 	equal, err := deviceState.DeepEquals(state)
 	assert.Nil(t, err)

@@ -47,7 +47,7 @@ func createStageVendor() StageVendor {
 				Name: "stage-manager",
 				Type: "managers.symphony.stage",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -60,7 +60,7 @@ func createStageVendor() StageVendor {
 				Name: "campaigns-manager",
 				Type: "managers.symphony.campaigns",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -73,7 +73,7 @@ func createStageVendor() StageVendor {
 				Name: "activations-manager",
 				Type: "managers.symphony.activations",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -196,5 +196,5 @@ func createStageVendor() StageVendor {
 // 	assert.NotNil(t, activation)
 // 	assert.Equal(t, "test-activation", activation.Id)
 // 	assert.NotNil(t, activation.Status.UpdateTime)
-// 	assert.Equal(t, v1alpha2.Done, activation.Status.Status)
+//  assert.True(t, v1alpha2.Done.EqualsWithString(activation.Status.Status))
 // }

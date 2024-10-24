@@ -30,19 +30,13 @@ func TestIntefaceConvertion(t *testing.T) {
 }
 func TestCatalogMatch(t *testing.T) {
 	catalog1 := CatalogSpec{
-		Name:       "name",
-		SiteId:     "siteId",
 		ParentName: "parentName",
-		Generation: "1",
 		Properties: map[string]interface{}{
 			"key": "value",
 		},
 	}
 	catalog2 := CatalogSpec{
-		Name:       "name",
-		SiteId:     "siteId",
 		ParentName: "parentName",
-		Generation: "1",
 		Properties: map[string]interface{}{
 			"key": "value",
 		},
@@ -54,8 +48,7 @@ func TestCatalogMatch(t *testing.T) {
 
 func TestCatalogMatchOneEmpty(t *testing.T) {
 	catalog1 := CatalogSpec{
-		Name: "name",
-		Type: "type",
+		CatalogType: "type",
 		Properties: map[string]interface{}{
 			"key": "value",
 		},
@@ -66,44 +59,17 @@ func TestCatalogMatchOneEmpty(t *testing.T) {
 }
 
 func TestCatalogNotMatch(t *testing.T) {
-	catalog1 := CatalogSpec{
-		Name: "name",
-	}
-	catalog2 := CatalogSpec{
-		Name: "name2",
-	}
+	catalog1 := CatalogSpec{}
+	catalog2 := CatalogSpec{}
 
-	// name not match
+	// parentName not match
+	catalog1.ParentName = "parentName"
+	catalog2.ParentName = "parentName2"
 	equal, err := catalog1.DeepEquals(catalog2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 
-	// siteId not match
-	catalog2.Name = "name"
-	catalog1.SiteId = "siteId"
-	catalog2.SiteId = "siteId2"
-	equal, err = catalog1.DeepEquals(catalog2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-
-	// parentName not match
-	catalog2.SiteId = "siteId"
-	catalog1.ParentName = "parentName"
-	catalog2.ParentName = "parentName2"
-	equal, err = catalog1.DeepEquals(catalog2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-
-	// generation not match
-	catalog2.ParentName = "parentName"
-	catalog1.Generation = "1"
-	catalog2.Generation = "2"
-	equal, err = catalog1.DeepEquals(catalog2)
-	assert.Nil(t, err)
-	assert.False(t, equal)
-
 	// properties not match
-	catalog2.Generation = "1"
 	catalog1.Properties = map[string]interface{}{
 		"key": "value",
 	}
@@ -155,7 +121,7 @@ func TestGetProperties(t *testing.T) {
 func TestGetType(t *testing.T) {
 	catalog := CatalogState{
 		Spec: &CatalogSpec{
-			Type: "type",
+			CatalogType: "type",
 		},
 	}
 	assert.Equal(t, catalog.GetType(), "type")
@@ -167,7 +133,7 @@ func TestGetType(t *testing.T) {
 func TestGetFrom(t *testing.T) {
 	catalog := CatalogState{
 		Spec: &CatalogSpec{
-			Type: "edge",
+			CatalogType: "edge",
 			Metadata: map[string]string{
 				"from": "from",
 			},
@@ -182,7 +148,7 @@ func TestGetFrom(t *testing.T) {
 func TestGetTo(t *testing.T) {
 	catalog := CatalogState{
 		Spec: &CatalogSpec{
-			Type: "edge",
+			CatalogType: "edge",
 			Metadata: map[string]string{
 				"to": "to",
 			},

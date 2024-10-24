@@ -9,26 +9,50 @@
 
 package constants
 
+import _ "embed"
+
 const (
-	AzureOperationKey = "management.azure.com/operationId"
-	EulaMessage       = `MIT License
+	FullGroupName                = "symphony"
+	AzureOperationIdKey          = "management.azure.com/operationId"
+	AzureCorrelationIdKey        = "management.azure.com/correlationId"
+	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
+	AzureResourceIdKey           = "management.azure.com/resourceId"
+	AzureSystemDataKey           = "management.azure.com/systemData"
+	AzureTenantIdKey             = "management.azure.com/tenantId"
+	AzureLocationKey             = "management.azure.com/location"
+	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	SummaryJobIdKey              = "SummaryJobIdKey"
+	AzureCreatedByKey            = "createdBy"
+	DefaultScope                 = "default"
+	K8S                          = "symphony-k8s"
+	OperationStartTimeKeyPostfix = FullGroupName + "/started-at"
+	FinalizerPostfix             = FullGroupName + "/finalizer"
+	ResourceSeperator            = "-v-"
+	ReferenceSeparator           = ":"
+	ActivityOperation_Write      = "Write"
+	ActivityOperation_Read       = "Read"
+	ActivityOperation_Delete     = "Delete"
 
-Copyright (c) Microsoft Corporation.
+	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
+	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
+	TargetOperationNamePrefix            = "targets.fabric." + FullGroupName
+	InstanceOperationNamePrefix          = "instances.solution." + FullGroupName
+	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
+	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
+	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
+	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
+	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
+)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+// Environment variables keys
+const (
+	SymphonyAPIUrlEnvName = "SYMPHONY_API_URL"
+	ConfigName            = "CONFIG_NAME"
+	ApiCertEnvName        = "API_SERVING_CA"
+)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE`
+// Eula Message
+var (
+	//go:embed eula.txt
+	EulaMessage string
 )

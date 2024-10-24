@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+*.tar
 
 # Test binary, built with `go test -c`
 *.test
@@ -17,3 +18,4 @@
 piccolo/target
 
 go.work
+*.log

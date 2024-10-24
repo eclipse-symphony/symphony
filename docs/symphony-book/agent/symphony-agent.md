@@ -1,5 +1,7 @@
 # Symphony agent
 
+_(last edit: 6/4/2024)_
+
 A Symphony agent runs on a `target` and provides several services to Symphony payloads running on the same target, including:
 
 * Get object references from the control plane.
@@ -51,7 +53,7 @@ In this example, the Symphony agent needs a service principal to access an Azure
 To test Symphony agent on your local dev machine, you can use the prebuilt container:
 
 ```bash
-docker run -p 8088:8088 -e SYMPHONY_URL=http://<Symphony control plane endpoint>:8080/v1alpha2/agent/references -e AZURE_CLIENT_ID=<service principal app id> -e AZURE_TENANT_ID=<service principal tenant id> -e AZURE_CLIENT_SECRET=<service principal client secret> -e STORAGE_ACCOUNT=<storage account name> -e STORAGE_CONTAINER=<storage container name> -e TARGET_NAME=<target name> hbai/symphony-agent:0.1.26
+docker run -p 8088:8088 -e SYMPHONY_URL=http://<Symphony control plane endpoint>:8080/v1alpha2/agent/references -e AZURE_CLIENT_ID=<service principal app id> -e AZURE_TENANT_ID=<service principal tenant id> -e AZURE_CLIENT_SECRET=<service principal client secret> -e STORAGE_ACCOUNT=<storage account name> -e STORAGE_CONTAINER=<storage container name> -e TARGET_NAME=<target name> eclipse-symphony/symphony-agent:0.1.26
 ```
 
 Where `<Symphony control plane endpoint>` is the DNS/IP of Symphony control plane endpoint. For example, when you run Symphony control plane on a Kubernetes cluster, the control plane exposes a load-balanced service endpoint for agents. You can get the service endpoint with:

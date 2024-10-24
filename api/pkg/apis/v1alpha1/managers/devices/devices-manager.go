@@ -36,7 +36,7 @@ func (s *DevicesManager) Init(context *contexts.VendorContext, config managers.M
 		log.Errorf(" M (Devices): failed to initialize manager %+v", err)
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err != nil {
 		log.Errorf(" M (Devices): failed to get state provider %+v", err)
 		return err
@@ -51,7 +51,8 @@ func (t *DevicesManager) DeleteState(ctx context.Context, name string, namespace
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): DeleteState name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Devices): DeleteState name %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -64,7 +65,7 @@ func (t *DevicesManager) DeleteState(ctx context.Context, name string, namespace
 		},
 	})
 	if err != nil {
-		log.Errorf(" M (Devices):failed to delete state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Devices):failed to delete state %s, error: %v", name, err)
 		return err
 	}
 	return nil
@@ -76,7 +77,8 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): UpsertState name %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Devices): UpsertState name %s", name)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
@@ -103,7 +105,7 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Errorf(" M (Devices): failed to update state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Devices): failed to update state %s, error: %v", name, err)
 		return err
 	}
 	return nil
@@ -115,7 +117,8 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): ListState, traceId: %s", span.SpanContext().TraceID().String())
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfoCtx(ctx, " M (Devices): ListState")
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -126,17 +129,18 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 			"namespace": namespace,
 		},
 	}
-	devices, _, err := t.StateProvider.List(ctx, listRequest)
+	var devices []states.StateEntry
+	devices, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
-		log.Errorf(" M (Devices): failed to list state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Devices): failed to list state, error: %v", err)
 		return nil, err
 	}
 	ret := make([]model.DeviceState, 0)
 	for _, t := range devices {
 		var rt model.DeviceState
-		rt, err = getDeviceState(t.ID, t.Body)
+		rt, err = getDeviceState(t.Body)
 		if err != nil {
-			log.Errorf(" M (Devices): ListState failed to get device state %s, error: %v, traceId: %s", t.ID, err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, " M (Devices): ListState failed to get device state %s, error: %v", t.ID, err)
 			return nil, err
 		}
 		ret = append(ret, rt)
@@ -144,42 +148,17 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	return ret, nil
 }
 
-func getDeviceState(id string, body interface{}) (model.DeviceState, error) {
-	dict := body.(map[string]interface{})
-
-	//read spec
-	spec := dict["spec"]
-	j, _ := json.Marshal(spec)
-	var rSpec model.DeviceSpec
-	err := json.Unmarshal(j, &rSpec)
+func getDeviceState(body interface{}) (model.DeviceState, error) {
+	var deviceState model.DeviceState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &deviceState)
 	if err != nil {
 		return model.DeviceState{}, err
 	}
-
-	//read metadata
-	metadata := dict["metadata"]
-	j, _ = json.Marshal(metadata)
-	var rMetadata model.ObjectMeta
-	err = json.Unmarshal(j, &rMetadata)
-	if err != nil {
-		return model.DeviceState{}, err
+	if deviceState.Spec == nil {
+		deviceState.Spec = &model.DeviceSpec{}
 	}
-
-	//read status
-	status := dict["status"]
-	j, _ = json.Marshal(status)
-	var rStatus model.DeviceStatus
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.DeviceState{}, err
-	}
-
-	state := model.DeviceState{
-		ObjectMeta: rMetadata,
-		Spec:       &rSpec,
-		Status:     rStatus,
-	}
-	return state, nil
+	return deviceState, nil
 }
 
 func (t *DevicesManager) GetState(ctx context.Context, name string, namespace string) (model.DeviceState, error) {
@@ -188,7 +167,8 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Infof(" M (Devices): GetState id %s, traceId: %s", name, span.SpanContext().TraceID().String())
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Devices): GetState id %s", name)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -200,15 +180,16 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 			"kind":      "Device",
 		},
 	}
-	entry, err := t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Errorf(" M (Devices): failed to get state %s, error: %v, traceId: %s", name, err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Devices): failed to get state %s, error: %v", name, err)
 		return model.DeviceState{}, err
 	}
-
-	ret, err := getDeviceState(name, entry.Body)
+	var ret model.DeviceState
+	ret, err = getDeviceState(entry.Body)
 	if err != nil {
-		log.Errorf(" M (Devices): GetSpec failed to get device state, error: %v, traceId: %s", err, span.SpanContext().TraceID().String())
+		log.ErrorfCtx(ctx, " M (Devices): GetSpec failed to get device state, error: %v", err)
 		return model.DeviceState{}, err
 	}
 	return ret, nil

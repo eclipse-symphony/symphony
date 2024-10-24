@@ -1,0 +1,44 @@
+{{- if (not .Values.otlpInsecureGrpc) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-trust-bundle-job"
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded,hook-failed
+    "helm.sh/hook-weight": "1"
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}-trust-bundle-job"
+    spec:
+      containers:
+      - name: namespace-label
+        image: mcr.microsoft.com/oss/kubernetes/kubectl:v1.25.10
+        command:
+        - /bin/bash
+        - -c
+        - |-
+          {{- if eq .Values.flavor "azure" }}
+          {{- .Files.Get "files/azure/trust-bundles.sh" | nindent 12 }}
+          {{- else }}          
+          {{- .Files.Get "files/oss/trust-bundles.sh" | nindent 12 }}
+          {{- end }}
+        env:
+        - name: TRUST_BUNDLE_NS
+          value: {{ .Release.Namespace }}
+        - name: TRUST_BUNDLE_NS_LABEL_KEY
+          value: {{ .Values.observability.tls.caBundleLabelKey }}
+        - name: TRUST_BUNDLE_NS_LABEL_VALUE
+          value: '{{ include "symphony.tls.caBundleLabelValue" . }}'
+        - name: TRUST_BUNDLE_CONFIGMAP_NAME
+          value: {{ .Values.observability.tls.caBundleConfigMap }}
+        - name: TIMEOUT
+          value: "60"
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "symphony.fullname" . }}-trust-hook-sa
+  backoffLimit: 3
+{{- end }}

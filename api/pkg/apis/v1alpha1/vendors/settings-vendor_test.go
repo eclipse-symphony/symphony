@@ -24,6 +24,8 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+var ctx = context.Background()
+
 func createSettingsVendor() SettingsVendor {
 	provider := memory.MemoryConfigProvider{}
 	provider.Init(memory.MemoryConfigProviderConfig{})
@@ -53,7 +55,7 @@ func TestSettingsVendorInit(t *testing.T) {
 				Name: "configs-manager",
 				Type: "managers.symphony.configs",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -110,7 +112,7 @@ func TestConfigGet(t *testing.T) {
 	vendor := createSettingsVendor()
 	manager := vendor.EvaluationContext.ConfigProvider.(*configs.ConfigsManager)
 	provider := manager.ConfigProviders["memory"]
-	provider.Set("test", "field", "obj::field")
+	provider.Set(ctx, "test", "field", "obj::field")
 
 	request := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -131,7 +133,7 @@ func TestConfigGetField(t *testing.T) {
 	vendor := createSettingsVendor()
 	manager := vendor.EvaluationContext.ConfigProvider.(*configs.ConfigsManager)
 	provider := manager.ConfigProviders["memory"]
-	provider.Set("test", "field", "obj::field")
+	provider.Set(ctx, "test", "field", "obj::field")
 
 	request := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,

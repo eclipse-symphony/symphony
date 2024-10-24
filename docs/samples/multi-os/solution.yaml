@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: multi-os-solution  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: multi-os-solution
+  name: multi-os-solution-v-v1
 spec:
+  rootResource: multi-os-solution
   components:
   - name: backend
     type: container

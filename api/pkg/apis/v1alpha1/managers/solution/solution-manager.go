@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	sp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
@@ -33,12 +34,25 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var log = logger.NewLogger("coa.runtime")
-var lock sync.Mutex
+var (
+	log                 = logger.NewLogger("coa.runtime")
+	lock                sync.Mutex
+	apiOperationMetrics *metrics.Metrics
+)
 
 const (
 	SYMPHONY_AGENT string = "/symphony-agent:"
 	ENV_NAME       string = "SYMPHONY_AGENT_ADDRESS"
+
+	// DeploymentType_Update indicates the type of deployment is Update. This is
+	// to give a deployment status on Symphony Target deployment.
+	DeploymentType_Update string = "Target Update"
+	// DeploymentType_Delete indicates the type of deployment is Delete. This is
+	// to give a deployment status on Symphony Target deployment.
+	DeploymentType_Delete string = "Target Delete"
+
+	Summary         = "Summary"
+	DeploymentState = "DeployState"
 )
 
 type SolutionManager struct {
@@ -46,9 +60,10 @@ type SolutionManager struct {
 	TargetProviders map[string]tgt.ITargetProvider
 	StateProvider   states.IStateProvider
 	ConfigProvider  config.IExtConfigProvider
-	SecretProvoider secret.ISecretProvider
+	SecretProvider  secret.ISecretProvider
 	IsTarget        bool
 	TargetNames     []string
+	ApiClientHttp   api_utils.ApiClient
 }
 
 type SolutionManagerDeploymentState struct {
@@ -57,7 +72,6 @@ type SolutionManagerDeploymentState struct {
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
 		return err
@@ -69,7 +83,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		}
 	}
 
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
@@ -85,7 +99,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 
 	secretProvider, err := managers.GetSecretProvider(config, providers)
 	if err == nil {
-		s.SecretProvoider = secretProvider
+		s.SecretProvider = secretProvider
 	} else {
 		return err
 	}
@@ -97,22 +111,34 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		}
 	}
 
+	targetNames := ""
+
 	if v, ok := config.Properties["targetNames"]; ok {
-		s.TargetNames = strings.Split(v, ",")
+		targetNames = v
+	}
+	sTargetName := os.Getenv("SYMPHONY_TARGET_NAME")
+	if sTargetName != "" {
+		targetNames = sTargetName
 	}
 
+	s.TargetNames = strings.Split(targetNames, ",")
+
 	if s.IsTarget {
-		if len(s.TargetNames) == 0 {
-			sTargetName := os.Getenv("SYMPHONY_TARGET_NAME")
-			if sTargetName != "" {
-				s.TargetNames = strings.Split(sTargetName, ",")
-			}
-		}
 		if len(s.TargetNames) == 0 {
 			return errors.New("target mode is set but target name is not set")
 		}
 	}
 
+	if apiOperationMetrics == nil {
+		apiOperationMetrics, err = metrics.New()
+		if err != nil {
+			return err
+		}
+	}
+	s.ApiClientHttp, err = api_utils.GetParentApiClient(s.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -121,6 +147,9 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string,
 		ID: instance,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  DeploymentState,
 		},
 	})
 	if err == nil {
@@ -130,30 +159,35 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string,
 		if err == nil {
 			return &managerState
 		}
-		return nil
 	}
+	log.InfofCtx(ctx, " M (Solution): failed to get previous state for instance %s in namespace %s: %+v", instance, namespace, err)
 	return nil
 }
 func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace string) (model.SummaryResult, error) {
 	// lock.Lock()
 	// defer lock.Unlock()
 
-	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "GetSummary",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Info(" M (Solution): get summary")
+	log.InfofCtx(ctx, " M (Solution): get summary, key: %s, namespace: %s", key, namespace)
 
-	state, err := s.StateProvider.Get(iCtx, states.GetRequest{
+	var state states.StateEntry
+	state, err = s.StateProvider.Get(ctx, states.GetRequest{
 		ID: fmt.Sprintf("%s-%s", "summary", key),
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
 		},
 	})
 	if err != nil {
-		log.Errorf(" M (Solution): failed to get deployment summary[%s]: %+v", key, err)
+		log.ErrorfCtx(ctx, " M (Solution): failed to get deployment summary[%s]: %+v", key, err)
 		return model.SummaryResult{}, err
 	}
 
@@ -161,14 +195,46 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 	jData, _ := json.Marshal(state.Body)
 	err = json.Unmarshal(jData, &result)
 	if err != nil {
-		log.Errorf(" M (Solution): failed to deserailze deployment summary[%s]: %+v", key, err)
+		log.ErrorfCtx(ctx, " M (Solution): failed to deserailze deployment summary[%s]: %+v", key, err)
 		return model.SummaryResult{}, err
 	}
 
 	return result, nil
 }
 
-func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespace string) error {
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "DeleteSummary",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, " M (Solution): delete summary, key: %s, namespace: %s", key, namespace)
+
+	err = s.StateProvider.Delete(ctx, states.DeleteRequest{
+		ID: fmt.Sprintf("%s-%s", "summary", key),
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
+		},
+	})
+
+	if err != nil {
+		if api_utils.IsNotFound(err) {
+			log.DebugfCtx(ctx, " M (Solution): DeleteSummary NoutFound, id: %s, namespace: %s", key, namespace)
+			return nil
+		}
+		log.ErrorfCtx(ctx, " M (Solution): failed to get summary[%s]: %+v", key, err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -180,12 +246,19 @@ func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan stru
 	for {
 		select {
 		case <-ticker.C:
+			log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
 			s.VendorContext.Publish("heartbeat", v1alpha2.Event{
 				Body: v1alpha2.HeartBeatData{
-					JobId:  id,
-					Action: action,
-					Time:   time.Now().UTC(),
+					JobId:     id,
+					Scope:     namespace,
+					Action:    action,
+					Time:      time.Now().UTC(),
+					JobAction: v1alpha2.JobUpdate,
 				},
+				Metadata: map[string]string{
+					"namespace": namespace,
+				},
+				Context: ctx,
 			})
 		case <-stopCh:
 			return // Exit the goroutine when the stop signal is received
@@ -193,28 +266,85 @@ func (s *SolutionManager) sendHeartbeat(id string, remove bool, stopCh chan stru
 	}
 }
 
+func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
+	if !remove {
+		return
+	}
+
+	log.DebugfCtx(ctx, " M (Solution): cleanupHeartbeat, id: %s, namespace: %s", id, namespace)
+	s.VendorContext.Publish("heartbeat", v1alpha2.Event{
+		Body: v1alpha2.HeartBeatData{
+			JobId:     id,
+			JobAction: v1alpha2.JobDelete,
+		},
+		Metadata: map[string]string{
+			"namespace": namespace,
+		},
+		Context: ctx,
+	})
+}
+
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	go s.sendHeartbeat(deployment.Instance.Spec.Name, remove, stopCh)
-
-	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Info(" M (Solution): reconciling")
-
+	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
+		deployment.Instance.ObjectMeta.Name,
+		deployment.SolutionName,
+		remove,
+		namespace,
+		targetName,
+		deployment.Generation,
+		deployment.JobID)
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
 		TargetCount:         len(deployment.Targets),
 		SuccessCount:        0,
 		AllAssignedDeployed: false,
+		JobID:               deployment.JobID,
 	}
+
+	deploymentType := DeploymentType_Update
+	if remove {
+		deploymentType = DeploymentType_Delete
+	}
+	summary.IsRemoval = remove
+
+	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+		return summary, err
+	}
+	defer func() {
+		log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+		if deployment.IsDryRun {
+			summary.SuccessCount = 0
+		}
+		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	}()
+
+	defer func() {
+		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+	}()
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+
+	// get the components count for the deployment
+	componentCount := len(deployment.Solution.Spec.Components)
+	apiOperationMetrics.ApiComponentCount(
+		componentCount,
+		metrics.ReconcileOperation,
+		metrics.UpdateOperationType,
+	)
 
 	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
 		context := s.VendorContext.EvaluationContext.Clone()
@@ -222,34 +352,33 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		context.Value = deployment
 		context.Component = ""
 		context.Namespace = namespace
+		context.Context = ctx
 		deployment, err = api_utils.EvaluateDeployment(*context)
 	}
 
 	if err != nil {
 		if remove {
-			log.Infof(" M (Solution): skipped failure to evaluate deployment spec: %+v", err)
+			log.InfofCtx(ctx, " M (Solution): skipped failure to evaluate deployment spec: %+v", err)
 		} else {
 			summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
-			log.Errorf(" M (Solution): failed to evaluate deployment spec: %+v", err)
-			s.saveSummary(iCtx, deployment, summary, namespace)
+			log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
 			return summary, err
 		}
 	}
 
-	previousDesiredState := s.getPreviousState(iCtx, deployment.Instance.Spec.Name, namespace)
+	previousDesiredState := s.getPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 
-	currentDesiredState, err := NewDeploymentState(deployment)
+	var currentDesiredState, currentState model.DeploymentState
+	currentDesiredState, err = NewDeploymentState(deployment)
 	if err != nil {
 		summary.SummaryMessage = "failed to create target manager state from deployment spec: " + err.Error()
-		log.Errorf(" M (Solution): failed to create target manager state from deployment spec: %+v", err)
-		s.saveSummary(iCtx, deployment, summary, namespace)
+		log.ErrorfCtx(ctx, " M (Solution): failed to create target manager state from deployment spec: %+v", err)
 		return summary, err
 	}
-	currentState, _, err := s.Get(iCtx, deployment, targetName)
+	currentState, _, err = s.Get(ctx, deployment, targetName)
 	if err != nil {
 		summary.SummaryMessage = "failed to get current state: " + err.Error()
-		log.Errorf(" M (Solution): failed to get current state: %+v", err)
-		s.saveSummary(iCtx, deployment, summary, namespace)
+		log.ErrorfCtx(ctx, " M (Solution): failed to get current state: %+v", err)
 		return summary, err
 	}
 	desiredState := currentDesiredState
@@ -262,12 +391,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	mergedState := MergeDeploymentStates(&currentState, desiredState)
-
-	plan, err := PlanForDeployment(deployment, mergedState)
+	var plan model.DeploymentPlan
+	plan, err = PlanForDeployment(deployment, mergedState)
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
-		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
-		s.saveSummary(iCtx, deployment, summary, namespace)
+		log.ErrorfCtx(ctx, " M (Solution): failed to plan for deployment: %+v", err)
 		return summary, err
 	}
 
@@ -278,9 +406,25 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	targetResult := make(map[string]int)
 
+	summary.PlannedDeployment = 0
+	for _, step := range plan.Steps {
+		summary.PlannedDeployment += len(step.Components)
+	}
+	summary.CurrentDeployed = 0
+	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+		return summary, err
+	}
+	log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: start deploy, total %v deployments", summary.PlannedDeployment)
+
 	plannedCount := 0
 	planSuccessCount := 0
 	for _, step := range plan.Steps {
+		log.DebugfCtx(ctx, " M (Solution): processing step with Role %s on target %s", step.Role, step.Target)
+		for _, component := range step.Components {
+			log.DebugfCtx(ctx, " M (Solution): processing component %s with action %s", component.Component.Name, component.Action)
+		}
 		if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
 			continue
 		}
@@ -292,14 +436,18 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		plannedCount++
 
 		dep.ActiveTarget = step.Target
-		agent := findAgent(deployment.Targets[step.Target])
+		agent := findAgentFromDeploymentState(mergedState, step.Target)
 		if agent != "" {
 			col[ENV_NAME] = agent
 		} else {
 			delete(col, ENV_NAME)
 		}
 		var override tgt.ITargetProvider
-		if v, ok := s.TargetProviders[step.Target]; ok {
+		role := step.Role
+		if role == "container" {
+			role = "instance"
+		}
+		if v, ok := s.TargetProviders[role]; ok {
 			override = v
 		}
 		var provider providers.IProvider
@@ -308,8 +456,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
 			if err != nil {
 				summary.SummaryMessage = "failed to create provider:" + err.Error()
-				log.Errorf(" M (Solution): failed to create provider: %+v", err)
-				s.saveSummary(ctx, deployment, summary, namespace)
+				log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
 				return summary, err
 			}
 		} else {
@@ -318,12 +465,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
-			if s.canSkipStep(iCtx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
 				continue
 			}
 		}
+		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
 		someStepsRan = true
 		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
@@ -342,10 +491,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// 			if err == nil {
 		// 				component.Component.Properties[k] = val
 		// 			} else {
-		// 				log.Errorf(" M (Solution): failed to evaluate property: %+v", err)
+		// 				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate property: %+v", err)
 		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
 		// 				s.saveSummary(ctx, deployment, summary)
-		// 				observ_utils.CloseSpanWithError(span, &err)
 		// 				return summary, err
 		// 			}
 		// 		}
@@ -353,66 +501,80 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		for i := 0; i < retryCount; i++ {
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(iCtx, dep, step, false)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", ComponentResults: componentResults})
+				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+				if err != nil {
+					log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+					return summary, err
+				}
 				break
 			} else {
 				targetResult[step.Target] = 0
 				summary.AllAssignedDeployed = false
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "Error", Message: stepError.Error(), ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-				time.Sleep(5 * time.Second)                                                                                                                      //TODO: make this configurable?
+				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
+				time.Sleep(5 * time.Second)                                                                                                     //TODO: make this configurable?
 			}
 		}
 		if stepError != nil {
-			log.Errorf(" M (Solution): failed to execute deployment step: %+v", stepError)
+			log.ErrorfCtx(ctx, " M (Solution): failed to execute deployment step: %+v", stepError)
 
 			successCount := 0
 			for _, v := range targetResult {
 				successCount += v
 			}
+			summary.CurrentDeployed += successCount
 			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
-			s.saveSummary(iCtx, deployment, summary, namespace)
 			err = stepError
 			return summary, err
 		}
 		planSuccessCount++
+		summary.CurrentDeployed += len(step.Components)
+		err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		if err != nil {
+			log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+			return summary, err
+		}
+		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
 	}
 
 	mergedState.ClearAllRemoved()
 
-	// TODO: Removing the state has negative effects on component removal, review this later
-	// if len(mergedState.TargetComponent) == 0 {
-	// 	log.Infof(" M (Solution): no assigned components to manage, deleting state")
-	// 	s.StateProvider.Delete(iCtx, states.DeleteRequest{
-	// 		ID: deployment.Instance.Spec.Name,
-	// 		Metadata: map[string]interface{}{
-	// 			"namespace": namespace,
-	// 		},
-	// 	})
-	// } else {
-	s.StateProvider.Upsert(iCtx, states.UpsertRequest{
-		Value: states.StateEntry{
-			ID: deployment.Instance.Spec.Name,
-			Body: SolutionManagerDeploymentState{
-				Spec:  deployment,
-				State: mergedState,
-			},
-		},
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-		},
-	})
-	//}
-
-	summary.Skipped = !someStepsRan
-	if summary.Skipped {
-		summary.SuccessCount = summary.TargetCount
+	if !deployment.IsDryRun {
+		if len(mergedState.TargetComponent) == 0 && remove {
+			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+			s.StateProvider.Delete(ctx, states.DeleteRequest{
+				ID: deployment.Instance.ObjectMeta.Name,
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		} else {
+			s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				Value: states.StateEntry{
+					ID: deployment.Instance.ObjectMeta.Name,
+					Body: SolutionManagerDeploymentState{
+						Spec:  deployment,
+						State: mergedState,
+					},
+				},
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		}
 	}
-	summary.IsRemoval = remove
 
 	successCount := 0
 	for _, v := range targetResult {
@@ -420,12 +582,19 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 	summary.SuccessCount = successCount
 	summary.AllAssignedDeployed = plannedCount == planSuccessCount
-	s.saveSummary(iCtx, deployment, summary, namespace)
+
+	// if solutions.components are empty,
+	// we need to set summary.Skipped = true
+	// and summary.SuccessCount = summary.TargetCount (instance_controller and target_controller will check whether targetCount == successCount in deletion case)
+	summary.Skipped = !someStepsRan
+	if summary.Skipped {
+		summary.SuccessCount = summary.TargetCount
+	}
 
 	return summary, nil
 }
 
-// The dployment spec may have changed, so the previous target is not in the new deployment anymore
+// The deployment spec may have changed, so the previous target is not in the new deployment anymore
 func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDeploymentState *SolutionManagerDeploymentState) model.TargetState {
 	//first find the target spec in the deployment
 	targetSpec, ok := deployment.Targets[step.Target]
@@ -437,22 +606,61 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 	return targetSpec
 }
 
-func (s *SolutionManager) saveSummary(ctx context.Context, deployment model.DeploymentSpec, summary model.SummarySpec, namespace string) {
+func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
-	s.StateProvider.Upsert(ctx, states.UpsertRequest{
+	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, jobid: %s, hash %s, targetCount %d, successCount %d",
+		objectName, state, namespace, summary.JobID, hash, summary.TargetCount, summary.SuccessCount)
+	oldSummary, err := s.GetSummary(ctx, objectName, namespace)
+	if err != nil && !v1alpha2.IsNotFound(err) {
+		log.ErrorfCtx(ctx, " M (Solution): failed to get previous summary: %+v", err)
+		return err
+	} else if err == nil {
+		if summary.JobID != "" && oldSummary.Summary.JobID != "" {
+			var newId, oldId int64
+			newId, err = strconv.ParseInt(summary.JobID, 10, 64)
+			if err != nil {
+				log.ErrorfCtx(ctx, " M (Solution): failed to parse new job id: %+v", err)
+				return v1alpha2.NewCOAError(err, "failed to parse new job id", v1alpha2.BadRequest)
+			}
+			oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
+			if err == nil && oldId > newId {
+				errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
+				log.ErrorfCtx(ctx, " M (Solution): %s", errMsg)
+				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
+			}
+		} else {
+			log.WarnfCtx(ctx, " M (Solution): JobIDs are both empty, skip id check")
+		}
+	}
+	_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: fmt.Sprintf("%s-%s", "summary", deployment.Instance.Spec.Name),
+			ID: fmt.Sprintf("%s-%s", "summary", objectName),
 			Body: model.SummaryResult{
-				Summary:    summary,
-				Generation: deployment.Generation,
-				Time:       time.Now().UTC(),
+				Summary:        summary,
+				Generation:     generation,
+				Time:           time.Now().UTC(),
+				State:          state,
+				DeploymentHash: hash,
 			},
 		},
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  Summary,
 		},
 	})
+	return err
 }
+
+func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
+	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
+}
+
+func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
+	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
+}
+
 func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
 
 	for _, newCom := range step.Components {
@@ -484,23 +692,29 @@ func (s *SolutionManager) canSkipStep(ctx context.Context, step model.Deployment
 	return true
 }
 func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSpec, targetName string) (model.DeploymentState, []model.ComponentSpec, error) {
-	iCtx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	log.Info(" M (Solution): getting deployment")
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Solution): getting deployment.InstanceName: %s, deployment.SolutionName: %s, targetName: %s",
+		deployment.Instance.ObjectMeta.Name,
+		deployment.SolutionName,
+		targetName)
 
 	ret := model.DeploymentState{}
 
-	state, err := NewDeploymentState(deployment)
+	var state model.DeploymentState
+	state, err = NewDeploymentState(deployment)
 	if err != nil {
-		log.Errorf(" M (Solution): failed to create manager state for deployment: %+v", err)
+		log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 		return ret, nil, err
 	}
-	plan, err := PlanForDeployment(deployment, state)
+	var plan model.DeploymentPlan
+	plan, err = PlanForDeployment(deployment, state)
 	if err != nil {
-		log.Errorf(" M (Solution): failed to plan for deployment: %+v", err)
+		log.ErrorfCtx(ctx, " M (Solution): failed to plan for deployment: %+v", err)
 		return ret, nil, err
 	}
 	ret = state
@@ -518,7 +732,11 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		deployment.ActiveTarget = step.Target
 
 		var override tgt.ITargetProvider
-		if v, ok := s.TargetProviders[step.Target]; ok {
+		role := step.Role
+		if role == "container" {
+			role = "instance"
+		}
+		if v, ok := s.TargetProviders[role]; ok {
 			override = v
 		}
 		var provider providers.IProvider
@@ -526,17 +744,17 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		if override == nil {
 			provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, deployment.Targets[step.Target], override)
 			if err != nil {
-				log.Errorf(" M (Solution): failed to create provider: %+v", err)
+				log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
 				return ret, nil, err
 			}
 		} else {
 			provider = override
 		}
 		var components []model.ComponentSpec
-		components, err = (provider.(tgt.ITargetProvider)).Get(iCtx, deployment, step.Components)
+		components, err = (provider.(tgt.ITargetProvider)).Get(ctx, deployment, step.Components)
 
 		if err != nil {
-			log.Errorf(" M (Solution): failed to get: %+v", err)
+			log.WarnfCtx(ctx, " M (Solution): failed to get components: %+v", err)
 			return ret, nil, err
 		}
 		for _, c := range components {
@@ -562,19 +780,70 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	return ret, retComponents, nil
 }
 func (s *SolutionManager) Enabled() bool {
-	return false
+	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *SolutionManager) Poll() []error {
+	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
+		for _, target := range s.TargetNames {
+			catalogs, err := s.ApiClientHttp.GetCatalogsWithFilter(context.Background(), "", "label", "staged_target="+target,
+				s.Context.SiteInfo.ParentSite.Username,
+				s.Context.SiteInfo.ParentSite.Password)
+			if err != nil {
+				return []error{err}
+			}
+			for _, c := range catalogs {
+				if vs, ok := c.Spec.Properties["deployment"]; ok {
+					deployment := model.DeploymentSpec{}
+					jData, _ := json.Marshal(vs)
+					err = json.Unmarshal(jData, &deployment)
+					if err != nil {
+						return []error{err}
+					}
+					isRemove := false
+					if v, ok := c.Spec.Properties["staged"]; ok {
+						if vd, ok := v.(map[string]interface{}); ok {
+							if v, ok := vd["removed-components"]; ok && v != nil {
+								if len(v.([]interface{})) > 0 {
+									isRemove = true
+								}
+							}
+						}
+					}
+					_, err := s.Reconcile(context.Background(), deployment, isRemove, c.ObjectMeta.Namespace, target)
+					if err != nil {
+						return []error{err}
+					}
+					_, components, err := s.Get(context.Background(), deployment, target)
+					if err != nil {
+						return []error{err}
+					}
+					err = s.ApiClientHttp.ReportCatalogs(context.Background(),
+						deployment.Instance.ObjectMeta.Name+"-"+target,
+						components,
+						s.Context.SiteInfo.ParentSite.Username,
+						s.Context.SiteInfo.ParentSite.Password)
+					if err != nil {
+						return []error{err}
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 func (s *SolutionManager) Reconcil() []error {
 	return nil
 }
-func findAgent(target model.TargetState) string {
-	for _, c := range target.Spec.Components {
-		if v, ok := c.Properties[model.ContainerImage]; ok {
-			if strings.Contains(fmt.Sprintf("%v", v), SYMPHONY_AGENT) {
-				return c.Name
+
+func findAgentFromDeploymentState(state model.DeploymentState, targetName string) string {
+	for _, targetDes := range state.Targets {
+		if targetName == targetDes.Name {
+			for _, c := range targetDes.Spec.Components {
+				if v, ok := c.Properties[model.ContainerImage]; ok {
+					if strings.Contains(fmt.Sprintf("%v", v), SYMPHONY_AGENT) {
+						return c.Name
+					}
+				}
 			}
 		}
 	}

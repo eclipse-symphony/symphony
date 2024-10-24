@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -26,14 +27,14 @@ var msLock sync.Mutex
 var log = logger.NewLogger("coa.runtime")
 
 type ListStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
 type ListStageProvider struct {
-	Config  ListStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    ListStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient utils.ApiClient
 }
 
 func (s *ListStageProvider) Init(config providers.IProviderConfig) error {
@@ -44,6 +45,10 @@ func (s *ListStageProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 	s.Config = mockConfig
+	s.ApiClient, err = utils.GetApiClient()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *ListStageProvider) SetContext(ctx *contexts.ManagerContext) {
@@ -67,27 +72,21 @@ func (i *ListStageProvider) InitWithMap(properties map[string]string) error {
 }
 func ListStageProviderConfigFromMap(properties map[string]string) (ListStageProviderConfig, error) {
 	ret := ListStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
+	if utils.ShouldUseUserCreds() {
+		user, err := utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := utils.GetString(properties, "password")
+		if err != nil {
+			return ret, err
+		}
+		ret.Password = password
 	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
 	return ret, nil
 }
 func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
@@ -96,33 +95,40 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Info("  P (List Processor): processing inputs")
+	log.InfoCtx(ctx, "  P (List Processor): processing inputs")
 
 	outputs := make(map[string]interface{})
 
-	objectType := inputs["objectType"].(string)
+	objectType, ok := inputs["objectType"].(string)
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("objectType is not a valid string: %v", inputs["objectType"]), v1alpha2.BadRequest)
+		return nil, false, err
+	}
 	namesOnly := false
 	if v, ok := inputs["namesOnly"]; ok {
-		if v.(bool) {
-			namesOnly = v.(bool)
+		if vbool, ok := v.(bool); ok {
+			namesOnly = vbool
 		}
 	}
+	objectNamespace := stage.GetNamespace(inputs)
+	if objectNamespace == "" {
+		objectNamespace = "default"
+	}
+
 	switch objectType {
 	case "instance":
-		objectNamespace := "default"
-		if s, ok := inputs["objectNamespace"]; ok {
-			objectNamespace = s.(string)
-		}
-		instances, err := utils.GetInstances(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password, objectNamespace)
+		var instances []model.InstanceState
+		instances, err = i.ApiClient.GetInstances(ctx, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			log.Errorf("  P (List Processor): failed to get instances: %v", err)
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get instances: %v", err)
 			return nil, false, err
 		}
 		if namesOnly {
 			names := make([]string, 0)
 			for _, instance := range instances {
-				names = append(names, instance.Spec.Name)
+				names = append(names, instance.ObjectMeta.Name)
 			}
 			outputs["items"] = names
 		} else {
@@ -130,9 +136,9 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 	case "sites":
 		var sites []model.SiteState
-		sites, err = utils.GetSites(ctx, i.Config.BaseUrl, i.Config.User, i.Config.Password)
+		sites, err = i.ApiClient.GetSites(ctx, i.Config.User, i.Config.Password)
 		if err != nil {
-			log.Errorf("  P (List Processor): failed to get sites: %v", err)
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get sites: %v", err)
 			return nil, false, err
 		}
 		filteredSites := make([]model.SiteState, 0)
@@ -150,8 +156,24 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		} else {
 			outputs["items"] = filteredSites
 		}
+	case "catalogs":
+		var catalogs []model.CatalogState
+		catalogs, err = i.ApiClient.GetCatalogs(ctx, objectNamespace, i.Config.User, i.Config.Password)
+		if err != nil {
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get catalogs: %v", err)
+			return nil, false, err
+		}
+		if namesOnly {
+			names := make([]string, 0)
+			for _, catalog := range catalogs {
+				names = append(names, catalog.ObjectMeta.Name)
+			}
+			outputs["items"] = names
+		} else {
+			outputs["items"] = catalogs
+		}
 	default:
-		log.Errorf("  P (List Processor): unsupported object type: %s", objectType)
+		log.ErrorfCtx(ctx, "  P (List Processor): unsupported object type: %s", objectType)
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
 		return nil, false, err
 	}

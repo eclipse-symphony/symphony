@@ -6,13 +6,51 @@
 
 package model
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+)
 
 type ObjectMeta struct {
 	Namespace   string            `json:"namespace,omitempty"`
 	Name        string            `json:"name,omitempty"`
+	Generation  string            `json:"generation,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// UnmarshalJSON custom unmarshaller to handle Generation field(accept both of number and string)
+func (o *ObjectMeta) UnmarshalJSON(data []byte) error {
+	type Alias ObjectMeta
+	aux := &struct {
+		Generation interface{} `json:"generation,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(o),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.Generation == nil {
+		o.Generation = ""
+	} else {
+		switch v := aux.Generation.(type) {
+		case string:
+			o.Generation = v
+		case float64:
+			o.Generation = strconv.FormatInt(int64(v), 10)
+		default:
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected type for generation field: %T", v), v1alpha2.BadConfig)
+		}
+	}
+
+	return nil
 }
 
 func (c *ObjectMeta) FixNames(name string) {
@@ -64,4 +102,12 @@ func (c ObjectMeta) DeepEquals(other IDeepEquals) (bool, error) {
 	// }
 
 	return true, nil
+}
+
+func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+
+	c.Annotations[key] = value
 }

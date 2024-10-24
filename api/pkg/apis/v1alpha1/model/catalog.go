@@ -31,14 +31,13 @@ type ObjectRef struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 type CatalogSpec struct {
-	SiteId     string                 `json:"siteId"`
-	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	Metadata   map[string]string      `json:"metadata,omitempty"`
-	Properties map[string]interface{} `json:"properties"`
-	ParentName string                 `json:"parentName,omitempty"`
-	ObjectRef  ObjectRef              `json:"objectRef,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	CatalogType  string                 `json:"catalogType"`
+	Metadata     map[string]string      `json:"metadata,omitempty"`
+	Properties   map[string]interface{} `json:"properties"`
+	ParentName   string                 `json:"parentName,omitempty"`
+	ObjectRef    ObjectRef              `json:"objectRef,omitempty"`
+	Version      string                 `json:"version,omitempty"`
+	RootResource string                 `json:"rootResource,omitempty"`
 }
 
 type CatalogStatus struct {
@@ -51,19 +50,7 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a CatalogSpec type")
 	}
 
-	if c.SiteId != otherC.SiteId {
-		return false, nil
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
-	}
-
 	if c.ParentName != otherC.ParentName {
-		return false, nil
-	}
-
-	if c.Generation != otherC.Generation {
 		return false, nil
 	}
 
@@ -105,7 +92,7 @@ func (s CatalogState) GetParent() string {
 }
 func (s CatalogState) GetType() string {
 	if s.Spec != nil {
-		return s.Spec.Type
+		return s.Spec.CatalogType
 	}
 	return ""
 }
@@ -119,7 +106,7 @@ func (s CatalogState) GetProperties() map[string]interface{} {
 // IEdge interface
 func (s CatalogState) GetFrom() string {
 	if s.Spec != nil {
-		if s.Spec.Type == "edge" {
+		if s.Spec.CatalogType == "edge" {
 			if s.Spec.Metadata != nil {
 				if from, ok := s.Spec.Metadata["from"]; ok {
 					return from
@@ -132,7 +119,7 @@ func (s CatalogState) GetFrom() string {
 
 func (s CatalogState) GetTo() string {
 	if s.Spec != nil {
-		if s.Spec.Type == "edge" {
+		if s.Spec.CatalogType == "edge" {
 			if s.Spec.Metadata != nil {
 				if to, ok := s.Spec.Metadata["to"]; ok {
 					return to
