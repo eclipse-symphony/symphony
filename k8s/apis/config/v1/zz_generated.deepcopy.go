@@ -19,7 +19,6 @@ func (in *ProjectConfig) DeepCopyInto(out *ProjectConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.ControllerManagerConfigurationSpec.DeepCopyInto(&out.ControllerManagerConfigurationSpec)
 	if in.ValidationPolicies != nil {
 		in, out := &in.ValidationPolicies, &out.ValidationPolicies
 		*out = make(map[string][]ValidationPolicy, len(*in))

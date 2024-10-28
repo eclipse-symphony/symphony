@@ -8,7 +8,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	//cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -21,7 +21,7 @@ type ProjectConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// ControllerManagerConfigurationSpec returns the contfigurations for controllers
-	cfg.ControllerManagerConfigurationSpec `json:",inline"`
+	// cfg.ControllerManagerConfigurationSpec `json:",inline"`
 
 	SyncIntervalSeconds uint `json:"syncIntervalSeconds,omitempty"`
 
