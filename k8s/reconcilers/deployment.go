@@ -24,6 +24,7 @@ import (
 	"gopls-workspace/utils/diagnostic"
 	utilsmodel "gopls-workspace/utils/model"
 
+	apiconstants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -559,6 +560,10 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 			objectStatus.Properties["status-details"] = fmt.Sprintf("%s: due to %s", status, opts.nonTerminalErr.Error())
 		}
 	}()
+
+	if summaryResult != nil {
+		objectStatus.Properties[apiconstants.Generation] = summaryResult.Generation
+	}
 
 	if opts.terminalErr != nil {
 		objectStatus.Properties["deployed"] = "failed"
