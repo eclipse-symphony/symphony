@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: '{{ include "symphony.name" . }}-controller-manager'
+  name: '{{ include "symphony.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: '{{ include "symphony.name" . }}-controller-manager'
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: '{{ include "symphony.name" . }}-controller-manager'
+    spec:
+      containers:
+      - args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        - --metrics-config-file=/etc/config/observability/metrics-config.json
+        - --logs-config-file=/etc/config/observability/logs-config.json
+        command:
+        - /manager
+        env:
+        - name: APP_VERSION
+          value: '{{ .Chart.AppVersion }}'
+        - name: CONFIG_NAME
+          value: '{{ include "symphony.fullname" . }}-manager-config'
+        - name: SERVICE_ACCOUNT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: USE_SERVICE_ACCOUNT_TOKENS
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: '{{ include "symphony.envConfigName" . }}'
+        image: '{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag
+          }}'
+        imagePullPolicy: '{{ .Values.symphonyImage.pullPolicy }}'
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        {{- if (not .Values.otlpInsecureGrpc) }}
+        - mountPath: /certs
+          name: trust-bundle
+          readOnly: true
+        {{- end }}
+        - mountPath: /var/run/secrets/tokens
+          name: symphony-api-token
+        - mountPath: '{{ include "symphony.apiServingCertsDir" . }}'
+          name: api-ca-cert
+          readOnly: true
+        - mountPath: /etc/config/observability
+          name: observability-config-map
+          readOnly: true
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=0
+        image: '{{ .Values.kubeRbacProxy.image }}'
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'
+      terminationGracePeriodSeconds: 10
+      volumes:
+      {{- if (not .Values.otlpInsecureGrpc) }}
+      - configMap:
+          name: '{{ .Values.observability.tls.caBundleConfigMap }}'
+          optional: true
+        name: trust-bundle
+      {{- end }}
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
+      - name: symphony-api-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: '{{ include "symphony.httpsUrl" . }}'
+              expirationSeconds: 600
+              path: symphony-api-token
+      - name: api-ca-cert
+        secret:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: ca.crt
+          secretName: '{{ include "symphony.apiServingCertName" . }}'
+      - configMap:
+          name: '{{ include "symphony.fullname" . }}-observability-configmap'
+          optional: true
+        name: observability-config-map
