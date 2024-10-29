@@ -35,6 +35,9 @@ RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
 
 FROM ${TARGET_BASE_IMAGE}
+
+COPY --from=build /workspace/helm_arch /helm_arch
+
 RUN \
     set -x \
     && apt-get update \
