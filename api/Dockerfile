@@ -36,7 +36,7 @@ RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=net
 
 FROM ${TARGET_BASE_IMAGE}
 
-COPY --from=build /workspace/helm_arch /helm_arch
+ARG HELM_ARCH
 
 RUN \
     set -x \
