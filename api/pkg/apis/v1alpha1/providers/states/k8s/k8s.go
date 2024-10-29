@@ -408,15 +408,15 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 				}
 			}
 
-			generation := v.GetGeneration()
 			metadata := model.ObjectMeta{
-				Name:        v.GetName(),
-				Namespace:   v.GetNamespace(),
-				Labels:      v.GetLabels(),
-				Annotations: v.GetAnnotations(),
+				Name:          v.GetName(),
+				Namespace:     v.GetNamespace(),
+				Labels:        v.GetLabels(),
+				Annotations:   v.GetAnnotations(),
+				ObjGeneration: v.GetGeneration(),
 			}
 			entry := states.StateEntry{
-				ETag: strconv.FormatInt(generation, 10),
+				ETag: v.GetResourceVersion(),
 				ID:   v.GetName(),
 				Body: map[string]interface{}{
 					"spec":     v.Object["spec"],
@@ -508,18 +508,18 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		sLog.ErrorfCtx(ctx, "  P (K8s State) %v", coaError.Error())
 		return states.StateEntry{}, coaError
 	}
-	generation := item.GetGeneration()
 
 	metadata := model.ObjectMeta{
-		Name:        item.GetName(),
-		Namespace:   item.GetNamespace(),
-		Labels:      item.GetLabels(),
-		Annotations: item.GetAnnotations(),
+		Name:          item.GetName(),
+		Namespace:     item.GetNamespace(),
+		Labels:        item.GetLabels(),
+		Annotations:   item.GetAnnotations(),
+		ObjGeneration: item.GetGeneration(),
 	}
 
 	ret := states.StateEntry{
 		ID:   request.ID,
-		ETag: strconv.FormatInt(generation, 10),
+		ETag: item.GetResourceVersion(),
 		Body: map[string]interface{}{
 			"spec":     item.Object["spec"],
 			"status":   item.Object["status"],
