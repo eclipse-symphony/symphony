@@ -102,7 +102,7 @@ func getCatalogState(body interface{}, etag string) (model.CatalogState, error) 
 	if catalogState.Spec == nil {
 		catalogState.Spec = &model.CatalogSpec{}
 	}
-	catalogState.ObjectMeta.Generation = etag
+	catalogState.ObjectMeta.ETag = etag
 	if catalogState.Status == nil {
 		catalogState.Status = &model.CatalogStatus{}
 	}
@@ -146,6 +146,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
