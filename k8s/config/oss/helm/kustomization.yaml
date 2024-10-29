@@ -6,8 +6,6 @@
 bases:
 - "../default"
 patches:
-- path: "./manager-patch.yaml"
-- path: "./namepsace-patch.yaml"
 - path: "./certificate-patch.yaml"
 - path: "./webhook-service-patch.yaml"
 - path: "./metrics-service-patch.yaml"

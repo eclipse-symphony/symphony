@@ -127,7 +127,7 @@ func ghcrValuesOptions() string {
 		return ""
 	}
 	if enableTlsOtelSetup() {
-		return "-f symphony-ghcr-values.otel.yaml"
+		return "-f symphony-ghcr-values.otel.yaml --skip-crds"
 	} else if enableNonTlsOtelSetup() {
 		return "-f symphony-ghcr-values.otel.non-tls.yaml"
 	} else {
@@ -154,31 +154,13 @@ type License mg.Namespace
 
 /******************** Targets ********************/
 
-func rebuildK8STemplate(withTrustBundle bool) error {
-	fmt.Println("Rebuilding k8s template, withTrustBundle: ", withTrustBundle)
-	if !withTrustBundle {
-		return shellExec("cd ../../k8s && mage helmTemplate", true)
-	} else {
-		return shellExec("cd ../../k8s && mage helmTemplateWithTrustBundle", true)
-	}
-}
-
 // Deploys the symphony ecosystem to your local Minikube cluster.
 func (Cluster) Deploy() error {
 	fmt.Printf("Deploying symphony to minikube\n")
 	mg.Deps(ensureMinikubeUp)
 
 	if enableTlsOtelSetup() {
-		err := rebuildK8STemplate(true)
-		if err != nil {
-			return err
-		}
-		err = ensureSecureOtelCollectorPrereqs()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := rebuildK8STemplate(false)
+		err := ensureSecureOtelCollectorPrereqs()
 		if err != nil {
 			return err
 		}
@@ -201,16 +183,7 @@ func (Cluster) DeployWithSettings(values string) error {
 	mg.Deps(ensureMinikubeUp)
 
 	if enableTlsOtelSetup() {
-		err := rebuildK8STemplate(true)
-		if err != nil {
-			return err
-		}
-		err = ensureSecureOtelCollectorPrereqs()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := rebuildK8STemplate(false)
+		err := ensureSecureOtelCollectorPrereqs()
 		if err != nil {
 			return err
 		}
