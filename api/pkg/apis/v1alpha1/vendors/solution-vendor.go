@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -29,6 +30,10 @@ type SolutionVendor struct {
 	vendors.Vendor
 	SolutionManager *solution.SolutionManager
 }
+
+const (
+	defaultTimeout = 60 * time.Minute
+)
 
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	return vendors.VendorInfo{
@@ -51,6 +56,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	if e.SolutionManager == nil {
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
 	}
+	e.SolutionManager.InitCancelMap()
 	return nil
 }
 
@@ -72,6 +78,12 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Version:    o.Version,
 			Parameters: []string{"delete?"},
 			Handler:    o.onReconcile,
+		},
+		{
+			Methods: []string{fasthttp.MethodPost},
+			Route:   route + "/cancel",
+			Version: o.Version,
+			Handler: o.onCancel,
 		},
 		{
 			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost, fasthttp.MethodDelete},
@@ -155,6 +167,16 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				})
 			}
 			instance = deployment.Instance.ObjectMeta.Name
+
+			if delete == "true" {
+				// cancel the jobs in queue
+				sLog.InfofCtx(rContext, "V (Solution): onQueue, delete instance: %s, job id: %s", instance, deployment.JobID)
+				c.SolutionManager.CancelPreviousJobs(rContext, namespace, instance, deployment.JobID)
+			} else {
+				// track the job id for an ongoing job
+				sLog.InfofCtx(rContext, "V (Solution): onQueue, add tracking job id for instance: %s, job id: %s", instance, deployment.JobID)
+				c.SolutionManager.TrackJob(rContext, namespace, instance, deployment.JobID)
+			}
 		}
 
 		if instance == "" {
@@ -221,6 +243,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		ContentType: "application/json",
 	})
 }
+
 func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onReconcile",
@@ -245,14 +268,31 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Body:  []byte(err.Error()),
 			})
 		}
-		delete := request.Parameters["delete"]
+		isRemove := request.Parameters["delete"]
 		targetName := ""
 		if request.Metadata != nil {
 			if v, ok := request.Metadata["active-target"]; ok {
 				targetName = v
 			}
 		}
-		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", namespace, targetName)
+
+		instance := deployment.Instance.ObjectMeta.Name
+		sLog.InfofCtx(ctx, "V (Solution): onReconcile create context with timeout and cancel function for instance: %s, job id: %s", instance, deployment.JobID)
+		cancelCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
+		c.SolutionManager.AddCancelFunc(ctx, namespace, instance, deployment.JobID, cancel)
+		defer func() {
+			log.InfofCtx(rContext, "V (Solution): onReconcile, namespace: %s, instance: %s, job id: %s, isRemove: %s", namespace, instance, deployment.JobID, isRemove)
+			if isRemove == "true" {
+				// if delete completes, remove all the ongoing job list and cancel function prior to this job, if any
+				c.SolutionManager.UntrackPreviousJob(rContext, namespace, instance, deployment.JobID)
+			} else {
+				// remove the reconcile job from list
+				c.SolutionManager.UntrackJob(rContext, namespace, instance, deployment.JobID)
+			}
+			cancel()
+		}()
+
+		summary, err := c.SolutionManager.Reconcile(cancelCtx, deployment, isRemove == "true", namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
@@ -271,6 +311,26 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	})
+}
+
+func (c *SolutionVendor) onCancel(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
+		"method": "onCancel",
+	})
+	defer span.End()
+
+	namespace := request.Parameters["namespace"]
+	instance := request.Parameters["instance"]
+	jobId := request.Parameters["jobId"]
+
+	sLog.InfofCtx(rContext, "V (Solution): onCancel instance: %s job ID: %s", instance, jobId)
+	c.SolutionManager.CancelPreviousJobs(rContext, namespace, instance, jobId)
+
+	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+		State:       v1alpha2.OK,
+		Body:        []byte("{\"result\":\"200 - OK\"}"),
 		ContentType: "application/json",
 	})
 }
