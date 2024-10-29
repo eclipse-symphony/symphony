@@ -10,6 +10,14 @@ ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
+RUN case "$TARGETARCH" in \
+        "amd64") HELM_ARCH="linux-amd64" ;; \
+        "arm64") HELM_ARCH="linux-arm64" ;; \
+        "arm") HELM_ARCH="linux-arm" ;; \
+        "386") HELM_ARCH="linux-386" ;; \
+        *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
+    esac && echo "Using Helm architecture: $HELM_ARCH"
+
 ENV CGO_ENABLED=0
 
 RUN mkdir /workspace
@@ -26,9 +34,9 @@ RUN \
     set -x \
     && apt-get update \
     && apt-get install -y openssl libssl-dev ca-certificates curl jq wget android-tools-adb \
-    && wget https://get.helm.sh/helm-v3.14.0-linux-arm64.tar.gz \
-    && tar -zxvf helm-v3.14.0-linux-arm64.tar.gz \
-    && mv linux-arm64/helm /usr/local/bin/helm \
+    && wget https://get.helm.sh/helm-v3.16.2-$HELM_ARCH.tar.gz \
+    && tar -zxvf helm-v3.16.2-$HELM_ARCH.tar.gz \
+    && mv $HELM_ARCH/helm /usr/local/bin/helm \
     && apt upgrade -y
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=zoneinfo.zip
