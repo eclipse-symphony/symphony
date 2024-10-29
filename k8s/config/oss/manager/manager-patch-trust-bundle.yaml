@@ -21,3 +21,4 @@ spec:
       - name: trust-bundle
         configMap:
           name: "{{ .Values.observability.tls.caBundleConfigMap }}"
+          optional: true

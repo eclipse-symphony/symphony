@@ -75,3 +75,4 @@ spec:
         configMap:
           name: '{{ include "symphony.fullname" . }}-observability-configmap'
           optional: true
+      serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'

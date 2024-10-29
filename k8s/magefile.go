@@ -102,14 +102,9 @@ func HelmTemplate() error {
 	return kustomize.Command("build config/oss/helm -o ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml").Run()
 }
 
-func HelmTemplateWithTrustBundle() error {
+func HelmTemplateController() error {
 	mg.Deps(ensureKustomize, Manifests)
-	return kustomize.Command("build config/oss/overlays/with-trust-bundle -o ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml").Run()
-}
-
-func HelmTemplateWithoutTrustBundle() error {
-	mg.Deps(ensureKustomize, Manifests)
-	return kustomize.Command("build config/oss/overlays/without-trust-bundle -o ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml").Run()
+	return kustomize.Command("build config/oss/manager -o ../packages/helm/symphony/templates/symphony-core/symphonyk8s-controller.yaml").Run()
 }
 
 // Install CRDs into the K8s cluster specified in ~/.kube/config.
