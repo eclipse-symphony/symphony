@@ -427,7 +427,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfoCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
+	log.InfofCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
 	status := model.StageStatus{
 		Stage:         triggerData.Stage,
 		NextStage:     "",
@@ -441,7 +441,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
 		sites := make([]string, 0)
 		if currentStage.Contexts != "" {
-			log.InfoCtx(ctx, " M (Stage): evaluating context %s", currentStage.Contexts)
+			log.InfofCtx(ctx, " M (Stage): evaluating context %s", currentStage.Contexts)
 			parser := utils.NewParser(currentStage.Contexts)
 
 			eCtx := s.VendorContext.EvaluationContext.Clone()

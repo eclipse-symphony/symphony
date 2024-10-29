@@ -16,9 +16,17 @@ import (
 )
 
 type ObjectMeta struct {
-	Namespace   string            `json:"namespace,omitempty"`
-	Name        string            `json:"name,omitempty"`
-	Generation  string            `json:"generation,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
+	// ETag is a string representing the version of the object, it bump whenever the object is updated.
+	// All the state store should support auto-incrementing the version number.
+	// For example, resourceVersion in kubernetes
+	ETag string `json:"eTag,omitempty"`
+	// ObjGeneration changes when Spec changes
+	// object manager need to detect spec changes and update the generation
+	// For example, generation in kubernetes
+	ObjGeneration int64 `json:"objGeneraion,omitempty"`
+
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
@@ -27,7 +35,7 @@ type ObjectMeta struct {
 func (o *ObjectMeta) UnmarshalJSON(data []byte) error {
 	type Alias ObjectMeta
 	aux := &struct {
-		Generation interface{} `json:"generation,omitempty"`
+		ETag interface{} `json:"etag,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(o),
@@ -37,14 +45,14 @@ func (o *ObjectMeta) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if aux.Generation == nil {
-		o.Generation = ""
+	if aux.ETag == nil {
+		o.ETag = ""
 	} else {
-		switch v := aux.Generation.(type) {
+		switch v := aux.ETag.(type) {
 		case string:
-			o.Generation = v
+			o.ETag = v
 		case float64:
-			o.Generation = strconv.FormatInt(int64(v), 10)
+			o.ETag = strconv.FormatInt(int64(v), 10)
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("unexpected type for generation field: %T", v), v1alpha2.BadConfig)
 		}
