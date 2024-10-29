@@ -5,10 +5,10 @@ SPDX-License-Identifier: MIT
 -->
 # Build up CLI and release
 
-_(last edit: 11/14/2023)_
+_(last edit: 10/24/2024)_
 
-To build up Maestro CLI and release with Symphony api and samples. 
-The build uses mage to automate the process. Please refer to  [Build CLI](../docs/symphony-book/cli/build_cli.md) if manual steps are preferrd.
+To build up Maestro CLI and release with Symphony API and samples.
+The build uses mage to automate the process. Please refer to  [Build CLI](../docs/symphony-book/cli/build_cli.md) if manual steps are preferred.
 
 ## Prerequisites
 1. If you are doing this from WSL/Ubuntu, install `zip`.
@@ -25,23 +25,23 @@ See all commands with mage -l
 ```
 # under symphony/cli folder
 > mage -l
-Use this tool to quickly build symphony api or maestro cli. It can also help generate the release package.
+Use this tool to quickly build symphony API or maestro CLI. It can also help generate the release package.
 
 Targets:
-  buildApi            Build Symphony api for Windoes, Mac and Linux.
-  buildCli            Build maestro cli tools for Windoes, Mac and Linux.
-  generatePackages    Generate packages with Symphony api, maestro cli and samples for Windoes, Mac and Linux.
+  buildApi            Build Symphony API for Windows, Mac and Linux.
+  buildCli            Build maestro CLI tools for Windows, Mac and Linux.
+  generatePackages    Generate packages with Symphony API, maestro CLI and samples for Windows, Mac and Linux.
 ```
 Samples
 ```
 # under symphony/cli folder
-# Build up Symphony api for windows, mac nad linux. You can find the binary files in symphony/api folder
+# Build up Symphony API for Windows, Mac and Linux. You can find the binary files in symphony/api folder
 mage buildApi
 
-# Build up Maestro CLI for windows, mac nad linux. You can find the binary files in symphony/cli folder
+# Build up Maestro CLI for Windows, Mac and Linux. You can find the binary files in symphony/cli folder
 mage buildCli
 
-# Build up Symphony api and Maestro CLI for windows, mac nad linux. Copy the binary files, samples and configuration files to specified folder and generate the release package. You will find maestro_windows_amd64.zip, maestro_darwin_amd64.tar.gz and maestro_linux_amd64.tar.gz in the specified folder.
+# Build up Symphony API and Maestro CLI for Windows, Mac and Linux. Copy the binary files, samples and configuration files to the specified folder and generate the release package. You will find maestro_windows_amd64.zip, maestro_darwin_amd64.tar.gz and maestro_linux_amd64.tar.gz in the specified folder.
 mage generatePackages /home/usr/assemble
 ```
 
