@@ -9,6 +9,7 @@ package mock
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -129,6 +130,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				found = true
 				if c.Action == model.ComponentDelete {
 					cache[m.Config.ID] = append(cache[m.Config.ID][:i], cache[m.Config.ID][i+1:]...)
+
 				}
 				break
 			}
@@ -137,11 +139,18 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			cache[m.Config.ID] = append(cache[m.Config.ID], c.Component)
 		}
 	}
-	ret := make(map[string]model.ComponentResultSpec)
-	for _, c := range cache[m.Config.ID] {
-		ret[c.Name] = model.ComponentResultSpec{
-			Status:  v1alpha2.OK,
-			Message: "",
+	ret := step.PrepareResultMap()
+	for _, component := range step.Components {
+		if component.Action == "update" {
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Updated,
+				Message: "mock update succeeded",
+			}
+		} else {
+			ret[component.Component.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.Deleted,
+				Message: fmt.Sprintf("mock %s succeed", component.Action),
+			}
 		}
 	}
 	return ret, nil

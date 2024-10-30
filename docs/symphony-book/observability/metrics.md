@@ -98,7 +98,6 @@ Descriptor:
      -> DataType: Gauge
 NumberDataPoints #0
 Data point attributes:
-     -> errorCode: Str(OK)
      -> functionName: Str(Update)
      -> operation: Str(helm.(*HelmTargetProvider).Apply)
      -> operationType: Str(Apply)
@@ -166,9 +165,10 @@ Symphony metrics are integarted with OTLP via [Metrics API](https://opentelemetr
     {{- if .Values.otlpMetricsEndpointGrpc }}
     {
         "exporter": {
-        "type": "metrics.exporters.otlpgrpc",
-        "collectorUrl": "{{ tpl .Values.otlpMetricsEndpointGrpc $ }}",
-        "temporality": true
+          "type": "metrics.exporters.otlpgrpc",
+          "collectorUrl": "{{ tpl .Values.otlpMetricsEndpointGrpc $ }}",
+          "temporality": true,
+          "insecureEndpoint": true
         }
     }
     {{- end }}

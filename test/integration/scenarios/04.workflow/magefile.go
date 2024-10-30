@@ -175,7 +175,7 @@ func Verify() error {
 func Cleanup() {
 	err := modifyYAML("", "")
 	if err != nil {
-		fmt.Printf("Failed to set up the symphony-ghcr-values.yaml. Please make sure the labelKey and labelValue is set to null.\n")
+		fmt.Printf("Failed to set up the %s. Please make sure the labelKey and labelValue is set to null.\n", getGhcrValueFileName())
 	}
 	testhelpers.Cleanup(TEST_NAME)
 }
@@ -195,9 +195,28 @@ func writeYamlStringsToFile(yamlString string, filePath string) error {
 	return nil
 }
 
+func enableTlsOtelSetup() bool {
+	return os.Getenv("ENABLE_TLS_OTEL_SETUP") == "true"
+}
+
+func enableNonTlsOtelSetup() bool {
+	return os.Getenv("ENABLE_NON_TLS_OTEL_SETUP") == "true"
+}
+
+func getGhcrValueFileName() string {
+	if enableTlsOtelSetup() {
+		return "symphony-ghcr-values.otel.yaml"
+	} else if enableNonTlsOtelSetup() {
+		return "symphony-ghcr-values.otel.non-tls.yaml"
+	} else {
+		return "symphony-ghcr-values.yaml"
+	}
+}
+
 func modifyYAML(v string, annotationKey string) error {
 	// Read the YAML file
-	data, err := os.ReadFile("../../../localenv/symphony-ghcr-values.yaml")
+	ghcrValueFilePath := fmt.Sprintf("../../../localenv/%s", getGhcrValueFileName())
+	data, err := os.ReadFile(ghcrValueFilePath)
 	if err != nil {
 		return err
 	}
@@ -225,7 +244,7 @@ func modifyYAML(v string, annotationKey string) error {
 	}
 
 	// Write the modified YAML data back to the file
-	err = os.WriteFile("../../../localenv/symphony-ghcr-values.yaml", data, 0644)
+	err = os.WriteFile(ghcrValueFilePath, data, 0644)
 	if err != nil {
 		return err
 	}

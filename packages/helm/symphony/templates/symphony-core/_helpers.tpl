@@ -251,3 +251,13 @@ true
 true
 {{- end -}}
 {{- end -}}
+
+{{/*Observability.OtelCollector.caBundleLabelValue */}}
+{{- define "symphony.otelcollector.caBundleLabelValue" -}}
+{{- default "false" .Values.observability.otelCollector.caBundleLabelValue }}
+{{- end }}
+
+{{/* Otel collector's CA trust bundle label value */}}
+{{- define "symphony.tls.caBundleLabelValue" -}}
+{{- default "false" .Values.observability.tls.caBundleLabelValue }}
+{{- end }}

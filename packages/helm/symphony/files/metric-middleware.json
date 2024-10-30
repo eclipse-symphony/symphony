@@ -8,7 +8,13 @@
           "exporter": {
             "type": "metrics.exporters.otlpgrpc",
             "collectorUrl": "{{ tpl .Values.otlpMetricsEndpointGrpc $ }}",
-            "temporality": true
+            "temporality": true,
+            {{- if eq .Values.otlpInsecureGrpc true }}
+            "insecureEndpoint": true
+            {{- else }}
+            "insecureEndpoint": false,
+            "serverCAFilePath": "/certs/root-certs.pem"
+            {{- end }}
           }
         }
         {{- end }}

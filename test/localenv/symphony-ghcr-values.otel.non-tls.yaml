@@ -25,6 +25,8 @@ Azure:
   Cluster:
     Region: "fake_location"
     ResourceId: "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/fake_test_rg/providers/Microsoft.Kubernetes/ConnectedClusters/fake_arc_cluster"
-otlpLogsEndpointGrpc: symphony-otel-collector-service.default.svc:4317
-otlpMetricsEndpointGrpc: symphony-otel-collector-service.default.svc:4317
-otlpInsecureGrpc: true 
+otlpLogsEndpointGrpc:  symphony-otel-collector-service.default.svc.cluster.local:4317
+otlpMetricsEndpointGrpc:  symphony-otel-collector-service.default.svc.cluster.local:4317
+otlpInsecureGrpc: true
+cert-manager:
+  enabled: true
