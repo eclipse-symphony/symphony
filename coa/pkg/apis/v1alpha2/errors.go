@@ -8,6 +8,10 @@ package v1alpha2
 
 import "fmt"
 
+type ICOAError interface {
+	IsRetriableErr() bool
+}
+
 type COAError struct {
 	InnerError error
 	Message    string
@@ -23,6 +27,23 @@ func (e COAError) Error() string {
 		return e.InnerError.Error()
 	} else {
 		return ""
+	}
+}
+
+func (e COAError) IsRetriableErr() bool {
+	switch e.State {
+	case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
+		return false
+	case InitFailed, ValidateFailed, GetComponentPropsFailed: // catalog manager
+		return false
+	case CreateProjectorFailed:
+		return false
+	case CreateActionConfigFailed, GetHelmPropertyFailed: // helm provider
+		return false
+	case HelmActionFailed: // helm provider
+		return true
+	default:
+		return true
 	}
 }
 
@@ -85,16 +106,9 @@ func IsBadConfig(err error) bool {
 }
 
 func IsRetriableErr(err error) bool {
-	coaE, ok := err.(COAError)
+	iCoaE, ok := err.(ICOAError)
 	if !ok {
 		return true
 	}
-	switch coaE.State {
-	case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
-		return false
-	case ValidateFailed: // catalog manager
-		return false
-	default:
-		return true
-	}
+	return iCoaE.IsRetriableErr()
 }
