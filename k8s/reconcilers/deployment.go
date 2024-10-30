@@ -24,6 +24,7 @@ import (
 	"gopls-workspace/utils/diagnostic"
 	utilsmodel "gopls-workspace/utils/model"
 
+	apiconstants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -560,6 +561,10 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 		}
 	}()
 
+	if summaryResult != nil {
+		objectStatus.Properties[apiconstants.Generation] = summaryResult.Generation
+	}
+
 	if opts.terminalErr != nil {
 		objectStatus.Properties["deployed"] = "failed"
 		objectStatus.Properties["targets"] = "failed"
@@ -708,6 +713,7 @@ func defaultProvisioningErrorBuilder(summaryResult *model.SummaryResult, err err
 			for ck, cv := range v.ComponentResults {
 				targetObject.Details = append(targetObject.Details, apimodel.ComponentError{
 					Code:   cv.Status.String(),
+					Message: cv.Message,
 					Target: ck,
 				})
 			}

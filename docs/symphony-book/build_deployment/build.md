@@ -162,10 +162,16 @@ docker push ghcr.io/eclipse-symphony/symphony-k8s:latest
 
 ## 5. Update Helm chart (optional)
 
+`mage helmTemplate` manipulates the generated symphonyk8s.yaml for all components required by symphony-k8s pod except for the pod yaml itself.
+
+The symphonyk8s deployment is maintained as static yaml in `../packages/helm/symphony/templates/symphony-core/symphony-k8s-controller.yaml` with helm value expressions, which allows us to write helm value expressions to render the yaml during runtime. 
+
 ```bash
 cd k8s
 mage helmTemplate
 # Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml.
+
+# To modify the symphony-k8s deployment yaml, please modify `../packages/helm/symphony/templates/symphony-core/symphony-k8s-controller.yaml` directly.
 ```
 
 > **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solution is found.

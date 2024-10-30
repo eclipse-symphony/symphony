@@ -42,6 +42,8 @@ spec:
         baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
+        waitForDeployment: true
+        WaitTimeout: 10m
       inputs:
         names: "${{$output(list,items)}}"
   selfDriving: true
