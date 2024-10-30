@@ -743,7 +743,7 @@ func pullOCIChartWithBasicAuth(ctx context.Context, repo, version, username, pas
 		return nil, herr
 	}
 
-	client.Login(host, registry.LoginOptBasicAuth(username, password))
+	err = client.Login(host, registry.LoginOptBasicAuth(username, password))
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login with basic auth: %+v", err)
 		return nil, err
