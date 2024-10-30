@@ -15,10 +15,11 @@ if [ -z "$DEPLOYMENT_FINALIZER" ]; then
 fi
 
 function delete_crds_instances {
-  echo "Deleting instances.$SOLUTION_GROUP"
+  echo "Patching finalizers for instances.$SOLUTION_GROUP and targets.$FABRIC_GROUP resources"
   patch_finalizers "instances.$SOLUTION_GROUP" $DEPLOYMENT_FINALIZER || true
   patch_finalizers "targets.$FABRIC_GROUP" $DEPLOYMENT_FINALIZER || true
 
+  echo "Deleting instances.$SOLUTION_GROUP and targets.$FABRIC_GROUP resources"
   delete_crs "instances.$SOLUTION_GROUP"
   delete_crs "targets.$FABRIC_GROUP"
   
