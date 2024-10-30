@@ -8,10 +8,21 @@ FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
 WORKFLOW_GROUP=workflow.symphony
 FEDERATION_GROUP=federation.symphony
+# Ensure the DEPLOYMENT_FINALIZER environment variable is set
+if [ -z "$DEPLOYMENT_FINALIZER" ]; then
+  echo "Error: DEPLOYMENT_FINALIZER environment variable is not set."
+  exit 1
+fi
 
 function delete_crds_instances {
   echo "Deleting instances.$SOLUTION_GROUP"
-  kubectl delete crds "instances.$SOLUTION_GROUP" --wait --timeout=$TIMEOUTDEPLOYMENT --ignore-not-found || true 
+  patch_finalizers "instances.$SOLUTION_GROUP" $DEPLOYMENT_FINALIZER || true
+  patch_finalizers "targets.$FABRIC_GROUP" $DEPLOYMENT_FINALIZER || true
+
+  delete_crs "instances.$SOLUTION_GROUP"
+  delete_crs "targets.$FABRIC_GROUP"
+  
+  kubectl delete crds "instances.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD instances.$SOLUTION_GROUP, invoking remove_finalizers"
     remove_finalizers "instances.$SOLUTION_GROUP"
@@ -23,7 +34,7 @@ function delete_crds_instances {
     remove_finalizers "solutions.$SOLUTION_GROUP"
   fi
   echo "Deleting targets.$FABRIC_GROUP"
-  kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUTDEPLOYMENT --ignore-not-found || true 
+  kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
     echo "Failed to delete CRD targets.$FABRIC_GROUP, invoking remove_finalizers"
     remove_finalizers "targets.$FABRIC_GROUP"
@@ -57,6 +68,40 @@ patchResource() {
       if [ $? -ne 0 ]; then
         echo "Failed to remove finalizers from $resource_type $name in namespace $namespace"
       fi
+    done
+}
+
+# Function to patch the finalizers of a resource type to a specific value
+patch_finalizers() {
+  local resource_type=$1
+  local finalizer_value=$2
+
+  # Fetch all resources of the given type and patch the finalizers
+  kubectl get "$resource_type" --all-namespaces -o jsonpath="{range .items[*]}{.metadata.namespace}{'\t'}{.metadata.name}{'\t'}{.metadata.finalizers}{'\n'}{end}" |
+    while read -r namespace name finalizers; do
+      if echo "$finalizers" | grep -q "$finalizer_value"; then
+        echo "Finalizer $finalizer_value already present for $resource_type $name in namespace $namespace"
+      else
+        # Append the new finalizer to the existing finalizers
+        new_finalizers=$(echo "$finalizers" | jq -c --arg finalizer "$finalizer_value" '. + [$finalizer]')
+        echo "Patching finalizers for $resource_type $name in namespace $namespace"
+        kubectl patch "$resource_type" "$name" -n "$namespace" --type='merge' -p "{\"metadata\":{\"finalizers\":$new_finalizers}}"
+        if [ $? -ne 0 ]; then
+          echo "Failed to patch finalizers for $resource_type $name in namespace $namespace"
+        fi
+      fi
+    done
+}
+
+# Function to delete all resources of a given type
+delete_crs() {
+  local resource_type=$1
+
+  # Fetch all resources of the given type and delete them
+  kubectl get "$resource_type" --all-namespaces -o jsonpath="{range .items[*]}{.metadata.namespace}{'\t'}{.metadata.name}{'\n'}{end}" |
+    while read -r namespace name; do
+      echo "Deleting $resource_type $name in namespace $namespace"
+      kubectl delete "$resource_type" "$name" -n "$namespace" --wait --timeout=$TIMEOUTDEPLOYMENT
     done
 }
 
@@ -111,8 +156,5 @@ for resource_type in "${resource_types[@]}"; do
       remove_finalizers "$resource_type" 
     fi
 done
-
-# Wait for all background jobs to complete
-wait
 
 echo "All delete operations completed"

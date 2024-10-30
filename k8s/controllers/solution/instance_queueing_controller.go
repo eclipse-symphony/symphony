@@ -9,6 +9,7 @@ package solution
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
@@ -17,8 +18,10 @@ import (
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -72,10 +75,25 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, true, log, instanceOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
+		log.Info("Reconcile removing instance: " + req.Name + " in namespace " + req.Namespace)
+		// check the finalizer - uninstall finalizer if exists, set finalizer to nil
+		if utils.ContainsString(instance.GetFinalizers(), os.Getenv(constants.DeploymentFinalizer)) {
+			// set finalizer to nil
+			log.Info("Reconcile removing instance finalizier: " + req.Name + " in namespace " + req.Namespace)
+			patch := client.MergeFrom(instance.DeepCopy())
+			instance.SetFinalizers([]string{})
+			if err := r.Patch(ctx, instance, patch); err != nil {
+				log.Error(err, "Failed to patch instance finalizers")
+				resultType = metrics.ReconcileFailedResult
+			} else {
+				resultType = metrics.ReconcileSuccessResult
+			}
+		} else {
+			operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
+			deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, true, log, instanceOperationStartTimeKey, operationName)
+			if err != nil {
+				resultType = metrics.ReconcileFailedResult
+			}
 		}
 	}
 
