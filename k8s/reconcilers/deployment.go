@@ -713,7 +713,6 @@ func defaultProvisioningErrorBuilder(summaryResult *model.SummaryResult, err err
 			for ck, cv := range v.ComponentResults {
 				targetObject.Details = append(targetObject.Details, apimodel.ComponentError{
 					Code:   cv.Status.String(),
-					Message: cv.Message,
 					Target: ck,
 				})
 			}
