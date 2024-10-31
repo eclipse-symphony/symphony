@@ -97,10 +97,6 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 		},
 	})
 
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
