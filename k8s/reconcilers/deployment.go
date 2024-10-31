@@ -619,6 +619,7 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 	// Change to corresponding status
 	// TargetResults should be empty if there a successful deletion
 	for k, v := range summary.TargetResults {
+		objectStatus.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
 		for kc, c := range v.ComponentResults {
 			if c.Message == "" {
 				// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/225
@@ -706,14 +707,15 @@ func defaultProvisioningErrorBuilder(summaryResult *model.SummaryResult, err err
 		for k, v := range summary.TargetResults {
 			targetObject := apimodel.TargetError{
 				Code:    v.Status,
-				Message: v.Status,
+				Message: v.Message,
 				Target:  k,
 				Details: make([]apimodel.ComponentError, 0),
 			}
 			for ck, cv := range v.ComponentResults {
 				targetObject.Details = append(targetObject.Details, apimodel.ComponentError{
-					Code:   cv.Status.String(),
-					Target: ck,
+					Code:    cv.Status.String(),
+					Message: cv.Message,
+					Target:  ck,
 				})
 			}
 			errorObj.Details = append(errorObj.Details, targetObject)
