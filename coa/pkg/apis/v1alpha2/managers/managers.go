@@ -114,11 +114,11 @@ func GetPersistentStateProvider(config ManagerConfig, providers map[string]provi
 func GetKeyLockProvider(config ManagerConfig, providers map[string]providers.IProvider) (keylock.IKeyLockProvider, error) {
 	keyLockProviderName, ok := config.Properties[v1alpha2.ProvidersKeyLock]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "persistent keylock provider is not configured", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "keylock provider is not configured", v1alpha2.MissingConfig)
 	}
 	provider, ok := providers[keyLockProviderName]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "persistent keylock provider is not supplied", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "keylock provider is not supplied", v1alpha2.MissingConfig)
 	}
 	keyLockProvider, ok := provider.(keylock.IKeyLockProvider)
 	if !ok {
