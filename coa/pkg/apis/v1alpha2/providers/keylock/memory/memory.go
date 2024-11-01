@@ -18,30 +18,26 @@ import (
 
 var sLog = logger.NewLogger("coa.runtime")
 
-type GlobalMemoryKeyLock struct {
+type MemoryKeyLock struct {
 	lm            *LockMap
 	cleanInterval int //seconds
 	purgeDuration int // 12 hours before
 }
 
-var globalMemoryKeyLock *GlobalMemoryKeyLock
+var globalMemoryKeyLock *MemoryKeyLock
 var initLock = sync.Mutex{}
 
-func (gml *GlobalMemoryKeyLock) Lock(key string) {
+func (gml *MemoryKeyLock) Lock(key string) {
 	gml.lm.getLockNode(key).Lock()
 }
 
-func (gml *GlobalMemoryKeyLock) UnLock(key string) {
+func (gml *MemoryKeyLock) UnLock(key string) {
 	gml.lm.getLockNode(key).Unlock()
 	go gml.lm.updateLockLRU(key)
 }
 
 type MemoryKeyLockProvider struct {
-}
-
-type MemoryKeyLockProviderConfig struct {
-	CleanInterval int `json:"cleanInterval"`
-	PurgeDuration int `json:"purgeDuration"`
+	memKeyLockInstance *MemoryKeyLock
 }
 
 func toMemoryKeyLockProviderConfig(config providers.IProviderConfig) (MemoryKeyLockProviderConfig, error) {
@@ -54,13 +50,8 @@ func toMemoryKeyLockProviderConfig(config providers.IProviderConfig) (MemoryKeyL
 	return ret, err
 }
 
-func (gml *GlobalMemoryKeyLock) Init(config providers.IProviderConfig) error {
-	sLog.Info("Init GlobalMemoryKeyLock")
-	KeyLockConfig, err := toMemoryKeyLockProviderConfig(config)
-	if err != nil {
-		sLog.Errorf("  P (String Lock): failed to parse provider config %+v", err)
-		return errors.New("expected MemoryKeyLockProviderConfig")
-	}
+func (gml *MemoryKeyLock) Init(KeyLockConfig MemoryKeyLockProviderConfig) error {
+	sLog.Info("Init MemoryKeyLock")
 	if KeyLockConfig.CleanInterval > 0 {
 		gml.cleanInterval = KeyLockConfig.CleanInterval
 	} else {
@@ -82,26 +73,52 @@ func (gml *GlobalMemoryKeyLock) Init(config providers.IProviderConfig) error {
 }
 
 func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error {
-	initLock.Lock()
-	defer initLock.Unlock()
-	if globalMemoryKeyLock == nil {
-		globalMemoryKeyLock = &GlobalMemoryKeyLock{}
-		return globalMemoryKeyLock.Init(config)
+	KeyLockConfig, err := toMemoryKeyLockProviderConfig(config)
+	if err != nil {
+		sLog.Errorf("  P (String Lock): failed to parse provider config %+v", err)
+		return errors.New("expected MemoryKeyLockProviderConfig")
 	}
-	return nil
+
+	if KeyLockConfig.Mode == Global {
+		sLog.Info("Trying to init global memoryKeyLock")
+		initLock.Lock()
+		defer initLock.Unlock()
+		if globalMemoryKeyLock == nil {
+			globalMemoryKeyLock = &MemoryKeyLock{}
+			err = globalMemoryKeyLock.Init(KeyLockConfig)
+			mslp.memKeyLockInstance = globalMemoryKeyLock
+		}
+	} else if KeyLockConfig.Mode == Shared {
+		sLog.Info("Trying to init shared memoryKeyLock")
+		initLock.Lock()
+		defer initLock.Unlock()
+		if globalMemoryKeyLock == nil {
+			err = errors.New("globalMemoryKeyLock should be init before useign shared mode")
+		} else {
+			mslp.memKeyLockInstance = globalMemoryKeyLock
+		}
+	} else if KeyLockConfig.Mode == Dedicated {
+		sLog.Info("Trying to init dedicated memoryKeyLock")
+		mslp.memKeyLockInstance = &MemoryKeyLock{}
+		err = globalMemoryKeyLock.Init(KeyLockConfig)
+	} else {
+		err = errors.New("MemoryKeyLockProvider: unknown init mode")
+	}
+
+	return err
 }
 
 func (mslp *MemoryKeyLockProvider) Lock(key string) {
-	globalMemoryKeyLock.lm.getLockNode(key).Lock()
+	mslp.memKeyLockInstance.lm.getLockNode(key).Lock()
 }
 
 func (mslp *MemoryKeyLockProvider) UnLock(key string) {
-	globalMemoryKeyLock.lm.getLockNode(key).Unlock()
-	go globalMemoryKeyLock.lm.updateLockLRU(key)
+	mslp.memKeyLockInstance.lm.getLockNode(key).Unlock()
+	go mslp.memKeyLockInstance.lm.updateLockLRU(key)
 }
 
 func (mslp *MemoryKeyLockProvider) TryLock(key string) bool {
-	return globalMemoryKeyLock.lm.getLockNode(key).TryLock()
+	return mslp.memKeyLockInstance.lm.getLockNode(key).TryLock()
 }
 
 func (mslp *MemoryKeyLockProvider) TryLockWithTimeout(key string, duration time.Duration) bool {

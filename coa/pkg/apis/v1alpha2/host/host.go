@@ -135,6 +135,21 @@ func (h *APIHost) Launch(config HostConfig,
 					}
 				}
 
+				if config.API.KeyLock.Provider.Type != "" {
+					if h.SharedKeyLockProvider == nil {
+						for _, providerFactory := range providerFactories {
+							mProvider, err := providerFactory.CreateProvider(
+								config.API.KeyLock.Provider.Type,
+								config.API.KeyLock.Provider.Config)
+							if err != nil {
+								return err
+							}
+							h.SharedKeyLockProvider = mProvider
+							break
+						}
+					}
+				}
+
 				// make other providers
 				providers := make(map[string]map[string]pv.IProvider, 0)
 				for _, providerFactory := range providerFactories {
