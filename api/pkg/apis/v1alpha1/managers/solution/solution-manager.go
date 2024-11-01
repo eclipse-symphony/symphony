@@ -65,7 +65,7 @@ type SolutionManager struct {
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
-	jobList         map[string]map[string][]string
+	jobList         map[string]map[string][]int
 	cancelFunc      map[string]context.CancelFunc
 }
 
@@ -871,68 +871,85 @@ func (s *SolutionManager) Reconcil() []error {
 }
 
 func (s *SolutionManager) InitCancelMap() {
-	s.jobList = make(map[string]map[string][]string)
+	s.jobList = make(map[string]map[string][]int)
 	s.cancelFunc = make(map[string]context.CancelFunc)
 }
 
-func (s *SolutionManager) UntrackJob(ctx context.Context, namespace string, instance string, jobID string) {
-	for i, v := range s.jobList[namespace][instance] {
-		if v == jobID {
-			s.jobList[namespace][instance] = append(s.jobList[namespace][instance][:i], s.jobList[namespace][instance][i+1:]...)
-		}
+func (s *SolutionManager) TrackJob(ctx context.Context, namespace string, instance string, jobID string) error {
+	log.InfofCtx(ctx, " M (Solution): TrackJob, namespace %s, instance: %s, job id: %s", namespace, instance, jobID)
+	jobIdNum, err := convertJobIdToInt(jobID)
+	if err != nil {
+		return err
 	}
-	log.InfofCtx(ctx, " M (Solution): UntrackJob, namespace %s, job id: %s", namespace, jobID)
-	if len(s.jobList[namespace][instance]) == 0 {
-		delete(s.jobList[namespace], instance)
-	}
-	delete(s.cancelFunc, generateJobIndex(namespace, instance, jobID))
-}
 
-func (s *SolutionManager) UntrackPreviousJob(ctx context.Context, namespace string, instance string, jobID string) {
 	if _, exists := s.jobList[namespace]; !exists {
-		return
-	}
-
-	for i, v := range s.jobList[namespace][instance] {
-		if v < jobID {
-			s.jobList[namespace][instance] = append(s.jobList[namespace][instance][:i], s.jobList[namespace][instance][i+1:]...)
-			delete(s.cancelFunc, generateJobIndex(namespace, instance, v))
-		}
-	}
-	if len(s.jobList[namespace][instance]) == 0 {
-		delete(s.jobList[namespace], instance)
-	}
-	log.InfofCtx(ctx, " M (Solution): UntrackPreviousJob, namespace %s, instance %s, job id: %s", namespace, instance, jobID)
-}
-
-func (s *SolutionManager) TrackJob(ctx context.Context, namespace string, instance string, jobID string) {
-	if _, exists := s.jobList[namespace]; !exists {
-		s.jobList[namespace] = make(map[string][]string)
+		s.jobList[namespace] = make(map[string][]int)
 	}
 	if _, exists := s.jobList[namespace][instance]; !exists {
-		s.jobList[namespace][instance] = []string{jobID}
+		s.jobList[namespace][instance] = []int{jobIdNum}
 	} else {
-		s.jobList[namespace][instance] = append(s.jobList[namespace][instance], jobID)
+		s.jobList[namespace][instance] = append(s.jobList[namespace][instance], jobIdNum)
 	}
-	log.InfofCtx(ctx, " M (Solution): TrackJob, namespace %s, instance: %s, job id: %s", namespace, instance, jobID)
+	return nil
+}
+
+func (s *SolutionManager) UntrackJob(ctx context.Context, namespace string, instance string, jobID string) error {
+	log.InfofCtx(ctx, " M (Solution): UntrackJob, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
+	delete(s.cancelFunc, generateJobIndex(namespace, instance, jobID))
+	jobIdNum, err := convertJobIdToInt(jobID)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := s.jobList[namespace]; !exists {
+		return nil
+	}
+
+	for i, v := range s.jobList[namespace][instance] {
+		if v == jobIdNum {
+			s.jobList[namespace][instance] = append(s.jobList[namespace][instance][:i], s.jobList[namespace][instance][i+1:]...)
+		}
+	}
+	if len(s.jobList[namespace][instance]) == 0 {
+		delete(s.jobList[namespace], instance)
+	}
+	return nil
 }
 
 func (s *SolutionManager) AddCancelFunc(ctx context.Context, namespace string, instance string, jobID string, cancel context.CancelFunc) {
+	log.InfofCtx(ctx, " M (Solution): AddCancelFunc, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
 	index := generateJobIndex(namespace, instance, jobID)
 	s.cancelFunc[index] = cancel
 }
 
-func (s *SolutionManager) CancelPreviousJobs(ctx context.Context, namespace string, instance string, jobID string) {
+func (s *SolutionManager) CancelPreviousJobs(ctx context.Context, namespace string, instance string, jobID string) error {
+	log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
+	jobIdNum, err := convertJobIdToInt(jobID)
+	if err != nil {
+		return err
+	}
+
 	if _, exists := s.jobList[namespace]; exists {
 		for _, id := range s.jobList[namespace][instance] {
-			log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, scanning job id: %s", id)
-			if id < jobID {
+			if id < jobIdNum {
 				// only cancel jobs prior to the delete job
-				s.cancelFunc[generateJobIndex(namespace, instance, id)]()
-				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", id)
+				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, found previous job id: %v", id)
+				if cancel, exists := s.cancelFunc[generateJobIndex(namespace, instance, strconv.Itoa(id))]; exists {
+					cancel()
+					log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", id)
+				}
 			}
 		}
 	}
+	return nil
+}
+
+func convertJobIdToInt(jobID string) (int, error) {
+	num, err := strconv.Atoi(jobID)
+	if err != nil {
+		return 0, v1alpha2.NewCOAError(err, "Invalid JobID", v1alpha2.BadConfig)
+	}
+	return num, nil
 }
 
 func generateJobIndex(namespace string, instance string, jobID string) string {

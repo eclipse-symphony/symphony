@@ -93,6 +93,7 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 	}
 }
+
 func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onQueue",
@@ -276,19 +277,17 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 
 		instance := deployment.Instance.ObjectMeta.Name
-		sLog.InfofCtx(ctx, "V (Solution): onReconcile create context with timeout and cancel function for instance: %s, job id: %s", instance, deployment.JobID)
+		sLog.InfofCtx(ctx, "V (Solution): onReconcile create context with timeout, instance: %s, job id: %s, isRemove: %s", instance, deployment.JobID, isRemove)
 		cancelCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
-		c.SolutionManager.AddCancelFunc(ctx, namespace, instance, deployment.JobID, cancel)
+		if isRemove != "true" {
+			c.SolutionManager.AddCancelFunc(ctx, namespace, instance, deployment.JobID, cancel)
+		}
 		defer func() {
-			log.InfofCtx(rContext, "V (Solution): onReconcile, namespace: %s, instance: %s, job id: %s, isRemove: %s", namespace, instance, deployment.JobID, isRemove)
-			if isRemove == "true" {
-				// if delete completes, remove all the ongoing job list and cancel function prior to this job, if any
-				c.SolutionManager.UntrackPreviousJob(rContext, namespace, instance, deployment.JobID)
-			} else {
-				// remove the reconcile job from list
+			log.InfofCtx(rContext, "V (Solution): onReconcile complete, namespace: %s, instance: %s, job id: %s, isRemove: %s", namespace, instance, deployment.JobID, isRemove)
+			cancel()
+			if isRemove != "true" {
 				c.SolutionManager.UntrackJob(rContext, namespace, instance, deployment.JobID)
 			}
-			cancel()
 		}()
 
 		summary, err := c.SolutionManager.Reconcile(cancelCtx, deployment, isRemove == "true", namespace, targetName)
