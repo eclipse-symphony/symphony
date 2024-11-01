@@ -41,7 +41,8 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 	AfterAll(func() {
 		By("uninstalling orchestrator from the cluster")
-		err := shell.LocalenvCmd(context.Background(), "mage destroy all")
+		err := shell.LocalenvCmd(context.Background(), "mage DumpSymphonyLogsForTest ginkgosuite_fallback")
+		err = shell.LocalenvCmd(context.Background(), "mage destroy all")
 		Expect(err).ToNot(HaveOccurred())
 	})
 

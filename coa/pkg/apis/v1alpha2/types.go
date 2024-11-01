@@ -20,6 +20,7 @@ type (
 )
 
 const (
+	None State = 0
 	// OK = HTTP 200
 	OK State = 200
 	// Accepted = HTTP 202
@@ -134,6 +135,31 @@ const (
 	//target controller errors
 	TargetPropertyNotFound State = 12000
 )
+
+func GetHttpStatus(code int) State {
+	switch {
+	case code == 200:
+		return OK
+	case code == 202:
+		return Accepted
+	case code >= 200 && code < 300:
+		return OK
+	case code == 403:
+		return Unauthorized
+	case code == 404:
+		return NotFound
+	case code == 405:
+		return MethodNotAllowed
+	case code == 409:
+		return Conflict
+	case code >= 400 && code < 500:
+		return BadRequest
+	case code >= 500:
+		return InternalError
+	default:
+		return None
+	}
+}
 
 func (s State) EqualsWithString(str string) bool {
 	return s.String() == str

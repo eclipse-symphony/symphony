@@ -94,8 +94,39 @@ type (
 		CreateCampaignContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
 		DeleteCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
 		GetCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignContainerState, error)
+		GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
 	}
 )
+
+// We shouldn't use specific error types
+// APIError represents an error that includes a SummarySpec in its message field.
+type APIError struct {
+	Code    v1alpha2.State `json:"code"`
+	Message string         `json:"message"`
+}
+
+func (e APIError) Error() string {
+	return fmt.Sprintf(
+		"failed to invoke Symphony API: [%v] - %s",
+		e.Code,
+		e.Message,
+	)
+}
+
+func NewAPIError(state v1alpha2.State, msg string) APIError {
+	return APIError{
+		Code:    state,
+		Message: msg,
+	}
+}
+
+func ToCOAError(apiErr APIError) v1alpha2.COAError {
+	return v1alpha2.COAError{
+		InnerError: apiErr,
+		Message:    apiErr.Message,
+		State:      apiErr.Code,
+	}
+}
 
 func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, user string, passowrd string) (string, error) {
 	return "", nil
@@ -368,6 +399,26 @@ func (a *apiClient) GetTargets(ctx context.Context, namespace string, user strin
 	}
 
 	response, err := a.callRestAPI(ctx, "targets/registry?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error) {
+	ret := map[string]interface{}{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, fmt.Sprintf("settings/config/%s?namespace=%s", url.QueryEscape(name), url.QueryEscape(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -825,13 +876,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 {
-			return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
-		}
-		object := &SummarySpecError{
-			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
-			Message: string(bodyBytes),
-		}
+		object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 		return nil, object
 	}
 

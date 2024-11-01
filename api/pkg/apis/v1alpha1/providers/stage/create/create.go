@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -158,8 +159,15 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	mLog.InfofCtx(ctx, "  P (Create Stage) process started")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
-	outputs := make(map[string]interface{})
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		create,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
+	outputs := make(map[string]interface{})
 	objectType := stage.ReadInputString(inputs, "objectType")
 	objectName := stage.ReadInputString(inputs, "objectName")
 	action := stage.ReadInputString(inputs, "action")
@@ -185,12 +193,30 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					create,
 					functionName,
 					metrics.ProcessOperation,
-					metrics.DeleteOperationType,
+					metrics.RunOperationType,
 					v1alpha2.DeleteInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to delete instance: %+v", err)
 				return nil, false, err
 			}
+			for ic := 0; ic < i.Config.WaitCount; ic++ {
+				remainings := utils.FilterIncompleteDelete(ctx, &i.ApiClient, objectNamespace, []string{objectName}, true, i.Config.User, i.Config.Password)
+				if len(remainings) == 0 {
+					return outputs, false, nil
+				}
+				mLog.InfofCtx(ctx, "  P (Create Stage) process: Waiting for instance deletion: %+v", remainings)
+				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
+			}
+			providerOperationMetrics.ProviderOperationErrors(
+				create,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.DeploymentNotReached.String(),
+			)
+			err = v1alpha2.NewCOAError(nil, "Instance deletion reconcile timeout", v1alpha2.InternalError)
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
+			return nil, false, err
 		} else if strings.EqualFold(action, CreateAction) {
 			var instanceState model.InstanceState
 			err = json.Unmarshal(objectData, &instanceState)
@@ -245,22 +271,21 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					create,
 					functionName,
 					metrics.ProcessOperation,
-					metrics.UpdateOperationType,
+					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				var summary *model.SummaryResult
-				summary, err = i.ApiClient.GetSummary(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
-				lastSummaryMessage = summary.Summary.SummaryMessage
-				if err != nil {
-					return nil, false, err
-				}
-				if summary.Summary.SuccessCount == summary.Summary.TargetCount {
+				remaining, failed := utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []string{objectName}, true, i.Config.User, i.Config.Password)
+				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
 					outputs["objectName"] = objectName
+					mLog.InfofCtx(ctx, "  P (Create Stage) process completed with fail count is %d", len(failed))
+					if len(failed) > 0 {
+						outputs["failedDeployment"] = failed
+					}
 					return outputs, false, nil
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
@@ -269,14 +294,14 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				create,
 				functionName,
 				metrics.ProcessOperation,
-				metrics.UpdateOperationType,
+				metrics.RunOperationType,
 				v1alpha2.DeploymentNotReached.String(),
 			)
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation reconcile failed: %s", lastSummaryMessage), v1alpha2.InternalError)
 			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
 			return nil, false, err
 		} else {
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.InternalError)
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.BadRequest)
 			providerOperationMetrics.ProviderOperationErrors(
 				create,
 				functionName,
@@ -288,7 +313,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			return nil, false, err
 		}
 	default:
-		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.InternalError)
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported object type: %s", objectType), v1alpha2.BadRequest)
 		mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(
 			create,
@@ -303,12 +328,5 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	outputs["objectName"] = objectName
 
 	mLog.InfofCtx(ctx, "  P (Create Stage) process completed")
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		create,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 	return outputs, false, nil
 }

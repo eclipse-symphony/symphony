@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	secretmock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -1647,14 +1648,18 @@ func TestConfigInExpression(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("[{\"name\":\"port${{$config(line-config-$instance(), SERVICE_PORT)}}\",\"port\": ${{$config(line-config-$instance(), SERVICE_PORT)}},\"targetPort\":5000}]")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
-		Instance: model.InstanceState{
-			ObjectMeta: model.ObjectMeta{
-				Name: "instance1",
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
+				Spec: &model.InstanceSpec{},
 			},
-			Spec: &model.InstanceSpec{},
 		},
-	}})
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "[{\"name\":\"portline-config-instance1::SERVICE_PORT\",\"port\": line-config-instance1::SERVICE_PORT,\"targetPort\":5000}]", val)
 }
@@ -1666,14 +1671,18 @@ func TestConfigObjectInExpression(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config('<' + 'line-config-' + $instance() + '>', \"\")}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider, DeploymentSpec: model.DeploymentSpec{
-		Instance: model.InstanceState{
-			ObjectMeta: model.ObjectMeta{
-				Name: "instance1",
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+		DeploymentSpec: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "instance1",
+				},
+				Spec: &model.InstanceSpec{},
 			},
-			Spec: &model.InstanceSpec{},
 		},
-	}})
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "<line-config-instance1>::\"\"", val)
 }
@@ -1685,7 +1694,10 @@ func TestConfig(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config(abc,def)}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::def", val)
 }
@@ -1696,7 +1708,10 @@ func TestConfigWithExpression(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config(abc*2,def+4)}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc*2::def4", val)
 }
@@ -1707,7 +1722,10 @@ func TestConfigRecursive(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config($config(a,b), $config(c,d))}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a::b::c::d", val)
 }
@@ -1718,7 +1736,10 @@ func TestConfigRecursiveMixed(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config($config(a,b)+c, $config(c,d)+e)+f}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a::bc::c::def", val)
 }
@@ -1734,7 +1755,11 @@ func TestConfigSecretMix(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config($secret(a,b)+c, $secret(c,d)+e)+f}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: configProvider, SecretProvider: secretProvider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: configProvider,
+		SecretProvider: secretProvider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a>>bc::c>>def", val)
 }
@@ -1745,7 +1770,10 @@ func TestConfigWithQuotedStrings(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config('abc',\"def\")}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::\"def\"", val)
 }
@@ -1970,7 +1998,10 @@ func TestConfigCommaConfig(t *testing.T) {
 	assert.Nil(t, err)
 
 	parser := NewParser("${{$config(abc,def),$config(ghi,jkl)}}")
-	val, err := parser.Eval(utils.EvaluationContext{ConfigProvider: provider})
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: provider,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::def,ghi::jkl", val)
 }
@@ -2664,6 +2695,72 @@ func TestLeadingUnderScore(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a__b", val)
+}
+func TestTriggerGetValue(t *testing.T) {
+	ctx := utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo":  "bar",
+			"bar":  24,
+			"bazz": true,
+		},
+	}
+	parser1 := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser1.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", val)
+	parser2 := NewParser("${{$trigger(bar, -1)}}")
+	val, err = parser2.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, int(24), val)
+	parser3 := NewParser("${{$trigger(bazz, false)}}")
+	val, err = parser3.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, true, val)
+}
+
+func TestTriggerOutputGetValue(t *testing.T) {
+	ctx := utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo": "bar",
+		},
+		Outputs: map[string]map[string]interface{}{
+			"test": {
+				"foo": 0,
+			},
+		},
+	}
+	parser1 := NewParser("${{$if($equal($output(test,foo), 0), $trigger(foo, 0), $output(test,foo))}}")
+	val, err := parser1.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", val)
+}
+
+func TestTriggerGetDefault(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Triggers: map[string]interface{}{},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), val)
+}
+func TestTriggerMissingTriggers(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), val)
+}
+func TestTriggerMissingTriggersWithDefault(t *testing.T) {
+	parser := NewParser("${{$trigger(foo)}}")
+	_, err := parser.Eval(utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo": "bar",
+			"bar": 24,
+		},
+	})
+	assert.NotNil(t, err)
+	cErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadConfig, cErr.State)
 }
 func TestEvaulateValueRange(t *testing.T) {
 	parser := NewParser("${{$and($gt($val(),5), $lt($val(),10))}}")

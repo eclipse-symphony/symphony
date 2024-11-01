@@ -9,6 +9,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
@@ -83,73 +84,81 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if err != nil {
 		return err
 	}
-	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		sites, err := f.SitesManager.ListState(context.TODO())
-		if err != nil {
-			return err
-		}
-		for _, site := range sites {
-			if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
-				event.Metadata["site"] = site.Spec.Name
-				ctx := context.TODO()
-				if event.Context != nil {
-					ctx = event.Context
-				}
-				f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
+	f.Vendor.Context.Subscribe("catalog", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			sites, err := f.SitesManager.ListState(context.TODO())
+			if err != nil {
+				return err
 			}
-		}
-		return nil
+			for _, site := range sites {
+				if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
+					event.Metadata["site"] = site.Spec.Name
+					ctx := context.TODO()
+					if event.Context != nil {
+						ctx = event.Context
+					}
+					f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
+				}
+			}
+			return nil
+		},
 	})
-	f.Vendor.Context.Subscribe("remote", func(topic string, event v1alpha2.Event) error {
-		_, ok := event.Metadata["site"]
-		if !ok {
-			return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
-		}
-		ctx := context.TODO()
-		if event.Context != nil {
-			ctx = event.Context
-		}
-		f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
-		return nil
-	})
-	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
-		ctx := context.TODO()
-		if event.Context != nil {
-			ctx = event.Context
-		}
-		fLog.DebugfCtx(ctx, "V (Federation): received report event: %v", event)
-		jData, _ := json.Marshal(event.Body)
-		var status model.StageStatus
-		err := json.Unmarshal(jData, &status)
-		if err == nil {
+	f.Vendor.Context.Subscribe("remote", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			_, ok := event.Metadata["site"]
+			if !ok {
+				return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
+			}
 			ctx := context.TODO()
 			if event.Context != nil {
 				ctx = event.Context
 			}
-			err := f.apiClient.SyncStageStatus(ctx, status,
-				f.Vendor.Context.SiteInfo.ParentSite.Username,
-				f.Vendor.Context.SiteInfo.ParentSite.Password)
-			if err != nil {
-				fLog.ErrorfCtx(ctx, "V (Federation): error while syncing activation status: %v", err)
-				return err
-			}
-		}
-		return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
+			f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
+			return nil
+		},
 	})
-	f.Vendor.Context.Subscribe("trail", func(topic string, event v1alpha2.Event) error {
-		ctx := context.TODO()
-		if event.Context != nil {
-			ctx = event.Context
-		}
-		if f.TrailsManager != nil {
-			jData, _ := json.Marshal(event.Body)
-			var trails []v1alpha2.Trail
-			err := json.Unmarshal(jData, &trails)
-			if err == nil {
-				return f.TrailsManager.Append(ctx, trails)
+	f.Vendor.Context.Subscribe("report", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
 			}
-		}
-		return nil
+			fLog.DebugfCtx(ctx, "V (Federation): received report event: %v", event)
+			jData, _ := json.Marshal(event.Body)
+			var status model.StageStatus
+			err := json.Unmarshal(jData, &status)
+			if err == nil {
+				ctx := context.TODO()
+				if event.Context != nil {
+					ctx = event.Context
+				}
+				err := f.apiClient.SyncStageStatus(ctx, status,
+					f.Vendor.Context.SiteInfo.ParentSite.Username,
+					f.Vendor.Context.SiteInfo.ParentSite.Password)
+				if err != nil {
+					fLog.ErrorfCtx(ctx, "V (Federation): error while syncing activation status: %v", err)
+					return err
+				}
+			}
+			return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
+		},
+	})
+	f.Vendor.Context.Subscribe("trail", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			if f.TrailsManager != nil {
+				jData, _ := json.Marshal(event.Body)
+				var trails []v1alpha2.Trail
+				err := json.Unmarshal(jData, &trails)
+				if err == nil {
+					return f.TrailsManager.Append(ctx, trails)
+				}
+			}
+			return nil
+		},
 	})
 	//now register the current site
 	return f.SitesManager.UpsertSpec(context.Background(), f.Context.SiteInfo.SiteId, model.SiteSpec{
@@ -253,10 +262,11 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = f.SitesManager.GetState(ctx, id)
 		}
 		if err != nil {
-			if v1alpha2.IsNotFound(err) {
+			if utils.IsNotFound(err) {
+				errorMsg := fmt.Sprintf("site '%s' is not found", id)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
-					Body:  []byte(err.Error()),
+					Body:  []byte(errorMsg),
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
