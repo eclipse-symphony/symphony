@@ -45,6 +45,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
+                  "mode": "Dedicated",
                   "cleanInterval" : 30,
                   "purgeDuration" : 43200
                 }

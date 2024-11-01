@@ -359,7 +359,7 @@ func TestMockGet(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -469,7 +469,7 @@ func TestMockGetTwoTargets(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -565,7 +565,7 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock1": targetProvider,
@@ -641,7 +641,7 @@ func TestMockApply(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -705,7 +705,7 @@ func TestMockApplyMultiRoles(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock":  targetProvider,
@@ -764,7 +764,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -817,7 +817,7 @@ func TestMockApplyWithError(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,

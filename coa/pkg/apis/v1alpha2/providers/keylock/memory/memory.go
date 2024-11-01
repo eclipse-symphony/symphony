@@ -100,7 +100,7 @@ func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error 
 	} else if KeyLockConfig.Mode == Dedicated {
 		sLog.Info("Trying to init dedicated memoryKeyLock")
 		mslp.memKeyLockInstance = &MemoryKeyLock{}
-		err = globalMemoryKeyLock.Init(KeyLockConfig)
+		err = mslp.memKeyLockInstance.Init(KeyLockConfig)
 	} else {
 		err = errors.New("MemoryKeyLockProvider: unknown init mode")
 	}
