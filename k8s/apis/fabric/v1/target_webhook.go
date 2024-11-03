@@ -133,6 +133,8 @@ func (r *Target) ValidateCreate() (admission.Warnings, error) {
 	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myTargetClient, context.TODO(), targetlog)
 
+	// gofail: var validateError error
+
 	diagnostic.InfoWithCtx(targetlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being created on namespace %s", r.Name, r.Namespace)
 

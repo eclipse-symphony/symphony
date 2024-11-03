@@ -39,7 +39,6 @@ type TargetPollingReconciler struct {
 func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 	diagnostic.InfoWithCtx(log, ctx, "Reconcile Polling Target", "Name", req.Name, "Namespace", req.Namespace)
-
 	// Initialize reconcileTime for latency metrics
 	reconcileTime := time.Now()
 

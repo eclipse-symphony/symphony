@@ -41,6 +41,8 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	log := ctrllog.FromContext(ctx)
 	log.Info("Reconcile Polling Instance " + req.Name + " in namespace " + req.Namespace)
 
+	// gofail: var beforePollingResult string
+
 	// Initialize reconcileTime for latency metrics
 	reconcileTime := time.Now()
 
@@ -85,7 +87,7 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		metrics.InstanceResourceType,
 		deploymentOperationType,
 	)
-
+	// gofail: var afterPollingResult string
 	return reconcileResult, err
 }
 

@@ -23,6 +23,8 @@ ENV CGO_ENABLED=0
 
 ARG BUILD_BASE_IMAGE
 
+ARG FAULT_INJECTION_ENABLED=false
+
 # Install gcc, g++ and other necessary build tools
 RUN if echo "${BUILD_BASE_IMAGE}" | grep "alpine"; then \
         apk add --no-cache gcc musl-dev; \
@@ -50,11 +52,20 @@ RUN if echo "${BUILD_BASE_IMAGE}" | grep "mariner"; then \
         CGO_ENABLED=1 mage generate operatorTest; \
     fi
 
+# Install gofail
+RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
+    go install go.etcd.io/gofail@latest && \
+    find /k8s -type d | while read -r dir; do gofail enable $dir; done && \
+    cd /k8s && go get go.etcd.io/gofail/runtime; \
+fi
+
 # Build
 RUN CGO_ENABLED=0 mage build
 FROM ${TARGET_BASE_IMAGE} AS manager
+RUN apk update && apk add curl
 WORKDIR /
 COPY --from=builder /k8s/bin/manager .
 USER 65532:65532
+ENV GOFAIL_HTTP="127.0.0.1:22381"
 
 ENTRYPOINT ["/manager"]

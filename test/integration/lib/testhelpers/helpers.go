@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/shell"
+	"github.com/princjef/mageutil/shellcmd"
 )
 
 func SetupClusterWithTunnel() (context.CancelFunc, int, error) {
@@ -123,4 +124,21 @@ func isProcessRunning(pid int) bool {
 	// Send signal 0 to the process
 	err = process.Signal(syscall.Signal(0))
 	return err == nil
+}
+
+func InjectPodFailure() error {
+	InjectCommand := os.Getenv("InjectCommand")
+	InjectPodLabel := os.Getenv("InjectPodLabel")
+	if InjectCommand == "" || InjectPodLabel == "" {
+		fmt.Println("InjectCommand is ", InjectCommand, "and InjectPodLabel is ", InjectPodLabel, ", skip error injection")
+		return nil
+	}
+
+	WaitFailpointServer(InjectPodLabel)
+	err := shellcmd.Command(InjectCommand).Run()
+	if err != nil {
+		fmt.Println("Failed to inject pod failure: " + err.Error())
+	}
+	fmt.Println("Injected fault")
+	return err
 }

@@ -218,6 +218,7 @@ func (i *RedisPubSubProvider) pollNewMessages(topic string, handler v1alpha2.Eve
 	}()
 
 	for {
+		// gofail: var PollNewMessagesLoop string
 		if i.Ctx.Err() != nil {
 			return
 		}

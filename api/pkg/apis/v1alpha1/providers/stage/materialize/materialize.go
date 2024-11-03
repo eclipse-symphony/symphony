@@ -553,6 +553,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		}
+		// gofail: var afterMaterializeOnce bool
 	}
 	if len(createdObjectList) < len(objects) {
 		errorMessage := "failed to create all objects:"
