@@ -79,7 +79,7 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// check the finalizer - uninstall finalizer if exists, set finalizer to nil
 		if utils.ContainsString(instance.GetFinalizers(), os.Getenv(constants.DeploymentFinalizer)) {
 			// set finalizer to nil
-			log.Info("Reconcile removing instance finalizier: " + req.Name + " in namespace " + req.Namespace)
+			log.Info("Reconcile removing instance finalizer: " + req.Name + " in namespace " + req.Namespace)
 			patch := client.MergeFrom(instance.DeepCopy())
 			instance.SetFinalizers([]string{})
 			if err := r.Patch(ctx, instance, patch); err != nil {

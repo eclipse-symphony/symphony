@@ -77,10 +77,10 @@ func (r *TargetQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		reconciliationType = metrics.DeleteOperationType
 		if utils.ContainsString(target.GetFinalizers(), os.Getenv(constants.DeploymentFinalizer)) {
 			// set finalizer to nil
-			log.Info("Reconcile removing target finalizier:  " + req.Name + " in namespace " + req.Namespace)
+			log.Info("Reconcile removing target finalizer:  " + req.Name + " in namespace " + req.Namespace)
 			patch := client.MergeFrom(target.DeepCopy())
 			target.SetFinalizers([]string{})
-			if err := r.Patch(ctx, target, patch); err != nil {
+			if err = r.Patch(ctx, target, patch); err != nil {
 				log.Error(err, "Failed to patch target finalizers")
 				resultType = metrics.ReconcileFailedResult
 			} else {
