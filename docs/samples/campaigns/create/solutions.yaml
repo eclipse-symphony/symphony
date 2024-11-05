@@ -1,0 +1,22 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: site-app
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: site-app-v-v1
+spec:
+  rootResource: site-app
+  components:
+  - name: web-app
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port3011\",\"port\": 3011,\"targetPort\":5000}]"
+      service.type: "NodePort"
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
