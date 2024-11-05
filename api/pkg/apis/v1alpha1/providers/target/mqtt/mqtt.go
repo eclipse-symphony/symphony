@@ -343,7 +343,15 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	sLog.InfofCtx(ctx, "  P (MQTT Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := observ_utils.GetFunctionName()
-	applyTime := time.Now().UTC()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		mqtt,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
+
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -351,7 +359,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			mqtt,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 		return nil, err
@@ -393,7 +401,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				mqtt,
 				functionName,
 				metrics.ApplyOperation,
-				metrics.UpdateOperationType,
+				metrics.ApplyOperationType,
 				v1alpha2.MqttPublishFailed.String(),
 			)
 			return ret, err
@@ -414,13 +422,6 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 						}
 					}
 				}
-				providerOperationMetrics.ProviderOperationLatency(
-					applyTime,
-					mqtt,
-					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
-					functionName,
-				)
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
@@ -429,7 +430,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					mqtt,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.UpdateOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.MqttApplyFailed.String(),
 				)
 				return ret, err
@@ -441,13 +442,12 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				mqtt,
 				functionName,
 				metrics.ApplyOperation,
-				metrics.UpdateOperationType,
+				metrics.ApplyOperationType,
 				v1alpha2.MqttApplyTimeout.String(),
 			)
 			return ret, err
 		}
 	}
-	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (MQTT Target): get deleted components: count - %d", len(components))
@@ -475,7 +475,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				mqtt,
 				functionName,
 				metrics.ApplyOperation,
-				metrics.DeleteOperationType,
+				metrics.ApplyOperationType,
 				v1alpha2.MqttPublishFailed.String(),
 			)
 			return ret, err
@@ -486,13 +486,6 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		case resp := <-responseChan:
 			if resp.IsOK {
 				err = nil
-				providerOperationMetrics.ProviderOperationLatency(
-					deleteTime,
-					mqtt,
-					metrics.ApplyOperation,
-					metrics.DeleteOperationType,
-					functionName,
-				)
 				return ret, err
 			} else {
 				err = v1alpha2.NewCOAError(nil, fmt.Sprint(resp.Payload), resp.State)
@@ -501,7 +494,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					mqtt,
 					functionName,
 					metrics.ApplyOperation,
-					metrics.DeleteOperationType,
+					metrics.ApplyOperationType,
 					v1alpha2.MqttApplyFailed.String(),
 				)
 				return ret, err
@@ -513,7 +506,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				mqtt,
 				functionName,
 				metrics.ApplyOperation,
-				metrics.DeleteOperationType,
+				metrics.ApplyOperationType,
 				v1alpha2.MqttApplyTimeout.String(),
 			)
 			return ret, err

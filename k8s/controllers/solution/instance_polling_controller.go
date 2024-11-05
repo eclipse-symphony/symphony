@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // InstancePollingReconciler reconciles a Instance object
@@ -96,11 +95,10 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	generationChange := predicate.GenerationChangedPredicate{}
-	operationIdPredicate := predicates.OperationIdPredicate{}
+	jobIDPredicate := predicates.JobIDPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&solution_v1.Instance{}).
-		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
+		WithEventFilter(jobIDPredicate).
 		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
 			r.handleSolution)).
 		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(

@@ -101,10 +101,10 @@ func (s *StagingManager) Poll() []error {
 		}
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(ctx, getRequest)
-		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.Generation {
+		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.ETag {
 			continue
 		}
-		if err != nil && !v1alpha2.IsNotFound(err) {
+		if err != nil && !utils.IsNotFound(err) {
 			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
@@ -117,7 +117,7 @@ func (s *StagingManager) Poll() []error {
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,
-				Body: catalog.ObjectMeta.Generation,
+				Body: catalog.ObjectMeta.ETag,
 			},
 			Metadata: map[string]interface{}{
 				"version":   "v1",

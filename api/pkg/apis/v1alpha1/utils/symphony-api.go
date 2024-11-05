@@ -44,22 +44,6 @@ type authResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-// We shouldn't use specific error types
-// SummarySpecError represents an error that includes a SummarySpec in its message
-// field.
-type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-func (e *SummarySpecError) Error() string {
-	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
-		e.Code,
-		e.Message,
-	)
-}
-
 func GetSymphonyAPIAddressBase() string {
 	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
@@ -727,7 +711,7 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 	ret.Targets = targets
 	ret.SolutionName = key
 	// set the target generation to the deployment
-	ret.Generation = target.ObjectMeta.Generation
+	ret.Generation = target.ObjectMeta.ETag
 	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
@@ -746,7 +730,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState,
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	ret.Generation = instance.ObjectMeta.Generation
+	ret.Generation = instance.ObjectMeta.ETag
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)

@@ -95,7 +95,7 @@ var _ webhook.Defaulter = &Instance{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Instance) Default() {
 	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), instancelog)
-	diagnostic.InfoWithCtx(instancelog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
+	diagnostic.InfoWithCtx(instancelog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status, "annotation", r.Annotations)
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
