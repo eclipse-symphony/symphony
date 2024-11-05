@@ -32,9 +32,9 @@ ARG TARGETARCH
 RUN \
     set -x \
     && apt-get update \
-    && apt-get install -y openssl libssl-dev ca-certificates curl jq android-tools-adb \
+    && apt-get install -y openssl libssl-dev ca-certificates curl jq wget android-tools-adb \
     && if [ "$TARGETARCH" = "arm64" ]; then \
-        curl -fsSL -o helm-v3.12.0-linux-arm64.tar.gz https://get.helm.sh/helm-v3.12.0-linux-arm64.tar.gz && \
+        wget -O helm-v3.12.0-linux-arm64.tar.gz https://get.helm.sh/helm-v3.12.0-linux-arm64.tar.gz && \
         tar -zxvf helm-v3.12.0-linux-arm64.tar.gz && \
         mv linux-arm64/helm /usr/local/bin/helm && \
         chmod +x /usr/local/bin/helm; \
