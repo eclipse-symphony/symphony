@@ -17,8 +17,8 @@ import (
 	"gopls-workspace/predicates"
 	"gopls-workspace/utils/diagnostic"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -47,8 +47,13 @@ func (r *TargetQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	target := &symphonyv1.Target{}
 
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if apierrors.IsNotFound(err) {
+			log.Info("Skipping this reconcile, since this CR has been deleted")
+			return ctrl.Result{}, nil
+		} else {
+			log.Error(err, "unable to fetch Target object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	reconciliationType := metrics.CreateOperationType
