@@ -24,6 +24,7 @@ import (
 	"gopls-workspace/utils/diagnostic"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -84,6 +85,8 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return ctrl.Result{}, err
 			}
 		}
+	} else {
+		observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
 	}
 
 	return ctrl.Result{}, nil
