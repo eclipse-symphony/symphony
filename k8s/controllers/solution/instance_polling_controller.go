@@ -17,8 +17,8 @@ import (
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -47,8 +47,13 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Get instance
 	instance := &solution_v1.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
-		log.Error(err, "unable to fetch Instance object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if apierrors.IsNotFound(err) {
+			log.Info("Skipping this reconcile, since this CR has been deleted")
+			return ctrl.Result{}, nil
+		} else {
+			log.Error(err, "unable to fetch Instance object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	reconciliationType := metrics.CreateOperationType
