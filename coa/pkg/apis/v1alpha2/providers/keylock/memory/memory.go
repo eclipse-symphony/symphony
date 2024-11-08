@@ -93,7 +93,7 @@ func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error 
 		initLock.Lock()
 		defer initLock.Unlock()
 		if globalMemoryKeyLock == nil {
-			err = errors.New("globalMemoryKeyLock should be init before useign shared mode")
+			err = errors.New("A global MemoryKeyLock instance should be initialized before using a shared mode MemoryKeyLock")
 		} else {
 			mslp.memKeyLockInstance = globalMemoryKeyLock
 		}
