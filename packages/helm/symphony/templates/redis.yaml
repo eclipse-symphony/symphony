@@ -1,3 +1,4 @@
+{{- if include "CheckRedisPvSetting" . }}
 {{- if and .Values.redis.enabled .Values.redis.persistentVolume.enabled}}
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -5,12 +6,13 @@ metadata:
   name: redis-pvc
   namespace: {{ .Release.Namespace }}
 spec:
-  storageClassName: {{ .Values.redis.persistentVolume.storageclass }}
+  storageClassName: {{ include "RedisPVCStorageClassName" . }}
   accessModes:
   - {{ .Values.redis.persistentVolume.accessMode }}
   resources:
     requests:
       storage: {{ .Values.redis.persistentVolume.size }}
+{{- end}}
 {{- end }}
 ---
 {{- if and .Values.redis.enabled (not .Values.redis.asSidecar)}}

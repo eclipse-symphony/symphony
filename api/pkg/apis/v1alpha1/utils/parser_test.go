@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	secretmock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -2694,6 +2695,72 @@ func TestLeadingUnderScore(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "a__b", val)
+}
+func TestTriggerGetValue(t *testing.T) {
+	ctx := utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo":  "bar",
+			"bar":  24,
+			"bazz": true,
+		},
+	}
+	parser1 := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser1.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", val)
+	parser2 := NewParser("${{$trigger(bar, -1)}}")
+	val, err = parser2.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, int(24), val)
+	parser3 := NewParser("${{$trigger(bazz, false)}}")
+	val, err = parser3.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, true, val)
+}
+
+func TestTriggerOutputGetValue(t *testing.T) {
+	ctx := utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo": "bar",
+		},
+		Outputs: map[string]map[string]interface{}{
+			"test": {
+				"foo": 0,
+			},
+		},
+	}
+	parser1 := NewParser("${{$if($equal($output(test,foo), 0), $trigger(foo, 0), $output(test,foo))}}")
+	val, err := parser1.Eval(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, "bar", val)
+}
+
+func TestTriggerGetDefault(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Triggers: map[string]interface{}{},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), val)
+}
+func TestTriggerMissingTriggers(t *testing.T) {
+	parser := NewParser("${{$trigger(foo, -1)}}")
+	val, err := parser.Eval(utils.EvaluationContext{})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(-1), val)
+}
+func TestTriggerMissingTriggersWithDefault(t *testing.T) {
+	parser := NewParser("${{$trigger(foo)}}")
+	_, err := parser.Eval(utils.EvaluationContext{
+		Triggers: map[string]interface{}{
+			"foo": "bar",
+			"bar": 24,
+		},
+	})
+	assert.NotNil(t, err)
+	cErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadConfig, cErr.State)
 }
 func TestEvaulateValueRange(t *testing.T) {
 	parser := NewParser("${{$and($gt($val(),5), $lt($val(),10))}}")

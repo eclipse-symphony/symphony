@@ -17,10 +17,9 @@ import (
 	"gopls-workspace/predicates"
 	"gopls-workspace/utils/diagnostic"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // TargetReconciler reconciles a Target object
@@ -48,8 +47,13 @@ func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	target := &symphonyv1.Target{}
 
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if apierrors.IsNotFound(err) {
+			log.Info("Skipping this reconcile, since the CR has been deleted")
+			return ctrl.Result{}, nil
+		} else {
+			log.Error(err, "unable to fetch Target object")
+			return ctrl.Result{}, err
+		}
 	}
 
 	reconciliationType := metrics.CreateOperationType
@@ -93,15 +97,14 @@ func (r *TargetPollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	r.m = metrics
-	genChangePredicate := predicate.GenerationChangedPredicate{}
-	operationIdPredicate := predicates.OperationIdPredicate{}
+	jobIDPredicate := predicates.JobIDPredicate{}
 
 	r.dr, err = r.buildDeploymentReconciler()
 	if err != nil {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
-		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
+		WithEventFilter(jobIDPredicate).
 		For(&symphonyv1.Target{}).
 		Complete(r)
 }

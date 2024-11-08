@@ -39,6 +39,14 @@ type ActivationsManager struct {
 	Validator     validation.ActivationValidator
 }
 
+const (
+	stageOutputMaxSize    = 100 * 1024
+	activationHistorySize = 10
+	// Stage size limit: 100KB. For RESTful APIs, the medium response size is 10KB to 100KB. (Only FileDownload API response size can be pretty large.)
+	// Consider the size limit of Custom Resource (CR) in Kubernetes is 1MB, the output can contain 10 biggest stage responses.
+	// And the remain 24KB will be enough for other fields.
+)
+
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	err := s.Manager.Init(context, config, providers)
 	if err != nil {
@@ -103,7 +111,7 @@ func getActivationState(body interface{}, etag string) (model.ActivationState, e
 	if activationState.Spec == nil {
 		activationState.Spec = &model.ActivationSpec{}
 	}
-	activationState.ObjectMeta.Generation = etag
+	activationState.ObjectMeta.ETag = etag
 	if activationState.Status == nil {
 		activationState.Status = &model.ActivationStatus{}
 	}
@@ -147,7 +155,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
-			ETag: state.ObjectMeta.Generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -289,7 +297,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 
 	activationState.Status.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 
-	err = mergeStageStatus(&activationState, current)
+	err = mergeStageStatus(ctx, &activationState, current)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Failed to merge stage status for activation %s in namespace %s: %v", name, namespace, err)
 		return err
@@ -323,15 +331,43 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	return nil
 }
 
-func mergeStageStatus(activationState *model.ActivationState, current model.StageStatus) error {
+func mergeStageStatus(ctx context.Context, activationState *model.ActivationState, current model.StageStatus) error {
 	if current.Outputs["__site"] == nil {
 		// The StageStatus is triggered locally
 		if activationState.Status.StageHistory == nil {
 			activationState.Status.StageHistory = make([]model.StageStatus, 0)
 		}
+
+		currentBytes, _ := json.Marshal(current)
+		if len(currentBytes) > stageOutputMaxSize {
+			log.InfofCtx(ctx, "Stage %s size exceeds the limit, truncate the inputs/outputs.", current.Stage)
+			totalLen := len(current.Outputs) + len(current.Inputs)
+			// totalLen can't be 0 since currentOutputSize > StageOutputMaxSize
+			for key, val := range current.Outputs {
+				valBytes, _ := json.Marshal(val)
+				if len(valBytes) > stageOutputMaxSize/totalLen {
+					valBytes = append(valBytes[:stageOutputMaxSize/totalLen], []byte("...")...)
+					current.Outputs[key] = string(valBytes)
+				}
+			}
+			for key, val := range current.Inputs {
+				valBytes, _ := json.Marshal(val)
+				if len(valBytes) > stageOutputMaxSize/totalLen {
+					valBytes = append(valBytes[:stageOutputMaxSize/totalLen], []byte("...")...)
+					current.Inputs[key] = string(valBytes)
+				}
+			}
+		}
+
 		if len(activationState.Status.StageHistory) == 0 {
 			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
 		} else if activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1].Stage != current.Stage {
+			if len(activationState.Status.StageHistory)+1 > activationHistorySize {
+				oldestStage := activationState.Status.StageHistory[0].Stage
+				activationState.Status.StageHistory = activationState.Status.StageHistory[1:]
+				log.InfofCtx(ctx, "Activation state size exceeds the limit %d, remove the oldest stage %s.", activationHistorySize, oldestStage)
+				// If the activation stage history is too long, remove the oldest stage status
+			}
 			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
 		} else {
 			activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1] = current

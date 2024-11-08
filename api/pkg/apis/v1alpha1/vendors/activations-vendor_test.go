@@ -81,16 +81,18 @@ func TestActivationsOnActivations(t *testing.T) {
 	campaignName := "campaign1"
 	succeededCount := 0
 	sigs := make(chan bool)
-	vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
-		var activation v1alpha2.ActivationData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &activation)
-		assert.Nil(t, err)
-		assert.Equal(t, campaignName, activation.Campaign)
-		assert.Equal(t, activationName, activation.Activation)
-		succeededCount += 1
-		sigs <- true
-		return nil
+	vendor.Context.Subscribe("activation", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var activation v1alpha2.ActivationData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &activation)
+			assert.Nil(t, err)
+			assert.Equal(t, campaignName, activation.Campaign)
+			assert.Equal(t, activationName, activation.Activation)
+			succeededCount += 1
+			sigs <- true
+			return nil
+		},
 	})
 	resp := vendor.onActivations(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,

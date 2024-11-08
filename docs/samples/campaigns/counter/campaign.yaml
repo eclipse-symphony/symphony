@@ -17,3 +17,6 @@ spec:
       name: "counter"
       provider: "providers.stage.counter"      
       stageSelector: "${{$if($lt($output(counter,val), 20), counter, '')}}"
+      inputs:
+        val: "${{$trigger(val, 0)}}"
+        val.init: "${{$trigger(val.init, 0)}}"
