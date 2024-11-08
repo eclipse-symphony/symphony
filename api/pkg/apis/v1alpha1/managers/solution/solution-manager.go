@@ -505,7 +505,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", ComponentResults: componentResults})
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
 				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 				if err != nil {
 					log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
@@ -516,8 +516,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				targetResult[step.Target] = 0
 				summary.AllAssignedDeployed = false
 				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-				time.Sleep(5 * time.Second)                                                                                                     //TODO: make this configurable?
+				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
+				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
 			}
 		}
 		if stepError != nil {
