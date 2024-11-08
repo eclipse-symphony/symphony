@@ -148,7 +148,7 @@ func (h *APIHost) Launch(config HostConfig,
 				if config.API.KeyLock.Provider.Type != "" {
 					if h.SharedKeyLockProvider == nil {
 						if config.API.KeyLock.Provider.Config.Mode != "Global" {
-							return errors.New("expected MemoryKeyLockProviderConfig")
+							return errors.New("expected Global KeyLockProviderConfig")
 						}
 						for _, providerFactory := range providerFactories {
 							mProvider, err := providerFactory.CreateProvider(
