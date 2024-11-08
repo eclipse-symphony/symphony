@@ -1,7 +1,0 @@
-{{ $bicepExample := "example.bicep" }}
-{{ $bicepExamplePath := path.Join .Page.File.Dir $bicepExample }}
-
-{{ if fileExists $bicepExamplePath }}
-{{ $bicepContent := $bicepExamplePath | readFile }}
-{{ highlight  $bicepContent "bicep" }}
-{{ end }}

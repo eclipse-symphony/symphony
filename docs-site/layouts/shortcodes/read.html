@@ -1,3 +1,0 @@
-{{ $file := .Get "file" }}
-{{ $fileContents := $file | readFile }}
-{{ (print "\n" $fileContents "\n") | markdownify }}
