@@ -9,6 +9,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -44,9 +45,18 @@ type PubSubConfig struct {
 	Provider mf.ProviderConfig `json:"provider"`
 }
 
+type PublicProviderConfig struct {
+	Type   string                `json:"type"`
+	Config KeyLockProviderConfig `json:"config"`
+}
+
+type KeyLockProviderConfig struct {
+	Mode string `json:"mode"`
+}
+
 type KeyLockConfig struct {
-	Shared   bool              `json:"shared"`
-	Provider mf.ProviderConfig `json:"provider"`
+	Shared   bool                 `json:"shared"`
+	Provider PublicProviderConfig `json:"provider"`
 }
 
 type APIConfig struct {
@@ -137,6 +147,9 @@ func (h *APIHost) Launch(config HostConfig,
 
 				if config.API.KeyLock.Provider.Type != "" {
 					if h.SharedKeyLockProvider == nil {
+						if config.API.KeyLock.Provider.Config.Mode != "Global" {
+							return errors.New("expected MemoryKeyLockProviderConfig")
+						}
 						for _, providerFactory := range providerFactories {
 							mProvider, err := providerFactory.CreateProvider(
 								config.API.KeyLock.Provider.Type,
