@@ -35,4 +35,4 @@ echo "SCOPE: $scope"
 # all reference components and writes them into the output JSON file.
 
 output_components=$(jq -r '[.[] | .component]' "$references")
-echo "$output_components" > ${deployment%.*}-output.${deployment##*.}
+echo "$output_components" > ${deployment%.*}-get-output.${deployment##*.}
