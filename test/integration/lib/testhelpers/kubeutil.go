@@ -184,38 +184,3 @@ func WaitPodOnline(podlabel string) error {
 	}
 	return fmt.Errorf("timeout waiting for pod to be ready")
 }
-
-func WaitFailpointServer(podlabel string) error {
-	clientset, err := KubeClient()
-	if err != nil {
-		return err
-	}
-	err = WaitPodOnline(podlabel)
-	if err != nil {
-		return err
-	}
-	pods := clientset.CoreV1().Pods("default")
-	for i := 0; i < 10; i++ {
-		podList, err := pods.List(context.Background(), metav1.ListOptions{
-			LabelSelector: podlabel,
-		})
-		if err != nil {
-			return err
-		}
-		if len(podList.Items) > 0 {
-			pod := podList.Items[0]
-			if pod.Status.Phase == corev1.PodRunning {
-				err = ShellExec(fmt.Sprintf("kubectl exec %s -- curl localhost:22381", pod.Name))
-				if err == nil {
-					return nil
-				} else {
-					fmt.Println("failed to connect to failpoint server, waiting...")
-				}
-			} else {
-				fmt.Println("pod not ready yet, waiting..." + pod.Status.Phase)
-			}
-		}
-		time.Sleep(time.Second * 10)
-	}
-	return fmt.Errorf("timeout waiting for pod to be ready")
-}

@@ -13,6 +13,7 @@ import (
 	"os"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
+	"github.com/eclipse-symphony/symphony/test/integration/scenarios/faultTests/utils"
 	"github.com/princjef/mageutil/shellcmd"
 )
 
@@ -20,7 +21,7 @@ func FaultTests() error {
 	fmt.Println("Running fault injection tests")
 
 	// Run fault injection tests
-	for _, test := range Faults {
+	for _, test := range utils.Faults {
 		err := FaultTestHelper(test)
 		if err != nil {
 			return err
@@ -29,8 +30,8 @@ func FaultTests() error {
 	return nil
 }
 
-func FaultTestHelper(test FaultTestCase) error {
-	testName := fmt.Sprintf("%s/%s/%s", test.testCase, test.fault, test.faultType)
+func FaultTestHelper(test utils.FaultTestCase) error {
+	testName := fmt.Sprintf("%s/%s/%s", test.TestCase, test.Fault, test.FaultType)
 	fmt.Println("Running ", testName)
 
 	// Step 2.1: setup cluster
@@ -42,16 +43,16 @@ func FaultTestHelper(test FaultTestCase) error {
 	// Step 2.2: enable port forward on specific pod
 	stopChan := make(chan struct{}, 1)
 	defer close(stopChan)
-	err = testhelpers.EnablePortForward(test.podLabel, LocalPortForward, stopChan)
+	err = testhelpers.EnablePortForward(test.PodLabel, utils.LocalPortForward, stopChan)
 	if err != nil {
 		return err
 	}
 
-	InjectCommand := fmt.Sprintf("curl localhost:%s/%s -XPUT -d'%s'", LocalPortForward, test.fault, test.faultType)
-	os.Setenv("InjectCommand", InjectCommand)
-	os.Setenv("InjectPodLabel", test.podLabel)
+	InjectCommand := fmt.Sprintf("curl localhost:%s/%s -XPUT -d'%s'", utils.LocalPortForward, test.Fault, test.FaultType)
+	os.Setenv(utils.InjectFaultEnvKey, InjectCommand)
+	os.Setenv(utils.PodEnvKey, test.PodLabel)
 
-	err = Verify(test.testCase)
+	err = Verify(test.TestCase)
 	return err
 }
 
@@ -61,7 +62,7 @@ func Verify(test string) error {
 	if err != nil {
 		return err
 	}
-	err = shellcmd.Command(fmt.Sprintf("go test -v -timeout %s %s", TEST_TIMEOUT, test)).Run()
+	err = shellcmd.Command(fmt.Sprintf("go test -v -timeout %s %s", utils.TEST_TIMEOUT, test)).Run()
 	if err != nil {
 		return err
 	}

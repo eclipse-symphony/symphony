@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
+	"github.com/eclipse-symphony/symphony/test/integration/scenarios/faultTests/utils"
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,14 +114,13 @@ var (
 func TestScenario_Update_AllNamespaces(t *testing.T) {
 	namespace := "nondefault"
 	defer shellcmd.Command(fmt.Sprintf("rm -rf %s", testManifestsFolder)).Run()
-	if namespace != "default" {
-		// Create non-default namespace if not exist
-		err := shellcmd.Command(fmt.Sprintf("kubectl get namespace %s", namespace)).Run()
-		if err != nil {
-			// Better to check err message here but command only returns "exit status 1" for non-exisiting namespace
-			err = shellcmd.Command(fmt.Sprintf("kubectl create namespace %s", namespace)).Run()
-			require.NoError(t, err)
-		}
+
+	// Create non-default namespace if not exist
+	err := shellcmd.Command(fmt.Sprintf("kubectl get namespace %s", namespace)).Run()
+	if err != nil {
+		// Better to check err message here but command only returns "exit status 1" for non-exisiting namespace
+		err = shellcmd.Command(fmt.Sprintf("kubectl create namespace %s", namespace)).Run()
+		require.NoError(t, err)
 	}
 	Scenario_Update(t, namespace)
 }
@@ -142,7 +142,7 @@ func Scenario_Update(t *testing.T, namespace string) {
 	for _, test := range testCases {
 		fmt.Printf("[Test case]: %s\n", test.Name)
 
-		err := testhelpers.InjectPodFailure()
+		err := utils.InjectPodFailure()
 		require.NoError(t, err)
 
 		// Construct the manifests
