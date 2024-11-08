@@ -49,4 +49,4 @@ output_results='{
     }
 }'
 
-echo "$output_results" > ${deployment%.*}-output.${deployment##*.}
+echo "$output_results" > ${deployment%.*}-get-output.${deployment##*.}
