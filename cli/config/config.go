@@ -15,6 +15,47 @@ import (
 	"strings"
 )
 
+type SymphonyAgentConfig struct {
+	SiteInfo struct {
+		SiteId      string `json:"siteId"`
+		CurrentSite struct {
+			BaseURL  string `json:"baseUrl"`
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"currentSite"`
+	} `json:"siteInfo"`
+	API struct {
+		Vendors []struct {
+			Type         string `json:"type"`
+			Route        string `json:"route"`
+			LoopInterval int    `json:"loopInterval,omitempty"`
+			Managers     []struct {
+				Name       string `json:"name"`
+				Type       string `json:"type"`
+				Properties struct {
+					ProvidersPersistentState string `json:"providers.persistentstate"`
+					ProvidersTarget          string `json:"providers.target"`
+					ProvidersConfig          string `json:"providers.config"`
+					ProvidersSecret          string `json:"providers.secret"`
+				} `json:"properties"`
+				Providers map[string]struct {
+					Type   string                 `json:"type"`
+					Config map[string]interface{} `json:"config"`
+				} `json:"providers"`
+			} `json:"managers"`
+		} `json:"vendors"`
+	} `json:"api"`
+	Bindings []struct {
+		Type   string `json:"type"`
+		Config struct {
+			BrokerAddress string `json:"brokerAddress"`
+			ClientID      string `json:"clientID"`
+			RequestTopic  string `json:"requestTopic"`
+			ResponseTopic string `json:"responseTopic"`
+		} `json:"config"`
+	} `json:"bindings"`
+}
+
 type MaestroContext struct {
 	Url    string `json:"url"`
 	User   string `json:"user"`
