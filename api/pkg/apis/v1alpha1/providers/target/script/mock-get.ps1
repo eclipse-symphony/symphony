@@ -17,4 +17,4 @@ foreach ($component in $json) {
 }
 
 # Write the updated JSON to an output file
-"[" + ($json | ForEach-Object {$_.Component} | ConvertTo-Json -Compress) + "]" | Out-File -Encoding ASCII $DeploymentFile.Replace(".json", "-output.json")
+"[" + ($json | ForEach-Object {$_.Component} | ConvertTo-Json -Compress) + "]" | Out-File -Encoding ASCII $DeploymentFile.Replace(".json", "-get-output.json")
