@@ -17,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	sp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
@@ -65,8 +64,7 @@ type SolutionManager struct {
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
-	jobList         map[string]map[string][]int
-	cancelFunc      map[string]context.CancelFunc
+	jobList         map[string]map[string]map[string]context.CancelFunc
 }
 
 type SolutionManagerDeploymentState struct {
@@ -423,16 +421,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	plannedCount := 0
 	planSuccessCount := 0
+	log.DebugfCtx(ctx, " M (Solution): plan.Steps: %v", len(plan.Steps))
 	for _, step := range plan.Steps {
 		select {
 		case <-ctx.Done():
 			// Context canceled or timed out
 			log.DebugfCtx(ctx, " M (Solution): reconcile canceled")
-			err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-			if err != nil {
-				log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
-				return summary, err
-			}
 			err = v1alpha2.NewCOAError(nil, "Reconciliation was canceled.", v1alpha2.Canceled)
 			return summary, err
 		default:
@@ -520,11 +514,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				case <-ctx.Done():
 					// Context canceled or timed out
 					log.DebugfCtx(ctx, " M (Solution): reconcile canceled")
-					err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-					if err != nil {
-						log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
-						return summary, err
-					}
 					err = v1alpha2.NewCOAError(nil, "Reconciliation was canceled.", v1alpha2.Canceled)
 					return summary, err
 				default:
@@ -577,38 +566,37 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			}
 			log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
 		}
+	}
 
-		mergedState.ClearAllRemoved()
-
-		if !deployment.IsDryRun {
-			if len(mergedState.TargetComponent) == 0 && remove {
-				log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
-				s.StateProvider.Delete(ctx, states.DeleteRequest{
+	mergedState.ClearAllRemoved()
+	if !deployment.IsDryRun {
+		if len(mergedState.TargetComponent) == 0 && remove {
+			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+			s.StateProvider.Delete(ctx, states.DeleteRequest{
+				ID: deployment.Instance.ObjectMeta.Name,
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		} else {
+			s.StateProvider.Upsert(ctx, states.UpsertRequest{
+				Value: states.StateEntry{
 					ID: deployment.Instance.ObjectMeta.Name,
-					Metadata: map[string]interface{}{
-						"namespace": namespace,
-						"group":     model.SolutionGroup,
-						"version":   "v1",
-						"resource":  DeploymentState,
+					Body: SolutionManagerDeploymentState{
+						Spec:  deployment,
+						State: mergedState,
 					},
-				})
-			} else {
-				s.StateProvider.Upsert(ctx, states.UpsertRequest{
-					Value: states.StateEntry{
-						ID: deployment.Instance.ObjectMeta.Name,
-						Body: SolutionManagerDeploymentState{
-							Spec:  deployment,
-							State: mergedState,
-						},
-					},
-					Metadata: map[string]interface{}{
-						"namespace": namespace,
-						"group":     model.SolutionGroup,
-						"version":   "v1",
-						"resource":  DeploymentState,
-					},
-				})
-			}
+				},
+				Metadata: map[string]interface{}{
+					"namespace": namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
 		}
 	}
 
@@ -872,89 +860,87 @@ func (s *SolutionManager) Reconcil() []error {
 }
 
 func (s *SolutionManager) InitCancelMap() {
-	s.jobList = make(map[string]map[string][]int)
-	s.cancelFunc = make(map[string]context.CancelFunc)
+	s.jobList = make(map[string]map[string]map[string]context.CancelFunc)
 }
 
-func (s *SolutionManager) TrackJob(ctx context.Context, namespace string, instance string, jobID string) error {
-	log.InfofCtx(ctx, " M (Solution): TrackJob, namespace %s, instance: %s, job id: %s", namespace, instance, jobID)
-	jobIdNum, err := convertJobIdToInt(jobID)
-	if err != nil {
-		return err
-	}
+func (s *SolutionManager) HandleCancelableJobEvent(ctx context.Context, namespace string, instance string, jobID string, isRemove string) {
+	if isRemove == "true" {
+		// cancel the jobs in queue
+		log.InfofCtx(ctx, " M (Solution): HandleCancelableJobEvent, delete instance: %s, job id: %s", instance, jobID)
+		s.CancelPreviousJobs(ctx, namespace, instance, jobID)
+	} else {
+		// add the job id for an ongoing job
+		log.InfofCtx(ctx, " M (Solution): HandleCancelableJobEvent, adding job id for instance: %s, job id: %s", instance, jobID)
+		if _, exists := s.jobList[namespace]; !exists {
+			s.jobList[namespace] = make(map[string]map[string]context.CancelFunc)
+		}
+		if _, exists := s.jobList[namespace][instance]; !exists {
+			s.jobList[namespace][instance] = make(map[string]context.CancelFunc)
+		}
 
+		s.jobList[namespace][instance][jobID] = nil
+	}
+}
+
+func (s *SolutionManager) HandleReconcileCancelEvent(ctx context.Context, namespace string, instance string, jobID string, isRemove string, cancel context.CancelFunc) {
+	log.InfofCtx(ctx, "V (Solution): onReconcile complete, namespace: %s, instance: %s, job id: %s, isRemove: %s", namespace, instance, jobID, isRemove)
+	cancel()
+	if isRemove != "true" {
+		if _, exists := s.jobList[namespace]; exists {
+			for jid := range s.jobList[namespace][instance] {
+				if jid == jobID {
+					delete(s.jobList[namespace][instance], jid)
+				}
+			}
+			if len(s.jobList[namespace][instance]) == 0 {
+				delete(s.jobList[namespace], instance)
+			}
+		}
+	}
+}
+
+func (s *SolutionManager) AddCancelFunc(ctx context.Context, namespace string, instance string, jobID string, cancel context.CancelFunc) error {
+	log.InfofCtx(ctx, " M (Solution): AddCancelFunc, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
 	if _, exists := s.jobList[namespace]; !exists {
-		s.jobList[namespace] = make(map[string][]int)
+		return v1alpha2.NewCOAError(nil, "Job is not queued", v1alpha2.InternalError)
 	}
 	if _, exists := s.jobList[namespace][instance]; !exists {
-		s.jobList[namespace][instance] = []int{jobIdNum}
-	} else {
-		s.jobList[namespace][instance] = append(s.jobList[namespace][instance], jobIdNum)
+		return v1alpha2.NewCOAError(nil, "Job is not queued", v1alpha2.InternalError)
 	}
+
+	s.jobList[namespace][instance][jobID] = cancel
 	return nil
 }
 
-func (s *SolutionManager) UntrackJob(ctx context.Context, namespace string, instance string, jobID string) error {
-	log.InfofCtx(ctx, " M (Solution): UntrackJob, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
-	delete(s.cancelFunc, generateJobIndex(namespace, instance, jobID))
-	jobIdNum, err := convertJobIdToInt(jobID)
-	if err != nil {
-		return err
-	}
+func (s *SolutionManager) CancelPreviousJobs(ctx context.Context, namespace string, instance string, jobID string) error {
+	log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
 
-	if _, exists := s.jobList[namespace]; !exists {
-		return nil
-	}
-
-	for i, v := range s.jobList[namespace][instance] {
-		if v == jobIdNum {
-			s.jobList[namespace][instance] = append(s.jobList[namespace][instance][:i], s.jobList[namespace][instance][i+1:]...)
+	if _, exists := s.jobList[namespace]; exists {
+		for jid, cancelJob := range s.jobList[namespace][instance] {
+			if convertJobIdToInt(jid) < convertJobIdToInt(jobID) {
+				// only cancel jobs prior to the delete job
+				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, found previous job id: %s", jid)
+				if cancelJob != nil {
+					cancelJob()
+					log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", jid)
+					delete(s.jobList[namespace][instance], jid)
+				}
+			}
 		}
 	}
+
 	if len(s.jobList[namespace][instance]) == 0 {
 		delete(s.jobList[namespace], instance)
 	}
 	return nil
 }
 
-func (s *SolutionManager) AddCancelFunc(ctx context.Context, namespace string, instance string, jobID string, cancel context.CancelFunc) {
-	log.InfofCtx(ctx, " M (Solution): AddCancelFunc, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
-	index := generateJobIndex(namespace, instance, jobID)
-	s.cancelFunc[index] = cancel
-}
-
-func (s *SolutionManager) CancelPreviousJobs(ctx context.Context, namespace string, instance string, jobID string) error {
-	log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
-	jobIdNum, err := convertJobIdToInt(jobID)
-	if err != nil {
-		return err
-	}
-
-	if _, exists := s.jobList[namespace]; exists {
-		for _, id := range s.jobList[namespace][instance] {
-			if id < jobIdNum {
-				// only cancel jobs prior to the delete job
-				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, found previous job id: %v", id)
-				if cancel, exists := s.cancelFunc[generateJobIndex(namespace, instance, strconv.Itoa(id))]; exists {
-					cancel()
-					log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", id)
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func convertJobIdToInt(jobID string) (int, error) {
+func convertJobIdToInt(jobID string) int {
 	num, err := strconv.Atoi(jobID)
 	if err != nil {
-		return 0, v1alpha2.NewCOAError(err, "Invalid JobID", v1alpha2.BadConfig)
+		return 0
 	}
-	return num, nil
-}
-
-func generateJobIndex(namespace string, instance string, jobID string) string {
-	return namespace + constants.ResourceSeperator + instance + constants.ResourceSeperator + jobID
+	return num
 }
 
 func findAgentFromDeploymentState(state model.DeploymentState, targetName string) string {

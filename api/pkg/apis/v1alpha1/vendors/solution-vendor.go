@@ -169,15 +169,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 			}
 			instance = deployment.Instance.ObjectMeta.Name
 
-			if delete == "true" {
-				// cancel the jobs in queue
-				sLog.InfofCtx(rContext, "V (Solution): onQueue, delete instance: %s, job id: %s", instance, deployment.JobID)
-				c.SolutionManager.CancelPreviousJobs(rContext, namespace, instance, deployment.JobID)
-			} else {
-				// track the job id for an ongoing job
-				sLog.InfofCtx(rContext, "V (Solution): onQueue, add tracking job id for instance: %s, job id: %s", instance, deployment.JobID)
-				c.SolutionManager.TrackJob(rContext, namespace, instance, deployment.JobID)
-			}
+			c.SolutionManager.HandleCancelableJobEvent(rContext, namespace, instance, deployment.JobID, delete)
 		}
 
 		if instance == "" {
@@ -283,11 +275,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			c.SolutionManager.AddCancelFunc(ctx, namespace, instance, deployment.JobID, cancel)
 		}
 		defer func() {
-			log.InfofCtx(rContext, "V (Solution): onReconcile complete, namespace: %s, instance: %s, job id: %s, isRemove: %s", namespace, instance, deployment.JobID, isRemove)
-			cancel()
-			if isRemove != "true" {
-				c.SolutionManager.UntrackJob(rContext, namespace, instance, deployment.JobID)
-			}
+			c.SolutionManager.HandleReconcileCancelEvent(rContext, namespace, instance, deployment.JobID, isRemove, cancel)
 		}()
 
 		summary, err := c.SolutionManager.Reconcile(cancelCtx, deployment, isRemove == "true", namespace, targetName)
