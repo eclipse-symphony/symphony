@@ -38,3 +38,7 @@ func GetNamespace(inputs map[string]interface{}) string {
 	}
 	return ReadInputString(inputs, "__namespace")
 }
+
+func GetName(inputs map[string]interface{}) string {
+	return ReadInputString(inputs, "objectName")
+}

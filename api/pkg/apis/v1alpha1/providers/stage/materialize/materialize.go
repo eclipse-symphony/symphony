@@ -286,6 +286,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded instance in catalog %s", name), v1alpha2.BadRequest)
 			}
 
+			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
+
 			if instanceState.ObjectMeta.Name == "" {
 				mLog.ErrorfCtx(ctx, "Instance name is empty: catalog - %s", name)
 				providerOperationMetrics.ProviderOperationErrors(
@@ -298,7 +300,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
 			}
 
-			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 			objectData, _ := json.Marshal(instanceState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
@@ -330,6 +331,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solution in catalog %s", name), v1alpha2.BadRequest)
 			}
+
+			solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
 
 			if solutionState.ObjectMeta.Name == "" {
 				mLog.ErrorfCtx(ctx, "Solution name is empty: catalog - %s", name)
@@ -394,7 +397,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, err
 			}
 
-			solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
 			objectData, _ := json.Marshal(solutionState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
@@ -426,6 +428,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded target in catalog %s", name), v1alpha2.BadRequest)
 			}
 
+			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
+
 			if targetState.ObjectMeta.Name == "" {
 				mLog.ErrorfCtx(ctx, "Target name is empty: catalog - %s", name)
 				providerOperationMetrics.ProviderOperationErrors(
@@ -438,7 +442,6 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
 			}
 
-			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
 			objectData, _ := json.Marshal(targetState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
@@ -611,6 +614,10 @@ func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}
 		objectMeta.Namespace = s
 	} else if objectMeta.Namespace == "" {
 		objectMeta.Namespace = "default"
+	}
+	// object name
+	if s := stage.GetName(inputs); s != "" {
+		objectMeta.Name = s
 	}
 	return objectMeta
 }
