@@ -29,6 +29,7 @@ var (
 	targetName        string
 	targetNamespace   string
 	upsertTarget      bool
+	configOnly        bool
 )
 
 var AgentCmd = &cobra.Command{
@@ -50,9 +51,13 @@ var AgentCmd = &cobra.Command{
 			fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 			return
 		}
-		err = updateAgentConfig()
+		agentFile, err := updateAgentConfig()
 		if err != nil {
 			fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+			return
+		}
+		if configOnly {
+			fmt.Printf("\n%s  Agent configuration file updated: %s%s\n\n", utils.ColorGreen(), agentFile, utils.ColorReset())
 			return
 		}
 		if upsertTarget {
@@ -103,25 +108,25 @@ func createTarget(ctx config.MaestroContext) error {
 	return utils.Upsert(ctx.Url, ctx.User, ctx.Secret, "target", targetName, targetData)
 }
 
-func updateAgentConfig() error {
+func updateAgentConfig() (string, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %s", err.Error())
+		return "", fmt.Errorf("failed to get user home directory: %s", err.Error())
 	}
 	agentConfigTemplatePath := filepath.Join(dirname, ".symphony", "symphony-agent.json")
 	agentConfigTemplateFile, err := os.Open(agentConfigTemplatePath)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer agentConfigTemplateFile.Close()
 	configData, err := io.ReadAll(agentConfigTemplateFile)
 	if err != nil {
-		return err
+		return "", err
 	}
 	var agentConfig config.SymphonyAgentConfig
 	err = json.Unmarshal(configData, &agentConfig)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	agentConfig.API.Vendors[1].Managers[0].Properties.ProvidersTarget = targetName
@@ -133,15 +138,15 @@ func updateAgentConfig() error {
 	agentConfigPath := filepath.Join(dirname, ".symphony", "symphony-agent-"+targetName+".json")
 	agentConfigStr, err := json.MarshalIndent(agentConfig, "", "  ")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Write the updated JSON to a new file
 	err = os.WriteFile(agentConfigPath, agentConfigStr, 0644)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return agentConfigPath, nil
 }
 
 func init() {
@@ -153,6 +158,7 @@ func init() {
 	AgentCmd.Flags().StringVarP(&mqttClientId, "mqtt-client-id", "e", "", "MQTT client id")
 	AgentCmd.Flags().BoolVar(&asDaemon, "daemon", false, "Run agent as daemon")
 	AgentCmd.Flags().BoolVar(&upsertTarget, "upsert-target", false, "Upsert target")
+	AgentCmd.Flags().BoolVar(&configOnly, "config-only", false, "Only update the agent configuration file")
 	AgentCmd.Flags().StringVarP(&configFile, "config", "c", "", "Maestro CLI config file")
 	AgentCmd.Flags().StringVarP(&configContext, "context", "", "", "Maestro CLI configuration context")
 
