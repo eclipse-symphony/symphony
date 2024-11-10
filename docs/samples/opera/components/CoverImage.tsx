@@ -4,6 +4,10 @@ import {Image} from "@nextui-org/image";
 const defaultImages: Record<string, string> = {
     'pi': '/pi.png',
     'k8s': '/k8s.png',
+    'mock-truck': '/mock-truck.png',
+    'flatbed-truck': '/flatbed-truck.png',
+    'freezer-truck': '/freezer-truck.png',
+    'box-truck': '/box-truck.png',
 };
 
 type CoverImageProps = {
