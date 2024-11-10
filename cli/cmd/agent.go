@@ -28,6 +28,7 @@ var (
 	asDaemon          bool
 	targetName        string
 	targetNamespace   string
+	upsertTarget      bool
 )
 
 var AgentCmd = &cobra.Command{
@@ -54,10 +55,12 @@ var AgentCmd = &cobra.Command{
 			fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 			return
 		}
-		err = createTarget(c.Contexts[ctx])
-		if err != nil {
-			fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-			return
+		if upsertTarget {
+			err = createTarget(c.Contexts[ctx])
+			if err != nil {
+				fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+				return
+			}
 		}
 		if !asDaemon {
 			_, err := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-agent-"+targetName+".json"), "-l", "Debug")
@@ -65,6 +68,8 @@ var AgentCmd = &cobra.Command{
 				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 				return
 			}
+		} else {
+			fmt.Printf("\n%s Running as daemon is not currently supported%s\n\n", utils.ColorRed(), utils.ColorReset())
 		}
 	},
 }
@@ -147,6 +152,7 @@ func init() {
 	AgentCmd.Flags().StringVarP(&mqttResponseTopic, "response-topic", "o", "coa-response", "MQTT response topic")
 	AgentCmd.Flags().StringVarP(&mqttClientId, "mqtt-client-id", "e", "", "MQTT client id")
 	AgentCmd.Flags().BoolVar(&asDaemon, "daemon", false, "Run agent as daemon")
+	AgentCmd.Flags().BoolVar(&upsertTarget, "upsert-target", false, "Upsert target")
 	AgentCmd.Flags().StringVarP(&configFile, "config", "c", "", "Maestro CLI config file")
 	AgentCmd.Flags().StringVarP(&configContext, "context", "", "", "Maestro CLI configuration context")
 
