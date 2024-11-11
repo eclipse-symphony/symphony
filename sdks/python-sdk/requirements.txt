@@ -7,3 +7,4 @@ MarkupSafe==2.1.1
 Werkzeug==2.2.3
 jsons==1.6.3
 waitress==2.1.2
+paho-mqtt==1.5.1

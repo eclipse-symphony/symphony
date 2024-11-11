@@ -10,6 +10,7 @@ from flask import Flask, abort, request, Response
 import jsons
 import json
 from waitress import serve
+import paho.mqtt.client as mqtt
 
 @dataclass
 class ObjectMeta:
@@ -184,18 +185,40 @@ class ComparisionPack:
 
 class ProxyHost(object):
     app = None 
-    def __init__(self,  apply, remove, get, needs_update, needs_remove):
+    mqtt_client = None
+    def __init__(self,  get, apply, mqtt_broker="localhost", mqtt_port=1883, request_topic="coa-request", response_topic="coa-response"):
         self.app = Flask(__name__)
         self.apply = apply
-        self.remove = remove
         self.get = get
-        self.needs_update = needs_update
-        self.needs_remove = needs_remove     
         self.app.add_url_rule('/instances', 'instances', self.__instances, methods=['GET', 'POST', 'DELETE'])        
-        self.app.add_url_rule('/needsupdate', 'needsupdate', self.__needs_update)        
-        self.app.add_url_rule('/needsremove', 'needsremove', self.__needs_remove)        
+        self.response_topic = response_topic
+        # Initialize MQTT client
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.connect(mqtt_broker, mqtt_port)
+        
+        # Subscribe to relevant topics
+        self.mqtt_client.subscribe(request_topic)
+        self.mqtt_client.loop_start()
+
     def run (self):
-        serve(self.app, host='0.0.0.0', port=8090, threads=1)        
+        serve(self.app, host='0.0.0.0', port=8090, threads=1)   
+
+    def on_connect(self, client, userdata, flags, rc):
+        print("Connected to MQTT Broker with result code " + str(rc))
+
+    def on_message(self, client, userdata, msg):
+        data = json.loads(msg.payload.decode())
+        if msg.topic == "apply":
+            response = self.__apply(data)
+        elif msg.topic == "get":
+            response = self.__get(data)
+        else:
+            response = {"error": "Unknown topic"}
+        
+        # Publish response to a specific response topic
+        self.mqtt_client.publish(self.response_topic, json.dumps(response)) 
     def __instances(self):
         if request.method == 'POST':
             return self.__apply(request.get_json())
@@ -209,19 +232,8 @@ class ProxyHost(object):
         deployment = jsons.loads(json.dumps(data), DeploymentSpec)
         components = deployment.get_components_slice()    
         return self.apply(components)
-    def __remove(self, data):
-        deployment = jsons.loads(json.dumps(data), DeploymentSpec)
-        components = deployment.get_components_slice()
-        return self.remove(components)
     def __get(self,data):
         deployment = jsons.loads(json.dumps(data), DeploymentSpec)
         components = deployment.get_components_slice()  
-        return self.get(components)
-    def __needs_update(self):
-        pack = jsons.loads(json.dumps(request.get_json()), ComparisionPack)         
-        return self.needs_update(pack)
-    def __needs_remove(self):
-        pack = jsons.loads(json.dumps(request.get_json()), ComparisionPack)         
-        return self.needs_remove(pack)    
-        
+        return self.get(components)     
 
