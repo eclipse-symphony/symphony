@@ -129,7 +129,11 @@ func updateAgentConfig() (string, error) {
 		return "", err
 	}
 
-	agentConfig.API.Vendors[1].Managers[0].Properties.ProvidersTarget = targetName
+	agentConfig.API.Vendors[1].Managers[0].Properties.TargetNames = targetName
+	agentConfig.API.Vendors[1].Managers[0].Providers[targetName] = config.TargetProviderConfig{
+		Type:   "providers.target.mock",
+		Config: map[string]interface{}{},
+	}
 	agentConfig.Bindings[0].Config.BrokerAddress = mqttBrokerAddress
 	agentConfig.Bindings[0].Config.ClientID = mqttClientId
 	agentConfig.Bindings[0].Config.RequestTopic = mqttRequestTopic
