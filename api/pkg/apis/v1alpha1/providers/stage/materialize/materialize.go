@@ -553,6 +553,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		}
+		// DO NOT REMOVE THIS COMMENT
 		// gofail: var afterMaterializeOnce bool
 	}
 	if len(createdObjectList) < len(objects) {

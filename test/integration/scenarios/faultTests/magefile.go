@@ -17,6 +17,7 @@ import (
 	"github.com/princjef/mageutil/shellcmd"
 )
 
+// Entry point for running the tests
 func FaultTests() error {
 	fmt.Println("Running fault injection tests")
 
@@ -56,7 +57,6 @@ func FaultTestHelper(test utils.FaultTestCase) error {
 	return err
 }
 
-// Run tests for scenarios/update
 func Verify(test string) error {
 	err := shellcmd.Command("go clean -testcache").Run()
 	if err != nil {

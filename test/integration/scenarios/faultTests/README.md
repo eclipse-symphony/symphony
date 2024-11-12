@@ -12,6 +12,7 @@ This is a framework for symphony fault tests.
 
 Add a comment line like example blow. Gofail package will translate it to the failpoint code when compiled with failpoint enabled.
 ```
+// DO NOT REMOVE THIS COMMENT
 // gofail: var beforeProviders string
 ```
 

@@ -147,6 +147,7 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 
 // attemptUpdate attempts to update the instance
 func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// DO NOT REMOVE THIS COMMENT
 	// gofail: var delayAttemptUpdate string
 
 	// populate diagnostics and activities from annotations
@@ -196,11 +197,13 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
+	// DO NOT REMOVE THIS COMMENT
 	// gofail: var beforeQueueJob string
 	if err := r.queueDeploymentJob(ctx, object, isRemoval, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
 		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
 	}
+	// DO NOT REMOVE THIS COMMENT
 	// gofail: var afterQueueJob string
 
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
@@ -221,6 +224,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 }
 
 func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// DO NOT REMOVE THIS COMMENT
 	// gofail: var delayBeforePolling string
 
 	// populate diagnostics and activities from annotations

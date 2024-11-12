@@ -60,6 +60,6 @@ ADD ./api/symphony-api.json /
 EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL=Debug
-ENV GOFAIL_HTTP "127.0.0.1:22381"
+ENV GOFAIL_HTTP="127.0.0.1:22381"
 # ENV CONFIG /symphony-api.json
 CMD sh -c 'if [ -f /etc/pki/ca-trust/source/anchors/proxy-cert.crt ]; then update-ca-trust; fi && exec /symphony-api -c $CONFIG -l $LOG_LEVEL'
