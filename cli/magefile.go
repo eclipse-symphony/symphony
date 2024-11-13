@@ -103,6 +103,7 @@ func GeneratePackages(des string) error {
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-agent.json %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-no-k8s.json %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-arm64 %s", symphonyPath, des)),
@@ -141,7 +142,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package Linux
-	linuxCommand := fmt.Sprintf("tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	linuxCommand := fmt.Sprintf("tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(linuxCommand),
 	); err != nil {
@@ -149,7 +150,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package windows
-	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge")
+	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(windowsCommand),
 	); err != nil {
@@ -157,7 +158,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package mac
-	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
 		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
@@ -169,7 +170,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package arm64
-	arm64Comomand := fmt.Sprintf("tar -czvf maestro_linux_arm64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	arm64Comomand := fmt.Sprintf("tar -czvf maestro_linux_arm64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
 		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
@@ -181,7 +182,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package arm64
-	arm7Command := fmt.Sprintf("tar -czvf maestro_linux_arm.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	arm7Command := fmt.Sprintf("tar -czvf maestro_linux_arm.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
 		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
