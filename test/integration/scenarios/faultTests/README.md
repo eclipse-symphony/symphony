@@ -18,7 +18,7 @@ Add a comment line like example blow. Gofail package will translate it to the fa
 
 2. Add a new fault test case
 
-There are already two fault tests - solution upgrade and workflow materialize in the faultTests folder. You can add a new case in the [constants.go](./constants.go) you want to use existing fault tests with new failpoint.
+There are already two fault tests - solution upgrade and workflow materialize in the faultTests folder. You can add a new case in the [constants.go](./utils/constants.go) you want to use existing fault tests with new failpoint.
 
 For example, you can specify the test, the pod to inject failure, the failpoint name and fault types in the below structure. The most common fault type is `100.0%panic`. And you can also use other faults like sleep, error following [Gofail term](https://github.com/etcd-io/gofail/blob/master/doc/design.md#gofail-term)
 ```json
