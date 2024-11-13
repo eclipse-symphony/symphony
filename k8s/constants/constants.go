@@ -50,6 +50,7 @@ const (
 	SymphonyAPIUrlEnvName = "SYMPHONY_API_URL"
 	ConfigName            = "CONFIG_NAME"
 	ApiCertEnvName        = "API_SERVING_CA"
+	DeploymentFinalizer   = "DEPLOYMENT_FINALIZER"
 )
 
 // Eula Message
