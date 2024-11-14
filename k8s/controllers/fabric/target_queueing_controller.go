@@ -9,6 +9,7 @@ package fabric
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
@@ -17,8 +18,10 @@ import (
 	"gopls-workspace/predicates"
 	"gopls-workspace/utils/diagnostic"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -70,11 +73,25 @@ func (r *TargetQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
+		log.Info("Reconcile removing target:  " + req.Name + " in namespace " + req.Namespace)
 		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
+		if utils.ContainsString(target.GetFinalizers(), os.Getenv(constants.DeploymentFinalizer)) {
+			// set finalizer to nil
+			log.Info("Reconcile removing target finalizer:  " + req.Name + " in namespace " + req.Namespace)
+			patch := client.MergeFrom(target.DeepCopy())
+			target.SetFinalizers([]string{})
+			if err = r.Patch(ctx, target, patch); err != nil {
+				log.Error(err, "Failed to patch target finalizers")
+				resultType = metrics.ReconcileFailedResult
+			} else {
+				resultType = metrics.ReconcileSuccessResult
+			}
+		} else {
+			operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
+			deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetOperationStartTimeKey, operationName)
+			if err != nil {
+				resultType = metrics.ReconcileFailedResult
+			}
 		}
 	}
 
