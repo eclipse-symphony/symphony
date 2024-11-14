@@ -5,7 +5,7 @@
 #
 from dataclasses import dataclass
 from typing import List
-from typing import Dict
+from typing import Dict, Any
 from flask import Flask, abort, request, Response
 import jsons
 import json
@@ -16,6 +16,8 @@ import paho.mqtt.client as mqtt
 class ObjectMeta:
     namespace: str = ""
     name:  str = "" 
+    eTag: str = ""
+    objGeneration: int = 0
     labels: Dict[str, str] = None
     annotations: Dict[str, str] = None
 
@@ -43,74 +45,73 @@ class PipelineSpec:
     parameters: Dict[str, str] = None
 
 @dataclass
-class VersionSpec:
-    solution: str = ""
-    percentage: int = 100
-
-@dataclass
 class InstanceSpec:
-    name: str = ""
+    displayName: str = ""
+    scope: str = ""    
     parameters: Dict[str, str] = None
-    solution: str = ""
+    metadata: Dict[str, str] = None
+    solution: str
     target: TargetSelector = None
     topologies: List[TopologySpec] = None
     pipelines: List[PipelineSpec] = None
-    scope: str = ""    
-    displayName: str = ""
-    metadata: Dict[str, str] = None
-    versions: List[VersionSpec] = None
-    arguments: Dict[str, Dict[str, str]] = None
-    optOutReconciliation: bool = False
-    
+    isDryRun: bool = False
 
 @dataclass
 class FilterSpec:
     direction: str = ""
-    parameters: Dict[str, str] = None
     type: str = ""
-
+    parameters: Dict[str, str] = None
+    
 @dataclass
 class RouteSpec:
     route: str = ""
+    type: str = ""
     properties: Dict[str, str] = None
     filters: List[FilterSpec] = None
+
+@dataclass
+class SidecarSpec:
+    name: str = ""
     type: str = ""
+    properties: Dict[str, str] = None
 
 @dataclass
 class ComponentSpec:
     name: str = ""   
     type: str = ""
+    metadata: Dict[str, str] = None
+    properties: Dict[str, Any] = None
+    parameters: Dict[str, str] = None
     routes: List[RouteSpec] = None
     constraints: str = ""
-    properties: Dict[str, str] = None
     depedencies: List[str] = None
     skills: List[str] = None
-    metadata: Dict[str, str] = None
-    parameters: Dict[str, str] = None
-    
+    sidecars: List[SidecarSpec] = None
 
 @dataclass
 class SolutionSpec:    
-    components: List[ComponentSpec] = None    
-    scope: str = ""    
     displayName: str = ""
     metadata: Dict[str,str] = None
+    components: List[ComponentSpec] = None    
+    version: str = ""
+    rootResource: str = ""
     
 @dataclass
 class SolutionState:
     metadata: ObjectMeta = None
-    spec: SolutionSpec = None
+    spec: SolutionSpec = None    
 
 @dataclass
 class TargetSpec:
+    displayName: str = ""
+    scope: str = ""
+    metadata: Dict[str, str] = None
     properties: Dict[str, str] = None
     components: List[ComponentSpec] = None
     constraints: str = ""
     topologies: List[TopologySpec] = None
-    scope: str = ""
-    displayName: str = ""
-    metadata: Dict[str, str] = None
     forceRedeploy: bool = False
+    isDryRun: bool = False
 
 @dataclass
 class ComponentError:
@@ -136,40 +137,52 @@ class ErrorType:
 class ProvisioningStatus:
     operationId: str = ""
     status: str = ""
+    percentComplete: int = 0
     failureCause: str = ""
     logErrors: bool = False
     error: ErrorType = None
     output: Dict[str, str] = None
 
 @dataclass
-class TargetStatus:
+class DeployableStatus:
     properties: Dict[str, str] = None
     provisioningStatus: ProvisioningStatus = None
-    lastModififed: str = ""
+    lastModififed: str = "" #TODO: use datetime.datetime instead?
 
 @dataclass
 class TargetState:
     metadata: ObjectMeta = None
     spec: TargetSpec = None
-    status: TargetStatus = None
+    status: DeployableStatus = None
+
+@dataclass
+class InstanceState:
+    metadata: ObjectMeta = None
+    spec: InstanceSpec = None
+    status: DeployableStatus = None
 
 @dataclass
 class DeviceSpec:
+    displayName: str = ""
     properties: Dict[str, str] = None
     bindings: List[BindingSpec] = None
-    displayName: str = ""
     
 @dataclass
 class DeploymentSpec:
     solutionName: str = ""
     solution: SolutionState = None
-    instance: InstanceSpec = None
+    instance: InstanceState = None
     targets: Dict[str, TargetState] = None
     devices: List[DeviceSpec] = None
     assignments: Dict[str, str] = None
     componentStartIndex: int = -1
     componentEndIndex: int= -1
     activeTarget: str = ""
+    generation: str = ""
+    jobID: str = ""
+    objectNamespace: str = ""
+    hash: str = ""
+    isDryRun: bool = False
 
     def get_components_slice(self) -> []:
         if self.solution != None:
@@ -177,6 +190,23 @@ class DeploymentSpec:
                 return self.solution.spec.components[self.componentStartIndex: self.componentEndIndex]
             return self.solution.spec.components
         return []
+
+@dataclass
+class COARequest:
+    method: str
+    route: str
+    contentType: str
+    body: bytes = b"" 
+    metadata: Dict[str, str] = None
+    parameters: Dict[str, str] = None
+
+@dataclass
+class COAResponse:
+    contentType: str 
+    body: bytes = b"" 
+    state: int
+    metadata: Dict[str, str] = None
+    redirectUri: str = ""
 
 @dataclass
 class ComparisionPack:
@@ -208,14 +238,31 @@ class ProxyHost(object):
     def on_connect(self, client, userdata, flags, rc):
         print("Connected to MQTT Broker with result code " + str(rc))
 
+    def create_bad_request_response(message: str, metadata: Dict[str, str] = None) -> COAResponse:
+        return COAResponse(
+            contentType="application/json",
+            body=json.dumps({"error": message}).encode(),
+            state=400,
+            metadata=metadata or {},
+            redirectUri=""
+        )
     def on_message(self, client, userdata, msg):
         data = json.loads(msg.payload.decode())
-        if msg.topic == "apply":
-            response = self.__apply(data)
-        elif msg.topic == "get":
-            response = self.__get(data)
+        coa_request = jsons.loads(json.dumps(data), COARequest)
+
+        if coa_request.route == "solution/instances":
+            namespace = request.parameters.get("namespace", "default")
+            target_name = request.metadata.get("active-target", "") if request.metadata else ""
+            deployment = json.loads(request.body.decode())
+
+            if coa_request.method == "POST":            
+                response = self.__apply(deployment)
+            elif coa_request.method == "GET":
+                response = self.__get(data)
+            else:
+                response = create_bad_request_response(f"Unknown method: {coa_request.method}")
         else:
-            response = {"error": "Unknown topic"}
+            response = create_bad_request_response(f"Unknown route: {coa_request.route}")
         
         # Publish response to a specific response topic
         self.mqtt_client.publish(self.response_topic, json.dumps(response)) 
