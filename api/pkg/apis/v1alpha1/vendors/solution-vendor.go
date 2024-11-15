@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -30,10 +29,6 @@ type SolutionVendor struct {
 	vendors.Vendor
 	SolutionManager *solution.SolutionManager
 }
-
-const (
-	defaultTimeout = 60 * time.Minute
-)
 
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	return vendors.VendorInfo{
@@ -56,7 +51,6 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	if e.SolutionManager == nil {
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
 	}
-	e.SolutionManager.InitCancelMap()
 	return nil
 }
 
@@ -169,7 +163,9 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 			}
 			instance = deployment.Instance.ObjectMeta.Name
 
-			c.SolutionManager.HandleCancelableJobEvent(rContext, namespace, instance, deployment.JobID, delete)
+			if delete == "true" {
+				c.SolutionManager.CancelPreviousJobs(ctx, namespace, instance, deployment.JobID)
+			}
 		}
 
 		if instance == "" {
@@ -260,7 +256,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Body:  []byte(err.Error()),
 			})
 		}
-		isRemove := request.Parameters["delete"]
+		delete := request.Parameters["delete"]
 		targetName := ""
 		if request.Metadata != nil {
 			if v, ok := request.Metadata["active-target"]; ok {
@@ -268,17 +264,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 		}
 
-		instance := deployment.Instance.ObjectMeta.Name
-		sLog.InfofCtx(ctx, "V (Solution): onReconcile create context with timeout, instance: %s, job id: %s, isRemove: %s", instance, deployment.JobID, isRemove)
-		cancelCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
-		if isRemove != "true" {
-			c.SolutionManager.AddCancelFunc(ctx, namespace, instance, deployment.JobID, cancel)
-		}
-		defer func() {
-			c.SolutionManager.HandleReconcileCancelEvent(rContext, namespace, instance, deployment.JobID, isRemove, cancel)
-		}()
-
-		summary, err := c.SolutionManager.Reconcile(cancelCtx, deployment, isRemove == "true", namespace, targetName)
+		summary, err := c.SolutionManager.ReconcileWithCancelWrapper(ctx, deployment, delete == "true", namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())

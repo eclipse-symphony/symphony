@@ -99,7 +99,7 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 		},
 	})
 
-	return nil
+	return err
 }
 
 func (o *JobVendor) GetEndpoints() []v1alpha2.Endpoint {
