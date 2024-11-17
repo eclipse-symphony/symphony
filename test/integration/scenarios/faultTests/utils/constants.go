@@ -32,42 +32,44 @@ var (
 		"k8s": "control-plane=symphony-controller-manager",
 	}
 	Faults = []FaultTestCase{
-		{
-			TestCase:  TestCases["solutionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "onQueueError",
-			FaultType: DefaultFaultType,
-		},
-		{
-			TestCase:  TestCases["solutionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "beforeProviders",
-			FaultType: DefaultFaultType,
-		},
-		{
-			TestCase:  TestCases["solutionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "beforeDeploymentError",
-			FaultType: DefaultFaultType,
-		},
-		{
-			TestCase:  TestCases["solutionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "afterDeploymentError",
-			FaultType: DefaultFaultType,
-		},
-		{
-			TestCase:  TestCases["solutionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "beforeConcludeSummary",
-			FaultType: DefaultFaultType,
-		},
-		{
-			TestCase:  TestCases["solutionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "beforeConcludeSummary",
-			FaultType: DefaultFaultType,
-		},
+		// Symphony API fault tests are disabled since job events cannot be retried now.
+		// Tracked in issue 558
+		// {
+		// 	TestCase:  TestCases["solutionUpdate"],
+		// 	PodLabel:  PodLabels["api"],
+		// 	Fault:     "onQueueError",
+		// 	FaultType: DefaultFaultType,
+		// },
+		// {
+		// 	TestCase:  TestCases["solutionUpdate"],
+		// 	PodLabel:  PodLabels["api"],
+		// 	Fault:     "beforeProviders",
+		// 	FaultType: DefaultFaultType,
+		// },
+		// {
+		// 	TestCase:  TestCases["solutionUpdate"],
+		// 	PodLabel:  PodLabels["api"],
+		// 	Fault:     "beforeDeploymentError",
+		// 	FaultType: DefaultFaultType,
+		// },
+		// {
+		// 	TestCase:  TestCases["solutionUpdate"],
+		// 	PodLabel:  PodLabels["api"],
+		// 	Fault:     "afterDeploymentError",
+		// 	FaultType: DefaultFaultType,
+		// },
+		// {
+		// 	TestCase:  TestCases["solutionUpdate"],
+		// 	PodLabel:  PodLabels["api"],
+		// 	Fault:     "beforeConcludeSummary",
+		// 	FaultType: DefaultFaultType,
+		// },
+		// {
+		// 	TestCase:  TestCases["solutionUpdate"],
+		// 	PodLabel:  PodLabels["api"],
+		// 	Fault:     "beforeConcludeSummary",
+		// 	FaultType: DefaultFaultType,
+		// },
 		{
 			TestCase:  TestCases["solutionUpdate"],
 			PodLabel:  PodLabels["k8s"],
