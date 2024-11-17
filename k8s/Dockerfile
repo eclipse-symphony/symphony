@@ -27,8 +27,7 @@ ARG FAULT_INJECTION_ENABLED=false
 
 # Install gcc, g++ and other necessary build tools
 RUN if echo "${BUILD_BASE_IMAGE}" | grep "alpine"; then \
-        apk add --no-cache gcc musl-dev; \
-        apk update && apk add curl; \
+        apk add --no-cache gcc musl-dev curl; \
     elif echo "${BUILD_BASE_IMAGE}" | grep "mariner"; then \
         tdnf install -y gcc glibc-devel && tdnf clean all; \
     else \
