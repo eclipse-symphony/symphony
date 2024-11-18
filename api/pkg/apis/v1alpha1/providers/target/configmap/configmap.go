@@ -246,16 +246,19 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 		for key, value := range obj.Data {
 			var data interface{}
 			err = json.Unmarshal([]byte(value), &data)
+			sLog.InfoCtx(ctx, "  P (ConfigMap Target): get key:%s", key)
 			if err == nil {
 				component.Component.Properties[key] = data
+				sLog.InfoCtx(ctx, "  P (ConfigMap Target): get data:%s", data)
 			} else {
 				component.Component.Properties[key] = value
+				sLog.InfoCtx(ctx, "  P (ConfigMap Target): get value:%s", value)
 			}
 		}
 		sLog.InfofCtx(ctx, "  P (ConfigMap Target): append component: %s", component.Component.Name)
 		ret = append(ret, component.Component)
 	}
-
+	sLog.InfoCtx(ctx, "  P (ConfigMap Target): return ret:%s", ret)
 	return ret, nil
 }
 
