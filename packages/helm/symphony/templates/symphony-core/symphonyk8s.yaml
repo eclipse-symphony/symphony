@@ -2929,7 +2929,7 @@ webhooks:
       namespace: '{{ .Release.Namespace }}'
       path: /validate-workflow-symphony-v1-activation
   failurePolicy: Fail
-  name: mactivation.kb.io
+  name: vactivation.kb.io
   rules:
   - apiGroups:
     - workflow.symphony

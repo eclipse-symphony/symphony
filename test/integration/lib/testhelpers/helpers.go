@@ -93,7 +93,7 @@ func SetupCluster() error {
 // Clean up
 func Cleanup(testName string) {
 	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", testName), "")
-	localenvCmd("destroy all", "")
+	localenvCmd("destroy all,nowait", "")
 }
 
 func CleanupWithTunnel(cancel context.CancelFunc, tunnelPid int, testName string) {

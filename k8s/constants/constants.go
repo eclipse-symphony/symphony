@@ -39,6 +39,7 @@ const (
 	InstanceOperationNamePrefix          = "instances.solution." + FullGroupName
 	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
 	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
+	CatalogEvalOperationNamePrefix       = "catalogevalexpression.federation." + FullGroupName
 	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
 	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
 	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
@@ -49,6 +50,7 @@ const (
 	SymphonyAPIUrlEnvName = "SYMPHONY_API_URL"
 	ConfigName            = "CONFIG_NAME"
 	ApiCertEnvName        = "API_SERVING_CA"
+	DeploymentFinalizer   = "DEPLOYMENT_FINALIZER"
 )
 
 // Eula Message
