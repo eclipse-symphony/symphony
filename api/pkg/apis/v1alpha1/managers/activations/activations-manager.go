@@ -14,7 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -33,7 +35,17 @@ var log = logger.NewLogger("coa.runtime")
 type ActivationsManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	needValidate  bool
+	Validator     validation.ActivationValidator
 }
+
+const (
+	stageOutputMaxSize    = 100 * 1024
+	activationHistorySize = 10
+	// Stage size limit: 100KB. For RESTful APIs, the medium response size is 10KB to 100KB. (Only FileDownload API response size can be pretty large.)
+	// Consider the size limit of Custom Resource (CR) in Kubernetes is 1MB, the output can contain 10 biggest stage responses.
+	// And the remain 24KB will be enough for other fields.
+)
 
 func (s *ActivationsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	err := s.Manager.Init(context, config, providers)
@@ -46,6 +58,12 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	} else {
 		return err
 	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		s.Validator = validation.NewActivationValidator(nil)
+	}
 	return nil
 }
 
@@ -56,6 +74,8 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Get activation state %s in namespace %s", name, namespace)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -75,6 +95,7 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 	var ret model.ActivationState
 	ret, err = getActivationState(entry.Body, entry.ETag)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, namespace, err)
 		return model.ActivationState{}, err
 	}
 	return ret, nil
@@ -90,7 +111,7 @@ func getActivationState(body interface{}, etag string) (model.ActivationState, e
 	if activationState.Spec == nil {
 		activationState.Spec = &model.ActivationSpec{}
 	}
-	activationState.ObjectMeta.Generation = etag
+	activationState.ObjectMeta.ETag = etag
 	if activationState.Status == nil {
 		activationState.Status = &model.ActivationStatus{}
 	}
@@ -105,10 +126,25 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Upsert activation state %s in namespace %s", name, state.ObjectMeta.Namespace)
+
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		log.ErrorfCtx(ctx, "Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name)
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	if m.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+		}
+		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -119,7 +155,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
-			ETag: state.ObjectMeta.Generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -144,6 +180,7 @@ func (m *ActivationsManager) DeleteState(ctx context.Context, name string, names
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "Delete activation state %s in namespace %s", name, namespace)
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
@@ -164,6 +201,8 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "List activation state for namespace %s", namespace)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -188,6 +227,7 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 		}
 		ret = append(ret, rt)
 	}
+	log.InfofCtx(ctx, "List activation state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
 }
 func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, namespace string, current model.ActivationStatus) error {
@@ -200,6 +240,8 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	lock.Lock()
 	defer lock.Unlock()
 
+	log.InfofCtx(ctx, "ReportStatus for activation %s in namespace %s as %s", name, namespace, current.StatusMessage)
+
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
 	if err != nil {
@@ -208,6 +250,11 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 
 	current.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 	activationState.Status = &current
+	if activationState.ObjectMeta.Labels == nil {
+		activationState.ObjectMeta.Labels = make(map[string]string)
+	}
+	// label doesn't allow space, so remove space
+	activationState.ObjectMeta.Labels[constants.StatusMessage] = utils.ConvertStringToValidLabel(current.Status.String())
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -221,9 +268,6 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 			"resource":  "activations",
 			"namespace": activationState.ObjectMeta.Namespace,
 			"kind":      "Activation",
-		},
-		Options: states.UpsertOption{
-			UpdateStatusOnly: true,
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -242,18 +286,28 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	lock.Lock()
 	defer lock.Unlock()
 
+	log.InfofCtx(ctx, "ReportStageStatus for activation %s stage %s in namespace %s as %s", name, current.Stage, namespace, current.StatusMessage)
+
 	var activationState model.ActivationState
 	activationState, err = t.GetState(ctx, name, namespace)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to get activation %s in namespace %s: %v", name, namespace, err)
 		return err
 	}
 
 	activationState.Status.UpdateTime = time.Now().Format(time.RFC3339) // TODO: is this correct? Shouldn't it be reported?
 
-	err = mergeStageStatus(&activationState, current)
+	err = mergeStageStatus(ctx, &activationState, current)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to merge stage status for activation %s in namespace %s: %v", name, namespace, err)
 		return err
 	}
+
+	if activationState.ObjectMeta.Labels == nil {
+		activationState.ObjectMeta.Labels = make(map[string]string)
+	}
+	// label doesn't allow space, so remove space
+	activationState.ObjectMeta.Labels[constants.StatusMessage] = utils.ConvertStringToValidLabel(current.Status.String())
 
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
@@ -268,26 +322,52 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 			"namespace": activationState.ObjectMeta.Namespace,
 			"kind":      "Activation",
 		},
-		Options: states.UpsertOption{
-			UpdateStatusOnly: true,
-		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to update status in state store for activation %s in namespace %s: %v", name, namespace, err)
 		return err
 	}
 	return nil
 }
 
-func mergeStageStatus(activationState *model.ActivationState, current model.StageStatus) error {
+func mergeStageStatus(ctx context.Context, activationState *model.ActivationState, current model.StageStatus) error {
 	if current.Outputs["__site"] == nil {
 		// The StageStatus is triggered locally
 		if activationState.Status.StageHistory == nil {
 			activationState.Status.StageHistory = make([]model.StageStatus, 0)
 		}
+
+		currentBytes, _ := json.Marshal(current)
+		if len(currentBytes) > stageOutputMaxSize {
+			log.InfofCtx(ctx, "Stage %s size exceeds the limit, truncate the inputs/outputs.", current.Stage)
+			totalLen := len(current.Outputs) + len(current.Inputs)
+			// totalLen can't be 0 since currentOutputSize > StageOutputMaxSize
+			for key, val := range current.Outputs {
+				valBytes, _ := json.Marshal(val)
+				if len(valBytes) > stageOutputMaxSize/totalLen {
+					valBytes = append(valBytes[:stageOutputMaxSize/totalLen], []byte("...")...)
+					current.Outputs[key] = string(valBytes)
+				}
+			}
+			for key, val := range current.Inputs {
+				valBytes, _ := json.Marshal(val)
+				if len(valBytes) > stageOutputMaxSize/totalLen {
+					valBytes = append(valBytes[:stageOutputMaxSize/totalLen], []byte("...")...)
+					current.Inputs[key] = string(valBytes)
+				}
+			}
+		}
+
 		if len(activationState.Status.StageHistory) == 0 {
 			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
 		} else if activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1].Stage != current.Stage {
+			if len(activationState.Status.StageHistory)+1 > activationHistorySize {
+				oldestStage := activationState.Status.StageHistory[0].Stage
+				activationState.Status.StageHistory = activationState.Status.StageHistory[1:]
+				log.InfofCtx(ctx, "Activation state size exceeds the limit %d, remove the oldest stage %s.", activationHistorySize, oldestStage)
+				// If the activation stage history is too long, remove the oldest stage status
+			}
 			activationState.Status.StageHistory = append(activationState.Status.StageHistory, current)
 		} else {
 			activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1] = current
@@ -328,13 +408,20 @@ func mergeStageStatus(activationState *model.ActivationState, current model.Stag
 	}
 
 	latestStage := &activationState.Status.StageHistory[len(activationState.Status.StageHistory)-1]
-	if latestStage.Status == v1alpha2.Done && latestStage.NextStage == "" {
-		activationState.Status.Status = v1alpha2.Done
-	} else if latestStage.Status == v1alpha2.Paused {
-		activationState.Status.Status = v1alpha2.Paused
-	} else {
+	if latestStage.NextStage != "" {
 		activationState.Status.Status = v1alpha2.Running
+	} else {
+		activationState.Status.Status = latestStage.Status
 	}
 	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
+}
+
+func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, old, err)
+}
+
+func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Campaign, name, namespace)
 }

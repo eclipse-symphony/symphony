@@ -44,22 +44,6 @@ type authResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-// We shouldn't use specific error types
-// SummarySpecError represents an error that includes a SummarySpec in its message
-// field.
-type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-func (e *SummarySpecError) Error() string {
-	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
-		e.Code,
-		e.Message,
-	)
-}
-
 func GetSymphonyAPIAddressBase() string {
 	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
@@ -661,7 +645,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			targetName := ReplaceSeperator(instance.Spec.Target.Name)
+			targetName := ConvertReferenceToObjectName(instance.Spec.Target.Name)
 			if matchString(targetName, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
@@ -691,7 +675,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace string) (model.DeploymentSpec, error) {
+func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.TargetState, namespace string) (model.DeploymentSpec, error) {
 	key := fmt.Sprintf("%s-%s", "target-runtime", target.ObjectMeta.Name)
 	scope := target.Spec.Scope
 	if scope == "" {
@@ -746,8 +730,8 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	ret.Targets = targets
 	ret.SolutionName = key
 	// set the target generation to the deployment
-	ret.Generation = target.ObjectMeta.Generation
-	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
+	ret.Generation = target.ObjectMeta.ETag
+	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -756,15 +740,16 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, nil
 }
 
-func CreateSymphonyDeployment(instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
+func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	ret.Generation = instance.ObjectMeta.Generation
+	ret.Generation = instance.ObjectMeta.ETag
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)
@@ -783,7 +768,7 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret.SolutionName = solution.ObjectMeta.Name
 	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
 
-	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -792,11 +777,12 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, nil
 }
 
-func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
+func AssignComponentsToTargets(ctx context.Context, components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
 	//TODO: evaluate constraints
 	ret := make(map[string]string)
 	for key, target := range targets {
@@ -805,7 +791,10 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Spec.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{
+					Properties: target.Spec.Properties,
+					Context:    ctx,
+				})
 				if err != nil {
 					// append the error message with the component constraint expression
 					errMsg := fmt.Sprintf("%s in constraint expression: %s", err.Error(), component.Constraints)

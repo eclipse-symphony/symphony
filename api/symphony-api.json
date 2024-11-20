@@ -511,11 +511,11 @@
             "properties": {
               "poll.enabled": "true",
               "interval": "#15",
-              "providers.queue": "memeory-queue",
+              "providers.queue": "memory-queue",
               "providers.volatilestate": "memory-state"              
             },
             "providers": {
-              "memeory-queue": {
+              "memory-queue": {
                 "type": "providers.queue.memory",
                 "config": {}
               },

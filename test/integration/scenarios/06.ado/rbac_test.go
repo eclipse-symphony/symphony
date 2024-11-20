@@ -61,16 +61,16 @@ var _ = Describe("RBAC", Ordered, func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the instance")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
-		Expect(err).ToNot(HaveOccurred())
-
 		By("deploying the target")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("deploying the solution")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("deploying the instance")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("verifying the resources")
@@ -85,7 +85,8 @@ var _ = Describe("RBAC", Ordered, func() {
 
 	AfterAll(func() {
 		By("uninstalling orchestrator from the cluster")
-		err := shell.LocalenvCmd(context.Background(), "mage destroy all")
+		err := shell.LocalenvCmd(context.Background(), "mage DumpSymphonyLogsForTest ginkgosuite_rbac")
+		err = shell.LocalenvCmd(context.Background(), "mage Destroy all,nowait")
 		Expect(err).ToNot(HaveOccurred())
 	})
 

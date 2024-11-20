@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/yaml"
 
 	fabric_api "gopls-workspace/apis/fabric/v1"
@@ -134,8 +135,9 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 
 		k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 			Scheme: scheme.Scheme,
-			// needs to disable metrics otherwise all controller suite tests will try to bind to the same port (8080)
-			MetricsBindAddress: "0",
+			Metrics: server.Options{
+				BindAddress: "0",
+			},
 		})
 		Expect(err).ToNot(HaveOccurred())
 		k8sClient = k8sManager.GetClient()
@@ -144,14 +146,15 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(BuildDefaultTarget(), ""), nil)
 		apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-		err = (&controllers.InstanceReconciler{
-			Client:                 k8sManager.GetClient(),
-			Scheme:                 k8sManager.GetScheme(),
-			ReconciliationInterval: 2 * time.Second,
-			DeleteTimeOut:          6 * time.Second,
-			PollInterval:           1 * time.Second,
-			ApiClient:              apiClient,
-		}).SetupWithManager(k8sManager)
+		err = (&controllers.InstanceQueueingReconciler{
+			InstanceReconciler: controllers.InstanceReconciler{
+				Client:                 k8sManager.GetClient(),
+				Scheme:                 k8sManager.GetScheme(),
+				ReconciliationInterval: 2 * time.Second,
+				DeleteTimeOut:          6 * time.Second,
+				PollInterval:           1 * time.Second,
+				ApiClient:              apiClient,
+			}}).SetupWithManager(k8sManager)
 		Expect(err).ToNot(HaveOccurred())
 
 		go func() {

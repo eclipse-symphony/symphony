@@ -107,7 +107,7 @@ func (l *userLogger) EnableJSONOutput(enabled bool) {
 		logFieldScope:    l.sharedFields[logFieldScope],
 		logFieldType:     l.logType,
 		logFieldInstance: hostname,
-		logFieldCoaVer:   CoaVersion,
+		logFieldCoaVer:   GetCoaVersion(),
 		logFieldCategory: l.sharedFields[logFieldCategory],
 	}
 	l.sharedFieldsLock.Unlock()

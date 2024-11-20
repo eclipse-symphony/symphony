@@ -50,6 +50,8 @@ spec:
             properties:
               displayName:
                 type: string
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -198,6 +200,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:

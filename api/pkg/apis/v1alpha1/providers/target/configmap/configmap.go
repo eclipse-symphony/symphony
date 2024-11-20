@@ -105,7 +105,7 @@ func (s *ConfigMapTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *ConfigMapTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := ConfigMapTargetProviderConfigFromMap(properties)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): expected ConfigMapTargetProviderConfig %+v", err)
+		sLog.Errorf("  P (ConfigMap Target): expected ConfigMapTargetProviderConfig: %+v", err)
 		return err
 	}
 
@@ -252,6 +252,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 				component.Component.Properties[key] = value
 			}
 		}
+		sLog.InfofCtx(ctx, "  P (ConfigMap Target): append component: %s", component.Component.Name)
 		ret = append(ret, component.Component)
 	}
 
@@ -271,30 +272,42 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
-	applyTime := time.Now().UTC()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		configmap,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
+
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to validate components: %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(
 			configmap,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (ConfigMap Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
+	// apply components
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (ConfigMap Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "config" {
 				newConfigMap := &corev1.ConfigMap{
@@ -319,25 +332,20 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 					providerOperationMetrics.ProviderOperationErrors(
 						configmap,
 						functionName,
-						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.ConfigMapOperation,
+						metrics.ApplyOperationType,
 						v1alpha2.ConfigMapApplyFailed.String(),
 					)
 					return ret, err
 				}
 			}
 		}
-		providerOperationMetrics.ProviderOperationLatency(
-			applyTime,
-			configmap,
-			functionName,
-			metrics.ApplyOperation,
-			metrics.UpdateOperationType,
-		)
 	}
-	deleteTime := time.Now().UTC()
+
 	components = step.GetDeletedComponents()
+	// delete components
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (ConfigMap Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "config" {
 				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Spec.Scope)
@@ -346,21 +354,14 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 					providerOperationMetrics.ProviderOperationErrors(
 						configmap,
 						functionName,
-						metrics.ApplyOperation,
-						metrics.DeleteOperationType,
+						metrics.ConfigMapOperation,
+						metrics.ApplyOperationType,
 						v1alpha2.ConfigMapApplyFailed.String(),
 					)
 					return ret, err
 				}
 			}
 		}
-		providerOperationMetrics.ProviderOperationLatency(
-			deleteTime,
-			configmap,
-			functionName,
-			metrics.ApplyOperation,
-			metrics.DeleteOperationType,
-		)
 	}
 	return ret, nil
 }
@@ -399,7 +400,7 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 			return err
 		}
 	} else {
-		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to get namespace: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to get namespace %s: %+v", namespace, err)
 		return err
 	}
 

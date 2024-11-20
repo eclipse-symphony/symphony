@@ -116,12 +116,13 @@ func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStag
 	}
 	return ret, nil
 }
-func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
+func (m *PatchStageProvider) traceValue(ctx context.Context, v interface{}, localContext interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := api_utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
-		context.Value = ctx
+		context.Value = localContext
+		context.Context = ctx
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err
@@ -130,12 +131,12 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v, ctx)
+			return m.traceValue(ctx, v, localContext)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v, ctx)
+			tv, err := m.traceValue(ctx, v, localContext)
 			if err != nil {
 				return "", err
 			}
@@ -145,7 +146,7 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v, ctx)
+			tv, err := m.traceValue(ctx, v, localContext)
 			if err != nil {
 				return "", err
 			}
@@ -168,10 +169,17 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	sLog.InfoCtx(ctx, "  P (Patch Stage): start process request")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		patch,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
-	objectName := api_utils.ReplaceSeperator(stage.ReadInputString(inputs, "objectName"))
+	objectName := api_utils.ConvertReferenceToObjectName(stage.ReadInputString(inputs, "objectName"))
 	patchSource := stage.ReadInputString(inputs, "patchSource")
 	var patchContent interface{}
 	if v, ok := inputs["patchContent"]; ok {
@@ -196,7 +204,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	switch patchSource {
 	case "", "catalog":
 		if v, ok := patchContent.(string); ok {
-			v := api_utils.ReplaceSeperator(v)
+			v := api_utils.ConvertReferenceToObjectName(v)
 			catalog, err = i.ApiClient.GetCatalog(ctx, v, objectNamespace, i.Config.User, i.Config.Password)
 
 			if err != nil {
@@ -279,7 +287,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	for k, v := range catalog.Spec.Properties {
 		var tv interface{}
-		tv, err = i.traceValue(v, inputs["context"])
+		tv, err = i.traceValue(ctx, v, inputs["context"])
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error tracing value %s", k)
 			return nil, false, err
@@ -457,12 +465,6 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	}
 	sLog.InfoCtx(ctx, "  P (Patch Stage): end process request")
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		patch,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
+
 	return outputs, false, nil
 }

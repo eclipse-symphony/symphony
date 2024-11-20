@@ -7,14 +7,16 @@
 package secret
 
 import (
+	"context"
+
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type ISecretProvider interface {
 	Init(config providers.IProviderConfig) error
-	Read(name string, field string, localContext interface{}) (string, error)
+	Read(ctx context.Context, name string, field string, localContext interface{}) (string, error)
 }
 
 type IExtSecretProvider interface {
-	Get(name string, field string, localContext interface{}) (string, error)
+	Get(ctx context.Context, name string, field string, localContext interface{}) (string, error)
 }

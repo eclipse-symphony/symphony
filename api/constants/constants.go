@@ -21,11 +21,18 @@ const (
 	DefaultScope = "default"
 	SATokenPath  = "/var/run/secrets/tokens/symphony-api-token"
 	// These constants need to be in a shared package.
-	GroupPrefix       = "symphony"
-	ManagerMetaKey    = GroupPrefix + "/managed-by"
-	InstanceMetaKey   = GroupPrefix + "/instance"
-	NotFound          = "Not Found"
-	ResourceSeperator = "-v-"
+	GroupPrefix        = "symphony"
+	ManagerMetaKey     = GroupPrefix + "/managed-by"
+	InstanceMetaKey    = GroupPrefix + "/instance"
+	ResourceSeperator  = "-v-"
+	ReferenceSeparator = ":"
+	DisplayName        = "displayName"
+	RootResource       = "rootResource"
+	ParentName         = "parentName"
+	StatusMessage      = "statusMessage"
+	Solution           = "solution"
+	Target             = "target"
+	Campaign           = "campaign"
 )
 
 // Environment variables keys
@@ -37,4 +44,9 @@ const (
 	SymphonyAPIUrlEnvName         = "SYMPHONY_API_URL"
 	API                           = "symphony-api"
 	EmitTimeFieldInUserLogs       = "EMIT_TIME_FIELD_IN_USER_LOGS"
+)
+
+const (
+	Generation string = "generation"
+	Status     string = "status"
 )

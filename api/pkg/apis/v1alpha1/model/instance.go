@@ -31,6 +31,7 @@ type (
 		Target      TargetSelector    `json:"target,omitempty"`
 		Topologies  []TopologySpec    `json:"topologies,omitempty"`
 		Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
+		IsDryRun    bool              `json:"isDryRun,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to

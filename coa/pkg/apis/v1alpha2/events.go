@@ -186,10 +186,15 @@ func (e Event) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(e)
 }
 
-type EventHandler func(topic string, message Event) error
+type EventHandler struct {
+	Handler func(topic string, message Event) error
+	// Group is used to distinguish different handlers for the same topic
+	// Important: The Group name of an existing handler should NOT be modified.
+	Group string
+}
 
 func EventShouldRetryWrapper(handler EventHandler, topic string, message Event) bool {
-	err := handler(topic, message)
+	err := handler.Handler(topic, message)
 	if err != nil {
 		return IsRetriableErr(err)
 	}
@@ -271,10 +276,11 @@ const (
 )
 
 type HeartBeatData struct {
-	JobId  string          `json:"id"`
-	Scope  string          `json:"scope,omitempty"`
-	Action HeartBeatAction `json:"action"`
-	Time   time.Time       `json:"time"`
+	JobId     string          `json:"id"`
+	Scope     string          `json:"scope,omitempty"`
+	Action    HeartBeatAction `json:"action,omitempty"`
+	Time      time.Time       `json:"time,omitempty"`
+	JobAction JobAction       `json:"jobaction"`
 }
 
 type ProxyConfigSpec struct {

@@ -1,0 +1,42 @@
+#################### default parameters ################################
+logo = "images/symphony icon_largetext (1).png"
+logo_width = "200px"
+favicon = "favicons\favicon.ico"
+# OpenGraph / Twitter Card metadata
+description = "Symphony enables end-to-end orchestration experience and addresses it as a distinct concern."
+author = "Project Symphony Leads"
+image = "images/symphony icon_largetext (1).png" # this image will be used as fallback if a page has no image of its own
+# contact form action
+contact_form_action = "#" # contact form works with https://formspree.io
+
+# Type of pages to be rendered with a blog view
+blogCategoryType = "category"
+
+[variables]
+primary_color = "#f5b933"
+light = "#f5f5f5"
+primary_font = "Roboto"
+
+# Preloader
+[preloader]
+enable = false
+preloader = "" # use jpg, png, svg or gif format.
+
+# Navigation buttons
+[navigation_button]
+enable = true
+label = "Get Started"
+link = "https://github.com/eclipse-symphony/symphony/tree/main/docs#get-started"
+
+# cookies
+[cookies]
+enable = false
+expire_days = 2
+content = "This site uses cookies. By continuing to use this website, you agree to their use."
+button = "I Accept"
+  
+############################# social site ########################
+[[social]]
+title = "YouTube"
+icon = "fab fa-youtube" # themify icon : https://themify.me/themify-icons
+link = "https://www.youtube.com/@Eclipse-Symphony"

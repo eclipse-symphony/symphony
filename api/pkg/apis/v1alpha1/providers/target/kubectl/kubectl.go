@@ -132,6 +132,7 @@ func KubectlTargetProviderConfigFromMap(properties map[string]string) (KubectlTa
 func (i *KubectlTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := KubectlTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Kubectl Target): expected KubectlTargetProviderConfig: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init", providerName), v1alpha2.InitFailed)
 	}
 
@@ -304,6 +305,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 						return nil, err
 					}
 
+					sLog.InfofCtx(ctx, "  P (Kubectl Target): append component: %s", component.Component.Name)
 					ret = append(ret, component.Component)
 					stop = true //we do early stop as soon as we found the first resource. we may want to support different strategy in the future
 
@@ -342,9 +344,8 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get custom resource from data bytes in component resource property", providerName), v1alpha2.GetComponentSpecFailed)
 				return nil, err
 			}
-
+			sLog.InfofCtx(ctx, "  P (Kubectl Target): append component: %s", component.Component.Name)
 			ret = append(ret, component.Component)
-
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: component doesn't have yaml or resource property", providerName), v1alpha2.GetComponentSpecFailed)
 			sLog.ErrorCtx(ctx, "  P (Kubectl Target): component doesn't have yaml or resource property")
@@ -370,7 +371,14 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	sLog.InfofCtx(ctx, "  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
-	applyTime := time.Now().UTC()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		kubectl,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
@@ -378,7 +386,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			kubectl,
 			functionName,
 			metrics.ValidateRuleOperation,
-			metrics.UpdateOperationType,
+			metrics.ApplyOperationType,
 			v1alpha2.ValidateFailed.String(),
 		)
 
@@ -387,14 +395,15 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugfCtx(ctx, "  P (Kubectl Target): dryRun is enabled,, skipping apply")
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Kubectl Target): get updated components: count - %d", len(components))
 		for _, component := range components {
-			applyComponentTime := time.Now().UTC()
 			if component.Type == "yaml.k8s" {
 				if v, ok := component.Properties["yaml"].(string); ok {
 					chanMes, chanErr := readYaml(v)
@@ -413,7 +422,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ReceiveDataChannelOperation,
-									metrics.GetOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.ReadYamlFailed.String(),
 								)
 								return ret, err
@@ -432,7 +441,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ApplyYamlOperation,
-									metrics.UpdateOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.ApplyYamlFailed.String(),
 								)
 
@@ -457,7 +466,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ReceiveErrorChannelOperation,
-									metrics.UpdateOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.ReadYamlFailed.String(),
 								)
 								return ret, err
@@ -477,7 +486,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ApplyYamlOperation,
-									metrics.UpdateOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.ApplyYamlFailed.String(),
 								)
 								return ret, err
@@ -498,7 +507,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 							kubectl,
 							functionName,
 							metrics.ConvertResourceDataBytesOperation,
-							metrics.UpdateOperationType,
+							metrics.ApplyOperationType,
 							v1alpha2.ReadResourcePropertyFailed.String(),
 						)
 
@@ -518,7 +527,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 							kubectl,
 							functionName,
 							metrics.ApplyCustomResource,
-							metrics.UpdateOperationType,
+							metrics.ApplyOperationType,
 							v1alpha2.ApplyResourceFailed.String(),
 						)
 
@@ -556,36 +565,19 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						kubectl,
 						functionName,
 						metrics.ApplyOperation,
-						metrics.UpdateOperationType,
+						metrics.ApplyOperationType,
 						v1alpha2.YamlResourcePropertyNotFound.String(),
 					)
 					return ret, err
 				}
 			}
-
-			providerOperationMetrics.ProviderOperationLatency(
-				applyComponentTime,
-				kubectl,
-				functionName,
-				metrics.ApplyOperation,
-				metrics.UpdateOperationType,
-			)
 		}
 	}
 
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		kubectl,
-		functionName,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-	)
-
-	deleteTime := time.Now().UTC()
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Kubectl Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
-			deleteComponentTime := time.Now().UTC()
 			if component.Type == "yaml.k8s" {
 				if v, ok := component.Properties["yaml"].(string); ok {
 					chanMes, chanErr := readYaml(v)
@@ -605,7 +597,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ReceiveDataChannelOperation,
-									metrics.DeleteOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.ReadYamlFailed.String(),
 								)
 								return ret, err
@@ -624,7 +616,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ObjectOperation,
-									metrics.DeleteOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.DeleteYamlFailed.String(),
 								)
 
@@ -649,7 +641,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ReceiveErrorChannelOperation,
-									metrics.DeleteOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.ReadYamlFailed.String(),
 								)
 								return ret, err
@@ -669,7 +661,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 									kubectl,
 									functionName,
 									metrics.ResourceOperation,
-									metrics.DeleteOperationType,
+									metrics.ApplyOperationType,
 									v1alpha2.DeleteYamlFailed.String(),
 								)
 								return ret, err
@@ -691,7 +683,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 							kubectl,
 							functionName,
 							metrics.ConvertResourceDataBytesOperation,
-							metrics.DeleteOperationType,
+							metrics.ApplyOperationType,
 							v1alpha2.ReadResourcePropertyFailed.String(),
 						)
 						return ret, err
@@ -710,7 +702,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 							kubectl,
 							functionName,
 							metrics.ApplyCustomResource,
-							metrics.DeleteOperationType,
+							metrics.ApplyOperationType,
 							v1alpha2.DeleteResourceFailed.String(),
 						)
 						return ret, err
@@ -732,37 +724,14 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						kubectl,
 						functionName,
 						metrics.ApplyOperation,
-						metrics.DeleteOperationType,
+						metrics.ApplyOperationType,
 						v1alpha2.YamlResourcePropertyNotFound.String(),
 					)
 					return ret, err
 				}
 			}
-
-			providerOperationMetrics.ProviderOperationLatency(
-				deleteComponentTime,
-				kubectl,
-				functionName,
-				metrics.ApplyOperation,
-				metrics.DeleteOperationType,
-			)
 		}
 	}
-
-	providerOperationMetrics.ProviderOperationLatency(
-		deleteTime,
-		kubectl,
-		functionName,
-		metrics.ApplyOperation,
-		metrics.DeleteOperationType,
-	)
-	providerOperationMetrics.ProviderOperationLatency(
-		applyTime,
-		kubectl,
-		functionName,
-		metrics.ApplyOperation,
-		metrics.UpdateOperationType,
-	)
 
 	return ret, nil
 }
@@ -1049,6 +1018,7 @@ func (i *KubectlTargetProvider) deleteCustomResource(ctx context.Context, dataBy
 
 // applyCustomResource applies a custom resource from a byte array
 func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataBytes []byte, namespace string, instance model.InstanceState) error {
+	sLog.ErrorfCtx(ctx, "  P (Kubectl Target): apply custom resource in the namespace: %s", namespace)
 	obj, dr, err := i.buildDynamicResourceClient(dataBytes, namespace)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to build a new dynamic client: %+v", err)
@@ -1061,6 +1031,8 @@ func (i *KubectlTargetProvider) applyCustomResource(ctx context.Context, dataByt
 		if !kerrors.IsNotFound(err) {
 			sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to read object: %+v", err)
 			return err
+		} else {
+			sLog.InfofCtx(ctx, "  P (Kubectl Target): object %s not found: %+v", obj.GetName(), err)
 		}
 
 		if err = i.MetaPopulator.PopulateMeta(obj, instance); err != nil {

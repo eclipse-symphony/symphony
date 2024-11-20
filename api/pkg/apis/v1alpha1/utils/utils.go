@@ -8,6 +8,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,8 +18,10 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/itchyny/gojq"
 	oJsonpath "github.com/oliveagle/jsonpath"
 	"k8s.io/client-go/util/jsonpath"
 	"sigs.k8s.io/yaml"
@@ -30,6 +33,13 @@ const (
 	Reject = "reject"
 	Any    = "any"
 )
+
+func IsNotFound(err error) bool {
+	if apiError, ok := err.(APIError); ok {
+		return apiError.Code == v1alpha2.NotFound
+	}
+	return v1alpha2.IsNotFound(err)
+}
 
 func matchString(src string, target string) bool {
 	if strings.Contains(src, "*") || strings.Contains(src, "%") {
@@ -161,25 +171,19 @@ func ProjectValue(val string, name string) string {
 }
 
 func FormatObject(obj interface{}, isArray bool, path string, format string) ([]byte, error) {
-	jData, _ := json.Marshal(obj)
-	if path == "" && format == "" {
-		return jData, nil
-	}
-	var dict interface{}
-	if isArray {
-		dict = make([]map[string]interface{}, 0)
-	} else {
-		dict = make(map[string]interface{})
-	}
-	json.Unmarshal(jData, &dict)
+	var jData []byte
+	var err error
 	if path != "" {
 		if path == "first_embedded" {
 			path = "$.spec.components[0].properties.embedded"
 		}
 		if isArray {
+			rawData, _ := json.Marshal(obj)
+			dict := make([]map[string]interface{}, 0)
+			json.Unmarshal(rawData, &dict)
 			if format == "yaml" {
 				ret := make([]byte, 0)
-				for i, item := range dict.([]interface{}) {
+				for i, item := range dict {
 					ob, _ := oJsonpath.JsonPathLookup(item, path)
 					if s, ok := ob.(string); ok {
 						str, err := strconv.Unquote(strings.TrimSpace(s))
@@ -191,10 +195,16 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 						if err != nil {
 							jData = []byte(s)
 						} else {
-							jData, _ = yaml.Marshal(o)
+							jData, err = yaml.Marshal(o)
+							if err != nil {
+								return nil, err
+							}
 						}
 					} else {
-						jData, _ = yaml.Marshal(ob)
+						jData, err = yaml.Marshal(ob)
+						if err != nil {
+							return nil, err
+						}
 					}
 					if i > 0 {
 						ret = append(ret, []byte("---\n")...)
@@ -204,15 +214,17 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 				jData = ret
 			} else {
 				ret := make([]interface{}, 0)
-				for _, item := range dict.([]interface{}) {
+				for _, item := range dict {
 					ob, _ := oJsonpath.JsonPathLookup(item, path)
 					ret = append(ret, ob)
-					jData, _ = yaml.Marshal(ob)
 				}
-				jData, _ = json.Marshal(ret)
+				jData, err = json.Marshal(ret)
+				if err != nil {
+					return nil, err
+				}
 			}
 		} else {
-			ob, _ := oJsonpath.JsonPathLookup(dict, path)
+			ob, _ := oJsonpath.JsonPathLookup(obj, path)
 			if format == "yaml" {
 				if s, ok := ob.(string); ok {
 					str, err := strconv.Unquote(strings.TrimSpace(s))
@@ -224,17 +236,32 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 					if err != nil {
 						jData = []byte(str)
 					} else {
-						jData, _ = yaml.Marshal(o)
+						jData, err = yaml.Marshal(o)
+						if err != nil {
+							return nil, err
+						}
 					}
 				} else {
-					jData, _ = yaml.Marshal(ob)
+					jData, err = yaml.Marshal(ob)
+					if err != nil {
+						return nil, err
+					}
 				}
 			} else {
-				jData, _ = json.Marshal(ob)
+				jData, err = json.Marshal(ob)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
+	} else {
+		if format == "yaml" {
+			jData, err = yaml.Marshal(obj)
+		} else {
+			jData, err = json.Marshal(obj)
+		}
 	}
-	return jData, nil
+	return jData, err
 }
 
 func toInterfaceMap(m map[string]string) map[string]interface{} {
@@ -323,11 +350,64 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	}
 }
 
-func ReplaceSeperator(name string) string {
-	if strings.Contains(name, ":") {
-		name = strings.ReplaceAll(name, ":", constants.ResourceSeperator)
+func isAlphanum(query string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(query)
+}
+
+func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
+	s := formatPathForNestedJsonField(fieldPath)
+	query, err := gojq.Parse(s)
+	if err != nil {
+		return nil, false
+	}
+
+	var value any
+	iter := query.Run(properties)
+	for {
+		result, ok := iter.Next()
+		if !ok {
+			// iterator terminates
+			break
+		}
+		if err, ok := result.(error); ok {
+			fmt.Println(err)
+			return nil, false
+		}
+		value = result
+	}
+	return value, value != nil
+}
+
+func formatPathForNestedJsonField(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// if the string contains "`", it means it is a string with jq syntax and needs to be unquoted
+	if s[0] == '`' {
+		val, err := strconv.Unquote(s)
+		if err != nil {
+			return ""
+		}
+		return val
+	} else {
+		return fmt.Sprintf(".%s", strconv.Quote(s))
+	}
+}
+
+func ConvertReferenceToObjectName(name string) string {
+	if strings.Contains(name, constants.ReferenceSeparator) {
+		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
 	}
 	return name
+}
+
+func ConvertObjectNameToReference(name string) string {
+	index := strings.LastIndex(name, constants.ResourceSeperator)
+	if index == -1 {
+		return name
+	}
+	return name[:index] + constants.ReferenceSeparator + name[index+len(constants.ResourceSeperator):]
 }
 
 func GetNamespaceFromContext(localContext interface{}) string {
@@ -370,4 +450,92 @@ func AreSlicesEqual(slice1, slice2 []string) bool {
 	}
 
 	return true
+}
+
+type FailedDeployment struct {
+	Name    string `json:"name"`
+	Message string `json:"FailedMessage"`
+}
+
+func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatus) bool {
+	return status.Properties != nil && status.Properties[constants.Generation] == strconv.FormatInt(objectMeta.ObjGeneration, 10) &&
+		(status.Properties[constants.Status] == "Succeeded" || status.Properties[constants.Status] == "Failed")
+}
+
+// Once status report is enabled in standalone mode, we need to use object status rather than summary to check the deployment status
+func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
+	remainingObjects := make([]string, 0)
+	failedDeployments := make([]FailedDeployment, 0)
+	var err error
+	var objectMeta model.ObjectMeta
+	var status model.DeployableStatus
+	for _, objectName := range objectNames {
+		if isInstance {
+			var state model.InstanceState
+			state, err = (*apiclient).GetInstance(ctx, objectName, namespace, username, password)
+			objectMeta = state.ObjectMeta
+			status = state.Status
+		} else {
+			var state model.TargetState
+			state, err = (*apiclient).GetTarget(ctx, objectName, namespace, username, password)
+			objectMeta = state.ObjectMeta
+			status = state.Status
+		}
+		// TODO: check error code
+		if err != nil {
+			remainingObjects = append(remainingObjects, objectName)
+			continue
+		}
+		if !DetermineObjectTerminalStatus(objectMeta, status) {
+			remainingObjects = append(remainingObjects, objectName)
+		} else if status.Properties[constants.Status] == "Failed" {
+			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.Properties["status-details"]})
+		}
+	}
+	return remainingObjects, failedDeployments
+}
+
+func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
+	remainingObjects := make([]string, 0)
+	failedDeployments := make([]FailedDeployment, 0)
+	var err error
+	for _, objectName := range objectNames {
+		var key string
+		if isInstance {
+			key = objectName
+		} else {
+			key = fmt.Sprintf("target-runtime-%s", objectName)
+		}
+		var summary *model.SummaryResult
+		summary, err = (*apiclient).GetSummary(ctx, key, namespace, username, password)
+		if err == nil && summary.State == model.SummaryStateDone {
+			log.DebugfCtx(ctx, "Summary for %s is %v", objectName, summary.Summary)
+			if !summary.Summary.AllAssignedDeployed {
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", objectName, summary.Summary.SummaryMessage)
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: summary.Summary.SummaryMessage})
+			}
+			continue
+		}
+		remainingObjects = append(remainingObjects, objectName)
+	}
+	return remainingObjects, failedDeployments
+}
+
+func FilterIncompleteDelete(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) []string {
+	remainingObjects := make([]string, 0)
+	var err error
+	for _, objectName := range objectNames {
+		if isInstance {
+			_, err = (*apiclient).GetInstance(ctx, objectName, namespace, username, password)
+
+		} else {
+			_, err = (*apiclient).GetTarget(ctx, objectName, namespace, username, password)
+		}
+		//if err != nil && IsNotFound(err) {
+		if err != nil && strings.Contains(err.Error(), "Not Found") {
+			continue
+		}
+		remainingObjects = append(remainingObjects, objectName)
+	}
+	return remainingObjects
 }

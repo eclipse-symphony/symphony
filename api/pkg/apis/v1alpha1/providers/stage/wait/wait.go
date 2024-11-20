@@ -174,6 +174,13 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	log.InfoCtx(ctx, "  P (Wait Processor): processing inputs")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		wait,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	outputs := make(map[string]interface{})
 
 	objectType, ok := inputs["objectType"].(string)
@@ -237,7 +244,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, instance := range instances {
 				for _, object := range prefixedNames {
-					object = api_utils.ReplaceSeperator(object)
+					object = api_utils.ConvertReferenceToObjectName(object)
 					if instance.ObjectMeta.Name == object {
 						foundCount++
 					}
@@ -280,7 +287,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			for _, catalog := range catalogs {
 				for _, object := range prefixedNames {
-					object = api_utils.ReplaceSeperator(object)
+					object = api_utils.ConvertReferenceToObjectName(object)
 					if catalog.ObjectMeta.Name == object {
 						foundCount++
 					}
@@ -291,16 +298,26 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			outputs["objectType"] = objectType
 			outputs["status"] = "OK"
 			log.InfofCtx(ctx, "  P (Wait Processor): found %v %v", objectType, objects)
-			providerOperationMetrics.ProviderOperationLatency(
-				processTime,
-				wait,
-				metrics.ProcessOperation,
-				metrics.RunOperationType,
-				functionName,
-			)
 			return outputs, false, nil
 		}
 		counter++
+		if counter%10 == 0 {
+			// Avoid to check the activation status too frequently
+			activationName, ok := inputs["__activation"].(string)
+			if !ok || activationName == "" {
+				log.InfoCtx(ctx, "  P (Wait Processor): __activation is not provided, exiting endless wait.")
+				return nil, false, v1alpha2.NewCOAError(nil, "related activation name is not provided", v1alpha2.BadConfig)
+			}
+			_, err := i.ApiClient.GetActivation(ctx, activationName, namespace, i.Config.User, i.Config.Password)
+			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+				// Since we use ApiClient to get the activation, not found error will become v1alpha2.InternalError
+				// format: utils.SummarySpecError{Code:\"Symphony API: [500]\", Message:\"Not Found: ..."}
+				// We need to check if it contains v1alpha2.NotFound
+				log.InfoCtx(ctx, "  P (Wait Processor): detected activation got deleted, exiting endless wait.")
+				return nil, false, v1alpha2.NewCOAError(err, "related activation got deleted", v1alpha2.NotFound)
+			}
+			log.InfoCtx(ctx, "  P (Wait Processor): waiting for objects to be ready...")
+		}
 		if i.Config.WaitInterval > 0 {
 			time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
 		}

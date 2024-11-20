@@ -36,13 +36,15 @@ const (
 	StatusNoOp         OperationStatus = "NoOp"
 	StatusUpdateFailed OperationStatus = "StatusUpdateFailed"
 	// deployment operation status
-	DeploymentQueued           OperationStatus = "DeploymentQueued"
-	DeploymentStatusPolled     OperationStatus = "DeploymentStatusPolled"
-	DeploymentSucceeded        OperationStatus = "DeploymentSucceeded"
-	DeploymentFailed           OperationStatus = "DeploymentFailed"
-	DeploymentTimedOut         OperationStatus = "DeploymentTimedOut"
-	GetDeploymentSummaryFailed OperationStatus = "GetDeploymentSummaryFailed"
-	QueueDeploymentFailed      OperationStatus = "QueueDeploymentFailed"
+	DeploymentPolling             OperationStatus = "DeploymentPolling"
+	DeploymentQueued              OperationStatus = "DeploymentQueued"
+	DeploymentStatusPolled        OperationStatus = "DeploymentStatusPolled"
+	DeploymentSucceeded           OperationStatus = "DeploymentSucceeded"
+	DeploymentFailed              OperationStatus = "DeploymentFailed"
+	DeploymentTimedOut            OperationStatus = "DeploymentTimedOut"
+	GetDeploymentSummaryFailed    OperationStatus = "GetDeploymentSummaryFailed"
+	DeleteDeploymentSummaryFailed OperationStatus = "DeleteDeploymentSummaryFailed"
+	QueueDeploymentFailed         OperationStatus = "QueueDeploymentFailed"
 )
 
 // Metrics is a metrics tracker for a controller operation.

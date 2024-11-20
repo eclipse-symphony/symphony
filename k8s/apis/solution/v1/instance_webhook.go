@@ -8,15 +8,24 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	configv1 "gopls-workspace/apis/config/v1"
+	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	v1 "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
 	"time"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +43,7 @@ var instancelog = logf.Log.WithName("instance-resource")
 var myInstanceClient client.Reader
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
+var instanceValidator validation.InstanceValidator
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
@@ -55,6 +65,22 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		instanceWebhookValidationMetrics = metrics
 	}
 
+	// Load validator functions
+	uniqueNameInstanceLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Instance, displayName, namespace)
+	}
+	solutionLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(ctx, validation.Solution, name, namespace)
+	}
+	targetLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(ctx, validation.Target, name, namespace)
+	}
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		instanceValidator = validation.NewInstanceValidator(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)
+	} else {
+		instanceValidator = validation.NewInstanceValidator(nil, solutionLookupFunc, targetLookupFunc)
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -68,17 +94,24 @@ var _ webhook.Defaulter = &Instance{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Instance) Default() {
-	instancelog.Info("default", "name", r.Name)
-
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), instancelog)
+	diagnostic.InfoWithCtx(instancelog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status, "annotation", r.Annotations)
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		r.Labels["displayName"] = r.Spec.DisplayName
-	}
+
 	if r.Spec.ReconciliationPolicy != nil && r.Spec.ReconciliationPolicy.State == "" {
 		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
 	}
+
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	if instanceProjectConfig.UniqueDisplayNameForSolution {
+		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
+	}
+	r.Labels[api_constants.Solution] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
+	r.Labels[api_constants.Target] = r.Spec.Target.Name
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -89,16 +122,15 @@ var _ webhook.Validator = &Instance{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateCreate() (admission.Warnings, error) {
-	instancelog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), instancelog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
+	diagnostic.InfoWithCtx(instancelog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateInstance()
+	validationError := r.validateCreateInstance(ctx)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -120,16 +152,21 @@ func (r *Instance) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	instancelog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), instancelog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
+	diagnostic.InfoWithCtx(instancelog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
-	validationError := r.validateUpdateInstance()
+	oldInstance, ok := old.(*Instance)
+	if !ok {
+		err := fmt.Errorf("expected an Instance object")
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to convert old object to Instance", "name", r.Name, "namespace", r.Namespace)
+		return nil, err
+	}
+	validationError := r.validateUpdateInstance(ctx, oldInstance)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -151,24 +188,28 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Instance) ValidateDelete() (admission.Warnings, error) {
-	instancelog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), instancelog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myInstanceClient, context.TODO(), instancelog)
 
+	diagnostic.InfoWithCtx(instancelog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
 }
 
-func (r *Instance) validateCreateInstance() error {
+func (r *Instance) validateCreateInstance(ctx context.Context) error {
 	var allErrs field.ErrorList
-
-	if err := r.validateUniqueNameOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertInstanceState()
+	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate create instance - convert current", "name", r.Name, "namespace", r.Namespace)
+		return err
 	}
+	// TODO: add proper context
+	ErrorFields := instanceValidator.ValidateCreateOrUpdate(ctx, state, nil)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
+
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -177,14 +218,26 @@ func (r *Instance) validateCreateInstance() error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate create instance", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
-func (r *Instance) validateUpdateInstance() error {
+func (r *Instance) validateUpdateInstance(ctx context.Context, old *Instance) error {
 	var allErrs field.ErrorList
-	if err := r.validateUniqueNameOnUpdate(); err != nil {
-		allErrs = append(allErrs, err)
+	state, err := r.ConvertInstanceState()
+	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance - convert current", "name", r.Name, "namespace", r.Namespace)
+		return err
 	}
+	oldState, err := old.ConvertInstanceState()
+	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance - convert old", "name", r.Name, "namespace", r.Namespace)
+		return err
+	}
+	// TODO: add proper context
+	ErrorFields := instanceValidator.ValidateCreateOrUpdate(ctx, state, oldState)
+	allErrs = validation.ConvertErrorFieldsToK8sError(ErrorFields)
 	if err := r.validateReconciliationPolicy(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -193,39 +246,9 @@ func (r *Instance) validateUpdateInstance() error {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
-}
-
-func (r *Instance) validateUniqueNameOnCreate() *field.Error {
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		instancelog.Info("validate unique display name", "name", r.Name)
-		var instances InstanceList
-		err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(1))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if len(instances.Items) != 0 {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
-		}
-	}
-	return nil
-}
-
-func (r *Instance) validateUniqueNameOnUpdate() *field.Error {
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		instancelog.Info("validate unique display name", "name", r.Name)
-		var instances InstanceList
-		err := myInstanceClient.List(context.Background(), &instances, client.InNamespace(r.Namespace), client.MatchingLabels{"displayName": r.Spec.DisplayName}, client.Limit(2))
-		if err != nil {
-			return field.InternalError(&field.Path{}, err)
-		}
-
-		if !(len(instances.Items) == 0 || len(instances.Items) == 1 && instances.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-			return field.Invalid(field.NewPath("spec").Child("displayName"), r.Spec.DisplayName, fmt.Sprintf("instance display name '%s' is already taken", r.Spec.DisplayName))
-		}
-	}
-	return nil
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
 func (r *Instance) validateReconciliationPolicy() *field.Error {
@@ -246,4 +269,19 @@ func (r *Instance) validateReconciliationPolicy() *field.Error {
 	}
 
 	return nil
+}
+
+func (r *Instance) ConvertInstanceState() (model.InstanceState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to instance state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.InstanceState{}, retErr
+	}
+	var state model.InstanceState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.InstanceState{}, retErr
+	}
+	return state, nil
 }

@@ -2,7 +2,7 @@
 
 _(last edit: 6/26/2023)_
 
-The script provider enables you to extend Symphony with scripts like Bash scripts and PowerShell scripts. Because Symphony's built-in providers are compiled into the Symphony binary, using a new provider needs a new Symphony version. Symphony [HTTP proxy provider](./http_proxy_provider.md) or Symphony [MQTT proxy provider](./mqtt_proxy_provider.md), on the other hand, allows a provider to be externalized as a sidecar. However, this requires you to host a web server that implements the provider REST API. The script provider offers the most flexibility without needing an extra sidecar.
+The script provider enables you to extend Symphony with scripts like Bash scripts and PowerShell scripts. Because Symphony's built-in providers are compiled into the Symphony binary, using a new provider needs a new Symphony version. Symphony [HTTP proxy provider](../http_proxy_provider.md) or Symphony [MQTT proxy provider](../mqtt_proxy_provider.md), on the other hand, allows a provider to be externalized as a sidecar. However, this requires you to host a web server that implements the provider REST API. The script provider offers the most flexibility without needing an extra sidecar.
 
 Symphony interacts with the script provider through a staging folder. For example, when Symphony deploys a solution instance, it writes the deployment spec to a file and passes the file name to the script as a parameter. The script is expected to pick up and process the file.
 
@@ -21,13 +21,15 @@ Symphony interacts with the script provider through a staging folder. For exampl
 
 ## Write shell scripts
 
+> **NOTE:** When Symphony invokes a script, it waits for the script to finish generating outputs. Although your script can keep running, it shouldn't generate continuous outputs, which will block the script provider.
+
 ### Get script
 
 The get script takes two input files. The first file contains a deployment spec JSON document, and the second file contains a list of interested component specs. The get script generates an output file containing a list of component specs that reflect what are installed on the target system.
 
 Symphony passes the deployment spec and a reference component list during GET because Symphony assumes that providers are stateless. When it calls a provider, it provides all the required contexts for the provider to carry out specific actions. By passing the reference component list, Symphony tells the provider what it needs to care about. For example, a Windows machine may have hundreds of apps installed. The reference component list informs the provider that only specific apps need to be considered.
 
-When the get script is called, Symphony writes a deployment spec to a temporary file and passes in the full file path as a parameter to the script. It's expected that the script will generate an output file under the same folder with a `-output.json` suffix. For example, if the input is `abc.json`, then the output should be `abc-output.json`.
+When the get script is called, Symphony writes a deployment spec to a temporary file and passes in the full file path as a parameter to the script. It's expected that the script will generate an output file under the same folder with a `-get-output.json` suffix. For example, if the input is `abc.json`, then the output should be `abc-get-output.json`.
 
 ```bash
 #!/bin/bash
@@ -62,7 +64,7 @@ echo "SCOPE: $scope"
 # all reference components and writes them into the output JSON file.
 
 output_components=$(jq -r '[.[] | .component]' "$references")
-echo "$output_components" > ${deployment%.*}-output.${deployment##*.}
+echo "$output_components" > ${deployment%.*}-get-output.${deployment##*.}
 ```
 
 You should check the target system to see if the request components are at the desired state. For example, the following snippet checks if a notepad process is running as specified in the deployment spec:
@@ -102,12 +104,14 @@ foreach ($component in $json) {
 }
 
 # Write the updated JSON to an output file
-"[" + ($json | ForEach-Object {$_.Component} | ConvertTo-Json -Compress) + "]" | Out-File -Encoding ASCII $DeploymentFile.Replace(".json", "-output.json")
+"[" + ($json | ForEach-Object {$_.Component} | ConvertTo-Json -Compress) + "]" | Out-File -Encoding ASCII $DeploymentFile.Replace(".json", "-get-output.json")
 ```
 
 ### Apply script
 
-The apply script reads reference component list (the second file parameter) and carries out the actual deployment actions. The script is supposed to generate an output JSON file that contains the deployment status of each component.
+The apply script reads reference component list (the second file parameter) and carries out the actual deployment actions. The script is supposed to generate an `-output.json` JSON file that contains the deployment status of each component.
+
+> **NOTE:** If your apply script launches a long-running background process, it's important to set the output stream to `/dev/null` and send the process to background, otherwise Symphony will be blocked. For example, to run a long-running Python script `my-script.py`, use: `nohup python my-script.py &>/dev/null &`.
 
 The following is a sample script that reads the component list, displays component properties, and then generates a hardcoded output file:
 
@@ -161,6 +165,9 @@ output_results='{
 echo "$output_results" > ${deployment%.*}-output.${deployment##*.}
 
 ```
+
+
+Find full scenarios at [this location](../../../samples/script-provider/solution.yaml)
 
 ### Remove script
 

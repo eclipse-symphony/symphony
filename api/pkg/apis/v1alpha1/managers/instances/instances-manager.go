@@ -11,12 +11,15 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -24,7 +27,9 @@ import (
 
 type InstancesManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	InstanceValidator validation.InstanceValidator
 }
 
 func (s *InstancesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -37,6 +42,12 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 		s.StateProvider = stateprovider
 	} else {
 		return err
+	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		//s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, s.solutionLookup, s.targetLookup)
+		s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, nil, nil)
 	}
 	return nil
 }
@@ -75,21 +86,32 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	if t.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
+			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
+		}
+		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+			return err
+		}
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
 		"kind":       "Instance",
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
-	generation := ""
-	if state.Spec != nil {
-		generation = state.ObjectMeta.Generation
-	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -150,7 +172,7 @@ func getInstanceState(body interface{}, etag string) (model.InstanceState, error
 	if instanceState.Spec == nil {
 		instanceState.Spec = &model.InstanceSpec{}
 	}
-	instanceState.ObjectMeta.Generation = etag
+	instanceState.ObjectMeta.ETag = etag
 	return instanceState, nil
 }
 
@@ -183,4 +205,19 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 		return model.InstanceState{}, err
 	}
 	return ret, nil
+}
+
+func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState) error {
+	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, old, err)
+}
+
+func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, validation.Instance, displayName, namespace)
+}
+func (t *InstancesManager) solutionLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Solution, name, namespace)
+}
+func (t *InstancesManager) targetLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Target, name, namespace)
 }

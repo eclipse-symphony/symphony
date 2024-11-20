@@ -14,6 +14,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -55,6 +56,7 @@ func createInstancesVendor() InstancesVendor {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
+	vendor.InstancesManager.InstanceValidator = validation.NewInstanceValidator(nil, nil, nil)
 	return vendor
 }
 func TestInstancesEndpoints(t *testing.T) {
@@ -81,17 +83,19 @@ func TestInstancesOnInstances(t *testing.T) {
 	}
 	succeededCount := 0
 	sig := make(chan bool)
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "instance1-v1", job.Id)
-		assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
-		succeededCount += 1
-		sig <- true
-		return nil
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "instance", event.Metadata["objectType"])
+			assert.Equal(t, "instance1-v1", job.Id)
+			assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	instanceSpec := model.InstanceSpec{}
 	data, _ := json.Marshal(instanceSpec)

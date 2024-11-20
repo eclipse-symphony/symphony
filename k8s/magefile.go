@@ -31,7 +31,7 @@ var (
 
 	envTest = bintool.Must(bintool.NewGo(
 		"sigs.k8s.io/controller-runtime/tools/setup-envtest",
-		"latest",
+		"release-0.19",
 	))
 
 	kustomize = bintool.Must(bintool.New(
@@ -46,7 +46,7 @@ func Manifests() error {
 	mg.Deps(ensureControllerGen)
 	return shellcmd.RunAll(
 		shellcmd.Command("rm -rf config/oss/crd/bases"),
-		controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/ai/v1 paths=./apis/fabric/v1 paths=./apis/solution/v1 paths=./apis/workflow/v1 paths=./apis/federation/v1 output:crd:artifacts:config=config/oss/crd/bases output:webhook:artifacts:config=config/oss/webhook output:rbac:artifacts:config=config/oss/rbac"),
+		controllerGen.Command("rbac:roleName=manager-role crd webhook paths=./apis/ai/v1 paths=./apis/fabric/v1 paths=./apis/solution/v1 paths=./apis/workflow/v1 paths=./apis/federation/v1 paths=./apis/monitor/v1 output:crd:artifacts:config=config/oss/crd/bases output:webhook:artifacts:config=config/oss/webhook output:rbac:artifacts:config=config/oss/rbac"),
 	)
 
 }

@@ -121,6 +121,8 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -237,6 +239,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:

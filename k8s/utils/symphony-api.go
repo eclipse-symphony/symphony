@@ -193,19 +193,20 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target fabric_v1.Target, namespace string) (apimodel.DeploymentSpec, error) {
+func CreateSymphonyDeploymentFromTarget(ctx context.Context, target fabric_v1.Target, namespace string) (apimodel.DeploymentSpec, error) {
 	targetState, err := K8STargetToAPITargetState(target)
 	if err != nil {
 		return apimodel.DeploymentSpec{}, err
 	}
 
 	var ret apimodel.DeploymentSpec
-	ret, err = api_utils.CreateSymphonyDeploymentFromTarget(targetState, namespace)
+	ret, err = api_utils.CreateSymphonyDeploymentFromTarget(ctx, targetState, namespace)
 	ret.Hash = HashObjects(DeploymentResources{
 		TargetCandidates: []fabric_v1.Target{target},
 	})
 
 	ret.Generation = strconv.Itoa(int(target.ObjectMeta.Generation))
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, err
 }
@@ -230,7 +231,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	}
 
 	var ret apimodel.DeploymentSpec
-	ret, err = api_utils.CreateSymphonyDeployment(instanceState, solutionState, targetStates, nil, objectNamespace)
+	ret, err = api_utils.CreateSymphonyDeployment(ctx, instanceState, solutionState, targetStates, nil, objectNamespace)
 	ret.Hash = HashObjects(DeploymentResources{
 		Instance:         instance,
 		Solution:         solution,
@@ -238,6 +239,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	})
 
 	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
+	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, err
 }
@@ -257,12 +259,4 @@ func NeedWatchInstance(instance solution_v1.Instance) bool {
 	}
 
 	return true
-}
-
-func ReplaceLastSeperator(name string, seperatorBefore string, seperatorAfter string) string {
-	i := strings.LastIndex(name, seperatorBefore)
-	if i == -1 {
-		return name
-	}
-	return name[:i] + seperatorAfter + name[i+len(seperatorBefore):]
 }

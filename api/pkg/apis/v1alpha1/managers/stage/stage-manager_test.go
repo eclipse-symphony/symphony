@@ -8,11 +8,17 @@ package stage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -106,12 +112,9 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"foo": 1,
-		},
-		Outputs:   nil,
-		Provider:  "providers.stage.counter",
-		Namespace: "fakens",
+		Outputs:              nil,
+		Provider:             "providers.stage.counter",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -119,6 +122,9 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
 				"test": {
+					Inputs: map[string]interface{}{
+						"foo": 1,
+					},
 					Provider:      "providers.stage.counter",
 					StageSelector: "${{$if($lt($output(test,foo), 5), test, '')}}",
 				},
@@ -140,7 +146,7 @@ func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	// assert.Equal(t, "fake", status.Outputs["__site"])
 }
 
-func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
+func TestCampaignWithSingleNegativeCounterStageLoop(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := StageManager{
@@ -164,12 +170,9 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"foo": -10,
-		},
-		Outputs:   nil,
-		Provider:  "providers.stage.counter",
-		Namespace: "fakens",
+		Outputs:              nil,
+		Provider:             "providers.stage.counter",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -177,6 +180,9 @@ func TestCampaignWithSingleMegativeCounterStageLoop(t *testing.T) {
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
 				"test": {
+					Inputs: map[string]interface{}{
+						"foo": -10,
+					},
 					Provider:      "providers.stage.counter",
 					StageSelector: "${{$if($gt($output(test,foo), -50), test, '')}}",
 				},
@@ -222,13 +228,9 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"foo": 1,
-			"bar": 1,
-		},
-		Outputs:   nil,
-		Provider:  "providers.stage.counter",
-		Namespace: "fakens",
+		Outputs:              nil,
+		Provider:             "providers.stage.counter",
+		Namespace:            "fakens",
 	}
 	for {
 		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
@@ -242,6 +244,10 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 				"test2": {
 					Provider:      "providers.stage.counter",
 					StageSelector: "${{$if($lt($output(test2,bar), 5), test, '')}}",
+					Inputs: map[string]interface{}{
+						"foo": 1,
+						"bar": 1,
+					},
 				},
 			},
 		}, *activation)
@@ -260,6 +266,77 @@ func TestCampaignWithTwoCounterStageLoop(t *testing.T) {
 	// assert.Equal(t, int64(5), status.Outputs["__activationGeneration"])
 	// assert.Equal(t, "test2", status.Outputs["__stage"])
 	// assert.Equal(t, "fake", status.Outputs["__site"])
+}
+
+func TestCampaignWithTriggersCounterStageLoop(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.StageStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Inputs: map[string]interface{}{
+			"foo": 1,
+			"bar": 1,
+		},
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.counter",
+					StageSelector: "${{$if($lt($output(test,foo), 5), test, test2)}}",
+					Inputs: map[string]interface{}{
+						"count": 1,
+						"foo":   "${{$trigger(foo, 0)}}",
+					},
+				},
+				"test2": {
+					Provider:      "providers.stage.counter",
+					StageSelector: "${{$if($lt($output(test2,foo), 10), test2, '')}}",
+					Inputs: map[string]interface{}{
+						"count.init": "${{$output(test, count)}}",
+						"count":      1,
+						"foo":        "${{$output(test, foo)}}",
+						"bar":        "${{$trigger(bar, -1)}}",
+						"bazz":       "${{$trigger(bazz, 0)}}",
+					},
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
+	assert.Equal(t, int64(7), status.Outputs["count"])
+	assert.Equal(t, int64(10), status.Outputs["foo"])
+	assert.Equal(t, int64(2), status.Outputs["bar"])
+	assert.Equal(t, int64(0), status.Outputs["bazz"])
 }
 
 func TestCampaignWithHTTPCounterStageLoop(t *testing.T) {
@@ -899,10 +976,18 @@ func TestResumeStage(t *testing.T) {
 	manager := StageManager{
 		StateProvider: stateProvider,
 	}
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	manager.VendorContext = &contexts.VendorContext{
 		EvaluationContext: &coa_utils.EvaluationContext{},
 		SiteInfo: v1alpha2.SiteInfo{
 			SiteId: "fake",
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
 		},
 	}
 	manager.Context = &contexts.ManagerContext{
@@ -911,6 +996,10 @@ func TestResumeStage(t *testing.T) {
 			SiteId: "fake",
 		},
 	}
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
+
 	campaignName := "campaign1"
 	activationName := "activation1"
 	activationGen := "1"
@@ -935,7 +1024,10 @@ func TestResumeStage(t *testing.T) {
 		Status:        v1alpha2.Done,
 		StatusMessage: v1alpha2.Done.String(),
 		Stage:         "test",
-		Outputs:       output,
+		Inputs: map[string]interface{}{
+			"nextStage": "test2",
+		},
+		Outputs: output,
 	}
 	campaign := model.CampaignSpec{
 		SelfDriving: true,
@@ -943,7 +1035,7 @@ func TestResumeStage(t *testing.T) {
 		Stages: map[string]model.StageSpec{
 			"test": {
 				Provider:      "providers.stage.mock",
-				StageSelector: "test2",
+				StageSelector: "${{$trigger(nextStage,'')}}",
 				Inputs: map[string]interface{}{
 					"ticket": "bar",
 				},
@@ -959,7 +1051,7 @@ func TestResumeStage(t *testing.T) {
 			},
 		},
 	}
-	nextStage, err := manager.ResumeStage(activation, campaign)
+	nextStage, err := manager.ResumeStage(context.TODO(), activation, campaign)
 	assert.Nil(t, err)
 	assert.Equal(t, "test2", nextStage.Stage)
 	assert.Equal(t, campaignName, nextStage.Campaign)
@@ -972,10 +1064,18 @@ func TestResumeStageFailed(t *testing.T) {
 	manager := StageManager{
 		StateProvider: stateProvider,
 	}
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	manager.VendorContext = &contexts.VendorContext{
 		EvaluationContext: &coa_utils.EvaluationContext{},
 		SiteInfo: v1alpha2.SiteInfo{
 			SiteId: "fake",
+			CurrentSite: v1alpha2.SiteConnection{
+				BaseUrl:  ts.URL + "/",
+				Username: "admin",
+				Password: "",
+			},
 		},
 	}
 	manager.Context = &contexts.ManagerContext{
@@ -984,8 +1084,12 @@ func TestResumeStageFailed(t *testing.T) {
 			SiteId: "fake",
 		},
 	}
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
+
 	campaignName := "campaign1"
-	activationName := "activation1"
+	activationName := "activation2"
 	activationGen := "1"
 	output := map[string]interface{}{}
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
@@ -1025,7 +1129,7 @@ func TestResumeStageFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err := manager.ResumeStage(activation, campaign)
+	_, err = manager.ResumeStage(context.TODO(), activation, campaign)
 	assert.NotNil(t, err)
 	assert.Equal(t, "Bad Request: ResumeStage: campaign is not valid", err.Error())
 }
@@ -1110,7 +1214,7 @@ func TestHandleDirectTriggerScheduleEvent(t *testing.T) {
 	assert.Equal(t, v1alpha2.Paused, status.Status)
 	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 
-	assert.Equal(t, v1alpha2.Delayed, status.Outputs["__status"])
+	assert.Equal(t, v1alpha2.Paused, status.Outputs["__status"])
 	assert.Equal(t, false, status.IsActive)
 }
 func TestHandleActivationEvent(t *testing.T) {
@@ -1230,4 +1334,62 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 	assert.Equal(t, v1alpha2.Paused, status.Status)
 	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 	assert.Equal(t, false, status.IsActive)
+}
+
+type AuthResponse struct {
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
+}
+
+func InitializeMockSymphonyAPI() *httptest.Server {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		log.Info("Mock Symphony API called", "path", r.URL.Path)
+		switch r.URL.Path {
+		case "/activations/registry/activation1":
+			response = model.ActivationState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "activation1",
+				},
+				Spec: &model.ActivationSpec{
+					Campaign: "campaign1",
+					Stage:    "test",
+					Inputs: map[string]interface{}{
+						"nextStage": "test2",
+					},
+				},
+				Status: &model.ActivationStatus{
+					Status:        v1alpha2.Done,
+					StatusMessage: v1alpha2.Done.String(),
+				},
+			}
+		case "/activations/registry/activation2":
+			response = model.ActivationState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "activation2",
+				},
+				Spec: &model.ActivationSpec{
+					Campaign: "campaign1",
+					Stage:    "test",
+					Inputs:   map[string]interface{}{},
+				},
+				Status: &model.ActivationStatus{
+					Status:        v1alpha2.Done,
+					StatusMessage: v1alpha2.Done.String(),
+				},
+			}
+		default:
+			response = AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+
+		json.NewEncoder(w).Encode(response)
+	}))
+	return ts
 }

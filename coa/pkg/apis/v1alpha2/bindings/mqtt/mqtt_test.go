@@ -164,7 +164,7 @@ func TestMQTTEchoWithCallContext(t *testing.T) {
 			Route:   "greetings",
 			Handler: func(c v1alpha2.COARequest) v1alpha2.COAResponse {
 				if c.Metadata != nil {
-					if v, ok := c.Metadata["call-context"]; ok {
+					if v, ok := c.Metadata["request-id"]; ok {
 						return v1alpha2.COAResponse{
 							Body: []byte(v),
 						}
@@ -191,7 +191,7 @@ func TestMQTTEchoWithCallContext(t *testing.T) {
 		var response v1alpha2.COAResponse
 		err := json.Unmarshal(msg.Payload(), &response)
 		assert.Nil(t, err)
-		assert.Equal(t, string(response.Body), "test-context")
+		assert.Equal(t, string(response.Body), "request-1")
 		sig <- 1
 	}); token.Wait() && token.Error() != nil {
 		if token.Error().Error() != "subscription exists" {
@@ -202,7 +202,7 @@ func TestMQTTEchoWithCallContext(t *testing.T) {
 		Route:  "greetings",
 		Method: "GET",
 		Metadata: map[string]string{
-			"call-context": "test-context",
+			"request-id": "request-1",
 		},
 	}
 	data, _ := json.Marshal(request)

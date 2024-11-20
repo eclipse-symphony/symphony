@@ -1,0 +1,11 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: helm-target 
+spec:  
+  topologies:
+  - bindings:
+    - role: helm.v3
+      provider: providers.target.helm
+      config:
+        inCluster: "true"

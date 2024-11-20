@@ -44,6 +44,7 @@ type (
 
 	SummaryGetter interface {
 		GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error)
+		DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error
 	}
 
 	Dispatcher interface {
@@ -71,6 +72,7 @@ type (
 		Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error)
 		CatalogHook(ctx context.Context, payload []byte, user string, password string) error
 		PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error
+		GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error)
 		GetCatalog(ctx context.Context, catalog string, namespace string, user string, password string) (model.CatalogState, error)
 		UpsertCatalog(ctx context.Context, catalog string, payload []byte, user string, password string) error
 		DeleteCatalog(ctx context.Context, catalog string, user string, password string) error
@@ -92,8 +94,39 @@ type (
 		CreateCampaignContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
 		DeleteCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
 		GetCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignContainerState, error)
+		GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
 	}
 )
+
+// We shouldn't use specific error types
+// APIError represents an error that includes a SummarySpec in its message field.
+type APIError struct {
+	Code    v1alpha2.State `json:"code"`
+	Message string         `json:"message"`
+}
+
+func (e APIError) Error() string {
+	return fmt.Sprintf(
+		"failed to invoke Symphony API: [%v] - %s",
+		e.Code,
+		e.Message,
+	)
+}
+
+func NewAPIError(state v1alpha2.State, msg string) APIError {
+	return APIError{
+		Code:    state,
+		Message: msg,
+	}
+}
+
+func ToCOAError(apiErr APIError) v1alpha2.COAError {
+	return v1alpha2.COAError{
+		InnerError: apiErr,
+		Message:    apiErr.Message,
+		State:      apiErr.Code,
+	}
+}
 
 func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, user string, passowrd string) (string, error) {
 	return "", nil
@@ -378,6 +411,26 @@ func (a *apiClient) GetTargets(ctx context.Context, namespace string, user strin
 	return ret, nil
 }
 
+func (a *apiClient) GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error) {
+	ret := map[string]interface{}{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, fmt.Sprintf("settings/config/%s?namespace=%s", url.QueryEscape(name), url.QueryEscape(namespace)), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
 func (a *apiClient) GetTargetsForAllNamespaces(ctx context.Context, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
@@ -438,6 +491,21 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 		}
 	}
 	return &result, nil
+}
+
+func (a *apiClient) DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	log.DebugfCtx(ctx, "apiClient.DeleteSummary: id: %s, namespace: %s", id, namespace)
+	_, err = a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error {
@@ -542,6 +610,27 @@ func (a *apiClient) PublishActivationEvent(ctx context.Context, event v1alpha2.A
 	}
 
 	return nil
+}
+
+func (a *apiClient) GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error) {
+	ret := model.ActivationState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "activations/registry/"+url.QueryEscape(activation)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }
 
 func (a *apiClient) GetCatalog(ctx context.Context, catalog string, namespace string, user string, password string) (model.CatalogState, error) {
@@ -787,13 +876,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 {
-			return nil, v1alpha2.NewCOAError(nil, "object not found", v1alpha2.NotFound)
-		}
-		object := &SummarySpecError{
-			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
-			Message: string(bodyBytes),
-		}
+		object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 		return nil, object
 	}
 

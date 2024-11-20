@@ -8,14 +8,21 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/utils/diagnostic"
+
 	"time"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/eclipse-symphony/symphony/k8s/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,11 +36,12 @@ import (
 
 // log is for logging in this package.
 var activationlog = logf.Log.WithName("activation-resource")
-var myActivationClient client.Client
+var myActivationClient client.Reader
 var activationWebhookValidationMetrics *metrics.Metrics
+var activationValidator validation.ActivationValidator
 
 func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	myActivationClient = mgr.GetClient()
+	myActivationClient = mgr.GetAPIReader()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Activation{}, ".metadata.name", func(rawObj client.Object) []string {
 		activation := rawObj.(*Activation)
 		return []string{activation.Name}
@@ -48,6 +56,10 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		activationWebhookValidationMetrics = metrics
 	}
 
+	activationValidator = validation.NewActivationValidator(func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(ctx, validation.Campaign, name, namespace)
+	})
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -61,27 +73,33 @@ var _ webhook.Defaulter = &Activation{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Activation) Default() {
-	activationlog.Info("default", "name", r.Name)
+	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), activationlog)
+	diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	if r.Spec.Campaign != "" {
+		diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec.campaign", r.Spec.Campaign)
+		r.Labels[api_constants.Campaign] = validation.ConvertReferenceToObjectName(r.Spec.Campaign)
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-activation,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=activations,verbs=create;update,versions=v1,name=mactivation.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-activation,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=activations,verbs=create;update,versions=v1,name=vactivation.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Activation{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Activation) ValidateCreate() (admission.Warnings, error) {
-	activationlog.Info("validate create", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
-
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myActivationClient, context.TODO(), activationlog)
+	diagnostic.InfoWithCtx(activationlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being created on namespace %s", r.Name, r.Namespace)
 
 	validateCreateTime := time.Now()
-	validationError := r.validateCreateActivation()
+	validationError := r.validateCreateActivation(ctx)
 	if validationError != nil {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
@@ -101,21 +119,22 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	activationlog.Info("validate update", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myActivationClient, context.TODO(), activationlog)
 
+	diagnostic.InfoWithCtx(activationlog, ctx, "validate update", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being updated on namespace %s", r.Name, r.Namespace)
 
 	validateUpdateTime := time.Now()
 	oldActivation, ok := old.(*Activation)
 	if !ok {
-		return nil, fmt.Errorf("expected an Activation object")
+		err := fmt.Errorf("expected an Activation object")
+		diagnostic.ErrorWithCtx(activationlog, ctx, err, "failed to convert old object to Activation", "name", r.Name, "namespace", r.Namespace)
+		return nil, err
 	}
 	// Compare the Spec of the current and old Activation objects
-	validationError := r.validateSpecOnUpdate(oldActivation)
+	validationError := r.validateUpdateActivation(ctx, oldActivation)
 	if validationError != nil {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateUpdateTime,
@@ -136,57 +155,67 @@ func (r *Activation) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Activation) ValidateDelete() (admission.Warnings, error) {
-	activationlog.Info("validate delete", "name", r.Name)
-
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Delete)
-	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(resourceK8SId, r.Annotations, operationName, context.TODO(), activationlog)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myActivationClient, context.TODO(), activationlog)
 
+	diagnostic.InfoWithCtx(activationlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", r.Name, r.Namespace)
 
 	return nil, nil
 }
 
-func (r *Activation) validateCreateActivation() error {
-	var allErrs field.ErrorList
-
-	if err := r.validateCampaignOnCreate(); err != nil {
-		allErrs = append(allErrs, err)
-	}
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
-}
-
-func (r *Activation) validateCampaignOnCreate() *field.Error {
-	if r.Spec.Campaign == "" {
-		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign must not be empty")
-	}
-	campaignName := utils.ReplaceLastSeperator(r.Spec.Campaign, ":", constants.ResourceSeperator)
-	var campaign Campaign
-	err := myActivationClient.Get(context.Background(), client.ObjectKey{Name: campaignName, Namespace: r.Namespace}, &campaign)
+func (r *Activation) validateCreateActivation(ctx context.Context) error {
+	state, err := r.ConvertActivationState()
 	if err != nil {
-		return field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "campaign doesn't exist")
+		diagnostic.ErrorWithCtx(activationlog, ctx, err, "validate create activation - convert current", "name", r.Name, "namespace", r.Namespace)
+		return err
 	}
-	return nil
+	ErrorFields := activationValidator.ValidateCreateOrUpdate(ctx, state, nil)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(activationlog, ctx, err, "validate create activation", "name", r.Name, "namespace", r.Namespace)
+	return err
 }
 
-func (r *Activation) validateSpecOnUpdate(oldActivation *Activation) error {
-	var allErrs field.ErrorList
-	if r.Spec.Campaign != oldActivation.Spec.Campaign {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("campaign"), r.Spec.Campaign, "updates to activation spec.Campaign are not allowed"))
+func (r *Activation) validateUpdateActivation(ctx context.Context, oldActivation *Activation) error {
+	state, err := r.ConvertActivationState()
+	if err != nil {
+		diagnostic.ErrorWithCtx(activationlog, ctx, err, "validate update activation - convert current", "name", r.Name, "namespace", r.Namespace)
+		return err
 	}
-	if r.Spec.Stage != oldActivation.Spec.Stage {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("stage"), r.Spec.Stage, "updates to activation spec.Stage are not allowed"))
+	old, err := oldActivation.ConvertActivationState()
+	if err != nil {
+		diagnostic.ErrorWithCtx(activationlog, ctx, err, "validate update activation - convert old", "name", r.Name, "namespace", r.Namespace)
+		return err
 	}
-	if r.Spec.Inputs.String() != oldActivation.Spec.Inputs.String() {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("inputs"), r.Spec.Inputs, "updates to activation spec.Inputs are not allowed"))
-	}
+	ErrorFields := activationValidator.ValidateCreateOrUpdate(ctx, state, old)
+	allErrs := validation.ConvertErrorFieldsToK8sError(ErrorFields)
+
 	if len(allErrs) == 0 {
 		return nil
 	}
 
-	return apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name, allErrs)
+	diagnostic.ErrorWithCtx(activationlog, ctx, err, "validate update activation", "name", r.Name, "namespace", r.Namespace)
+	return err
+}
+
+func (r *Activation) ConvertActivationState() (model.ActivationState, error) {
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "workflow.symphony", Kind: "Activation"}, r.Name,
+		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to activation state", v1alpha2.BadRequest))})
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		return model.ActivationState{}, retErr
+	}
+	var state model.ActivationState
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return model.ActivationState{}, retErr
+	}
+	return state, nil
 }

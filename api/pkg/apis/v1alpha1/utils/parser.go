@@ -559,6 +559,26 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return property, nil
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$output() expects 2 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
+	case "trigger":
+		if len(n.Args) == 2 {
+			key, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			defaultVal, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			if context.Triggers == nil {
+				return defaultVal, nil
+			}
+			property, err := readPropertyInterface(context.Triggers, FormatAsString(key))
+			if err != nil {
+				return defaultVal, nil
+			}
+			return property, nil
+		}
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$trigger() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "equal":
 		if len(n.Args) == 2 {
 			v1, err := n.Args[0].Eval(context)
@@ -765,7 +785,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 				}
 			}
 
-			return context.ConfigProvider.Get(FormatAsString(obj), FormatAsString(field), overlays, context)
+			return context.ConfigProvider.Get(context.Context, FormatAsString(obj), FormatAsString(field), overlays, context)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$config() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "secret":
@@ -781,7 +801,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			return context.SecretProvider.Get(FormatAsString(obj), FormatAsString(field), context)
+			return context.SecretProvider.Get(context.Context, FormatAsString(obj), FormatAsString(field), context)
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$secret() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "instance":
@@ -834,6 +854,15 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			return string(jData), nil
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$json() expects 1 argument, fount %d", len(n.Args)), v1alpha2.BadConfig)
+	case "str":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			return fmt.Sprintf("%v", val), nil
+		}
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$str() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid function name: '%s'", n.Name), v1alpha2.BadConfig)
 }
@@ -880,6 +909,7 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 			parser := newExpressionParser(text)
 			n, err := parser.Eval(context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Parser evaluate failed: %v", err)
 				return nil, err
 			}
 			results = append(results, n)
@@ -1257,7 +1287,7 @@ func (p *ExpressionParser) function() (Node, error) {
 			return nil, err
 		}
 		if _, ok := node.(*NullNode); ok {
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid argument"), v1alpha2.BadConfig)
+			return nil, v1alpha2.NewCOAError(nil, "invalid argument", v1alpha2.BadConfig)
 		}
 		args = append(args, node)
 		if p.token == COMMA {
@@ -1277,12 +1307,15 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 
 			val, err := evalProperties(context, c.Metadata)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
 				return deploymentSpec, err
 			}
 			if val != nil {
 				metadata, ok := val.(map[string]string)
 				if !ok {
-					return deploymentSpec, v1alpha2.NewCOAError(nil, fmt.Sprintf("metadata must be a map"), v1alpha2.BadConfig)
+					err := v1alpha2.NewCOAError(nil, "metadata must be a map", v1alpha2.BadConfig)
+					log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
+					return deploymentSpec, err
 				}
 				stringMap := make(map[string]string)
 				for k, v := range metadata {
@@ -1293,18 +1326,26 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 
 			val, err = evalProperties(context, c.Properties)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
 				return deploymentSpec, err
 			}
 			props, ok := val.(map[string]interface{})
 			if !ok {
-				return deploymentSpec, v1alpha2.NewCOAError(nil, fmt.Sprintf("properties must be a map"), v1alpha2.BadConfig)
+				err := v1alpha2.NewCOAError(nil, "properties must be a map", v1alpha2.BadConfig)
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
+				return deploymentSpec, err
 			}
 			deploymentSpec.Solution.Spec.Components[ic].Properties = props
 		}
+		log.DebugCtx(context.Context, " (Parser): Evaluate deployment completed.")
 		return deploymentSpec, nil
 	}
-	return model.DeploymentSpec{}, errors.New("deployment spec is not found")
+
+	err := errors.New("deployment spec is not found")
+	log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
+	return model.DeploymentSpec{}, err
 }
+
 func compareInterfaces(a, b interface{}) bool {
 	if reflect.TypeOf(a) == reflect.TypeOf(b) {
 		switch a.(type) {
@@ -1371,12 +1412,14 @@ func toNumber(val interface{}) (float64, bool) {
 	}
 	return 0, false
 }
+
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {
 	switch p := properties.(type) {
 	case map[string]string:
 		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[k] = FormatAsString(val)
@@ -1385,6 +1428,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for k, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[k] = val
@@ -1393,6 +1437,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		for i, v := range p {
 			val, err := evalProperties(context, v)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			p[i] = val
@@ -1403,10 +1448,12 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		if err == nil {
 			modified, err := enumerateProperties(js, context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			jsBytes, err := json.Marshal(modified)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 				return nil, err
 			}
 			return string(jsBytes), nil
@@ -1414,6 +1461,7 @@ func evalProperties(context utils.EvaluationContext, properties interface{}) (in
 		parser := NewParser(p)
 		val, err := parser.Eval(context)
 		if err != nil {
+			log.ErrorfCtx(context.Context, " (Parser): Evaluate properties failed: %v", err)
 			return nil, err
 		}
 		properties = val
@@ -1429,12 +1477,14 @@ func enumerateProperties(js interface{}, context utils.EvaluationContext) (inter
 				parser := NewParser(strVal)
 				val, err := parser.Eval(context)
 				if err != nil {
+					log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 					return nil, err
 				}
 				v[key] = val
 			} else {
 				nestedProps, err := enumerateProperties(val, context)
 				if err != nil {
+					log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 					return nil, err
 				}
 				v[key] = nestedProps
@@ -1444,6 +1494,7 @@ func enumerateProperties(js interface{}, context utils.EvaluationContext) (inter
 		for i, val := range v {
 			nestedProps, err := enumerateProperties(val, context)
 			if err != nil {
+				log.ErrorfCtx(context.Context, " (Parser): Enumerate properties failed: %v", err)
 				return nil, err
 			}
 			v[i] = nestedProps

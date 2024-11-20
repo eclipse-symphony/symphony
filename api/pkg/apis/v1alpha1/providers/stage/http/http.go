@@ -11,7 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -194,6 +194,13 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	sLog.InfoCtx(ctx, "  P (Http Stage): start process request")
 	functionName := observ_utils.GetFunctionName()
 	processTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		httpProvider,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
 	// Check all config fields for override in inputs
 	var configMap map[string]interface{}
@@ -264,7 +271,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				)
 				return nil, false, err
 			}
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(jData))
+			req.Body = io.NopCloser(bytes.NewBuffer(jData))
 			req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 			req.ContentLength = int64(len(jData))
 		}
@@ -291,7 +298,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	var data []byte
-	data, err = ioutil.ReadAll(resp.Body)
+	data, err = io.ReadAll(resp.Body)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to read request response: %v", err)
 		providerOperationMetrics.ProviderOperationErrors(
@@ -382,7 +389,7 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 			}
 			if succeeded {
 				var data []byte
-				data, err = ioutil.ReadAll(waitResp.Body)
+				data, err = io.ReadAll(waitResp.Body)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to read wait request response: %v", err)
 					providerOperationMetrics.ProviderOperationErrors(
@@ -428,7 +435,8 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 								parser := utils.NewParser(i.Config.WaitExpression)
 								var val interface{}
 								val, err = parser.Eval(coa_utils.EvaluationContext{
-									Value: obj,
+									Value:   obj,
+									Context: ctx,
 								})
 								if err != nil {
 									sLog.ErrorfCtx(ctx, "  P (Http Stage): failed to evaluate Symphony expression: %v", err)
@@ -482,13 +490,6 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 	}
 
 	sLog.InfofCtx(ctx, "  P (Http Stage): process request completed with: %d", resp.StatusCode)
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		httpProvider,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
 	return outputs, false, nil
 }
 func (*HttpStageProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

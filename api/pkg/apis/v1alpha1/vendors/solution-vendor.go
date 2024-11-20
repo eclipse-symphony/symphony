@@ -14,6 +14,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -73,7 +74,7 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Handler:    o.onReconcile,
 		},
 		{
-			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost},
+			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost, fasthttp.MethodDelete},
 			Route:   route + "/queue",
 			Version: o.Version,
 			Handler: o.onQueue,
@@ -85,8 +86,8 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		"method": "onQueue",
 	})
 	defer span.End()
-
-	sLog.InfofCtx(rContext, "V (Solution): onQueue, method: %s", request.Method)
+	instance := request.Parameters["instance"]
+	sLog.InfofCtx(rContext, "V (Solution): onQueue, method: %s, %s", request.Method, instance)
 
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
@@ -110,10 +111,11 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - %s", err.Error())
-			if v1alpha2.IsNotFound(err) {
+			if utils.IsNotFound(err) {
+				errorMsg := fmt.Sprintf("instance '%s' is not found in namespace %s", instance, namespace)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
-					Body:  data,
+					Body:  []byte(errorMsg),
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -183,6 +185,32 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        []byte("{\"result\":\"200 - instance reconcilation job accepted\"}"),
+			ContentType: "application/json",
+		})
+	case fasthttp.MethodDelete:
+		ctx, span := observability.StartSpan("onQueue-DELETE", rContext, nil)
+		defer span.End()
+		instance := request.Parameters["instance"]
+
+		if instance == "" {
+			sLog.ErrorCtx(ctx, "V (Solution): onQueue failed - 400 instance parameter is not found")
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				Body:        []byte("{\"result\":\"400 - instance parameter is not found\"}"),
+				ContentType: "application/json",
+			})
+		}
+
+		err := c.SolutionManager.DeleteSummary(ctx, instance, namespace)
+		if err != nil {
+			sLog.ErrorfCtx(ctx, "V (Solution): onQueue DeleteSummary failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
 			ContentType: "application/json",
 		})
 	}

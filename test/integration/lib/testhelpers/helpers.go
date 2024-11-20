@@ -5,10 +5,35 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/shell"
 )
+
+func SetupClusterWithTunnel() (context.CancelFunc, int, error) {
+	err := SetupCluster()
+	if err != nil {
+		return nil, -1, err
+	}
+
+	// Create tunnel
+	fmt.Println("Creating minikube tunnel....")
+	ctx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(ctx, "minikube", "tunnel")
+	err = cmd.Start()
+	if err != nil {
+		fmt.Printf("Failed to create minikube tunnel.")
+		return cancel, -1, err
+	}
+	fmt.Printf("Minikube tunnel started with PID: %d, starting another thread to wait\n", cmd.Process.Pid)
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			fmt.Printf("minikube tunnel stopped: %s\n", err)
+		}
+	}()
+	return cancel, cmd.Process.Pid, nil
+}
 
 func DumpClusterState(ctx context.Context) {
 	shell.Exec(ctx, "kubectl get all -A -o wide")
@@ -68,5 +93,34 @@ func SetupCluster() error {
 // Clean up
 func Cleanup(testName string) {
 	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", testName), "")
-	localenvCmd("destroy all", "")
+	localenvCmd("destroy all,nowait", "")
+}
+
+func CleanupWithTunnel(cancel context.CancelFunc, tunnelPid int, testName string) {
+	Cleanup(testName)
+	fmt.Println("Cancelling minikube tunnel....")
+	cancel()
+
+	fmt.Println("Waiting 5 seconds for tunnel to stop....")
+	time.Sleep(time.Second * 5)
+	if tunnelPid != -1 {
+		// check if the tunnel is still running
+		if isProcessRunning(tunnelPid) {
+			// kill the tunnel
+			fmt.Println("Tunnel is still running, killing it....")
+			ShellExec(fmt.Sprintf("kill -9 %d", tunnelPid))
+		}
+	}
+}
+
+// Check if a process is running by its PID
+func isProcessRunning(pid int) bool {
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+
+	// Send signal 0 to the process
+	err = process.Signal(syscall.Signal(0))
+	return err == nil
 }

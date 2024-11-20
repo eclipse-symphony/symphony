@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: 'arc-diagnostics-extension-tls-certificate'
+spec:
+  commonName: 'symphony-otel-collector-service.default.svc.cluster.local'
+  dnsNames:
+    - 'symphony-otel-collector-service.default.svc.cluster.local'
+  isCA: false
+  usages:
+    - server auth
+  duration: 48h
+  renewBefore: 24h
+  secretName: 'arc-diagnostics-extension-tls-certificate'
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: 'arc-diagnostics-extension-root-ca-cluster-issuer'
+    kind: ClusterIssuer
+    group: cert-manager.io

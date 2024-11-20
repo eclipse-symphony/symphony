@@ -37,11 +37,13 @@ var (
 	// catalogs to deploy
 	testCatalogs = []string{
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container-2.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalog-container.yaml",
 
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-2.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalog.yaml",
@@ -60,10 +62,6 @@ var (
 	testVerify = []string{
 		"./verify/...",
 	}
-
-	CampaignNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignnotexist.yaml"
-
-	WithStageActivation = "test/integration/scenarios/04.workflow/manifest/activation-stage.yaml"
 )
 
 // Entry point for running the tests
@@ -89,10 +87,6 @@ func Test(labeling bool) error {
 			return err
 		}
 		err = Verify()
-		if err != nil {
-			return err
-		}
-		err = FaultTest(namespace)
 		if err != nil {
 			return err
 		}
@@ -177,30 +171,11 @@ func Verify() error {
 	return nil
 }
 
-func FaultTest(namespace string) error {
-	repoPath := os.Getenv("REPO_PATH")
-	if repoPath == "" {
-		repoPath = "../../../../"
-	}
-	var err error
-	CampaignNotExistActivationAbs := filepath.Join(repoPath, CampaignNotExistActivation)
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", CampaignNotExistActivationAbs, namespace)).Run()
-	if err == nil {
-		return fmt.Errorf("fault test failed for non-existing campaign")
-	}
-	WithStageActivationAbs := filepath.Join(repoPath, WithStageActivation)
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", WithStageActivationAbs, namespace)).Run()
-	if err == nil {
-		return fmt.Errorf("fault test failed for non-existing campaign")
-	}
-	return nil
-}
-
 // Clean up
 func Cleanup() {
 	err := modifyYAML("", "")
 	if err != nil {
-		fmt.Printf("Failed to set up the symphony-ghcr-values.yaml. Please make sure the labelKey and labelValue is set to null.\n")
+		fmt.Printf("Failed to set up the %s. Please make sure the labelKey and labelValue is set to null.\n", getGhcrValueFileName())
 	}
 	testhelpers.Cleanup(TEST_NAME)
 }
@@ -220,9 +195,28 @@ func writeYamlStringsToFile(yamlString string, filePath string) error {
 	return nil
 }
 
+func enableTlsOtelSetup() bool {
+	return os.Getenv("ENABLE_TLS_OTEL_SETUP") == "true"
+}
+
+func enableNonTlsOtelSetup() bool {
+	return os.Getenv("ENABLE_NON_TLS_OTEL_SETUP") == "true"
+}
+
+func getGhcrValueFileName() string {
+	if enableTlsOtelSetup() {
+		return "symphony-ghcr-values.otel.yaml"
+	} else if enableNonTlsOtelSetup() {
+		return "symphony-ghcr-values.otel.non-tls.yaml"
+	} else {
+		return "symphony-ghcr-values.yaml"
+	}
+}
+
 func modifyYAML(v string, annotationKey string) error {
 	// Read the YAML file
-	data, err := os.ReadFile("../../../localenv/symphony-ghcr-values.yaml")
+	ghcrValueFilePath := fmt.Sprintf("../../../localenv/%s", getGhcrValueFileName())
+	data, err := os.ReadFile(ghcrValueFilePath)
 	if err != nil {
 		return err
 	}
@@ -250,7 +244,7 @@ func modifyYAML(v string, annotationKey string) error {
 	}
 
 	// Write the modified YAML data back to the file
-	err = os.WriteFile("../../../localenv/symphony-ghcr-values.yaml", data, 0644)
+	err = os.WriteFile(ghcrValueFilePath, data, 0644)
 	if err != nil {
 		return err
 	}

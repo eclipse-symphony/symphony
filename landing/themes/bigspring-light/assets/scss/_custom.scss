@@ -1,0 +1,19 @@
+// This file is empty within the template
+// You can use it to override CSS from within your project
+
+.shadow,.feature-card:hover,.btn:hover,.btn:active,.btn:focus {
+    box-shadow:0 12px 24px 12px rgba(45,67,121,.1)!important;
+}
+
+.banner p {
+    font-size: 22px;
+    font-weight: 500;
+}
+
+.banner h1 {
+    font-size: 56px;
+}
+
+.btn {
+    border-radius: .7rem;
+}

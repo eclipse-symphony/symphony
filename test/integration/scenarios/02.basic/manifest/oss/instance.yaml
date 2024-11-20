@@ -12,6 +12,7 @@ spec:
   displayName: INSTANCENAME
   scope: SCOPENAME
   solution: SOLUTIONREFNAME
+  isDryRun: DRYRUN
   target:
     name: TARGETREFNAME
   reconciliationPolicy:

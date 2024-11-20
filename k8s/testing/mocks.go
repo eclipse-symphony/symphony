@@ -187,6 +187,21 @@ func CreateFakeKubeClientForWorkflowGroup(objects ...client.Object) client.Clien
 		Build()
 }
 
+func MockSucessSummaryResultWithJobID(obj reconcilers.Reconcilable, hash string, jobID string) *model.SummaryResult {
+	return &model.SummaryResult{
+		Summary: model.SummarySpec{
+			TargetCount:         1,
+			SuccessCount:        1,
+			AllAssignedDeployed: true,
+			JobID:               jobID,
+		},
+		Time:           time.Now(),
+		State:          model.SummaryStateDone,
+		Generation:     strconv.Itoa(int(obj.GetGeneration())),
+		DeploymentHash: hash,
+	}
+}
+
 func MockSucessSummaryResult(obj reconcilers.Reconcilable, hash string) *model.SummaryResult {
 	return &model.SummaryResult{
 		Summary: model.SummarySpec{
@@ -279,6 +294,11 @@ func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace str
 		return nil, args.Error(1)
 	}
 	return summary.(*model.SummaryResult), args.Error(1)
+}
+
+// DeleteSummary implements ApiClient.
+func (c *MockApiClient) DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error {
+	return nil
 }
 
 // QueueDeploymentJob implements utils.ApiClient.

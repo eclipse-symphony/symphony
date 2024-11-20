@@ -7,9 +7,11 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
@@ -34,7 +36,18 @@ type SchemaResult struct {
 	Errors map[string]RuleResult `json:"errors,omitempty"`
 }
 
-func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationContext *coa_utils.EvaluationContext) (SchemaResult, error) {
+func (s *SchemaResult) ToErrorMessages() string {
+	if s.Valid {
+		return ""
+	}
+	errorMessages := make([]string, 0)
+	for k, v := range s.Errors {
+		errorMessages = append(errorMessages, fmt.Sprintf("%s: %s\n", k, v.Error))
+	}
+	return strings.Join(errorMessages, ";")
+}
+
+func (s *Schema) CheckProperties(ctx context.Context, properties map[string]interface{}, evaluationContext *coa_utils.EvaluationContext) (SchemaResult, error) {
 	context := evaluationContext
 	if context == nil {
 		context = &coa_utils.EvaluationContext{}
@@ -42,7 +55,7 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 	ret := SchemaResult{Valid: true, Errors: make(map[string]RuleResult)}
 	for k, v := range s.Rules {
 		if v.Type != "" {
-			if val, ok := properties[k]; ok {
+			if val, ok := JsonParseProperty(properties, k); ok {
 				if v.Type == "int" {
 					if _, err := strconv.Atoi(FormatAsString(val)); err != nil {
 						ret.Valid = false
@@ -72,13 +85,13 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 			}
 		}
 		if v.Required {
-			if _, ok := properties[k]; !ok {
+			if _, ok := JsonParseProperty(properties, k); !ok {
 				ret.Valid = false
 				ret.Errors[k] = RuleResult{Valid: false, Error: "missing required property"}
 			}
 		}
 		if v.Pattern != "" {
-			if val, ok := properties[k]; ok {
+			if val, ok := JsonParseProperty(properties, k); ok {
 				match, err := s.matchPattern(FormatAsString(val), v.Pattern)
 				if err != nil {
 					ret.Valid = false
@@ -91,8 +104,9 @@ func (s *Schema) CheckProperties(properties map[string]interface{}, evaluationCo
 			}
 		}
 		if v.Expression != "" {
-			if val, ok := properties[k]; ok {
+			if val, ok := JsonParseProperty(properties, k); ok {
 				context.Value = val
+				context.Context = ctx
 				parser := NewParser(v.Expression)
 				res, err := parser.Eval(*context)
 				if err != nil {
