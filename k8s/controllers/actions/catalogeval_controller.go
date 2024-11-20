@@ -10,8 +10,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	federationv1 "gopls-workspace/apis/federation/v1"
+	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
 	"gopls-workspace/utils/diagnostic"
 
@@ -39,6 +42,15 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	diagnostic.InfoWithCtx(log, ctx, "Entering the CatalogEvalExpression reconciler")
 
 	evalCR := &federationv1.CatalogEvalExpression{}
+
+	resourceK8SId := evalCR.GetNamespace() + "/" + evalCR.GetName()
+	operationName := constants.CatalogEvalOperationNamePrefix
+	if evalCR.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(evalCR.GetNamespace(), resourceK8SId, evalCR.GetAnnotations(), operationName, r, ctx, log)
 
 	err := r.Get(ctx, req.NamespacedName, evalCR)
 	if err != nil {
