@@ -131,6 +131,7 @@ const (
 	TargetListGetFailed           State = 11002
 	ObjectInstanceCoversionFailed State = 11003
 	TimedOut                      State = 11004
+	TargetGetFailed               State = 11005
 
 	//target controller errors
 	TargetPropertyNotFound State = 12000

@@ -251,10 +251,52 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				return nil, false, err
 			}
 		} else {
-			var componentSpec model.ComponentSpec
-			jData, _ := json.Marshal(patchContent)
-			if err = json.Unmarshal(jData, &componentSpec); err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error unmarshalling componentSpec")
+			switch objectType {
+			case "solution":
+				var componentSpec model.ComponentSpec
+				jData, _ := json.Marshal(patchContent)
+				if err = json.Unmarshal(jData, &componentSpec); err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Patch Stage): error unmarshalling componentSpec")
+					providerOperationMetrics.ProviderOperationErrors(
+						patch,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.BadConfig.String(),
+					)
+					return nil, false, err
+				}
+				catalog = model.CatalogState{
+					Spec: &model.CatalogSpec{
+						Properties: map[string]interface{}{
+							"spec": componentSpec,
+						},
+					},
+				}
+			case "target":
+				var targetSpec model.TargetSpec
+				jData, _ := json.Marshal(patchContent)
+				if err = json.Unmarshal(jData, &targetSpec); err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Patch Stage): error unmarshalling targetSpec")
+					providerOperationMetrics.ProviderOperationErrors(
+						patch,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.BadConfig.String(),
+					)
+					return nil, false, err
+				}
+				catalog = model.CatalogState{
+					Spec: &model.CatalogSpec{
+						Properties: map[string]interface{}{
+							"spec": targetSpec,
+						},
+					},
+				}
+			default:
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): unsupported objectType: %s", objectType)
+				err = v1alpha2.NewCOAError(nil, "objectType is not valid", v1alpha2.BadConfig)
 				providerOperationMetrics.ProviderOperationErrors(
 					patch,
 					functionName,
@@ -263,13 +305,6 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 					v1alpha2.BadConfig.String(),
 				)
 				return nil, false, err
-			}
-			catalog = model.CatalogState{
-				Spec: &model.CatalogSpec{
-					Properties: map[string]interface{}{
-						"spec": componentSpec,
-					},
-				},
 			}
 		}
 	default:
@@ -462,7 +497,48 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				return nil, false, err
 			}
 		}
-
+	case "target":
+		var target model.TargetState
+		target, err = i.ApiClient.GetTarget(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
+		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting target %s", objectName)
+			providerOperationMetrics.ProviderOperationErrors(
+				patch,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.TargetGetFailed.String(),
+			)
+			return nil, false, err
+		}
+		targetSpec, ok := catalog.Spec.Properties["spec"].(model.TargetSpec)
+		if !ok {
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): catalog spec is not valid")
+			err = v1alpha2.NewCOAError(nil, "catalog spec is not valid", v1alpha2.BadConfig)
+			return nil, false, err
+		}
+		for k, _ := range target.Spec.Properties {
+			if _, ok := targetSpec.Properties[k]; ok {
+				target.Spec.Properties[k] = targetSpec.Properties[k]
+				updated = true
+			}
+		}
+		if updated {
+			jData, _ := json.Marshal(target)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Patch Stage): updating target name: %s namespace: %s", objectName, objectNamespace)
+			err = i.ApiClient.CreateTarget(ctx, objectName, jData, objectNamespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error updating target %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.UpdateFailed.String(),
+				)
+				return nil, false, err
+			}
+		}
 	}
 	sLog.InfoCtx(ctx, "  P (Patch Stage): end process request")
 

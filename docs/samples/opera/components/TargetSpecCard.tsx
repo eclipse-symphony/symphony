@@ -1,11 +1,12 @@
 import { TargetSpec } from '../app/types';
-import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip} from "@nextui-org/react";
+import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Progress} from "@nextui-org/react";
 import {FaDocker} from 'react-icons/fa';
 import {SiEclipseide, SiHelm} from 'react-icons/si';
 import {SiKubernetes} from 'react-icons/si';    
 import {SiWindows} from 'react-icons/si';
 import { SiGnubash } from "react-icons/si";
 import { CgListTree } from "react-icons/cg";
+
 interface TargetSpecCardProps {
     target: TargetSpec;
 }
@@ -149,6 +150,21 @@ function TargetSpecCard(props: TargetSpecCardProps) {
                         </TableBody>
                     </Table>
                 </>)}
+            {target.properties?.["fuel"] && (
+               <div className="fuel-container">
+                <div className="fuel-label"><b>Fuel: </b>{target.properties["fuel"]}</div>
+                <Progress
+                    value={parseInt(target.properties["fuel"], 10)}
+                    color={
+                        parseInt(target.properties["fuel"], 10) <= 50 
+                            ? "danger" // Red bar
+                            : parseInt(target.properties["fuel"], 10) <= 60 
+                            ? "warning" // Yellow bar
+                            : "success" // Green bar
+                    }
+                />
+              </div>
+            )}
         </>
     );
 }
