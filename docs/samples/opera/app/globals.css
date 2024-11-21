@@ -211,3 +211,15 @@ body {
   color: red;
   font-size: small;
 }
+.candidate_list {
+  list-style: none;
+  padding: 0.5rem;
+  background-color:#5c5c5c;  
+  height: 96%;  
+  color: white;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+.candidate_title{
+  font-weight: bold;
+}

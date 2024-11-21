@@ -93,7 +93,7 @@ function SideBar() {
         },
         {
             name: "Copilot",
-            href: "/coming-soon",
+            href: "/copilot",
             icon: GoCopilot,
         }
     ];

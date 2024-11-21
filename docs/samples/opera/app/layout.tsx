@@ -11,6 +11,7 @@ import Header from '@/components/Header';
 import SideBar from '@/components/SideBar';
 import AuthProvider from './context/AuthProvider';
 import React from 'react';
+import { GlobalStateProvider } from '@/components/GlobalStateProvider';
 
 export default function RootLayout({
   children,
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en">      
       <body>
         <AuthProvider>
+          <GlobalStateProvider>
             <Header/>        
             <div className='layout'>
               <SideBar />
@@ -28,7 +30,8 @@ export default function RootLayout({
                 {children}
               </div>
             </div>        
-          </AuthProvider>
+          </GlobalStateProvider>
+        </AuthProvider>
       </body>
     </html>
   )
