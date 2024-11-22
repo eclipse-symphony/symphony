@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/stretchr/testify/assert"
@@ -1046,8 +1047,6 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 }
 
 func TestTargetUpdateSummaryJobId(t *testing.T) {
-	// TODO: remove this line:
-	os.Setenv("TEST_K8S_STATE", "yes")
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
@@ -1142,7 +1141,7 @@ func TestTargetUpdateSummaryJobId(t *testing.T) {
 	assert.True(t, ok)
 	metadata, ok := object["metadata"].(model.ObjectMeta)
 	assert.True(t, ok)
-	assert.Equal(t, "2", metadata.Annotations["SummaryJobIdKey"])
+	assert.Equal(t, "2", metadata.Annotations[constants.SummaryJobIdKey])
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: targetId,
