@@ -187,9 +187,9 @@ func Test_CatalogsEvals(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Australia", fromCountry)
 
-	fromCountry, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "state")
+	fromState, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "state")
 	require.NoError(t, err)
-	require.Equal(t, "Virginia", fromCountry)
+	require.Equal(t, "Virginia", fromState)
 }
 
 func retryWithTimeout(fn func() (any, error), timeout time.Duration) (any, error) {
