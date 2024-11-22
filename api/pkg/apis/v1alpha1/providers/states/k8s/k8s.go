@@ -235,6 +235,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		}
 		//Note: state is ignored for new object
 	} else {
+		// if there is no error, we are updating an existing object.
 		j, _ := json.Marshal(entry.Value.Body)
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
@@ -250,6 +251,8 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to unmarshal object metadata: %v", err)
 				return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object metadata", v1alpha2.BadRequest)
 			}
+
+			utils.PreserveSystemMetadataAnnotations(item.GetAnnotations(), &metadata)
 			item.SetName(metadata.Name)
 			item.SetNamespace(metadata.Namespace)
 			item.SetLabels(metadata.Labels)

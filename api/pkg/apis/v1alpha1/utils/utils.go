@@ -539,3 +539,16 @@ func FilterIncompleteDelete(ctx context.Context, apiclient *ApiClient, namespace
 	}
 	return remainingObjects
 }
+
+func PreserveSystemMetadataAnnotations(annotations map[string]string, metadata *model.ObjectMeta) {
+	if metadata.Annotations == nil {
+		metadata.Annotations = make(map[string]string)
+	}
+
+	// system annotations should only be updated ineternally
+	for _, key := range constants.SystemReservedAnnotations() {
+		if value, ok := annotations[key]; ok {
+			metadata.Annotations[key] = value
+		}
+	}
+}
