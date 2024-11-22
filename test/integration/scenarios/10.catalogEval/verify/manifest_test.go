@@ -44,7 +44,7 @@ func TestBasic_Catalogs(t *testing.T) {
 			catalogs = append(catalogs, item.GetName())
 		}
 		fmt.Printf("Catalogs: %v\n", catalogs)
-		if len(resources.Items) == 3 {
+		if len(resources.Items) == 4 {
 			break
 		}
 
@@ -146,6 +146,50 @@ func Test_CatalogsEvals(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Sydney", city)
 
+	// check evaluateevalcatalog04
+	retryWithTimeout(func() (any, error) {
+		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+			Group:    "federation.symphony",
+			Version:  "v1",
+			Resource: "catalogevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog04", metav1.GetOptions{})
+		require.NoError(t, err)
+		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		require.NoError(t, err)
+		require.Contains(t, []string{"Succeeded", "Failed"}, status)
+		return evaluateevalcatalog, nil
+	}, time.Minute*1)
+	status, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
+	require.NoError(t, err)
+	require.Equal(t, "Failed", status)
+
+	address, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "address")
+	require.NoError(t, err)
+	require.Equal(t, "1st Avenue", address)
+
+	city, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "city")
+	require.NoError(t, err)
+	require.Equal(t, "Sydney", city)
+
+	zipcode, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "zipcode")
+	require.NoError(t, err)
+	require.Contains(t, zipcode, "Not Found")
+
+	county, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "county")
+	require.NoError(t, err)
+	require.Contains(t, county, "Not Found")
+
+	country, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "country")
+	require.NoError(t, err)
+	require.Equal(t, "Australia", country)
+
+	fromCountry, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "country")
+	require.NoError(t, err)
+	require.Equal(t, "Australia", fromCountry)
+
+	fromState, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "state")
+	require.NoError(t, err)
+	require.Equal(t, "Virginia", fromState)
 }
 
 func retryWithTimeout(fn func() (any, error), timeout time.Duration) (any, error) {

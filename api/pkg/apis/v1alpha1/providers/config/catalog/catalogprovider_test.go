@@ -169,6 +169,9 @@ func TestReadObject(t *testing.T) {
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"parentAttribute": "This is father",
+						"components": map[string]interface{}{
+							"Name": "notaname",
+						},
 					},
 				},
 			}
