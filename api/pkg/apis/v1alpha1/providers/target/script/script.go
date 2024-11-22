@@ -394,6 +394,16 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 			ret[k] = v
 		}
 	}
+
+	var stepError error
+	for k, v := range ret {
+		ret[k] = v
+		if (v.Status == v1alpha2.DeleteFailed) || (v.Status == v1alpha2.ValidateFailed) || (v.Status == v1alpha2.UpdateFailed) {
+			stepError = errors.New(v.Message)
+			err = v1alpha2.NewCOAError(stepError, "failed to execute script", v.Status)
+			return ret, stepError
+		}
+	}
 	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
