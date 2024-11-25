@@ -129,12 +129,10 @@ You can always catch up offline by watching the recordings below.
 
 | Asset | Link        |
 |:-----------|:------------|
-| 🔗 Meeting Link | https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWE0MTE5YTItN2RlMy00ODFkLWFlNGQtOTUyM2YzNWMwNzg2%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%2203d4b2ae-f8d5-463c-8a45-2a8fb04390b7%22%7d
-| 🎥 Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
+| Meeting Link | [Teams Link](https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWE0MTE5YTItN2RlMy00ODFkLWFlNGQtOTUyM2YzNWMwNzg2%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%2203d4b2ae-f8d5-463c-8a45-2a8fb04390b7%22%7d)
+| Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
 
 ### Upcoming calls
-
-Use the upcoming calendar events below to add the community call events to your calendar.
 
 | Date & time |
 |-------------|
