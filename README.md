@@ -122,7 +122,7 @@ Want to stay up to date with Symphony releases, community calls, and other annou
 
 ### Community meetings
 
-Every month we host a community call to showcase new features, review upcoming milestones, and engage in a Q&A. For community calls, anyone from the Symphony community can participate, present a topic, or host. All are welcome!
+Every month we host a community call to showcase new features, review upcoming milestones, and engage in a Q&A. For community calls, anyone from the Symphony community can participate or present a topic. All are welcome!
 
 
 You can always catch up offline by watching the recordings below.
