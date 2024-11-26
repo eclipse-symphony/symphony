@@ -20,10 +20,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type InstancesManager struct {
 	managers.Manager
@@ -85,6 +88,27 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "instances",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Instance",
+		},
+	}
+	item, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getInstanceState(item.Body, item.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to instance state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
 
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {

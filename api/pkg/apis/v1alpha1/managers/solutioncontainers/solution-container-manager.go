@@ -78,6 +78,26 @@ func (t *SolutionContainersManager) UpsertState(ctx context.Context, name string
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "solutioncontainers",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "SolutionContainer",
+		},
+	}
+	Solution, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve existing object annotations
+		ret, err := getSolutionContainerState(Solution.Body, Solution.ETag)
+		if err != nil {
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(ret.ObjectMeta.Annotations)
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
 		"kind":       "SolutionContainer",
@@ -150,6 +170,7 @@ func getSolutionContainerState(body interface{}, etag string) (model.SolutionCon
 	if SolutionContainerState.Spec == nil {
 		SolutionContainerState.Spec = &model.SolutionContainerSpec{}
 	}
+	SolutionContainerState.ObjectMeta.ETag = etag
 	return SolutionContainerState, nil
 }
 

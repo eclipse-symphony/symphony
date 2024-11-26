@@ -20,10 +20,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type SolutionsManager struct {
 	managers.Manager
@@ -92,6 +95,26 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "solutions",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Solution",
+		},
+	}
+	item, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		itemState, err := getSolutionState(item.Body, item.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to solution state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
+
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -154,7 +177,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.SolutionState, 0)
 	for _, t := range solutions {
 		var rt model.SolutionState
-		rt, err = getSolutionState(t.Body)
+		rt, err = getSolutionState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +186,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getSolutionState(body interface{}) (model.SolutionState, error) {
+func getSolutionState(body interface{}, etag string) (model.SolutionState, error) {
 	var solutionState model.SolutionState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &solutionState)
@@ -173,6 +196,7 @@ func getSolutionState(body interface{}) (model.SolutionState, error) {
 	if solutionState.Spec == nil {
 		solutionState.Spec = &model.SolutionSpec{}
 	}
+	solutionState.ObjectMeta.ETag = etag
 	return solutionState, nil
 }
 
@@ -200,7 +224,7 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 		return model.SolutionState{}, err
 	}
 	var ret model.SolutionState
-	ret, err = getSolutionState(target.Body)
+	ret, err = getSolutionState(target.Body, target.ETag)
 	if err != nil {
 		return model.SolutionState{}, err
 	}

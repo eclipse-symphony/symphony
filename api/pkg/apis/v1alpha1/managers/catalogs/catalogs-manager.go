@@ -122,6 +122,26 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FederationGroup,
+			"resource":  "catalogs",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Catalog",
+		},
+	}
+	entry, err := m.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getCatalogState(entry.Body, entry.ETag)
+		if err != nil {
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
+
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)

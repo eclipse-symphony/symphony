@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/stretchr/testify/assert"
@@ -1035,116 +1034,6 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "s234",
-		Metadata: map[string]interface{}{
-			"namespace": "default",
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-			"kind":      "Target",
-		},
-	})
-	assert.Nil(t, err)
-}
-
-func TestTargetUpdateSummaryJobId(t *testing.T) {
-	testK8s := os.Getenv("TEST_K8S_STATE")
-	if testK8s == "" {
-		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
-	}
-	err := checkTargetCRDApplied()
-	assert.Nil(t, err)
-	provider := K8sStateProvider{}
-	err = provider.Init(K8sStateProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-	})
-	assert.Nil(t, err)
-
-	targetId := "target-test-jobid"
-	id, err := provider.Upsert(context.Background(), states.UpsertRequest{
-		Value: states.StateEntry{
-			ID: targetId,
-			Body: map[string]interface{}{
-				"apiVersion": model.FabricGroup + "/v1",
-				"kind":       "Target",
-				"metadata": map[string]interface{}{
-					"name": targetId,
-				},
-				"spec": model.TargetSpec{
-					Properties: map[string]string{
-						"foo": "bar",
-					},
-				},
-			},
-		},
-		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"namespace": "default",
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-			"kind":      "Target",
-		},
-	})
-	assert.Nil(t, err)
-	assert.Equal(t, targetId, id)
-
-	// Wait for the deployment process to update job id
-	time.Sleep(5 * time.Second)
-
-	// Update the same target
-	id, err = provider.Upsert(context.Background(), states.UpsertRequest{
-		Value: states.StateEntry{
-			ID: targetId,
-			Body: map[string]interface{}{
-				"apiVersion": model.FabricGroup + "/v1",
-				"kind":       "Target",
-				"metadata": map[string]interface{}{
-					"name": targetId,
-				},
-				"spec": model.TargetSpec{
-					Properties: map[string]string{
-						"foo": "bar-update",
-					},
-				},
-			},
-		},
-		Metadata: map[string]interface{}{
-			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
-			"namespace": "default",
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-			"kind":      "Target",
-		},
-	})
-	assert.Nil(t, err)
-	assert.Equal(t, targetId, id)
-
-	// Wait for the deployment process to update job id
-	time.Sleep(5 * time.Second)
-
-	// Check summary job id, should increment
-	item, err := provider.Get(context.Background(), states.GetRequest{
-		ID: targetId,
-		Metadata: map[string]interface{}{
-			"namespace": "default",
-			"group":     model.FabricGroup,
-			"version":   "v1",
-			"resource":  "targets",
-			"kind":      "Target",
-		},
-	})
-	assert.Nil(t, err)
-	assert.Equal(t, targetId, item.ID)
-	object, ok := item.Body.(map[string]interface{})
-	assert.True(t, ok)
-	metadata, ok := object["metadata"].(model.ObjectMeta)
-	assert.True(t, ok)
-	assert.Equal(t, "2", metadata.Annotations[constants.SummaryJobIdKey])
-
-	err = provider.Delete(context.Background(), states.DeleteRequest{
-		ID: targetId,
 		Metadata: map[string]interface{}{
 			"namespace": "default",
 			"group":     model.FabricGroup,

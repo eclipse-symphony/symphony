@@ -78,6 +78,26 @@ func (t *CampaignContainersManager) UpsertState(ctx context.Context, name string
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigncontainers",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "CampaignContainer",
+		},
+	}
+	Campaign, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getCampaignContainerState(Campaign.Body, Campaign.ETag)
+		if err != nil {
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.WorkflowGroup + "/v1",
 		"kind":       "CampaignContainer",
@@ -150,6 +170,7 @@ func getCampaignContainerState(body interface{}, etag string) (model.CampaignCon
 	if CampaignContainerState.Spec == nil {
 		CampaignContainerState.Spec = &model.CampaignContainerSpec{}
 	}
+	CampaignContainerState.ObjectMeta.ETag = etag
 	return CampaignContainerState, nil
 }
 

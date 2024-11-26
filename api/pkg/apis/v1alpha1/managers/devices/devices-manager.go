@@ -85,6 +85,27 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "devices",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Device",
+		},
+	}
+	entry, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		ret, err := getDeviceState(entry.Body, entry.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, " M (Devices): GetSpec failed to get device state, error: %v", err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(ret.ObjectMeta.Annotations)
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -138,7 +159,7 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.DeviceState, 0)
 	for _, t := range devices {
 		var rt model.DeviceState
-		rt, err = getDeviceState(t.Body)
+		rt, err = getDeviceState(t.Body, t.ETag)
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Devices): ListState failed to get device state %s, error: %v", t.ID, err)
 			return nil, err
@@ -148,7 +169,7 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 	return ret, nil
 }
 
-func getDeviceState(body interface{}) (model.DeviceState, error) {
+func getDeviceState(body interface{}, etag string) (model.DeviceState, error) {
 	var deviceState model.DeviceState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &deviceState)
@@ -158,6 +179,7 @@ func getDeviceState(body interface{}) (model.DeviceState, error) {
 	if deviceState.Spec == nil {
 		deviceState.Spec = &model.DeviceSpec{}
 	}
+	deviceState.ObjectMeta.ETag = etag
 	return deviceState, nil
 }
 
@@ -187,7 +209,7 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 		return model.DeviceState{}, err
 	}
 	var ret model.DeviceState
-	ret, err = getDeviceState(entry.Body)
+	ret, err = getDeviceState(entry.Body, entry.ETag)
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Devices): GetSpec failed to get device state, error: %v", err)
 		return model.DeviceState{}, err

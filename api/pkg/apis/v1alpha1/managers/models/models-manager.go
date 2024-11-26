@@ -81,6 +81,27 @@ func (t *ModelsManager) UpsertState(ctx context.Context, name string, state mode
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.AIGroup,
+			"resource":  "models",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Model",
+		},
+	}
+	m, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		ret, err := getModelState(m.Body, m.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, " M (Models): failed to convert to model state, name: %s, err: %v", name, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(ret.ObjectMeta.Annotations)
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -134,7 +155,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	ret := make([]model.ModelState, 0)
 	for _, t := range models {
 		var rt model.ModelState
-		rt, err = getModelState(t.Body)
+		rt, err = getModelState(t.Body, t.ETag)
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Models): failed to getModelState, err: %v", err)
 			return nil, err
@@ -144,7 +165,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 	return ret, nil
 }
 
-func getModelState(body interface{}) (model.ModelState, error) {
+func getModelState(body interface{}, etag string) (model.ModelState, error) {
 	var modelState model.ModelState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &modelState)
@@ -154,6 +175,7 @@ func getModelState(body interface{}) (model.ModelState, error) {
 	if modelState.Spec == nil {
 		modelState.Spec = &model.ModelSpec{}
 	}
+	modelState.ObjectMeta.ETag = etag
 	return modelState, nil
 }
 
@@ -184,7 +206,7 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 	}
 
 	var ret model.ModelState
-	ret, err = getModelState(m.Body)
+	ret, err = getModelState(m.Body, m.ETag)
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Models): failed to getModelState, name: %s, err: %v", name, err)
 		return model.ModelState{}, err

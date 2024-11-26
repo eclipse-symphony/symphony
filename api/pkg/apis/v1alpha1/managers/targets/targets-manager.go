@@ -22,9 +22,12 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type TargetsManager struct {
 	managers.Manager
@@ -93,6 +96,26 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": state.ObjectMeta.Namespace,
+		},
+	}
+	item, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getTargetState(item, item.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to target state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
 
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {

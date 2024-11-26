@@ -85,6 +85,7 @@ func TestUpsertAndGet(t *testing.T) {
 		ObjectMeta: model.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
+			ETag:      "1",
 		},
 		Spec: &model.DeviceSpec{
 			DisplayName: "device",

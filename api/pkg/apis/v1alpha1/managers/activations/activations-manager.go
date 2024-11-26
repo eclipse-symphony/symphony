@@ -134,6 +134,28 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Activation",
+		},
+	}
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getActivationState(entry.Body, entry.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
+
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)

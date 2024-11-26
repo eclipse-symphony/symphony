@@ -78,6 +78,26 @@ func (t *CatalogContainersManager) UpsertState(ctx context.Context, name string,
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FederationGroup,
+			"resource":  "catalogcontainers",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "CatalogContainer",
+		},
+	}
+	item, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getCatalogContainerState(item.Body, item.ETag)
+		if err != nil {
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.FederationGroup + "/v1",
 		"kind":       "CatalogContainer",
@@ -150,6 +170,7 @@ func getCatalogContainerState(body interface{}, etag string) (model.CatalogConta
 	if CatalogContainerState.Spec == nil {
 		CatalogContainerState.Spec = &model.CatalogContainerSpec{}
 	}
+	CatalogContainerState.ObjectMeta.ETag = etag
 	return CatalogContainerState, nil
 }
 

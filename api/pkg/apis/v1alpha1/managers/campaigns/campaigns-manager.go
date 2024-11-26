@@ -80,7 +80,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 		return model.CampaignState{}, err
 	}
 	var ret model.CampaignState
-	ret, err = getCampaignState(entry.Body)
+	ret, err = getCampaignState(entry.Body, entry.ETag)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
@@ -88,7 +88,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 	return ret, nil
 }
 
-func getCampaignState(body interface{}) (model.CampaignState, error) {
+func getCampaignState(body interface{}, etag string) (model.CampaignState, error) {
 	var campaignState model.CampaignState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &campaignState)
@@ -98,6 +98,7 @@ func getCampaignState(body interface{}) (model.CampaignState, error) {
 	if campaignState.Spec == nil {
 		campaignState.Spec = &model.CampaignSpec{}
 	}
+	campaignState.ObjectMeta.ETag = etag
 	return campaignState, nil
 }
 
@@ -114,6 +115,27 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Campaign",
+		},
+	}
+	entry, err := m.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getCampaignState(entry.Body, entry.ETag)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+	}
 
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
@@ -203,7 +225,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.CampaignState, 0)
 	for _, t := range campaigns {
 		var rt model.CampaignState
-		rt, err = getCampaignState(t.Body)
+		rt, err = getCampaignState(t.Body, t.ETag)
 		if err != nil {
 			return nil, err
 		}

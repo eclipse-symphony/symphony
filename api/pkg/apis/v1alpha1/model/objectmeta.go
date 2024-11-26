@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
@@ -118,4 +119,17 @@ func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
 	}
 
 	c.Annotations[key] = value
+}
+
+func (c *ObjectMeta) PreserveSystemMetadataAnnotations(annotations map[string]string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+
+	// system annotations should only be updated ineternally
+	for _, key := range constants.SystemReservedAnnotations() {
+		if value, ok := annotations[key]; ok {
+			c.Annotations[key] = value
+		}
+	}
 }

@@ -252,7 +252,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object metadata", v1alpha2.BadRequest)
 			}
 
-			utils.PreserveSystemMetadataAnnotations(item.GetAnnotations(), &metadata)
 			item.SetName(metadata.Name)
 			item.SetNamespace(metadata.Namespace)
 			item.SetLabels(metadata.Labels)
@@ -262,6 +261,11 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStatusOnly {
 			item.Object["spec"] = v
 
+			resourceVersion := item.GetResourceVersion()
+			if entry.Value.ETag != "" {
+				resourceVersion = entry.Value.ETag
+			}
+			item.SetResourceVersion(resourceVersion)
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object: %v", err)
