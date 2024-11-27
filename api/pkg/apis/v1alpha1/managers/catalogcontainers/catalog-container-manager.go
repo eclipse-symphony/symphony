@@ -91,11 +91,11 @@ func (t *CatalogContainersManager) UpsertState(ctx context.Context, name string,
 	item, err := t.StateProvider.Get(ctx, getRequest)
 	if err == nil {
 		// preserve system annotations for existing object
-		itemState, err := getCatalogContainerState(item.Body, item.ETag)
+		itemState, err := getCatalogContainerState(item.Body)
 		if err != nil {
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
 	}
 
 	body := map[string]interface{}{
@@ -109,7 +109,7 @@ func (t *CatalogContainersManager) UpsertState(ctx context.Context, name string,
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: "",
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -151,7 +151,7 @@ func (t *CatalogContainersManager) ListState(ctx context.Context, namespace stri
 	ret := make([]model.CatalogContainerState, 0)
 	for _, t := range catalogcontainers {
 		var rt model.CatalogContainerState
-		rt, err = getCatalogContainerState(t.Body, t.ETag)
+		rt, err = getCatalogContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +160,7 @@ func (t *CatalogContainersManager) ListState(ctx context.Context, namespace stri
 	return ret, nil
 }
 
-func getCatalogContainerState(body interface{}, etag string) (model.CatalogContainerState, error) {
+func getCatalogContainerState(body interface{}) (model.CatalogContainerState, error) {
 	var CatalogContainerState model.CatalogContainerState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &CatalogContainerState)
@@ -170,7 +170,6 @@ func getCatalogContainerState(body interface{}, etag string) (model.CatalogConta
 	if CatalogContainerState.Spec == nil {
 		CatalogContainerState.Spec = &model.CatalogContainerSpec{}
 	}
-	CatalogContainerState.ObjectMeta.ETag = etag
 	return CatalogContainerState, nil
 }
 
@@ -198,7 +197,7 @@ func (t *CatalogContainersManager) GetState(ctx context.Context, id string, name
 		return model.CatalogContainerState{}, err
 	}
 	var ret model.CatalogContainerState
-	ret, err = getCatalogContainerState(Campaign.Body, Campaign.ETag)
+	ret, err = getCatalogContainerState(Campaign.Body)
 	if err != nil {
 		return model.CatalogContainerState{}, err
 	}

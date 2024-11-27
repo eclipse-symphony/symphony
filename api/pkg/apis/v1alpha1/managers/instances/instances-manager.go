@@ -102,12 +102,12 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	item, err := t.StateProvider.Get(ctx, getRequest)
 	if err == nil {
 		// preserve system annotations for existing object
-		itemState, err := getInstanceState(item.Body, item.ETag)
+		itemState, err := getInstanceState(item.Body)
 		if err != nil {
 			log.ErrorfCtx(ctx, "Failed to convert to instance state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
 	}
 
 	if t.needValidate {
@@ -177,7 +177,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		var rt model.InstanceState
-		rt, err = getInstanceState(t.Body, t.ETag)
+		rt, err = getInstanceState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +186,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getInstanceState(body interface{}, etag string) (model.InstanceState, error) {
+func getInstanceState(body interface{}) (model.InstanceState, error) {
 	var instanceState model.InstanceState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &instanceState)
@@ -196,7 +196,6 @@ func getInstanceState(body interface{}, etag string) (model.InstanceState, error
 	if instanceState.Spec == nil {
 		instanceState.Spec = &model.InstanceSpec{}
 	}
-	instanceState.ObjectMeta.ETag = etag
 	return instanceState, nil
 }
 
@@ -224,7 +223,7 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 		return model.InstanceState{}, err
 	}
 	var ret model.InstanceState
-	ret, err = getInstanceState(instance.Body, instance.ETag)
+	ret, err = getInstanceState(instance.Body)
 	if err != nil {
 		return model.InstanceState{}, err
 	}

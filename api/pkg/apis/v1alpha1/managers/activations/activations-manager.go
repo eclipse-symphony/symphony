@@ -93,7 +93,7 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 		return model.ActivationState{}, err
 	}
 	var ret model.ActivationState
-	ret, err = getActivationState(entry.Body, entry.ETag)
+	ret, err = getActivationState(entry.Body)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, namespace, err)
 		return model.ActivationState{}, err
@@ -101,7 +101,7 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 	return ret, nil
 }
 
-func getActivationState(body interface{}, etag string) (model.ActivationState, error) {
+func getActivationState(body interface{}) (model.ActivationState, error) {
 	var activationState model.ActivationState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &activationState)
@@ -111,7 +111,6 @@ func getActivationState(body interface{}, etag string) (model.ActivationState, e
 	if activationState.Spec == nil {
 		activationState.Spec = &model.ActivationSpec{}
 	}
-	activationState.ObjectMeta.ETag = etag
 	if activationState.Status == nil {
 		activationState.Status = &model.ActivationStatus{}
 	}
@@ -148,12 +147,12 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	entry, err = m.StateProvider.Get(ctx, getRequest)
 	if err == nil {
 		// preserve system annotations for existing object
-		itemState, err := getActivationState(entry.Body, entry.ETag)
+		itemState, err := getActivationState(entry.Body)
 		if err != nil {
 			log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
 	}
 
 	if m.needValidate {
@@ -243,7 +242,7 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	ret := make([]model.ActivationState, 0)
 	for _, t := range activations {
 		var rt model.ActivationState
-		rt, err = getActivationState(t.Body, t.ETag)
+		rt, err = getActivationState(t.Body)
 		if err != nil {
 			return nil, err
 		}

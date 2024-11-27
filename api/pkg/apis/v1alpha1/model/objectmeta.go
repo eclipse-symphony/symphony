@@ -121,15 +121,17 @@ func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
 	c.Annotations[key] = value
 }
 
-func (c *ObjectMeta) PreserveSystemMetadataAnnotations(annotations map[string]string) {
+func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 	if c.Annotations == nil {
 		c.Annotations = make(map[string]string)
 	}
 
 	// system annotations should only be updated ineternally
 	for _, key := range constants.SystemReservedAnnotations() {
-		if value, ok := annotations[key]; ok {
+		if value, ok := metadata.Annotations[key]; ok {
 			c.Annotations[key] = value
 		}
 	}
+	// set the resoure version
+	c.ETag = metadata.ETag
 }

@@ -107,12 +107,12 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	item, err := t.StateProvider.Get(ctx, getRequest)
 	if err == nil {
-		itemState, err := getSolutionState(item.Body, item.ETag)
+		itemState, err := getSolutionState(item.Body)
 		if err != nil {
 			log.ErrorfCtx(ctx, "Failed to convert to solution state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
 	}
 
 	if t.needValidate {
@@ -138,6 +138,7 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -177,7 +178,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.SolutionState, 0)
 	for _, t := range solutions {
 		var rt model.SolutionState
-		rt, err = getSolutionState(t.Body, t.ETag)
+		rt, err = getSolutionState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +187,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	return ret, nil
 }
 
-func getSolutionState(body interface{}, etag string) (model.SolutionState, error) {
+func getSolutionState(body interface{}) (model.SolutionState, error) {
 	var solutionState model.SolutionState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &solutionState)
@@ -196,7 +197,6 @@ func getSolutionState(body interface{}, etag string) (model.SolutionState, error
 	if solutionState.Spec == nil {
 		solutionState.Spec = &model.SolutionSpec{}
 	}
-	solutionState.ObjectMeta.ETag = etag
 	return solutionState, nil
 }
 
@@ -224,7 +224,7 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 		return model.SolutionState{}, err
 	}
 	var ret model.SolutionState
-	ret, err = getSolutionState(target.Body, target.ETag)
+	ret, err = getSolutionState(target.Body)
 	if err != nil {
 		return model.SolutionState{}, err
 	}

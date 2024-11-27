@@ -109,12 +109,12 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	item, err := t.StateProvider.Get(ctx, getRequest)
 	if err == nil {
 		// preserve system annotations for existing object
-		itemState, err := getTargetState(item, item.ETag)
+		itemState, err := getTargetState(item)
 		if err != nil {
 			log.ErrorfCtx(ctx, "Failed to convert to target state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
 	}
 
 	if t.needValidate {
@@ -242,7 +242,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		var rt model.TargetState
-		rt, err = getTargetState(t.Body, t.ETag)
+		rt, err = getTargetState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +251,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	return ret, nil
 }
 
-func getTargetState(body interface{}, etag string) (model.TargetState, error) {
+func getTargetState(body interface{}) (model.TargetState, error) {
 	var targetState model.TargetState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &targetState)
@@ -261,7 +261,6 @@ func getTargetState(body interface{}, etag string) (model.TargetState, error) {
 	if targetState.Spec == nil {
 		targetState.Spec = &model.TargetSpec{}
 	}
-	targetState.ObjectMeta.ETag = etag
 	return targetState, nil
 }
 
@@ -290,7 +289,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	}
 
 	var ret model.TargetState
-	ret, err = getTargetState(target.Body, target.ETag)
+	ret, err = getTargetState(target.Body)
 	if err != nil {
 		return model.TargetState{}, err
 	}

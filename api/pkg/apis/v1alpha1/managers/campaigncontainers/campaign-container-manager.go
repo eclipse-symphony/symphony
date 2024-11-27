@@ -91,11 +91,11 @@ func (t *CampaignContainersManager) UpsertState(ctx context.Context, name string
 	Campaign, err := t.StateProvider.Get(ctx, getRequest)
 	if err == nil {
 		// preserve system annotations for existing object
-		itemState, err := getCampaignContainerState(Campaign.Body, Campaign.ETag)
+		itemState, err := getCampaignContainerState(Campaign.Body)
 		if err != nil {
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(itemState.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
 	}
 
 	body := map[string]interface{}{
@@ -109,7 +109,7 @@ func (t *CampaignContainersManager) UpsertState(ctx context.Context, name string
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: "",
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -151,7 +151,7 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 	ret := make([]model.CampaignContainerState, 0)
 	for _, t := range campaigncontainers {
 		var rt model.CampaignContainerState
-		rt, err = getCampaignContainerState(t.Body, t.ETag)
+		rt, err = getCampaignContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +160,7 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 	return ret, nil
 }
 
-func getCampaignContainerState(body interface{}, etag string) (model.CampaignContainerState, error) {
+func getCampaignContainerState(body interface{}) (model.CampaignContainerState, error) {
 	var CampaignContainerState model.CampaignContainerState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &CampaignContainerState)
@@ -170,7 +170,6 @@ func getCampaignContainerState(body interface{}, etag string) (model.CampaignCon
 	if CampaignContainerState.Spec == nil {
 		CampaignContainerState.Spec = &model.CampaignContainerSpec{}
 	}
-	CampaignContainerState.ObjectMeta.ETag = etag
 	return CampaignContainerState, nil
 }
 
@@ -198,7 +197,7 @@ func (t *CampaignContainersManager) GetState(ctx context.Context, id string, nam
 		return model.CampaignContainerState{}, err
 	}
 	var ret model.CampaignContainerState
-	ret, err = getCampaignContainerState(Campaign.Body, Campaign.ETag)
+	ret, err = getCampaignContainerState(Campaign.Body)
 	if err != nil {
 		return model.CampaignContainerState{}, err
 	}

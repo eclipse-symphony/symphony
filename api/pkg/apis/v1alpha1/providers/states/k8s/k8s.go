@@ -419,6 +419,7 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 				Name:          v.GetName(),
 				Namespace:     v.GetNamespace(),
 				Labels:        v.GetLabels(),
+				ETag:          v.GetResourceVersion(),
 				Annotations:   v.GetAnnotations(),
 				ObjGeneration: v.GetGeneration(),
 			}
@@ -520,6 +521,7 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		Name:          item.GetName(),
 		Namespace:     item.GetNamespace(),
 		Labels:        item.GetLabels(),
+		ETag:          item.GetResourceVersion(),
 		Annotations:   item.GetAnnotations(),
 		ObjGeneration: item.GetGeneration(),
 	}

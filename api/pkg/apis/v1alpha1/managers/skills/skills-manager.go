@@ -92,12 +92,12 @@ func (t *SkillsManager) UpsertState(ctx context.Context, name string, state mode
 	m, err := t.StateProvider.Get(ctx, getRequest)
 	if err == nil {
 		// preserve system annotations for existing object
-		ret, err := getSkillState(m.Body, m.ETag)
+		ret, err := getSkillState(m.Body)
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Skills): failed to get skill state, name: %s, err: %v", name, err)
 			return err
 		}
-		state.ObjectMeta.PreserveSystemMetadataAnnotations(ret.ObjectMeta.Annotations)
+		state.ObjectMeta.PreserveSystemMetadata(ret.ObjectMeta)
 	}
 
 	upsertRequest := states.UpsertRequest{
@@ -109,6 +109,7 @@ func (t *SkillsManager) UpsertState(ctx context.Context, name string, state mode
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -153,7 +154,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	ret := make([]model.SkillState, 0)
 	for _, t := range models {
 		var rt model.SkillState
-		rt, err = getSkillState(t.Body, t.ETag)
+		rt, err = getSkillState(t.Body)
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Models): failed to get skill state, err: %v", err)
 			return nil, err
@@ -163,7 +164,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 	return ret, nil
 }
 
-func getSkillState(body interface{}, etag string) (model.SkillState, error) {
+func getSkillState(body interface{}) (model.SkillState, error) {
 	var skillState model.SkillState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &skillState)
@@ -173,7 +174,6 @@ func getSkillState(body interface{}, etag string) (model.SkillState, error) {
 	if skillState.Spec == nil {
 		skillState.Spec = &model.SkillSpec{}
 	}
-	skillState.ObjectMeta.ETag = etag
 	return skillState, nil
 }
 
@@ -203,7 +203,7 @@ func (t *SkillsManager) GetState(ctx context.Context, name string, namespace str
 		return model.SkillState{}, err
 	}
 	var ret model.SkillState
-	ret, err = getSkillState(m.Body, m.ETag)
+	ret, err = getSkillState(m.Body)
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Skills): failed to get skill state, name: %s, err: %v", name, err)
 		return model.SkillState{}, err
