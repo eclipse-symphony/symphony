@@ -56,16 +56,15 @@ func TestMaterializeWorkflow(t *testing.T) {
 	namespace := "nondefault"
 	err := utils.InjectPodFailure()
 	require.NoError(t, err)
-	DeployManifests(namespace)
+	DeployManifests(t, namespace)
 	CheckCatalogs(t, namespace)
-	CheckCampaign(t, namespace)
 	CheckActivationStatus(t, namespace)
 	CheckTargetStatus(t, namespace)
 	CheckInstanceStatus(t, namespace)
 	VerifyPodsExist(t, namespace)
 }
 
-func DeployManifests(namespace string) error {
+func DeployManifests(t *testing.T, namespace string) error {
 	repoPath := "../"
 	if namespace != "default" {
 		// Create non-default namespace if not exist
@@ -95,8 +94,8 @@ func DeployManifests(namespace string) error {
 		}
 	}
 
-	// wait for 5 seconds to make sure campaign is created
-	time.Sleep(time.Second * 5)
+	CheckCampaign(t, namespace)
+
 	for _, activation := range testActivations {
 		absActivation := filepath.Join(repoPath, activation)
 		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absActivation, namespace)).Run()
@@ -149,7 +148,7 @@ func CheckCatalogs(t *testing.T, namespace string) {
 	}
 }
 
-// Verify catalog created
+// Verify campaign created
 func CheckCampaign(t *testing.T, namespace string) {
 	fmt.Printf("Checking Campaign\n")
 	if namespace == "" {
