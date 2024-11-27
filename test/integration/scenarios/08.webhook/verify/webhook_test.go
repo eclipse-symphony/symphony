@@ -43,6 +43,7 @@ var (
 	testCircularParentUpdate    = "test/integration/scenarios/08.webhook/manifest/parent-update.yaml"
 	testCircularChildContainer  = "test/integration/scenarios/08.webhook/manifest/child-container.yaml"
 	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child-config.yaml"
+	testNoParentChild           = "test/integration/scenarios/08.webhook/manifest/child-noparent.yaml"
 
 	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
 	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
@@ -284,6 +285,22 @@ func TestUpdateCatalogWithCircularParentDependency(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCircularParentUpdate)).CombinedOutput()
 	assert.Contains(t, string(output), "parent catalog has circular dependency")
 	assert.NotNil(t, err, "catalog upsert with circular parent dependency should fail")
+}
+
+func TestUpdateCatalogRemoveParentLabel(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testNoParentChild))).Run()
+	assert.Nil(t, err)
+
+	// Should be able to delete parent catalog, because child catalog has updated without parent catalog
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony parent-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony parent").Run()
+	assert.Nil(t, err)
+
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony child-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony child").Run()
+	assert.Nil(t, err)
 }
 
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
