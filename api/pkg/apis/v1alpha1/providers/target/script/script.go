@@ -395,8 +395,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		}
 	}
 
-	for k, v := range ret {
-		ret[k] = v
+	for _, v := range ret {
 		switch v.Status {
 		case v1alpha2.DeleteFailed, v1alpha2.ValidateFailed, v1alpha2.UpdateFailed:
 			err := v1alpha2.NewCOAError(errors.New(v.Message), "failed to execute script", v.Status)
