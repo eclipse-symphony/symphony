@@ -52,7 +52,7 @@ func TestInitMissingRemove(t *testing.T) {
 		"applyScript":   "b",
 	})
 	require.NotNil(t, err)
-	assert.Equal(t, "Bad Config: invalid script provider config, exptected 'removeScript'", err.Error())
+	assert.Equal(t, err.Error(), "Bad Config: invalid script provider config, exptected 'removeScript'")
 }
 
 // TestInitWithMap tests that we can init with a map
@@ -142,7 +142,7 @@ func TestRemoveScript(t *testing.T) {
 		},
 	}, false)
 	assert.NotNil(t, err)
-	assert.Contains(t, "failed to execute script", err.Error())
+	assert.Contains(t, err.Error(), "failed to execute script")
 }
 
 // TestApplyScript tests that we can apply a script
@@ -178,7 +178,7 @@ func TestApplyScript(t *testing.T) {
 		},
 	}, false)
 	assert.NotNil(t, err)
-	assert.Contains(t, "failed to execute script", err.Error())
+	assert.Contains(t, err.Error(), "failed to execute script")
 }
 
 func TestGetScriptFromUrl(t *testing.T) {
@@ -195,7 +195,7 @@ func TestGetScriptFromUrl(t *testing.T) {
 		ScriptFolder:  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, "failed to execute script", err.Error())
+	assert.Contains(t, err.Error(), "failed to execute script")
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance
