@@ -256,9 +256,7 @@ func verifyPodsExist(t *testing.T, test TestCase, toFind []string) {
 	kubeClient, err := testhelpers.KubeClient()
 	require.NoError(t, err)
 
-	i := 0
-	for {
-		i++
+	for i := 0; ; i++ {
 		// List all pods in the namespace
 		pods, err := kubeClient.CoreV1().Pods("test-scope").List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
@@ -300,9 +298,7 @@ func verifyPodsDeleted(t *testing.T, test TestCase, toFind []string) {
 	kubeClient, err := testhelpers.KubeClient()
 	require.NoError(t, err)
 
-	i := 0
-	for {
-		i++
+	for i := 0; ; i++ {
 		// List all pods in the namespace
 		pods, err := kubeClient.CoreV1().Pods("test-scope").List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
