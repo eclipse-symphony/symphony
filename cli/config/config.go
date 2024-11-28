@@ -15,6 +15,10 @@ import (
 	"strings"
 )
 
+type TargetProviderConfig struct {
+	Type   string                 `json:"type"`
+	Config map[string]interface{} `json:"config"`
+}
 type SymphonyAgentConfig struct {
 	SiteInfo struct {
 		SiteId      string `json:"siteId"`
@@ -34,14 +38,13 @@ type SymphonyAgentConfig struct {
 				Type       string `json:"type"`
 				Properties struct {
 					ProvidersPersistentState string `json:"providers.persistentstate"`
-					ProvidersTarget          string `json:"providers.target"`
+					IsTarget                 string `json:"isTarget"`
+					TargetNames              string `json:"targetNames"`
 					ProvidersConfig          string `json:"providers.config"`
 					ProvidersSecret          string `json:"providers.secret"`
+					PollEnabled              string `json:"poll.enabled"`
 				} `json:"properties"`
-				Providers map[string]struct {
-					Type   string                 `json:"type"`
-					Config map[string]interface{} `json:"config"`
-				} `json:"providers"`
+				Providers map[string]TargetProviderConfig `json:"providers"`
 			} `json:"managers"`
 		} `json:"vendors"`
 	} `json:"api"`
