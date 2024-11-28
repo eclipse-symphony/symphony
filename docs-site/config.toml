@@ -1,0 +1,87 @@
+baseURL = "https://eclipse-symphony.github.io/docs"
+languageCode = "en-us"
+title = "Project Symphony Docs"
+theme =  "docsy"
+
+disableFastRender = true
+
+# Ignore sample code
+ignoreFiles = ["/code/*"]
+
+# Google Analytics
+[services.googleAnalytics]
+id = "SAMPLE"
+
+enableGitInfo = true
+
+# Mounts
+[module]
+  [[module.mounts]]
+    source = "content"
+    target = "content"
+  [[module.mounts]]
+    source = "shared-content"
+    target = "content"
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+  [[module.mounts]]
+    source = "layouts"
+    target = "layouts"
+  [[module.mounts]]
+    source = "data"
+    target = "data"
+  [[module.mounts]]
+    source = "assets"
+    target = "assets"
+  [[module.mounts]]
+    source = "archetypes"
+    target = "archetypes"
+
+# Taxonomies
+[taxonomies]
+category = "categories"
+tag = "tags"
+
+# Top Nav Bar
+[[menu.main]]
+    name = "Home"
+    weight = 10
+    url = "https://eclipse.dev/symphony/"
+    pre = "<i class='fas fa-home'></i>"
+[[menu.main]]
+    name = "GitHub"
+    weight = 40
+    url = "https://github.com/eclipse-symphony/symphony"
+    pre = "<i class='fab fa-github'></i>"
+
+[params]
+copyright = ""
+version = "v0.39"
+tag_version = "latest"
+chart_version = "0.39.0"
+
+# Algolia Search
+algolia_docsearch = false
+
+# GitHub Information
+github_repo = ""
+github_subdir = "docs"
+github_branch = "v0.39"
+github_project_repo = ""
+
+
+
+# UI Customization
+[params.ui]
+sidebar_menu_compact = true
+sidebar_search_disable = true
+sidebar_menu_foldable = true
+sidebar_menu_truncate = 500
+ul_show = 1
+navbar_logo = false
+
+[params.ui.feedback]
+enable = false
+yes = ''
+no = ''

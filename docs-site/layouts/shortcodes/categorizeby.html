@@ -1,0 +1,40 @@
+{{ $categories := .Get "category" }}
+{{ $tags := .Get "tag" | default false }}
+
+{{ if $tags}}
+{{ $pages := where site.Pages "Params.categories" (printf "%s" $categories) }}
+
+{{ $pages = where $pages "Params.tags" "intersect" (slice $tags ) }}
+         <div class="card-pane">
+            &nbsp;
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title"><b>{{ $categories }}</b></h3>
+                    {{ range $pages}}
+                    <p class="card-text"><li hugo-nav="{{ .RelPermalink}}"><a href="{{ .Permalink}}">{{ .Title }}</a></li></p>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+{{end}}
+
+{{ if not $tags }}
+    {{ range $key, $taxonomy := site.Taxonomies.tags }}
+        {{ $pagelength := where $taxonomy.Pages "Params.categories" $categories |len }}
+        {{ if gt $pagelength 0 }}
+            <div class="card-pane">
+                &nbsp;
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title"><b>{{ $key }}</b></h3>
+                            {{ range $taxonomy.Pages }}
+                                {{ if eq .Params.categories $categories}}
+                                    <p class="card-text"><li hugo-nav="{{ .RelPermalink}}"><a href="{{ .Permalink}}">{{ .Title }}</a></li></p>
+                                {{ end }}
+                            {{ end }}
+                    </div>
+                </div>
+            </div>
+        {{end}}
+   {{ end }}
+{{ end }}
