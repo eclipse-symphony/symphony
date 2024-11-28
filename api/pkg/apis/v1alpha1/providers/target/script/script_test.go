@@ -142,7 +142,7 @@ func TestRemoveScript(t *testing.T) {
 		},
 	}, false)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to execute script")
+	assert.Contains(t, err.Error(), "executing script returned error output")
 }
 
 // TestApplyScript tests that we can apply a script
@@ -178,7 +178,7 @@ func TestApplyScript(t *testing.T) {
 		},
 	}, false)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to execute script")
+	assert.Contains(t, err.Error(), "executing script returned error output")
 }
 
 func TestGetScriptFromUrl(t *testing.T) {
@@ -195,7 +195,7 @@ func TestGetScriptFromUrl(t *testing.T) {
 		ScriptFolder:  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to execute script")
+	assert.Contains(t, err.Error(), "executing script returned error output")
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance
