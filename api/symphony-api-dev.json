@@ -8,6 +8,17 @@
     }
   },
   "api": {
+    "keylock": {
+      "shared": true,
+      "provider": {      
+        "type": "providers.keylock.memory",
+        "config": {
+          "mode": "Global",
+          "cleanInterval" : 30,
+          "purgeDuration" : 43200
+        }
+      }
+    },
     "vendors": [
       {
         "type": "vendors.echo",
@@ -208,9 +219,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode": "Dedicated",
-                  "cleanInterval" : 30,
-                  "purgeDuration" : 43200
+                  "mode" : "Shared"
                 }
               },
               "mock-config": {
