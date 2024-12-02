@@ -15,7 +15,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
@@ -30,6 +29,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	config "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock"
 	secret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -37,7 +37,6 @@ import (
 
 var (
 	log                 = logger.NewLogger("coa.runtime")
-	lock                sync.Mutex
 	apiOperationMetrics *metrics.Metrics
 )
 
@@ -62,6 +61,7 @@ type SolutionManager struct {
 	StateProvider   states.IStateProvider
 	ConfigProvider  config.IExtConfigProvider
 	SecretProvider  secret.ISecretProvider
+	KeyLockProvider keylock.IKeyLockProvider
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
@@ -82,6 +82,13 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		if p, ok := v.(tgt.ITargetProvider); ok {
 			s.TargetProviders[k] = p
 		}
+	}
+
+	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
+	if err == nil {
+		s.KeyLockProvider = keylockprovider
+	} else {
+		return err
 	}
 
 	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
@@ -286,8 +293,8 @@ func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, names
 }
 
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	s.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
+	defer s.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
 
 	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
