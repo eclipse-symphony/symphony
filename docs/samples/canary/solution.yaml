@@ -41,6 +41,7 @@ spec:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
       container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
+      env.FOO: "bar"
   - name: backend-v1
     type: container
     metadata:
