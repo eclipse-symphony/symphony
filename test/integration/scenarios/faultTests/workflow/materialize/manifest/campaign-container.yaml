@@ -1,0 +1,5 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: 04campaign
+spec:  

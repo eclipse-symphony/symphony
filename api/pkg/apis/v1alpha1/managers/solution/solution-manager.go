@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -330,11 +331,16 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 	defer func() {
-		log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
-		if deployment.IsDryRun {
-			summary.SuccessCount = 0
+		if r := recover(); r == nil {
+			log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+			if deployment.IsDryRun {
+				summary.SuccessCount = 0
+			}
+			s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		} else {
+			log.ErrorfCtx(ctx, " M (Solution): panic happens: %v", debug.Stack())
+			panic(r)
 		}
-		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 	}()
 
 	defer func() {
@@ -424,6 +430,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 	log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: start deploy, total %v deployments", summary.PlannedDeployment)
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeProviders string
 
 	plannedCount := 0
 	planSuccessCount := 0
@@ -553,6 +561,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	mergedState.ClearAllRemoved()
 
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeDeploymentError string
+
 	if !deployment.IsDryRun {
 		if len(mergedState.TargetComponent) == 0 && remove {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
@@ -583,6 +594,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			})
 		}
 	}
+
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var afterDeploymentError string
 
 	successCount := 0
 	for _, v := range targetResult {
