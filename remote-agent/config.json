@@ -1,0 +1,4 @@
+{
+    "requestEndpoint": "http://localhost:3000/agent/request",
+    "responseEndpoint": "http://localhost:3000/agent/response"
+}

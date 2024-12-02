@@ -1,0 +1,32 @@
+[
+    {
+        "operationID": "1",
+        "provider": "providers.target.script",
+        "action" : "apply",
+        "isDryRun": false,
+        "deployment": {
+            "solutionName": "sample",
+            "instance": {
+                "spec": {
+                    "scope": "namespace"
+                },
+                "metadata": {
+                    "name": "sample"
+                }
+            },
+            "solution": {},
+            "targets": {}
+        },
+        "step":{
+            "Target": "remote-agent",
+            "Role": "instance",
+            "Components" : [{
+                "action": "update",
+                "component":{
+                    "name": "sample",
+                    "type": "update"
+                }
+            }]
+        }
+    }
+]
