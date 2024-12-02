@@ -683,25 +683,30 @@ func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string
 	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
 
-func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
+func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, previousComponents []model.ComponentSpec, currentState model.DeploymentState) bool {
 
 	for _, newCom := range step.Components {
 		key := fmt.Sprintf("%s::%s", newCom.Component.Name, target)
 		if newCom.Action == model.ComponentDelete {
-			for _, c := range currentComponents {
-				if c.Name == newCom.Component.Name && state.TargetComponent[key] != "" {
+			for _, c := range previousComponents {
+				if c.Name == newCom.Component.Name && currentState.TargetComponent[key] != "" {
 					return false // current component still exists, desired is to remove it. The step can't be skipped
 				}
 			}
 
 		} else {
 			found := false
-			for _, c := range currentComponents {
-				if c.Name == newCom.Component.Name && state.TargetComponent[key] != "" && !strings.HasPrefix(state.TargetComponent[key], "-") {
+			for _, c := range previousComponents {
+				if c.Name == newCom.Component.Name && currentState.TargetComponent[key] != "" && !strings.HasPrefix(currentState.TargetComponent[key], "-") {
 					found = true
 					rule := provider.GetValidationRule(ctx)
-					if rule.IsComponentChanged(c, newCom.Component) {
-						return false // component has changed, can't skip the step
+					for _, sc := range currentState.Components {
+						if sc.Name == c.Name {
+							if rule.IsComponentChanged(sc, c) {
+								return false // component has changed, can't skip the step
+							}
+							break
+						}
 					}
 					break
 				}
@@ -798,7 +803,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 			}
 		}
 	}
-
+	ret.Components = retComponents
 	return ret, retComponents, nil
 }
 func (s *SolutionManager) Enabled() bool {
