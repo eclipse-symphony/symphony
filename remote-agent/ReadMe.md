@@ -30,5 +30,5 @@ The remote agent currently uses a mock to read requests from `samples/request.js
 
 ## Run draft agent
 ```
-go run main.go
+go run main.go -config=./config.json
 ```
