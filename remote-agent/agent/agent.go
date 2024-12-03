@@ -51,6 +51,15 @@ func (s Agent) Handle(req []byte, ctx context.Context) utils.AsyncResult {
 		specs, err := provider.Apply(ctx, applyRequest.Deployment, applyRequest.Step, applyRequest.Deployment.IsDryRun)
 		*body, err = json.Marshal(specs)
 		return utils.AsyncResult{OperationID: request.OperationID, Body: *body, Error: err}
+
+	case "getValidationRule":
+		var getValidationRuleRequest utils.ProviderGetValidationRuleRequest
+		if err := json.Unmarshal(req, &getValidationRuleRequest); err != nil {
+			return utils.AsyncResult{OperationID: request.OperationID, Error: err}
+		}
+		rule := provider.GetValidationRule(ctx)
+		*body, err = json.Marshal(rule)
+		return utils.AsyncResult{OperationID: request.OperationID, Body: *body, Error: err}
 	default:
 		return utils.AsyncResult{OperationID: request.OperationID, Error: errors.New("Action not found")}
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -14,8 +15,14 @@ import (
 )
 
 func main() {
+	// Define a command-line flag for the configuration file path
+	configPath := flag.String("config", "config.json", "Path to the configuration file")
+
+	// Parse the command-line flags
+	flag.Parse()
+
 	// Read the configuration file
-	setting, err := ioutil.ReadFile("config.json")
+	setting, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		fmt.Println("Error reading configuration file:", err)
 		return
@@ -80,8 +87,8 @@ func composeTargetProviders() map[string]tgt.ITargetProvider {
 		ApplyScript:   "mock-apply.sh",
 		GetScript:     "mock-get.sh",
 		RemoveScript:  "mock-remove.sh",
-		ScriptFolder:  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
-		StagingFolder: "/home/jesse/jiadu3/eclipse-symphony/remote-agent/",
+		ScriptFolder:  "./script",
+		StagingFolder: "./script",
 	}
 	err := mProvider.Init(providerConfig)
 	if err != nil {

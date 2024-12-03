@@ -23,6 +23,10 @@ type ProviderApplyRequest struct {
 	IsDryRun   bool                 `json:"isDryRun,omitempty"`
 }
 
+type ProviderGetValidationRuleRequest struct {
+	AgentRequest
+}
+
 type AsyncResult struct {
 	OperationID string `json:"operationID"`
 	Error       error  `json:"error,omitempty"`
