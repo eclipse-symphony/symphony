@@ -8,7 +8,7 @@ We'll use a MQTT broker to facilitate communication between Symphony and the rem
 We offer a sample deployment file at `templates/mosquitto.yaml`, which you can use to deploy a [mosquitto](https://mosquitto.org/) test MQTT broker with anoymous access enabled.
 
   ```bash
-  kubectl apply -f mosquitto.yaml
+  kubectl apply -f ./templates/mosquitto.yaml
   ```
 
 Once deployment is complete, you should see a `mosquitto-service` service in your service list. This will the broker your agents connect to.
@@ -21,7 +21,7 @@ Once deployment is complete, you should see a `mosquitto-service` service in you
   ...
   ```
 
-If you are using Minikube, the `EXTERNAL-IP` will show as `<pending>`. You'll need to use K8s port forwarding to expose the service to your local machine. Then, you'll be able to access the MQTT broker through `tcp://localhost:1883`.
+If you are using Minikube, the `EXTERNAL-IP` might show as `<pending>` (finally it will be 127.0.0.1). You'll need to use K8s port forwarding to expose the service to your local machine. Then, you'll be able to access the MQTT broker through `tcp://localhost:1883`.
 
   ```bash
   kubectl port-forward svc/mosquitto-service 1883:1883 &

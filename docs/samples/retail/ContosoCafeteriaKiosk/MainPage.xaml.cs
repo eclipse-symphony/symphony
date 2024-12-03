@@ -2,10 +2,12 @@
 using System.ComponentModel;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml;
-using System.Diagnostics;
 using System.Linq;
-using System.Collections.Generic;
 using System;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace ContosoCafeteriaKiosk
 {
@@ -37,11 +39,11 @@ namespace ContosoCafeteriaKiosk
             OrderItems = new ObservableCollection< OrderItem>();
             MenuItems = new ObservableCollection<MenuItem>()
             {
-                new MenuItem(){ Name="Fruit Smoothie", Price=2.99, ImagePath="Assets/FruitSmoothie.png" },
+                new MenuItem(){ Name="FruitSmoothie", Price=2.99, ImagePath="Assets/FruitSmoothie.png" },
                 new MenuItem(){ Name="Soda", Price=0.99, ImagePath="Assets/Soda.png" },
-                new MenuItem(){ Name="Ice Cream", Price=1.49, ImagePath="Assets/IceCream.png" },
+                new MenuItem(){ Name="IceCream", Price=1.49, ImagePath="Assets/IceCream.png" },
                 new MenuItem(){ Name="Cookie", Price=1.49, ImagePath="Assets/Cookie.png" },
-                new MenuItem(){ Name="Pizza Slice", Price=1.99, ImagePath="Assets/PizzaSlice.png" },
+                new MenuItem(){ Name="PizzaSlice", Price=1.99, ImagePath="Assets/PizzaSlice.png" },
                 new MenuItem(){ Name="Hotdog", Price=1.99, ImagePath="Assets/Hotdog.png" },
                 new MenuItem(){ Name="Nachos", Price=2.99, ImagePath="Assets/Nachos.png" },
             };
@@ -65,7 +67,39 @@ namespace ContosoCafeteriaKiosk
                 }
             }
         }
-        private void PlaceOrderButton_Click(object sender, RoutedEventArgs e)
+        private async Task SendOrderAsync(object order)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("http://localhost:5000");
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+                string jsonOrder = JsonConvert.SerializeObject(order);
+                StringContent content = new StringContent(jsonOrder, Encoding.UTF8, "application/json");
+
+                try
+                {
+                    HttpResponseMessage response = await client.PostAsync("http://localhost:5000/orders", content);
+                    response.EnsureSuccessStatusCode();
+                    System.Diagnostics.Debug.WriteLine("Order sent successfully.");
+                }
+                catch (HttpRequestException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Request error: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"An error occurred: {ex.Message}");
+                }
+                finally
+                {
+                    System.Diagnostics.Debug.WriteLine("SendOrderAsync method execution completed.");
+                }
+            }
+        }
+
+        private async void PlaceOrderButton_Click(object sender, RoutedEventArgs e)
         {
             string orderDetails = "Your order:\n";
             foreach (var orderItem in OrderItems)
@@ -83,6 +117,21 @@ namespace ContosoCafeteriaKiosk
             };
             _ = dialog.ShowAsync();
 
+            var orderItemsList = OrderItems.Select(item => new OrderItemDto
+            {
+                name = item.Name,
+                quantity = item.Quantity,
+            }).ToList();
+
+            var order = new
+            {
+                customerName = "test",
+                items = orderItemsList,
+                time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            await SendOrderAsync(order);
+
             OrderItems.Clear();
             TotalPrice = 0.00;
         }
@@ -92,6 +141,12 @@ namespace ContosoCafeteriaKiosk
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public class OrderItemDto
+    {
+        public string name { get; set; }
+        public int quantity { get; set; }
     }
 
     public class MenuItem

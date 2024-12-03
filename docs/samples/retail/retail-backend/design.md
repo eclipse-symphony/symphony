@@ -20,6 +20,8 @@ The backend service will handle order processing and status updates, providing A
 
 ## RESTful API Endpoints
 
+Create/Get/Update methods are implemented in this retail backend app but only Create method is used now. We can keep those remaining methods as follow up.
+
 ### 1. Create Order
 
 Endpoint: POST `/orders`
@@ -34,7 +36,8 @@ Request Body:
   "items": [
     {"name": "coffee", "quantity": 1},
     {"name": "sandwich", "quantity": 1}
-  ]
+  ],
+  "time": "2024-11-29 13:21:20"
 }
 ```
 
@@ -63,6 +66,7 @@ Response:
     {"name": "coffee", "quantity": 1},
     {"name": "sandwich", "quantity": 1}
   ],
+  "time": "2024-11-29 13:21:20",
   "status": "order received"
 }
 ```
