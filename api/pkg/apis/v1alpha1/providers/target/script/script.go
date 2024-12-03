@@ -256,6 +256,7 @@ func (i *ScriptProvider) runScriptOnComponents(ctx context.Context, deployment m
 	id := uuid.New().String()
 	deploymentId := id + ".json"
 	currenRefId := id + "-ref.json"
+	output := id + "-output.json"
 
 	stagingDeployment := filepath.Join(i.Config.StagingFolder, deploymentId)
 	file, _ := json.MarshalIndent(deployment, "", " ")
@@ -283,39 +284,34 @@ func (i *ScriptProvider) runScriptOnComponents(ctx context.Context, deployment m
 		}
 	}
 	o, err := i.runCommand(scriptAbs, absDeployment, absRef)
-	sLog.InfofCtx(ctx, "  P (Script Target): apply script output: %s", o)
+	sLog.DebugfCtx(ctx, "  P (Script Target): apply script output: %s", o)
 
 	defer os.Remove(absDeployment)
 	defer os.Remove(absRef)
 
-	// if err != nil {
-	// 	sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run apply script: %+v", err)
-	// 	return nil, err
-	// }
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run apply script: %+v", err)
+		return nil, err
+	}
 
-	// outputStaging := filepath.Join(i.Config.StagingFolder, output)
+	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
-	// data, err := os.ReadFile(outputStaging)
+	data, err := os.ReadFile(outputStaging)
 
-	// if err != nil {
-	// 	sLog.ErrorfCtx(ctx, "  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
-	// 	return nil, err
-	// }
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		return nil, err
+	}
 
-	// abs_output, _ := filepath.Abs(outputStaging)
+	abs_output, _ := filepath.Abs(outputStaging)
 
-	// defer os.Remove(abs_output)
+	defer os.Remove(abs_output)
 
 	ret := make(map[string]model.ComponentResultSpec)
-	for _, spec := range components {
-		status := v1alpha2.InternalError
-		if err == nil {
-			status = v1alpha2.OK
-		}
-		ret[spec.Name] = model.ComponentResultSpec{
-			Status:  status,
-			Message: string(o),
-		}
+	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to parse get script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		return nil, err
 	}
 	return ret, nil
 }
