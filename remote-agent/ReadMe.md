@@ -17,7 +17,7 @@ The Script Provider is designed to be the most applicable provider for the remot
 - `ApplyScript`: `"mock-apply.sh"`
 - `GetScript`: `"mock-get.sh"`
 - `RemoveScript`: `"mock-remove.sh"`
-- `ScriptFolder`: `"https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider"`
+- `ScriptFolder`: `./script`
 - `StagingFolder`: `"."`
 
 ### Known Issues
