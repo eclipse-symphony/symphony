@@ -1,0 +1,19 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: solutiontest
+spec:  
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: solutiontest-v-v1
+spec:
+  rootResource: solutiontest
+  components:
+  - name: getProcess
+    type: script
+    properties:
+      path: sh
+      flag: -c
+      args: 'PROCESS_NAME="remote-agent"; OUTPUT_FILE="/home/jesse/jiadu2/eclipse-symphony/remote-agent/bootstrap/performance.txt"; PID=$(pgrep -f $PROCESS_NAME| head -n 1); CPU_USAGE=$(ps -p $PID -o %cpu=); MEMORY_USAGE=$(ps -p $PID -o %mem=); echo "Timestamp: $(date)" >> $OUTPUT_FILE; echo "Process: $PROCESS_NAME (PID: $PID)" >> $OUTPUT_FILE; echo "CPU Usage: $CPU_USAGE%" >> $OUTPUT_FILE; echo "Memory Usage: $MEMORY_USAGE%" >> $OUTPUT_FILE; echo "-----------------------------" >> $OUTPUT_FILE; echo "CPU Usage: $CPU_USAGE%" & echo "Memory Usage: $MEMORY_USAGE%"'

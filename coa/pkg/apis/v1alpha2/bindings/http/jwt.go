@@ -7,9 +7,13 @@
 package http
 
 import (
+	"context"
 	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -43,6 +47,7 @@ const (
 	// AuthServerKuberenetes means we are using kubernetes api server as auth server
 	AuthServerKuberenetes AuthServer = "kubernetes"
 	SymphonyIssuer        string     = "symphony"
+	caFileName            string     = "/etc/symphony-api/tls/tls.crt"
 )
 
 var (
@@ -50,7 +55,39 @@ var (
 	namespace                    = os.Getenv("POD_NAMESPACE")
 	apiServiceAccountName        = os.Getenv("SERVICE_ACCOUNT_NAME")
 	controllerServiceAccountName = os.Getenv("SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME")
+	subjectList                  = getSubjectList()
+	ServiceName                  = os.Getenv("SYMPHONY_SERVICE_NAME")
 )
+
+func getSubjectList() []string {
+	subjects := os.Getenv("CLIENT_SUBJECTS")
+
+	// Split the subjects string by semicolon
+	additionalSubjects := strings.Split(subjects, ";")
+	return additionalSubjects
+}
+
+func isSubjectValid(subject string) bool {
+	for _, s := range subjectList {
+		if strings.Contains(subject, s) {
+			// The subject contains one of the valid subjects
+			return true
+		}
+	}
+	return false
+}
+func loadCACertPool(caFile string) (*x509.CertPool, error) {
+	caCertPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA file %s: %v", caFile, err)
+	}
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to append CA certificate from file %s", caFile)
+	}
+
+	return caCertPool, nil
+}
 
 func getApiServiceAccountUsername() (string, error) {
 	if namespace == "" || apiServiceAccountName == "" {
@@ -89,27 +126,84 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			next(ctx)
 			return
 		}
+
 		tokenStr := j.readAuthHeader(ctx)
 		if tokenStr == "" {
-			log.Errorf("JWT: Token is empty.\n")
-			ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
-		} else {
-			issuer, err := decodeJWTTokenForIssuer(tokenStr)
+			// Cert based auth
+			conn := ctx.Conn()
+			tlsConn, ok := conn.(*tls.Conn)
+			if !ok {
+				ctx.Error("Forbidden", fasthttp.StatusForbidden)
+				return
+			}
+
+			// Get the TLS connection state
+			state := tlsConn.ConnectionState()
+			if len(state.PeerCertificates) == 0 {
+				ctx.Error("Client certificate required", fasthttp.StatusUnauthorized)
+				return
+			}
+
+			// Get the client certificate
+			clientCert := state.PeerCertificates[0]
+			subjectName := clientCert.Subject.String()
+			log.ErrorfCtx(ctx, "JWT: Token is empty.")
+			// Verify the client certificate
+			caCertPool, err := loadCACertPool(caFileName)
 			if err != nil {
-				log.Errorf("JWT: Could not decode issuer from token. %s\n", err.Error())
+				log.ErrorfCtx(ctx, "JWT: Could not load CA cert pool. %s\n", err.Error())
+				ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+				return
+			}
+			opts := x509.VerifyOptions{
+				Roots: caCertPool,
+			}
+			if _, err := clientCert.Verify(opts); err != nil {
+				log.InfofCtx(ctx, "JWT: The cert is not a symphony working cert. It is a bootstrap cert.")
+				subjectValid := isSubjectValid(subjectName)
+				if !subjectValid {
+					log.ErrorfCtx(ctx, fmt.Sprintf("JWT: The cert has no valid subject name, %s.", subjectName))
+					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+					return
+				} else {
+					uri := ctx.Request.URI().String()
+					if strings.Contains(uri, "/targets/bootstrap") || strings.Contains(uri, "/files") {
+						next(ctx)
+					} else {
+						log.ErrorfCtx(ctx, "JWT: Bootstrap cert can only access bootstrap and files endpoints.")
+						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+						return
+					}
+				}
+			} else {
+				if strings.Contains(subjectName, ServiceName) {
+					next(ctx)
+				} else {
+					log.ErrorfCtx(ctx, "JWT: The cert should have a valid symphony working cert subject.")
+					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+				}
+			}
+		} else {
+			issuer, err := decodeJWTTokenForIssuer(tokenStr, ctx)
+			if err != nil {
+				log.ErrorfCtx(ctx, "JWT: Could not decode issuer from token. %s", err.Error())
 				ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 				return
 			}
 			if issuer == SymphonyIssuer {
+<<<<<<< HEAD
 				if j.DisableUserCreds == true {
 					log.Infof("JWT: Token with username plus pwd is not allowed.")
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				}
 				log.Debugf("JWT: Validating token with username plus pwd.")
+=======
+				log.DebugfCtx(ctx, "JWT: Validating token with username plus pwd.")
+>>>>>>> 37d0dd07 (CA change; also update the bootstrap sample certs (#706))
 				_, roles, err := j.validateToken(tokenStr)
 				if err != nil {
-					log.Error("JWT: Validate token with user creds failed. %s\n", err.Error())
+					log.ErrorCtx(ctx, "JWT: Validate token with user creds failed. %s", err.Error())
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				} else {
@@ -135,16 +229,16 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				}
 			} else {
 				if j.AuthServer == AuthServerKuberenetes {
-					log.Debugf("JWT: Validating token with k8s.")
+					log.DebugfCtx(ctx, "JWT: Validating token with k8s.")
 					err := j.validateServiceAccountToken(ctx, tokenStr)
 					if err != nil {
-						log.Errorf("JWT: Validate token with k8s failed. %s\n", err.Error())
+						log.ErrorfCtx(ctx, "JWT: Validate token with k8s failed. %s", err.Error())
 						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 						return
 					}
 					next(ctx)
 				} else {
-					log.Errorf("JWT: Not supported auth server, %s.\n", j.AuthServer)
+					log.ErrorfCtx(ctx, "JWT: Not supported auth server, %s.", j.AuthServer)
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				}
@@ -230,7 +324,7 @@ func (j *JWT) validateToken(tokenStr string) (map[string]interface{}, []string, 
 	return ret, roles, nil
 }
 
-func decodeJWTTokenForIssuer(tokenString string) (string, error) {
+func decodeJWTTokenForIssuer(tokenString string, ctx context.Context) (string, error) {
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
 		return "", err
@@ -239,13 +333,13 @@ func decodeJWTTokenForIssuer(tokenString string) (string, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		issuer, ok := claims["iss"].(string)
 		if !ok {
-			log.Debugf("The iss claim is not a string")
+			log.DebugfCtx(ctx, "The iss claim is not a string")
 			return "", errors.New("the iss claim is not a string")
 		}
-		log.Debugf("Issuer: %s", issuer)
+		log.DebugfCtx(ctx, "Issuer: %s", issuer)
 		return issuer, nil
 	} else {
-		log.Debugf("Invalid token")
+		log.DebugfCtx(ctx, "Invalid token")
 		return "", errors.New("invalid token")
 	}
 }
@@ -253,7 +347,7 @@ func decodeJWTTokenForIssuer(tokenString string) (string, error) {
 func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr string) error {
 	clientset, err := getKubernetesClient()
 	if err != nil {
-		log.Errorf("JWT: Could not initialize Kubernetes client.\n")
+		log.ErrorfCtx(ctx, "JWT: Could not initialize Kubernetes client.\n")
 		return v1alpha2.NewCOAError(err, "Could not initialize Kubernetes client", v1alpha2.InternalError)
 	}
 	tokenReview := &v1.TokenReview{
@@ -267,11 +361,11 @@ func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr str
 
 	result, err := clientset.AuthenticationV1().TokenReviews().Create(ctx, tokenReview, metav1.CreateOptions{})
 	if err != nil {
-		log.Errorf("JWT: Token review using kubernetes api server failed. %s\n", err.Error())
+		log.ErrorfCtx(ctx, "JWT: Token review using kubernetes api server failed. %s\n", err.Error())
 		return v1alpha2.NewCOAError(err, "Token review using kubernetes api server failed.", v1alpha2.InternalError)
 	}
 	if !result.Status.Authenticated {
-		log.Errorf("JWT: Validate token with k8s failed. K8s returned not authenticated.\n")
+		log.ErrorfCtx(ctx, "JWT: Validate token with k8s failed. K8s returned not authenticated.\n")
 		return v1alpha2.NewCOAError(nil, "Authentication failed.", v1alpha2.Unauthorized)
 	} else {
 		apiUsername, err := getApiServiceAccountUsername()
@@ -283,7 +377,7 @@ func (j *JWT) validateServiceAccountToken(ctx *fasthttp.RequestCtx, tokenStr str
 			return err
 		}
 		if result.Status.User.Username != apiUsername && result.Status.User.Username != controllerUsername {
-			log.Errorf("JWT: Validate token with k8s failed. K8s returned invalid username, %s\n", result.Status.User.Username)
+			log.ErrorfCtx(ctx, "JWT: Validate token with k8s failed. K8s returned invalid username, %s\n", result.Status.User.Username)
 			return v1alpha2.NewCOAError(nil, "Authentication failed.", v1alpha2.Unauthorized)
 		}
 	}

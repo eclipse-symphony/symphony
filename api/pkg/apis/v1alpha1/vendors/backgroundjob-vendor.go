@@ -8,7 +8,11 @@ package vendors
 
 import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
+<<<<<<< HEAD
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
+=======
+	remoteAgent "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/remote-agent"
+>>>>>>> cecc79b4 (Remote Agent Part2: add remote-agent provider to support SR and upgrade (#624))
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -19,8 +23,13 @@ import (
 type BackgroundJobVendor struct {
 	vendors.Vendor
 	// Add a new manager if you want to add another background job
+<<<<<<< HEAD
 	ActivationsCleanerManager *activations.ActivationsCleanupManager
 	SummaryCleanupManager     *solution.SummaryCleanupManager
+=======
+	ActivationsCleanerManager    *activations.ActivationsCleanupManager
+	RemoteTargetSchedulerManager *remoteAgent.RemoteTargetSchedulerManager
+>>>>>>> cecc79b4 (Remote Agent Part2: add remote-agent provider to support SR and upgrade (#624))
 }
 
 func (s *BackgroundJobVendor) GetInfo() vendors.VendorInfo {
@@ -45,6 +54,10 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 			s.ActivationsCleanerManager = c
 		} else if c, ok := m.(*solution.SummaryCleanupManager); ok {
 			s.SummaryCleanupManager = c
+		}
+
+		if c, ok := m.(*remoteAgent.RemoteTargetSchedulerManager); ok {
+			s.RemoteTargetSchedulerManager = c
 		}
 		// Load a new manager if you want to add another background job
 	}

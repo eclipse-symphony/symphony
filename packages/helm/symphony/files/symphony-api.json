@@ -326,6 +326,12 @@
                 "config": {
                   "inCluster": true
                 }
+              },
+              "secret": {
+                "type": "providers.secret.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }
@@ -492,6 +498,7 @@
             "properties": {
               "providers.persistentstate": "redis-state",
               "providers.config": "mock-config",  
+              "providers.queue": "redis-queue",
               "providers.secret": "mock-secret",
               "providers.keylock": "mem-keylock"
             },
@@ -513,6 +520,15 @@
                 "type": "providers.keylock.memory",
                 "config": {
                   "mode" : "Shared"
+                }
+              },
+              "redis-queue": {
+                "type": "providers.queue.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
                 }
               },
               "mock-config": {

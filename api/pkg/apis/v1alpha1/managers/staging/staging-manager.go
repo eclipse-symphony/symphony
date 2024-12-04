@@ -62,7 +62,7 @@ func (s *StagingManager) Enabled() bool {
 	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *StagingManager) Poll() []error {
-	ctx, span := observability.StartSpan("Staging Manager", context.Background(), &map[string]string{
+	ctx, span := observability.StartSpan("Staging Manager", context.TODO(), &map[string]string{
 		"method": "Poll",
 	})
 	var err error = nil
@@ -70,11 +70,11 @@ func (s *StagingManager) Poll() []error {
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.Debug(" M (Staging): Polling...")
-	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
+	if s.QueueProvider.Size(context.TODO(), Site_Job_Queue) == 0 {
 		return nil
 	}
 	var site interface{}
-	site, err = s.QueueProvider.Dequeue(Site_Job_Queue)
+	site, err = s.QueueProvider.Dequeue(context.TODO(), Site_Job_Queue)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
@@ -107,7 +107,7 @@ func (s *StagingManager) Poll() []error {
 		if err != nil && !utils.IsNotFound(err) {
 			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
-		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
+		s.QueueProvider.Enqueue(context.TODO(), siteId, v1alpha2.JobData{
 			Id:     catalog.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
@@ -151,19 +151,20 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 		err = v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		return err
 	}
-	s.QueueProvider.Enqueue(Site_Job_Queue, event.Metadata["site"])
-	return s.QueueProvider.Enqueue(event.Metadata["site"], job)
+	s.QueueProvider.Enqueue(context.TODO(), Site_Job_Queue, event.Metadata["site"])
+	_, err = s.QueueProvider.Enqueue(context.TODO(), event.Metadata["site"], job)
+	return err
 }
 func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.JobData, error) {
 	//TODO: this should return a group of jobs as optimization
-	s.QueueProvider.Enqueue(Site_Job_Queue, site)
-	if s.QueueProvider.Size(site) == 0 {
+	s.QueueProvider.Enqueue(context.TODO(), Site_Job_Queue, site)
+	if s.QueueProvider.Size(context.TODO(), site) == 0 {
 		return nil, nil
 	}
 	items := []v1alpha2.JobData{}
 	itemCount := 0
 	for {
-		queueElement, err := s.QueueProvider.Dequeue(site)
+		queueElement, err := s.QueueProvider.Dequeue(context.TODO(), site)
 		if err != nil {
 			return nil, err
 		}
@@ -171,9 +172,9 @@ func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.Jo
 			items = append(items, job)
 			itemCount++
 		} else {
-			s.QueueProvider.Enqueue(site, queueElement)
+			s.QueueProvider.Enqueue(context.TODO(), site, queueElement)
 		}
-		if itemCount == count || s.QueueProvider.Size(site) == 0 {
+		if itemCount == count || s.QueueProvider.Size(context.TODO(), site) == 0 {
 			break
 		}
 	}

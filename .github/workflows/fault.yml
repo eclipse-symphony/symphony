@@ -7,8 +7,7 @@ on:
   push:
     branches:
       - main
-  # pull_request:
-  #   branches:
+      - remote-agent
   #    - main
   workflow_dispatch:
   schedule:

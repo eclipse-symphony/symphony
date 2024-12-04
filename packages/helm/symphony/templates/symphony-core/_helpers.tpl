@@ -186,6 +186,42 @@ Symphony API ServingCertIssuerName
 {{- end }}
 
 {{/*
+Symphony API CAIssuerName
+*/}}
+{{- define "symphony.apiCAIssuerName" -}}
+{{- printf "%s%s" (include "symphony.fullname" .) "-ca-issuer"}}
+{{- end }}
+
+{{/*
+Symphony API trust bundle
+*/}}
+{{- define "symphony.apiClientCATrustBundle" -}}
+{{- printf "%s%s" (include "symphony.fullname" .) "clientca-bundle"}}
+{{- end }}
+
+{{/*
+Symphony API trust bundle key
+*/}}
+{{- define "symphony.apiClientCATrustBundleKey" -}}
+{{- printf "%s%s" (include "symphony.fullname" .) "-clientca-key"}}
+{{- end }}
+
+{{/*
+Symphony API client CA dir
+*/}}
+{{- define "symphony.apiClientCAMountPath" -}}
+{{- printf "/etc/%s-api/clientca" (include "symphony.fullname" .) }}
+{{- end }}
+
+{{/*
+Symphony API client CA path
+*/}}
+{{- define "symphony.apiClientCAPem" -}}
+{{- printf "%s/%s" (include "symphony.apiClientCAMountPath" .) (include "symphony.apiClientCATrustBundleKey" .) }}
+{{- end }}
+
+
+{{/*
 Symphony full url Endpoint
 */}}
 {{- define "symphony.httpsUrl" -}}

@@ -52,11 +52,11 @@ func TestPoll(t *testing.T) {
 	var err error
 	manager.apiClient, err = utils.GetApiClient()
 	assert.Nil(t, err)
-	queueProvider.Enqueue("site-job-queue", "fake")
+	queueProvider.Enqueue(context.TODO(), "site-job-queue", "fake")
 	errList := manager.Poll()
 	assert.Nil(t, errList)
 
-	jobData, err := queueProvider.Dequeue("fake")
+	jobData, err := queueProvider.Dequeue(context.TODO(), "fake")
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
 	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
@@ -106,13 +106,13 @@ func TestHandleJobEvent(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	jobData, err := queueProvider.Dequeue("fake")
+	jobData, err := queueProvider.Dequeue(context.TODO(), "fake")
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
 	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
 	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
-	site, err := queueProvider.Dequeue("site-job-queue")
+	site, err := queueProvider.Dequeue(context.TODO(), "site-job-queue")
 	assert.Nil(t, err)
 	assert.NotNil(t, "fake", site.(string))
 }
@@ -128,11 +128,11 @@ func TestGetABatchForSite(t *testing.T) {
 		QueueProvider: queueProvider,
 	}
 
-	queueProvider.Enqueue("fake", v1alpha2.JobData{
+	queueProvider.Enqueue(context.TODO(), "fake", v1alpha2.JobData{
 		Id:     "catalog1",
 		Action: v1alpha2.JobUpdate,
 	})
-	queueProvider.Enqueue("fake", v1alpha2.JobData{
+	queueProvider.Enqueue(context.TODO(), "fake", v1alpha2.JobData{
 		Id:     "catalog2",
 		Action: v1alpha2.JobUpdate,
 	})

@@ -1,0 +1,122 @@
+[
+    {
+        "operationID": "f46c593b-4513-4192-87e1-e35a647f9373",
+        "provider": "remote-agent",
+        "action": "apply",
+        "deployment": {
+            "solutionName": "target-runtime-remote-target",
+            "solution": {
+                "metadata": {
+                    "namespace": "default",
+                    "name": "target-runtime-remote-target"
+                },
+                "spec": {
+                    "displayName": "target-runtime-remote-target",
+                    "components": [
+                        {
+                            "name": "remote-agent",
+                            "type": "remote-agent"
+                        }
+                    ]
+                }
+            },
+            "instance": {
+                "metadata": {
+                    "namespace": "default",
+                    "name": "target-runtime-remote-target"
+                },
+                "spec": {
+                    "displayName": "target-runtime-remote-target",
+                    "scope": "default",
+                    "solution": "target-runtime-remote-target",
+                    "target": {
+                        "name": "remote-target"
+                    }
+                },
+                "status": {
+                    "provisioningStatus": {
+                        "operationId": "",
+                        "status": "",
+                        "error": {}
+                    },
+                    "lastModified": "0001-01-01T00:00:00Z"
+                }
+            },
+            "targets": {
+                "remote-target": {
+                    "metadata": {
+                        "namespace": "default",
+                        "name": "remote-target",
+                        "annotations": {
+                            "SummaryJobIdKey": "1",
+                            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"fabric.symphony/v1\",\"kind\":\"Target\",\"metadata\":{\"annotations\":{},\"name\":\"remote-target\",\"namespace\":\"default\"},\"spec\":{\"components\":[{\"name\":\"remote-agent\",\"type\":\"remote-agent\"}],\"displayName\":\"remote-target\",\"reconciliationPolicy\":{\"interval\":\"10m\"},\"scope\":\"default\",\"topologies\":[{\"bindings\":[{\"config\":{\"ApplyScript\":\"mock-apply.sh\",\"GetScript\":\"mock-get.sh\",\"RemoveScript\":\"mock-remove.sh\",\"ScriptFolder\":\"./script\",\"StagingFolder\":\"./script\"},\"provider\":\"providers.target.script\",\"role\":\"script\"},{\"provider\":\"providers.target.helm\",\"role\":\"remote-agent\"}]}]}}\n",
+                            "management.azure.com/correlationId": "a3613b01-16a6-429d-a4b1-121b92b0d4f7",
+                            "management.azure.com/runningCorrelationId": "a3613b01-16a6-429d-a4b1-121b92b0d4f7",
+                            "target.fabric.symphony/started-at": "2025-01-03T03:09:04Z"
+                        }
+                    },
+                    "status": {
+                        "provisioningStatus": {
+                            "operationId": "",
+                            "status": "",
+                            "error": {}
+                        },
+                        "lastModified": "0001-01-01T00:00:00Z"
+                    },
+                    "spec": {
+                        "displayName": "remote-target",
+                        "scope": "default",
+                        "components": [
+                            {
+                                "name": "remote-agent",
+                                "type": "remote-agent"
+                            }
+                        ],
+                        "topologies": [
+                            {
+                                "bindings": [
+                                    {
+                                        "role": "script",
+                                        "provider": "providers.target.script",
+                                        "config": {
+                                            "ApplyScript": "mock-apply.sh",
+                                            "GetScript": "mock-get.sh",
+                                            "RemoveScript": "mock-remove.sh",
+                                            "ScriptFolder": "./script",
+                                            "StagingFolder": "./script"
+                                        }
+                                    },
+                                    {
+                                        "role": "remote-agent",
+                                        "provider": "providers.target.helm"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            "assignments": {
+                "remote-target": "{remote-agent}"
+            },
+            "generation": "5",
+            "jobID": "1",
+            "objectNamespace": "default",
+            "hash": "ad67c1d48c40c9705633692003f2f7f3"
+        },
+        "step": {
+            "Target": "remote-target",
+            "Components": [
+                {
+                    "action": "update",
+                    "component": {
+                        "name": "remote-agent",
+                        "type": "remote-agent"
+                    }
+                }
+            ],
+            "Role": "remote-agent",
+            "IsFirst": true
+        }
+    }
+]

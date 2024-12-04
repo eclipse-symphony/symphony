@@ -52,6 +52,7 @@ import (
 	mempubsub "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	reidspubsub "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/redis"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
+	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	cvref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
 	httpref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
 	k8sref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
@@ -379,6 +380,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.keylock.memory":
 		mProvider := &memorykeylock.MemoryKeyLockProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.queue.redis":
+		mProvider := &redisqueue.RedisQueueProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
