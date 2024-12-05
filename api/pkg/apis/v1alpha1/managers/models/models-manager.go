@@ -81,6 +81,27 @@ func (t *ModelsManager) UpsertState(ctx context.Context, name string, state mode
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.AIGroup,
+			"resource":  "models",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Model",
+		},
+	}
+	m, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		ret, err := getModelState(m.Body)
+		if err != nil {
+			log.ErrorfCtx(ctx, " M (Models): failed to convert to model state, name: %s, err: %v", name, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadata(ret.ObjectMeta)
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -90,6 +111,7 @@ func (t *ModelsManager) UpsertState(ctx context.Context, name string, state mode
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -139,6 +161,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 			log.ErrorfCtx(ctx, " M (Models): failed to getModelState, err: %v", err)
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -189,5 +212,6 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 		log.ErrorfCtx(ctx, " M (Models): failed to getModelState, name: %s, err: %v", name, err)
 		return model.ModelState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(m.ETag)
 	return ret, nil
 }

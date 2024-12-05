@@ -20,10 +20,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type SolutionsManager struct {
 	managers.Manager
@@ -92,6 +95,26 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "solutions",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Solution",
+		},
+	}
+	item, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		itemState, err := getSolutionState(item.Body)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to solution state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	}
+
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -115,6 +138,7 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -158,6 +182,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -194,16 +219,17 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 			"kind":      "Solution",
 		},
 	}
-	var target states.StateEntry
-	target, err = t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
 	var ret model.SolutionState
-	ret, err = getSolutionState(target.Body)
+	ret, err = getSolutionState(entry.Body)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 

@@ -22,9 +22,12 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type TargetsManager struct {
 	managers.Manager
@@ -93,6 +96,26 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FabricGroup,
+			"resource":  "targets",
+			"namespace": state.ObjectMeta.Namespace,
+		},
+	}
+	item, err := t.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getTargetState(item)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to target state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	}
 
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
@@ -219,16 +242,17 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		var rt model.TargetState
-		rt, err = getTargetState(t.Body, t.ETag)
+		rt, err = getTargetState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getTargetState(body interface{}, etag string) (model.TargetState, error) {
+func getTargetState(body interface{}) (model.TargetState, error) {
 	var targetState model.TargetState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &targetState)
@@ -238,7 +262,6 @@ func getTargetState(body interface{}, etag string) (model.TargetState, error) {
 	if targetState.Spec == nil {
 		targetState.Spec = &model.TargetSpec{}
 	}
-	targetState.ObjectMeta.ETag = etag
 	return targetState, nil
 }
 
@@ -267,10 +290,11 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	}
 
 	var ret model.TargetState
-	ret, err = getTargetState(target.Body, target.ETag)
+	ret, err = getTargetState(target.Body)
 	if err != nil {
 		return model.TargetState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(target.ETag)
 	return ret, nil
 }
 

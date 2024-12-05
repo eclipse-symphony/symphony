@@ -93,15 +93,16 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 		return model.ActivationState{}, err
 	}
 	var ret model.ActivationState
-	ret, err = getActivationState(entry.Body, entry.ETag)
+	ret, err = getActivationState(entry.Body)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, namespace, err)
 		return model.ActivationState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
-func getActivationState(body interface{}, etag string) (model.ActivationState, error) {
+func getActivationState(body interface{}) (model.ActivationState, error) {
 	var activationState model.ActivationState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &activationState)
@@ -111,7 +112,6 @@ func getActivationState(body interface{}, etag string) (model.ActivationState, e
 	if activationState.Spec == nil {
 		activationState.Spec = &model.ActivationSpec{}
 	}
-	activationState.ObjectMeta.ETag = etag
 	if activationState.Status == nil {
 		activationState.Status = &model.ActivationStatus{}
 	}
@@ -133,6 +133,28 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "activations",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Activation",
+		},
+	}
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getActivationState(entry.Body)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	}
 
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
@@ -221,10 +243,11 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	ret := make([]model.ActivationState, 0)
 	for _, t := range activations {
 		var rt model.ActivationState
-		rt, err = getActivationState(t.Body, t.ETag)
+		rt, err = getActivationState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	log.InfofCtx(ctx, "List activation state for namespace %s get total count %d", namespace, len(ret))

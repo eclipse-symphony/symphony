@@ -85,14 +85,15 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 		return model.CatalogState{}, err
 	}
 	var ret model.CatalogState
-	ret, err = getCatalogState(entry.Body, entry.ETag)
+	ret, err = getCatalogState(entry.Body)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
-func getCatalogState(body interface{}, etag string) (model.CatalogState, error) {
+func getCatalogState(body interface{}) (model.CatalogState, error) {
 	var catalogState model.CatalogState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &catalogState)
@@ -102,7 +103,6 @@ func getCatalogState(body interface{}, etag string) (model.CatalogState, error) 
 	if catalogState.Spec == nil {
 		catalogState.Spec = &model.CatalogSpec{}
 	}
-	catalogState.ObjectMeta.ETag = etag
 	if catalogState.Status == nil {
 		catalogState.Status = &model.CatalogStatus{}
 	}
@@ -121,6 +121,26 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.FederationGroup,
+			"resource":  "catalogs",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Catalog",
+		},
+	}
+	entry, err := m.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getCatalogState(entry.Body)
+		if err != nil {
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	}
 
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
@@ -229,10 +249,11 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 	ret := make([]model.CatalogState, 0)
 	for _, t := range catalogs {
 		var rt model.CatalogState
-		rt, err = getCatalogState(t.Body, t.ETag)
+		rt, err = getCatalogState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil

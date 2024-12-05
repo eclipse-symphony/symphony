@@ -85,6 +85,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
@@ -115,6 +116,27 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": state.ObjectMeta.Namespace,
+			"kind":      "Campaign",
+		},
+	}
+	entry, err := m.StateProvider.Get(ctx, getRequest)
+	if err == nil {
+		// preserve system annotations for existing object
+		itemState, err := getCampaignState(entry.Body)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
+			return err
+		}
+		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	}
+
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -136,6 +158,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -207,6 +230,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))
