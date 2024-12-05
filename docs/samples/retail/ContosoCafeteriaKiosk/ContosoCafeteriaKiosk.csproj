@@ -24,7 +24,7 @@
     <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
     <GenerateTestArtifacts>True</GenerateTestArtifacts>
     <AppxBundle>Always</AppxBundle>
-    <AppxBundlePlatforms>x64</AppxBundlePlatforms>
+    <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
     <AppInstallerUri>https://apps.conoso.com/ContosoCafeteriaKiosk</AppInstallerUri>
     <HoursBetweenUpdateChecks>1680</HoursBetweenUpdateChecks>
   </PropertyGroup>

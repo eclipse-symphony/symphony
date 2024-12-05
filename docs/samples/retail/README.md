@@ -2,7 +2,23 @@
 
 Before start, please [set up your own kubernetes cluster](https://kubernetes.io/docs/setup/) OR follow the [instruction](../../../test/localenv/README.md) to set up minikube to run symphony. **We recommend the second method since it's easier.**
 
+## Build UWP sample app (in Windows)
+0. Search for "For developer" in windows search bar, and then turn on the Developer Mode and Device discovery. Restart you PC to ensure it takes affect.
+1. Open `ContosoCafeteriaKiosk/ContosoCafeteriaKiosk.sln` with Visual Studio 2022.
+2. Build the solution for `x64` and `x86` architecture, `Debug` profile.
+3. Here you should create a new certificate to sign it. Please keep it and trust it on your PC. **(IMPORTANT)**
+4. Copy the `ContosoCafeteriaKiosk_1.0.0.0_Debug_Test` folder to a folder that is accessible by the proxy provider (see below).
+Reference: [Create an App Installer file with Visual Studio](https://learn.microsoft.com/en-us/windows/msix/app-installer/create-appinstallerfile-vs)
+
 ## Deploy a MQTT broker (in WSL)
+
+Please refer to the [instruction](../../../test/localenv/README.md) to set up minikube to run symphony. Here are some command that can be useful:
+
+  ```bash
+  cd ~/symphony/test/localenv
+  mage build:all
+  mage cluster:up
+  ```
 
 We'll use a MQTT broker to facilitate communication between Symphony and the remote agent, which you'll run from your machine or on your target device. 
 We offer a sample deployment file at `templates/mosquitto.yaml`, which you can use to deploy a [mosquitto](https://mosquitto.org/) test MQTT broker with anoymous access enabled.
@@ -27,15 +43,7 @@ If you are using Minikube, the `EXTERNAL-IP` might show as `<pending>` (finally 
   kubectl port-forward svc/mosquitto-service 1883:1883 &
   ```
 
-If you are using MiniKube, please run `minikube tunnel` in a single terminal and keep it open for the rest steps.
-
-## Build UWP sample app (in Windows)
-1. Open `ContosoCafeteriaKiosk/ContosoCafeteriaKiosk.sln` with Visual Studio 2022.
-2. Build the solution for `x64` architecture, `Debug` profile.
-3. Here you should create a new certificate to sign it. Please keep it and trust it on your PC. **(IMPORTANT)**
-4. Copy the `ContosoCafeteriaKiosk_1.0.0.0_Debug_Test` folder to a folder that is accessible by the proxy provider (see below).
-Reference: [Create an App Installer file with Visual Studio](https://learn.microsoft.com/en-us/windows/msix/app-installer/create-appinstallerfile-vs)
-
+If you are using MiniKube, please run `minikube tunnel` in a single terminal windows and keep it open for the rest steps.
 
 ## Setup local Symphony on Windows (in Windows)
 You can use the [`templates/symphony-agent.json`](./templates/symphony-agent.json) as a template for your local Symphony configuration. A few things to notice:
