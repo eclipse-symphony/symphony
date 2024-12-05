@@ -182,6 +182,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -218,16 +219,17 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 			"kind":      "Solution",
 		},
 	}
-	var target states.StateEntry
-	target, err = t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
 	var ret model.SolutionState
-	ret, err = getSolutionState(target.Body)
+	ret, err = getSolutionState(entry.Body)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 

@@ -85,6 +85,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
@@ -229,6 +230,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))

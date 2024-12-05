@@ -161,6 +161,7 @@ func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]mode
 			log.ErrorfCtx(ctx, " M (Models): failed to getModelState, err: %v", err)
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -211,5 +212,6 @@ func (t *ModelsManager) GetState(ctx context.Context, name string, namespace str
 		log.ErrorfCtx(ctx, " M (Models): failed to getModelState, name: %s, err: %v", name, err)
 		return model.ModelState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(m.ETag)
 	return ret, nil
 }

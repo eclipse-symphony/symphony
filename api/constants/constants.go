@@ -31,6 +31,8 @@ const (
 	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
 	SummaryJobIdKey              = "SummaryJobIdKey"
 	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target
+
+	ProviderName = "management.azure.com/provider-name"
 )
 
 func SystemReservedAnnotations() []string {
@@ -45,6 +47,21 @@ func SystemReservedAnnotations() []string {
 		RunningAzureCorrelationIdKey,
 		SummaryJobIdKey,
 		OperationStartTimeKeyPostfix,
+	}
+}
+
+func SystemReservedLabels() []string {
+	return []string{
+		Campaign,
+		DisplayName,
+		ProviderName,
+		ManagerMetaKey,
+		ParentName,
+		RootResource,
+		Solution,
+		StagedTarget,
+		StatusMessage,
+		Target,
 	}
 }
 
@@ -64,6 +81,7 @@ const (
 	Solution           = "solution"
 	Target             = "target"
 	Campaign           = "campaign"
+	StagedTarget       = "staged_target"
 )
 
 // Environment variables keys

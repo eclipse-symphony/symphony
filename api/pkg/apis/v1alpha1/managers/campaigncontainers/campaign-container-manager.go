@@ -155,6 +155,7 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -201,5 +202,6 @@ func (t *CampaignContainersManager) GetState(ctx context.Context, id string, nam
 	if err != nil {
 		return model.CampaignContainerState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(Campaign.ETag)
 	return ret, nil
 }

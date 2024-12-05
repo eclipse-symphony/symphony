@@ -155,6 +155,7 @@ func (t *CatalogContainersManager) ListState(ctx context.Context, namespace stri
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -191,15 +192,16 @@ func (t *CatalogContainersManager) GetState(ctx context.Context, id string, name
 			"kind":      "CatalogContainer",
 		},
 	}
-	var Campaign states.StateEntry
-	Campaign, err = t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.CatalogContainerState{}, err
 	}
 	var ret model.CatalogContainerState
-	ret, err = getCatalogContainerState(Campaign.Body)
+	ret, err = getCatalogContainerState(entry.Body)
 	if err != nil {
 		return model.CatalogContainerState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }

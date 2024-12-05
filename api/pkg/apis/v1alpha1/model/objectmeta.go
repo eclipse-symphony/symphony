@@ -121,17 +121,32 @@ func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
 	c.Annotations[key] = value
 }
 
+func (c *ObjectMeta) UpdateEtag(etag string) {
+	c.ETag = etag
+}
+
 func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 	if c.Annotations == nil {
 		c.Annotations = make(map[string]string)
 	}
 
-	// system annotations should only be updated ineternally
 	for _, key := range constants.SystemReservedAnnotations() {
-		if value, ok := metadata.Annotations[key]; ok {
-			c.Annotations[key] = value
+		if _, exists := c.Annotations[key]; !exists {
+			if value, ok := metadata.Annotations[key]; ok {
+				c.Annotations[key] = value
+			}
 		}
 	}
-	// set the resoure version
-	c.ETag = metadata.ETag
+
+	if c.Labels == nil {
+		c.Labels = make(map[string]string)
+	}
+
+	for _, key := range constants.SystemReservedLabels() {
+		if _, exists := c.Labels[key]; !exists {
+			if value, ok := metadata.Labels[key]; ok {
+				c.Labels[key] = value
+			}
+		}
+	}
 }

@@ -159,6 +159,7 @@ func (t *SkillsManager) ListState(ctx context.Context, namespace string) ([]mode
 			log.ErrorfCtx(ctx, " M (Models): failed to get skill state, err: %v", err)
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -208,5 +209,6 @@ func (t *SkillsManager) GetState(ctx context.Context, name string, namespace str
 		log.ErrorfCtx(ctx, " M (Skills): failed to get skill state, name: %s, err: %v", name, err)
 		return model.SkillState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(m.ETag)
 	return ret, nil
 }

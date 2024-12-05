@@ -181,6 +181,7 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -227,6 +228,7 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 	if err != nil {
 		return model.InstanceState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(instance.ETag)
 	return ret, nil
 }
 

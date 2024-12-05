@@ -98,6 +98,7 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 		log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, namespace, err)
 		return model.ActivationState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
@@ -246,6 +247,7 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	log.InfofCtx(ctx, "List activation state for namespace %s get total count %d", namespace, len(ret))

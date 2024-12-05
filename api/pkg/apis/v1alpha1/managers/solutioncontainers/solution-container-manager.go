@@ -155,6 +155,7 @@ func (t *SolutionContainersManager) ListState(ctx context.Context, namespace str
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -201,5 +202,6 @@ func (t *SolutionContainersManager) GetState(ctx context.Context, id string, nam
 	if err != nil {
 		return model.SolutionContainerState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(Solution.ETag)
 	return ret, nil
 }

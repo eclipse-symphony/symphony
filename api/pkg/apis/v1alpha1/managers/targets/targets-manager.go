@@ -246,6 +246,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -293,6 +294,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	if err != nil {
 		return model.TargetState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(target.ETag)
 	return ret, nil
 }
 

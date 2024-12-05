@@ -165,6 +165,7 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 			log.ErrorfCtx(ctx, " M (Devices): ListState failed to get device state %s, error: %v", t.ID, err)
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -214,5 +215,6 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 		log.ErrorfCtx(ctx, " M (Devices): GetSpec failed to get device state, error: %v", err)
 		return model.DeviceState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }

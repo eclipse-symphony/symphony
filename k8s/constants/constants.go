@@ -9,10 +9,14 @@
 
 package constants
 
-import _ "embed"
+import (
+	_ "embed"
+
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+)
 
 const (
-	FullGroupName            = "symphony"
+	FullGroupName            = api_constants.FullGroupName
 	AzureLocationKey         = "management.azure.com/location" // diagnostic
 	AzureCreatedByKey        = "createdBy"                     // systemDataMap
 	DefaultScope             = "default"                       // Namespace
@@ -38,15 +42,15 @@ const (
 
 // system annotations, reserved and should not be modified by client.
 const (
-	AzureCorrelationIdKey        = "management.azure.com/correlationId"
-	AzureEdgeLocationKey         = "management.azure.com/customLocation"
-	AzureOperationIdKey          = "management.azure.com/operationId"
-	AzureResourceIdKey           = "management.azure.com/resourceId"
-	AzureSystemDataKey           = "management.azure.com/systemData"
-	AzureTenantIdKey             = "management.azure.com/tenantId"
-	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
-	SummaryJobIdKey              = "SummaryJobIdKey"
-	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target
+	AzureCorrelationIdKey        = api_constants.AzureCorrelationIdKey
+	AzureEdgeLocationKey         = api_constants.AzureEdgeLocationKey
+	AzureOperationIdKey          = api_constants.AzureOperationIdKey
+	AzureResourceIdKey           = api_constants.AzureResourceIdKey
+	AzureSystemDataKey           = api_constants.AzureSystemDataKey
+	AzureTenantIdKey             = api_constants.AzureTenantIdKey
+	RunningAzureCorrelationIdKey = api_constants.RunningAzureCorrelationIdKey
+	SummaryJobIdKey              = api_constants.SummaryJobIdKey
+	OperationStartTimeKeyPostfix = api_constants.OperationStartTimeKeyPostfix // instance/target
 )
 
 // Environment variables keys

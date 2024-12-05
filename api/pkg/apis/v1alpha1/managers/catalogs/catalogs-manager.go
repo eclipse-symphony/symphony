@@ -89,6 +89,7 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 	if err != nil {
 		return model.CatalogState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
@@ -252,6 +253,7 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
