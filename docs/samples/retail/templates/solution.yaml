@@ -1,0 +1,90 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: retail-solution
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: retail-solution-v-v1
+spec:
+  rootResource: retail-solution
+  components:
+  - name: kiosk
+    constraints: ${{$equal($property(location), 'windows')}}
+    type: win.uwp
+    properties:
+      app.package.path: "C:\\demo\\ContosoCafeteriaKiosk_1.0.0.0_Debug_Test\\ContosoCafeteriaKiosk_1.0.0.0_x86_x64_Debug.appxbundle"
+  - name: nginx-ingress
+    constraints: ${{$equal($property(location), 'k8s')}}
+    properties:
+      chart:
+        repo: https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz
+        name: ingress-nginx
+        wait: true
+        timeout: 10m
+      values:
+        controller:
+          replicaCount: 1
+          nodeSelector:
+            kubernetes.io/os: linux
+          admissionWebhooks:
+            patch:
+              nodeSelector:
+                kubernetes.io/os: linux
+          service:
+            annotations:
+              service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
+        defaultBackend:
+          nodeSelector:
+            kubernetes.io/os: linux
+    type: helm.v3
+  - name: database
+    type: container
+    constraints: ${{$equal($property(location), 'k8s')}}
+    metadata:
+      service.ports: "[{\"name\":\"port3306\",\"port\": 3306,\"targetPort\":3306}]"
+      service.type: ClusterIP
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":3306,\"protocol\":\"TCP\"}]"
+      container.image: docker.io/mysql:8.4.3
+      env.MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+  - name: retail-backend
+    type: container
+    constraints: ${{$equal($property(location), 'k8s')}}
+    metadata:
+      service.ports: "[{\"name\":\"port3012\",\"port\": 3012,\"targetPort\":5000}]"
+      service.type: ClusterIP
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: ghcr.io/lirenjie95/retail-backend:latest
+      env.MYSQL_HOST: database
+    dependencies:
+      - database
+  - name: ingress
+    type: ingress
+    constraints: ${{$equal($property(location), 'k8s')}}
+    metadata:
+      annotations.nginx.ingress.kubernetes.io/use-regex: "true"
+      annotations.nginx.ingress.kubernetes.io/rewrite-target: /$2
+    properties:
+      ingressClassName: nginx
+      rules:
+        - http:
+            paths:
+              - host: samples.com
+                path: /()(.*)
+                pathType: ImplementationSpecific
+                backend:
+                  service:
+                    name: retail-backend
+                    port:
+                      number: 3012
+    dependencies:
+      - nginx-ingress
+      - retail-backend
+      - database
+      - kiosk
