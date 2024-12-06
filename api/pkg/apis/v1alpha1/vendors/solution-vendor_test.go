@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
@@ -37,6 +38,8 @@ func createSolutionVendor() SolutionVendor {
 	configProvider.Init(mockconfig.MockConfigProviderConfig{})
 	secretProvider := mocksecret.MockSecretProvider{}
 	secretProvider.Init(mocksecret.MockSecretProviderConfig{})
+	keyLockProvider := memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
 	vendor := SolutionVendor{}
 	vendor.Init(vendors.VendorConfig{
 		Properties: map[string]string{
@@ -50,11 +53,16 @@ func createSolutionVendor() SolutionVendor {
 					"providers.persistentstate": "mem-state",
 					"providers.config":          "mock-config",
 					"providers.secret":          "mock-secret",
+					"providers.keylock":         "mem-keylock",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
 						Type:   "providers.state.memory",
 						Config: memorystate.MemoryStateProviderConfig{},
+					},
+					"mem-keylock": {
+						Type:   "providers.keylock.memory",
+						Config: memorykeylock.MemoryKeyLockProviderConfig{},
 					},
 					"mock-config": {
 						Type:   "providers.config.mock",
@@ -72,6 +80,7 @@ func createSolutionVendor() SolutionVendor {
 	}, map[string]map[string]providers.IProvider{
 		"solution-manager": {
 			"mem-state":   &stateProvider,
+			"mem-keylock": &keyLockProvider,
 			"mock-config": &configProvider,
 			"mock-secret": &secretProvider,
 		},

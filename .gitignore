@@ -19,3 +19,6 @@ piccolo/target
 
 go.work
 *.log
+
+docs-site/node_modules
+docs-site/.hugo_build.lock

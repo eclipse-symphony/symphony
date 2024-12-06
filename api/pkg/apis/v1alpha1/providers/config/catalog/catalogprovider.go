@@ -173,8 +173,9 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 		return nil, err
 	}
 	errList := make([]error, 0)
+	allProperties, err := m.getCatalogPropertiesAll(ctx, catalog, namespace)
 	ret := map[string]interface{}{}
-	for k, v := range catalog.Spec.Properties {
+	for k, v := range allProperties {
 		tv, err := m.traceValue(ctx, v, localcontext, nil)
 		if err != nil {
 			// Wrap the error using fmt.Errorf("%w", err)
@@ -195,6 +196,57 @@ func (m *CatalogConfigProvider) ReadObject(ctx context.Context, object string, l
 		return ret, v1alpha2.NewCOAError(nil, msg, v1alpha2.BadRequest)
 	} else {
 		return ret, nil
+	}
+}
+
+func (m *CatalogConfigProvider) getCatalogPropertiesAll(ctx context.Context, catalog model.CatalogState, namespace string) (map[string]interface{}, error) {
+	ret := map[string]interface{}{}
+	if catalog.Spec.ParentName != "" {
+		metaName := utils.ConvertReferenceToObjectName(catalog.Spec.ParentName)
+		parent, err := m.ApiClient.GetCatalog(ctx, metaName, namespace, m.Config.User, m.Config.Password)
+		if err != nil {
+			return nil, err
+		}
+		parentProperties, err := m.getCatalogPropertiesAll(ctx, parent, namespace)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range parentProperties {
+			ret[k] = v
+		}
+	}
+	for k, v := range catalog.Spec.Properties {
+		// we should deep extend the properties
+		// if the property is a map, we should deep extend the map
+		// if the property is a list, we should deep extend the list
+		// if the property is a string, we should just set the string
+		// if the property is a number, we should just set the number
+		// if the property is a boolean, we should just set the boolean
+		// if the property is a null, we should just set the null
+		ret[k] = deepExtend(ret[k], v)
+	}
+	return ret, nil
+}
+
+func deepExtend(dst, src interface{}) interface{} {
+	switch src := src.(type) {
+	case map[string]interface{}:
+		if dstMap, ok := dst.(map[string]interface{}); ok {
+			for k, v := range src {
+				// if the key is not in the dstMap, just set the key
+				if _, ok := dstMap[k]; !ok {
+					dstMap[k] = v
+				} else {
+					dstMap[k] = deepExtend(dstMap[k], v)
+				}
+			}
+			return dstMap
+		}
+		return src
+	case []interface{}:
+		return src
+	default:
+		return src
 	}
 }
 

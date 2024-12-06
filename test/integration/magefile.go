@@ -119,3 +119,28 @@ func shellExec(cmd string) error {
 
 	return execCmd.Run()
 }
+
+func TestFault() error {
+	fmt.Println("Searching for integration tests")
+
+	scenariosPath, err := filepath.Abs("scenarios")
+	if err != nil {
+		return err
+	}
+
+	testFiles, err := listTests(scenariosPath)
+	if err != nil {
+		return err
+	}
+
+	for _, testFile := range testFiles {
+		fmt.Printf("Running tests in: %s\n", testFile)
+
+		err = RunTest(testFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
