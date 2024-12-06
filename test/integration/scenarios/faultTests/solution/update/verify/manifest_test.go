@@ -1,0 +1,349 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+package verify
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
+	"github.com/eclipse-symphony/symphony/test/integration/scenarios/faultTests/utils"
+	"github.com/princjef/mageutil/shellcmd"
+	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+)
+
+const ()
+
+type (
+	TestCase struct {
+		// Name gives the brief introduction of each test case
+		Name string
+
+		// Target is Symphony manifest to test, e.g. solution/target
+		Target string
+
+		// ComponentsToAdd specifies the components to be added to the symphony manifest
+		ComponentsToAdd []string
+
+		// PodsToVerify specifies the pods need to be running
+		PodsToVerify []string
+
+		// DeletedPodsToVerify specifies the pods need to be deleted
+		DeletedPodsToVerify []string
+	}
+)
+
+var (
+	// manifestTemplateFolder includes manifest templates with empty components to deploy
+	manifestTemplateFolder = "../manifestTemplates"
+	// testManifestsFolder includes temporary manifest files for each test run. set in .gitignore
+	testManifestsFolder = "../manifestForTestingOnly"
+)
+
+var (
+	// Manifest templates
+	containerManifestTemplates = []string{
+		fmt.Sprintf("%s/solution-container.yaml", manifestTemplateFolder),
+	}
+
+	manifestTemplates = []string{
+		fmt.Sprintf("%s/target.yaml", manifestTemplateFolder),
+		fmt.Sprintf("%s/solution.yaml", manifestTemplateFolder),
+		fmt.Sprintf("%s/instance.yaml", manifestTemplateFolder),
+	}
+
+	// Manifests to deploy
+	testManifests = []string{
+		fmt.Sprintf("%s/target.yaml", testManifestsFolder),
+		fmt.Sprintf("%s/solution.yaml", testManifestsFolder),
+		fmt.Sprintf("%s/instance.yaml", testManifestsFolder),
+	}
+
+	testCases = []TestCase{
+		{
+			Name:                "Initial Symphony Target Deployment with nginx ingress",
+			Target:              "target",
+			ComponentsToAdd:     []string{"nginx-ingress"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller"},
+			DeletedPodsToVerify: []string{},
+		},
+		{
+			Name:                "Update Symphony Target to add redis",
+			Target:              "target",
+			ComponentsToAdd:     []string{"nginx-ingress", "redis"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-faultupdatetarget"},
+			DeletedPodsToVerify: []string{},
+		},
+		{
+			Name:                "Update Symphony Solution to add bitnami nginx",
+			Target:              "solution",
+			ComponentsToAdd:     []string{"bitnami-nginx"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-faultupdatetarget", "nginx"},
+			DeletedPodsToVerify: []string{},
+		},
+		{
+			Name:                "Update Symphony Solution to remove bitnami nginx and add prometheus",
+			Target:              "solution",
+			ComponentsToAdd:     []string{"prometheus-server"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-faultupdatetarget", "faultupdateinstance"},
+			DeletedPodsToVerify: []string{"nginx"},
+		},
+		{
+			Name:                "Update Symphony Target to remove nginx ingress and redis",
+			Target:              "target",
+			ComponentsToAdd:     []string{},
+			PodsToVerify:        []string{},
+			DeletedPodsToVerify: []string{"proxy-nginx-ingress-controller", "target-runtime-faultupdatetarget"},
+		},
+	}
+)
+
+func TestScenario_Update_AllNamespaces(t *testing.T) {
+	namespace := "nondefault"
+	defer shellcmd.Command(fmt.Sprintf("rm -rf %s", testManifestsFolder)).Run()
+
+	// Create non-default namespace if not exist
+	err := shellcmd.Command(fmt.Sprintf("kubectl get namespace %s", namespace)).Run()
+	if err != nil {
+		// Better to check err message here but command only returns "exit status 1" for non-exisiting namespace
+		err = shellcmd.Command(fmt.Sprintf("kubectl create namespace %s", namespace)).Run()
+		require.NoError(t, err)
+	}
+	Scenario_Update(t, namespace)
+}
+
+func Scenario_Update(t *testing.T, namespace string) {
+	// Deploy base manifests
+	for _, manifest := range containerManifestTemplates {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+		require.NoError(t, err)
+	}
+	for _, manifest := range manifestTemplates {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+		require.NoError(t, err)
+	}
+	for _, test := range testCases {
+		fmt.Printf("[Test case]: %s\n", test.Name)
+
+		err := utils.InjectPodFailure()
+		require.NoError(t, err)
+
+		// Construct the manifests
+		err = testhelpers.BuildManifestFile(
+			manifestTemplateFolder, testManifestsFolder, test.Target, test.ComponentsToAdd)
+		require.NoError(t, err)
+
+		// Deploy the modified manifests
+		for _, manifest := range testManifests {
+			fullPath, err := filepath.Abs(manifest)
+			require.NoError(t, err)
+			// skip deploying unchanged manifest to test instance Watch logic
+			// i.e. target and solution changes should trigger instance reconciler
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				continue
+			}
+
+			for i := 0; i < 10; i++ {
+				err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
+				if err == nil {
+					break
+				}
+				time.Sleep(5 * time.Second)
+			}
+			require.NoError(t, err)
+		}
+		// Sleep for 10 second to hit the failure point
+		time.Sleep(10 * time.Second)
+
+		verifyTargetStatus(t, test, namespace)
+		verifyInstanceStatus(t, test, namespace)
+		verifyPodsExist(t, test, test.PodsToVerify)
+		verifyPodsDeleted(t, test, test.DeletedPodsToVerify)
+	}
+}
+
+// Verify target has correct status
+func verifyTargetStatus(t *testing.T, test TestCase, namespace string) {
+	// Verify targets
+	crd := &unstructured.Unstructured{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "fabric.symphony",
+		Version: "v1",
+		Kind:    "Target",
+	})
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	for {
+		resources, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "fabric.symphony",
+			Version:  "v1",
+			Resource: "targets",
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		require.Len(t, resources.Items, 1, "there should be only one target")
+
+		status := getStatus(resources.Items[0])
+		fmt.Printf("Current target status: %s\n", status)
+		require.NotEqual(t, "Failed", status, fmt.Sprintf("%s: Target should not be in failed state", test.Name))
+		if status == "Succeeded" {
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+}
+
+// Verify instance has correct status
+func verifyInstanceStatus(t *testing.T, test TestCase, namespace string) {
+	// Verify instances
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	for {
+		resources, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "solution.symphony",
+			Version:  "v1",
+			Resource: "instances",
+		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		require.Len(t, resources.Items, 1, "there should be only one instance")
+
+		status := getStatus(resources.Items[0])
+		fmt.Printf("Current instance status: %s\n", status)
+		require.NotEqual(t, "Failed", status, fmt.Sprintf("%s: Instance should not be in failed state", test.Name))
+		if status == "Succeeded" {
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+}
+
+// Verify that the pods we expect are running in the namespace
+// Lists pods from the cluster and then verifies that the
+// expected strings are found in the list.
+func verifyPodsExist(t *testing.T, test TestCase, toFind []string) {
+	// Get kube client
+	kubeClient, err := testhelpers.KubeClient()
+	require.NoError(t, err)
+
+	for i := 0; ; i++ {
+		// List all pods in the namespace
+		pods, err := kubeClient.CoreV1().Pods("test-scope").List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		// Verify that the pods we expect are running
+		notFound := make(map[string]bool)
+		for _, s := range toFind {
+			found := false
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, s) && pod.Status.Phase == "Running" {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				notFound[s] = true
+			}
+		}
+
+		if len(notFound) == 0 {
+			fmt.Println("All pods found!")
+			break
+		} else {
+			time.Sleep(time.Second * 5)
+
+			if i%12 == 0 {
+				fmt.Printf("Waiting for pods: %v\n", notFound)
+			}
+		}
+	}
+}
+
+// Verify that the pods we expect are deleted in the namespace
+// Lists pods from the cluster and then verifies that the
+// expected strings are no longer found in the list.
+func verifyPodsDeleted(t *testing.T, test TestCase, toFind []string) {
+	// Get kube client
+	kubeClient, err := testhelpers.KubeClient()
+	require.NoError(t, err)
+
+	for i := 0; ; i++ {
+		// List all pods in the namespace
+		pods, err := kubeClient.CoreV1().Pods("test-scope").List(context.Background(), metav1.ListOptions{})
+		require.NoError(t, err)
+
+		// Verify that the pods we expect are deleted
+		waitingForDeletion := make(map[string]bool)
+		for _, s := range toFind {
+			found := false
+			for _, pod := range pods.Items {
+				if strings.HasPrefix(pod.Name, s) {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				waitingForDeletion[s] = true
+			}
+		}
+
+		if len(waitingForDeletion) == 0 {
+			fmt.Println("All pods deleted!")
+			break
+		} else {
+			time.Sleep(time.Second * 5)
+
+			if i%12 == 0 {
+				fmt.Printf("Waiting for pods to be deleted: %v\n", waitingForDeletion)
+			}
+		}
+	}
+}
+
+// Helper for finding the status
+func getStatus(resource unstructured.Unstructured) string {
+	status, ok := resource.Object["status"].(map[string]interface{})
+	if ok {
+		props, ok := status["provisioningStatus"].(map[string]interface{})
+		if ok {
+			statusString, ok := props["status"].(string)
+			if ok {
+				return statusString
+			}
+		}
+	}
+
+	return ""
+}

@@ -1,0 +1,24 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: sitek8starget-v-v1
+spec:
+  rootResource: sitek8starget
+  catalogType: target
+  properties:
+    metadata:
+      name: sitek8starget
+    spec:
+      properties:
+        group: site
+      topologies:
+      - bindings:        
+        - role: yaml.k8s
+          provider: providers.target.kubectl
+          config:
+            inCluster: "true"
+        - role: instance
+          provider: providers.target.k8s
+          config:
+            inCluster: "true"   
+            deploymentStrategy: "services"
