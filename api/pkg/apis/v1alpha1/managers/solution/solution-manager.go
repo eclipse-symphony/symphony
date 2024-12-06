@@ -58,6 +58,11 @@ const (
 	defaultTimeout = 60 * time.Minute
 )
 
+type JobIdentifier struct {
+	Namespace string
+	Name      string
+}
+
 type SolutionManager struct {
 	managers.Manager
 	TargetProviders map[string]tgt.ITargetProvider
@@ -67,7 +72,7 @@ type SolutionManager struct {
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
-	jobList         map[string]map[string]map[string]context.CancelFunc
+	jobList         map[JobIdentifier]map[string]context.CancelFunc
 }
 
 type SolutionManagerDeploymentState struct {
@@ -149,7 +154,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 }
 
 func (s *SolutionManager) initCancelMap() {
-	s.jobList = make(map[string]map[string]map[string]context.CancelFunc)
+	s.jobList = make(map[JobIdentifier]map[string]context.CancelFunc)
 }
 
 func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
@@ -870,7 +875,7 @@ func (s *SolutionManager) Reconcil() []error {
 
 func (s *SolutionManager) ReconcileWithCancelWrapper(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	instance := deployment.Instance.ObjectMeta.Name
-	log.InfofCtx(ctx, " M (Solution): onReconcile create context with timeout, instance: %s, job id: %s, isRemove: %s", instance, deployment.JobID, remove)
+	log.InfofCtx(ctx, " M (Solution): onReconcile create context with timeout, instance: %s, job id: %s, isRemove: %v", instance, deployment.JobID, remove)
 
 	// Two conditions when the context will be canceled:
 	//   1. default timeout reached;
@@ -883,7 +888,7 @@ func (s *SolutionManager) ReconcileWithCancelWrapper(ctx context.Context, deploy
 
 	defer func() {
 		// call cancel to release resource and clean up the cancelFunc in jobList
-		log.InfofCtx(ctx, " M (Solution): onReconcile complete, namespace: %s, instance: %s, job id: %s, isRemove: %s", namespace, instance, deployment.JobID, remove)
+		log.InfofCtx(ctx, " M (Solution): onReconcile complete, namespace: %s, instance: %s, job id: %s, isRemove: %v", namespace, instance, deployment.JobID, remove)
 		cancel()
 		if !remove {
 			s.cleanUpCancelFunc(namespace, instance, deployment.JobID)
@@ -899,46 +904,41 @@ func (s *SolutionManager) addCancelFunc(ctx context.Context, namespace string, i
 	defer jobListLock.Unlock()
 	log.InfofCtx(ctx, " M (Solution): AddCancelFunc, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
 
-	if _, exists := s.jobList[namespace]; !exists {
-		s.jobList[namespace] = make(map[string]map[string]context.CancelFunc)
-	}
-	if _, exists := s.jobList[namespace][instance]; !exists {
-		s.jobList[namespace][instance] = make(map[string]context.CancelFunc)
+	jobKey := JobIdentifier{Namespace: namespace, Name: instance}
+	if _, exists := s.jobList[jobKey]; !exists {
+		s.jobList[jobKey] = make(map[string]context.CancelFunc)
 	}
 
-	s.jobList[namespace][instance][jobID] = cancel
+	s.jobList[jobKey][jobID] = cancel
 }
 
 func (s *SolutionManager) cleanUpCancelFunc(namespace string, instance string, jobID string) {
 	jobListLock.Lock()
 	defer jobListLock.Unlock()
 
-	if _, exists := s.jobList[namespace]; exists {
-		for jid := range s.jobList[namespace][instance] {
-			if jid == jobID {
-				delete(s.jobList[namespace][instance], jid)
-			}
-		}
-		if len(s.jobList[namespace][instance]) == 0 {
-			delete(s.jobList[namespace], instance)
-		}
+	jobKey := JobIdentifier{Namespace: namespace, Name: instance}
+	if _, exists := s.jobList[jobKey]; exists {
+		delete(s.jobList[jobKey], jobID)
+	}
+
+	if len(s.jobList[jobKey]) == 0 {
+		delete(s.jobList, jobKey)
 	}
 }
 
 func (s *SolutionManager) CancelPreviousJobs(ctx context.Context, namespace string, instance string, jobID string) error {
-	jobListLock.Lock()
-	defer jobListLock.Unlock()
+	jobListLock.RLock()
+	defer jobListLock.RUnlock()
 	log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
 
-	if _, exists := s.jobList[namespace]; exists {
-		for jid, cancelJob := range s.jobList[namespace][instance] {
-			if convertJobIdToInt(jid) < convertJobIdToInt(jobID) {
-				// only cancel jobs prior to the delete job
-				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, found previous job id: %s", jid)
-				if cancelJob != nil {
-					cancelJob()
-					log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", jid)
-				}
+	jobKey := JobIdentifier{Namespace: namespace, Name: instance}
+	for jid, cancelJob := range s.jobList[jobKey] {
+		if convertJobIdToInt(jid) < convertJobIdToInt(jobID) {
+			// only cancel jobs prior to the delete job
+			log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, found previous job id: %s", jid)
+			if cancelJob != nil {
+				cancelJob()
+				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", jid)
 			}
 		}
 	}
