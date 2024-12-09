@@ -146,7 +146,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.Validator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -421,10 +421,6 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 	}
 	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
-}
-
-func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState, oldState model.ActivationState, err error) error {
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, oldState, err)
 }
 
 func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {

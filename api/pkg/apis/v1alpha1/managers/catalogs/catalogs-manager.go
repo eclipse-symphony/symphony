@@ -137,7 +137,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 				state.ObjectMeta.Labels[constants.ParentName] = validation.ConvertReferenceToObjectName(state.Spec.ParentName)
 			}
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CatalogValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -307,10 +307,6 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 		res[key] = set.Nodes
 	}
 	return res, nil
-}
-
-func (t *CatalogsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CatalogState, oldState model.CatalogState, err error) error {
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CatalogValidator, state, oldState, err)
 }
 
 func (t *CatalogsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {

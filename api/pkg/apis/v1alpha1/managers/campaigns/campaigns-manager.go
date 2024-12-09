@@ -128,7 +128,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CampaignValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -219,10 +219,6 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	}
 	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
-}
-
-func (t *CampaignsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CampaignState, oldState model.CampaignState, err error) error {
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CampaignValidator, state, oldState, err)
 }
 
 func (t *CampaignsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {

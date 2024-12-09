@@ -103,7 +103,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
 			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -214,10 +214,6 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 	}
 	ret.ObjectMeta.UpdateEtag(instance.ETag)
 	return ret, nil
-}
-
-func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState, oldState model.InstanceState, err error) error {
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, oldState, err)
 }
 
 func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {

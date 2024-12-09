@@ -109,7 +109,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -281,10 +281,6 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	}
 	ret.ObjectMeta.UpdateEtag(target.ETag)
 	return ret, nil
-}
-
-func (t *TargetsManager) ValidateCreateOrUpdate(ctx context.Context, state model.TargetState, oldState model.TargetState, err error) error {
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, oldState, err)
 }
 
 func (t *TargetsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {

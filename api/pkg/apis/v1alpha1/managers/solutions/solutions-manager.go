@@ -108,7 +108,7 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
 			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -216,10 +216,6 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 	}
 	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
-}
-
-func (t *SolutionsManager) ValidateCreateOrUpdate(ctx context.Context, state model.SolutionState, oldState model.SolutionState, err error) error {
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, oldState, err)
 }
 
 func (t *SolutionsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
