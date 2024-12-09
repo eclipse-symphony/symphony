@@ -9,7 +9,6 @@ package vendors
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -73,8 +72,7 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 			}
 			err := e.JobsManager.HandleJobEvent(ctx, event)
 			if err != nil && v1alpha2.IsDelayed(err) {
-				time.Sleep(5 * time.Second)
-				go e.Vendor.Context.Publish(topic, event)
+				return err
 			}
 			// job reconciler already has a retry mechanism, return nil to avoid retrying
 			return nil
