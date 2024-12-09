@@ -394,6 +394,14 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 			ret[k] = v
 		}
 	}
+
+	for _, v := range ret {
+		switch v.Status {
+		case v1alpha2.DeleteFailed, v1alpha2.ValidateFailed, v1alpha2.UpdateFailed:
+			err := v1alpha2.NewCOAError(errors.New(v.Message), "executing script returned error output", v.Status)
+			return ret, err
+		}
+	}
 	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

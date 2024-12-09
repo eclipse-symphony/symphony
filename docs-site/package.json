@@ -1,0 +1,35 @@
+{
+  "name": "symphony-docs",
+  "version": "0.1.0",
+  "description": "Documentation site for Symphony",
+  "main": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "",
+  "bugs": {
+    "url": ""
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://docs.symphony.io",
+  "devDependencies": {
+    "autoprefixer": "^9.8.6",
+    "exec-bin": "^1.0.0",
+    "hugo-installer": "^4.0.1",
+    "postcss-cli": "^7.1.2"
+  },
+  "dependencies": {
+    "autoprefixer": "^9.8.6",
+    "exec-bin": "^1.0.0",
+    "hugo-installer": "^4.0.1",
+    "postcss": "^8.4.47",
+    "postcss-cli": "^7.1.2"
+  },
+  "scripts": {
+    "install": "git submodule update --init --recursive && cd themes/docsy && npm install",
+    "postinstall": "hugo-installer --version 0.117.0 --extended",
+    "build": "exec-bin bin/hugo/hugo",
+    "start": "exec-bin bin/hugo/hugo server"
+  }
+}
