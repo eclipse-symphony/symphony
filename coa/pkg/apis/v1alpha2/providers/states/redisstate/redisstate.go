@@ -29,7 +29,35 @@ var rLog = logger.NewLogger("coa.runtime")
 
 const (
 	entryCountPerList = 100
-	separator         = "*"
+	separator         = "."
+
+	// SetDefaultQuery is the lua script to set the default value
+	// 1. If the etag is not set, set always succeeds
+	// 2. If the etag is set, set succeeds only if
+	// 		1) the etag matches the current etag
+	// 		2) the etag "0" and the first-write flag is not set
+	setDefaultQuery = `
+	local etag = redis.pcall("HGET", KEYS[1], "version");
+	if type(etag) == "table" then
+	  redis.call("DEL", KEYS[1]);
+	end;
+	local fwr = redis.pcall("HGET", KEYS[1], "first-write");
+	if not etag or type(etag)=="table" or etag == "" or etag == ARGV[1] or (not fwr and ARGV[1] == "0") then
+	  redis.call("HSET", KEYS[1], "values", ARGV[2]);
+	  if ARGV[3] == "1" then
+	    redis.call("HSET", KEYS[1], "first-write", 1);
+	  end;
+	  return redis.call("HINCRBY", KEYS[1], "version", 1)
+	else
+	  return error("failed to set key " .. KEYS[1])
+	end`
+	delDefaultQuery = `
+	local etag = redis.pcall("HGET", KEYS[1], "version");
+	if not etag or type(etag)=="table" or etag == ARGV[1] or etag == "" or ARGV[1] == "0" then
+	  return redis.call("DEL", KEYS[1])
+	else
+	  return error("failed to delete " .. KEYS[1])
+	end`
 )
 
 type RedisStateProviderConfig struct {
@@ -147,9 +175,17 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 	if err != nil {
 		return entry.Value.ID, err
 	}
+	firstWrite := 0
+	if entry.Options.Concurrency == states.FirstWrite {
+		firstWrite = 1
+	}
+
 	if entry.Options.UpdateStatusOnly {
-		var existing string
-		existing, err = r.Client.HGet(r.Ctx, key, "values").Result()
+		var existingMap map[string]string
+		var existing, etag string
+		existingMap, err = r.Client.HGetAll(r.Ctx, key).Result()
+		existing = existingMap["values"]
+		etag = existingMap["etag"]
 		if err != nil {
 			return entry.Value.ID, v1alpha2.NewCOAError(nil, fmt.Sprintf("redis state %s not found. Cannot update state only", entry.Value.ID), v1alpha2.BadRequest)
 		}
@@ -169,15 +205,22 @@ func (r *RedisStateProvider) Upsert(ctx context.Context, entry states.UpsertRequ
 		}
 		oldEntryDict["status"] = oldStatusDict
 		body, _ = json.Marshal(oldEntryDict)
-		_, err = r.Client.HSet(r.Ctx, key, "values", string(body)).Result()
+		if etag == "" {
+			etag = "0"
+		}
+		err = r.Client.Do(r.Ctx, "EVAL", setDefaultQuery, 1, key, etag, string(body), 1).Err()
 		return entry.Value.ID, err
 	}
-
-	properties := map[string]interface{}{
-		"values": string(body),
-		"etag":   entry.Value.ETag,
+	var etag int
+	etag, err = parseEtag(entry)
+	if err != nil {
+		return entry.Value.ID, err
 	}
-	_, err = r.Client.HSet(r.Ctx, key, properties).Result()
+	err = r.Client.Do(r.Ctx, "EVAL", setDefaultQuery, 1, key, etag, string(body), firstWrite).Err()
+	//_, err = r.Client.HSet(r.Ctx, key, properties).Result()
+	if err != nil {
+		rLog.ErrorfCtx(ctx, "  P (Redis State): failed to upsert state %s with keyPrefix %s with error %s", entry.Value.ID, keyPrefix, err.Error())
+	}
 	return entry.Value.ID, err
 }
 
@@ -222,11 +265,11 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 				continue
 			}
 			parts := strings.Split(key, separator)
-			if len(parts) != 3 {
+			if len(parts) != 4 {
 				rLog.Errorf("  P (Redis State): key is not valid %s: %+v", key, err)
 				continue
 			}
-			entry, err := CastRedisPropertiesToStateEntry(parts[2], result)
+			entry, err := CastRedisPropertiesToStateEntry(parts[3], result)
 			if err != nil {
 				rLog.Errorf("  P (Redis State): failed to cast entry for key %s: %+v", key, err)
 				continue
@@ -269,8 +312,18 @@ func (r *RedisStateProvider) Delete(ctx context.Context, request states.DeleteRe
 	rLog.DebugfCtx(ctx, "  P (Redis State): delete state %s with keyPrefix %s", request.ID, keyPrefix)
 
 	HKey := fmt.Sprintf("%s%s%s", keyPrefix, separator, request.ID)
-	_, err = r.Client.Del(r.Ctx, HKey).Result()
-	return nil
+
+	var etag string
+	if request.ETag == nil || *request.ETag == "" {
+		etag = "0"
+	} else {
+		etag = *request.ETag
+	}
+	err = r.Client.Do(r.Ctx, "EVAL", delDefaultQuery, 1, HKey, etag).Err()
+	if err != nil {
+		rLog.ErrorfCtx(ctx, "  P (Redis State): failed to delete state %s with keyPrefix %s with error %s", request.ID, keyPrefix, err.Error())
+	}
+	return err
 }
 
 func (r *RedisStateProvider) Get(ctx context.Context, request states.GetRequest) (states.StateEntry, error) {
@@ -339,7 +392,7 @@ func getObjectTypePrefixForList(metadata map[string]interface{}) (string, error)
 	}
 	if group, ok := metadata["group"]; ok {
 		if gstring, ok := group.(string); ok && gstring != "" {
-			objectType = objectType + "." + gstring
+			objectType = objectType + separator + gstring
 		}
 	}
 	if objectType == "" {
@@ -350,7 +403,7 @@ func getObjectTypePrefixForList(metadata map[string]interface{}) (string, error)
 
 func CastRedisPropertiesToStateEntry(id string, properties map[string]string) (states.StateEntry, error) {
 	entry := states.StateEntry{}
-	entry.ETag = properties["etag"]
+	entry.ETag = properties["version"]
 	// Body should be a map[string]interface{} to be align with other state providers
 	var BodyDict map[string]interface{}
 	err := json.Unmarshal([]byte(properties["values"]), &BodyDict)
@@ -360,6 +413,18 @@ func CastRedisPropertiesToStateEntry(id string, properties map[string]string) (s
 	entry.Body = BodyDict
 	entry.ID = id
 	return entry, nil
+}
+
+func parseEtag(req states.UpsertRequest) (int, error) {
+	if req.Options.Concurrency == states.LastWrite || req.ETag == nil || *req.ETag == "" {
+		return 0, nil
+	}
+	ver, err := strconv.Atoi(*req.ETag)
+	if err != nil {
+		return -1, v1alpha2.NewCOAError(err, fmt.Sprintf("invalid etag %s", *req.ETag), v1alpha2.BadRequest)
+	}
+
+	return ver, nil
 }
 
 func getStatusDictFromMarshalStateEntryBody(body []byte) (map[string]interface{}, map[string]interface{}, error) {
