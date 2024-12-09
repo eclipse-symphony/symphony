@@ -681,7 +681,7 @@ func (s *SolutionManager) canSkipStep(ctx context.Context, step model.Deployment
 					rule := provider.GetValidationRule(ctx)
 					for _, sc := range currentState.Components {
 						if sc.Name == c.Name {
-							if rule.IsComponentChanged(sc, c) {
+							if rule.IsComponentChanged(c, newCom.Component) || rule.IsComponentChanged(sc, newCom.Component) {
 								return false // component has changed, can't skip the step
 							}
 							break
