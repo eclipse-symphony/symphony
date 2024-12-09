@@ -97,24 +97,9 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.FabricGroup,
-			"resource":  "targets",
-			"namespace": state.ObjectMeta.Namespace,
-		},
-	}
-	item, err := t.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve system annotations for existing object
-		itemState, err := getTargetState(item)
-		if err != nil {
-			log.ErrorfCtx(ctx, "Failed to convert to target state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	if t.needValidate {
@@ -124,7 +109,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = t.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -298,9 +283,8 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	return ret, nil
 }
 
-func (t *TargetsManager) ValidateCreateOrUpdate(ctx context.Context, state model.TargetState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, old, err)
+func (t *TargetsManager) ValidateCreateOrUpdate(ctx context.Context, state model.TargetState, oldState model.TargetState, err error) error {
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, oldState, err)
 }
 
 func (t *TargetsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {

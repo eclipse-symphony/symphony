@@ -85,25 +85,9 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.FabricGroup,
-			"resource":  "devices",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "Device",
-		},
-	}
-	entry, err := t.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve system annotations for existing object
-		ret, err := getDeviceState(entry.Body)
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Devices): GetSpec failed to get device state, error: %v", err)
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(ret.ObjectMeta)
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	upsertRequest := states.UpsertRequest{

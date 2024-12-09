@@ -78,24 +78,9 @@ func (t *SolutionContainersManager) UpsertState(ctx context.Context, name string
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.SolutionGroup,
-			"resource":  "solutioncontainers",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "SolutionContainer",
-		},
-	}
-	Solution, err := t.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve existing object annotations
-		ret, err := getSolutionContainerState(Solution.Body)
-		if err != nil {
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(ret.ObjectMeta)
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	body := map[string]interface{}{

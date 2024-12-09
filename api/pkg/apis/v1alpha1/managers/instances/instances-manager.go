@@ -89,25 +89,9 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.SolutionGroup,
-			"resource":  "instances",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "Instance",
-		},
-	}
-	item, err := t.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve system annotations for existing object
-		itemState, err := getInstanceState(item.Body)
-		if err != nil {
-			log.ErrorfCtx(ctx, "Failed to convert to instance state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	if t.needValidate {
@@ -119,7 +103,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
 			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = t.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -232,9 +216,8 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 	return ret, nil
 }
 
-func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, old, err)
+func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState, oldState model.InstanceState, err error) error {
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, oldState, err)
 }
 
 func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {

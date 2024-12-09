@@ -95,24 +95,9 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.SolutionGroup,
-			"resource":  "solutions",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "Solution",
-		},
-	}
-	item, err := t.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		itemState, err := getSolutionState(item.Body)
-		if err != nil {
-			log.ErrorfCtx(ctx, "Failed to convert to solution state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	if t.needValidate {
@@ -123,7 +108,7 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
 			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = t.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -233,9 +218,8 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 	return ret, nil
 }
 
-func (t *SolutionsManager) ValidateCreateOrUpdate(ctx context.Context, state model.SolutionState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, old, err)
+func (t *SolutionsManager) ValidateCreateOrUpdate(ctx context.Context, state model.SolutionState, oldState model.SolutionState, err error) error {
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, oldState, err)
 }
 
 func (t *SolutionsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {

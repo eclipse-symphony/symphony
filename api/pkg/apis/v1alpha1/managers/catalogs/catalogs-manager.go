@@ -122,24 +122,9 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.FederationGroup,
-			"resource":  "catalogs",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "Catalog",
-		},
-	}
-	entry, err := m.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve system annotations for existing object
-		itemState, err := getCatalogState(entry.Body)
-		if err != nil {
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	if m.needValidate {
@@ -152,7 +137,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 				state.ObjectMeta.Labels[constants.ParentName] = validation.ConvertReferenceToObjectName(state.Spec.ParentName)
 			}
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = m.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -324,9 +309,8 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 	return res, nil
 }
 
-func (t *CatalogsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CatalogState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CatalogValidator, state, old, err)
+func (t *CatalogsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CatalogState, oldState model.CatalogState, err error) error {
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CatalogValidator, state, oldState, err)
 }
 
 func (t *CatalogsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {

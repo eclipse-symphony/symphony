@@ -134,26 +134,9 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.WorkflowGroup,
-			"resource":  "activations",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "Activation",
-		},
-	}
-	var entry states.StateEntry
-	entry, err = m.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve system annotations for existing object
-		itemState, err := getActivationState(entry.Body)
-		if err != nil {
-			log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, state.ObjectMeta.Namespace, err)
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(itemState.ObjectMeta)
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	if m.needValidate {
@@ -163,7 +146,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = m.ValidateCreateOrUpdate(ctx, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -440,9 +423,8 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 	return nil
 }
 
-func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, old, err)
+func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState, oldState model.ActivationState, err error) error {
+	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, oldState, err)
 }
 
 func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {

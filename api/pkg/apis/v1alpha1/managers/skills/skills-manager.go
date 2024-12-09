@@ -79,25 +79,9 @@ func (t *SkillsManager) UpsertState(ctx context.Context, name string, state mode
 	}
 	state.ObjectMeta.FixNames(name)
 
-	getRequest := states.GetRequest{
-		ID: name,
-		Metadata: map[string]interface{}{
-			"version":   "v1",
-			"group":     model.AIGroup,
-			"resource":  "skills",
-			"namespace": state.ObjectMeta.Namespace,
-			"kind":      "Skill",
-		},
-	}
-	m, err := t.StateProvider.Get(ctx, getRequest)
-	if err == nil {
-		// preserve system annotations for existing object
-		ret, err := getSkillState(m.Body)
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Skills): failed to get skill state, name: %s, err: %v", name, err)
-			return err
-		}
-		state.ObjectMeta.PreserveSystemMetadata(ret.ObjectMeta)
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
 	upsertRequest := states.UpsertRequest{
