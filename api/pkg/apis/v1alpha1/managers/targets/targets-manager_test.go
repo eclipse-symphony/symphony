@@ -10,6 +10,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
@@ -69,6 +70,46 @@ func TestUpdateTargetStatus(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "test", state.ObjectMeta.Name)
 	assert.Equal(t, "test", state.Status.Properties["label"])
+}
+
+func TestUpdateExistingTarget(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := TargetsManager{
+		StateProvider: stateProvider,
+	}
+
+	targetName := "test123"
+	state := model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      targetName,
+			Namespace: "default",
+			Annotations: map[string]string{
+				constants.SummaryJobIdKey: "1",
+			},
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: targetName,
+		},
+	}
+	err := manager.UpsertState(context.Background(), targetName, state)
+	assert.Nil(t, err)
+
+	state = model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      targetName,
+			Namespace: "default",
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: targetName,
+			IsDryRun:    true,
+		},
+	}
+
+	state, err = manager.GetState(context.Background(), targetName, "default")
+	assert.Nil(t, err)
+	assert.Equal(t, targetName, state.ObjectMeta.Name)
+	assert.Equal(t, "1", state.ObjectMeta.Annotations[constants.SummaryJobIdKey])
 }
 
 func TestCreateTargetWithSameDisplayName(t *testing.T) {

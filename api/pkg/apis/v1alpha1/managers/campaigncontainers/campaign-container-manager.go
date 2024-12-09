@@ -78,6 +78,11 @@ func (t *CampaignContainersManager) UpsertState(ctx context.Context, name string
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.WorkflowGroup + "/v1",
 		"kind":       "CampaignContainer",
@@ -89,7 +94,7 @@ func (t *CampaignContainersManager) UpsertState(ctx context.Context, name string
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: "",
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -131,16 +136,17 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 	ret := make([]model.CampaignContainerState, 0)
 	for _, t := range campaigncontainers {
 		var rt model.CampaignContainerState
-		rt, err = getCampaignContainerState(t.Body, t.ETag)
+		rt, err = getCampaignContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getCampaignContainerState(body interface{}, etag string) (model.CampaignContainerState, error) {
+func getCampaignContainerState(body interface{}) (model.CampaignContainerState, error) {
 	var CampaignContainerState model.CampaignContainerState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &CampaignContainerState)
@@ -177,9 +183,10 @@ func (t *CampaignContainersManager) GetState(ctx context.Context, id string, nam
 		return model.CampaignContainerState{}, err
 	}
 	var ret model.CampaignContainerState
-	ret, err = getCampaignContainerState(Campaign.Body, Campaign.ETag)
+	ret, err = getCampaignContainerState(Campaign.Body)
 	if err != nil {
 		return model.CampaignContainerState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(Campaign.ETag)
 	return ret, nil
 }

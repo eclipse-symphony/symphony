@@ -78,6 +78,11 @@ func (t *CatalogContainersManager) UpsertState(ctx context.Context, name string,
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.FederationGroup + "/v1",
 		"kind":       "CatalogContainer",
@@ -89,7 +94,7 @@ func (t *CatalogContainersManager) UpsertState(ctx context.Context, name string,
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: "",
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -131,16 +136,17 @@ func (t *CatalogContainersManager) ListState(ctx context.Context, namespace stri
 	ret := make([]model.CatalogContainerState, 0)
 	for _, t := range catalogcontainers {
 		var rt model.CatalogContainerState
-		rt, err = getCatalogContainerState(t.Body, t.ETag)
+		rt, err = getCatalogContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getCatalogContainerState(body interface{}, etag string) (model.CatalogContainerState, error) {
+func getCatalogContainerState(body interface{}) (model.CatalogContainerState, error) {
 	var CatalogContainerState model.CatalogContainerState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &CatalogContainerState)
@@ -171,15 +177,16 @@ func (t *CatalogContainersManager) GetState(ctx context.Context, id string, name
 			"kind":      "CatalogContainer",
 		},
 	}
-	var Campaign states.StateEntry
-	Campaign, err = t.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.CatalogContainerState{}, err
 	}
 	var ret model.CatalogContainerState
-	ret, err = getCatalogContainerState(Campaign.Body, Campaign.ETag)
+	ret, err = getCatalogContainerState(entry.Body)
 	if err != nil {
 		return model.CatalogContainerState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }

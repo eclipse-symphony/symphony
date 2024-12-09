@@ -85,6 +85,11 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -94,6 +99,7 @@ func (t *DevicesManager) UpsertState(ctx context.Context, name string, state mod
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -143,6 +149,7 @@ func (t *DevicesManager) ListState(ctx context.Context, namespace string) ([]mod
 			log.ErrorfCtx(ctx, " M (Devices): ListState failed to get device state %s, error: %v", t.ID, err)
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -192,5 +199,6 @@ func (t *DevicesManager) GetState(ctx context.Context, name string, namespace st
 		log.ErrorfCtx(ctx, " M (Devices): GetSpec failed to get device state, error: %v", err)
 		return model.DeviceState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
