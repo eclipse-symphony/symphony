@@ -29,7 +29,9 @@ var rLog = logger.NewLogger("coa.runtime")
 
 const (
 	entryCountPerList = 100
-	separator         = "."
+	// separator should be disallowed characters in kubernetes custom resource names except for
+	// "." (some resource type contains it), "*" (stands for any string in regex), "_" (used in some prefix like sch_)
+	separator = "|"
 
 	// SetDefaultQuery is the lua script to set the default value
 	// 1. If the etag is not set, set always succeeds
