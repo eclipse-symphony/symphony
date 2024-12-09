@@ -8,7 +8,7 @@ package v1alpha2
 
 import "fmt"
 
-type ICOAError interface {
+type IRetriableError interface {
 	IsRetriableErr() bool
 }
 
@@ -30,21 +30,56 @@ func (e COAError) Error() string {
 	}
 }
 
+func (e COAError) IsUserErr() bool {
+	// case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
+	return e.State < 500 && e.State >= 400
+}
+
+func containsError(states []State, state State) bool {
+	for _, s := range states {
+		if s == state {
+			return true
+		}
+	}
+	return false
+}
+
+func getManagerConfigErrors() []State {
+	return []State{
+		InitFailed, ValidateFailed, GetComponentPropsFailed,
+	}
+}
+
+func getProviderConfigErrors() []State {
+	return []State{
+		CreateProjectorFailed,                           // k8s
+		CreateActionConfigFailed, GetHelmPropertyFailed, // helm provider
+	}
+}
+
+func getProviderActionErrors() []State {
+	return []State{
+		HelmActionFailed, // helm provider
+	}
+}
+
 func (e COAError) IsRetriableErr() bool {
-	switch e.State {
-	case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
+	if e.IsUserErr() {
 		return false
-	case InitFailed, ValidateFailed, GetComponentPropsFailed: // catalog manager
+	}
+	if containsError(getManagerConfigErrors(), e.State) {
 		return false
-	case CreateProjectorFailed:
+	}
+	if containsError(getProviderConfigErrors(), e.State) {
 		return false
-	case CreateActionConfigFailed, GetHelmPropertyFailed: // helm provider
-		return false
-	case HelmActionFailed: // helm provider
-		return true
-	default:
+	}
+
+	if containsError(getProviderActionErrors(), e.State) {
 		return true
 	}
+
+	// default:
+	return true
 }
 
 func FromError(err error) COAError {
@@ -106,7 +141,7 @@ func IsBadConfig(err error) bool {
 }
 
 func IsRetriableErr(err error) bool {
-	iCoaE, ok := err.(ICOAError)
+	iCoaE, ok := err.(IRetriableError)
 	if !ok {
 		return true
 	}
