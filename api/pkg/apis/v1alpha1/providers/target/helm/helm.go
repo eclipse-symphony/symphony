@@ -331,8 +331,9 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
 						"chart": map[string]string{
-							"repo": repo,
-							"name": name,
+							"repo":    repo,
+							"name":    name,
+							"version": res.Chart.Metadata.Version,
 						},
 						"values": res.Config,
 					},
