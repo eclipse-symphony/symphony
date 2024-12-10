@@ -12,7 +12,7 @@ const getCatalogs = async (type: string) => {
         'Authorization': `Bearer ${userObj?.accessToken}`,
       }
     });
-    const data = await res.json();
+    const data = await res.json();    
     return data;
   }
 async function AssetsPage() {

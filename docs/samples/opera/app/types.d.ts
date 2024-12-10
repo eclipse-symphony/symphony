@@ -59,7 +59,8 @@ export interface ObjectRef {
 
 export interface CatalogSpec {
     name: string;
-    type: string;
+    catalogType: string;
+    rootResource: string;
     properties: Record<string, any>;
     metadata: Record<string, string>;
     parentName: string;
@@ -72,7 +73,7 @@ export interface CatalogStatus{
 }
 
 export interface CatalogState {
-    id: string;
+    metadata: Record<string, string>;
     spec: CatalogSpec;
     status: CatalogStatus;
 }
