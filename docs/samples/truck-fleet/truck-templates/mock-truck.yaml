@@ -1,0 +1,32 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: mock-truck
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: mock-truck-v-v1
+spec: 
+  rootResource: mock-truck
+  catalogType: target
+  properties:    
+    metadata:
+      name: mock-truck
+    spec:       
+      displayName: mock-truck
+      topologies:
+      - bindings:
+        - role: instance
+          provider: providers.target.mock
+      properties:
+        image.url: mock-truck
+        driver: joe
+        capacity: "100"
+        temperature: "-18"
+        weight: "1000"
+        fuel: "100"
+        status: available
+        location: "0,0"
+        destination: "0,0"  

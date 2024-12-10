@@ -1,0 +1,9 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: reefer-truck-docking-activation
+spec:
+  campaign: "docking:v1"
+  stage: ""
+  inputs:    
+    truck-template: reefer-truck:v1

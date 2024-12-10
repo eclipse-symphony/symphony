@@ -1,0 +1,9 @@
+FROM python:3.9
+
+WORKDIR /fuel-pump/
+COPY ./requirements.txt /fuel-pump/requirements.txt
+RUN pip install --no-cache-dir --break-system-packages -r ./requirements.txt
+COPY ./fuel-pump.py /fuel-pump/app/main.py
+ADD ./static/ /fuel-pump/app/static/
+WORKDIR /fuel-pump/app/
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,37 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: avl-truck
+spec:
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: avl-truck-v-v1
+spec:
+  rootResource: avl-truck
+  catalogType: target
+  properties:
+    metadata:
+      name: avl-truck
+    spec:
+      displayName: avl-truck
+      topologies:
+      - bindings:
+        - role: instance
+          provider: providers.target.mqtt
+          config:
+            name: mqtt-proxy
+            brokerAddress: tcp://localhost:1884
+            clientID: office-2
+            requestTopic: coa-request
+            responseTopic: coa-response
+      properties:
+        image.url: https://logonoid.com/images/avl-logo.png
+        capacity: "100"
+        temperature: "-18"
+        weight: "1000"
+        status: available
+        location: "0,0"
+        destination: "0,0"
+        fuel: "10"

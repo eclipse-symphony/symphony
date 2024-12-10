@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opera-deployment
+  labels:
+    app: opera
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opera
+  template:
+    metadata:
+      labels:
+        app: opera
+    spec:
+      containers:
+      - name: opera-container
+        image: hbai/sdv-opera:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXTAUTH_SECRET
+          value: "PhM0wYTcDx1lY4_irUA8Y4ZLRW5RUbDzC-D5eFiTJlM"
+        - name: SYMPHONY_API
+          value: "http://symphony-service:8080/v1alpha2/"
+        - name: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+          value: ""
+        - name: SYMPHONY_SITE
+          value: "hq"
+        - name: NEXT_PUBLIC_PORTAL_TITLE
+          value: "SDV Hackathon"
+        - name: OPENAI_API_KEY
+          value: ""
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opera-service
+  labels:
+    app: opera
+spec:
+  type: LoadBalancer
+  selector:
+    app: opera
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000

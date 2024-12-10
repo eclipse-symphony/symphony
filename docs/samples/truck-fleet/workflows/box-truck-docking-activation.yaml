@@ -1,0 +1,14 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: box-truck-docking-activation
+spec:
+  campaign: "docking:v1"
+  stage: ""
+  inputs:
+    truck-template: box-truck:v1
+    truck.name: box-truck
+    driver.name: mike
+    driver.hours: 10
+    fuel: 20
+    image.url: https://github.com/eclipse-symphony/symphony/blob/sdv-hackathon-portal/docs/samples/opera/public/box-truck.png?raw=true

@@ -1,0 +1,74 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: box-truck
+spec:
+  displayName: box-truck
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.mock
+  properties:
+    image.url: box-truck
+    driver: mike
+    fuel: "80"
+---
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: flatbed-truck
+spec:
+  displayName: flatbed-truck
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.mock
+  properties:
+    image.url: flatbed-truck
+    driver: jane
+    fuel: "60"
+---
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: mock-truck
+spec:
+  displayName: mock-truck
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.mock
+  properties:
+    image.url: mock-truck
+    driver: test
+    fuel: "100"
+---
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: reefer-truck
+spec:
+  displayName: reefer-truck
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.mock
+  properties:
+    image.url: freezer-truck
+    driver: bob
+    fuel: "50"
+---
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: ankaios-truck
+spec:
+  displayName: ankaios-truck
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.mock
+  properties:
+    image.url: https://avatars.githubusercontent.com/u/132572901?s=200&v=4
+    driver: oilver
+    fuel: "100"

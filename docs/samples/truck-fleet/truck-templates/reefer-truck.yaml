@@ -1,0 +1,39 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: reefer-truck
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: reefer-truck-v-v1
+spec: 
+  rootResource: reefer-truck
+  catalogType: target
+  properties:
+    metadata:
+      name: reefer-truck
+    spec: 
+      displayName: reefer-truck
+      topologies:
+      - bindings:
+        - role: instance
+          provider: providers.target.mqtt
+          config:
+            name: mqtt-proxy
+            brokerAddress: tcp://localhost:1884
+            clientID: office-1
+            requestTopic: coa-request
+            responseTopic: coa-response            
+      properties:
+        image.url: freezer-truck
+        driver: mike
+        capacity: "100"
+        temperature: "-18"
+        weight: "1000"
+        fuel: "100"
+        status: available
+        location: "0,0"
+        destination: "0,0"
+        

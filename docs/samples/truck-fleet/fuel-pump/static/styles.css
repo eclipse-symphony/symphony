@@ -1,0 +1,88 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.fuel-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.fuel-tank {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px;
+}
+
+.tank {
+    width: 200px;
+    height: 400px;
+    background-color: #555;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.fill {
+    width: 100%;
+    height: 0;
+    background-color: #00f;
+    position: absolute;
+    bottom: 0;
+    transition: height 0.5s ease;
+}
+
+.percentage {
+    position: absolute;
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    bottom: 10%; /* Adjust this value to position the percentage higher */
+}
+
+.marker {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #fff;
+}
+
+.fuel-up {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.image-placeholder {
+    width: 200px;
+    height: 150px;
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    border-radius: 10px;
+    font-size: 18px;
+    color: #333;
+}
+
+.pump-name {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}

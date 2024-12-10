@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fuel-pump-deployment
+  labels:
+    app: fuel-pump
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fuel-pump
+  template:
+    metadata:
+      labels:
+        app: fuel-pump
+    spec:
+      containers:
+      - name: fuel-pump-container
+        image: hbai/fuelpump:1.1
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fuel-pump-service
+  labels:
+    app: fuel-pump
+spec:
+  type: ClusterIP
+  selector:
+    app: fuel-pump
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000

@@ -1,0 +1,9 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: mock-truck-docking-activation
+spec:
+  campaign: "docking:v1"
+  stage: ""
+  inputs:    
+    truck-template: mock-truck:v1
