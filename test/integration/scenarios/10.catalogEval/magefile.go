@@ -41,6 +41,7 @@ var (
 		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog.yaml",
 		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog2.yaml",
 		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog3.yaml",
+		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog4.yaml",
 	}
 
 	// Tests to run
@@ -55,6 +56,8 @@ var (
 	testEvalUpdate = "test/integration/scenarios/10.catalogEval/manifest/evalUpdate.yaml"
 
 	testEval03 = "test/integration/scenarios/10.catalogEval/manifest/eval03.yaml"
+
+	testEval04 = "test/integration/scenarios/10.catalogEval/manifest/eval04.yaml"
 )
 
 // Entry point for running the tests
@@ -134,6 +137,13 @@ func DeployManifests() error {
 	// create eval catalog evaluateevalcatalog03
 	eval03C := filepath.Join(repoPath, testEval03)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", eval03C, namespace)).Run()
+	if err != nil {
+		return err
+	}
+
+	// create eval catalog evaluateevalcatalog04
+	eval04C := filepath.Join(repoPath, testEval04)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", eval04C, namespace)).Run()
 	if err != nil {
 		return err
 	}

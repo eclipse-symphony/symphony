@@ -1,0 +1,13 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  annotations: {}
+  name: mysol-v-v1
+spec:
+  rootResource: mysol
+  displayName: My solution

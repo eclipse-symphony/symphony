@@ -1,4 +1,4 @@
-baseURL = "docs.symphony.io"
+baseURL = "https://eclipse-symphony.github.io/docs"
 languageCode = "en-us"
 title = "Project Symphony Docs"
 theme =  "docsy"

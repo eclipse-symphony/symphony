@@ -1,11 +1,11 @@
 #################### default parameters ################################
-logo = "images/symphony icon_largetext (1).png"
+logo = "images/symphony_icon_largetext.png"
 logo_width = "200px"
 favicon = "favicons\favicon.ico"
 # OpenGraph / Twitter Card metadata
 description = "Symphony enables end-to-end orchestration experience and addresses it as a distinct concern."
 author = "Project Symphony Leads"
-image = "images/symphony icon_largetext (1).png" # this image will be used as fallback if a page has no image of its own
+image = "images/symphony_icon_largetext.png" # this image will be used as fallback if a page has no image of its own
 # contact form action
 contact_form_action = "#" # contact form works with https://formspree.io
 
@@ -25,8 +25,8 @@ preloader = "" # use jpg, png, svg or gif format.
 # Navigation buttons
 [navigation_button]
 enable = true
-label = "Get Started"
-link = "https://github.com/eclipse-symphony/symphony/tree/main/docs#get-started"
+label = "Join Our Discord"
+link = "https://discord.gg/RcjSrR7JAE"
 
 # cookies
 [cookies]
