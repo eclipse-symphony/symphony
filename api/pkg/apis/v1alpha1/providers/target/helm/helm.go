@@ -848,7 +848,7 @@ func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) 
 	}
 	if duration < 0 {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): Timeout is negative: %s", timeout)
-		err = v1alpha2.NewCOAError(err, "target provider timeout must be nonegative", v1alpha2.GetComponentPropsFailed)
+		err = v1alpha2.NewCOAError(err, "target provider timeout can not be negative", v1alpha2.GetComponentPropsFailed)
 		return 0, err
 	}
 	return duration, nil

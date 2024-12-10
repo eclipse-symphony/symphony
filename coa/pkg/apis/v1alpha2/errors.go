@@ -111,6 +111,13 @@ func FromHTTPResponseCode(code int, body []byte) COAError {
 	}
 }
 
+func GetErrorState(err error) State {
+	if coaErr, ok := err.(COAError); ok {
+		return coaErr.State
+	}
+	return InternalError
+}
+
 func NewCOAError(err error, msg string, state State) COAError {
 	return COAError{
 		InnerError: err,
