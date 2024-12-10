@@ -315,17 +315,24 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		for _, res := range results {
 			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == component.Component.Name {
 				repo := ""
-				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM:") { //we use this special metadata tag to remember the chart URL
-					repo = res.Chart.Metadata.Tags[4:]
+				name := ""
+				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM-REPO:") { //we use this special metadata tag to remember the chart URL
+					parts := strings.Split(res.Chart.Metadata.Tags, ";")
+					if len(parts) != 2 {
+						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to parse chart metadata tags: %+v", res.Chart.Metadata.Tags)
+						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to parse chart metadata tags", providerName), v1alpha2.HelmActionFailed)
+						return nil, err
+					}
+					repo = parts[0][9:]
+					name = parts[1][9:]
 				}
-
 				ret = append(ret, model.ComponentSpec{
 					Name: res.Name,
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
 						"chart": map[string]string{
-							"repo":    repo,
-							"version": res.Chart.Metadata.Version,
+							"repo": repo,
+							"name": name,
 						},
 						"values": res.Config,
 					},
@@ -523,7 +530,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			}
 
-			chart.Metadata.Tags = "SYM:" + helmProp.Chart.Repo //this is not used by Helm SDK, we use this to carry repo info
+			chart.Metadata.Tags = "SYM-REPO:" + helmProp.Chart.Repo + ";SYM-NAME:" + helmProp.Chart.Name //this is not used by Helm SDK, we use this to carry repo info
 
 			postRender := &PostRenderer{
 				instance:  deployment.Instance,
