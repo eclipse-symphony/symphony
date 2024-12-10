@@ -158,7 +158,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 		existingCatalog, err := e.CatalogsManager.GetState(rCtx, id, namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -166,7 +166,7 @@ func (e *CatalogsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespo
 		err = e.CatalogsManager.UpsertState(rCtx, id, existingCatalog)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -244,7 +244,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 			chains, err := e.CatalogsManager.GetChains(ctx, "config", namespace)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -259,7 +259,7 @@ func (e *CatalogsVendor) onCatalogsGraph(request v1alpha2.COARequest) v1alpha2.C
 			trees, err := e.CatalogsManager.GetTrees(ctx, "asset", namespace)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -319,7 +319,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		if err != nil {
 			if !utils.IsNotFound(err) {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			} else {
@@ -361,7 +361,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		err = e.CatalogsManager.UpsertState(ctx, id, catalog)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -373,7 +373,7 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 		err := e.CatalogsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
