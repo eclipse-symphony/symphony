@@ -631,6 +631,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		waitGroup.Wait()
 		close(results)
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var afterProvider string
 
 		outputs := make(map[string]interface{})
 		delayedExit := false
