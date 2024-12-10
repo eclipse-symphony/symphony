@@ -18,15 +18,26 @@ import (
 
 var sLog = logger.NewLogger("coa.runtime")
 
-type MemoryKeyLockProvider struct {
+type MemoryKeyLock struct {
 	lm            *LockMap
 	cleanInterval int //seconds
 	purgeDuration int // 12 hours before
 }
 
-type MemoryKeyLockProviderConfig struct {
-	CleanInterval int `json:"cleanInterval"`
-	PurgeDuration int `json:"purgeDuration"`
+var globalMemoryKeyLock *MemoryKeyLock
+var initLock = sync.Mutex{}
+
+func (gml *MemoryKeyLock) Lock(key string) {
+	gml.lm.getLockNode(key).Lock()
+}
+
+func (gml *MemoryKeyLock) UnLock(key string) {
+	gml.lm.getLockNode(key).Unlock()
+	go gml.lm.updateLockLRU(key)
+}
+
+type MemoryKeyLockProvider struct {
+	memKeyLockInstance *MemoryKeyLock
 }
 
 func toMemoryKeyLockProviderConfig(config providers.IProviderConfig) (MemoryKeyLockProviderConfig, error) {
@@ -39,43 +50,75 @@ func toMemoryKeyLockProviderConfig(config providers.IProviderConfig) (MemoryKeyL
 	return ret, err
 }
 
+func (gml *MemoryKeyLock) Init(KeyLockConfig MemoryKeyLockProviderConfig) error {
+	sLog.Info("Init MemoryKeyLock")
+	if KeyLockConfig.CleanInterval > 0 {
+		gml.cleanInterval = KeyLockConfig.CleanInterval
+	} else {
+		gml.cleanInterval = 30 // default: 30 seconds
+	}
+	if KeyLockConfig.PurgeDuration > 0 {
+		gml.purgeDuration = KeyLockConfig.PurgeDuration
+	} else {
+		gml.purgeDuration = 60 * 60 * 12 // default: 12 hours
+	}
+	gml.lm = NewLockMap()
+	go func() {
+		for {
+			gml.lm.clean(-gml.purgeDuration)
+			time.Sleep(time.Duration(gml.cleanInterval) * time.Second)
+		}
+	}()
+	return nil
+}
+
 func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error {
 	KeyLockConfig, err := toMemoryKeyLockProviderConfig(config)
 	if err != nil {
 		sLog.Errorf("  P (String Lock): failed to parse provider config %+v", err)
 		return errors.New("expected MemoryKeyLockProviderConfig")
 	}
-	if KeyLockConfig.CleanInterval > 0 {
-		mslp.cleanInterval = KeyLockConfig.CleanInterval
-	} else {
-		mslp.cleanInterval = 30 // default: 30 seconds
-	}
-	if KeyLockConfig.PurgeDuration > 0 {
-		mslp.purgeDuration = KeyLockConfig.PurgeDuration
-	} else {
-		mslp.purgeDuration = 60 * 60 * 12 // default: 12 hours
-	}
-	mslp.lm = NewLockMap()
-	go func() {
-		for {
-			mslp.lm.clean(-mslp.purgeDuration)
-			time.Sleep(time.Duration(mslp.cleanInterval) * time.Second)
+
+	if KeyLockConfig.Mode == Global {
+		sLog.Info("Trying to init global memoryKeyLock")
+		initLock.Lock()
+		defer initLock.Unlock()
+		if globalMemoryKeyLock == nil {
+			globalMemoryKeyLock = &MemoryKeyLock{}
+			err = globalMemoryKeyLock.Init(KeyLockConfig)
+			mslp.memKeyLockInstance = globalMemoryKeyLock
 		}
-	}()
-	return nil
+	} else if KeyLockConfig.Mode == Shared {
+		sLog.Info("Trying to init shared memoryKeyLock")
+		initLock.Lock()
+		defer initLock.Unlock()
+		if globalMemoryKeyLock == nil {
+			err = errors.New("A global MemoryKeyLock instance should be initialized before using a shared mode MemoryKeyLock")
+		} else {
+			mslp.memKeyLockInstance = globalMemoryKeyLock
+		}
+	} else if KeyLockConfig.Mode == Dedicated {
+		sLog.Info("Trying to init dedicated memoryKeyLock")
+		mslp.memKeyLockInstance = &MemoryKeyLock{}
+		err = mslp.memKeyLockInstance.Init(KeyLockConfig)
+	} else {
+		err = errors.New("MemoryKeyLockProvider: unknown init mode")
+	}
+
+	return err
 }
 
 func (mslp *MemoryKeyLockProvider) Lock(key string) {
-	mslp.lm.getLockNode(key).Lock()
+	mslp.memKeyLockInstance.lm.getLockNode(key).Lock()
 }
 
 func (mslp *MemoryKeyLockProvider) UnLock(key string) {
-	mslp.lm.getLockNode(key).Unlock()
-	go mslp.lm.updateLockLRU(key)
+	mslp.memKeyLockInstance.lm.getLockNode(key).Unlock()
+	go mslp.memKeyLockInstance.lm.updateLockLRU(key)
 }
 
 func (mslp *MemoryKeyLockProvider) TryLock(key string) bool {
-	return mslp.lm.getLockNode(key).TryLock()
+	return mslp.memKeyLockInstance.lm.getLockNode(key).TryLock()
 }
 
 func (mslp *MemoryKeyLockProvider) TryLockWithTimeout(key string, duration time.Duration) bool {
@@ -164,12 +207,8 @@ func (lm *LockMap) cleanLast(purgeDuration int) bool {
 	}
 
 	node := lm.tail.prev
-	if node.prev != nil {
-		node.prev.next = node.next
-	}
-	if node.next != nil {
-		node.next.prev = node.prev
-	}
+	node.prev.next = node.next
+	node.next.prev = node.prev
 
 	lm.m.Delete(node.key)
 	return true

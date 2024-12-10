@@ -14,25 +14,27 @@ Although this scenario is designed for a distributed environment, for simplicity
 
 ## 1. Prepare a Windows target machine
 
-1. Create a `c:\\demo` folder and a `c:\\demo\\staging` folder on your Windows machine.
+1. Create a `C:\demo` folder and a `C:\demo\staging` folder on your Windows machine.
 
 2. Build the `symphony-api.exe`:
 
-   ```bash
+   ```powershell
    # under the api folder of the repository
    go build -o symphony-api
-   GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
+   $env:GOOS="windows"
+   $env:GOARCH="amd64"
+   go build -o symphony-api.exe
    ```
 
    For details on how to set up the build environment, see [build instructions](../build_deployment/build.md).
 
-3. Copy `symphony-api.exe` to the `c:\\demo` folder. The Symphony agent and Symphony API share the same binary, driven by different configuration files, which you'll copy next.
+3. Copy `symphony-api.exe` to the `C:\demo` folder. The Symphony agent and Symphony API share the same binary, driven by different configuration files, which you'll copy next.
 
-4. Copy the `symphony-powershell-over-mqtt.json` file under the `api` repo folder to the `c:\\demo` folder. This is the configuration file that you'll use to launch the Symphony agent. In a production environment, the Symphony agent can be configured as a Windows service that is automatically launched upon start.
+4. Copy the `symphony-powershell-over-mqtt.json` file under the `api` repo folder to the `C:\demo` folder. This is the configuration file that you'll use to launch the Symphony agent. In a production environment, the Symphony agent can be configured as a Windows service that is automatically launched upon start.
 
-5. Copy the `symphony-api-no-k8s.json` file under the `api` repo folder to the `c:\\demo` folder. This is the configuration file that you'll use to launch the Symphony API. In a production environment, the Symphony API is likely to be deployed on a Kubernetes cluster such as ASK. For more information, see [build and deploy](../build_deployment/_overview.md) for more details.
+5. Copy the `symphony-api-no-k8s.json` file under the `api` repo folder to the `C:\demo` folder. This is the configuration file that you'll use to launch the Symphony API. In a production environment, the Symphony API is likely to be deployed on a Kubernetes cluster such as ASK. For more information, see [build and deploy](../build_deployment/_overview.md) for more details.
 
-6. Copy the following PowerShell scripts from the `api/docs/samples/script-provider/` repo folder to the `c:\\demo` folder:
+6. Copy the following PowerShell scripts from the `docs/samples/script-provider/` repo folder to the `C:\demo` folder:
 
    * `get-notepad.ps1`
    * `mock-needsupdate.ps1`
@@ -77,18 +79,22 @@ For testing purposes, set up a local MQTT broker using [Eclipse mosquitto Docker
 
 In this demo scenario, we'll run Symphony API in standalone mode outside of Kubernetes.
 
-1. In a Windows Command Prompt window, navigate to `c:\\demo`.
+1. In a Windows Command Prompt window, navigate to `C:\demo`.
 2. Launch Symphony API:
 
-   ```bash
+   ```powershell
+   $env:SYMPHONY_API_URL="http://localhost:8082/v1alpha2/"
+   $env:USE_SERVICE_ACCOUNT_TOKENS="false"
    symphony-api.exe -c symphony-api-no-k8s.json -l Debug
    ```
 
 ## 4. Launch the Symphony Agent
 
-Also under the `c:\\demo` folder, launch the Symphony agent:
+Also under the `C:\demo` folder, launch the Symphony agent:
 
-```bash
+```powershell
+$env:SYMPHONY_API_URL="http://localhost:8082/v1alpha2/"
+$env:USE_SERVICE_ACCOUNT_TOKENS="false"
 symphony-api.exe -c symphony-powershell-over-mqtt.json -l Debug
 ```
 

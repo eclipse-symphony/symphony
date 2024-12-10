@@ -116,6 +116,9 @@ func (r *Catalog) Default() {
 			r.Labels[api_constants.RootResource] = utils.ConvertStringToValidLabel(r.Spec.RootResource)
 			if r.Spec.ParentName != "" {
 				r.Labels[api_constants.ParentName] = utils.ConvertStringToValidLabel(validation.ConvertReferenceToObjectName(r.Spec.ParentName))
+			} else if r.Labels[api_constants.ParentName] != "" {
+				// If the spec does not have parent name anymore, we should remove the outdated parent label.
+				delete(r.Labels, api_constants.ParentName)
 			}
 		}
 	}

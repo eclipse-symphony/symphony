@@ -14,7 +14,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -118,7 +117,7 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	var entry states.StateEntry
 	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		if !v1alpha2.IsNotFound(err) {
+		if !utils.IsNotFound(err) {
 			return err
 		}
 		err = t.UpsertSpec(ctx, current.Id, *current.Spec)

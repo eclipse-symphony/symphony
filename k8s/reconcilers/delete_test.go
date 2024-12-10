@@ -20,6 +20,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
@@ -37,6 +38,7 @@ var _ = Describe("Attempt Delete", func() {
 	var reconcileResultPolling reconcile.Result
 	var reconcileErrorPolling error
 	var delayer *MockDelayer
+	var jobID string
 
 	BeforeEach(func() {
 		By("building the clients")
@@ -87,13 +89,21 @@ var _ = Describe("Attempt Delete", func() {
 	JustBeforeEach(func(ctx context.Context) {
 		By("calling the reconciler")
 		_, reconcileResult, reconcileError = reconciler.AttemptUpdate(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
+		annotations := object.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[constants.SummaryJobIdKey] = jobID
+		object.SetAnnotations(annotations)
 		_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
 	})
 
 	When("the delete timeout has elapsed elapsed", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("setting the deletion timestamp to a time in the past")
+			jobID = uuid.New().String()
 			object.SetDeletionTimestamp(&metav1.Time{Time: time.Now().Add(-TestReconcileTimout)})
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 		})
 
 		It("should have a status of failed", func() {
@@ -200,12 +210,12 @@ var _ = Describe("Attempt Delete", func() {
 
 		})
 
-		Context("and the delete job has failed", func() {
+		Context("and the delete job inprogress", func() {
 			BeforeEach(func(ctx context.Context) {
 				By("returning a failed delete summary from the api")
 				summary := MockInProgressDeleteSummaryResult(object, "test-hash")
-				summary.State = model.SummaryStateDone
-
+				jobID = uuid.New().String()
+				summary.Summary.JobID = jobID
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})
@@ -214,8 +224,8 @@ var _ = Describe("Attempt Delete", func() {
 				apiClient.AssertExpectations(GinkgoT())
 			})
 
-			It("should have a status of failed", func() {
-				Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
+			It("should have a status of deleting", func() {
+				Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Deleting"))
 			})
 
 			It("should not have a finalizer", func() {
@@ -223,7 +233,7 @@ var _ = Describe("Attempt Delete", func() {
 			})
 
 			It("should return a result indicating that the reconciliation", func() {
-				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
+				Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				Expect(reconcileErrorPolling).NotTo(HaveOccurred())
 			})
 		})
@@ -233,7 +243,8 @@ var _ = Describe("Attempt Delete", func() {
 				By("returning a successful delete summary from the api")
 				summary := MockSucessSummaryResult(object, "test-hash")
 				summary.Summary.IsRemoval = true
-
+				jobID = uuid.New().String()
+				summary.Summary.JobID = jobID
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 			})

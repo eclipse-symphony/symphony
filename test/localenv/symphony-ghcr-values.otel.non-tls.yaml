@@ -1,0 +1,32 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+symphonyImage:
+  pullPolicy: Never
+  repository: ghcr.io/eclipse-symphony/symphony-k8s
+paiImage:
+  pullPolicy: Never
+  repository: ghcr.io/eclipse-symphony/symphony-api
+installServiceExt: false
+api:
+  labelKey:
+  labelValue:
+  annotationKey:
+observability:
+  otelCollector:
+    enabled: true
+  otelForwarder:
+    enabled: true
+Azure:
+  Extension:
+    ResourceId: "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/fake_test_rg/providers/Microsoft.Kubernetes/ConnectedClusters/fake_arc_cluster/providers/Microsoft.KubernetesConfiguration/extensions/symphonyext"
+  Cluster:
+    Region: "fake_location"
+    ResourceId: "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/fake_test_rg/providers/Microsoft.Kubernetes/ConnectedClusters/fake_arc_cluster"
+otlpLogsEndpointGrpc:  symphony-otel-collector-service.default.svc.cluster.local:4317
+otlpMetricsEndpointGrpc:  symphony-otel-collector-service.default.svc.cluster.local:4317
+otlpInsecureGrpc: true
+cert-manager:
+  enabled: true

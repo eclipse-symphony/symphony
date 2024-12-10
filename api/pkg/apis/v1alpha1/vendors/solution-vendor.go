@@ -14,6 +14,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -110,10 +111,11 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - %s", err.Error())
-			if v1alpha2.IsNotFound(err) {
+			if utils.IsNotFound(err) {
+				errorMsg := fmt.Sprintf("instance '%s' is not found in namespace %s", instance, namespace)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
-					Body:  data,
+					Body:  []byte(errorMsg),
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -130,6 +132,10 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onQueue-POST", rContext, nil)
 		defer span.End()
+
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var onQueueError string
+
 		instance := request.Parameters["instance"]
 		delete := request.Parameters["delete"]
 		objectType := request.Parameters["objectType"]

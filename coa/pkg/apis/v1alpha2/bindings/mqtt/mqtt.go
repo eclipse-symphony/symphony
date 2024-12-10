@@ -81,13 +81,13 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			}
 		}
 
-		// needs to carry call-context from request into response
+		// needs to carry request-id from request into response
 		if request.Metadata != nil {
-			if v, ok := request.Metadata["call-context"]; ok {
+			if v, ok := request.Metadata["request-id"]; ok {
 				if response.Metadata == nil {
 					response.Metadata = make(map[string]string)
 				}
-				response.Metadata["call-context"] = v
+				response.Metadata["request-id"] = v
 			}
 			if v, ok := request.Metadata["request-id"]; ok {
 				if response.Metadata == nil {
@@ -99,9 +99,11 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 
 		data, _ := json.Marshal(response)
 
-		if token := client.Publish(config.ResponseTopic, 0, false, data); token.Wait() && token.Error() != nil {
-			log.Errorf("failed to handle request from MOTT: %s", token.Error())
-		}
+		go func() {
+			if token := client.Publish(config.ResponseTopic, 0, false, data); token.Wait() && token.Error() != nil {
+				log.Errorf("failed to handle request from MOTT: %s", token.Error())
+			}
+		}()
 	}); token.Wait() && token.Error() != nil {
 		if token.Error().Error() != "subscription exists" {
 			log.Errorf("  P (MQTT Target): faild to connect to subscribe to request topic - %+v", token.Error())
