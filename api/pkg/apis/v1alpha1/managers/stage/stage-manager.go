@@ -35,6 +35,7 @@ var log = logger.NewLogger("coa.runtime")
 type StageManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 type TaskResult struct {
@@ -106,6 +107,10 @@ func (s *StageManager) Init(context *contexts.VendorContext, config managers.Man
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetApiClient()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -203,10 +208,19 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 				nextStage := ""
 				if currentStage, ok := cam.Stages[stage]; ok {
 					parser := utils.NewParser(currentStage.StageSelector)
-
 					eCtx := s.VendorContext.EvaluationContext.Clone()
 					eCtx.Context = ctx
 					eCtx.Namespace = namespace
+					activationState, err := s.apiClient.GetActivation(
+						ctx,
+						activation,
+						namespace,
+						s.VendorContext.SiteInfo.CurrentSite.Username,
+						s.VendorContext.SiteInfo.CurrentSite.Password,
+					)
+					if err == nil && activationState.Spec != nil {
+						eCtx.Triggers = activationState.Spec.Inputs
+					}
 					eCtx.Inputs = status.Inputs
 					log.DebugfCtx(ctx, " M (Stage): ResumeStage evaluation inputs: %v", eCtx.Inputs)
 					if eCtx.Inputs != nil {
@@ -413,7 +427,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfoCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
+	log.InfofCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
 	status := model.StageStatus{
 		Stage:         triggerData.Stage,
 		NextStage:     "",
@@ -427,13 +441,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
 		sites := make([]string, 0)
 		if currentStage.Contexts != "" {
-			log.InfoCtx(ctx, " M (Stage): evaluating context %s", currentStage.Contexts)
+			log.InfofCtx(ctx, " M (Stage): evaluating context %s", currentStage.Contexts)
 			parser := utils.NewParser(currentStage.Contexts)
 
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Context = ctx
 			eCtx.Namespace = triggerData.Namespace
-			eCtx.Inputs = triggerData.Inputs
+			eCtx.Triggers = triggerData.Inputs
+			eCtx.Inputs = currentStage.Inputs
 			if eCtx.Inputs != nil {
 				if v, ok := eCtx.Inputs["context"]; ok {
 					eCtx.Value = v
@@ -471,15 +486,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			sites = append(sites, s.VendorContext.SiteInfo.SiteId)
 		}
 
-		inputs := triggerData.Inputs
+		triggers := triggerData.Inputs
+		if triggers == nil {
+			triggers = make(map[string]interface{})
+		}
+		inputs := currentStage.Inputs
 		if inputs == nil {
 			inputs = make(map[string]interface{})
-		}
-
-		if currentStage.Inputs != nil {
-			for k, v := range currentStage.Inputs {
-				inputs[k] = v
-			}
 		}
 
 		// inject default inputs
@@ -496,7 +509,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		for k, v := range inputs {
 			var val interface{}
-			val, err = s.traceValue(ctx, v, triggerData.Namespace, inputs, triggerData.Outputs)
+			val, err = s.traceValue(ctx, v, triggerData.Namespace, inputs, triggers, triggerData.Outputs)
 			if err != nil {
 				status.Status = v1alpha2.InternalError
 				status.StatusMessage = v1alpha2.InternalError.String()
@@ -565,7 +578,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 				for k, v := range inputCopy {
 					var val interface{}
-					val, err = s.traceValue(ctx, v, triggerData.Namespace, inputCopy, triggerData.Outputs)
+					val, err = s.traceValue(ctx, v, triggerData.Namespace, inputCopy, triggers, triggerData.Outputs)
 					if err != nil {
 						status.Status = v1alpha2.InternalError
 						status.StatusMessage = v1alpha2.InternalError.String()
@@ -618,6 +631,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		waitGroup.Wait()
 		close(results)
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var afterProvider string
 
 		outputs := make(map[string]interface{})
 		delayedExit := false
@@ -657,7 +672,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		}
 
 		for k, v := range outputs {
-			if !strings.HasPrefix(k, "__") {
+			if !(strings.HasPrefix(k, "__") || strings.HasPrefix(k, "header.")) {
 				status.Outputs[k] = v
 			}
 		}
@@ -698,7 +713,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Context = ctx
 			eCtx.Namespace = triggerData.Namespace
-			eCtx.Inputs = triggerData.Inputs
+			eCtx.Triggers = triggerData.Inputs
+			eCtx.Inputs = currentStage.Inputs
 			if eCtx.Inputs != nil {
 				if v, ok := eCtx.Inputs["context"]; ok {
 					eCtx.Value = v
@@ -782,7 +798,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	return status, activationData
 }
 
-func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace string, inputs map[string]interface{}, outputs map[string]map[string]interface{}) (interface{}, error) {
+func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace string, inputs map[string]interface{}, triggers map[string]interface{}, outputs map[string]map[string]interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
 		parser := utils.NewParser(val)
@@ -791,12 +807,13 @@ func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace 
 		context.DeploymentSpec = s.Context.VencorContext.EvaluationContext.DeploymentSpec
 		context.Namespace = namespace
 		context.Inputs = inputs
-		context.Outputs = outputs
 		if context.Inputs != nil {
 			if v, ok := context.Inputs["context"]; ok {
 				context.Value = v
 			}
 		}
+		context.Triggers = triggers
+		context.Outputs = outputs
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err
@@ -805,12 +822,12 @@ func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace 
 		case string:
 			return vt, nil
 		default:
-			return s.traceValue(ctx, v, namespace, inputs, outputs)
+			return s.traceValue(ctx, v, namespace, inputs, triggers, outputs)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := s.traceValue(ctx, v, namespace, inputs, outputs)
+			tv, err := s.traceValue(ctx, v, namespace, inputs, triggers, outputs)
 			if err != nil {
 				return "", err
 			}
@@ -820,7 +837,7 @@ func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace 
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := s.traceValue(ctx, v, namespace, inputs, outputs)
+			tv, err := s.traceValue(ctx, v, namespace, inputs, triggers, outputs)
 			if err != nil {
 				return "", err
 			}

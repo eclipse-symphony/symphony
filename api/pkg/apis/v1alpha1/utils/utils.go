@@ -8,6 +8,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/itchyny/gojq"
@@ -31,6 +33,13 @@ const (
 	Reject = "reject"
 	Any    = "any"
 )
+
+func IsNotFound(err error) bool {
+	if apiError, ok := err.(APIError); ok {
+		return apiError.Code == v1alpha2.NotFound
+	}
+	return v1alpha2.IsNotFound(err)
+}
 
 func matchString(src string, target string) bool {
 	if strings.Contains(src, "*") || strings.Contains(src, "%") {
@@ -116,6 +125,17 @@ func MergeCollection(cols ...map[string]string) map[string]string {
 	for _, col := range cols {
 		for k, v := range col {
 			ret[k] = v
+		}
+	}
+	return ret
+}
+func GenerateKeyLockName(strs ...string) string {
+	ret := ""
+	for i, str := range strs {
+		if i == 0 {
+			ret += str
+		} else {
+			ret += ("&&" + str)
 		}
 	}
 	return ret
@@ -441,4 +461,92 @@ func AreSlicesEqual(slice1, slice2 []string) bool {
 	}
 
 	return true
+}
+
+type FailedDeployment struct {
+	Name    string `json:"name"`
+	Message string `json:"FailedMessage"`
+}
+
+func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatus) bool {
+	return status.Properties != nil && status.Properties[constants.Generation] == strconv.FormatInt(objectMeta.ObjGeneration, 10) &&
+		(status.Properties[constants.Status] == "Succeeded" || status.Properties[constants.Status] == "Failed")
+}
+
+// Once status report is enabled in standalone mode, we need to use object status rather than summary to check the deployment status
+func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
+	remainingObjects := make([]string, 0)
+	failedDeployments := make([]FailedDeployment, 0)
+	var err error
+	var objectMeta model.ObjectMeta
+	var status model.DeployableStatus
+	for _, objectName := range objectNames {
+		if isInstance {
+			var state model.InstanceState
+			state, err = (*apiclient).GetInstance(ctx, objectName, namespace, username, password)
+			objectMeta = state.ObjectMeta
+			status = state.Status
+		} else {
+			var state model.TargetState
+			state, err = (*apiclient).GetTarget(ctx, objectName, namespace, username, password)
+			objectMeta = state.ObjectMeta
+			status = state.Status
+		}
+		// TODO: check error code
+		if err != nil {
+			remainingObjects = append(remainingObjects, objectName)
+			continue
+		}
+		if !DetermineObjectTerminalStatus(objectMeta, status) {
+			remainingObjects = append(remainingObjects, objectName)
+		} else if status.Properties[constants.Status] == "Failed" {
+			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.Properties["status-details"]})
+		}
+	}
+	return remainingObjects, failedDeployments
+}
+
+func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
+	remainingObjects := make([]string, 0)
+	failedDeployments := make([]FailedDeployment, 0)
+	var err error
+	for _, objectName := range objectNames {
+		var key string
+		if isInstance {
+			key = objectName
+		} else {
+			key = fmt.Sprintf("target-runtime-%s", objectName)
+		}
+		var summary *model.SummaryResult
+		summary, err = (*apiclient).GetSummary(ctx, key, namespace, username, password)
+		if err == nil && summary.State == model.SummaryStateDone {
+			log.DebugfCtx(ctx, "Summary for %s is %v", objectName, summary.Summary)
+			if !summary.Summary.AllAssignedDeployed {
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", objectName, summary.Summary.SummaryMessage)
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: summary.Summary.SummaryMessage})
+			}
+			continue
+		}
+		remainingObjects = append(remainingObjects, objectName)
+	}
+	return remainingObjects, failedDeployments
+}
+
+func FilterIncompleteDelete(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) []string {
+	remainingObjects := make([]string, 0)
+	var err error
+	for _, objectName := range objectNames {
+		if isInstance {
+			_, err = (*apiclient).GetInstance(ctx, objectName, namespace, username, password)
+
+		} else {
+			_, err = (*apiclient).GetTarget(ctx, objectName, namespace, username, password)
+		}
+		//if err != nil && IsNotFound(err) {
+		if err != nil && strings.Contains(err.Error(), "Not Found") {
+			continue
+		}
+		remainingObjects = append(remainingObjects, objectName)
+	}
+	return remainingObjects
 }

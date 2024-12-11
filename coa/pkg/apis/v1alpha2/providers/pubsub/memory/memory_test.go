@@ -19,10 +19,12 @@ func TestBasicPubSub(t *testing.T) {
 	msg := ""
 	provider := InMemoryPubSubProvider{}
 	provider.Init(InMemoryPubSubConfig{Name: "test"})
-	provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg = event.Body.(string)
-		sig <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg = event.Body.(string)
+			sig <- 1
+			return nil
+		},
 	})
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
@@ -36,15 +38,19 @@ func TestMultipleSubscriber(t *testing.T) {
 	msg2 := ""
 	provider := InMemoryPubSubProvider{}
 	provider.Init(InMemoryPubSubConfig{Name: "test"})
-	provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg1 = event.Body.(string)
-		sig1 <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg1 = event.Body.(string)
+			sig1 <- 1
+			return nil
+		},
 	})
-	provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg2 = event.Body.(string)
-		sig2 <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg2 = event.Body.(string)
+			sig2 <- 1
+			return nil
+		},
 	})
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig1
@@ -60,15 +66,19 @@ func TestMultipleTopics(t *testing.T) {
 	msg2 := ""
 	provider := InMemoryPubSubProvider{}
 	provider.Init(InMemoryPubSubConfig{Name: "test"})
-	provider.Subscribe("test1", func(topic string, event v1alpha2.Event) error {
-		msg1 = event.Body.(string)
-		sig1 <- 1
-		return nil
+	provider.Subscribe("test1", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg1 = event.Body.(string)
+			sig1 <- 1
+			return nil
+		},
 	})
-	provider.Subscribe("test2", func(topic string, event v1alpha2.Event) error {
-		msg2 = event.Body.(string)
-		sig2 <- 1
-		return nil
+	provider.Subscribe("test2", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg2 = event.Body.(string)
+			sig2 <- 1
+			return nil
+		},
 	})
 	provider.Publish("test1", v1alpha2.Event{Body: "TEST1"})
 	provider.Publish("test2", v1alpha2.Event{Body: "TEST2"})
@@ -147,10 +157,12 @@ func TestMemoryPubsubProviderBadRequest(t *testing.T) {
 	ch := make(chan struct{})
 	count := 0
 
-	err := provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		count += 1
-		ch <- struct{}{}
-		return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+	err := provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			count += 1
+			ch <- struct{}{}
+			return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+		},
 	})
 	assert.Nil(t, err)
 	err = provider.Publish("test", v1alpha2.Event{
@@ -184,10 +196,12 @@ func TestMemoryPubsubProviderInternalError(t *testing.T) {
 	ch := make(chan struct{})
 	count := 0
 
-	err := provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		count += 1
-		ch <- struct{}{}
-		return v1alpha2.NewCOAError(nil, "insert internal error", v1alpha2.InternalError)
+	err := provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			count += 1
+			ch <- struct{}{}
+			return v1alpha2.NewCOAError(nil, "insert internal error", v1alpha2.InternalError)
+		},
 	})
 	assert.Nil(t, err)
 	err = provider.Publish("test", v1alpha2.Event{

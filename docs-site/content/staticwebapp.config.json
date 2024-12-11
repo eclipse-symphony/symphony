@@ -1,0 +1,34 @@
+{
+    "routes": [
+        {
+            "route": "/.auth/login/aad",
+            "allowedRoles": ["anonymous"]
+        },
+        {
+            "route": "/.auth/logout",
+            "allowedRoles": ["anonymous"]
+        },
+        {
+            "route": "/.auth/invitations",
+            "allowedRoles": ["anonymous"]
+        },
+        {
+            "route": "/.auth/login/twitter",
+            "statusCode": 401
+        },
+        {
+            "route": "/.auth/login/github",
+            "statusCode": 401
+        },
+        {
+            "route": "/*",
+            "allowedRoles": ["anonymous"]
+        }
+    ],
+    "responseOverrides": {
+        "401": {
+            "redirect": "/.auth/login/aad",
+            "statusCode": 302
+        }
+    }
+}

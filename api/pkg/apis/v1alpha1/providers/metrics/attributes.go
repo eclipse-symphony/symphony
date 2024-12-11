@@ -22,3 +22,17 @@ func Target(
 		"errorCode":     errorCode,
 	}
 }
+
+func TargetWithoutErrorCode(
+	providerType string,
+	functionName string,
+	operation string,
+	operationType string,
+) map[string]any {
+	return map[string]any{
+		"providerType":  providerType,
+		"functionName":  functionName,
+		"operation":     operation,
+		"operationType": operationType,
+	}
+}

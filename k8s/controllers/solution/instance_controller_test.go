@@ -11,9 +11,11 @@ import (
 	"errors"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	solutionv1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/constants"
 	. "gopls-workspace/testing"
 	"gopls-workspace/utils"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
@@ -34,6 +36,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 	var reconcileResult ctrl.Result
 	var reconcileErrorPolling error
 	var reconcileResultPolling ctrl.Result
+	var jobID string
 
 	BeforeEach(func() {
 		By("setting up the controller")
@@ -90,6 +93,14 @@ var _ = Describe("Instance controller", Ordered, func() {
 		JustBeforeEach(func(ctx context.Context) {
 			By("simulating a reconcile event")
 			reconcileResult, reconcileError = controllerQueueing.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
+			kubeClient.Get(ctx, DefaultInstanceNamespacedName, instance)
+			annotations := instance.GetAnnotations()
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			annotations[constants.SummaryJobIdKey] = jobID
+			instance.SetAnnotations(annotations)
+			kubeClient.Update(ctx, instance)
 			reconcileResultPolling, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultInstanceNamespacedName})
 		})
 		When("the instance is created", func() {
@@ -105,7 +116,8 @@ var _ = Describe("Instance controller", Ordered, func() {
 						By("mocking the get summary call to return a successful deployment")
 						hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
 						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-						apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(instance, hash), nil)
+						jobID = uuid.New().String()
+						apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(instance, hash, jobID), nil)
 					})
 
 					It("should not return an error", func() {
@@ -113,7 +125,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 					})
 
 					It("should requeue after the reconciliation interval", func() {
-						Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+						Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 					})
 				})
 				Context("and the deployment failed due to some error", func() {
@@ -211,9 +223,11 @@ var _ = Describe("Instance controller", Ordered, func() {
 			Context("and the deletion deployment is successful", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a completed delete deployment from the api")
+					jobID = uuid.New().String()
 					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockSucessSummaryResult(instance, hash)
 					summary.Summary.IsRemoval = true
+					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})

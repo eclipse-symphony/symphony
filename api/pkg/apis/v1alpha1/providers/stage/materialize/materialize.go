@@ -44,6 +44,10 @@ var (
 type MaterializeStageProviderConfig struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
+	// TODO: this config is only available for k8s mode right now. Will support them in standalone later
+	WaitForDeployment   bool          `json:"waitForDeployment"`
+	WaitTimeout         string        `json:"waitTimeout"`
+	WaitTimeoutDuration time.Duration `json:"-"` // this is not a json field
 }
 
 type MaterializeStageProvider struct {
@@ -92,6 +96,19 @@ func toMaterializeStageProviderConfig(config providers.IProviderConfig) (Materia
 		return ret, err
 	}
 	err = json.Unmarshal(data, &ret)
+	if err != nil {
+		return ret, err
+	}
+	if ret.WaitForDeployment {
+		if ret.WaitTimeout != "" {
+			ret.WaitTimeoutDuration, err = time.ParseDuration(ret.WaitTimeout)
+			if err != nil {
+				return ret, err
+			}
+		} else {
+			ret.WaitTimeoutDuration = 5 * time.Minute
+		}
+	}
 	return ret, err
 }
 func (i *MaterializeStageProvider) InitWithMap(properties map[string]string) error {
@@ -139,6 +156,13 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.InfoCtx(ctx, "  P (Materialize Processor): processing inputs")
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		materialize,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 
 	outputs := make(map[string]interface{})
 
@@ -190,7 +214,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		catalog, err := i.ApiClient.GetCatalog(ctx, objectName, namespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectRef, err.Error())
-			anyCatalogInvalid = anyCatalogInvalid || strings.Contains(err.Error(), v1alpha2.NotFound.String())
+			anyCatalogInvalid = anyCatalogInvalid || api_utils.IsNotFound(err)
 			continue
 		}
 		if !checkCatalog(&catalog) {
@@ -217,6 +241,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 
 	createdObjectList := make(map[string]bool, 0)
+	instanceList := make([]string, 0)
+	targetList := make([]string, 0)
 	for _, catalog := range catalogs {
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
@@ -257,7 +283,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidInstanceCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded instance in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if instanceState.ObjectMeta.Name == "" {
@@ -288,6 +314,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
+			instanceList = append(instanceList, instanceState.ObjectMeta.Name)
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
@@ -301,7 +328,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidSolutionCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solution in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if solutionState.ObjectMeta.Name == "" {
@@ -396,7 +423,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidTargetCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded target in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if targetState.ObjectMeta.Name == "" {
@@ -427,6 +454,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
+			targetList = append(targetList, targetState.ObjectMeta.Name)
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
@@ -441,7 +469,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					metrics.RunOperationType,
 					v1alpha2.InvalidCatalogCatalog.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded catalog in catalog %s", name), v1alpha2.BadRequest)
 			}
 
 			if catalogState.ObjectMeta.Name == "" {
@@ -525,6 +553,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		}
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var afterMaterializeOnce bool
 	}
 	if len(createdObjectList) < len(objects) {
 		errorMessage := "failed to create all objects:"
@@ -543,13 +573,34 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		)
 		return outputs, false, err
 	}
-	providerOperationMetrics.ProviderOperationLatency(
-		processTime,
-		materialize,
-		metrics.ProcessOperation,
-		metrics.RunOperationType,
-		functionName,
-	)
+	// Wait for deployment to finish
+	if i.Config.WaitForDeployment {
+		outputs["failedDeployment"] = []api_utils.FailedDeployment{}
+		timeout := time.After(i.Config.WaitTimeoutDuration)
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+	ForLoop:
+		for {
+			select {
+			case <-ticker.C:
+				var failed []api_utils.FailedDeployment
+				instanceList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
+				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
+				targetList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
+				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
+				if len(instanceList) == 0 && len(targetList) == 0 {
+					break ForLoop
+				}
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+			case <-timeout:
+				// Timeout, function was not called
+				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+				mLog.ErrorfCtx(ctx, "  P (Materialize Processor): %s", errorMessage)
+				return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
+			}
+		}
+		mLog.InfofCtx(ctx, "  P (Materialize Processor): successfully waited for deployment to finish.")
+	}
 	return outputs, false, nil
 }
 

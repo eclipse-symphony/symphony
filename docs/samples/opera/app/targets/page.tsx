@@ -14,10 +14,13 @@ const getTargets = async () => {
     }
   });
   const data = await res.json();
+  console.log(symphonyApi);
+  console.log(data);
   return data;
 }
 async function TargetsPage() {
   const targets = await getTargets();
+  
   const params = {
     type: 'targets',
     menuItems: [
