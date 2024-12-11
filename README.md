@@ -130,19 +130,19 @@ You can always catch up offline by watching the recordings below.
 | Asset | Link        |
 |:-----------|:------------|
 | Meeting Link | [Teams Link](https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWE0MTE5YTItN2RlMy00ODFkLWFlNGQtOTUyM2YzNWMwNzg2%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%2203d4b2ae-f8d5-463c-8a45-2a8fb04390b7%22%7d)
-| Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
+| Meeting Recordings | [YouTube](https://www.youtube.com/playlist?list=PL1Gb3CbZUUEpwkNITHoBigqzZb98yKpu-)
 
 ### Upcoming calls
 
 | Date & time |
 |-------------|
-| Wednesday December 11 <sup>th</sup>, 2024 8:00am Pacific Time (PST) |
+|  |
 
 ### Previous calls
 
 | Date & time |
 |-------------|
-| |
+| [Wednesday, December 11 <sup>th</sup>, 2024](https://youtu.be/0WEDia5JD-Y)|
 
 
 ## Contributing
