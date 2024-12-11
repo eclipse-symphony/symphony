@@ -12,7 +12,7 @@ spec:
       provider: providers.target.mqtt
       config:
         name: mqtt-proxy
-        brokerAddress: "tcp://mosquitto-service:1883"
+        brokerAddress: "tcp://<MQTT broker address>:1883"
         clientID: "retail-agent"
         requestTopic: "coa-request"
         responseTopic: "coa-response"
