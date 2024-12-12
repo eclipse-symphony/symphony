@@ -261,11 +261,8 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStatusOnly {
 			item.Object["spec"] = v
 
-			resourceVersion := item.GetResourceVersion()
-			if entry.Value.ETag != "" {
-				resourceVersion = entry.Value.ETag
-			}
-			item.SetResourceVersion(resourceVersion)
+			// If we update the labels, annotations or spec, we should respect the resource version provided by client.
+			item.SetResourceVersion(entry.Value.ETag)
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object: %v", err)

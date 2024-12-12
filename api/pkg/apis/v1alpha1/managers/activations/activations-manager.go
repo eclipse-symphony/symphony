@@ -265,6 +265,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
+	entry.ETag = activationState.ObjectMeta.ETag // We need to set the ETag here because we need to update the labels and status
 
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
@@ -318,6 +319,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
+	entry.ETag = activationState.ObjectMeta.ETag // We need to set the ETag here because we need to update the labels and status
 
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
