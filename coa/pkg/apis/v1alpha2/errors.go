@@ -148,9 +148,9 @@ func IsBadConfig(err error) bool {
 }
 
 func IsRetriableErr(err error) bool {
-	iCoaE, ok := err.(IRetriableError)
+	ret, ok := err.(IRetriableError)
 	if !ok {
 		return true
 	}
-	return iCoaE.IsRetriableErr()
+	return ret.IsRetriableErr()
 }
