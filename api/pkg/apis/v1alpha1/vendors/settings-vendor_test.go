@@ -126,7 +126,7 @@ func TestConfigGet(t *testing.T) {
 
 	request.Parameters["__name"] = "unknown"
 	res = vendor.onConfig(*request)
-	assert.Equal(t, v1alpha2.InternalError, res.State)
+	assert.Equal(t, v1alpha2.NotFound, res.State)
 }
 
 func TestConfigGetField(t *testing.T) {
@@ -148,5 +148,5 @@ func TestConfigGetField(t *testing.T) {
 
 	request.Parameters["__name"] = "unknown"
 	res = vendor.onConfig(*request)
-	assert.Equal(t, v1alpha2.InternalError, res.State)
+	assert.Equal(t, v1alpha2.NotFound, res.State)
 }
