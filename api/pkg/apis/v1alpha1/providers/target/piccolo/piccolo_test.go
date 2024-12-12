@@ -8,7 +8,7 @@ package piccolo
 
 import (
 	"context"
-	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -38,20 +38,31 @@ func TestInitWithMap(t *testing.T) {
 	err := provider.InitWithMap(configMap)
 	assert.Nil(t, err)
 }
-func TestPiccoloTargetProviderInstall(t *testing.T) {
-	testPiccoloProvider := os.Getenv("TEST_PICCOLO_PROVIDER")
-	if testPiccoloProvider == "" {
-		t.Skip("Skipping because TEST_PICCOLO_PROVIDER enviornment variable is not set")
+func TestPiccoloTargetProviderApply(t *testing.T) {
+	// NOTE: To run this test case successfully, you need to have Docker and Redis container running:
+	// docker run -d -p 5000:5000 --name mock_piccolo hbai/piccolo-mock:latest
+	cmd := exec.Command("podman", "ps", "-q", "-f", "name=mock_piccolo")
+	output, err := cmd.Output()
+	assert.Nil(t, err)
+	if len(output) == 0 {
+		t.Skip("Skipping because mock_picc container is not exist")
 	}
-	config := PiccoloTargetProviderConfig{}
+
+	configMap := map[string]string{
+		"name": "piccolo",
+		"url":  "http://127.0.0.1:5000/",
+	}
+	config, err := PiccoloTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
+
 	provider := PiccoloTargetProvider{}
-	err := provider.Init(config)
+	err = provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "redis-test",
+		Name: "redis",
 		Type: "container",
 		Properties: map[string]interface{}{
-			"workload.name": "redis:latest",
+			"workload.name": "redis-test",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -78,15 +89,24 @@ func TestPiccoloTargetProviderInstall(t *testing.T) {
 
 func TestPiccoloTargetProviderGet(t *testing.T) {
 	// NOTE: To run this test case successfully, you need to have Docker and Redis container running:
-	// docker run -d --name redis-test -p 6379:6379 redis:latest
-	// Then, comment out the next 4 lines of code and run the test case.
-	testPiccoloProvider := os.Getenv("TEST_PICCOLO_PROVIDER")
-	if testPiccoloProvider == "" {
-		t.Skip("Skipping because TEST_PICCOLO_PROVIDER enviornment variable is not set")
+	// docker run -d -p 5000:5000 --name mock_piccolo hbai/piccolo-mock:latest
+	// Befor this, TestPiccoloTargetProviderApply must be called.
+	TestPiccoloTargetProviderApply(t)
+	cmd := exec.Command("podman", "ps", "-q", "-f", "name=mock_piccolo")
+	output, err := cmd.Output()
+	assert.Nil(t, err)
+	if len(output) == 0 {
+		t.Skip("Skipping because mock_picc container is not exist")
 	}
-	config := PiccoloTargetProviderConfig{}
+
+	configMap := map[string]string{
+		"name": "piccolo",
+		"url":  "http://127.0.0.1:5000",
+	}
+	config, err := PiccoloTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
 	provider := PiccoloTargetProvider{}
-	err := provider.Init(config)
+	err = provider.Init(config)
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceState{
@@ -96,10 +116,10 @@ func TestPiccoloTargetProviderGet(t *testing.T) {
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
 					{
-						Name: "redis-test",
+						Name: "redis",
 						Type: "container",
 						Properties: map[string]interface{}{
-							"workload.name": "redis:latest",
+							"workload.name": "redis-test",
 						},
 					},
 				},
@@ -109,74 +129,42 @@ func TestPiccoloTargetProviderGet(t *testing.T) {
 		{
 			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
-				Name: "redis-test",
+				Name: "redis",
 				Type: "container",
 				Properties: map[string]interface{}{
-					"workload.name":     "redis:latest",
-					"env.REDIS_VERSION": "7.0.12", // NOTE: Only environment variables passed in by the reference are returned.
+					"workload.name": "redis-test",
 				},
 			},
 		},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
-	assert.Equal(t, "redis:latest", components[0].Properties["workload.name"])
-	assert.NotEqual(t, "", components[0].Properties["env.REDIS_VERSION"])
+	assert.Equal(t, "redis-test", components[0].Properties["workload.name"])
 }
-func TestPiccoloTargetProviderRemove(t *testing.T) {
-	testPiccoloProvider := os.Getenv("TEST_PICCOLO_PROVIDER")
-	if testPiccoloProvider == "" {
-		t.Skip("Skipping because TEST_PICCOLO_PROVIDER enviornment variable is not set")
+func TestPiccoloTargetProviderApplyDelete(t *testing.T) {
+	// NOTE: To run this test case successfully, you need to have Docker and Redis container running:
+	// docker run -d -p 5000:5000 --name mock_piccolo hbai/piccolo-mock:latest
+	cmd := exec.Command("podman", "ps", "-q", "-f", "name=mock_piccolo")
+	output, err := cmd.Output()
+	assert.Nil(t, err)
+	if len(output) == 0 {
+		t.Skip("Skipping because mock_picc container is not exist")
 	}
-	config := PiccoloTargetProviderConfig{}
+
+	configMap := map[string]string{
+		"name": "piccolo",
+		"url":  "http://127.0.0.1:5000",
+	}
+	config, err := PiccoloTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
 	provider := PiccoloTargetProvider{}
-	err := provider.Init(config)
+	err = provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "redis-test",
+		Name: "redis",
 		Type: "container",
 		Properties: map[string]interface{}{
-			"workload.name": "redis:latest",
-		},
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{component},
-			},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    model.ComponentDelete,
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-}
-
-func TestUpdateGetDelete(t *testing.T) {
-	testPiccoloProvider := os.Getenv("TEST_PICCOLO_ENABLED")
-	if testPiccoloProvider == "" {
-		t.Skip("Skipping because TEST_PICCOLO_PROVIDER enviornment variable is not set")
-	}
-	config := PiccoloTargetProviderConfig{}
-	provider := PiccoloTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-
-	// Update
-	component := model.ComponentSpec{
-		Name: "alpine-test",
-		Type: "container",
-		Properties: map[string]interface{}{
-			"workload.name": "alpine:3.18",
+			"workload.name": "redis-test",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -195,47 +183,6 @@ func TestUpdateGetDelete(t *testing.T) {
 				Action:    model.ComponentUpdate,
 				Component: component,
 			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-
-	// Get
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "alpine-test",
-						Type: "container",
-						Properties: map[string]interface{}{
-							"workload.name": "alpine:3.18",
-						},
-					},
-				},
-			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "alpine-test",
-				Type: "container",
-				Properties: map[string]interface{}{
-					"workload.name": "alpine:3.18",
-				},
-			},
-		},
-	})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(components))
-
-	// Delete
-	step = model.DeploymentStep{
-		Components: []model.ComponentStep{
 			{
 				Action:    model.ComponentDelete,
 				Component: component,
@@ -245,18 +192,27 @@ func TestUpdateGetDelete(t *testing.T) {
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
-
 func TestApplyFailed(t *testing.T) {
-	testPiccoloProvider := os.Getenv("TEST_PICCOLO_ENABLED")
-	if testPiccoloProvider == "" {
-		t.Skip("Skipping because TEST_PICCOLO_PROVIDER enviornment variable is not set")
+	// NOTE: To run this test case successfully, you need to have Docker and Redis container running:
+	// docker run -d -p 5000:5000 --name mock_piccolo hbai/piccolo-mock:latest
+	cmd := exec.Command("podman", "ps", "-q", "-f", "name=mock_piccolo")
+	output, err := cmd.Output()
+	assert.Nil(t, err)
+	if len(output) == 0 {
+		t.Skip("Skipping because mock_picc container is not exist")
 	}
-	config := PiccoloTargetProviderConfig{}
+
+	configMap := map[string]string{
+		"name": "piccolo",
+		"url":  "http://127.0.0.1:5000",
+	}
+	config, err := PiccoloTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
 	provider := PiccoloTargetProvider{}
-	err := provider.Init(config)
+	err = provider.Init(config)
 	assert.Nil(t, err)
 
-	// invalid container image name
+	// invalid component properties
 	component := model.ComponentSpec{
 		Name: "",
 		Type: "container",
@@ -282,52 +238,82 @@ func TestApplyFailed(t *testing.T) {
 
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.NotNil(t, err)
-
-	// unknown container image
-	component = model.ComponentSpec{
-		Name: "abcd:latest",
-		Type: "container",
-		Properties: map[string]interface{}{
-			"workload.name": "abc:latest",
-		},
+}
+func TestGetFailed(t *testing.T) {
+	// NOTE: To run this test case successfully, you need to have Docker and Redis container running:
+	// docker run -d -p 5000:5000 --name mock_piccolo hbai/piccolo-mock:latest
+	// Befor this, TestPiccoloTargetProviderApply must be called.
+	cmd := exec.Command("podman", "ps", "-q", "-f", "name=mock_piccolo")
+	output, err := cmd.Output()
+	assert.Nil(t, err)
+	if len(output) == 0 {
+		t.Skip("Skipping because mock_picc container is not exist")
 	}
-	deployment = model.DeploymentSpec{
+
+	configMap := map[string]string{
+		"name": "piccolo",
+		"url":  "http://127.0.0.1:5000",
+	}
+	config, err := PiccoloTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
+	provider := PiccoloTargetProvider{}
+	err = provider.Init(config)
+	assert.Nil(t, err)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
 			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{component},
+				Components: []model.ComponentSpec{
+					{
+						Name: "notApplied",
+						Type: "container",
+						Properties: map[string]interface{}{
+							"workload.name": "notApplied-test",
+						},
+					},
+				},
 			},
 		},
-	}
-	step = model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    model.ComponentUpdate,
-				Component: component,
+	}, []model.ComponentStep{
+		{
+			Action: model.ComponentUpdate,
+			Component: model.ComponentSpec{
+				Name: "notApplied",
+				Type: "container",
+				Properties: map[string]interface{}{
+					"workload.name": "notApplied-test",
+				},
 			},
 		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	})
 	assert.NotNil(t, err)
 }
-
-func TestApplyAlreadyRunning(t *testing.T) {
-	testPiccoloProvider := os.Getenv("TEST_PICCOLO_ENABLED")
-	if testPiccoloProvider == "" {
-		t.Skip("Skipping because TEST_PICCOLO_PROVIDER enviornment variable is not set")
-	}
-	config := PiccoloTargetProviderConfig{}
-	provider := PiccoloTargetProvider{}
-	err := provider.Init(config)
+func TestDeleteFailed(t *testing.T) {
+	// NOTE: To run this test case successfully, you need to have Docker and Redis container running:
+	// docker run -d -p 5000:5000 --name mock_piccolo hbai/piccolo-mock:latest
+	cmd := exec.Command("podman", "ps", "-q", "-f", "name=mock_piccolo")
+	output, err := cmd.Output()
 	assert.Nil(t, err)
+	if len(output) == 0 {
+		t.Skip("Skipping because mock_picc container is not exist")
+	}
 
+	configMap := map[string]string{
+		"name": "piccolo",
+		"url":  "http://127.0.0.1:5000",
+	}
+	config, err := PiccoloTargetProviderConfigFromMap(configMap)
+	assert.Nil(t, err)
+	provider := PiccoloTargetProvider{}
+	err = provider.Init(config)
+	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "alpine-test",
+		Name: "notApplied",
 		Type: "container",
 		Properties: map[string]interface{}{
-			"workload.name": "alpine:3.18",
+			"workload.name": "notApplied-test",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -343,17 +329,13 @@ func TestApplyAlreadyRunning(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    model.ComponentUpdate,
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-
-	// already running
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 }
 
 func TestConformanceSuite(t *testing.T) {

@@ -23,7 +23,7 @@ import (
 )
 
 const loggerName = "providers.target.piccolo"
-const defaultPiccoloApiServer = "http://0.0.0.0:9090/"
+const defaultPiccoloApiServer = "http://0.0.0.0:47099"
 
 var sLog = logger.NewLogger(loggerName)
 
@@ -104,7 +104,7 @@ func (i *PiccoloTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		properties := component.Component.Properties
 		name := properties["workload.name"].(string)
 
-		req, err := http.NewRequest("GET", i.Config.Url+"scenario/"+name, nil)
+		req, err := http.NewRequest("GET", i.Config.Url+"/scenario/"+name, nil)
 		if err != nil {
 			sLog.ErrorCtx(ctx, "  P (Piccolo Target): Unable to make Request")
 			return nil, err
@@ -129,7 +129,8 @@ func (i *PiccoloTargetProvider) Get(ctx context.Context, deployment model.Deploy
 			component.Properties["workload.name"] = string(name)
 			ret = append(ret, component)
 		case http.StatusNotFound:
-			continue
+			err = errors.New("  P (Piccolo Target): Unable to get workload " + name + " from piccolo")
+			return nil, err
 		}
 	}
 
@@ -165,8 +166,8 @@ func (i *PiccoloTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	ret := step.PrepareResultMap()
 
 	for _, component := range step.Components {
+		name := model.ReadPropertyCompat(component.Component.Properties, "workload.name", injections)
 		if component.Action == model.ComponentUpdate {
-			name := model.ReadPropertyCompat(component.Component.Properties, "workload.name", injections)
 			if name == "" {
 				err = errors.New("component doesn't have workload.name property")
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -176,9 +177,9 @@ func (i *PiccoloTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				sLog.ErrorfCtx(ctx, "  P (Piccolo Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
 				return ret, err
 			}
-			reqBody := bytes.NewBufferString("https:// scenario path")
-			resp, err := http.Post(i.Config.Url+"create-scenario/"+name, "text/plain", reqBody)
-			if err != nil {
+			reqBody := bytes.NewBufferString(name)
+			resp, err := http.Post(i.Config.Url+"/scenario", "text/plain", reqBody)
+			if err != nil || resp.StatusCode != http.StatusCreated {
 				sLog.ErrorCtx(ctx, "  P (Piccolo Target): fail to create resource")
 				return ret, err
 			}
@@ -190,19 +191,31 @@ func (i *PiccoloTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				Message: "",
 			}
 		} else {
-			req, err := http.NewRequest("DELETE", i.Config.Url+"delete-scenario/"+component.Component.Name, nil)
+			if name == "" {
+				err = errors.New("component doesn't have workload.name property")
+				ret[component.Component.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.DeleteFailed,
+					Message: err.Error(),
+				}
+				sLog.ErrorfCtx(ctx, "  P (Piccolo Target): %+v, traceId: %s", err, span.SpanContext().TraceID().String())
+				return ret, err
+			}
+			req, err := http.NewRequest("DELETE", i.Config.Url+"/scenario/"+name, nil)
 			if err != nil {
 				return ret, err
 			}
 
 			client := &http.Client{}
-			_, err = client.Do(req)
+			resp, err := client.Do(req)
 
-			if err == nil {
+			if err == nil && resp.StatusCode == http.StatusOK {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.Deleted,
 					Message: "",
 				}
+			} else {
+				err = errors.New("  P (Piccolo Target): Unable to delete workload " + name + " from piccolo")
+				return nil, err
 			}
 		}
 	}
