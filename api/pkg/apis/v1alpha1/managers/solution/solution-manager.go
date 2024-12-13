@@ -540,38 +540,30 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			// }
 
 			for i := 0; i < retryCount; i++ {
-				select {
-				case <-ctx.Done():
-					// Context canceled or timed out
-					log.DebugfCtx(ctx, " M (Solution): reconcile canceled")
-					err = v1alpha2.NewCOAError(nil, "Reconciliation was canceled.", v1alpha2.Canceled)
-					return summary, err
-				default:
-					componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
-					if stepError == nil {
-						targetResult[step.Target] = 1
-						summary.AllAssignedDeployed = plannedCount == planSuccessCount
-						summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
-						err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-						if err != nil {
-							log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
-							return summary, err
-						}
-						break
-					} else {
-						targetResult[step.Target] = 0
-						summary.AllAssignedDeployed = false
-						targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-						targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
-						summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-
-						if v1alpha2.IsCanceled(stepError) {
-							log.ErrorfCtx(ctx, " M (Solution): reconcile canceled: %+v", stepError)
-							break
-						}
-
-						time.Sleep(5 * time.Second) //TODO: make this configurable?
+				componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
+				if stepError == nil {
+					targetResult[step.Target] = 1
+					summary.AllAssignedDeployed = plannedCount == planSuccessCount
+					summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
+					err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+					if err != nil {
+						log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+						return summary, err
 					}
+					break
+				} else {
+					targetResult[step.Target] = 0
+					summary.AllAssignedDeployed = false
+					targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
+					targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
+					summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
+
+					if v1alpha2.IsCanceled(stepError) {
+						log.ErrorfCtx(ctx, " M (Solution): reconcile canceled: %+v", stepError)
+						break
+					}
+
+					time.Sleep(5 * time.Second) //TODO: make this configurable?
 				}
 			}
 			if stepError != nil {
