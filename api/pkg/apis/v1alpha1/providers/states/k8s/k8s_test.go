@@ -102,7 +102,6 @@ func TestActivationUpsert(t *testing.T) {
 					Stage:    "s1",
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
@@ -136,7 +135,6 @@ func TestActivationList(t *testing.T) {
 				Campaign: "c1",
 				Stage:    "s1",
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
@@ -188,8 +186,7 @@ func TestActivationDelete(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
-			ID:   "a1",
-			ETag: "1",
+			ID: "a1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
@@ -240,7 +237,6 @@ func TestActivationGet(t *testing.T) {
 					Stage:    "s1",
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
@@ -389,7 +385,6 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
@@ -444,7 +439,6 @@ func TestCatalogSpecFilter(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",
@@ -514,7 +508,6 @@ func TestCatalogLabelFilter(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",
@@ -585,7 +578,6 @@ func TestCatalogFieldFilter(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",
@@ -657,7 +649,6 @@ func TestCatalogStatusFilter(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",
@@ -834,7 +825,6 @@ func TestTargetUpsert(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
@@ -870,7 +860,6 @@ func TestTargetList(t *testing.T) {
 					"foo": "bar2",
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",
@@ -910,8 +899,7 @@ func TestTargetDelete(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
-			ID:   "s123",
-			ETag: "1",
+			ID: "s123",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
@@ -963,7 +951,6 @@ func TestTargetGet(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
@@ -1021,7 +1008,6 @@ func TestTargetUpSertWithState(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
@@ -1063,7 +1049,6 @@ func TestTargetUpSertWithStateOnly(t *testing.T) {
 					},
 				},
 			},
-			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Target", "metadata": {"name": "${{$target()}}"}}`, model.FabricGroup),
