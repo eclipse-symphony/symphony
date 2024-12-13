@@ -97,6 +97,7 @@ func TestUpsertAndGet(t *testing.T) {
 	assert.Nil(t, err)
 	state, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
+	deviceState.ObjectMeta.UpdateEtag(state.ObjectMeta.ETag)
 	assert.Equal(t, deviceState, state)
 	states, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)

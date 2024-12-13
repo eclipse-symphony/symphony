@@ -324,9 +324,4 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		)
 		return nil, false, err
 	}
-	outputs["objectType"] = objectType
-	outputs["objectName"] = objectName
-
-	mLog.InfofCtx(ctx, "  P (Create Stage) process completed")
-	return outputs, false, nil
 }

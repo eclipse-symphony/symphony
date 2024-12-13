@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
@@ -118,4 +119,34 @@ func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
 	}
 
 	c.Annotations[key] = value
+}
+
+func (c *ObjectMeta) UpdateEtag(etag string) {
+	c.ETag = etag
+}
+
+func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+
+	for _, key := range constants.SystemReservedAnnotations() {
+		if _, exists := c.Annotations[key]; !exists {
+			if value, ok := metadata.Annotations[key]; ok {
+				c.Annotations[key] = value
+			}
+		}
+	}
+
+	if c.Labels == nil {
+		c.Labels = make(map[string]string)
+	}
+
+	for _, key := range constants.SystemReservedLabels() {
+		if _, exists := c.Labels[key]; !exists {
+			if value, ok := metadata.Labels[key]; ok {
+				c.Labels[key] = value
+			}
+		}
+	}
 }

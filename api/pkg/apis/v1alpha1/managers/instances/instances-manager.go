@@ -20,10 +20,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type InstancesManager struct {
 	managers.Manager
@@ -86,6 +89,11 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -95,7 +103,7 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
 			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -153,16 +161,17 @@ func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		var rt model.InstanceState
-		rt, err = getInstanceState(t.Body, t.ETag)
+		rt, err = getInstanceState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getInstanceState(body interface{}, etag string) (model.InstanceState, error) {
+func getInstanceState(body interface{}) (model.InstanceState, error) {
 	var instanceState model.InstanceState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &instanceState)
@@ -172,7 +181,6 @@ func getInstanceState(body interface{}, etag string) (model.InstanceState, error
 	if instanceState.Spec == nil {
 		instanceState.Spec = &model.InstanceSpec{}
 	}
-	instanceState.ObjectMeta.ETag = etag
 	return instanceState, nil
 }
 
@@ -200,16 +208,12 @@ func (t *InstancesManager) GetState(ctx context.Context, id string, namespace st
 		return model.InstanceState{}, err
 	}
 	var ret model.InstanceState
-	ret, err = getInstanceState(instance.Body, instance.ETag)
+	ret, err = getInstanceState(instance.Body)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(instance.ETag)
 	return ret, nil
-}
-
-func (t *InstancesManager) ValidateCreateOrUpdate(ctx context.Context, state model.InstanceState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, old, err)
 }
 
 func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
