@@ -208,7 +208,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if catalog.ObjectMeta.Labels == nil {
 		catalog.ObjectMeta.Labels = make(map[string]string)
 	}
-	catalog.ObjectMeta.Labels["staged_target"] = i.Config.TargetName
+	catalog.ObjectMeta.Labels[constants.StagedTarget] = i.Config.TargetName
 
 	var existing []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["components"]; ok {
