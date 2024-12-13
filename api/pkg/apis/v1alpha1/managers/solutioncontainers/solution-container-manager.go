@@ -78,6 +78,11 @@ func (t *SolutionContainersManager) UpsertState(ctx context.Context, name string
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	body := map[string]interface{}{
 		"apiVersion": model.SolutionGroup + "/v1",
 		"kind":       "SolutionContainer",
@@ -89,7 +94,7 @@ func (t *SolutionContainersManager) UpsertState(ctx context.Context, name string
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: "",
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -131,16 +136,17 @@ func (t *SolutionContainersManager) ListState(ctx context.Context, namespace str
 	ret := make([]model.SolutionContainerState, 0)
 	for _, t := range solutioncontainers {
 		var rt model.SolutionContainerState
-		rt, err = getSolutionContainerState(t.Body, t.ETag)
+		rt, err = getSolutionContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getSolutionContainerState(body interface{}, etag string) (model.SolutionContainerState, error) {
+func getSolutionContainerState(body interface{}) (model.SolutionContainerState, error) {
 	var SolutionContainerState model.SolutionContainerState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &SolutionContainerState)
@@ -177,9 +183,10 @@ func (t *SolutionContainersManager) GetState(ctx context.Context, id string, nam
 		return model.SolutionContainerState{}, err
 	}
 	var ret model.SolutionContainerState
-	ret, err = getSolutionContainerState(Solution.Body, Solution.ETag)
+	ret, err = getSolutionContainerState(Solution.Body)
 	if err != nil {
 		return model.SolutionContainerState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(Solution.ETag)
 	return ret, nil
 }

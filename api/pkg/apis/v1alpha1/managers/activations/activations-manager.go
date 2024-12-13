@@ -93,15 +93,16 @@ func (m *ActivationsManager) GetState(ctx context.Context, name string, namespac
 		return model.ActivationState{}, err
 	}
 	var ret model.ActivationState
-	ret, err = getActivationState(entry.Body, entry.ETag)
+	ret, err = getActivationState(entry.Body)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Failed to convert to activation state for %s in namespace %s: %v", name, namespace, err)
 		return model.ActivationState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
-func getActivationState(body interface{}, etag string) (model.ActivationState, error) {
+func getActivationState(body interface{}) (model.ActivationState, error) {
 	var activationState model.ActivationState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &activationState)
@@ -111,7 +112,6 @@ func getActivationState(body interface{}, etag string) (model.ActivationState, e
 	if activationState.Spec == nil {
 		activationState.Spec = &model.ActivationSpec{}
 	}
-	activationState.ObjectMeta.ETag = etag
 	if activationState.Status == nil {
 		activationState.Status = &model.ActivationStatus{}
 	}
@@ -134,6 +134,11 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -141,7 +146,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.Validator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -221,10 +226,11 @@ func (t *ActivationsManager) ListState(ctx context.Context, namespace string) ([
 	ret := make([]model.ActivationState, 0)
 	for _, t := range activations {
 		var rt model.ActivationState
-		rt, err = getActivationState(t.Body, t.ETag)
+		rt, err = getActivationState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	log.InfofCtx(ctx, "List activation state for namespace %s get total count %d", namespace, len(ret))
@@ -259,6 +265,7 @@ func (t *ActivationsManager) ReportStatus(ctx context.Context, name string, name
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
+	entry.ETag = activationState.ObjectMeta.ETag // We need to set the ETag here because we need to update the labels and status
 
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
@@ -312,6 +319,7 @@ func (t *ActivationsManager) ReportStageStatus(ctx context.Context, name string,
 	var entry states.StateEntry
 	entry.ID = activationState.ObjectMeta.Name
 	entry.Body = activationState
+	entry.ETag = activationState.ObjectMeta.ETag // We need to set the ETag here because we need to update the labels and status
 
 	upsertRequest := states.UpsertRequest{
 		Value: entry,
@@ -415,11 +423,6 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 	}
 	activationState.Status.StatusMessage = activationState.Status.Status.String()
 	return nil
-}
-
-func (t *ActivationsManager) ValidateCreateOrUpdate(ctx context.Context, state model.ActivationState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.Validator, state, old, err)
 }
 
 func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {

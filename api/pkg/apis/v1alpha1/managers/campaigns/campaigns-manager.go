@@ -85,6 +85,7 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
@@ -115,6 +116,11 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	if m.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -122,7 +128,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 		}
-		if err = m.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CampaignValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -136,6 +142,7 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -207,15 +214,11 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
-}
-
-func (t *CampaignsManager) ValidateCreateOrUpdate(ctx context.Context, state model.CampaignState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.CampaignValidator, state, old, err)
 }
 
 func (t *CampaignsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
