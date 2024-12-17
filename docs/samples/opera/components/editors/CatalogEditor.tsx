@@ -56,10 +56,11 @@ function CatalogEditor(props: CatalogEditorProps) {
         const catalog: CatalogSpec = {
             name: typeof data.name === 'string' ? data.name : '',
             parentName: "",
-            type: "config",
+            catalogType: "config",
             metadata: {},
             properties: {},
-            generation: ""
+            generation: "",
+            rootResource: "",
         };
         if (data.schema) {
             catalog.metadata = {
