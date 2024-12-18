@@ -487,8 +487,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, deployment, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
-				planSuccessCount++
-				summary.AllAssignedDeployed = plannedCount == planSuccessCount
+				// planSuccessCount++
+				// summary.AllAssignedDeployed = plannedCount == planSuccessCount
 				summary.CurrentDeployed += len(step.Components)
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
 				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
@@ -514,7 +514,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			}
 			summary.CurrentDeployed += successCount
 			summary.SuccessCount = successCount
-			summary.AllAssignedDeployed = plannedCount == planSuccessCount
+			summary.AllAssignedDeployed = false
 			return summary, stepError
 		}
 		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
@@ -599,14 +599,12 @@ func (s *SolutionManager) getTargetProviderForStep(step model.DeploymentStep, de
 	if v, ok := s.TargetProviders[role]; ok {
 		return v, nil
 	}
-	if override == nil {
-		targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
-		provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
-		if err != nil {
-			return nil, err
-		}
-		return provider, nil
+	targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
+	provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
+	if err != nil {
+		return nil, err
 	}
+	return provider, nil
 }
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
