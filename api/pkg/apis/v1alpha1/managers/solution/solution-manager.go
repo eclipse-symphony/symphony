@@ -545,7 +545,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			}
 			deployedCount := 0
 			for _, ret := range componentResults {
-				if ret.Status == v1alpha2.Updated { // TODO: need to ensure the status updated correctly on returning from target providers.
+				if (!remove && ret.Status == v1alpha2.Updated) || (remove && ret.Status == v1alpha2.Deleted) {
+					// TODO: need to ensure the status updated correctly on returning from target providers.
 					deployedCount += 1
 				}
 			}
