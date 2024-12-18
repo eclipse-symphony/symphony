@@ -413,7 +413,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
-	log.InfoCtx(ctx, "what is metadata here %+v", col)
+
 	deployment.Instance.Spec.Metadata = col
 	someStepsRan := false
 
