@@ -484,6 +484,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
+				summary.CurrentDeployed += len(step.Components)
 				continue
 			}
 		}
