@@ -484,6 +484,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
+				summary.CurrentDeployed += len(step.Components)
 				continue
 			}
 		}
@@ -543,7 +544,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			for _, v := range targetResult {
 				successCount += v
 			}
-			summary.CurrentDeployed += successCount
+			deployedCount := 0
+			for _, ret := range componentResults {
+				if (!remove && ret.Status == v1alpha2.Updated) || (remove && ret.Status == v1alpha2.Deleted) {
+					// TODO: need to ensure the status updated correctly on returning from target providers.
+					deployedCount += 1
+				}
+			}
+			summary.CurrentDeployed += deployedCount
 			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
@@ -556,7 +564,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
 			return summary, err
 		}
-		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
+		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.CurrentDeployed, summary.PlannedDeployment)
 	}
 
 	mergedState.ClearAllRemoved()
