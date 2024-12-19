@@ -21,7 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // TargetReconciler reconciles a Target object
@@ -135,7 +137,7 @@ func (r *TargetReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, 
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
 		reconcilers.WithDeleteSyncDelay(r.DeleteSyncDelay),
 		reconcilers.WithDeploymentKeyResolver(func(target reconcilers.Reconcilable) string {
-			return fmt.Sprintf("target-runtime-%s", target.GetName())
+			return api_utils.GetTargetRuntimeKey(target.GetAnnotations()[api_constants.GuidKey])
 		}),
 	)
 }

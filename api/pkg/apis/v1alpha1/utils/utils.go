@@ -34,6 +34,12 @@ const (
 	Any    = "any"
 )
 
+// Define the struct
+type ObjectInfo struct {
+	Name string
+	Guid string
+}
+
 func IsNotFound(err error) bool {
 	if apiError, ok := err.(APIError); ok {
 		return apiError.Code == v1alpha2.NotFound
@@ -506,28 +512,28 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 	return remainingObjects, failedDeployments
 }
 
-func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
+func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objects []ObjectInfo, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
 	remainingObjects := make([]string, 0)
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
-	for _, objectName := range objectNames {
+	for _, object := range objects {
 		var key string
 		if isInstance {
-			key = objectName
+			key = object.Guid
 		} else {
-			key = fmt.Sprintf("target-runtime-%s", objectName)
+			key = GetTargetRuntimeKey(object.Guid)
 		}
 		var summary *model.SummaryResult
 		summary, err = (*apiclient).GetSummary(ctx, key, namespace, username, password)
 		if err == nil && summary.State == model.SummaryStateDone {
-			log.DebugfCtx(ctx, "Summary for %s is %v", objectName, summary.Summary)
+			log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
 			if !summary.Summary.AllAssignedDeployed {
-				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", objectName, summary.Summary.SummaryMessage)
-				failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: summary.Summary.SummaryMessage})
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
 			}
 			continue
 		}
-		remainingObjects = append(remainingObjects, objectName)
+		remainingObjects = append(remainingObjects, object.Name)
 	}
 	return remainingObjects, failedDeployments
 }

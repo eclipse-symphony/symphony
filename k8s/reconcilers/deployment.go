@@ -191,6 +191,8 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		}
 	}
 
+	// check object guid
+	r.createOrUpdateObjectGuid(object)
 	// to do: need to take care, if we adjust the default worker num for a controller, default is 1.
 	r.updateJobID(object, strconv.FormatInt(r.getCurJobIdInt64(object)+1, 10))
 	if err := r.kubeClient.Update(ctx, object); err != nil {
@@ -499,6 +501,17 @@ func (r *DeploymentReconciler) getCurJobIdInt64(object Reconcilable) int64 {
 	return intValue
 }
 
+func (r *DeploymentReconciler) createOrUpdateObjectGuid(object Reconcilable) {
+	annotations := object.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	if annotations[apiconstants.GuidKey] == "" {
+		annotations[apiconstants.GuidKey] = uuid.New().String()
+	}
+	object.SetAnnotations(annotations)
+}
+
 func (r *DeploymentReconciler) ensureOperationState(annotations map[string]string, objectStatus *k8smodel.DeployableStatus, provisioningState string) {
 	objectStatus.ProvisioningStatus.Status = provisioningState
 	objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
@@ -695,7 +708,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 }
 
 func defaultDeploymentKeyResolver(object Reconcilable) string {
-	return object.GetName()
+	return object.GetAnnotations()[apiconstants.GuidKey]
 }
 
 func defaultProvisioningErrorBuilder(summaryResult *model.SummaryResult, err error, errorObj *apimodel.ErrorType) {

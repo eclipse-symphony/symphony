@@ -263,6 +263,19 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", objectName), v1alpha2.BadRequest)
 			}
 
+			objectGuid := instanceState.ObjectMeta.GetGuid()
+			if objectGuid == "" {
+				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", objectName), v1alpha2.BadRequest)
+			}
+
 			objectData, _ := json.Marshal(instanceState)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", objectName, objectNamespace)
 			err = i.ApiClient.CreateInstance(ctx, objectName, objectData, objectNamespace, i.Config.User, i.Config.Password)
@@ -277,8 +290,13 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
 				return nil, false, err
 			}
+
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				remaining, failed := utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []string{objectName}, true, i.Config.User, i.Config.Password)
+				obj := utils.ObjectInfo{
+					Name: objectName,
+					Guid: objectGuid,
+				}
+				remaining, failed := utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
 					outputs["objectName"] = objectName
