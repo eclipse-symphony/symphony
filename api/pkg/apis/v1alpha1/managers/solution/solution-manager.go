@@ -324,10 +324,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		JobID:               deployment.JobID,
 	}
 
-	deploymentType := DeploymentType_Update
-	if remove {
-		deploymentType = DeploymentType_Delete
-	}
 	summary.IsRemoval = remove
 
 	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
