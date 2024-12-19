@@ -55,6 +55,11 @@ const (
 	DeploymentState = "DeployState"
 )
 
+var deploymentTypeMap = map[bool]string{
+	true:  DeploymentType_Delete,
+	false: DeploymentType_Update,
+}
+
 type SolutionManager struct {
 	managers.Manager
 	TargetProviders map[string]tgt.ITargetProvider
@@ -413,8 +418,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
-	dep := deployment
-	dep.Instance.Spec.Metadata = col
+	deployment.Instance.Spec.Metadata = col
 	someStepsRan := false
 
 	targetResult := make(map[string]int)
@@ -517,7 +521,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		for i := 0; i < retryCount; i++ {
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, deployment, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
@@ -531,8 +535,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			} else {
 				targetResult[step.Target] = 0
 				summary.AllAssignedDeployed = false
-				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
+				targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[remove])
+				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentTypeMap[remove], stepError.Error())
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
 				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
 			}
