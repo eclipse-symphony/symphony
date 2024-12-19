@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -241,8 +242,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 
 	createdObjectList := make(map[string]bool, 0)
-	instanceList := make([]string, 0)
-	targetList := make([]string, 0)
+	instanceList := make([]utils.ObjectInfo, 0)
+	targetList := make([]utils.ObjectInfo, 0)
 	for _, catalog := range catalogs {
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
@@ -314,7 +315,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			instanceList = append(instanceList, instanceState.ObjectMeta.Name)
+			instanceList = append(instanceList, utils.ObjectInfo{Name: instanceState.ObjectMeta.Name, Guid: instanceState.ObjectMeta.GetGuid()})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
@@ -454,7 +455,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			targetList = append(targetList, targetState.ObjectMeta.Name)
+			targetList = append(targetList, utils.ObjectInfo{Name: targetState.ObjectMeta.Name, Guid: targetState.ObjectMeta.GetGuid()})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
@@ -584,17 +585,25 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			select {
 			case <-ticker.C:
 				var failed []api_utils.FailedDeployment
-				instanceList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
+				instanceNameList, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
 				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
-				targetList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
+				targetNameList, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
 				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
-				if len(instanceList) == 0 && len(targetList) == 0 {
+				if len(instanceNameList) == 0 && len(targetList) == 0 {
 					break ForLoop
 				}
-				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceNameList, targetNameList)
 			case <-timeout:
 				// Timeout, function was not called
-				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+				instanceNameList := make([]string, len(instanceList))
+				targetNameList := make([]string, len(targetList))
+				for _, obj := range instanceList {
+					instanceNameList = append(instanceNameList, obj.Name)
+				}
+				for _, obj := range targetList {
+					targetNameList = append(targetNameList, obj.Name)
+				}
+				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", instanceNameList, targetNameList)
 				mLog.ErrorfCtx(ctx, "  P (Materialize Processor): %s", errorMessage)
 				return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 			}

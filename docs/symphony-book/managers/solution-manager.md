@@ -40,7 +40,7 @@ When using a in-memory store, Symphony maintains the generation number as an eve
 Solution manager caches the lasted deployment summary per instance and allows the summary to be queried. A client can decide to use the cache as the deployment state (within certain time window with matching generation number, for instance) instead of trying to queue additional reconciliation jobs.
 
 ```go
-summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
+summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.GetGuid())
 generationMatch := true
 if v, err := strconv.ParseInt(summary.Generation, 10, 64); err == nil {
     generationMatch = v == instance.GetGeneration()
