@@ -55,6 +55,11 @@ const (
 	DeploymentState = "DeployState"
 )
 
+var deploymentTypeMap = map[bool]string{
+	true:  DeploymentType_Delete,
+	false: DeploymentType_Update,
+}
+
 type SolutionManager struct {
 	managers.Manager
 	TargetProviders map[string]tgt.ITargetProvider
@@ -319,10 +324,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		JobID:               deployment.JobID,
 	}
 
-	deploymentType := DeploymentType_Update
-	if remove {
-		deploymentType = DeploymentType_Delete
-	}
 	summary.IsRemoval = remove
 
 	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
@@ -413,8 +414,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
-	dep := deployment
-	dep.Instance.Spec.Metadata = col
+	deployment.Instance.Spec.Metadata = col
 	someStepsRan := false
 
 	targetResult := make(map[string]int)
@@ -450,7 +450,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 		plannedCount++
 
-		dep.ActiveTarget = step.Target
+		deployment.ActiveTarget = step.Target
 		agent := findAgentFromDeploymentState(mergedState, step.Target)
 		if agent != "" {
 			col[ENV_NAME] = agent
@@ -517,7 +517,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		for i := 0; i < retryCount; i++ {
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, deployment, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
@@ -531,8 +531,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			} else {
 				targetResult[step.Target] = 0
 				summary.AllAssignedDeployed = false
-				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
+				targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[remove])
+				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentTypeMap[remove], stepError.Error())
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
 				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
 			}
@@ -585,6 +585,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				},
 			})
 		} else {
+			deployment.ActiveTarget = ""
 			s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
 					ID: deployment.Instance.ObjectMeta.Name,
@@ -634,6 +635,23 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 		}
 	}
 	return targetSpec
+}
+
+func (s *SolutionManager) getTargetProviderForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDesiredState *SolutionManagerDeploymentState) (providers.IProvider, error) {
+	var override tgt.ITargetProvider
+	role := step.Role
+	if role == "container" {
+		role = "instance"
+	}
+	if v, ok := s.TargetProviders[role]; ok {
+		return v, nil
+	}
+	targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
+	provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
 }
 
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
