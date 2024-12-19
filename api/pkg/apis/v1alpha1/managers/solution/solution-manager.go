@@ -454,7 +454,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 		plannedCount++
 
-		dep.ActiveTarget = step.Target
+		deployment.ActiveTarget = step.Target
 		agent := findAgentFromDeploymentState(mergedState, step.Target)
 		if agent != "" {
 			col[ENV_NAME] = agent
@@ -589,6 +589,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				},
 			})
 		} else {
+			deployment.ActiveTarget = ""
 			s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
 					ID: deployment.Instance.ObjectMeta.Name,
@@ -638,6 +639,23 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 		}
 	}
 	return targetSpec
+}
+
+func (s *SolutionManager) getTargetProviderForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDesiredState *SolutionManagerDeploymentState) (providers.IProvider, error) {
+	var override tgt.ITargetProvider
+	role := step.Role
+	if role == "container" {
+		role = "instance"
+	}
+	if v, ok := s.TargetProviders[role]; ok {
+		return v, nil
+	}
+	targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
+	provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
 }
 
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
