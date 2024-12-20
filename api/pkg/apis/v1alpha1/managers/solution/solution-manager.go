@@ -55,6 +55,11 @@ const (
 	DeploymentState = "DeployState"
 )
 
+var deploymentTypeMap = map[bool]string{
+	true:  DeploymentType_Delete,
+	false: DeploymentType_Update,
+}
+
 type SolutionManager struct {
 	managers.Manager
 	TargetProviders map[string]tgt.ITargetProvider
@@ -319,10 +324,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		JobID:               deployment.JobID,
 	}
 
-	deploymentType := DeploymentType_Update
-	if remove {
-		deploymentType = DeploymentType_Delete
-	}
 	summary.IsRemoval = remove
 
 	err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
@@ -413,8 +414,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}
 
 	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
-	dep := deployment
-	dep.Instance.Spec.Metadata = col
+	deployment.Instance.Spec.Metadata = col
 	someStepsRan := false
 
 	targetResult := make(map[string]int)
@@ -450,7 +450,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 		plannedCount++
 
-		dep.ActiveTarget = step.Target
+		deployment.ActiveTarget = step.Target
 		agent := findAgentFromDeploymentState(mergedState, step.Target)
 		if agent != "" {
 			col[ENV_NAME] = agent
@@ -490,6 +490,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
 		someStepsRan = true
+		//TODO: make this configurable?
 		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
 		// an error condition can't be resolved quickly.
@@ -517,9 +518,10 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		for i := 0; i < retryCount; i++ {
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, deployment, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
+				planSuccessCount++
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
 				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
@@ -527,23 +529,32 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 					log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
 					return summary, err
 				}
+				summary.CurrentDeployed += len(step.Components)
+				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+				if err != nil {
+					log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+					return summary, err
+				}
+				log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.CurrentDeployed, summary.PlannedDeployment)
 				break
-			} else {
-				targetResult[step.Target] = 0
-				summary.AllAssignedDeployed = false
-				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
 			}
+			//TODO: make this configurable?
+			time.Sleep(5 * time.Second)
 		}
 		if stepError != nil {
 			log.ErrorfCtx(ctx, " M (Solution): failed to execute deployment step: %+v", stepError)
-
+			// update target result
+			targetResult[step.Target] = 0
+			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[remove])
+			targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentTypeMap[remove], stepError.Error())
+			summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
+			// update succeed target result
 			successCount := 0
 			for _, v := range targetResult {
 				successCount += v
 			}
+			summary.SuccessCount = successCount
+			// update deployed component count
 			deployedCount := 0
 			for _, ret := range componentResults {
 				if (!remove && ret.Status == v1alpha2.Updated) || (remove && ret.Status == v1alpha2.Deleted) {
@@ -552,19 +563,10 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				}
 			}
 			summary.CurrentDeployed += deployedCount
-			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
 			return summary, err
 		}
-		planSuccessCount++
-		summary.CurrentDeployed += len(step.Components)
-		err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
-			return summary, err
-		}
-		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.CurrentDeployed, summary.PlannedDeployment)
 	}
 
 	mergedState.ClearAllRemoved()
@@ -585,6 +587,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				},
 			})
 		} else {
+			deployment.ActiveTarget = ""
 			s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
 					ID: deployment.Instance.ObjectMeta.Name,
@@ -625,15 +628,32 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 }
 
 // The deployment spec may have changed, so the previous target is not in the new deployment anymore
-func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDeploymentState *SolutionManagerDeploymentState) model.TargetState {
+func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDesiredState *SolutionManagerDeploymentState) model.TargetState {
 	//first find the target spec in the deployment
 	targetSpec, ok := deployment.Targets[step.Target]
 	if !ok {
-		if previousDeploymentState != nil {
-			targetSpec = previousDeploymentState.Spec.Targets[step.Target]
+		if previousDesiredState != nil {
+			targetSpec = previousDesiredState.Spec.Targets[step.Target]
 		}
 	}
 	return targetSpec
+}
+
+func (s *SolutionManager) getTargetProviderForStep(step model.DeploymentStep, deployment model.DeploymentSpec, previousDesiredState *SolutionManagerDeploymentState) (providers.IProvider, error) {
+	var override tgt.ITargetProvider
+	role := step.Role
+	if role == "container" {
+		role = "instance"
+	}
+	if v, ok := s.TargetProviders[role]; ok {
+		return v, nil
+	}
+	targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
+	provider, err := sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
 }
 
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
