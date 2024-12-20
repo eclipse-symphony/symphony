@@ -589,7 +589,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
 				targetNameList, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
 				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
-				if len(instanceNameList) == 0 && len(targetList) == 0 {
+				if len(instanceNameList) == 0 && len(targetNameList) == 0 {
 					break ForLoop
 				}
 				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceNameList, targetNameList)

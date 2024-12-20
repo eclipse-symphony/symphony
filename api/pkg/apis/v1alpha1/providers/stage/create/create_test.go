@@ -131,9 +131,12 @@ func TestCreateProcessCreate(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
-	instance := model.InstanceSpec{
-		DisplayName: "instance1",
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+		},
 	}
+	instance.ObjectMeta.SetGuid("test-guid")
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
@@ -156,9 +159,12 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
-	instance := model.InstanceSpec{
-		DisplayName: "instance1",
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+		},
 	}
+	instance.ObjectMeta.SetGuid("test-guid")
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
@@ -182,8 +188,10 @@ func TestCreateProcessRemove(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
-	instance := model.InstanceSpec{
-		DisplayName: "instance1",
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
@@ -209,8 +217,10 @@ func TestCreateProcessUnsupported(t *testing.T) {
 		"objectType": "instance",
 		"objectName": "instance1",
 		"action":     "upsert",
-		"object": model.InstanceSpec{
-			DisplayName: "instance1",
+		"object": model.InstanceState{
+			Spec: &model.InstanceSpec{
+				DisplayName: "instance1",
+			},
 		},
 	})
 	assert.NotNil(t, err)
