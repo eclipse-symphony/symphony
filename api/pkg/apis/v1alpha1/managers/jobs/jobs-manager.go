@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -328,7 +329,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 
 	key := "h_" + job.Id
 	if objectType == "target" {
-		key = fmt.Sprintf("h_%s-%s", "target-runtime", job.Id)
+		key = fmt.Sprintf("h_%s-%s", constants.TargetRuntimePrefix, job.Id)
 	}
 	//check if a manager is working on the job
 	var entry states.StateEntry

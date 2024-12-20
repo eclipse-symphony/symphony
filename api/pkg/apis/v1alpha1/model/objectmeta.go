@@ -89,6 +89,10 @@ func (c ObjectMeta) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a ObjectMeta type")
 	}
 
+	if c.GetGuid() != otherC.GetGuid() {
+		return false, nil
+	}
+
 	if c.Name != otherC.Name {
 		return false, nil
 	}
@@ -149,4 +153,18 @@ func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 			}
 		}
 	}
+}
+
+func (c *ObjectMeta) GetGuid() string {
+	if c.Annotations == nil {
+		return ""
+	}
+	return c.Annotations[constants.GuidKey]
+}
+
+func (c *ObjectMeta) SetGuid(guid string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.GuidKey] = guid
 }

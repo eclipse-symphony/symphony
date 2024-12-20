@@ -87,11 +87,15 @@ func createSolutionVendor() SolutionVendor {
 	}, nil)
 	return vendor
 }
+
 func createDockerDeployment(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "instance-docker",
+				Annotations: map[string]string{
+					"Guid": uuid.New().String(),
+				},
 			},
 			Spec: &model.InstanceSpec{},
 		},
@@ -131,11 +135,15 @@ func createDockerDeployment(id string) model.DeploymentSpec {
 		},
 	}
 }
+
 func createDeployment2Mocks1Target(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "instance1",
+				Annotations: map[string]string{
+					"Guid": uuid.New().String(),
+				},
 			},
 			Spec: &model.InstanceSpec{},
 		},
