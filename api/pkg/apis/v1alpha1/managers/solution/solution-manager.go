@@ -308,14 +308,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
-		deployment.Instance.ObjectMeta.Name,
-		deployment.SolutionName,
-		remove,
-		namespace,
-		targetName,
-		deployment.Generation,
-		deployment.JobID)
+	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s", deployment.Instance.ObjectMeta.Name, deployment.SolutionName, remove, namespace, targetName, deployment.Generation, deployment.JobID)
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
 		TargetCount:         len(deployment.Targets),
@@ -413,10 +406,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 
-	col := api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
-	deployment.Instance.Spec.Metadata = col
-	someStepsRan := false
+	deployment.Instance.Spec.Metadata = api_utils.MergeCollection(deployment.Solution.Spec.Metadata, deployment.Instance.Spec.Metadata)
 
+	//-1 failed 1 succeed no action 0
 	targetResult := make(map[string]int)
 
 	summary.PlannedDeployment = 0
@@ -451,45 +443,32 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		plannedCount++
 
 		deployment.ActiveTarget = step.Target
+		// TODO: refine when test remote agent
 		agent := findAgentFromDeploymentState(mergedState, step.Target)
 		if agent != "" {
-			col[ENV_NAME] = agent
+			deployment.Instance.Spec.Metadata[ENV_NAME] = agent
 		} else {
-			delete(col, ENV_NAME)
+			delete(deployment.Instance.Spec.Metadata, ENV_NAME)
 		}
-		var override tgt.ITargetProvider
-		role := step.Role
-		if role == "container" {
-			role = "instance"
-		}
-		if v, ok := s.TargetProviders[role]; ok {
-			override = v
-		}
-		var provider providers.IProvider
-		if override == nil {
-			targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
-			provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
-			if err != nil {
-				summary.SummaryMessage = "failed to create provider:" + err.Error()
-				log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
-				return summary, err
-			}
-		} else {
-			provider = override
+		// get target provider
+		provider, err := s.getTargetProviderForStep(step, deployment, previousDesiredState)
+		if err != nil {
+			summary.SummaryMessage = "failed to create provider:" + err.Error()
+			log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
+			return summary, err
 		}
 
+		// check if can be skipped
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
 			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
 				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
-				targetResult[step.Target] = 1
 				planSuccessCount++
 				summary.CurrentDeployed += len(step.Components)
 				continue
 			}
 		}
 		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
-		someStepsRan = true
 		//TODO: make this configurable?
 		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
@@ -497,30 +476,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		var stepError error
 		var componentResults map[string]model.ComponentResultSpec
 
-		// for _, component := range step.Components {
-		// 	for k, v := range component.Component.Properties {
-		// 		if strV, ok := v.(string); ok {
-		// 			parser := api_utils.NewParser(strV)
-		// 			eCtx := s.VendorContext.EvaluationContext.Clone()
-		// 			eCtx.DeploymentSpec = deployment
-		// 			eCtx.Component = component.Component.Name
-		// 			val, err := parser.Eval(*eCtx)
-		// 			if err == nil {
-		// 				component.Component.Properties[k] = val
-		// 			} else {
-		// 				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate property: %+v", err)
-		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
-		// 				s.saveSummary(ctx, deployment, summary)
-		// 				return summary, err
-		// 			}
-		// 		}
-		// 	}
-		// }
-
 		for i := 0; i < retryCount; i++ {
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, deployment, step, deployment.IsDryRun)
 			if stepError == nil {
-				targetResult[step.Target] = 1
+				if targetResult[step.Target] != -1 {
+					targetResult[step.Target] = 1
+				}
 				planSuccessCount++
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
@@ -544,14 +505,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if stepError != nil {
 			log.ErrorfCtx(ctx, " M (Solution): failed to execute deployment step: %+v", stepError)
 			// update target result
-			targetResult[step.Target] = 0
+			targetResult[step.Target] = -1
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[remove])
 			targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentTypeMap[remove], stepError.Error())
 			summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
 			// update succeed target result
 			successCount := 0
 			for _, v := range targetResult {
-				successCount += v
+				successCount += max(v, 0)
 			}
 			summary.SuccessCount = successCount
 			// update deployed component count
@@ -610,8 +571,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	// gofail: var afterDeploymentError string
 
 	successCount := 0
+	someStepsRan := false
 	for _, v := range targetResult {
-		successCount += v
+		successCount += max(v, 0)
+		if v != 0 {
+			someStepsRan = true
+		}
 	}
 	summary.SuccessCount = successCount
 	summary.AllAssignedDeployed = plannedCount == planSuccessCount
