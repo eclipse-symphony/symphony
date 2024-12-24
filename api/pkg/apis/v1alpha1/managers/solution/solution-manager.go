@@ -533,10 +533,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
 				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-				if !v1alpha2.IsRetriableErr(stepError) {
-					break
-				}
-				time.Sleep(5 * time.Second) //TODO: make this configurable?
+				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
 			}
 		}
 		if stepError != nil {
