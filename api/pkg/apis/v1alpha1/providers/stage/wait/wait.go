@@ -309,10 +309,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				return nil, false, v1alpha2.NewCOAError(nil, "related activation name is not provided", v1alpha2.BadConfig)
 			}
 			_, err := i.ApiClient.GetActivation(ctx, activationName, namespace, i.Config.User, i.Config.Password)
-			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
-				// Since we use ApiClient to get the activation, not found error will become v1alpha2.InternalError
-				// format: utils.SummarySpecError{Code:\"Symphony API: [500]\", Message:\"Not Found: ..."}
-				// We need to check if it contains v1alpha2.NotFound
+			if err != nil && api_utils.IsNotFound(err) {
 				log.InfoCtx(ctx, "  P (Wait Processor): detected activation got deleted, exiting endless wait.")
 				return nil, false, v1alpha2.NewCOAError(err, "related activation got deleted", v1alpha2.NotFound)
 			}

@@ -44,22 +44,16 @@ func containsError(states []State, state State) bool {
 	return false
 }
 
-func getManagerConfigErrors() []State {
+func getNonRetriableManagerConfigErrors() []State {
 	return []State{
 		InitFailed, ValidateFailed, GetComponentPropsFailed,
 	}
 }
 
-func getProviderConfigErrors() []State {
+func getNonRetriableProviderConfigErrors() []State {
 	return []State{
 		CreateProjectorFailed,                           // k8s
 		CreateActionConfigFailed, GetHelmPropertyFailed, // helm provider
-	}
-}
-
-func getProviderActionErrors() []State {
-	return []State{
-		HelmActionFailed, // helm provider
 	}
 }
 
@@ -67,15 +61,11 @@ func (e COAError) IsRetriableErr() bool {
 	if e.IsUserErr() {
 		return false
 	}
-	if containsError(getManagerConfigErrors(), e.State) {
+	if containsError(getNonRetriableManagerConfigErrors(), e.State) {
 		return false
 	}
-	if containsError(getProviderConfigErrors(), e.State) {
+	if containsError(getNonRetriableProviderConfigErrors(), e.State) {
 		return false
-	}
-
-	if containsError(getProviderActionErrors(), e.State) {
-		return true
 	}
 
 	// default:
