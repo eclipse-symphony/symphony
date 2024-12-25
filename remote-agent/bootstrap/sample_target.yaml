@@ -1,0 +1,10 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: remote-target
+spec:
+  displayName: remote-target
+  scope: default
+  components:
+  - name: remote-agent
+    type: process

@@ -98,3 +98,6 @@ Azure:
 otlpLogsEndpointGrpc: 
 otlpMetricsEndpointGrpc: 
 otlpInsecureGrpc: true
+Cert:
+  ClientCAs:
+  Subjects: system:serviceaccount:default:symphony-api-sp;thisisatest.symphony.microsoft.com

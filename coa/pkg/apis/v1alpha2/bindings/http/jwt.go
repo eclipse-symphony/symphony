@@ -8,8 +8,11 @@ package http
 
 import (
 	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -42,6 +45,7 @@ const (
 	// AuthServerKuberenetes means we are using kubernetes api server as auth server
 	AuthServerKuberenetes AuthServer = "kubernetes"
 	SymphonyIssuer        string     = "symphony"
+	caFileName            string     = "/etc/symphony-api/tls/tls.crt"
 )
 
 var (
@@ -49,7 +53,38 @@ var (
 	namespace                    = os.Getenv("POD_NAMESPACE")
 	apiServiceAccountName        = os.Getenv("SERVICE_ACCOUNT_NAME")
 	controllerServiceAccountName = os.Getenv("SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME")
+	subjectList                  = getSubjectList()
+	ServiceName                  = os.Getenv("SYMPHONY_SERVICE_NAME")
 )
+
+func getSubjectList() []string {
+	subjects := os.Getenv("CLIENT_SUBJECTS")
+
+	// Split the subjects string by semicolon
+	additionalSubjects := strings.Split(subjects, ";")
+	return additionalSubjects
+}
+
+func isSubjectValid(subject string) bool {
+	for _, s := range subjectList {
+		if s == subject {
+			return true
+		}
+	}
+	return false
+}
+func loadCACertPool(caFile string) (*x509.CertPool, error) {
+	caCertPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA file %s: %v", caFile, err)
+	}
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to append CA certificate from file %s", caFile)
+	}
+
+	return caCertPool, nil
+}
 
 func getApiServiceAccountUsername() (string, error) {
 	if namespace == "" || apiServiceAccountName == "" {
@@ -88,10 +123,63 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			next(ctx)
 			return
 		}
+
 		tokenStr := j.readAuthHeader(ctx)
 		if tokenStr == "" {
+			// Cert based auth
+			conn := ctx.Conn()
+			tlsConn, ok := conn.(*tls.Conn)
+			if !ok {
+				ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			// Get the TLS connection state
+			state := tlsConn.ConnectionState()
+			if len(state.PeerCertificates) == 0 {
+				ctx.Error("Client certificate required", fasthttp.StatusUnauthorized)
+				return
+			}
+
+			// Get the client certificate
+			clientCert := state.PeerCertificates[0]
+			subjectName := clientCert.Subject.CommonName
 			log.Errorf("JWT: Token is empty.\n")
-			ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+			// Verify the client certificate
+			caCertPool, err := loadCACertPool(caFileName)
+			if err != nil {
+				log.Errorf("JWT: Could not load CA cert pool. %s\n", err.Error())
+				ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+				return
+			}
+			opts := x509.VerifyOptions{
+				Roots: caCertPool,
+			}
+			if _, err := clientCert.Verify(opts); err != nil {
+				log.Infof("JWT: The cert is not a symphony working cert. It is a bootstrap cert.\n")
+				subjectValid := isSubjectValid(subjectName)
+				if !subjectValid {
+					log.Errorf("JWT: The cert is not a symphony working cert. %s\n")
+					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+					return
+				} else {
+					uri := ctx.Request.URI().String()
+					if strings.Contains(uri, "/targets/bootstrap") {
+						next(ctx)
+					} else {
+						log.Errorf("JWT: The cert is not a symphony working cert. \n")
+						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+						return
+					}
+				}
+			} else {
+				if strings.Contains(subjectName, ServiceName) {
+					next(ctx)
+				} else {
+					log.Errorf("JWT: The cert should have a valid symphony working cert subject. \n")
+					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+				}
+			}
 		} else {
 			issuer, err := decodeJWTTokenForIssuer(tokenStr)
 			if err != nil {

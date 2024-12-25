@@ -1,22 +1,27 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 
+	"net/http"
+
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
-	"github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
+	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	utils "github.com/eclipse-symphony/symphony/remote-agent/common"
 )
 
 func main() {
 	// Define a command-line flag for the configuration file path
 	configPath := flag.String("config", "config.json", "Path to the configuration file")
+	clientCertPath := flag.String("client-cert", "client-cert.pem", "Path to the client certificate file")
+	clientKeyPath := flag.String("client-key", "client-key.pem", "Path to the client key file")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -28,6 +33,25 @@ func main() {
 		return
 	}
 
+	// Load client cert
+	clientCert, err := tls.LoadX509KeyPair(*clientCertPath, *clientKeyPath)
+	if err != nil {
+		fmt.Println("Error loading client certificate and key:", err)
+		return
+	}
+
+	// Create TLS configuration
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{clientCert},
+	}
+
+	// Create HTTP client with TLS configuration
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	}
+	print(httpClient)
 	symphonyEndpoints := utils.SymphonyEndpoint{}
 	err = json.Unmarshal(setting, &symphonyEndpoints)
 	if err != nil {
@@ -38,16 +62,16 @@ func main() {
 	// Compose target providers
 	providers := composeTargetProviders()
 	// Create the HttpBinding instance
-	h := &http.HttpBinding{
+	h := &remoteHttp.HttpBinding{
 		Agent: agent.Agent{
 			Providers: providers,
 		},
 	}
 
 	// Set up the configuration
-	config := http.HttpBindingConfig{
+	config := remoteHttp.HttpBindingConfig{
 		TLS: true,
-		CertProvider: http.CertProviderConfig{
+		CertProvider: remoteHttp.CertProviderConfig{
 			Type:   "certs.localfile",
 			Config: map[string]interface{}{"certFile": "path/to/cert.pem", "keyFile": "path/to/key.pem"},
 		},

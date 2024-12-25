@@ -20,6 +20,12 @@ RUN mkdir /workspace
 COPY ./packages /workspace/packages
 COPY ./coa /workspace/coa
 COPY ./api /workspace/api
+COPY ./remote-agent /workspace/remote-agent
+
+WORKDIR /workspace/remote-agent
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build -o /remote-agent/remote-agent
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=windows GOARCH=amd64 go build -o /remote-agent/remote-agent.exe
+
 WORKDIR /workspace/api
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
@@ -47,6 +53,8 @@ RUN \
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=/zoneinfo.zip
 COPY --from=build /dist /
+RUN mkdir /remote-agent
+COPY --from=build /remote-agent /remote-agent
 ADD ./api/symphony-api.json /
 EXPOSE 8080
 EXPOSE 8081

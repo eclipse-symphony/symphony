@@ -8,8 +8,13 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -29,6 +34,10 @@ type MiddlewareConfig struct {
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
 }
+
+var (
+	ClientCAFile = os.Getenv("CLIENT_CA_FILE")
+)
 
 type CertProviderConfig struct {
 	Type   string                    `json:"type"`
@@ -75,8 +84,27 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}
 
+	// Load the PEM file
+	pemData, err := ioutil.ReadFile(ClientCAFile)
+	if err != nil {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
+	}
+
+	// Parse the certificates
+	certs, err := h.parseCertificates(pemData)
+	if err != nil {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file", ClientCAFile), v1alpha2.BadConfig)
+	}
+	caCertPool := x509.NewCertPool()
+	for _, cert := range certs {
+		caCertPool.AddCert(cert)
+	}
 	h.server = &fasthttp.Server{
 		Handler: h.pipeline.Apply(handler),
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.VerifyClientCertIfGiven,
+			ClientCAs:  caCertPool,
+		},
 	}
 
 	go func() {
@@ -88,6 +116,29 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}()
 	return nil
+}
+
+func (h *HttpBinding) parseCertificates(pemData []byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	var block *pem.Block
+	var rest = pemData
+
+	for {
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, cert)
+	}
+
+	return certs, nil
 }
 
 // Shutdown fasthttp server
