@@ -124,6 +124,8 @@ const (
 	DeploymentNotReached            State = 10056
 	InvalidObjectType               State = 10057
 	UnsupportedAction               State = 10058
+	InstanceGetFailed               State = 10059
+	TargetGetFailed                 State = 10060
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000
@@ -339,6 +341,10 @@ func (s State) String() string {
 		return "Invalid Object Type"
 	case UnsupportedAction:
 		return "Unsupported Action"
+	case InstanceGetFailed:
+		return "Get instance failed"
+	case TargetGetFailed:
+		return "Get target failed"
 	case SolutionGetFailed:
 		return "Solution does not exist"
 	case TargetCandidatesNotFound:

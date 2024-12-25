@@ -315,7 +315,20 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			instanceList = append(instanceList, utils.ObjectInfo{Name: instanceState.ObjectMeta.Name, Guid: instanceState.ObjectMeta.GetGuid()})
+			// Get instance guid
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, Guid: ret.ObjectMeta.GetGuid()})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
@@ -455,7 +468,20 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			targetList = append(targetList, utils.ObjectInfo{Name: targetState.ObjectMeta.Name, Guid: targetState.ObjectMeta.GetGuid()})
+			// Get target guid
+			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.TargetGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, Guid: ret.ObjectMeta.GetGuid()})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
@@ -585,25 +611,17 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			select {
 			case <-ticker.C:
 				var failed []api_utils.FailedDeployment
-				instanceNameList, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
+				instanceList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, instanceList, true, i.Config.User, i.Config.Password)
 				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
-				targetNameList, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
+				targetList, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, namespace, targetList, false, i.Config.User, i.Config.Password)
 				outputs["failedDeployment"] = append(outputs["failedDeployment"].([]api_utils.FailedDeployment), failed...)
-				if len(instanceNameList) == 0 && len(targetNameList) == 0 {
+				if len(instanceList) == 0 && len(targetList) == 0 {
 					break ForLoop
 				}
-				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceNameList, targetNameList)
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", toObjectNameList(instanceList), toObjectNameList(targetList))
 			case <-timeout:
 				// Timeout, function was not called
-				instanceNameList := make([]string, len(instanceList))
-				targetNameList := make([]string, len(targetList))
-				for _, obj := range instanceList {
-					instanceNameList = append(instanceNameList, obj.Name)
-				}
-				for _, obj := range targetList {
-					targetNameList = append(targetNameList, obj.Name)
-				}
-				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", instanceNameList, targetNameList)
+				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", toObjectNameList(instanceList), toObjectNameList(targetList))
 				mLog.ErrorfCtx(ctx, "  P (Materialize Processor): %s", errorMessage)
 				return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 			}
@@ -611,6 +629,14 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		mLog.InfofCtx(ctx, "  P (Materialize Processor): successfully waited for deployment to finish.")
 	}
 	return outputs, false, nil
+}
+
+func toObjectNameList(objects []api_utils.ObjectInfo) []string {
+	ret := make([]string, len(objects))
+	for i, object := range objects {
+		ret[i] = object.Name
+	}
+	return ret
 }
 
 func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}) model.ObjectMeta {

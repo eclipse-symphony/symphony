@@ -156,9 +156,15 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					Name: "instance1-v-v1",
 				},
 			}
-			err := json.Unmarshal(body, &instance)
-			assert.Nil(t, err)
-			assert.Equal(t, expectNs, instance.ObjectMeta.Namespace)
+			if r.Method == "POST" {
+				// Check create instance correctness
+				err := json.Unmarshal(body, &instance)
+				assert.Nil(t, err)
+				assert.Equal(t, expectNs, instance.ObjectMeta.Namespace)
+			} else if r.Method == "GET" {
+				// Mock GUID for get
+				instance.ObjectMeta.SetGuid("test-guid")
+			}
 			response = instance
 		case "/targets/registry/target1-v-v1":
 			target := model.TargetState{
@@ -166,9 +172,14 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					Name: "target1-v-v1",
 				},
 			}
-			err := json.Unmarshal(body, &target)
-			assert.Nil(t, err)
-			assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
+			if r.Method == "POST" {
+				err := json.Unmarshal(body, &target)
+				assert.Nil(t, err)
+				assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
+			} else if r.Method == "GET" {
+				// Mock GUID for get
+				target.ObjectMeta.SetGuid("test-guid")
+			}
 			response = target
 		case "/solutions/solution1-v-v1":
 			var solution model.SolutionState

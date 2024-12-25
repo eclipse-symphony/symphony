@@ -512,8 +512,8 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 	return remainingObjects, failedDeployments
 }
 
-func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objects []ObjectInfo, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
-	remainingObjects := make([]string, 0)
+func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objects []ObjectInfo, isInstance bool, username string, password string) ([]ObjectInfo, []FailedDeployment) {
+	remainingObjects := make([]ObjectInfo, 0)
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
 	for _, object := range objects {
@@ -533,7 +533,7 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			}
 			continue
 		}
-		remainingObjects = append(remainingObjects, object.Name)
+		remainingObjects = append(remainingObjects, object)
 	}
 	return remainingObjects, failedDeployments
 }
