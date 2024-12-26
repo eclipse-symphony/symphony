@@ -8,6 +8,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -15,6 +16,28 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUnmarshal(t *testing.T) {
+	context := EvaluationContext{
+		Properties: map[string]string{
+			"abc": "def",
+		},
+		Inputs: map[string]interface{}{
+			"abc": "def",
+		},
+		Outputs: map[string]map[string]interface{}{
+			"abc": {
+				"def": "ghi",
+			},
+		},
+	}
+	data, err := json.Marshal(context)
+	assert.Nil(t, err)
+	var ret EvaluationContext
+	err = Unmarshal[EvaluationContext](data, &ret)
+	assert.Nil(t, err)
+	assert.Equal(t, context, ret)
+}
 
 func TestUnmarshalDuration(t *testing.T) {
 	duration, err := UnmarshalDuration("1")

@@ -136,7 +136,6 @@ func TestCreateProcessCreate(t *testing.T) {
 			DisplayName: "instance1",
 		},
 	}
-	instance.ObjectMeta.SetGuid("test-guid")
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
@@ -164,7 +163,6 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 			DisplayName: "instance1",
 		},
 	}
-	instance.ObjectMeta.SetGuid("test-guid")
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
@@ -245,6 +243,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "instance1",
+					Annotations: map[string]string{
+						"Guid": "test-guid",
+					},
 				},
 				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
@@ -280,6 +281,9 @@ func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "instance1",
+					Annotations: map[string]string{
+						"Guid": "test-guid",
+					},
 				},
 				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
