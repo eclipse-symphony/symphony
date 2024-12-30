@@ -142,7 +142,26 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	return nil
 }
 
-func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
+// The deployment spec may have changed, so the previous target is not in the new deployment anymore
+func (s *SolutionManager) GetTargetProviderForStep(target string, role string, deployment model.DeploymentSpec, previousDesiredState *SolutionManagerDeploymentState) (providers.IProvider, error) {
+	var override tgt.ITargetProvider
+	log.Info("get step role %s", role)
+	if role == "container" {
+		role = "instance"
+	}
+	log.Info("get target providers %+v", s.TargetProviders)
+	if v, ok := s.TargetProviders[role]; ok {
+		return v, nil
+	}
+	targetSpec := s.GetTargetStateForStep(target, deployment, previousDesiredState)
+	provider, err := sp.CreateProviderForTargetRole(s.Context, role, targetSpec, override)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
+}
+
+func (s *SolutionManager) GetPreviousState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
 		Metadata: map[string]interface{}{
@@ -327,7 +346,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		if deployment.IsDryRun {
 			summary.SuccessCount = 0
 		}
-		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 	}()
 
 	defer func() {
@@ -366,7 +385,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}
 	}
 
-	previousDesiredState := s.getPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
+	previousDesiredState := s.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 
 	var currentDesiredState, currentState model.DeploymentState
 	currentDesiredState, err = NewDeploymentState(deployment)
@@ -465,7 +484,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
-			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+			if s.CanSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
 				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
@@ -606,7 +625,16 @@ func (s *SolutionManager) getTargetStateForStep(step model.DeploymentStep, deplo
 	}
 	return targetSpec
 }
-
+func (s *SolutionManager) GetTargetStateForStep(target string, deployment model.DeploymentSpec, previousDeploymentState *SolutionManagerDeploymentState) model.TargetState {
+	//first find the target spec in the deployment
+	targetSpec, ok := deployment.Targets[target]
+	if !ok {
+		if previousDeploymentState != nil {
+			targetSpec = previousDeploymentState.Spec.Targets[target]
+		}
+	}
+	return targetSpec
+}
 func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, jobid: %s, hash %s, targetCount %d, successCount %d",
@@ -658,11 +686,11 @@ func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName st
 	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
 }
 
-func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
+func (s *SolutionManager) ConcludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
 	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
 
-func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
+func (s *SolutionManager) CanSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
 
 	for _, newCom := range step.Components {
 		key := fmt.Sprintf("%s::%s", newCom.Component.Name, target)
