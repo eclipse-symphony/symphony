@@ -396,6 +396,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 					SuccessCount:        0,
 					AllAssignedDeployed: true,
 					JobID:               planEnvelope.Deployment.JobID,
+					IsRemoval:           planEnvelope.Remove,
 				},
 				PreviousDesiredState: planEnvelope.PreviousDesiredState,
 				MergedState:          planEnvelope.MergedState,
