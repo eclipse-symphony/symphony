@@ -198,8 +198,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				// if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
-				if true {
+				if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
+					// if true {
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
 							Provider: stepEnvelope.Step.Role,
@@ -399,14 +399,7 @@ func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.CO
 	var agentRequest AgentRequest
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
-	err := json.Unmarshal(request.Body, &agentRequest)
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
-		return v1alpha2.COAResponse{
-			State: v1alpha2.InternalError,
-			Body:  []byte(err.Error()),
-		}
-	}
+	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent %+v", agentRequest)
 	return f.getTaskFromQueue(ctx, target, namespace)
 }
 
@@ -415,6 +408,7 @@ func (f *FederationVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.C
 		"method": "onGetResponse",
 	})
 	defer span.End()
+
 	var asyncResult AsyncResult
 	err := json.Unmarshal(request.Body, &asyncResult)
 	if err != nil {
@@ -424,6 +418,7 @@ func (f *FederationVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.C
 			Body:  []byte(err.Error()),
 		}
 	}
+	sLog.InfoCtx(ctx, "V(Federation): get async result from remote agent %+v", asyncResult)
 	return f.handleRemoteAgentExecuteResult(ctx, asyncResult)
 }
 
