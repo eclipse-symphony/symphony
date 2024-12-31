@@ -60,7 +60,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if err != nil {
 		return err
 	}
-	log.Info("managers %+v", f.Managers)
+
 	for _, m := range f.Managers {
 		if c, ok := m.(*sites.SitesManager); ok {
 			f.SitesManager = c
@@ -211,18 +211,20 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 				} else {
 
 					components, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, stepEnvelope.Deployment, stepEnvelope.Step.Components)
+					success := true
 					if stepError != nil {
-						return stepError
+						success = false
 					}
 					stepEnvelope.DeploymentState.Components = components
 					stepResult := &StepResult{
 						Target:         stepEnvelope.Step.Target,
 						PlanId:         stepEnvelope.PlanId,
 						StepId:         stepEnvelope.StepId,
-						Success:        true,
+						Success:        success,
 						Remove:         stepEnvelope.Remove,
 						Phase:          PhaseGet,
 						retComoponents: components,
+						Error:          stepError,
 					}
 					f.Vendor.Context.Publish("step-result", v1alpha2.Event{
 						Metadata: map[string]string{
