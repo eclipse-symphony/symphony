@@ -188,12 +188,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 				log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal step envelope: %v", err)
 				return err
 			}
-			// get provider todo : is dry run
-			provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
-			if err != nil {
-				log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
-				return f.publishStepResult(ctx, stepEnvelope, false, err, make(map[string]model.ComponentResultSpec))
-			}
+
 			log.InfoCtx(ctx, "deployment-step begin to apply step ")
 
 			switch stepEnvelope.Phase {
@@ -210,6 +205,12 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.Namespace), providerGetRequest)
 					log.InfoCtx(ctx, "V(Federation): enqueue get %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.Namespace, providerGetRequest)
 				} else {
+					// get provider todo : is dry run
+					provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
+					if err != nil {
+						log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
+						return f.publishStepResult(ctx, stepEnvelope, false, err, make(map[string]model.ComponentResultSpec))
+					}
 					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Step.Components)
 					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Deployment)
 					dep := stepEnvelope.Deployment
@@ -240,30 +241,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					})
 				}
 			case PhaseApply:
-				previousDesiredState := stepEnvelope.PlanState.PreviousDesiredState
-				currentState := stepEnvelope.PlanState.CurrentState
-				step := stepEnvelope.Step
-				if previousDesiredState != nil {
-					testState := solution.MergeDeploymentStates(&previousDesiredState.State, currentState)
-					if f.SolutionManager.CanSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
-						log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
-						f.Vendor.Context.Publish("step-result", v1alpha2.Event{
-							Metadata: map[string]string{
-								"namespace": stepEnvelope.Namespace,
-							},
-							Body: StepResult{
-								Target:     stepEnvelope.Step.Target,
-								PlanId:     stepEnvelope.PlanId,
-								StepId:     stepEnvelope.StepId,
-								Success:    true,
-								Remove:     stepEnvelope.Remove,
-								Components: map[string]model.ComponentResultSpec{},
-								Timestamp:  time.Now(),
-							},
-						})
-						return nil
-					}
-				}
+
 				if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
 					providApplyRequest := &ProviderApplyRequest{
 						AgentRequest: AgentRequest{
@@ -271,11 +249,42 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 							Action:   string(PhaseApply),
 						},
 						Deployment: stepEnvelope.Deployment,
+						Step:       stepEnvelope.Step,
 						IsDryRun:   stepEnvelope.Deployment.IsDryRun,
 					}
 					log.InfoCtx(ctx, "V(Federation): enqueue %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.Namespace, providApplyRequest)
 					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.Namespace), providApplyRequest)
 				} else {
+					// get provider todo : is dry run
+					provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
+					if err != nil {
+						log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
+						return f.publishStepResult(ctx, stepEnvelope, false, err, make(map[string]model.ComponentResultSpec))
+					}
+					previousDesiredState := stepEnvelope.PlanState.PreviousDesiredState
+					currentState := stepEnvelope.PlanState.CurrentState
+					step := stepEnvelope.Step
+					if previousDesiredState != nil {
+						testState := solution.MergeDeploymentStates(&previousDesiredState.State, currentState)
+						if f.SolutionManager.CanSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+							log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
+							f.Vendor.Context.Publish("step-result", v1alpha2.Event{
+								Metadata: map[string]string{
+									"namespace": stepEnvelope.Namespace,
+								},
+								Body: StepResult{
+									Target:     stepEnvelope.Step.Target,
+									PlanId:     stepEnvelope.PlanId,
+									StepId:     stepEnvelope.StepId,
+									Success:    true,
+									Remove:     stepEnvelope.Remove,
+									Components: map[string]model.ComponentResultSpec{},
+									Timestamp:  time.Now(),
+								},
+							})
+							return nil
+						}
+					}
 					componentResults, stepError := (provider.(tgt.ITargetProvider)).Apply(ctx, stepEnvelope.Deployment, stepEnvelope.Step, stepEnvelope.Deployment.IsDryRun)
 					if stepError != nil {
 						return f.publishStepResult(ctx, stepEnvelope, false, stepError, componentResults)
@@ -560,10 +569,11 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
-	sLog.InfoCtx(ctx, "V (FederationVendor): getFromqueue")
+	queueName := fmt.Sprintf("%s-%s", target, namespace)
+	sLog.InfoCtx(ctx, "V (FederationVendor): getFromqueue %s", queueName)
 	defer span.End()
 
-	queueElement, err := f.StagingManager.QueueProvider.Dequeue(fmt.Sprintf("%s-%s", target, namespace))
+	queueElement, err := f.StagingManager.QueueProvider.Dequeue(queueName)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V (FederationVendor): getqueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
@@ -589,6 +599,8 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 				Body:        data,
 				ContentType: "application/json",
 			}
+		} else {
+			sLog.InfoCtx(ctx, "V (FederationVendor):not get request ")
 		}
 		if request, ok := queueElement.(ProviderApplyRequest); ok {
 			request.OperationID = operationId
@@ -598,6 +610,8 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 				Body:        data,
 				ContentType: "application/json",
 			}
+		} else {
+			sLog.InfoCtx(ctx, "V (FederationVendor):not apply request ")
 		}
 	}
 	resp := v1alpha2.COAResponse{

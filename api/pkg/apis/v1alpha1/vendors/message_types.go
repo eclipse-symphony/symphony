@@ -148,8 +148,10 @@ type ProviderGetRequest struct {
 type ProviderApplyRequest struct {
 	AgentRequest
 	Deployment model.DeploymentSpec `json:"deployment"`
+	Step       model.DeploymentStep `json:"step"`
 	IsDryRun   bool                 `json:"isDryRun,omitempty"`
 }
+
 type ProviderGetValidationRuleRequest struct {
 	AgentRequest
 }
