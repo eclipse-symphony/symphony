@@ -410,6 +410,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId, planState)
 			s.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
 
+			if len(planEnvelope.Plan.Steps) == 0 {
+				s.handlePlanComplete(ctx, planState)
+			}
 			for i, step := range planEnvelope.Plan.Steps {
 				stepId := fmt.Sprintf("%s-step-%d", planEnvelope.PlanId, i)
 				switch planEnvelope.Phase {
@@ -545,25 +548,29 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 
 	// check if all step is completed
 	if planState.isCompleted() {
-		log.InfoCtx(ctx, "plan state %s is completed %v ", planState.Phase, planState)
-		log.InfofCtx(ctx, "summary info %+v all assign %s", planState.Summary, planState.Summary.AllAssignedDeployed)
-		if !planState.Summary.AllAssignedDeployed {
-			planState.Status = "failed"
-		}
-		log.InfoCtx(ctx, "plan state is completed %v ", planState.Summary.AllAssignedDeployed)
-		switch planState.Phase {
-		case PhaseGet:
-			s.handlePhaseGetCompletetion(ctx, planState)
-		case PhaseApply:
-			if err := s.handlePlanCompletetion(ctx, planState); err != nil {
-				log.ErrorfCtx(ctx, "Failed to handle plan completion: %v", err)
-				return err
-			}
-		}
-
-		s.PlanManager.DeletePlan(planState.PlanId)
+		return s.handlePlanComplete(ctx, planState)
 
 	}
+	return nil
+}
+
+func (s *StageVendor) handlePlanComplete(ctx context.Context, planState *PlanState) error {
+	log.InfoCtx(ctx, "plan state %s is completed %v ", planState.Phase, planState)
+	log.InfofCtx(ctx, "summary info %+v all assign %s", planState.Summary, planState.Summary.AllAssignedDeployed)
+	if !planState.Summary.AllAssignedDeployed {
+		planState.Status = "failed"
+	}
+	log.InfoCtx(ctx, "plan state is completed %v ", planState.Summary.AllAssignedDeployed)
+	switch planState.Phase {
+	case PhaseGet:
+		s.handlePhaseGetCompletetion(ctx, planState)
+	case PhaseApply:
+		if err := s.handlePlanCompletetion(ctx, planState); err != nil {
+			log.ErrorfCtx(ctx, "Failed to handle plan completion: %v", err)
+			return err
+		}
+	}
+	s.PlanManager.DeletePlan(planState.PlanId)
 	return nil
 }
 
