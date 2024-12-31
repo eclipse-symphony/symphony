@@ -424,6 +424,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 						Remove:     planEnvelope.Remove,
 						Namespace:  planEnvelope.Namespace,
 					}
+					log.InfoCtx(ctx, "get step here %+v", step.Components)
 					if err := s.Vendor.Context.Publish("deployment-step", v1alpha2.Event{
 						Body:    stepEnvelope,
 						Context: ctx,
