@@ -465,7 +465,9 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 				Body:  []byte(err.Error()),
 			}
 		}
+		log.InfoCtx(ctx, "get response %+v", response)
 		if asyncResult.Error != nil {
+			log.InfoCtx(ctx, "publish step result  with error ")
 			f.Vendor.Context.Publish("step-result", v1alpha2.Event{
 				Metadata: map[string]string{
 					"namespace": operationBody.NameSpace,
@@ -481,6 +483,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 				},
 			})
 		} else {
+			log.InfoCtx(ctx, "publish step result  without error ")
 			f.Vendor.Context.Publish("step-result", v1alpha2.Event{
 				Metadata: map[string]string{
 					"namespace": operationBody.NameSpace,

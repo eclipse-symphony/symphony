@@ -341,7 +341,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			}
 		}
 	}
-
+	sLog.InfofCtx(ctx, "  P (Helm Target): get ret: %+v", ret)
 	return ret, nil
 }
 
