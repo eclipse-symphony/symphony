@@ -71,6 +71,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	if err != nil {
 		return err
 	}
+	log.Info("managers0 %v", s.Managers)
 	for _, m := range s.Managers {
 		if c, ok := m.(*stage.StageManager); ok {
 			s.StageManager = c
