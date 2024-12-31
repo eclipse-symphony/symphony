@@ -7,6 +7,7 @@
 package vendors
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
@@ -33,6 +35,11 @@ import (
 	"github.com/valyala/fasthttp"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+const (
+	maxRetries = 3
+	retryDelay = 5 * time.Second
 )
 
 var (
@@ -90,6 +97,20 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route + "/bootstrap",
 			Version:    o.Version,
 			Handler:    o.onBootstrap,
+			Parameters: []string{"name?"},
+		},
+		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/secretrotate",
+			Version:    o.Version,
+			Handler:    o.onSecretRotate,
+			Parameters: []string{"name?"},
+		},
+		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/upgrade",
+			Version:    o.Version,
+			Handler:    o.onUpgrade,
 			Parameters: []string{"name?"},
 		},
 		{
@@ -315,11 +336,10 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	switch request.Method {
 	case fasthttp.MethodPost:
 		subject := fmt.Sprintf("CN=%s-%s.%s", namespace, id, ServiceName)
-		_, err := c.TargetsManager.GetState(ctx, id, namespace)
+		target, err := c.TargetsManager.GetState(ctx, id, namespace)
 		if err != nil {
 			tLog.InfofCtx(ctx, "V (Targets) : onBootstrap target %s in namespace %s not found", id, namespace)
 			binding := request.Parameters["with-binding"]
-			var target model.TargetState
 			err := json.Unmarshal(request.Body, &target)
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
@@ -446,7 +466,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		}
 
 		// get secret
-		public, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
+		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -454,13 +474,179 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 				Body:  []byte(err.Error()),
 			})
 		}
-		private, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
+		private, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
+		}
+
+		// remove the \n from the public and private cert
+		public = strings.ReplaceAll(public, "\n", " ")
+		private = strings.ReplaceAll(private, "\n", " ")
+
+		filePath := fmt.Sprintf("%s/%s", AgentPath, "remote-agent")
+		if osPlatform == "windows" {
+			filePath = fmt.Sprintf("%s/%s", AgentPath, "remote-agent.exe")
+		}
+
+		fileContent, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("Error reading file: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+
+		// Base64 encode the file content
+		encodedFileContent := base64.StdEncoding.EncodeToString(fileContent)
+
+		// Update the target topology
+		target, err = c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("Error reading target: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+		var topology model.TopologySpec
+		json.Unmarshal(request.Body, &topology)
+		topologies := []model.TopologySpec{topology}
+		target.Spec.Topologies = topologies
+		err = c.TargetsManager.UpsertState(ctx, id, target)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("Error updating target topology: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\", \"file\":\"%s\"}", public, private, encodedFileContent)),
+		})
+
+	}
+	tLog.ErrorCtx(ctx, "V (Targets) : onRegistry failed - method not allowed")
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func readSecretWithRetry(ctx context.Context, secretProvider secret.ISecretProvider, secretName, key string, evalCtx coa_utils.EvaluationContext) (string, error) {
+	var data string
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		data, err = secretProvider.Read(ctx, secretName, key, evalCtx)
+		if err == nil {
+			return data, nil
+		}
+		tLog.ErrorfCtx(ctx, "V (Targets) : failed to read secret %s (attempt %d/%d) - %s", key, i+1, maxRetries, err.Error())
+		time.Sleep(retryDelay)
+	}
+	return "", fmt.Errorf("failed to read secret %s after %d attempts: %w", key, maxRetries, err)
+}
+
+func (c *TargetsVendor) onSecretRotate(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onSecretRotate",
+	})
+	defer span.End()
+	tLog.InfofCtx(ctx, "V (Targets) : onSecretRotate, method: %s", request.Method)
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		_, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onSecretRotate failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		// get the new secret
+		secretName := fmt.Sprintf("%s-tls", id)
+
+		// get secret
+		public, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onSecretRotate failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		private, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onSecretRotate failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+
+		// remove the \n from the public and private cert
+		public = strings.ReplaceAll(public, "\n", " ")
+		private = strings.ReplaceAll(private, "\n", " ")
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
+		})
+
+	}
+	tLog.ErrorCtx(ctx, "V (Targets) : onSecretRotate failed - method not allowed")
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func (c *TargetsVendor) onUpgrade(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onUpgrade",
+	})
+	defer span.End()
+	tLog.InfofCtx(ctx, "V (Targets) : onUpgrade, method: %s", request.Method)
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+	osPlatform, exist := request.Parameters["osPlatform"]
+	if !exist {
+		osPlatform = "linux"
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		_, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : onUpgrade failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
 
 		filePath := fmt.Sprintf("%s/%s", AgentPath, "remote-agent")
@@ -481,11 +667,11 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		encodedFileContent := base64.StdEncoding.EncodeToString(fileContent)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
-			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\", \"file\":\"%s\"}", public, private, encodedFileContent)),
+			Body:  []byte(fmt.Sprintf("{\"file\":\"%s\"}", encodedFileContent)),
 		})
 
 	}
-	tLog.ErrorCtx(ctx, "V (Targets) : onRegistry failed - method not allowed")
+	tLog.ErrorCtx(ctx, "V (Targets) : onUpgrade failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

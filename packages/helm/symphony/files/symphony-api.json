@@ -254,8 +254,32 @@
                 }
               }
             }
-          }
+          },
           {{- end }}
+          {
+            "name": "remoteagent-scheduler-manager",
+            "type": "managers.symphony.remoteagentscheduler",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true",
+              "RetentionDuration": "30m"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "secret": {
+                "type": "providers.secret.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          }
+
         ]
       },
       {

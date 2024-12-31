@@ -26,3 +26,4 @@ data:
   CLIENT_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
   ISSUER_NAME: {{ include "symphony.apiCAIssuerName" . }}
   AGENT_PATH: "/remote-agent"
+  AGENT_VERSION: {{ .Values.remoteAgent.version }}

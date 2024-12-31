@@ -60,9 +60,6 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 		}
 	}
 
-	if s.SecretProvider == nil {
-		return v1alpha2.NewCOAError(nil, "Secret provider is not found", v1alpha2.BadConfig)
-	}
 	return nil
 }
 

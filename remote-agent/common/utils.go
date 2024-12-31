@@ -34,6 +34,7 @@ type AsyncResult struct {
 }
 
 type SymphonyEndpoint struct {
+	BaseUrl          string `json:"baseUrl"`
 	RequestEndpoint  string `json:"requestEndpoint,omitempty"`
 	ResponseEndpoint string `json:"responseEndpoint,omitempty"`
 }

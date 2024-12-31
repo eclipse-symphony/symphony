@@ -39,7 +39,7 @@
                     "type": "remote-agent",
                     "parameters":{
                         "action": "upgrade",
-                        "version": "0.0.0.2"
+                        "version":"0.0.0.2"
                     }
                 }
             }]

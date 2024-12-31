@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 
 	"net/http"
 
@@ -15,13 +14,30 @@ import (
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	utils "github.com/eclipse-symphony/symphony/remote-agent/common"
+	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
+)
+
+// The version should be hardcoded in the build process
+const version = "0.0.0.1"
+
+var (
+	symphonyEndpoints utils.SymphonyEndpoint
+	clientCertPath    *string
+	configPath        *string
+	clientKeyPath     *string
+	namespace         *string
+	targetName        *string
+	httpClient        *http.Client
 )
 
 func main() {
+	// Allocate memory for shouldEnd
 	// Define a command-line flag for the configuration file path
-	configPath := flag.String("config", "config.json", "Path to the configuration file")
-	clientCertPath := flag.String("client-cert", "client-cert.pem", "Path to the client certificate file")
-	clientKeyPath := flag.String("client-key", "client-key.pem", "Path to the client key file")
+	configPath = flag.String("config", "config.json", "Path to the configuration file")
+	clientCertPath = flag.String("client-cert", "client-cert.pem", "Path to the client certificate file")
+	clientKeyPath = flag.String("client-key", "client-key.pem", "Path to the client key file")
+	targetName = flag.String("target-name", "remote-target", "remote target name")
+	namespace = flag.String("namespace", "default", "Namespace to use for the agent")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -46,13 +62,12 @@ func main() {
 	}
 
 	// Create HTTP client with TLS configuration
-	httpClient := &http.Client{
+	httpClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
 	}
 	print(httpClient)
-	symphonyEndpoints := utils.SymphonyEndpoint{}
 	err = json.Unmarshal(setting, &symphonyEndpoints)
 	if err != nil {
 		fmt.Println("Error unmarshalling configuration file:", err)
@@ -68,31 +83,15 @@ func main() {
 		},
 	}
 
-	// Set up the configuration
-	config := remoteHttp.HttpBindingConfig{
-		TLS: true,
-		CertProvider: remoteHttp.CertProviderConfig{
-			Type:   "certs.localfile",
-			Config: map[string]interface{}{"certFile": "path/to/cert.pem", "keyFile": "path/to/key.pem"},
-		},
-	}
-
 	// Set up the request and response URLs
-	requestUrl, err := url.Parse(symphonyEndpoints.RequestEndpoint)
-	if err != nil {
-		fmt.Println("Error parsing request URL:", err)
-		return
-	}
-	responseUrl, err := url.Parse(symphonyEndpoints.ResponseEndpoint)
-	if err != nil {
-		fmt.Println("Error parsing response URL:", err)
-		return
-	}
-	h.RequestUrl = requestUrl
-	h.ResponseUrl = responseUrl
+	h.RequestUrl = symphonyEndpoints.RequestEndpoint
+	h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
+	h.Client = httpClient
+	h.Target = *targetName
+	h.Namespace = *namespace
 
 	// Launch the HttpBinding
-	err = h.Launch(config)
+	err = h.Launch()
 	if err != nil {
 		fmt.Println("Error launching HttpBinding:", err)
 		return
@@ -118,6 +117,22 @@ func composeTargetProviders() map[string]tgt.ITargetProvider {
 	if err != nil {
 		fmt.Println("Error script provider:", err)
 	}
-	providers["providers.target.script"] = mProvider
+	providers["script"] = mProvider
+
+	rProvider := &remoteProviders.RemoteAgentProvider{}
+	rProvider.Client = httpClient
+	rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
+		PublicCertPath: *clientCertPath,
+		PrivateKeyPath: *clientKeyPath,
+		ConfigPath:     *configPath,
+		BaseUrl:        symphonyEndpoints.BaseUrl,
+		Version:        version,
+		Namespace:      *namespace,
+	}
+	err = rProvider.Init(rProviderConfig)
+	if err != nil {
+		fmt.Println("Error remote agent provider:", err)
+	}
+	providers["remote-agent"] = rProvider
 	return providers
 }

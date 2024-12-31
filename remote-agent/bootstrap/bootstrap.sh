@@ -7,22 +7,23 @@
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 <endpoint> <cert_path>"
+    echo "Usage: $0 <endpoint> <cert_path> <key_path> <target_name> <namespace> <topology>"
     exit 1
 }
 
 # Check if the correct number of parameters are provided
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 6 ]; then
     echo "Error: Invalid number of parameters."
     usage
 fi
 
 # Assign parameters to variables
-endpoint=$1
-cert_path=$2
-key_path=$3
-target_name=$4
-namespace=$5
+endpoint="https://symphony-service:8081/v1alpha2"
+cert_path="../client-cert.pem"
+key_path="../client-key.pem"
+target_name="remote-target"
+namespace="default"
+topology="topologies.json"
 
 # Validate the endpoint (basic URL validation)
 if ! [[ $endpoint =~ ^https?:// ]]; then
@@ -48,16 +49,27 @@ if [ -z "$target_name" ]; then
     usage
 fi
 
-# Validate the target name (non-empty string)
+# Validate the namespace (default if not provided)
 if [ -z "$namespace" ]; then
     echo "Error: namespace must be a non-empty string."
+    $namespace = "default"
+fi
+
+# Validate the topology file (non-empty string)
+if [ -z "$topology" ]; then
+    echo "Error: Topology file must be a non-empty string."
     usage
 fi
 
 
 # call the endpoint with targetName and cert
-bootstarpEndpoint="$endpoint/targets/bootstrap/$endpoint?namespace=$namespace&osPlatform=linux"
-result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$endpoint")
+bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
+# read the topology file and POST as the body
+TOPOLOGY_DATA=$(cat "$topology")
+
+result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpEndpoint" \
+        -H "Content-Type: application/json" \
+        -d "$TOPOLOGY_DATA")
 # Parse the JSON response and extract the fields
 public=$(echo $result | jq -r '.public')
 # Extract the header and footer
@@ -99,4 +111,4 @@ echo "public.pem"
 echo "private.pem"
 echo "remote-agent"
 
-./remote-agent -config=./config.json -client-cert=./public.pem -client-key=./private.pem
+./remote-agent -config=../config.json -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace

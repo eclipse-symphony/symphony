@@ -2,7 +2,7 @@
     {
         "operationID": "2",
         "provider": "remote-agent",
-        "action" : "apply",
+        "action" : "get",
         "isDryRun": false,
         "deployment": {
             "solutionName": "sample",
@@ -38,8 +38,7 @@
                     "name": "sample",
                     "type": "remote-agent",
                     "parameters":{
-                        "action": "upgrade",
-                        "version": "0.0.0.2"
+                        "action": "secretrotation"
                     }
                 }
             }]
