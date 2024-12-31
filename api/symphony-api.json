@@ -108,6 +108,29 @@
                 }
               }
             }
+          },
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.volatilestate": "mem-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }     
           }
         ]
       },
@@ -553,6 +576,34 @@
               "user": "admin",
               "password": ""
             }
+          },
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.persistentstate": "redis-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"
+            },
+            "providers": {
+              "redis-state": {
+                "type": "providers.state.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "localhost:6379",
+                  "requireTLS": false,
+                  "password": ""
+                }
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }     
           }
         ]
       },
