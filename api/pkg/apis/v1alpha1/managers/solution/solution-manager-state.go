@@ -126,6 +126,7 @@ func MergeDeploymentStates(previous *model.DeploymentState, current model.Deploy
 	}
 	// merge state matrix
 	for k, v := range previous.TargetComponent {
+		log.Info("current state %+v key %s value %s current.TargetComponent %+v", current, k, v, current.TargetComponent)
 		if _, ok := current.TargetComponent[k]; !ok {
 			if !strings.HasPrefix(v, "-") {
 				current.TargetComponent[k] = "-" + v
