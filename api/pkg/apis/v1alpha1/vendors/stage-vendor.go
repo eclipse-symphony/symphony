@@ -71,7 +71,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	if err != nil {
 		return err
 	}
-	log.Info("managers0 %+v", s.Managers)
 	for _, m := range s.Managers {
 		if c, ok := m.(*stage.StageManager); ok {
 			s.StageManager = c
@@ -86,6 +85,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			s.SolutionManager = c
 		}
 	}
+	s.PlanManager = NewPlanManager(0)
 	if s.StageManager == nil {
 		return v1alpha2.NewCOAError(nil, "stage manager is not supplied", v1alpha2.MissingConfig)
 	}
