@@ -206,7 +206,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 						},
 						References: stepEnvelope.Step.Components,
 					}
-					err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanId, stepEnvelope.Step.Target, stepEnvelope.Phase, stepEnvelope.Namespace)
+					err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanId, stepEnvelope.Step.Target, stepEnvelope.Phase, stepEnvelope.Namespace, stepEnvelope.Remove)
 					if err != nil {
 						log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
 					}
@@ -251,10 +251,12 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			case PhaseApply:
 				if true {
 					// if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
+					operationId := uuid.New().String()
 					providApplyRequest := &ProviderApplyRequest{
 						AgentRequest: AgentRequest{
-							Provider: stepEnvelope.Step.Role,
-							Action:   string(PhaseApply),
+							OperationID: operationId,
+							Provider:    stepEnvelope.Step.Role,
+							Action:      string(PhaseApply),
 						},
 						Deployment: stepEnvelope.Deployment,
 						Step:       stepEnvelope.Step,
@@ -262,6 +264,10 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					}
 					log.InfoCtx(ctx, "V(Federation): enqueue %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.Namespace, providApplyRequest)
 					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.Namespace), providApplyRequest)
+					err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanId, stepEnvelope.Step.Target, stepEnvelope.Phase, stepEnvelope.Namespace, stepEnvelope.Remove)
+					if err != nil {
+						log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
+					}
 				} else {
 					// get provider todo : is dry run
 					provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
@@ -465,6 +471,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 				Body:  []byte(err.Error()),
 			}
 		}
+
 		log.InfoCtx(ctx, "get response %+v", response)
 		if asyncResult.Error != nil {
 			log.InfoCtx(ctx, "publish step result  with error ")
@@ -478,6 +485,8 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 					StepId:         operationBody.StepId,
 					Success:        false,
 					retComoponents: response,
+					Phase:          PhaseGet,
+					Remove:         operationBody.Remove,
 					Timestamp:      time.Now(),
 					Error:          asyncResult.Error,
 				},
@@ -492,7 +501,9 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 					Target:         operationBody.Target,
 					PlanId:         operationBody.PlanId,
 					StepId:         operationBody.StepId,
+					Phase:          PhaseGet,
 					Success:        true,
+					Remove:         operationBody.Remove,
 					retComoponents: response,
 					Timestamp:      time.Now(),
 				},
@@ -534,6 +545,8 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 					PlanId:     operationBody.PlanId,
 					StepId:     operationBody.StepId,
 					Success:    true,
+					Phase:      PhaseApply,
+					Remove:     operationBody.Remove,
 					Components: response,
 					Timestamp:  time.Now(),
 				},
@@ -548,6 +561,8 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 					PlanId:     operationBody.PlanId,
 					StepId:     operationBody.StepId,
 					Success:    true,
+					Phase:      PhaseApply,
+					Remove:     operationBody.Remove,
 					Components: response,
 					Timestamp:  time.Now(),
 				},
@@ -603,7 +618,7 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 }
 
 // for operation state storage
-func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action JobPhase, namespace string) error {
+func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action JobPhase, namespace string, remove bool) error {
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: operationId,
@@ -613,6 +628,7 @@ func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId
 				"Target":    target,
 				"Action":    action,
 				"namespace": namespace,
+				"Remove":    remove,
 			}},
 	}
 	_, err := f.StagingManager.StateProvider.Upsert(ctx, upsertRequest)
