@@ -472,7 +472,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				log.ErrorfCtx(ctx, " fail to unmarshal step result %v", err)
 				return err
 			}
-			log.InfofCtx(ctx, " subscribe step-result %v", stepResult)
+			log.InfofCtx(ctx, " subscribe0 step-result %v", stepResult)
+			log.InfofCtx(ctx, " subscribe1 step-result %v", stepResult.retComoponents)
+			log.InfofCtx(ctx, " subscribe2 step-result %v", stepResult.Components)
+			log.InfofCtx(ctx, " subscribe3 step-result %v", stepResult.GetResult)
 			planId := stepResult.PlanId
 
 			planStateObj, exists := s.PlanManager.Plans.Load(planId)
@@ -504,11 +507,12 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 	}
 	log.InfoCtx(ctx, "todo update plan state")
 	planState.CompletedSteps++
-	switch planState.Phase {
+	switch stepResult.Phase {
 	case PhaseGet:
 		log.InfoCtx(ctx, " update phase get %v ", stepResult.retComoponents)
 		planState.StepStates[stepResult.StepId].GetResult = stepResult.retComoponents
 	case PhaseApply:
+		log.InfoCtx(ctx, "todo apply plan state")
 		if !stepResult.Success {
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[stepResult.Remove])
 			targetResultMessage := fmt.Sprintf("failed to create provider %s, err: %s", deploymentTypeMap[stepResult.Remove], stepResult.Error)
