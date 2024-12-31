@@ -602,35 +602,40 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 			Body:  []byte(err.Error()),
 		}
 	}
-
-	if request, ok := queueElement.(ProviderGetRequest); ok {
-		data, _ := json.Marshal(request)
-		return v1alpha2.COAResponse{
-			State:       v1alpha2.OK,
-			Body:        data,
-			ContentType: "application/json",
-		}
-	} else {
-		sLog.InfoCtx(ctx, "V (FederationVendor):not get request ")
-	}
-	if request, ok := queueElement.(ProviderApplyRequest); ok {
-		data, _ := json.Marshal(request)
-		return v1alpha2.COAResponse{
-			State:       v1alpha2.OK,
-			Body:        data,
-			ContentType: "application/json",
-		}
-	} else {
-		sLog.InfoCtx(ctx, "V (FederationVendor):not apply request ")
-	}
-
-	resp := v1alpha2.COAResponse{
-		State:       v1alpha2.Accepted,
-		Body:        []byte("{\"result\":\"No task to execute\"}"),
+	data, _ := json.Marshal(queueElement)
+	return v1alpha2.COAResponse{
+		State:       v1alpha2.OK,
+		Body:        data,
 		ContentType: "application/json",
 	}
-	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	return resp
+	// if request, ok := queueElement.(ProviderGetRequest); ok {
+	// 	data, _ := json.Marshal(request)
+	// 	return v1alpha2.COAResponse{
+	// 		State:       v1alpha2.OK,
+	// 		Body:        data,
+	// 		ContentType: "application/json",
+	// 	}
+	// } else {
+	// 	sLog.InfoCtx(ctx, "V (FederationVendor):not get request ")
+	// }
+	// if request, ok := queueElement.(ProviderApplyRequest); ok {
+	// 	data, _ := json.Marshal(request)
+	// 	return v1alpha2.COAResponse{
+	// 		State:       v1alpha2.OK,
+	// 		Body:        data,
+	// 		ContentType: "application/json",
+	// 	}
+	// } else {
+	// 	sLog.InfoCtx(ctx, "V (FederationVendor):not apply request ")
+	// }
+
+	// resp := v1alpha2.COAResponse{
+	// 	State:       v1alpha2.Accepted,
+	// 	Body:        []byte("{\"result\":\"No task to execute\"}"),
+	// 	ContentType: "application/json",
+	// }
+	// observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	// return resp
 }
 
 // for operation state storage
