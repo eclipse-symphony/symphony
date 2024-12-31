@@ -194,8 +194,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				if FindAgentFromDeploymentState(stepEnvelope.PlanState.Deployment.Targets, stepEnvelope.Step.Target) {
-					// if true {
+				// if FindAgentFromDeploymentState(stepEnvelope.PlanState.Deployment.Targets, stepEnvelope.Step.Target) {
+				if true {
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
 							Provider: stepEnvelope.Step.Role,
@@ -242,8 +242,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					})
 				}
 			case PhaseApply:
-
-				if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
+				if true {
+					// if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
 					providApplyRequest := &ProviderApplyRequest{
 						AgentRequest: AgentRequest{
 							Provider: stepEnvelope.Step.Role,
