@@ -630,6 +630,7 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 		if err != nil {
 			return
 		}
+		log.InfoCtx(ctx, "get current currentdesired state %+v", currentDesiredState)
 		//todo:  change to async get be provider actor
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Solution): failed to get current state: %+v", err)
@@ -639,12 +640,13 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 		if previousDesiredState != nil {
 			desiredState = solution.MergeDeploymentStates(&previousDesiredState.State, currentDesiredState)
 		}
-
+		log.InfoCtx(ctx, "get desired state %+v", desiredState)
 		if planState.Remove {
 			desiredState.MarkRemoveAll()
 		}
 
 		mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
+		log.InfoCtx(ctx, "get merged state %+v", mergedState)
 		planState.MergedState = mergedState
 		Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 		if err != nil {
