@@ -616,10 +616,12 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 				if role == "" {
 					role = "container"
 				}
+				log.Info("store key value in current key : %s value : %s", key, role)
 				currentState.TargetComponent[key] = role
 			}
 		}
 		log.InfoCtx(ctx, "get current state %v", currentState)
+		planState.CurrentState = currentState
 		previousDesiredState := s.SolutionManager.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
 
 		var currentDesiredState model.DeploymentState
@@ -642,6 +644,7 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 		}
 
 		mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
+		planState.MergedState = mergedState
 		Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 		if err != nil {
 			log.ErrorCtx(ctx, "plan generate error")
