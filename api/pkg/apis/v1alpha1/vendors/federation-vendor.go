@@ -190,10 +190,11 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			}
 
 			log.InfoCtx(ctx, "deployment-step begin to apply step merged state %+v", stepEnvelope.PlanState.MergedState)
+			log.InfoCtx(ctx, "deployment-step begin to get deployment  %+v", stepEnvelope.PlanState.Deployment)
 
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
+				if FindAgentFromDeploymentState(stepEnvelope.PlanState.Deployment.Targets, stepEnvelope.Step.Target) {
 					// if true {
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
@@ -317,14 +318,24 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		IsSelf:     true,
 	})
 }
-func FindAgentFromDeploymentState(state model.DeploymentState, targetName string) bool {
-	log.Info("compare between state and target name %+v, %s", state, targetName)
-	for _, targetDes := range state.Targets {
-		log.Info("targetDes Name %s targetName %s", targetDes.Name, targetName)
-		if targetName == targetDes.Name {
-			for _, c := range targetDes.Spec.Components {
-				log.Info(" targetName %s type", targetName, c.Type)
-				if c.Type == "remote-agent" {
+func FindAgentFromDeploymentState(targetState map[string]model.TargetState, targetName string) bool {
+	log.Info("compare between state and target name %+v, %s", targetState, targetName)
+	// for _, targetDes := range state.Targets {
+	// 	log.Info("targetDes Name %s targetName %s", targetDes.Name, targetName)
+	// 	if targetName == targetDes.Name {
+	// 		for _, c := range targetDes.Spec.Components {
+	// 			log.Info(" targetName %s type", targetName, c.Type)
+	// 			if c.Type == "remote-agent" {
+	// 				return true
+	// 			}
+	// 		}
+	// 	}
+	// }
+	for _, state := range targetState {
+		log.Info("compare between state and target name %+v, %s", state, state.ObjectMeta.Name)
+		if state.ObjectMeta.Name == targetName {
+			for _, component := range state.Spec.Components {
+				if component.Type == "remote-agent" {
 					return true
 				}
 			}

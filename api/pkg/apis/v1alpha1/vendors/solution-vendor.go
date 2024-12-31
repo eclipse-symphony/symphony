@@ -290,6 +290,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 		initalPlan.Steps = stepList
 		log.InfoCtx(ctx, "initial plan list %+v", stepList)
+		log.InfoCtx(ctx, "initial plan deployment %+v", deployment)
 		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,
