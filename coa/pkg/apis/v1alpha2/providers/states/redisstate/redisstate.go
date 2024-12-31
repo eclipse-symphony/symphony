@@ -34,6 +34,8 @@ const (
 	separator = "|"
 
 	// SetDefaultQuery is the lua script to set the default value
+	// KEYS: objectName
+	// ARGV: etag, object value, first-write
 	// 1. If the etag is not set, set always succeeds
 	// 2. If the etag is set, set succeeds only if
 	// 		1) the etag matches the current etag
@@ -267,6 +269,7 @@ func (r *RedisStateProvider) List(ctx context.Context, request states.ListReques
 				continue
 			}
 			parts := strings.Split(key, separator)
+			// A typical key is like "objectType|group|namespace|id"
 			if len(parts) != 4 {
 				rLog.Errorf("  P (Redis State): key is not valid %s: %+v", key, err)
 				continue
@@ -386,21 +389,19 @@ func getKeyNamePrefix(metadata map[string]interface{}) (string, error) {
 
 func getObjectTypePrefixForList(metadata map[string]interface{}) (string, error) {
 	// Construct object type
-	objectType := ""
+	rstring := ""
+	gstring := ""
 	if resource, ok := metadata["resource"]; ok {
-		if rstring, ok := resource.(string); ok && rstring != "" {
-			objectType = rstring
+		if rstring, ok = resource.(string); !ok || rstring == "" {
+			return "", v1alpha2.NewCOAError(nil, "Redis state provider object type is not specified", v1alpha2.BadConfig)
 		}
 	}
 	if group, ok := metadata["group"]; ok {
-		if gstring, ok := group.(string); ok && gstring != "" {
-			objectType = objectType + separator + gstring
+		if gstring, ok = group.(string); !ok || gstring == "" {
+			return "", v1alpha2.NewCOAError(nil, "Redis state provider object type is not specified", v1alpha2.BadConfig)
 		}
 	}
-	if objectType == "" {
-		return "", v1alpha2.NewCOAError(nil, "Redis state provider object type is not specified", v1alpha2.BadConfig)
-	}
-	return objectType, nil
+	return rstring + separator + gstring, nil
 }
 
 func CastRedisPropertiesToStateEntry(id string, properties map[string]string) (states.StateEntry, error) {
