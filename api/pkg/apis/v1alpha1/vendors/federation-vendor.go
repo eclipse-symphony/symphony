@@ -211,11 +211,14 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 				} else {
 					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Step.Components)
 					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Deployment)
-					components, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, stepEnvelope.Deployment, stepEnvelope.Step.Components)
+					dep := stepEnvelope.Deployment
+					dep.ActiveTarget = stepEnvelope.Step.Target
+					components, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, dep, stepEnvelope.Step.Components)
 					success := true
 					if stepError != nil {
 						success = false
 					}
+					log.InfoCtx(ctx, "get component %+v", components)
 					stepEnvelope.DeploymentState.Components = components
 					stepResult := &StepResult{
 						Target:         stepEnvelope.Step.Target,
