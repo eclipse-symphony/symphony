@@ -707,6 +707,7 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 		return err
 	}
 	log.InfofCtx(ctx, "handle plan completetion: update summary done %v", planState)
+	planState.MergedState.ClearAllRemoved()
 	if !planState.Deployment.IsDryRun {
 		if len(planState.MergedState.TargetComponent) == 0 && planState.Remove {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
