@@ -189,11 +189,11 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 				return err
 			}
 
-			log.InfoCtx(ctx, "deployment-step begin to apply step ")
+			log.InfoCtx(ctx, "deployment-step begin to apply step merged state %+v", stepEnvelope.PlanState.MergedState)
 
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
+				if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
 					// if true {
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
@@ -242,7 +242,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 				}
 			case PhaseApply:
 
-				if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
+				if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
 					providApplyRequest := &ProviderApplyRequest{
 						AgentRequest: AgentRequest{
 							Provider: stepEnvelope.Step.Role,
