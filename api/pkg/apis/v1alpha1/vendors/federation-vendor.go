@@ -60,6 +60,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if err != nil {
 		return err
 	}
+	log.Info("managers %v", f.Managers)
 	for _, m := range f.Managers {
 		if c, ok := m.(*sites.SitesManager); ok {
 			f.SitesManager = c
