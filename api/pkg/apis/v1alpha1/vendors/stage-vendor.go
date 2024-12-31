@@ -384,6 +384,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				log.ErrorCtx(ctx, "failed to unmarshal plan envelope :%v", err)
 				return err
 			}
+			log.InfoCtx(ctx, "plan deployment in deployment plan %+v", planEnvelope.Deployment)
 			planState := &PlanState{
 				PlanId:     planEnvelope.PlanId,
 				StartTime:  time.Now(),
@@ -413,7 +414,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				stepId := fmt.Sprintf("%s-step-%d", planEnvelope.PlanId, i)
 				switch planEnvelope.Phase {
 				case PhaseGet:
-					log.InfoCtx(ctx, "phase get begin")
+					log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 					stepEnvelope := &StepEnvelope{
 						Phase:      PhaseGet,
 						PlanId:     planEnvelope.PlanId,
@@ -648,6 +649,7 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 
 		mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
 		log.InfoCtx(ctx, "get merged state %+v", mergedState)
+		log.InfoCtx(ctx, "planDeployment  %+v", planState.Deployment)
 		planState.MergedState = mergedState
 		Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 		if err != nil {
