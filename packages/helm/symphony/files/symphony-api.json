@@ -154,6 +154,7 @@
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret"
             },
+            
             "providers": {
               "redis-state": {
                 {{- if .Values.redis.enabled }}
@@ -168,14 +169,49 @@
                 "config": {}
                 {{- end }}
               },
-              "mock-config": {
-                "type": "providers.config.mock",
-                "config": {}
-              },
-              "mock-secret": {
-                "type": "providers.secret.mock",
-                "config": {}
-              }
+                "mem-state": {
+                  "type": "providers.state.memory",
+                  "config": {}
+                },              
+                "helm.v3": {
+                  "type": "providers.target.helm",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "yaml.k8s": {
+                  "type": "providers.target.kubectl",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "instance": {
+                  "type": "providers.target.k8s",
+                  "config": {
+                    "inCluster": true,
+                    "deploymentStrategy": "services"       
+                  }
+                },
+                "configmap": {
+                  "type": "providers.target.configmap",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "ingress": {
+                  "type": "providers.target.ingress",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "mock-config": {
+                  "type": "providers.config.mock",
+                  "config": {}
+                },
+                "mock-secret": {
+                  "type": "providers.secret.mock",
+                  "config": {}
+                }
             }     
           }
         ],
@@ -591,6 +627,74 @@
             }
           },
           {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.persistentstate": "redis-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"
+            },
+            
+            "providers": {
+              "redis-state": {
+                {{- if .Values.redis.enabled }}
+                "type": "providers.state.redis",
+                "config": {
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+                {{- else }}
+                "type": "providers.state.memory",
+                "config": {}
+                {{- end }}
+              },
+                "mem-state": {
+                  "type": "providers.state.memory",
+                  "config": {}
+                },              
+                "helm.v3": {
+                  "type": "providers.target.helm",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "yaml.k8s": {
+                  "type": "providers.target.kubectl",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "instance": {
+                  "type": "providers.target.k8s",
+                  "config": {
+                    "inCluster": true,
+                    "deploymentStrategy": "services"       
+                  }
+                },
+                "configmap": {
+                  "type": "providers.target.configmap",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "ingress": {
+                  "type": "providers.target.ingress",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "mock-config": {
+                  "type": "providers.config.mock",
+                  "config": {}
+                },
+                "mock-secret": {
+                  "type": "providers.secret.mock",
+                  "config": {}
+                }
+            }     
+          },
+          {
             "name": "sites-manager",
             "type": "managers.symphony.sites",
             "properties": {
@@ -726,38 +830,6 @@
             }
           }
         ]
-      },
-      {
-        "name": "solution-manager",
-        "type": "managers.symphony.solution",
-        "properties": {
-          "providers.persistentstate": "redis-state",
-          "providers.config": "mock-config",  
-          "providers.secret": "mock-secret"
-        },
-        "providers": {
-          "redis-state": {
-            {{- if .Values.redis.enabled }}
-            "type": "providers.state.redis",
-            "config": {
-              "host": "{{ include "symphony.redisHost" . }}",
-              "requireTLS": false,
-              "password": ""
-            }
-            {{- else }}
-            "type": "providers.state.memory",
-            "config": {}
-            {{- end }}
-          },
-          "mock-config": {
-            "type": "providers.config.mock",
-            "config": {}
-          },
-          "mock-secret": {
-            "type": "providers.secret.mock",
-            "config": {}
-          }
-        }     
       }
     ]
   },
