@@ -318,9 +318,12 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	})
 }
 func FindAgentFromDeploymentState(state model.DeploymentState, targetName string) bool {
+	log.Info("compare between state and target name %+v, %s", state, targetName)
 	for _, targetDes := range state.Targets {
+		log.Info("targetDes Name %s targetName %s", targetDes.Name, targetName)
 		if targetName == targetDes.Name {
 			for _, c := range targetDes.Spec.Components {
+				log.Info(" targetName %s type", targetName, c.Type)
 				if c.Type == "remote-agent" {
 					return true
 				}
