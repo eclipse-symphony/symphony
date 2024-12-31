@@ -195,13 +195,20 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			switch stepEnvelope.Phase {
 			case PhaseGet:
 				// if FindAgentFromDeploymentState(stepEnvelope.PlanState.Deployment.Targets, stepEnvelope.Step.Target) {
+				FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target)
 				if true {
+					operationId := uuid.New().String()
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
-							Provider: stepEnvelope.Step.Role,
-							Action:   string(PhaseGet),
+							OperationID: operationId,
+							Provider:    stepEnvelope.Step.Role,
+							Action:      string(PhaseGet),
 						},
 						References: stepEnvelope.Step.Components,
+					}
+					err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanId, stepEnvelope.Step.Target, stepEnvelope.Phase, stepEnvelope.Namespace)
+					if err != nil {
+						log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
 					}
 					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.Namespace), providerGetRequest)
 					log.InfoCtx(ctx, "V(Federation): enqueue get %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.Namespace, providerGetRequest)
@@ -318,8 +325,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		IsSelf:     true,
 	})
 }
-func FindAgentFromDeploymentState(targetState map[string]model.TargetState, targetName string) bool {
-	log.Info("compare between state and target name %+v, %s", targetState, targetName)
+func FindAgentFromDeploymentState(stepComponents []model.ComponentStep, targetName string) bool {
+	log.Info("compare between state and target name %+v, %s", stepComponents, targetName)
 	// for _, targetDes := range state.Targets {
 	// 	log.Info("targetDes Name %s targetName %s", targetDes.Name, targetName)
 	// 	if targetName == targetDes.Name {
@@ -331,14 +338,14 @@ func FindAgentFromDeploymentState(targetState map[string]model.TargetState, targ
 	// 		}
 	// 	}
 	// }
-	for _, state := range targetState {
-		log.Info("compare between state and target name %+v, %s", state, state.ObjectMeta.Name)
-		if state.ObjectMeta.Name == targetName {
-			for _, component := range state.Spec.Components {
-				if component.Type == "remote-agent" {
-					return true
-				}
+	for _, component := range stepComponents {
+		log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
+		if component.Component.Name == targetName {
+			if component.Component.Type == "remote-agent" {
+				log.Info("It is remote call ")
+				return true
 			}
+
 		}
 	}
 	return false
@@ -595,39 +602,28 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 			Body:  []byte(err.Error()),
 		}
 	}
-	if stepEnvelope, ok := queueElement.(StepEnvelope); ok {
-		operationId := uuid.New().String()
-		err := f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanId, stepEnvelope.Step.Target, stepEnvelope.Phase, stepEnvelope.Namespace)
-		if err != nil {
-			return v1alpha2.COAResponse{
-				State:       v1alpha2.Accepted,
-				Body:        []byte("{\"result\":\"upsert operationId failed\"}"),
-				ContentType: "application/json",
-			}
+
+	if request, ok := queueElement.(ProviderGetRequest); ok {
+		data, _ := json.Marshal(request)
+		return v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        data,
+			ContentType: "application/json",
 		}
-		if request, ok := queueElement.(ProviderGetRequest); ok {
-			request.OperationID = operationId
-			data, _ := json.Marshal(request)
-			return v1alpha2.COAResponse{
-				State:       v1alpha2.OK,
-				Body:        data,
-				ContentType: "application/json",
-			}
-		} else {
-			sLog.InfoCtx(ctx, "V (FederationVendor):not get request ")
-		}
-		if request, ok := queueElement.(ProviderApplyRequest); ok {
-			request.OperationID = operationId
-			data, _ := json.Marshal(request)
-			return v1alpha2.COAResponse{
-				State:       v1alpha2.OK,
-				Body:        data,
-				ContentType: "application/json",
-			}
-		} else {
-			sLog.InfoCtx(ctx, "V (FederationVendor):not apply request ")
-		}
+	} else {
+		sLog.InfoCtx(ctx, "V (FederationVendor):not get request ")
 	}
+	if request, ok := queueElement.(ProviderApplyRequest); ok {
+		data, _ := json.Marshal(request)
+		return v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        data,
+			ContentType: "application/json",
+		}
+	} else {
+		sLog.InfoCtx(ctx, "V (FederationVendor):not apply request ")
+	}
+
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.Accepted,
 		Body:        []byte("{\"result\":\"No task to execute\"}"),
