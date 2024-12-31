@@ -198,7 +198,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
+				// if FindAgentFromDeploymentState(stepEnvelope.DeploymentState, stepEnvelope.Step.Target) {
+				if true {
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
 							Provider: stepEnvelope.Step.Role,
@@ -206,8 +207,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 						},
 						References: stepEnvelope.Step.Components,
 					}
-					f.StagingManager.QueueProvider.Enqueue("targetName-Namespace", providerGetRequest)
-
+					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.Namespace), providerGetRequest)
+					log.InfoCtx(ctx, "V(Federation): enqueue get %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.Namespace, providerGetRequest)
 				} else {
 					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Step.Components)
 					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Deployment)
@@ -272,7 +273,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 						Deployment: stepEnvelope.Deployment,
 						IsDryRun:   stepEnvelope.Deployment.IsDryRun,
 					}
-					f.StagingManager.QueueProvider.Enqueue("targetName-Namespace", providApplyRequest)
+					log.InfoCtx(ctx, "V(Federation): enqueue %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.Namespace, providApplyRequest)
+					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.Namespace), providApplyRequest)
 				} else {
 					componentResults, stepError := (provider.(tgt.ITargetProvider)).Apply(ctx, stepEnvelope.Deployment, stepEnvelope.Step, stepEnvelope.Deployment.IsDryRun)
 					if stepError != nil {
