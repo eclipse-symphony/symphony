@@ -660,6 +660,7 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 				Plan:                 Plan,
 				Deployment:           planState.Deployment,
 				MergedState:          mergedState,
+				CurrentState:         currentState,
 				PreviousDesiredState: previousDesiredState,
 				PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
 				Remove:               planState.Remove,
