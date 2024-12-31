@@ -603,6 +603,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				}
 			}
 			if job.Action == v1alpha2.JobDelete {
+				log.InfoCtx(ctx, "1111deployment %+v namespace %s", deployment, namespace)
 				_, err = s.apiClient.Reconcile(ctx, *deployment, true, namespace, s.user, s.password)
 				if err != nil {
 					log.ErrorfCtx(ctx, " M (Job): error reconciling deployment with delete job action: %s", err.Error())
