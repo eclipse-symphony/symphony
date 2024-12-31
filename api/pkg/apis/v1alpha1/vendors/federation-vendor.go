@@ -188,15 +188,11 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 				log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal step envelope: %v", err)
 				return err
 			}
-
-			log.InfoCtx(ctx, "deployment-step begin to apply step merged state %+v", stepEnvelope.PlanState.MergedState)
-			log.InfoCtx(ctx, "deployment-step begin to get deployment  %+v", stepEnvelope.PlanState.Deployment)
-
 			switch stepEnvelope.Phase {
 			case PhaseGet:
 				// if FindAgentFromDeploymentState(stepEnvelope.PlanState.Deployment.Targets, stepEnvelope.Step.Target) {
-				FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target)
-				if true {
+				if FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target) {
+					// if true {
 					operationId := uuid.New().String()
 					providerGetRequest := &ProviderGetRequest{
 						AgentRequest: AgentRequest{
@@ -249,8 +245,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					})
 				}
 			case PhaseApply:
-				if true {
-					// if FindAgentFromDeploymentState(stepEnvelope.PlanState.MergedState, stepEnvelope.Step.Target) {
+				if FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target) {
 					operationId := uuid.New().String()
 					providApplyRequest := &ProviderApplyRequest{
 						AgentRequest: AgentRequest{
@@ -598,7 +593,7 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	sLog.InfoCtx(ctx, "V (FederationVendor): getFromqueue %s", queueName)
+	sLog.InfoCtx(ctx, "V (FederationVendor): getFromqueue %s queue length %s", queueName)
 	defer span.End()
 
 	queueElement, err := f.StagingManager.QueueProvider.Dequeue(queueName)
