@@ -403,7 +403,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				CurrentState:         planEnvelope.CurrentState,
 				StepStates:           make([]StepState, len(planEnvelope.Plan.Steps)),
 			}
-			log.InfoCtx(ctx, "V(Federation): store plan id %s in map", planEnvelope.PlanId)
+			log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId, planState)
 			s.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
 
 			for i, step := range planEnvelope.Plan.Steps {
@@ -555,11 +555,6 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 				return err
 			}
 		}
-		// handle plan completed
-		if err := s.handlePlanCompletetion(ctx, planState); err != nil {
-			log.ErrorfCtx(ctx, "Failed to handle plan completion: %v", err)
-			return err
-		}
 
 		s.PlanManager.DeletePlan(planState.PlanId)
 
@@ -640,7 +635,7 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 			desiredState = solution.MergeDeploymentStates(&previousDesiredState.State, currentDesiredState)
 		}
 
-		if planState.Delete {
+		if planState.Remove {
 			desiredState.MarkRemoveAll()
 		}
 
@@ -662,7 +657,7 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 				MergedState:          mergedState,
 				PreviousDesiredState: previousDesiredState,
 				PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
-				Remove:               planState.Delete,
+				Remove:               planState.Remove,
 				Namespace:            planState.Namespace,
 				Phase:                PhaseApply,
 			},
@@ -705,6 +700,36 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 		return err
 	}
 	log.InfofCtx(ctx, "handle plan completetion: update summary done %v", planState)
+	if !planState.Deployment.IsDryRun {
+		if len(planState.MergedState.TargetComponent) == 0 && planState.Remove {
+			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+			s.SolutionManager.StateProvider.Delete(ctx, states.DeleteRequest{
+				ID: planState.Deployment.Instance.ObjectMeta.Name,
+				Metadata: map[string]interface{}{
+					"namespace": planState.Namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		} else {
+			s.SolutionManager.StateProvider.Upsert(ctx, states.UpsertRequest{
+				Value: states.StateEntry{
+					ID: planState.Deployment.Instance.ObjectMeta.Name,
+					Body: solution.SolutionManagerDeploymentState{
+						Spec:  planState.Deployment,
+						State: planState.MergedState,
+					},
+				},
+				Metadata: map[string]interface{}{
+					"namespace": planState.Namespace,
+					"group":     model.SolutionGroup,
+					"version":   "v1",
+					"resource":  DeploymentState,
+				},
+			})
+		}
+	}
 	return nil
 }
 func (p *PlanState) IsExpired() bool {

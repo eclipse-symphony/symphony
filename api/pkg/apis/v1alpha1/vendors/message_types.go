@@ -74,7 +74,7 @@ type PlanState struct {
 	Status               string                                   `json:"status"`
 	TargetResult         map[string]int
 	Namespace            string `json:"namespace"`
-	Delete               bool
+	Remove               bool
 	StepStates           []StepState
 }
 
