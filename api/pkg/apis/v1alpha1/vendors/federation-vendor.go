@@ -209,7 +209,8 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					f.StagingManager.QueueProvider.Enqueue("targetName-Namespace", providerGetRequest)
 
 				} else {
-
+					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Step.Components)
+					log.InfoCtx(ctx, "get step components %+v", stepEnvelope.Deployment)
 					components, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, stepEnvelope.Deployment, stepEnvelope.Step.Components)
 					success := true
 					if stepError != nil {
