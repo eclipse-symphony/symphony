@@ -190,7 +190,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			}
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				// if FindAgentFromDeploymentState(stepEnvelope.PlanState.Deployment.Targets, stepEnvelope.Step.Target) {
 				if FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target) {
 					// if true {
 					operationId := uuid.New().String()
@@ -225,7 +224,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 						success = false
 					}
 					log.InfoCtx(ctx, "get component %+v", components)
-					stepEnvelope.DeploymentState.Components = components
 					stepResult := &StepResult{
 						Target:         stepEnvelope.Step.Target,
 						PlanId:         stepEnvelope.PlanId,
@@ -287,6 +285,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 									StepId:     stepEnvelope.StepId,
 									Success:    true,
 									Remove:     stepEnvelope.Remove,
+									Phase:      PhaseApply,
 									Components: map[string]model.ComponentResultSpec{},
 									Timestamp:  time.Now(),
 								},
@@ -308,6 +307,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 							StepId:     stepEnvelope.StepId,
 							Success:    true,
 							Remove:     stepEnvelope.Remove,
+							Phase:      PhaseApply,
 							Components: componentResults,
 							Timestamp:  time.Now(),
 						},
