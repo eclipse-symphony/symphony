@@ -327,17 +327,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 }
 func FindAgentFromDeploymentState(stepComponents []model.ComponentStep, targetName string) bool {
 	log.Info("compare between state and target name %+v, %s", stepComponents, targetName)
-	// for _, targetDes := range state.Targets {
-	// 	log.Info("targetDes Name %s targetName %s", targetDes.Name, targetName)
-	// 	if targetName == targetDes.Name {
-	// 		for _, c := range targetDes.Spec.Components {
-	// 			log.Info(" targetName %s type", targetName, c.Type)
-	// 			if c.Type == "remote-agent" {
-	// 				return true
-	// 			}
-	// 		}
-	// 	}
-	// }
 	for _, component := range stepComponents {
 		log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
 		if component.Component.Name == targetName {
@@ -414,7 +403,6 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 		{
 			Methods: []string{fasthttp.MethodPost},
-			// taskId is planId
 			Route:   route + "/task/getResult",
 			Version: f.Version,
 			Handler: f.onGetResponse,
@@ -456,6 +444,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 	// get opertaion Id
 	operationId := asyncResult.OperationID
 	// get related info from redis- todo: timeout
+	log.InfoCtx(ctx, "handle remote agent request %+v ", asyncResult)
 	operationBody, err := f.getOperationState(ctx, operationId)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V (FederationVendor): onGetResponse failed - %s", err.Error())
@@ -608,34 +597,6 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 		Body:        data,
 		ContentType: "application/json",
 	}
-	// if request, ok := queueElement.(ProviderGetRequest); ok {
-	// 	data, _ := json.Marshal(request)
-	// 	return v1alpha2.COAResponse{
-	// 		State:       v1alpha2.OK,
-	// 		Body:        data,
-	// 		ContentType: "application/json",
-	// 	}
-	// } else {
-	// 	sLog.InfoCtx(ctx, "V (FederationVendor):not get request ")
-	// }
-	// if request, ok := queueElement.(ProviderApplyRequest); ok {
-	// 	data, _ := json.Marshal(request)
-	// 	return v1alpha2.COAResponse{
-	// 		State:       v1alpha2.OK,
-	// 		Body:        data,
-	// 		ContentType: "application/json",
-	// 	}
-	// } else {
-	// 	sLog.InfoCtx(ctx, "V (FederationVendor):not apply request ")
-	// }
-
-	// resp := v1alpha2.COAResponse{
-	// 	State:       v1alpha2.Accepted,
-	// 	Body:        []byte("{\"result\":\"No task to execute\"}"),
-	// 	ContentType: "application/json",
-	// }
-	// observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	// return resp
 }
 
 // for operation state storage

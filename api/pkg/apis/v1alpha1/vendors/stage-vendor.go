@@ -464,12 +464,12 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 
 			var stepResult StepResult
 			jData, _ := json.Marshal(event.Body)
-			log.InfofCtx(ctx, " subscribe step-result %v", jData)
+
 			if err := json.Unmarshal(jData, &stepResult); err != nil {
 				log.ErrorfCtx(ctx, " fail to unmarshal step result %v", err)
 				return err
 			}
-
+			log.InfofCtx(ctx, " subscribe step-result %v", stepResult)
 			planId := stepResult.PlanId
 
 			planStateObj, exists := s.PlanManager.Plans.Load(planId)
@@ -615,6 +615,8 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 		for _, StepState := range planState.StepStates {
 			for _, c := range StepState.GetResult {
 				key := fmt.Sprintf("%s::%s", c.Name, StepState.Target)
+				log.InfoCtx(ctx, "V(Stage) get step state %+v", StepState)
+				log.InfoCtx(ctx, "V(Stage) get step state result %+v", StepState.Components)
 				role := c.Type
 				if role == "" {
 					role = "container"
