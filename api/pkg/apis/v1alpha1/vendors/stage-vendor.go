@@ -498,7 +498,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 }
 
 func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *PlanState, stepResult StepResult) error {
-	log.InfoCtx(ctx, "update plan state %v with step result %v", planState, stepResult)
+	log.InfoCtx(ctx, "update plan state %v with step result %v phash %s step result", planState, stepResult, planState.Phase)
+	log.InfoCtx(ctx, " stepresult phase %s", stepResult.Phase)
 	if planState.IsExpired() {
 		if err := s.handlePlanTimeout(ctx, planState); err != nil {
 			return err
@@ -509,10 +510,12 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 	planState.CompletedSteps++
 	switch stepResult.Phase {
 	case PhaseGet:
-		log.InfoCtx(ctx, " update phase get %v ", stepResult.retComoponents)
+		log.InfoCtx(ctx, " update phase getr %v ", stepResult.retComoponents)
+		log.InfoCtx(ctx, " update phase getc %v ", stepResult.Components)
 		planState.StepStates[stepResult.StepId].GetResult = stepResult.retComoponents
 	case PhaseApply:
-		log.InfoCtx(ctx, "todo apply plan state")
+		log.InfoCtx(ctx, "todo apply plan state components c%+v", stepResult.Components)
+		log.InfoCtx(ctx, "todo apply plan state componentsr %+v", stepResult.retComoponents)
 		if !stepResult.Success {
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[stepResult.Remove])
 			targetResultMessage := fmt.Sprintf("failed to create provider %s, err: %s", deploymentTypeMap[stepResult.Remove], stepResult.Error)
