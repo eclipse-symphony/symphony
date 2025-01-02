@@ -291,9 +291,17 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 			stepList = append(stepList, step)
 		}
+		summary := model.SummarySpec{
+			TargetResults:       make(map[string]model.TargetResultSpec),
+			TargetCount:         len(deployment.Targets),
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
+			JobID:               deployment.JobID,
+		}
 		initalPlan.Steps = stepList
 		log.InfoCtx(ctx, "initial plan list %+v", stepList)
 		log.InfoCtx(ctx, "initial plan deployment %+v", deployment)
+		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,
@@ -303,11 +311,10 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Deployment:           deployment,
 				MergedState:          model.DeploymentState{},
 				PreviousDesiredState: previousDesiredState,
-				// PlanId:               "000",
-				PlanId:    fmt.Sprintf("%s-%s", deployment.Instance.ObjectMeta.Name, delete),
-				Remove:    delete == "true",
-				Namespace: namespace,
-				Phase:     PhaseGet,
+				PlanId:               fmt.Sprintf("%s-%s", deployment.Instance.ObjectMeta.Name, delete),
+				Remove:               delete == "true",
+				Namespace:            namespace,
+				Phase:                PhaseGet,
 			},
 			Context: ctx,
 		})
