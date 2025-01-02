@@ -234,11 +234,13 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 						retComoponents: components,
 						Error:          stepError,
 					}
+					jData, _ := json.Marshal(stepResult)
+					log.InfofCtx(ctx, "Publishing step-result: %s", string(jData))
 					f.Vendor.Context.Publish("step-result", v1alpha2.Event{
 						Metadata: map[string]string{
 							"namespace": stepEnvelope.Namespace,
 						},
-						Body:    stepResult,
+						Body:    jData,
 						Context: ctx,
 					})
 				}
@@ -297,23 +299,18 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					if stepError != nil {
 						return f.publishStepResult(ctx, stepEnvelope, false, stepError, componentResults)
 					}
-					f.Vendor.Context.Publish("step-result", v1alpha2.Event{
-						Metadata: map[string]string{
-							"namespace": stepEnvelope.Namespace,
-						},
-						Body: StepResult{
-							Target:     stepEnvelope.Step.Target,
-							PlanId:     stepEnvelope.PlanId,
-							StepId:     stepEnvelope.StepId,
-							Success:    true,
-							Remove:     stepEnvelope.Remove,
-							Phase:      PhaseApply,
-							Components: componentResults,
-							Timestamp:  time.Now(),
-						},
-					})
+					stepResult := &StepResult{
+						Target:     stepEnvelope.Step.Target,
+						PlanId:     stepEnvelope.PlanId,
+						StepId:     stepEnvelope.StepId,
+						Success:    true,
+						Remove:     stepEnvelope.Remove,
+						Phase:      PhaseApply,
+						Components: componentResults,
+						Timestamp:  time.Now(),
+					}
+					f.publishStepResultSucceed(ctx, stepResult, stepEnvelope.Namespace)
 				}
-
 			}
 			return nil
 		},
@@ -325,6 +322,17 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		Properties: f.Context.SiteInfo.Properties,
 		IsSelf:     true,
 	})
+}
+func (f *FederationVendor) publishStepResultSucceed(ctx context.Context, stepResult *StepResult, namespace string) error {
+	jData, _ := json.Marshal(stepResult)
+	log.InfofCtx(ctx, "Publishing step-result: %s", string(jData))
+	f.Vendor.Context.Publish("step-result", v1alpha2.Event{
+		Metadata: map[string]string{
+			"namespace": namespace,
+		},
+		Body: jData,
+	})
+	return nil
 }
 func FindAgentFromDeploymentState(stepComponents []model.ComponentStep, targetName string) bool {
 	log.Info("compare between state and target name %+v, %s", stepComponents, targetName)
