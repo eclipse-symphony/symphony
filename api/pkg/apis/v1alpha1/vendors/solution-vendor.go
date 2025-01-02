@@ -265,9 +265,6 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			JobID:               deployment.JobID,
 		}
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
-		// var wg sync.WaitGroup
-		// wg.Add(1)
-		// go c.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, delete == "true", c.SolutionManager.HeartbeatManager.StopCh, &wg)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)

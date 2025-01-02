@@ -506,7 +506,6 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 	log.InfoCtx(ctx, " stepresult phase %s", stepResult.Phase)
 	if planState.IsExpired() {
 		if err := s.handlePlanTimeout(ctx, planState); err != nil {
-			close(s.SolutionManager.HeartbeatManager.StopCh)
 			return err
 		}
 		s.PlanManager.DeletePlan(planState.PlanId)
