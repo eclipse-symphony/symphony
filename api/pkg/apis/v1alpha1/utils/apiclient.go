@@ -561,7 +561,7 @@ func (a *apiClient) QueueJob(ctx context.Context, id string, namespace string, i
 func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
-
+	log.InfoCtx(ctx, "reconcile from api")
 	path := "solution/reconcile" + "?namespace=" + namespace
 	if isDelete {
 		path = path + "&delete=true"
@@ -570,16 +570,16 @@ func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSp
 	if err != nil {
 		return summary, err
 	}
-	ret, err := a.callRestAPI(ctx, path, "POST", payload, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
+	_, err = a.callRestAPI(ctx, path, "POST", payload, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return summary, err
 	}
-	if ret != nil {
-		err = json.Unmarshal(ret, &summary)
-		if err != nil {
-			return summary, err
-		}
-	}
+	// if ret != nil {
+	// 	err = json.Unmarshal(ret, &summary)
+	// 	if err != nil {
+	// 		return summary, err
+	// 	}
+	// }
 	return summary, nil
 }
 
