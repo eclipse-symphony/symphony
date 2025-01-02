@@ -37,6 +37,8 @@ const (
 	DefaultPlanTimeout = 100 * time.Second
 )
 
+var stopCh = make(chan struct{})
+
 type StageVendor struct {
 	vendors.Vendor
 	StageManager       *stage.StageManager
@@ -384,6 +386,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				log.ErrorCtx(ctx, "failed to unmarshal plan envelope :%v", err)
 				return err
 			}
+			go s.SolutionManager.SendHeartbeat(ctx, planEnvelope.Deployment.Instance.ObjectMeta.Name, planEnvelope.Namespace, planEnvelope.Remove, stopCh)
 			log.InfoCtx(ctx, "plan deployment in deployment plan %+v", planEnvelope.Deployment)
 			log.InfoCtx(ctx, "plan deployment in deployment plan2 %+v", planEnvelope.Phase)
 			planState := &PlanState{
@@ -415,6 +418,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			// if len(planEnvelope.Plan.Steps) == 0 {
 			// 	s.handlePlanComplete(ctx, planState)
 			// }
+
 			for i, step := range planEnvelope.Plan.Steps {
 				stepId := fmt.Sprintf("%s-step-%d", planEnvelope.PlanId, i)
 				switch planEnvelope.Phase {
@@ -504,6 +508,7 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 	log.InfoCtx(ctx, " stepresult phase %s", stepResult.Phase)
 	if planState.IsExpired() {
 		if err := s.handlePlanTimeout(ctx, planState); err != nil {
+			close(stopCh)
 			return err
 		}
 		s.PlanManager.DeletePlan(planState.PlanId)
@@ -765,6 +770,7 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 			})
 		}
 	}
+	close(stopCh)
 	return nil
 }
 func (p *PlanState) IsExpired() bool {
