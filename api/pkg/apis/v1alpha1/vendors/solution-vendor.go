@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -257,7 +258,9 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		go c.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, delete == "true", c.SolutionManager.HeartbeatManager.StopCh)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go c.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, delete == "true", c.SolutionManager.HeartbeatManager.StopCh, &wg)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
