@@ -29,7 +29,6 @@ import (
 type SolutionVendor struct {
 	vendors.Vendor
 	SolutionManager *solution.SolutionManager
-	heatBeatManager *HeartbeatManager
 }
 
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
@@ -40,15 +39,6 @@ func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	}
 }
 
-type HeartbeatManager struct {
-	StopCh chan struct{}
-}
-
-func NewHeartbeatManager() *HeartbeatManager {
-	return &HeartbeatManager{
-		StopCh: make(chan struct{}),
-	}
-}
 func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	err := e.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {
@@ -62,7 +52,6 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	if e.SolutionManager == nil {
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
 	}
-	e.heatBeatManager = NewHeartbeatManager()
 	return nil
 }
 
@@ -268,6 +257,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
+		go c.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, delete == "true", c.SolutionManager.HeartbeatManager.StopCh)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
@@ -302,7 +292,6 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		initalPlan.Steps = stepList
 		log.InfoCtx(ctx, "initial plan list %+v", stepList)
 		log.InfoCtx(ctx, "initial plan deployment %+v", deployment)
-		go c.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, delete == "true", c.heatBeatManager.StopCh)
 		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,

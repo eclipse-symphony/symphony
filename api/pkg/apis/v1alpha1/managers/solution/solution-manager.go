@@ -40,6 +40,16 @@ var (
 	apiOperationMetrics *metrics.Metrics
 )
 
+type HeartbeatManager struct {
+	StopCh chan struct{}
+}
+
+func NewHeartbeatManager() *HeartbeatManager {
+	return &HeartbeatManager{
+		StopCh: make(chan struct{}),
+	}
+}
+
 const (
 	SYMPHONY_AGENT string = "/symphony-agent:"
 	ENV_NAME       string = "SYMPHONY_AGENT_ADDRESS"
@@ -355,15 +365,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			if deployment.IsDryRun {
 				summary.SuccessCount = 0
 			}
-			s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+			s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 		} else {
 			log.ErrorfCtx(ctx, " M (Solution): panic happens: %v", debug.Stack())
 			panic(r)
 		}
-<<<<<<< HEAD
-=======
 		s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
->>>>>>> 87ebf8eb (add async strategy to remote agent)
 	}()
 
 	defer func() {
@@ -723,12 +730,7 @@ func (s *SolutionManager) ConcludeSummary(ctx context.Context, objectName string
 	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
 
-<<<<<<< HEAD
-func (s *SolutionManager) canSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, previousComponents []model.ComponentSpec, currentState model.DeploymentState) bool {
-=======
-func (s *SolutionManager) CanSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
->>>>>>> 87ebf8eb (add async strategy to remote agent)
-
+func (s *SolutionManager) CanSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, previousComponents []model.ComponentSpec, currentState model.DeploymentState) bool {
 	for _, newCom := range step.Components {
 		key := fmt.Sprintf("%s::%s", newCom.Component.Name, target)
 		if newCom.Action == model.ComponentDelete {
