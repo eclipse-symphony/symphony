@@ -93,7 +93,9 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			s.TargetProviders[k] = p
 		}
 	}
-
+	for key, _ := range providers {
+		log.Info(" key is %s", key)
+	}
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
 		s.KeyLockProvider = keylockprovider
