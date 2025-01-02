@@ -264,6 +264,14 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			AllAssignedDeployed: false,
 			JobID:               deployment.JobID,
 		}
+		if !c.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
+			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - lock already held")
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.Conflict,
+				Body:        []byte("{\"result\":\"lock already held\"}"),
+				ContentType: "application/json",
+			})
+		}
 		log.InfoCtx(ctx, " lock %s -%n", namespace, deployment.Instance.ObjectMeta.Name)
 		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
