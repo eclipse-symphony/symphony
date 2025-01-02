@@ -514,6 +514,7 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 	case PhaseGet:
 		log.InfoCtx(ctx, " update phase getr %v ", stepResult.retComoponents)
 		log.InfoCtx(ctx, " update phase getc %v ", stepResult.Components)
+		log.InfoCtx(ctx, " update phase get remove %v ", planState.Remove)
 		planState.StepStates[stepResult.StepId].GetResult = stepResult.retComoponents
 
 	case PhaseApply:

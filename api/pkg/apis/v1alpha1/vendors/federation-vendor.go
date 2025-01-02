@@ -223,7 +223,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					if stepError != nil {
 						success = false
 					}
-					log.InfoCtx(ctx, "get component %+v", components)
+					log.InfoCtx(ctx, "get component %+v remove %s", components, stepEnvelope.Remove)
 					stepResult := &StepResult{
 						Target:         stepEnvelope.Step.Target,
 						PlanId:         stepEnvelope.PlanId,
