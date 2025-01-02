@@ -404,6 +404,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				MergedState:          planEnvelope.MergedState,
 				Deployment:           planEnvelope.Deployment,
 				Namespace:            planEnvelope.Namespace,
+				Remove:               planEnvelope.Remove,
 				TargetResult:         make(map[string]int),
 				CurrentState:         planEnvelope.CurrentState,
 				StepStates:           make([]StepState, len(planEnvelope.Plan.Steps)),
@@ -514,6 +515,7 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 		log.InfoCtx(ctx, " update phase getr %v ", stepResult.retComoponents)
 		log.InfoCtx(ctx, " update phase getc %v ", stepResult.Components)
 		planState.StepStates[stepResult.StepId].GetResult = stepResult.retComoponents
+
 	case PhaseApply:
 		log.InfoCtx(ctx, "todo apply plan state components c%+v", stepResult.Components)
 		log.InfoCtx(ctx, "todo apply plan state componentsr %+v", stepResult.retComoponents)
@@ -661,7 +663,9 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 		}
 		log.InfoCtx(ctx, "get desired state %+v", desiredState)
 		if planState.Remove {
+			log.InfoCtx(ctx, "it is removed mark all as removed")
 			desiredState.MarkRemoveAll()
+			log.InfoCtx(ctx, "after remove desired state %+v", desiredState)
 		}
 
 		mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
