@@ -271,38 +271,6 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	return nil
 }
 
-func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}, wg *sync.WaitGroup) {
-	defer wg.Done()
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	action := v1alpha2.HeartBeatUpdate
-	if remove {
-		action = v1alpha2.HeartBeatDelete
-	}
-
-	for {
-		select {
-		case <-ticker.C:
-			log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
-			s.VendorContext.Publish("heartbeat", v1alpha2.Event{
-				Body: v1alpha2.HeartBeatData{
-					JobId:     id,
-					Scope:     namespace,
-					Action:    action,
-					Time:      time.Now().UTC(),
-					JobAction: v1alpha2.JobUpdate,
-				},
-				Metadata: map[string]string{
-					"namespace": namespace,
-				},
-				Context: ctx,
-			})
-		case <-stopCh:
-			return // Exit the goroutine when the stop signal is received
-		}
-	}
-}
 func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
