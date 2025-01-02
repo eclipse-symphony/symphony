@@ -411,7 +411,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 			log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId, planState)
 			s.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
-
+			s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
 			// if len(planEnvelope.Plan.Steps) == 0 {
 			// 	s.handlePlanComplete(ctx, planState)
 			// }
@@ -524,7 +524,7 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[stepResult.Remove])
 			targetResultMessage := fmt.Sprintf("failed to create provider %s, err: %s", deploymentTypeMap[stepResult.Remove], stepResult.Error)
 			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage}
-			planState.Summary.TargetResults[stepResult.Target] = targetResultSpec
+			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			planState.Summary.AllAssignedDeployed = false
 			for _, ret := range stepResult.Components {
 				if (!stepResult.Remove && ret.Status == v1alpha2.Updated) || (stepResult.Remove && ret.Status == v1alpha2.Deleted) {
@@ -539,9 +539,9 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 				planState.Summary.SuccessCount++
 			}
 			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.Components}
+			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			//update target
 			log.InfoCtx(ctx, "update plan state target spec %v ", targetResultSpec)
-			planState.Summary.TargetResults[stepResult.Target] = targetResultSpec
 			planState.Summary.CurrentDeployed += len(stepResult.Components)
 		}
 		// if solutions.components are empty,
