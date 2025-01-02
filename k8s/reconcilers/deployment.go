@@ -289,6 +289,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		} else {
 			// It's not found in api so we should mark as reconciling, queue a job and check back in POLL seconds
 			diagnostic.InfoWithCtx(log, ctx, "Deployment summary not found, queueing job")
+			time.Sleep(100 * time.Second)
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 	}
