@@ -341,7 +341,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	return f.SitesManager.UpsertState(context.Background(), f.Context.SiteInfo.SiteId, site)
 }
 func FindAgentFromDeploymentState(stepComponents []model.ComponentStep) bool {
-	log.Info("compare between state and target name %+v, %s", stepComponents, targetName)
+	log.Info("compare between state and target name %+v", stepComponents)
 	for _, component := range stepComponents {
 		log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
 		if component.Component.Type == "remote-agent" {
