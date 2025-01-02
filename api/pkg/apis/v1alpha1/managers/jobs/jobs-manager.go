@@ -423,10 +423,10 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 		}
 
 		log.DebugfCtx(ctx, " M (Job): handling job event objectType: %s, job action: %s", objectType, job.Action)
-		err = s.DelayOrSkipJob(ctx, namespace, objectType, job)
-		if err != nil {
-			return err
-		}
+		// err = s.DelayOrSkipJob(ctx, namespace, objectType, job)
+		// if err != nil {
+		// 	return err
+		// }
 
 		switch objectType {
 		case "instance":

@@ -768,8 +768,8 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 			})
 		}
 	}
-	close(s.SolutionManager.HeartbeatManager.StopCh)
-	s.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
+	// close(s.SolutionManager.HeartbeatManager.StopCh)
+	// s.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 	return nil
 }
 func (p *PlanState) IsExpired() bool {
