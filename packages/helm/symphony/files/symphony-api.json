@@ -145,6 +145,38 @@
                 }
               }
             }
+          },
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.persistentstate": "redis-state",
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret"
+            },
+            "providers": {
+              "redis-state": {
+                {{- if .Values.redis.enabled }}
+                "type": "providers.state.redis",
+                "config": {
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+                {{- else }}
+                "type": "providers.state.memory",
+                "config": {}
+                {{- end }}
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }     
           }
         ],
         "properties": {
@@ -694,6 +726,38 @@
             }
           }
         ]
+      },
+      {
+        "name": "solution-manager",
+        "type": "managers.symphony.solution",
+        "properties": {
+          "providers.persistentstate": "redis-state",
+          "providers.config": "mock-config",  
+          "providers.secret": "mock-secret"
+        },
+        "providers": {
+          "redis-state": {
+            {{- if .Values.redis.enabled }}
+            "type": "providers.state.redis",
+            "config": {
+              "host": "{{ include "symphony.redisHost" . }}",
+              "requireTLS": false,
+              "password": ""
+            }
+            {{- else }}
+            "type": "providers.state.memory",
+            "config": {}
+            {{- end }}
+          },
+          "mock-config": {
+            "type": "providers.config.mock",
+            "config": {}
+          },
+          "mock-secret": {
+            "type": "providers.secret.mock",
+            "config": {}
+          }
+        }     
       }
     ]
   },

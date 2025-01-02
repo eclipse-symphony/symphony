@@ -15,6 +15,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -256,18 +257,56 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", namespace, targetName)
-		data, _ := json.Marshal(summary)
+		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
+		var state model.DeploymentState
+		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
-			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
+			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  data,
+				State:       v1alpha2.MethodNotAllowed,
+				Body:        []byte("{\"result\":\"405 - method not allowedee\"}"),
+				ContentType: "application/json",
 			})
 		}
+		initalPlan, err := solution.PlanForDeployment(deployment, state)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.MethodNotAllowed,
+				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+				ContentType: "application/json",
+			})
+		}
+
+		// remove no use steps
+		var stepList []model.DeploymentStep
+		for _, step := range initalPlan.Steps {
+			if c.SolutionManager.IsTarget && !api_utils.ContainsString(c.SolutionManager.TargetNames, step.Target) {
+				continue
+			}
+			if targetName != "" && targetName != step.Target {
+				continue
+			}
+			stepList = append(stepList, step)
+		}
+		initalPlan.Steps = stepList
+		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
+			Metadata: map[string]string{
+				"Id": deployment.JobID,
+			},
+			Body: PlanEnvelope{
+				Plan:                 initalPlan,
+				Deployment:           deployment,
+				MergedState:          model.DeploymentState{},
+				PreviousDesiredState: previousDesiredState,
+				PlanId:               deployment.Instance.ObjectMeta.Name,
+				Remove:               delete == "true",
+				Namespace:            namespace,
+				Phase:                PhaseGet,
+			},
+			Context: ctx,
+		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
-			Body:        data,
 			ContentType: "application/json",
 		})
 	}
