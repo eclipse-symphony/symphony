@@ -271,7 +271,39 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	return nil
 }
 
-func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	action := v1alpha2.HeartBeatUpdate
+	if remove {
+		action = v1alpha2.HeartBeatDelete
+	}
+
+	for {
+		select {
+		case <-ticker.C:
+			log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
+			s.VendorContext.Publish("heartbeat", v1alpha2.Event{
+				Body: v1alpha2.HeartBeatData{
+					JobId:     id,
+					Scope:     namespace,
+					Action:    action,
+					Time:      time.Now().UTC(),
+					JobAction: v1alpha2.JobUpdate,
+				},
+				Metadata: map[string]string{
+					"namespace": namespace,
+				},
+				Context: ctx,
+			})
+		case <-stopCh:
+			return // Exit the goroutine when the stop signal is received
+		}
+	}
+}
+func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -303,7 +335,7 @@ func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespac
 	}
 }
 
-func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
+func (s *SolutionManager) CleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
 	if !remove {
 		return
 	}
@@ -374,12 +406,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}()
 
 	defer func() {
-		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+		s.CleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
 	}()
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)
