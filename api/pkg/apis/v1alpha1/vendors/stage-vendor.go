@@ -703,26 +703,27 @@ func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState 
 	}
 }
 func (s *StageVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {
-	log.InfoCtx(ctx, "save summary info plan state %+v, summary state %+v", planState, state)
-	_, err := s.SolutionManager.StateProvider.Upsert(ctx, states.UpsertRequest{
-		Value: states.StateEntry{
-			ID: fmt.Sprintf("%s-%s", "summary", planState.Deployment.Instance.ObjectMeta.Name),
-			Body: model.SummaryResult{
-				Summary:        planState.Summary,
-				Generation:     planState.Deployment.Generation,
-				Time:           time.Now().UTC(),
-				State:          state,
-				DeploymentHash: planState.Deployment.Hash,
-			},
-		},
-		Metadata: map[string]interface{}{
-			"namespace": planState.Namespace,
-			"group":     model.SolutionGroup,
-			"version":   "v1",
-			"resource":  Summary,
-		},
-	})
-	return err
+	// log.InfoCtx(ctx, "save summary info plan state %s", fmt.Sprintf("%s-%s", "summary", planState.Deployment.Instance.ObjectMeta.Name) )
+	// _, err := s.SolutionManager.StateProvider.Upsert(ctx, states.UpsertRequest{
+	// 	Value: states.StateEntry{
+	// 		ID: fmt.Sprintf("%s-%s", "summary", planState.Deployment.Instance.ObjectMeta.Name),
+	// 		Body: model.SummaryResult{
+	// 			Summary:        planState.Summary,
+	// 			Generation:     planState.Deployment.Generation,
+	// 			Time:           time.Now().UTC(),
+	// 			State:          state,
+	// 			DeploymentHash: planState.Deployment.Hash,
+	// 		},
+	// 	},
+	// 	Metadata: map[string]interface{}{
+	// 		"namespace": planState.Namespace,
+	// 		"group":     model.SolutionGroup,
+	// 		"version":   "v1",
+	// 		"resource":  Summary,
+	// 	},
+	// })
+	// return err
+	return s.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
 }
 func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *PlanState) error {
 	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
