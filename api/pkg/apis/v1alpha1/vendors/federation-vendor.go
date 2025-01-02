@@ -190,7 +190,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			}
 			switch stepEnvelope.Phase {
 			case PhaseGet:
-				if FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target) {
+				if FindAgentFromDeploymentState(stepEnvelope.Step.Components) {
 					// if true {
 					operationId := uuid.New().String()
 					providerGetRequest := &ProviderGetRequest{
@@ -243,7 +243,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 					})
 				}
 			case PhaseApply:
-				if FindAgentFromDeploymentState(stepEnvelope.Step.Components, stepEnvelope.Step.Target) {
+				if FindAgentFromDeploymentState(stepEnvelope.Step.Components) {
 					operationId := uuid.New().String()
 					providApplyRequest := &ProviderApplyRequest{
 						AgentRequest: AgentRequest{
@@ -326,20 +326,17 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		IsSelf:     true,
 	})
 }
-func FindAgentFromDeploymentState(stepComponents []model.ComponentStep, targetName string) bool {
+func FindAgentFromDeploymentState(stepComponents []model.ComponentStep) bool {
 	log.Info("compare between state and target name %+v, %s", stepComponents, targetName)
-	return true
-	// for _, component := range stepComponents {
-	// 	log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
-	// 	if component.Component.Name == targetName {
-	// 		if component.Component.Type == "remote-agent" {
-	// 			log.Info("It is remote call ")
-	// 			return true
-	// 		}
+	for _, component := range stepComponents {
+		log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
+		if component.Component.Type == "remote-agent" {
+			log.Info("It is remote call ")
+			return true
+		}
 
-	// 	}
-	// }
-	// return false
+	}
+	return false
 }
 func (f *FederationVendor) publishStepResult(ctx context.Context, stepEnvelope StepEnvelope, success bool, Error error, components map[string]model.ComponentResultSpec) error {
 	return f.Vendor.Context.Publish("step-result", v1alpha2.Event{
