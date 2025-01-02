@@ -385,6 +385,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				return err
 			}
 			log.InfoCtx(ctx, "plan deployment in deployment plan %+v", planEnvelope.Deployment)
+			log.InfoCtx(ctx, "plan deployment in deployment plan2 %+v", planEnvelope.Phase)
 			planState := &PlanState{
 				PlanId:     planEnvelope.PlanId,
 				StartTime:  time.Now(),
@@ -410,9 +411,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId, planState)
 			s.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
 
-			if len(planEnvelope.Plan.Steps) == 0 {
-				s.handlePlanComplete(ctx, planState)
-			}
+			// if len(planEnvelope.Plan.Steps) == 0 {
+			// 	s.handlePlanComplete(ctx, planState)
+			// }
 			for i, step := range planEnvelope.Plan.Steps {
 				stepId := fmt.Sprintf("%s-step-%d", planEnvelope.PlanId, i)
 				switch planEnvelope.Phase {
@@ -467,7 +468,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 
 			var stepResult StepResult
 			jData, _ := json.Marshal(event.Body)
-
+			log.InfofCtx(ctx, "Received event body: %s", string(jData))
 			if err := json.Unmarshal(jData, &stepResult); err != nil {
 				log.ErrorfCtx(ctx, " fail to unmarshal step result %v", err)
 				return err
