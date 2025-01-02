@@ -328,17 +328,18 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 }
 func FindAgentFromDeploymentState(stepComponents []model.ComponentStep, targetName string) bool {
 	log.Info("compare between state and target name %+v, %s", stepComponents, targetName)
-	for _, component := range stepComponents {
-		log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
-		if component.Component.Name == targetName {
-			if component.Component.Type == "remote-agent" {
-				log.Info("It is remote call ")
-				return true
-			}
+	return true
+	// for _, component := range stepComponents {
+	// 	log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
+	// 	if component.Component.Name == targetName {
+	// 		if component.Component.Type == "remote-agent" {
+	// 			log.Info("It is remote call ")
+	// 			return true
+	// 		}
 
-		}
-	}
-	return false
+	// 	}
+	// }
+	// return false
 }
 func (f *FederationVendor) publishStepResult(ctx context.Context, stepEnvelope StepEnvelope, success bool, Error error, components map[string]model.ComponentResultSpec) error {
 	return f.Vendor.Context.Publish("step-result", v1alpha2.Event{
