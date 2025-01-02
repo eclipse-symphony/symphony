@@ -738,6 +738,7 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 	}
 	log.InfofCtx(ctx, "handle plan completetion: update summary done %v", planState)
 	planState.MergedState.ClearAllRemoved()
+
 	if !planState.Deployment.IsDryRun {
 		if len(planState.MergedState.TargetComponent) == 0 && planState.Remove {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
@@ -768,6 +769,8 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 			})
 		}
 	}
+	log.InfoCtx(ctx, " unlock %s -%n", planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+	s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	// close(s.SolutionManager.HeartbeatManager.StopCh)
 	// s.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 	return nil

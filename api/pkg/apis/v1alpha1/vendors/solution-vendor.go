@@ -264,6 +264,8 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			AllAssignedDeployed: false,
 			JobID:               deployment.JobID,
 		}
+		log.InfoCtx(ctx, " lock %s -%n", namespace, deployment.Instance.ObjectMeta.Name)
+		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		var state model.DeploymentState
