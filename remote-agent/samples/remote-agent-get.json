@@ -1,41 +1,34 @@
 [
     {
-        "operationID": "2",
+        "operationID": "8509de2a-68bc-4dca-a940-26cba91f5cb5",
         "provider": "remote-agent",
-        "action" : "get",
-        "isDryRun": false,
+        "action": "get",
         "deployment": {
-            "solutionName": "sample",
-            "instance": {
-                "spec": {
-                    "scope": "namespace"
-                },
-                "metadata": {
-                    "name": "sample"
-                }
-            },
+            "solutionName": "",
             "solution": {
-                "spec": {
-                    "components": [{
-                        "component":{
-                            "name": "sample",
-                            "type": "remote-agent"
-                        }
-                    }]
-                },
-                "metadata": {
-                    "name": "sample"
+                "metadata": {}
+            },
+            "instance": {
+                "metadata": {},
+                "status": {
+                    "provisioningStatus": {
+                        "operationId": "",
+                        "status": "",
+                        "error": {}
+                    },
+                    "lastModified": "0001-01-01T00:00:00Z"
                 }
             },
-            "targets": {}
+            "targets": null
         },
-        "references": [{
+        "references": [
+            {
                 "action": "update",
-                "component":{
-                    "name": "sample",
+                "component": {
+                    "name": "remote-agent",
                     "type": "remote-agent"
                 }
-            }]
-
+            }
+        ]
     }
 ]

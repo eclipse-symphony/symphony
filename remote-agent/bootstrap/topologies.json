@@ -1,13 +1,6 @@
 {
     "bindings": [
       {
-        "config": {
-            "ApplyScript":   "mock-apply.sh",
-            "GetScript":     "mock-get.sh",
-            "RemoveScript":  "mock-remove.sh",
-            "ScriptFolder":  "./script",
-            "StagingFolder": "./script"
-        },
         "provider": "providers.target.script",
         "role": "script"
       },

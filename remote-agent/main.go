@@ -6,9 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"net/http"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
@@ -38,6 +40,7 @@ func main() {
 	clientKeyPath = flag.String("client-key", "client-key.pem", "Path to the client key file")
 	targetName = flag.String("target-name", "remote-target", "remote target name")
 	namespace = flag.String("namespace", "default", "Namespace to use for the agent")
+	topologyFile := flag.String("topology", "topology.json", "Path to the topology file")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -75,7 +78,7 @@ func main() {
 	}
 
 	// Compose target providers
-	providers := composeTargetProviders()
+	providers := composeTargetProviders(*topologyFile)
 	// Create the HttpBinding instance
 	h := &remoteHttp.HttpBinding{
 		Agent: agent.Agent{
@@ -101,38 +104,49 @@ func main() {
 	select {}
 }
 
-func composeTargetProviders() map[string]tgt.ITargetProvider {
+func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider {
+	// read the topology file
+	topologyContent, err := os.ReadFile(topologyPath)
+	if err != nil {
+		fmt.Println("Error reading topology file:", err)
+		return nil
+	}
+
+	var topology model.TopologySpec
+	json.Unmarshal(topologyContent, &topology)
+
 	providers := make(map[string]tgt.ITargetProvider)
 	// Add the target providers to the map
 	// Add the script provider
-	mProvider := &script.ScriptProvider{}
-	providerConfig := script.ScriptProviderConfig{
-		ApplyScript:   "mock-apply.sh",
-		GetScript:     "mock-get.sh",
-		RemoveScript:  "mock-remove.sh",
-		ScriptFolder:  "./script",
-		StagingFolder: "./script",
-	}
-	err := mProvider.Init(providerConfig)
-	if err != nil {
-		fmt.Println("Error script provider:", err)
-	}
-	providers["script"] = mProvider
+	for _, binding := range topology.Bindings {
+		switch binding.Role {
+		case "script":
+			provider := &script.ScriptProvider{}
+			err := provider.Init(binding.Config)
+			if err != nil {
+				fmt.Println("Error initializing script provider:", err)
+			}
+			providers["script"] = provider
+		case "remote-agent":
+			rProvider := &remoteProviders.RemoteAgentProvider{}
+			rProvider.Client = httpClient
+			rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
+				PublicCertPath: *clientCertPath,
+				PrivateKeyPath: *clientKeyPath,
+				ConfigPath:     *configPath,
+				BaseUrl:        symphonyEndpoints.BaseUrl,
+				Version:        version,
+				Namespace:      *namespace,
+			}
+			err = rProvider.Init(rProviderConfig)
+			if err != nil {
+				fmt.Println("Error remote agent provider:", err)
+			}
+			providers["remote-agent"] = rProvider
+		default:
+			fmt.Println("Unknown provider type:", binding.Role)
+		}
 
-	rProvider := &remoteProviders.RemoteAgentProvider{}
-	rProvider.Client = httpClient
-	rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
-		PublicCertPath: *clientCertPath,
-		PrivateKeyPath: *clientKeyPath,
-		ConfigPath:     *configPath,
-		BaseUrl:        symphonyEndpoints.BaseUrl,
-		Version:        version,
-		Namespace:      *namespace,
 	}
-	err = rProvider.Init(rProviderConfig)
-	if err != nil {
-		fmt.Println("Error remote agent provider:", err)
-	}
-	providers["remote-agent"] = rProvider
 	return providers
 }

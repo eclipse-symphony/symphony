@@ -12,8 +12,8 @@ mage cluster:up
 minikube tunnel
 
 # remove the localCA.crt from the system (optional)
-sudo rm localCA.crt /usr/local/share/ca-certificates/localCA.crt
-sudo update-ca-certificates
+sudo rm /etc/ssl/certs/localCA.pem
+sudo rm /etc/ssl/certs/8ce967e1.0
 echo "localCA.crt removed from the certificate store."
 
 # Get the server CA certificate

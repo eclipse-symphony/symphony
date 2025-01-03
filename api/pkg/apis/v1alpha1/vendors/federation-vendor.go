@@ -390,17 +390,8 @@ func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.CO
 		"method": "onGetRequest",
 	})
 	defer span.End()
-	var agentRequest AgentRequest
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
-	err := json.Unmarshal(request.Body, &agentRequest)
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
-		return v1alpha2.COAResponse{
-			State: v1alpha2.InternalError,
-			Body:  []byte(err.Error()),
-		}
-	}
 	return f.getTaskFromQueue(ctx, target, namespace)
 }
 

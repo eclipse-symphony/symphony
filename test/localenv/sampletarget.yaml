@@ -1,0 +1,23 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: remote-target
+  namespace: default
+spec:
+  components:
+  - name: remote-agent
+    type: remote-agent
+  displayName: remote-target
+  scope: default
+  topologies:
+  - bindings:
+    - config:
+        ApplyScript: mock-apply.sh
+        GetScript: mock-get.sh
+        RemoveScript: mock-remove.sh
+        ScriptFolder: ./script
+        StagingFolder: ./script
+      provider: providers.target.script
+      role: script
+    - provider: providers.target.remote-agent
+      role: remote-agent

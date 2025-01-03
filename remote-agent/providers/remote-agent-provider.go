@@ -122,7 +122,7 @@ func (i *RemoteAgentProvider) Get(ctx context.Context, deployment model.Deployme
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (Remote Agent Provider): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	//sLog.InfofCtx(ctx, "  P (Remote Agent Provider): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
 	notAfter, err := i.getCertificateExpiration(i.Config.PublicCertPath)
@@ -190,8 +190,31 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 	for _, c := range components {
 		action, ok := c.Parameters["action"]
 		if !ok {
-			err = fmt.Errorf("missing action parameter in component %s", c.Name)
-			ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): There is no action. Report status back.")
+			notAfter, err := i.getCertificateExpiration(i.Config.PublicCertPath)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to get certificate expiration: %+v. Path is : %s", err, i.Config.PublicCertPath)
+				return nil, err
+			}
+
+			status := map[string]string{
+				"state":                 state,
+				"version":               i.Config.Version,
+				"lastConnected":         time.Now().UTC().Format(time.RFC3339),
+				"certificateExpiration": notAfter,
+			}
+
+			statusBytes, err := json.Marshal(status)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to marshal status: %+v", err)
+				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+				continue
+			}
+
+			ret[c.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.OK,
+				Message: string(statusBytes),
+			}
 			continue
 		}
 		switch action {

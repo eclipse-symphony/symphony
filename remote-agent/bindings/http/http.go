@@ -10,11 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
@@ -47,22 +44,22 @@ func (h *HttpBinding) Launch() error {
 	go func() {
 		for {
 			//This is the correct logic - Mock
-			pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s", h.RequestUrl, h.Target, h.Namespace)
-			resp, err := h.Client.Get(pollingUri)
-			if err != nil {
-				fmt.Println("error:", err)
-				time.Sleep(5 * time.Second) // Retry after a delay
-				continue
-			}
+			// pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s", h.RequestUrl, h.Target, h.Namespace)
+			// resp, err := h.Client.Get(pollingUri)
+			// if err != nil {
+			// 	fmt.Println("error:", err)
+			// 	time.Sleep(5 * time.Second) // Retry after a delay
+			// 	continue
+			// }
 
 			// Mock to read request from file - Mock
-			//file, err := os.ReadFile("./samples/request.json")
+			file, err := os.ReadFile("./samples/request.json")
 
 			// read response body - Mock
-			body, err := io.ReadAll(resp.Body)
+			//body, err := io.ReadAll(resp.Body)
 
 			// - Mock
-			//body := file
+			body := file
 
 			if err != nil {
 				fmt.Println("error reading body:", err)
@@ -71,7 +68,7 @@ func (h *HttpBinding) Launch() error {
 			}
 
 			// close response body - Mock
-			defer resp.Body.Close()
+			//defer resp.Body.Close()
 
 			requests := make([]map[string]interface{}, 0)
 			err = json.Unmarshal(body, &requests)
@@ -95,25 +92,29 @@ func (h *HttpBinding) Launch() error {
 						return
 					}
 					ret := h.Agent.Handle(body, retCtx)
-					fmt.Println("Agent response:", string(ret.Body))
-
-					// Send response back - Mock
-					respBody, err := json.Marshal(ret)
+					result, err := json.Marshal(ret)
 					if err != nil {
 						fmt.Println("error marshalling response:", err)
 					}
-					responseHost := fmt.Sprintf("%s?target=%s&namespace=%s", h.ResponseUrl, h.Target, h.Namespace)
-					responseUri, err := url.Parse(responseHost)
-					respRet, err := h.Client.Do(&http.Request{
-						URL:    responseUri,
-						Method: "POST",
-						Body:   io.NopCloser(strings.NewReader(string(respBody))),
-					})
-					if err != nil {
-						fmt.Println("error sending response:", err)
-					} else {
-						fmt.Println("response status:", respRet.Status)
-					}
+					fmt.Println("Agent response:", string(result))
+
+					// Send response back - Mock
+					// respBody, err := json.Marshal(ret)
+					// if err != nil {
+					// 	fmt.Println("error marshalling response:", err)
+					// }
+					// responseHost := fmt.Sprintf("%s?target=%s&namespace=%s", h.ResponseUrl, h.Target, h.Namespace)
+					// responseUri, err := url.Parse(responseHost)
+					// respRet, err := h.Client.Do(&http.Request{
+					// 	URL:    responseUri,
+					// 	Method: "POST",
+					// 	Body:   io.NopCloser(strings.NewReader(string(respBody))),
+					// })
+					// if err != nil {
+					// 	fmt.Println("error sending response:", err)
+					// } else {
+					// 	fmt.Println("response status:", respRet.Status)
+					// }
 				}()
 			}
 

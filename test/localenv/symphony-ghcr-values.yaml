@@ -14,3 +14,7 @@ api:
   labelKey:
   labelValue:
   annotationKey:
+  curl -X GET "http://localhost:8080/v1alpha2/federation/tasks?namespace=Namespace&target=targetName" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJpc3MiOiJzeW1waG9ueSIsInN1YiI6InN5bXBob255IiwiYXVkIjpbIioiXSwiZXhwIjoxNzM1NzE1MTkxLCJuYmYiOjE3MzU2Mjg3OTEsImlhdCI6MTczNTYyODc5MSwianRpIjoiMSJ9.cLo8ceaeRV_wsA9oHgW-6ZAC_CEj6sY_IW2wj-hZCxM" \
+     -H "Accept: */*" \
+     -H "Content-Type: application/json"

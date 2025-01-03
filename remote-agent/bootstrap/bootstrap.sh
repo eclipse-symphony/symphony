@@ -111,4 +111,4 @@ echo "public.pem"
 echo "private.pem"
 echo "remote-agent"
 
-./remote-agent -config=../config.json -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace
+./remote-agent -config=../config.json -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace -topology=$topology

@@ -43,6 +43,7 @@ var desiredVersion = os.Getenv("AGENT_VERSION")
 
 func (s *RemoteTargetSchedulerManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	// initialize the target manager
+	s.TargetsManager = &targets.TargetsManager{}
 	err := s.TargetsManager.Init(ctx, config, providers)
 	if err != nil {
 		return err
@@ -120,7 +121,7 @@ func (s *RemoteTargetSchedulerManager) Poll() []error {
 			continue
 		}
 
-		if currentVersion != desiredVersion {
+		if currentVersion != os.Getenv("AGENT_VERSION") {
 			err = s.updateTargetToIssueUpgradeJob(ctx, target, componentName)
 			if err != nil {
 				log.WarnfCtx(ctx, "M (RemoteTarget Scheduler): Cannot issue upgrade job for target %s", target.ObjectMeta.Name)
@@ -155,8 +156,10 @@ func (s *RemoteTargetSchedulerManager) Poll() []error {
 		}
 		if certificateExpirationTime.Before(certSecretExpirationTime) {
 			err = s.updateTargetToIssueSRJob(ctx, target, componentName)
-			log.WarnfCtx(ctx, "M (RemoteTarget Scheduler): Cannot issue SR job for target %s", target.ObjectMeta.Name)
-			ret = append(ret, err)
+			if err != nil {
+				log.WarnfCtx(ctx, "M (RemoteTarget Scheduler): Cannot issue SR job for target %s", target.ObjectMeta.Name)
+				ret = append(ret, err)
+			}
 		}
 	}
 	return ret
@@ -195,7 +198,7 @@ func (s *RemoteTargetSchedulerManager) updateTargetToIssueUpgradeJob(ctx context
 				Type: component.Type,
 				Parameters: map[string]string{
 					"action":  "upgrade",
-					"version": desiredVersion,
+					"version": os.Getenv("AGENT_VERSION"),
 				},
 			})
 		} else {
@@ -208,7 +211,7 @@ func (s *RemoteTargetSchedulerManager) updateTargetToIssueUpgradeJob(ctx context
 }
 
 func (s *RemoteTargetSchedulerManager) updateTargetToIssueSRJob(ctx context.Context, target model.TargetState, componentName string) error {
-	log.InfofCtx(ctx, "M (RemoteTarget Scheduler): Issuing upgrade job for target %s", target.ObjectMeta.Name)
+	log.InfofCtx(ctx, "M (RemoteTarget Scheduler): Issuing SR job for target %s", target.ObjectMeta.Name)
 	// update the target spec component to issue upgrade job
 	var newComponents []model.ComponentSpec
 	components := target.Spec.Components

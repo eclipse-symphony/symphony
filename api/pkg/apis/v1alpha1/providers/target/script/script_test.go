@@ -8,7 +8,6 @@ package script
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -141,8 +140,7 @@ func TestRemoveScript(t *testing.T) {
 			},
 		},
 	}, false)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "executing script returned error output")
+	assert.Nil(t, err)
 }
 
 // TestApplyScript tests that we can apply a script
@@ -151,6 +149,43 @@ func TestApplyScript(t *testing.T) {
 	err := provider.Init(ScriptProviderConfig{
 		ApplyScript: "mock-apply.sh",
 	})
+	assert.Nil(t, err)
+	results, err := provider.Apply(context.Background(), model.DeploymentSpec{
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
+				},
+			},
+		},
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
+		},
+	}, model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "com1",
+					Parameters: map[string]string{
+						"path": "echo",
+						"args": "hello",
+					},
+				},
+			},
+		},
+	}, false)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(results))
+}
+
+func TestApplyScriptWithoutPath(t *testing.T) {
+	provider := ScriptProvider{}
+	err := provider.Init(ScriptProviderConfig{})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
 		Solution: model.SolutionState{
@@ -178,24 +213,7 @@ func TestApplyScript(t *testing.T) {
 		},
 	}, false)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "executing script returned error output")
-}
-
-func TestGetScriptFromUrl(t *testing.T) {
-	testScriptProvider := os.Getenv("TEST_SCRIPT_PROVIDER")
-	if testScriptProvider == "" {
-		t.Skip("Skipping because TEST_SCRIPT_PROVIDER environment variable is not set")
-	}
-	provider := ScriptProvider{}
-	err := provider.Init(ScriptProviderConfig{
-		GetScript:     "mock-get.sh",
-		ApplyScript:   "mock-apply.sh",
-		RemoveScript:  "mock-remove.sh",
-		StagingFolder: "./staging",
-		ScriptFolder:  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
-	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "executing script returned error output")
+	assert.Contains(t, err.Error(), "expected 'path'")
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance
