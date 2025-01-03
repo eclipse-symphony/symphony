@@ -145,7 +145,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
-	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
+	flag.StringVar(&pollIntervalString, "poll-interval", "1000s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
 	// Honor OSS changes: use 1m instead of 5m for delete-timeout
 	flag.StringVar(&deleteTimeOutString, "delete-timeout", "30m", "The timeout in seconds to wait for the target and instance deletion.")
