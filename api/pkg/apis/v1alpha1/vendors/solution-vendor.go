@@ -273,8 +273,8 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				ContentType: "application/json",
 			})
 		}
-		log.InfoCtx(ctx, " lock is here %s -%n", namespace, deployment.Instance.ObjectMeta.Name)
-		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
+		// log.InfoCtx(ctx, " lock is here %s -%n", namespace, deployment.Instance.ObjectMeta.Name)
+		// c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		var state model.DeploymentState

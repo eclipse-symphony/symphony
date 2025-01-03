@@ -769,8 +769,8 @@ func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *Pla
 			})
 		}
 	}
-	log.InfoCtx(ctx, " unlock %s -%n", planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-	s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	// log.InfoCtx(ctx, " unlock %s -%n", planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+	// s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	// close(s.SolutionManager.HeartbeatManager.StopCh)
 	// s.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 	return nil
