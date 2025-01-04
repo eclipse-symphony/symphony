@@ -412,25 +412,17 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 			log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId, planState)
 			s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
-			// if len(planEnvelope.Plan.Steps) == 0 {
-			// 	s.handlePlanComplete(ctx, planState)
-			// }
 
 			for i, step := range planEnvelope.Plan.Steps {
 				stepId := fmt.Sprintf("%s-step-%d", planEnvelope.PlanId, i)
-
 				switch planEnvelope.Phase {
 				case PhaseGet:
 					log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 					stepEnvelope := &StepEnvelope{
-						Phase:      PhaseGet,
-						PlanId:     planEnvelope.PlanId,
-						StepId:     i,
-						Step:       step,
-						Deployment: planEnvelope.Deployment,
-						PlanState:  planState,
-						Remove:     planEnvelope.Remove,
-						Namespace:  planEnvelope.Namespace,
+						StepId:    i,
+						Step:      step,
+						PlanState: planState,
+						Remove:    planEnvelope.Remove,
 					}
 					log.InfoCtx(ctx, "get step here %+v", step.Components)
 					if err := s.Vendor.Context.Publish("deployment-step", v1alpha2.Event{
@@ -446,14 +438,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 					log.InfoCtx(ctx, "V(Federation): publish deployment step id %s step %+v", stepId, step)
 					s.Vendor.Context.Publish("deployment-step", v1alpha2.Event{
 						Body: StepEnvelope{
-							Step:       step,
-							Deployment: planEnvelope.Deployment,
-							Remove:     planEnvelope.Remove,
-							Namespace:  planEnvelope.Namespace,
-							PlanId:     planEnvelope.PlanId,
-							StepId:     i,
-							PlanState:  planState,
-							Phase:      PhaseApply,
+							Step:      step,
+							Remove:    planEnvelope.Remove,
+							StepId:    i,
+							PlanState: planState,
 						},
 					})
 
@@ -480,9 +468,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				return err
 			}
 			log.InfofCtx(ctx, " subscribe0 step-result %v", stepResult)
-			log.InfofCtx(ctx, " subscribe1 step-result %v", stepResult.retComoponents)
-			log.InfofCtx(ctx, " subscribe2 step-result %v", stepResult.Components)
-			log.InfofCtx(ctx, " subscribe3 step-result %v", stepResult.GetResult)
+			log.InfofCtx(ctx, " subscribe1 step-result %v", stepResult.GetResult)
+			log.InfofCtx(ctx, " subscribe2 step-result %v", stepResult.ApplyResult)
 			planId := stepResult.PlanId
 
 			planStateObj, exists := s.PlanManager.Plans.Load(planId)
@@ -493,7 +480,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			planState := planStateObj.(*PlanState)
 
 			// update plan state in map and save summary
-			if err := s.saveSummaryAndPlanState(ctx, planState, stepResult); err != nil {
+			if err := s.saveStepResult(ctx, planState, stepResult); err != nil {
 				log.ErrorCtx(ctx, " failed to update plan state %v", err)
 				return err
 			}
@@ -504,9 +491,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	return nil
 }
 
-func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *PlanState, stepResult StepResult) error {
+func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, stepResult StepResult) error {
 	log.InfoCtx(ctx, "update plan state %v with step result %v phash %s step result", planState, stepResult, planState.Phase)
-	log.InfoCtx(ctx, " stepresult phase %s", stepResult.Phase)
 	if planState.IsExpired() {
 		if err := s.handlePlanTimeout(ctx, planState); err != nil {
 			return err
@@ -515,24 +501,23 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 	}
 	log.InfoCtx(ctx, "todo update plan state")
 	planState.CompletedSteps++
-	switch stepResult.Phase {
+	switch planState.Phase {
 	case PhaseGet:
-		log.InfoCtx(ctx, " update phase getr %v ", stepResult.retComoponents)
-		log.InfoCtx(ctx, " update phase getc %v ", stepResult.Components)
+		log.InfoCtx(ctx, " update phase getr %v ", stepResult.GetResult)
+		log.InfoCtx(ctx, " update phase getc %v ", stepResult.ApplyResult)
 		log.InfoCtx(ctx, " update phase get remove %v ", planState.Remove)
-		planState.StepStates[stepResult.StepId].GetResult = stepResult.retComoponents
-
+		planState.StepStates[stepResult.StepId].GetResult = stepResult.GetResult
 	case PhaseApply:
-		log.InfoCtx(ctx, "todo apply plan state components c%+v", stepResult.Components)
-		log.InfoCtx(ctx, "todo apply plan state componentsr %+v", stepResult.retComoponents)
-		if !stepResult.Success {
-			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[stepResult.Remove])
-			targetResultMessage := fmt.Sprintf("failed to create provider %s, err: %s", deploymentTypeMap[stepResult.Remove], stepResult.Error)
+		log.InfoCtx(ctx, "todo apply plan state components c%+v", stepResult.ApplyResult)
+		log.InfoCtx(ctx, "todo apply plan state componentsr %+v", stepResult.GetResult)
+		if stepResult.Error != nil {
+			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[planState.Remove])
+			targetResultMessage := fmt.Sprintf("failed to create provider %s, err: %s", deploymentTypeMap[planState.Remove], stepResult.Error)
 			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			planState.Summary.AllAssignedDeployed = false
-			for _, ret := range stepResult.Components {
-				if (!stepResult.Remove && ret.Status == v1alpha2.Updated) || (stepResult.Remove && ret.Status == v1alpha2.Deleted) {
+			for _, ret := range stepResult.ApplyResult {
+				if (!planState.Remove && ret.Status == v1alpha2.Updated) || (planState.Remove && ret.Status == v1alpha2.Deleted) {
 					// TODO: need to ensure the status updated correctly on returning from target providers.
 					planState.Summary.CurrentDeployed++
 				}
@@ -543,11 +528,11 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 				planState.TargetResult[stepResult.Target] = 1
 				planState.Summary.SuccessCount++
 			}
-			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.Components}
+			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			//update target
 			log.InfoCtx(ctx, "update plan state target spec %v ", targetResultSpec)
-			planState.Summary.CurrentDeployed += len(stepResult.Components)
+			planState.Summary.CurrentDeployed += len(stepResult.ApplyResult)
 		}
 		// if solutions.components are empty,
 		// we need to set summary.Skipped = true
@@ -559,9 +544,9 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 		if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
-		log.InfoCtx(ctx, "if plan state is completed %v ", planState)
 	}
 
+	s.PlanManager.Plans.Store(planState.PlanId, planState)
 	// check if all step is completed
 	if planState.isCompleted() {
 		return s.handlePlanComplete(ctx, planState)
@@ -572,17 +557,19 @@ func (s *StageVendor) saveSummaryAndPlanState(ctx context.Context, planState *Pl
 
 func (s *StageVendor) handlePlanComplete(ctx context.Context, planState *PlanState) error {
 	log.InfoCtx(ctx, "plan state %s is completed %v ", planState.Phase, planState)
-	log.InfofCtx(ctx, "summary info %+v all assign %s", planState.Summary, planState.Summary.AllAssignedDeployed)
 	if !planState.Summary.AllAssignedDeployed {
 		planState.Status = "failed"
 	}
 	log.InfoCtx(ctx, "plan state is completed %v ", planState.Summary.AllAssignedDeployed)
 	switch planState.Phase {
 	case PhaseGet:
-		s.handlePhaseGetCompletetion(ctx, planState)
+		if err := s.handleGetPlanCompletetion(ctx, planState); err != nil {
+			log.ErrorfCtx(ctx, "Failed to handle get plan completion: %v", err)
+			return err
+		}
 	case PhaseApply:
-		if err := s.handlePlanCompletetion(ctx, planState); err != nil {
-			log.ErrorfCtx(ctx, "Failed to handle plan completion: %v", err)
+		if err := s.handleApplyPlanCompletetion(ctx, planState); err != nil {
+			log.ErrorfCtx(ctx, "Failed to handle apply plan completion: %v", err)
 			return err
 		}
 	}
@@ -627,119 +614,93 @@ func (s *StageVendor) reportActivationStatusWithBadRequest(activation string, na
 	return err
 }
 
-func (s *StageVendor) handlePhaseGetCompletetion(ctx context.Context, planState *PlanState) {
-	switch planState.Phase {
-	case PhaseGet:
-		// collect result
-		log.InfoCtx(ctx, "begin toget current state %v", planState)
-		currentState := model.DeploymentState{}
-		currentState.TargetComponent = make(map[string]string)
+func (s *StageVendor) handleGetPlanCompletetion(ctx context.Context, planState *PlanState) error {
+	// collect result
+	log.InfoCtx(ctx, "begin toget current state %v", planState)
+	currentState := model.DeploymentState{}
+	currentState.TargetComponent = make(map[string]string)
 
-		for _, StepState := range planState.StepStates {
-			for _, c := range StepState.GetResult {
-				key := fmt.Sprintf("%s::%s", c.Name, StepState.Target)
-				log.InfoCtx(ctx, "V(Stage) get step state %+v", StepState)
-				log.InfoCtx(ctx, "V(Stage) get step state result %+v", StepState.Components)
-				role := c.Type
-				if role == "" {
-					role = "container"
-				}
-				log.Info("store key value in current key : %s value : %s", key, role)
-				currentState.TargetComponent[key] = role
+	for _, StepState := range planState.StepStates {
+		for _, c := range StepState.GetResult {
+			key := fmt.Sprintf("%s::%s", c.Name, StepState.Target)
+			log.InfoCtx(ctx, "V(Stage) get step state %+v", StepState)
+			log.InfoCtx(ctx, "V(Stage) get step state result %+v", StepState.Components)
+			role := c.Type
+			if role == "" {
+				role = "container"
 			}
+			log.Info("store key value in current key : %s value : %s", key, role)
+			currentState.TargetComponent[key] = role
 		}
-		log.InfoCtx(ctx, "get current state %v", currentState)
-		planState.CurrentState = currentState
-		previousDesiredState := s.SolutionManager.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
-
-		var currentDesiredState model.DeploymentState
-		currentDesiredState, err := solution.NewDeploymentState(planState.Deployment)
-		if err != nil {
-			return
-		}
-		log.InfoCtx(ctx, "get current currentdesired state %+v", currentDesiredState)
-		//todo:  change to async get be provider actor
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to get current state: %+v", err)
-			return
-		}
-		desiredState := currentDesiredState
-		if previousDesiredState != nil {
-			desiredState = solution.MergeDeploymentStates(&previousDesiredState.State, currentDesiredState)
-		}
-		log.InfoCtx(ctx, "get desired state %+v", desiredState)
-		if planState.Remove {
-			log.InfoCtx(ctx, "it is removed mark all as removed")
-			desiredState.MarkRemoveAll()
-			log.InfoCtx(ctx, "after remove desired state %+v", desiredState)
-		}
-
-		mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
-		log.InfoCtx(ctx, "get merged state %+v", mergedState)
-		log.InfoCtx(ctx, "planDeployment  %+v", planState.Deployment)
-		planState.MergedState = mergedState
-		Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
-		if err != nil {
-			log.ErrorCtx(ctx, "plan generate error")
-			return
-		}
-		log.InfoCtx(ctx, "begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
-
-		s.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
-			Metadata: map[string]string{
-				"Id": planState.Deployment.JobID,
-			},
-			Body: PlanEnvelope{
-				Plan:                 Plan,
-				Deployment:           planState.Deployment,
-				MergedState:          mergedState,
-				CurrentState:         currentState,
-				PreviousDesiredState: previousDesiredState,
-				PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
-				Remove:               planState.Remove,
-				Namespace:            planState.Namespace,
-				Phase:                PhaseApply,
-			},
-			Context: ctx,
-		})
 	}
+	log.InfoCtx(ctx, "get current state %v", currentState)
+	planState.CurrentState = currentState
+	previousDesiredState := s.SolutionManager.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
+
+	var currentDesiredState model.DeploymentState
+	currentDesiredState, err := solution.NewDeploymentState(planState.Deployment)
+	if err != nil {
+		return err
+	}
+	log.InfoCtx(ctx, "get current currentdesired state %+v", currentDesiredState)
+	//todo:  change to async get be provider actor
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to get current state: %+v", err)
+		return err
+	}
+	desiredState := currentDesiredState
+	if previousDesiredState != nil {
+		desiredState = solution.MergeDeploymentStates(&previousDesiredState.State, currentDesiredState)
+	}
+	log.InfoCtx(ctx, "get desired state %+v", desiredState)
+	if planState.Remove {
+		log.InfoCtx(ctx, "it is removed mark all as removed")
+		desiredState.MarkRemoveAll()
+		log.InfoCtx(ctx, "after remove desired state %+v", desiredState)
+	}
+
+	mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
+	planState.MergedState = mergedState
+	Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
+	if err != nil {
+		log.ErrorCtx(ctx, "plan generate error")
+		return err
+	}
+	log.InfoCtx(ctx, "begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
+
+	s.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
+		Metadata: map[string]string{
+			"Id": planState.Deployment.JobID,
+		},
+		Body: PlanEnvelope{
+			Plan:                 Plan,
+			Deployment:           planState.Deployment,
+			MergedState:          mergedState,
+			CurrentState:         currentState,
+			PreviousDesiredState: previousDesiredState,
+			PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
+			Remove:               planState.Remove,
+			Namespace:            planState.Namespace,
+			Phase:                PhaseApply,
+		},
+		Context: ctx,
+	})
+	return nil
 }
 func (s *StageVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {
-	// log.InfoCtx(ctx, "save summary info plan state %s", fmt.Sprintf("%s-%s", "summary", planState.Deployment.Instance.ObjectMeta.Name) )
-	// _, err := s.SolutionManager.StateProvider.Upsert(ctx, states.UpsertRequest{
-	// 	Value: states.StateEntry{
-	// 		ID: fmt.Sprintf("%s-%s", "summary", planState.Deployment.Instance.ObjectMeta.Name),
-	// 		Body: model.SummaryResult{
-	// 			Summary:        planState.Summary,
-	// 			Generation:     planState.Deployment.Generation,
-	// 			Time:           time.Now().UTC(),
-	// 			State:          state,
-	// 			DeploymentHash: planState.Deployment.Hash,
-	// 		},
-	// 	},
-	// 	Metadata: map[string]interface{}{
-	// 		"namespace": planState.Namespace,
-	// 		"group":     model.SolutionGroup,
-	// 		"version":   "v1",
-	// 		"resource":  Summary,
-	// 	},
-	// })
-	// return err
 	return s.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
 }
-func (s *StageVendor) handlePlanCompletetion(ctx context.Context, planState *PlanState) error {
+func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
 	if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateDone); err != nil {
 		log.ErrorfCtx(ctx, "Failed to save summary progress done: %v", err)
 		return err
 	}
-	log.InfofCtx(ctx, "handle plan completetion: begin to handle plan completetion %+v ", planState.Summary)
 	// update summary
 	if err := s.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
 		return err
 	}
-	log.InfofCtx(ctx, "handle plan completetion: update summary done %v", planState)
 	planState.MergedState.ClearAllRemoved()
 
 	if !planState.Deployment.IsDryRun {
