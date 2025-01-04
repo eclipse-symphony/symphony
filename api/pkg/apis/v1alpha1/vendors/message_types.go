@@ -81,32 +81,20 @@ type PlanState struct {
 // for step
 type StepResult struct {
 	Step             model.DeploymentStep                 `json:"step"`
-	Success          bool                                 `json:"success"`
 	TargetResultSpec model.TargetResultSpec               `json:"targetResult"`
-	Components       map[string]model.ComponentResultSpec `json:"components"`
 	PlanId           string                               `json:"planId"`
 	StepId           int                                  `json:"stepId"`
-	Remove           bool                                 `json:"remove"`
 	Timestamp        time.Time                            `json:"timestamp"`
-	ApplyResult      interface{}                          `json:"applyresult"`
-	GetResult        interface{}                          `json:"getresult"`
-	Phase            JobPhase
-	retComoponents   []model.ComponentSpec
-	Error            error `json:"error,omitempty"`
+	GetResult        []model.ComponentSpec                // for get result
+	ApplyResult      map[string]model.ComponentResultSpec `json:"components"` // for apply result
+	Error            error                                `json:"error,omitempty"`
 	Target           string
-	Namespace        string `json:"namespace"`
 }
 type StepEnvelope struct {
-	Step       model.DeploymentStep `json:"step"`
-	Deployment model.DeploymentSpec `json:"deployment"`
-	Remove     bool                 `json:"remove"`
-	Namespace  string               `json:"Namespace"`
-	PlanId     string               `json:"planId"`
-	StepId     int                  `json:"stepId"`
-	PlanState  *PlanState           `json:"planState"`
-	// Provider   providers.IProvider  `json:"provider"`
-	Phase           JobPhase
-	DeploymentState model.DeploymentState
+	Step      model.DeploymentStep `json:"step"`
+	Remove    bool                 `json:"remove"`
+	StepId    int                  `json:"stepId"`
+	PlanState *PlanState           `json:"planState"`
 }
 
 type OperationBody struct {
@@ -119,14 +107,13 @@ type OperationBody struct {
 }
 
 type StepState struct {
-	Index       int
-	Target      string
-	Role        string
-	Components  []model.ComponentStep
-	State       string
-	GetResult   []model.ComponentSpec
-	ApplyResult model.DeploymentState
-	Error       string
+	Index      int
+	Target     string
+	Role       string
+	Components []model.ComponentStep
+	State      string
+	GetResult  []model.ComponentSpec
+	Error      string
 }
 
 var deploymentTypeMap = map[bool]string{

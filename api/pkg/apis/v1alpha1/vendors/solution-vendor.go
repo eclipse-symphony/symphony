@@ -265,14 +265,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			JobID:               deployment.JobID,
 		}
 		data, _ := json.Marshal(summary)
-		if !c.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
-			sLog.InfoCtx(ctx, "V (Solution): onReconcile no retry - lock already held")
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.OK,
-				Body:        data,
-				ContentType: "application/json",
-			})
-		}
+
 		// log.InfoCtx(ctx, " lock is here %s -%n", namespace, deployment.Instance.ObjectMeta.Name)
 		// c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
