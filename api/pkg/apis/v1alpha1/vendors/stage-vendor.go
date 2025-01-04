@@ -402,6 +402,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 					IsRemoval:           planEnvelope.Remove,
 				},
 				PreviousDesiredState: planEnvelope.PreviousDesiredState,
+				CompletedSteps:       0,
 				MergedState:          planEnvelope.MergedState,
 				Deployment:           planEnvelope.Deployment,
 				Namespace:            planEnvelope.Namespace,
@@ -412,7 +413,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 			log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId, planState)
 			s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
+			if planState.isCompleted() {
+				return s.handlePlanComplete(ctx, planState)
 
+			}
 			for i, step := range planEnvelope.Plan.Steps {
 				stepId := fmt.Sprintf("%s-step-%d", planEnvelope.PlanId, i)
 				switch planEnvelope.Phase {
@@ -617,6 +621,30 @@ func (s *StageVendor) reportActivationStatusWithBadRequest(activation string, na
 func (s *StageVendor) handleGetPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	// collect result
 	log.InfoCtx(ctx, "begin toget current state %v", planState)
+	Plan, err := s.threeStateMerge(ctx, planState)
+	if err != nil {
+
+	}
+	s.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
+		Metadata: map[string]string{
+			"Id": planState.Deployment.JobID,
+		},
+		Body: PlanEnvelope{
+			Plan:                 Plan,
+			Deployment:           planState.Deployment,
+			MergedState:          planState.MergedState,
+			CurrentState:         planState.CurrentState,
+			PreviousDesiredState: planState.PreviousDesiredState,
+			PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
+			Remove:               planState.Remove,
+			Namespace:            planState.Namespace,
+			Phase:                PhaseApply,
+		},
+		Context: ctx,
+	})
+	return nil
+}
+func (s *StageVendor) threeStateMerge(ctx context.Context, planState *PlanState) (model.DeploymentPlan, error) {
 	currentState := model.DeploymentState{}
 	currentState.TargetComponent = make(map[string]string)
 
@@ -636,17 +664,17 @@ func (s *StageVendor) handleGetPlanCompletetion(ctx context.Context, planState *
 	log.InfoCtx(ctx, "get current state %v", currentState)
 	planState.CurrentState = currentState
 	previousDesiredState := s.SolutionManager.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
-
+	planState.PreviousDesiredState = previousDesiredState
 	var currentDesiredState model.DeploymentState
 	currentDesiredState, err := solution.NewDeploymentState(planState.Deployment)
 	if err != nil {
-		return err
+		return model.DeploymentPlan{}, err
 	}
 	log.InfoCtx(ctx, "get current currentdesired state %+v", currentDesiredState)
 	//todo:  change to async get be provider actor
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Solution): failed to get current state: %+v", err)
-		return err
+		return model.DeploymentPlan{}, err
 	}
 	desiredState := currentDesiredState
 	if previousDesiredState != nil {
@@ -664,28 +692,10 @@ func (s *StageVendor) handleGetPlanCompletetion(ctx context.Context, planState *
 	Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 	if err != nil {
 		log.ErrorCtx(ctx, "plan generate error")
-		return err
+		return model.DeploymentPlan{}, err
 	}
 	log.InfoCtx(ctx, "begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
-
-	s.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
-		Metadata: map[string]string{
-			"Id": planState.Deployment.JobID,
-		},
-		Body: PlanEnvelope{
-			Plan:                 Plan,
-			Deployment:           planState.Deployment,
-			MergedState:          mergedState,
-			CurrentState:         currentState,
-			PreviousDesiredState: previousDesiredState,
-			PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
-			Remove:               planState.Remove,
-			Namespace:            planState.Namespace,
-			Phase:                PhaseApply,
-		},
-		Context: ctx,
-	})
-	return nil
+	return Plan, nil
 }
 func (s *StageVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {
 	return s.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
@@ -734,7 +744,7 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 		}
 	}
 	// log.InfoCtx(ctx, " unlock %s -%n", planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-	// s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	// close(s.SolutionManager.HeartbeatManager.StopCh)
 	// s.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 	return nil
