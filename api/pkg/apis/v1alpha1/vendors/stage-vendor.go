@@ -34,7 +34,7 @@ import (
 var sLog = logger.NewLogger("coa.runtime")
 
 const (
-	DefaultPlanTimeout = 100 * time.Second
+	DefaultPlanTimeout = 10 * time.Second
 )
 
 type StageVendor struct {
@@ -584,7 +584,7 @@ func (s *StageVendor) handlePlanComplete(ctx context.Context, planState *PlanSta
 func (s *StageVendor) handlePlanTimeout(ctx context.Context, planState *PlanState) error {
 	planState.Summary.SummaryMessage = fmt.Sprintf("plan execution time out after complete %d/%d steps", planState.CompletedSteps, planState.TotalSteps)
 
-	if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateDone); err != nil {
+	if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateTimeout); err != nil {
 		log.ErrorfCtx(ctx, "Failed to save summary progress done: %v", err)
 		return err
 	}
@@ -750,8 +750,7 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 	return nil
 }
 func (p *PlanState) IsExpired() bool {
-	return false
-	// return time.Now().After(p.ExpireTime)
+	return time.Now().After(p.ExpireTime)
 }
 
 func (p *PlanState) isCompleted() bool {
