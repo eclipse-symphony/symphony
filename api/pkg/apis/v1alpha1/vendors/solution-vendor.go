@@ -266,7 +266,6 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 		data, _ := json.Marshal(summary)
 
-		// log.InfoCtx(ctx, " lock is here %s -%n", namespace, deployment.Instance.ObjectMeta.Name)
 		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
@@ -300,11 +299,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 			stepList = append(stepList, step)
 		}
-
 		initalPlan.Steps = stepList
-		log.InfoCtx(ctx, "initial plan list %+v", stepList)
-		log.InfoCtx(ctx, "initial plan deployment %+v", deployment)
-
 		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,
