@@ -28,11 +28,13 @@ const (
 	// to give a deployment status on Symphony Target deployment.
 	DeploymentType_Delete string = "Target Delete"
 
-	Summary                = "Summary"
-	DeploymentState        = "DeployState"
-	DeploymentPlanTopic    = "deployment-plan"
-	DeploymentStepTopic    = "deployment-step"
-	CollectStepResultTopic = "step-result"
+	Summary                    = "Summary"
+	DeploymentState            = "DeployState"
+	DeploymentPlanTopic        = "deployment-plan"
+	DeploymentStepTopic        = "deployment-step"
+	CollectStepResultTopic     = "step-result"
+	MaxRetries             int = 3               // Maximum retry attempts
+	RetryDelay                 = time.Second * 2 // Delay between retries
 )
 
 // for plan storage
