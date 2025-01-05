@@ -501,16 +501,16 @@ func (s *StageVendor) createPlanState(ctx context.Context, planEnvelope PlanEnve
 func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, stepResult StepResult) error {
 	log.InfoCtx(ctx, "update plan state %v with step result %v phash %s step result", planState, stepResult, planState.Phase)
 	timeoutString := ""
-	if planState.IsExpired() {
-		timeoutString = "timeout"
-		// targetResultSpec := model.TargetResultSpec{Status: "timeout"}
-		// planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
-		if err := s.handlePlanTimeout(ctx, planState); err != nil {
-			return err
-		}
-		s.PlanManager.DeletePlan(planState.PlanId)
-		return nil
-	}
+	// if planState.IsExpired() {
+	// 	timeoutString = "timeout"
+	// 	// targetResultSpec := model.TargetResultSpec{Status: "timeout"}
+	// 	// planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
+	// 	if err := s.handlePlanTimeout(ctx, planState); err != nil {
+	// 		return err
+	// 	}
+	// 	s.PlanManager.DeletePlan(planState.PlanId)
+	// 	return nil
+	// }
 	log.InfoCtx(ctx, "todo update plan state")
 	planState.CompletedSteps++
 	switch planState.Phase {
@@ -758,6 +758,8 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 	return nil
 }
 func (p *PlanState) IsExpired() bool {
+	log.Info("time now")
+	log.Info("time expired")
 	return time.Now().After(p.ExpireTime)
 }
 
