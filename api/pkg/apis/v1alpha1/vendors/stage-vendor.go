@@ -631,8 +631,6 @@ func (s *StageVendor) threeStateMerge(ctx context.Context, planState *PlanState)
 	for _, StepState := range planState.StepStates {
 		for _, c := range StepState.GetResult {
 			key := fmt.Sprintf("%s::%s", c.Name, StepState.Target)
-			log.InfoCtx(ctx, "V(Stage): Get step state %+v", StepState)
-			log.InfoCtx(ctx, "V(Stage): Get step state result %+v", StepState.Components)
 			role := c.Type
 			if role == "" {
 				role = "container"
@@ -641,7 +639,7 @@ func (s *StageVendor) threeStateMerge(ctx context.Context, planState *PlanState)
 			currentState.TargetComponent[key] = role
 		}
 	}
-	log.InfoCtx(ctx, "V(Stage): Get current state %v", currentState)
+	log.InfoCtx(ctx, "V(Stage): Compute current state %v for Plan ID: %s", currentState, planState.PlanId)
 	planState.CurrentState = currentState
 	previousDesiredState := s.SolutionManager.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
 	planState.PreviousDesiredState = previousDesiredState
