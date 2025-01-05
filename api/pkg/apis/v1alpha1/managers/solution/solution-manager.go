@@ -40,16 +40,6 @@ var (
 	apiOperationMetrics *metrics.Metrics
 )
 
-type HeartbeatManager struct {
-	StopCh chan struct{}
-}
-
-func NewHeartbeatManager() *HeartbeatManager {
-	return &HeartbeatManager{
-		StopCh: make(chan struct{}),
-	}
-}
-
 const (
 	SYMPHONY_AGENT string = "/symphony-agent:"
 	ENV_NAME       string = "SYMPHONY_AGENT_ADDRESS"
@@ -92,9 +82,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		if p, ok := v.(tgt.ITargetProvider); ok {
 			s.TargetProviders[k] = p
 		}
-	}
-	for key, _ := range providers {
-		log.Info(" key is %s", key)
 	}
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
@@ -305,7 +292,7 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 	}
 }
 
-func (s *SolutionManager) CleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
+func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
 	if !remove {
 		return
 	}
@@ -376,7 +363,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}()
 
 	defer func() {
-		s.CleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
 	}()
 
 	stopCh := make(chan struct{})
