@@ -500,7 +500,7 @@ func (s *StageVendor) createPlanState(ctx context.Context, planEnvelope PlanEnve
 }
 func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, stepResult StepResult) error {
 	log.InfoCtx(ctx, "update plan state %v with step result %v phash %s step result", planState, stepResult, planState.Phase)
-	timeoutString := ""
+	// timeoutString := ""
 	// if planState.IsExpired() {
 	// 	timeoutString = "timeout"
 	// 	// targetResultSpec := model.TargetResultSpec{Status: "timeout"}
@@ -508,8 +508,8 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 	// 	if err := s.handlePlanTimeout(ctx, planState); err != nil {
 	// 		return err
 	// 	}
-	// 	s.PlanManager.DeletePlan(planState.PlanId)
-	// 	return nil
+	// 	// s.PlanManager.DeletePlan(planState.PlanId)
+	// 	// return nil
 	// }
 	log.InfoCtx(ctx, "todo update plan state")
 	planState.CompletedSteps++
@@ -523,7 +523,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 		log.InfoCtx(ctx, "todo apply plan state components c%+v", stepResult.ApplyResult)
 		log.InfoCtx(ctx, "todo apply plan state componentsr %+v", stepResult.GetResult)
 		if stepResult.Error != nil {
-			targetResultStatus := fmt.Sprintf("%s Failed %s", deploymentTypeMap[planState.Remove], timeoutString)
+			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[planState.Remove])
 			targetResultMessage := fmt.Sprintf("failed to create provider %s, err: %s", deploymentTypeMap[planState.Remove], stepResult.Error)
 			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
@@ -540,7 +540,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 				planState.TargetResult[stepResult.Target] = 1
 				planState.Summary.SuccessCount++
 			}
-			targetResultSpec := model.TargetResultSpec{Status: fmt.Sprintf("%s-%s", "OK", timeoutString), Message: "", ComponentResults: stepResult.ApplyResult}
+			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			//update target
 			log.InfoCtx(ctx, "update plan state target spec %v ", targetResultSpec)
@@ -591,22 +591,12 @@ func (s *StageVendor) handlePlanComplete(ctx context.Context, planState *PlanSta
 
 func (s *StageVendor) handlePlanTimeout(ctx context.Context, planState *PlanState) error {
 	planState.Summary.SummaryMessage = fmt.Sprintf("plan execution time out after complete %d/%d steps", planState.CompletedSteps, planState.TotalSteps)
-
+	log.InfoCtx(ctx, "V(Stage): plan is timeout")
 	if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateTimeout); err != nil {
 		log.ErrorfCtx(ctx, "Failed to save summary progress done: %v", err)
 		return err
 	}
-	return s.Vendor.Context.Publish("deployment-result", v1alpha2.Event{
-		Metadata: map[string]string{
-			"planId": planState.PlanId,
-			"status": "timeout",
-		},
-		Body: PlanResult{
-			EndTime:   time.Now(),
-			PlanState: planState,
-		},
-		Context: ctx,
-	})
+	return nil
 }
 
 func (s *StageVendor) reportActivationStatusWithBadRequest(activation string, namespace string, err error) error {
