@@ -126,6 +126,7 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, ctx cont
 			// only reconcile once
 			reconciliationInterval = 0
 		}
+		return reconciliationInterval, timeout
 
 	}
 	// no reconciliationPolicy configured or reconciliationPolicy.state is invalid, use default reconciliation interval: r.reconciliationInterval
@@ -254,6 +255,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		// If the object hasn't reached a terminal state and the time since the operation started is greater than the
 		// apply timeout, we should update the status with a terminal error and return
 		startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
+
 		if err != nil {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
@@ -510,7 +512,6 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status", "status", status, "patchStatusOptions", opts)
-
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
 	r.updateProvisioningStatus(ctx, object, summaryResult, status, nextStatus, opts, log)
@@ -548,6 +549,9 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 		if !summary.AllAssignedDeployed {
 			status = utilsmodel.ProvisioningStatusFailed
 		}
+		return status
+	case model.SummaryStateTimeout:
+		status := utilsmodel.ProvisioningStatusTimeout
 		return status
 	default:
 		return utilsmodel.GetNonTerminalStatus(object)
@@ -681,7 +685,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 		objectStatus.ProvisioningStatus.PercentComplete = int64(percentComplete)
 	}
 
-	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus)
+	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus, "Summary result", summaryResult)
 
 	outputMap := objectStatus.ProvisioningStatus.Output
 	// Fill component details into output field

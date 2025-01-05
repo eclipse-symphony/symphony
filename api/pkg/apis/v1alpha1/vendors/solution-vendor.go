@@ -257,17 +257,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		summary := model.SummarySpec{
-			TargetResults:       make(map[string]model.TargetResultSpec),
-			TargetCount:         len(deployment.Targets),
-			SuccessCount:        0,
-			AllAssignedDeployed: false,
-			JobID:               deployment.JobID,
-		}
-		data, _ := json.Marshal(summary)
-
 		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
-		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
@@ -300,7 +290,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			stepList = append(stepList, step)
 		}
 		initalPlan.Steps = stepList
-		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
+		c.Vendor.Context.Publish(DeploymentPlanTopic, v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,
 			},
@@ -316,6 +306,16 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			},
 			Context: ctx,
 		})
+		// save summary
+		summary := model.SummarySpec{
+			TargetResults:       make(map[string]model.TargetResultSpec),
+			TargetCount:         len(deployment.Targets),
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
+			JobID:               deployment.JobID,
+		}
+		data, _ := json.Marshal(summary)
+		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        data,

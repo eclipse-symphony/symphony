@@ -28,8 +28,11 @@ const (
 	// to give a deployment status on Symphony Target deployment.
 	DeploymentType_Delete string = "Target Delete"
 
-	Summary         = "Summary"
-	DeploymentState = "DeployState"
+	Summary                = "Summary"
+	DeploymentState        = "DeployState"
+	DeploymentPlanTopic    = "deployment-plan"
+	DeploymentStepTopic    = "deployment-step"
+	CollectStepResultTopic = "step-result"
 )
 
 // for plan storage

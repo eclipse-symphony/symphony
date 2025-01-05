@@ -175,7 +175,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	},
 	)
 	// todo: add retry
-	f.Vendor.Context.Subscribe("deployment-step", v1alpha2.EventHandler{
+	f.Vendor.Context.Subscribe(DeploymentStepTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
 			ctx := context.TODO()
 			if event.Context != nil {
@@ -183,91 +183,14 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			}
 			log.InfoCtx(ctx, "V(Federation): subscribe deployment-step and begin to apply step ")
 			// get data
-			var stepEnvelope StepEnvelope
-			jData, _ := json.Marshal(event.Body)
-			if err := json.Unmarshal(jData, &stepEnvelope); err != nil {
-				log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal step envelope: %v", err)
-				return err
-			}
-			switch stepEnvelope.PlanState.Phase {
-			case PhaseGet:
-				if findAgentFromDeploymentState(stepEnvelope.Step.Components) {
-					// if true {
-					operationId := uuid.New().String()
-					providerGetRequest := &ProviderGetRequest{
-						AgentRequest: AgentRequest{
-							OperationID: operationId,
-							Provider:    stepEnvelope.Step.Role,
-							Action:      string(PhaseGet),
-						},
-						References: stepEnvelope.Step.Components,
-					}
-					err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
-					if err != nil {
-						log.ErrorCtx(ctx, "V(Federation) Error in insert operation Id %s", operationId)
-						return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
-					}
-					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
-					log.InfoCtx(ctx, "V(Federation): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
-				} else {
-					provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.PlanState.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
-					if err != nil {
-						log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
-						return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
-					}
-					dep := stepEnvelope.PlanState.Deployment
-					dep.ActiveTarget = stepEnvelope.Step.Target
-					getResult, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, dep, stepEnvelope.Step.Components)
-					if stepError != nil {
-						log.ErrorCtx(ctx, "V(Federation) Error in get states %+v", stepError)
-						return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
-					}
-					log.InfoCtx(ctx, "get component %+v", getResult)
-					return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, getResult, map[string]model.ComponentResultSpec{})
+			for i := 0; i < MaxRetries; i++ {
+				err := f.handleDeploymentStep(ctx, event)
+				if err == nil {
+					return nil
 				}
-			case PhaseApply:
-				if findAgentFromDeploymentState(stepEnvelope.Step.Components) {
-					operationId := uuid.New().String()
-					providApplyRequest := &ProviderApplyRequest{
-						AgentRequest: AgentRequest{
-							OperationID: operationId,
-							Provider:    stepEnvelope.Step.Role,
-							Action:      string(PhaseApply),
-						},
-						Deployment: stepEnvelope.PlanState.Deployment,
-						Step:       stepEnvelope.Step,
-						IsDryRun:   stepEnvelope.PlanState.Deployment.IsDryRun,
-					}
-					log.InfoCtx(ctx, "V(Federation): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
-					err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
-					if err != nil {
-						log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
-						return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
-					}
-					f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
-				} else {
-					// get provider todo : is dry run
-					provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.PlanState.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
-					if err != nil {
-						log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
-						return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
-					}
-					previousDesiredState := stepEnvelope.PlanState.PreviousDesiredState
-					currentState := stepEnvelope.PlanState.CurrentState
-					step := stepEnvelope.Step
-					if previousDesiredState != nil {
-						testState := solution.MergeDeploymentStates(&previousDesiredState.State, currentState)
-						if f.SolutionManager.CanSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
-							log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
-							return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, nil, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
-						}
-					}
-					componentResults, stepError := (provider.(tgt.ITargetProvider)).Apply(ctx, stepEnvelope.PlanState.Deployment, stepEnvelope.Step, stepEnvelope.PlanState.Deployment.IsDryRun)
-					f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, stepError, []model.ComponentSpec{}, componentResults)
-				}
-
+				time.Sleep(RetryDelay)
 			}
-			return nil
+			return err
 		},
 		Group: "federation-vendor",
 	})
@@ -277,6 +200,25 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		Properties: f.Context.SiteInfo.Properties,
 		IsSelf:     true,
 	})
+}
+func (f *FederationVendor) handleDeploymentStep(ctx context.Context, event v1alpha2.Event) error {
+	var stepEnvelope StepEnvelope
+	jData, err := json.Marshal(event.Body)
+	if err != nil {
+		log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal event body: %v", err)
+		return err
+	}
+	if err := json.Unmarshal(jData, &stepEnvelope); err != nil {
+		log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal step envelope: %v", err)
+		return err
+	}
+	switch stepEnvelope.PlanState.Phase {
+	case PhaseGet:
+		return f.handlePhaseGet(ctx, stepEnvelope)
+	case PhaseApply:
+		return f.handlePhaseApply(ctx, stepEnvelope)
+	}
+	return nil
 }
 func findAgentFromDeploymentState(stepComponents []model.ComponentStep) bool {
 	log.Info("compare between state and target name %+v", stepComponents)
@@ -304,6 +246,94 @@ func (f *FederationVendor) publishStepResult(ctx context.Context, target string,
 			Error:       Error,
 		},
 	})
+}
+
+func (f *FederationVendor) handlePhaseGet(ctx context.Context, stepEnvelope StepEnvelope) error {
+	if findAgentFromDeploymentState(stepEnvelope.Step.Components) {
+		return f.enqueueProviderGetRequest(ctx, stepEnvelope)
+	}
+	return f.getProviderAndExecute(ctx, stepEnvelope)
+}
+func (f *FederationVendor) enqueueProviderGetRequest(ctx context.Context, stepEnvelope StepEnvelope) error {
+	operationId := uuid.New().String()
+	providerGetRequest := &ProviderGetRequest{
+		AgentRequest: AgentRequest{
+			OperationID: operationId,
+			Provider:    stepEnvelope.Step.Role,
+			Action:      string(PhaseGet),
+		},
+		References: stepEnvelope.Step.Components,
+	}
+	err := f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
+	if err != nil {
+		log.ErrorCtx(ctx, "V(Federation) Error in insert operation Id %s", operationId)
+		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
+	}
+	log.InfoCtx(ctx, "V(Federation): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
+	return f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+}
+
+func (f *FederationVendor) getProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
+	provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.PlanState.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
+		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
+	}
+	dep := stepEnvelope.PlanState.Deployment
+	dep.ActiveTarget = stepEnvelope.Step.Target
+	getResult, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, dep, stepEnvelope.Step.Components)
+	if stepError != nil {
+		log.ErrorCtx(ctx, "V(Federation) Error in get target current states %+v", stepError)
+		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
+	}
+	return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, getResult, map[string]model.ComponentResultSpec{})
+}
+func (f *FederationVendor) handlePhaseApply(ctx context.Context, stepEnvelope StepEnvelope) error {
+	if findAgentFromDeploymentState(stepEnvelope.Step.Components) {
+		return f.enqueueProviderApplyRequest(ctx, stepEnvelope)
+	}
+	return f.applyProviderAndExecute(ctx, stepEnvelope)
+}
+func (f *FederationVendor) enqueueProviderApplyRequest(ctx context.Context, stepEnvelope StepEnvelope) error {
+	operationId := uuid.New().String()
+	providApplyRequest := &ProviderApplyRequest{
+		AgentRequest: AgentRequest{
+			OperationID: operationId,
+			Provider:    stepEnvelope.Step.Role,
+			Action:      string(PhaseApply),
+		},
+		Deployment: stepEnvelope.PlanState.Deployment,
+		Step:       stepEnvelope.Step,
+		IsDryRun:   stepEnvelope.PlanState.Deployment.IsDryRun,
+	}
+	log.InfoCtx(ctx, "V(Federation): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
+	err := f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
+	if err != nil {
+		log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
+		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
+	}
+	return f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
+}
+
+func (f *FederationVendor) applyProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
+	// get provider todo : is dry run
+	provider, err := f.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.PlanState.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
+		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
+	}
+	previousDesiredState := stepEnvelope.PlanState.PreviousDesiredState
+	currentState := stepEnvelope.PlanState.CurrentState
+	step := stepEnvelope.Step
+	if previousDesiredState != nil {
+		testState := solution.MergeDeploymentStates(&previousDesiredState.State, currentState)
+		if f.SolutionManager.CanSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+			log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
+			return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, nil, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
+		}
+	}
+	componentResults, stepError := (provider.(tgt.ITargetProvider)).Apply(ctx, stepEnvelope.PlanState.Deployment, stepEnvelope.Step, stepEnvelope.PlanState.Deployment.IsDryRun)
+	return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, stepError, []model.ComponentSpec{}, componentResults)
 }
 
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
