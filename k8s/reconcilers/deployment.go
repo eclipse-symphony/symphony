@@ -255,7 +255,6 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		// If the object hasn't reached a terminal state and the time since the operation started is greater than the
 		// apply timeout, we should update the status with a terminal error and return
 		startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
-
 		if err != nil {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
@@ -291,7 +290,6 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		} else {
 			// It's not found in api so we should mark as reconciling, queue a job and check back in POLL seconds
 			diagnostic.InfoWithCtx(log, ctx, "Deployment summary not found, queueing job")
-			// time.Sleep(10 * time.Second)
 			return metrics.DeploymentQueued, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 	}

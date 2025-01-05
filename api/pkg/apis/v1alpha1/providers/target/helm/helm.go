@@ -341,7 +341,6 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			}
 		}
 	}
-	sLog.InfofCtx(ctx, "  P (Helm Target): get ret: %+v", ret)
 	return ret, nil
 }
 
@@ -471,8 +470,6 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	for _, component := range step.Components {
 		var helmProp *HelmProperty
 		helmProp, err = getHelmPropertyFromComponent(component.Component)
-		sLog.InfofCtx(ctx, "  P (Helm Target): apply components: %s - %+v", component.Action, component)
-
 		if component.Action == model.ComponentUpdate {
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get Helm properties: %+v", err)
