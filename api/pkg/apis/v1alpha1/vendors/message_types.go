@@ -39,8 +39,7 @@ const (
 
 // for plan storage
 type PlanManager struct {
-	Plans   sync.Map // map[string] *Planstate
-	Timeout time.Duration
+	Plans sync.Map // map[string] *Planstate
 }
 
 type PlanResult struct {

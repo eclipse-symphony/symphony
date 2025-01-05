@@ -402,6 +402,8 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 	}
 }
+
+// onGetRequest handles the get request from the remote agent.
 func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onGetRequest",
@@ -414,6 +416,7 @@ func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.CO
 	return f.getTaskFromQueue(ctx, target, namespace)
 }
 
+// onGetResponse handles the get response from the remote agent.
 func (f *FederationVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onGetResponse",
@@ -423,7 +426,7 @@ func (f *FederationVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.C
 	var asyncResult AsyncResult
 	err := json.Unmarshal(request.Body, &asyncResult)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "V (FederationVendor): onGetResponse failed - %s", err.Error())
+		sLog.ErrorfCtx(ctx, "V(Federation): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -433,14 +436,15 @@ func (f *FederationVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.C
 	return f.handleRemoteAgentExecuteResult(ctx, asyncResult)
 }
 
+// handleRemoteAgentExecuteResult handles the execution result from the remote agent.
 func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, asyncResult AsyncResult) v1alpha2.COAResponse {
-	// get opertaion Id
+	// Get operation ID
 	operationId := asyncResult.OperationID
-	// get related info from redis- todo: timeout
-	log.InfoCtx(ctx, "handle remote agent request %+v ", asyncResult)
+	// Get related info from redis - todo: timeout
+	log.InfoCtx(ctx, "V(FederationVendor): handle remote agent request %+v", asyncResult)
 	operationBody, err := f.getOperationState(ctx, operationId)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "V (FederationVendor): onGetResponse failed - %s", err.Error())
+		sLog.ErrorfCtx(ctx, "V(FederationVendor): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -449,7 +453,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 
 	switch operationBody.Action {
 	case PhaseGet:
-		// send to stp result
+		// Send to step result
 		var response []model.ComponentSpec
 		err := json.Unmarshal(asyncResult.Body, &response)
 		if err != nil {
@@ -467,7 +471,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 		if err != nil {
 			return v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
-				Body:        []byte("{\"result\":\"delete operation Id failed\"}"),
+				Body:        []byte("{\"result\":\"405 - delete operation Id failed\"}"),
 				ContentType: "application/json",
 			}
 		}
@@ -511,17 +515,18 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 	}
 }
 
+// getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
 func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, namespace string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	sLog.InfoCtx(ctx, "V (FederationVendor): getFromqueue %s queue length %s", queueName)
+	sLog.InfoCtx(ctx, "V(FederationVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 
 	queueElement, err := f.StagingManager.QueueProvider.Dequeue(queueName)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "V (FederationVendor): getqueue failed - %s", err.Error())
+		sLog.ErrorfCtx(ctx, "V(FederationVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -535,7 +540,7 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 	}
 }
 
-// for operation state storage
+// upsertOperationState upserts the operation state for the specified parameters.
 func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action JobPhase, namespace string, remove bool) error {
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -553,7 +558,7 @@ func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId
 	return err
 }
 
-// for get operation state
+// getOperationState retrieves the operation state for the specified operation ID.
 func (f *FederationVendor) getOperationState(ctx context.Context, operationId string) (OperationBody, error) {
 	getRequest := states.GetRequest{
 		ID: operationId,
@@ -566,11 +571,13 @@ func (f *FederationVendor) getOperationState(ctx context.Context, operationId st
 	var ret OperationBody
 	ret, err = f.getOperationBody(entry.Body)
 	if err != nil {
-		log.ErrorfCtx(ctx, "Failed to convert to operation state for %s ", operationId)
+		log.ErrorfCtx(ctx, "V(FederationVendor): Failed to convert to operation state for %s", operationId)
 		return OperationBody{}, err
 	}
 	return ret, err
 }
+
+// getOperationBody converts the body to an OperationBody.
 func (f *FederationVendor) getOperationBody(body interface{}) (OperationBody, error) {
 	var operationBody OperationBody
 	bytes, _ := json.Marshal(body)

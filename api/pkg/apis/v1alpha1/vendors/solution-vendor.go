@@ -259,16 +259,18 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
+		// create new deployment state
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.MethodNotAllowed,
-				Body:        []byte("{\"result\":\"405 - method not allowedee\"}"),
+				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
 				ContentType: "application/json",
 			})
 		}
+		// Generate new deployment plan for deployment
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
