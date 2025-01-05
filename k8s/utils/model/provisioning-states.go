@@ -20,6 +20,7 @@ const (
 	ProvisioningStatusCancelled   ProvisioningStatus = "Cancelled"
 	ProvisioningStatusReconciling ProvisioningStatus = "Reconciling"
 	ProvisioningStatusDeleting    ProvisioningStatus = "Deleting"
+	ProvisioningStatusTimeout     ProvisioningStatus = "Timeout"
 )
 
 func IsTerminalState(status string) bool {
