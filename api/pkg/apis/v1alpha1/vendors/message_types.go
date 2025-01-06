@@ -28,14 +28,18 @@ const (
 	// to give a deployment status on Symphony Target deployment.
 	DeploymentType_Delete string = "Target Delete"
 
-	Summary         = "Summary"
-	DeploymentState = "DeployState"
+	Summary                    = "Summary"
+	DeploymentState            = "DeployState"
+	DeploymentPlanTopic        = "deployment-plan"
+	DeploymentStepTopic        = "deployment-step"
+	CollectStepResultTopic     = "step-result"
+	MaxRetries             int = 3               // Maximum retry attempts
+	RetryDelay                 = time.Second * 2 // Delay between retries
 )
 
 // for plan storage
 type PlanManager struct {
-	Plans   sync.Map // map[string] *Planstate
-	Timeout time.Duration
+	Plans sync.Map // map[string] *Planstate
 }
 
 type PlanResult struct {
@@ -81,32 +85,20 @@ type PlanState struct {
 // for step
 type StepResult struct {
 	Step             model.DeploymentStep                 `json:"step"`
-	Success          bool                                 `json:"success"`
 	TargetResultSpec model.TargetResultSpec               `json:"targetResult"`
-	Components       map[string]model.ComponentResultSpec `json:"components"`
 	PlanId           string                               `json:"planId"`
 	StepId           int                                  `json:"stepId"`
-	Remove           bool                                 `json:"remove"`
 	Timestamp        time.Time                            `json:"timestamp"`
-	ApplyResult      interface{}                          `json:"applyresult"`
-	GetResult        interface{}                          `json:"getresult"`
-	Phase            JobPhase
-	retComoponents   []model.ComponentSpec
-	Error            error `json:"error,omitempty"`
+	GetResult        []model.ComponentSpec                // for get result
+	ApplyResult      map[string]model.ComponentResultSpec `json:"components"` // for apply result
+	Error            string                               `json:"string,omitempty"`
 	Target           string
-	Namespace        string `json:"namespace"`
 }
 type StepEnvelope struct {
-	Step       model.DeploymentStep `json:"step"`
-	Deployment model.DeploymentSpec `json:"deployment"`
-	Remove     bool                 `json:"remove"`
-	Namespace  string               `json:"Namespace"`
-	PlanId     string               `json:"planId"`
-	StepId     int                  `json:"stepId"`
-	PlanState  *PlanState           `json:"planState"`
-	// Provider   providers.IProvider  `json:"provider"`
-	Phase           JobPhase
-	DeploymentState model.DeploymentState
+	Step      model.DeploymentStep `json:"step"`
+	Remove    bool                 `json:"remove"`
+	StepId    int                  `json:"stepId"`
+	PlanState *PlanState           `json:"planState"`
 }
 
 type OperationBody struct {
@@ -115,17 +107,17 @@ type OperationBody struct {
 	Target    string
 	Action    JobPhase
 	NameSpace string
+	Remove    bool
 }
 
 type StepState struct {
-	Index       int
-	Target      string
-	Role        string
-	Components  []model.ComponentStep
-	State       string
-	GetResult   []model.ComponentSpec
-	ApplyResult model.DeploymentState
-	Error       string
+	Index      int
+	Target     string
+	Role       string
+	Components []model.ComponentStep
+	State      string
+	GetResult  []model.ComponentSpec
+	Error      string
 }
 
 var deploymentTypeMap = map[bool]string{
@@ -148,8 +140,10 @@ type ProviderGetRequest struct {
 type ProviderApplyRequest struct {
 	AgentRequest
 	Deployment model.DeploymentSpec `json:"deployment"`
+	Step       model.DeploymentStep `json:"step"`
 	IsDryRun   bool                 `json:"isDryRun,omitempty"`
 }
+
 type ProviderGetValidationRuleRequest struct {
 	AgentRequest
 }

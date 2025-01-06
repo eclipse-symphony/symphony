@@ -133,6 +133,10 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onQueue-POST", rContext, nil)
 		defer span.End()
+
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var onQueueError string
+
 		instance := request.Parameters["instance"]
 		delete := request.Parameters["delete"]
 		objectType := request.Parameters["objectType"]
@@ -253,17 +257,20 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
+		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
+		// create new deployment state
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.MethodNotAllowed,
-				Body:        []byte("{\"result\":\"405 - method not allowedee\"}"),
+				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
 				ContentType: "application/json",
 			})
 		}
+		// Generate new deployment plan for deployment
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -285,7 +292,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			stepList = append(stepList, step)
 		}
 		initalPlan.Steps = stepList
-		c.Vendor.Context.Publish("deployment-plan", v1alpha2.Event{
+		c.Vendor.Context.Publish(DeploymentPlanTopic, v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,
 			},
@@ -294,15 +301,26 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Deployment:           deployment,
 				MergedState:          model.DeploymentState{},
 				PreviousDesiredState: previousDesiredState,
-				PlanId:               deployment.Instance.ObjectMeta.Name,
+				PlanId:               fmt.Sprintf("%s-%s", deployment.Instance.ObjectMeta.Name, delete),
 				Remove:               delete == "true",
 				Namespace:            namespace,
 				Phase:                PhaseGet,
 			},
 			Context: ctx,
 		})
+		// save summary
+		summary := model.SummarySpec{
+			TargetResults:       make(map[string]model.TargetResultSpec),
+			TargetCount:         len(deployment.Targets),
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
+			JobID:               deployment.JobID,
+		}
+		data, _ := json.Marshal(summary)
+		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
+			Body:        data,
 			ContentType: "application/json",
 		})
 	}

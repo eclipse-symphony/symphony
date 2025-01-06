@@ -12,9 +12,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
@@ -29,6 +29,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	config "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock"
 	secret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -36,7 +37,6 @@ import (
 
 var (
 	log                 = logger.NewLogger("coa.runtime")
-	lock                sync.Mutex
 	apiOperationMetrics *metrics.Metrics
 )
 
@@ -61,6 +61,7 @@ type SolutionManager struct {
 	StateProvider   states.IStateProvider
 	ConfigProvider  config.IExtConfigProvider
 	SecretProvider  secret.ISecretProvider
+	KeyLockProvider keylock.IKeyLockProvider
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
@@ -81,6 +82,12 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		if p, ok := v.(tgt.ITargetProvider); ok {
 			s.TargetProviders[k] = p
 		}
+	}
+	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
+	if err == nil {
+		s.KeyLockProvider = keylockprovider
+	} else {
+		return err
 	}
 
 	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
@@ -304,8 +311,8 @@ func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, names
 }
 
 func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	s.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) // && used as split character
+	defer s.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
 
 	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "Reconcile",
@@ -342,9 +349,15 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 	defer func() {
-		log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
-		if deployment.IsDryRun {
-			summary.SuccessCount = 0
+		if r := recover(); r == nil {
+			log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+			if deployment.IsDryRun {
+				summary.SuccessCount = 0
+			}
+			s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		} else {
+			log.ErrorfCtx(ctx, " M (Solution): panic happens: %v", debug.Stack())
+			panic(r)
 		}
 		s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 	}()
@@ -436,6 +449,8 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		return summary, err
 	}
 	log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: start deploy, total %v deployments", summary.PlannedDeployment)
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeProviders string
 
 	plannedCount := 0
 	planSuccessCount := 0
@@ -488,6 +503,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
+				summary.CurrentDeployed += len(step.Components)
 				continue
 			}
 		}
@@ -547,7 +563,14 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			for _, v := range targetResult {
 				successCount += v
 			}
-			summary.CurrentDeployed += successCount
+			deployedCount := 0
+			for _, ret := range componentResults {
+				if (!remove && ret.Status == v1alpha2.Updated) || (remove && ret.Status == v1alpha2.Deleted) {
+					// TODO: need to ensure the status updated correctly on returning from target providers.
+					deployedCount += 1
+				}
+			}
+			summary.CurrentDeployed += deployedCount
 			summary.SuccessCount = successCount
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
@@ -560,10 +583,13 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
 			return summary, err
 		}
-		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.PlannedDeployment, summary.CurrentDeployed)
+		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.CurrentDeployed, summary.PlannedDeployment)
 	}
 
 	mergedState.ClearAllRemoved()
+
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeDeploymentError string
 
 	if !deployment.IsDryRun {
 		if len(mergedState.TargetComponent) == 0 && remove {
@@ -595,6 +621,9 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			})
 		}
 	}
+
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var afterDeploymentError string
 
 	successCount := 0
 	for _, v := range targetResult {
@@ -635,7 +664,7 @@ func (s *SolutionManager) GetTargetStateForStep(target string, deployment model.
 	}
 	return targetSpec
 }
-func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
+func (s *SolutionManager) SaveSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, state: %s, namespace: %s, jobid: %s, hash %s, targetCount %d, successCount %d",
 		objectName, state, namespace, summary.JobID, hash, summary.TargetCount, summary.SuccessCount)
@@ -683,32 +712,36 @@ func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, ge
 }
 
 func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
-	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
+	return s.SaveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateRunning, namespace)
 }
 
 func (s *SolutionManager) ConcludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
-	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
+	return s.SaveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
 
-func (s *SolutionManager) CanSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, currentComponents []model.ComponentSpec, state model.DeploymentState) bool {
-
+func (s *SolutionManager) CanSkipStep(ctx context.Context, step model.DeploymentStep, target string, provider tgt.ITargetProvider, previousComponents []model.ComponentSpec, currentState model.DeploymentState) bool {
 	for _, newCom := range step.Components {
 		key := fmt.Sprintf("%s::%s", newCom.Component.Name, target)
 		if newCom.Action == model.ComponentDelete {
-			for _, c := range currentComponents {
-				if c.Name == newCom.Component.Name && state.TargetComponent[key] != "" {
+			for _, c := range previousComponents {
+				if c.Name == newCom.Component.Name && currentState.TargetComponent[key] != "" {
 					return false // current component still exists, desired is to remove it. The step can't be skipped
 				}
 			}
 
 		} else {
 			found := false
-			for _, c := range currentComponents {
-				if c.Name == newCom.Component.Name && state.TargetComponent[key] != "" && !strings.HasPrefix(state.TargetComponent[key], "-") {
+			for _, c := range previousComponents {
+				if c.Name == newCom.Component.Name && currentState.TargetComponent[key] != "" && !strings.HasPrefix(currentState.TargetComponent[key], "-") {
 					found = true
 					rule := provider.GetValidationRule(ctx)
-					if rule.IsComponentChanged(c, newCom.Component) {
-						return false // component has changed, can't skip the step
+					for _, sc := range currentState.Components {
+						if sc.Name == c.Name {
+							if rule.IsComponentChanged(c, newCom.Component) || rule.IsComponentChanged(sc, newCom.Component) {
+								return false // component has changed, can't skip the step
+							}
+							break
+						}
 					}
 					break
 				}
@@ -805,7 +838,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 			}
 		}
 	}
-
+	ret.Components = retComponents
 	return ret, retComponents, nil
 }
 func (s *SolutionManager) Enabled() bool {

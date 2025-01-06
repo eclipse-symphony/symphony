@@ -1,0 +1,5 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: siteapp
+spec:  

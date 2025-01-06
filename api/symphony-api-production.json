@@ -31,6 +31,17 @@
         }
       }
     },
+    "keylock": {
+      "shared": true,
+      "provider": {      
+        "type": "providers.keylock.memory",
+        "config": {
+          "mode": "Global",
+          "cleanInterval" : 30,
+          "purgeDuration" : 43200
+        }
+      }
+    },
     "vendors": [
       {
         "type": "vendors.settings",
@@ -453,7 +464,8 @@
             "properties": {
               "providers.persistentstate": "redis-state",
               "providers.config": "mock-config",  
-              "providers.secret": "mock-secret"
+              "providers.secret": "mock-secret",
+              "providers.keylock": "mem-keylock"
             },
             "providers": {
               "redis-state": {
@@ -463,6 +475,12 @@
                   "host": "localhost:6379",
                   "requireTLS": false,
                   "password": ""
+                }
+              },
+              "mem-keylock": {
+                "type": "providers.keylock.memory",
+                "config": {
+                  "mode" : "Shared"
                 }
               },
               "mock-config": {

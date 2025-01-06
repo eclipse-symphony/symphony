@@ -9,6 +9,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -43,9 +44,25 @@ type PubSubConfig struct {
 	Shared   bool              `json:"shared"`
 	Provider mf.ProviderConfig `json:"provider"`
 }
+
+type PublicProviderConfig struct {
+	Type   string                `json:"type"`
+	Config KeyLockProviderConfig `json:"config"`
+}
+
+type KeyLockProviderConfig struct {
+	Mode string `json:"mode"`
+}
+
+type KeyLockConfig struct {
+	Shared   bool                 `json:"shared"`
+	Provider PublicProviderConfig `json:"provider"`
+}
+
 type APIConfig struct {
 	Vendors []vendors.VendorConfig `json:"vendors"`
 	PubSub  PubSubConfig           `json:"pubsub,omitempty"`
+	KeyLock KeyLockConfig          `json:"keylock,omitempty"`
 }
 
 type BindingConfig struct {
@@ -58,10 +75,11 @@ type VendorSpec struct {
 	LoopInterval int
 }
 type APIHost struct {
-	Vendors              []VendorSpec
-	Bindings             []bindings.IBinding
-	SharedPubSubProvider pv.IProvider
-	ShutdownGracePeriod  time.Duration
+	Vendors               []VendorSpec
+	Bindings              []bindings.IBinding
+	SharedPubSubProvider  pv.IProvider
+	SharedKeyLockProvider pv.IProvider
+	ShutdownGracePeriod   time.Duration
 }
 
 func overrideWithEnvVariable(value string, env string) string {
@@ -122,6 +140,24 @@ func (h *APIHost) Launch(config HostConfig,
 							if config.API.PubSub.Shared {
 								h.SharedPubSubProvider = pubsubProvider
 							}
+							break
+						}
+					}
+				}
+
+				if config.API.KeyLock.Provider.Type != "" {
+					if h.SharedKeyLockProvider == nil {
+						if config.API.KeyLock.Provider.Config.Mode != "Global" {
+							return errors.New("Expected Global KeyLockProviderConfig")
+						}
+						for _, providerFactory := range providerFactories {
+							mProvider, err := providerFactory.CreateProvider(
+								config.API.KeyLock.Provider.Type,
+								config.API.KeyLock.Provider.Config)
+							if err != nil {
+								return err
+							}
+							h.SharedKeyLockProvider = mProvider
 							break
 						}
 					}

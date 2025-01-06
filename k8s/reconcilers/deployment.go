@@ -126,6 +126,7 @@ func (r *DeploymentReconciler) deriveReconcileInterval(log logr.Logger, ctx cont
 			// only reconcile once
 			reconciliationInterval = 0
 		}
+		return reconciliationInterval, timeout
 
 	}
 	// no reconciliationPolicy configured or reconciliationPolicy.state is invalid, use default reconciliation interval: r.reconciliationInterval
@@ -147,6 +148,9 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 
 // attemptUpdate attempts to update the instance
 func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var delayAttemptUpdate string
+
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) && !isRemoval {
@@ -194,11 +198,14 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
-
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeQueueJob string
 	if err := r.queueDeploymentJob(ctx, object, isRemoval, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
 		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
 	}
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var afterQueueJob string
 
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
 	if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{deploymentQueued: true}, log); err != nil {
@@ -218,6 +225,9 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 }
 
 func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var delayBeforePolling string
+
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	// Get reconciliation interval
@@ -500,7 +510,6 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status", "status", status, "patchStatusOptions", opts)
-
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
 	r.updateProvisioningStatus(ctx, object, summaryResult, status, nextStatus, opts, log)
@@ -511,7 +520,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	nextStatus.LastModified = metav1.Now()
 	object.SetStatus(*nextStatus)
 
-	err = r.kubeClient.Status().Update(context.Background(), object)
+	err = r.kubeClient.Status().Update(ctx, object)
 	if err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 	}
@@ -538,6 +547,9 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 		if !summary.AllAssignedDeployed {
 			status = utilsmodel.ProvisioningStatusFailed
 		}
+		return status
+	case model.SummaryStateTimeout:
+		status := utilsmodel.ProvisioningStatusTimeout
 		return status
 	default:
 		return utilsmodel.GetNonTerminalStatus(object)
@@ -671,7 +683,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 		objectStatus.ProvisioningStatus.PercentComplete = int64(percentComplete)
 	}
 
-	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus)
+	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus, "Summary result", summaryResult)
 
 	outputMap := objectStatus.ProvisioningStatus.Output
 	// Fill component details into output field

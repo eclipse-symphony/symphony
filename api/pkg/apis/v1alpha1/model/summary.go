@@ -47,6 +47,7 @@ const (
 	SummaryStatePending SummaryState = iota // Currently unused
 	SummaryStateRunning                     // Should indicate that a reconcile operation is in progress
 	SummaryStateDone                        // Should indicate that a reconcile operation has completed either successfully or unsuccessfully
+	SummaryStateTimeout
 )
 
 type SummaryState int

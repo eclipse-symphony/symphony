@@ -129,6 +129,17 @@ func MergeCollection(cols ...map[string]string) map[string]string {
 	}
 	return ret
 }
+func GenerateKeyLockName(strs ...string) string {
+	ret := ""
+	for i, str := range strs {
+		if i == 0 {
+			ret += str
+		} else {
+			ret += ("&&" + str)
+		}
+	}
+	return ret
+}
 func CollectStringMap(col map[string]string, prefix string) map[string]string {
 	ret := make(map[string]string)
 	for k := range col {

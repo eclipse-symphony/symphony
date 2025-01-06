@@ -23,9 +23,12 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type TargetsManager struct {
 	managers.Manager
@@ -103,6 +106,11 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	}
 	state.ObjectMeta.FixNames(name)
 
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
 	if t.needValidate {
 		if state.ObjectMeta.Labels == nil {
 			state.ObjectMeta.Labels = make(map[string]string)
@@ -110,7 +118,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
 		}
-		if err = t.ValidateCreateOrUpdate(ctx, state); err != nil {
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, oldState, getStateErr); err != nil {
 			return err
 		}
 	}
@@ -228,16 +236,17 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		var rt model.TargetState
-		rt, err = getTargetState(t.Body, t.ETag)
+		rt, err = getTargetState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getTargetState(body interface{}, etag string) (model.TargetState, error) {
+func getTargetState(body interface{}) (model.TargetState, error) {
 	var targetState model.TargetState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &targetState)
@@ -247,7 +256,6 @@ func getTargetState(body interface{}, etag string) (model.TargetState, error) {
 	if targetState.Spec == nil {
 		targetState.Spec = &model.TargetSpec{}
 	}
-	targetState.ObjectMeta.ETag = etag
 	return targetState, nil
 }
 
@@ -276,16 +284,12 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	}
 
 	var ret model.TargetState
-	ret, err = getTargetState(target.Body, target.ETag)
+	ret, err = getTargetState(target.Body)
 	if err != nil {
 		return model.TargetState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(target.ETag)
 	return ret, nil
-}
-
-func (t *TargetsManager) ValidateCreateOrUpdate(ctx context.Context, state model.TargetState) error {
-	old, err := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
-	return validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, old, err)
 }
 
 func (t *TargetsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
