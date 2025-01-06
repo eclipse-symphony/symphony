@@ -7,14 +7,15 @@
 package v1
 
 import (
+	"gopls-workspace/constants"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
 	// DefaultStopActionTimeout is default value of 1200 sec timeout period for stop action.
-	DefaultStopActionTimeout      int64 = 1200
-	AzureOperationIDAnnotationKey       = "management.azure.com/operationId"
+	DefaultStopActionTimeout int64 = 1200
 )
 
 // CatalogEvalExpressionActionSpec defines the desired state of CatalogEvalExpressionActionSpec.
@@ -46,7 +47,7 @@ func (a *CatalogEvalExpression) GetResourceNamespacedName() *types.NamespacedNam
 
 func (a *CatalogEvalExpression) GetOperationID() string {
 	annotations := a.GetAnnotations()
-	return annotations[AzureOperationIDAnnotationKey]
+	return annotations[constants.AzureOperationIdKey]
 }
 
 // +kubebuilder:object:root=true
