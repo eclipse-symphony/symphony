@@ -8,10 +8,13 @@ package remoteAgent
 
 import (
 	"context"
+	"crypto/sha1"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -137,7 +140,7 @@ func (s *RemoteTargetSchedulerManager) Poll() []error {
 		}
 
 		// decode cert and get the expiration date
-		certSecretExpiration, err := s.getExpiration(cert)
+		certSecretExpiration, err := s.getCertificateExpirationOrThumbPrint(cert, "expiration")
 		if err != nil {
 			log.WarnfCtx(ctx, "M (RemoteTarget Scheduler): Cannot get certificate expiration for target %s", target.ObjectMeta.Name)
 			continue
@@ -155,7 +158,12 @@ func (s *RemoteTargetSchedulerManager) Poll() []error {
 			continue
 		}
 		if certificateExpirationTime.Before(certSecretExpirationTime) {
-			err = s.updateTargetToIssueSRJob(ctx, target, componentName)
+			thumbprint, err := s.getCertificateExpirationOrThumbPrint(cert, "thumbprint")
+			if err != nil {
+				log.WarnfCtx(ctx, "M (RemoteTarget Scheduler): Cannot get certificate thumbprint for target %s", target.ObjectMeta.Name)
+				continue
+			}
+			err = s.updateTargetToIssueSRJob(ctx, target, componentName, thumbprint)
 			if err != nil {
 				log.WarnfCtx(ctx, "M (RemoteTarget Scheduler): Cannot issue SR job for target %s", target.ObjectMeta.Name)
 				ret = append(ret, err)
@@ -169,21 +177,27 @@ func (s *RemoteTargetSchedulerManager) Reconcil() []error {
 	return nil
 }
 
-func (s *RemoteTargetSchedulerManager) getExpiration(cert string) (string, error) {
-	// Decode the PEM certificate
-	block, _ := pem.Decode([]byte(cert))
+func (s *RemoteTargetSchedulerManager) getCertificateExpirationOrThumbPrint(certPath string, kind string) (string, error) {
+	certPEM, err := ioutil.ReadFile(certPath)
+	if err != nil {
+		return "", err
+	}
+
+	block, _ := pem.Decode(certPEM)
 	if block == nil {
 		return "", fmt.Errorf("failed to parse certificate PEM")
 	}
 
-	// Parse the certificate
-	parsedCert, err := x509.ParseCertificate(block.Bytes)
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse certificate: %v", err)
+		return "", err
 	}
-
-	// Return the expiration date in RFC3339 format
-	return parsedCert.NotAfter.Format(time.RFC3339), nil
+	if kind == "thumbprint" {
+		thumbprint := sha1.Sum(cert.Raw)
+		return hex.EncodeToString(thumbprint[:]), nil
+	} else {
+		return cert.NotAfter.Format(time.RFC3339), nil
+	}
 }
 
 func (s *RemoteTargetSchedulerManager) updateTargetToIssueUpgradeJob(ctx context.Context, target model.TargetState, componentName string) error {
@@ -210,7 +224,7 @@ func (s *RemoteTargetSchedulerManager) updateTargetToIssueUpgradeJob(ctx context
 	return err
 }
 
-func (s *RemoteTargetSchedulerManager) updateTargetToIssueSRJob(ctx context.Context, target model.TargetState, componentName string) error {
+func (s *RemoteTargetSchedulerManager) updateTargetToIssueSRJob(ctx context.Context, target model.TargetState, componentName string, thumbprint string) error {
 	log.InfofCtx(ctx, "M (RemoteTarget Scheduler): Issuing SR job for target %s", target.ObjectMeta.Name)
 	// update the target spec component to issue upgrade job
 	var newComponents []model.ComponentSpec
@@ -221,7 +235,8 @@ func (s *RemoteTargetSchedulerManager) updateTargetToIssueSRJob(ctx context.Cont
 				Name: component.Name,
 				Type: component.Type,
 				Parameters: map[string]string{
-					"action": "secretrotation",
+					"action":     "secretrotation",
+					"thumbprint": thumbprint,
 				},
 			})
 		} else {

@@ -199,7 +199,10 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, ref := range references {
-		ret = append(ret, ref.Component)
+		ret = append(ret, model.ComponentSpec{
+			Name: ref.Component.Name,
+			Type: ref.Component.Type,
+		})
 	}
 
 	return ret, nil

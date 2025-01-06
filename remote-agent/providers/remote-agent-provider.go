@@ -9,9 +9,11 @@ package providers
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -125,7 +127,7 @@ func (i *RemoteAgentProvider) Get(ctx context.Context, deployment model.Deployme
 	//sLog.InfofCtx(ctx, "  P (Remote Agent Provider): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
-	notAfter, err := i.getCertificateExpiration(i.Config.PublicCertPath)
+	notAfter, err := i.getCertificateExpirationOrThumbPrint(i.Config.PublicCertPath, "expiration")
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to get certificate expiration: %+v. Path is : %s", err, i.Config.PublicCertPath)
 		return nil, err
@@ -143,7 +145,7 @@ func (i *RemoteAgentProvider) Get(ctx context.Context, deployment model.Deployme
 	return ret, nil
 }
 
-func (i *RemoteAgentProvider) getCertificateExpiration(certPath string) (string, error) {
+func (i *RemoteAgentProvider) getCertificateExpirationOrThumbPrint(certPath string, kind string) (string, error) {
 	certPEM, err := ioutil.ReadFile(certPath)
 	if err != nil {
 		return "", err
@@ -158,8 +160,12 @@ func (i *RemoteAgentProvider) getCertificateExpiration(certPath string) (string,
 	if err != nil {
 		return "", err
 	}
-
-	return cert.NotAfter.Format(time.RFC3339), nil
+	if kind == "thumbprint" {
+		thumbprint := sha1.Sum(cert.Raw)
+		return hex.EncodeToString(thumbprint[:]), nil
+	} else {
+		return cert.NotAfter.Format(time.RFC3339), nil
+	}
 }
 
 func (i *RemoteAgentProvider) composeComponentResultSpec(state v1alpha2.State, err error) model.ComponentResultSpec {
@@ -174,6 +180,28 @@ func (i *RemoteAgentProvider) composeComponentResultSpec(state v1alpha2.State, e
 			Message: err.Error(),
 		}
 	}
+}
+
+func (i *RemoteAgentProvider) generateAgentStatus(ctx context.Context) (string, error) {
+	notAfter, err := i.getCertificateExpirationOrThumbPrint(i.Config.PublicCertPath, "expiration")
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to get certificate expiration: %+v. Path is : %s", err, i.Config.PublicCertPath)
+		return "", err
+	}
+
+	status := map[string]string{
+		"state":                 state,
+		"version":               i.Config.Version,
+		"lastConnected":         time.Now().UTC().Format(time.RFC3339),
+		"certificateExpiration": notAfter,
+	}
+
+	statusBytes, err := json.Marshal(status)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to marshal status: %+v", err)
+		return "", err
+	}
+	return string(statusBytes), nil
 }
 
 func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
@@ -191,29 +219,15 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 		action, ok := c.Parameters["action"]
 		if !ok {
 			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): There is no action. Report status back.")
-			notAfter, err := i.getCertificateExpiration(i.Config.PublicCertPath)
+			agentStatus, err := i.generateAgentStatus(ctx)
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to get certificate expiration: %+v. Path is : %s", err, i.Config.PublicCertPath)
-				return nil, err
-			}
-
-			status := map[string]string{
-				"state":                 state,
-				"version":               i.Config.Version,
-				"lastConnected":         time.Now().UTC().Format(time.RFC3339),
-				"certificateExpiration": notAfter,
-			}
-
-			statusBytes, err := json.Marshal(status)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to marshal status: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
-
 			ret[c.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.OK,
-				Message: string(statusBytes),
+				Message: agentStatus,
 			}
 			continue
 		}
@@ -230,9 +244,17 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 
 			if i.Config.Version == version {
 				sLog.InfofCtx(ctx, "  P (Remote Agent Provider): The two versions are identical. No need to upgrade.")
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.OK, nil)
+				agentStatus, err := i.generateAgentStatus(ctx)
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
+					ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+					continue
+				}
+				ret[c.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.OK,
+					Message: agentStatus,
+				}
 				continue
-
 			}
 			// call the upgrade api
 			upgradeUrl := fmt.Sprintf("%s/targets/upgrade/%s?namespace=%s", i.Config.BaseUrl, step.Target, i.Config.Namespace)
@@ -332,13 +354,34 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 			}
 		case "secretrotation":
 			// check if the target needs SR
-			notAfter, err := i.getCertificateExpiration(i.Config.PublicCertPath)
+			thumbprint, err := i.getCertificateExpirationOrThumbPrint(i.Config.PublicCertPath, "thumbprint")
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to get certificate expiration: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to get certificate thumbprint: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
-			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): checking certificate expiration for %s. The cert will be expired at: %s", c.Name, notAfter)
+			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): certificate thumbprint %s for %s.", c.Name, thumbprint)
+			upstreamThumb, ok := c.Parameters["thumbprint"]
+			if !ok {
+				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): missing thumbprint parameter in component %s", c.Name)
+				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+				continue
+			}
+
+			if thumbprint == upstreamThumb {
+				sLog.InfofCtx(ctx, "  P (Remote Agent Provider): The two versions are identical. No need to upgrade.")
+				agentStatus, err := i.generateAgentStatus(ctx)
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
+					ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+					continue
+				}
+				ret[c.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.OK,
+					Message: agentStatus,
+				}
+				continue
+			}
 
 			// call the secret rotation api
 			srUrl := fmt.Sprintf("%s/targets/secretrotate/%s?namespace=%s", i.Config.BaseUrl, step.Target, i.Config.Namespace)
