@@ -37,6 +37,7 @@ type SummarySpec struct {
 }
 type SummaryResult struct {
 	Summary        SummarySpec  `json:"summary"`
+	SummaryId      string       `json:"summaryid,omitempty"`
 	Generation     string       `json:"generation"`
 	Time           time.Time    `json:"time"`
 	State          SummaryState `json:"state"`

@@ -83,6 +83,11 @@ ActivationCleanup:
   # Rentention duration for activations, default is 180days
   # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
   retentionDuration: "4320h"
+SummaryCleanup:
+  enabled: true
+  # Rentention duration for activations, default is 180days
+  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retentionDuration: "4320h"
 Azure:
   proxySettings:
     isProxyEnabled: false
