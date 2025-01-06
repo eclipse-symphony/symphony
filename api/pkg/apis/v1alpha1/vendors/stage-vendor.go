@@ -508,7 +508,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 		// Update the GetResult for the specific step
 		planState.StepStates[stepResult.StepId].GetResult = stepResult.GetResult
 	case PhaseApply:
-		if stepResult.Error != nil {
+		if stepResult.Error != "" {
 			// Handle error case and update the target result status and message
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[planState.Remove])
 			targetResultMessage := fmt.Sprintf("Failed to create provider %s, err: %s", deploymentTypeMap[planState.Remove], stepResult.Error)
