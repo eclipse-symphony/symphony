@@ -243,7 +243,7 @@ func (f *FederationVendor) publishStepResult(ctx context.Context, target string,
 			GetResult:   getResult,
 			ApplyResult: applyResult,
 			Timestamp:   time.Now(),
-			Error:       Error,
+			Error:       Error.Error(),
 		},
 	})
 }
@@ -697,6 +697,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
+
 func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onSync",
@@ -797,6 +798,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
+
 func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onTrail",

@@ -91,7 +91,7 @@ type StepResult struct {
 	Timestamp        time.Time                            `json:"timestamp"`
 	GetResult        []model.ComponentSpec                // for get result
 	ApplyResult      map[string]model.ComponentResultSpec `json:"components"` // for apply result
-	Error            error                                `json:"error,omitempty"`
+	Error            string                               `json:"string,omitempty"`
 	Target           string
 }
 type StepEnvelope struct {
