@@ -235,6 +235,10 @@ func findAgentFromDeploymentState(stepComponents []model.ComponentStep) bool {
 	return false
 }
 func (f *FederationVendor) publishStepResult(ctx context.Context, target string, planId string, stepId int, Error error, getResult []model.ComponentSpec, applyResult map[string]model.ComponentResultSpec) error {
+	errorString := ""
+	if Error != nil {
+		errorString = Error.Error()
+	}
 	return f.Vendor.Context.Publish("step-result", v1alpha2.Event{
 		Body: StepResult{
 			Target:      target,
@@ -243,7 +247,7 @@ func (f *FederationVendor) publishStepResult(ctx context.Context, target string,
 			GetResult:   getResult,
 			ApplyResult: applyResult,
 			Timestamp:   time.Now(),
-			Error:       Error.Error(),
+			Error:       errorString,
 		},
 	})
 }
