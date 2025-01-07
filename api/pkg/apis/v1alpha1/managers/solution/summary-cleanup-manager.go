@@ -8,18 +8,14 @@ package solution
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	vendorCtx "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
 const (
@@ -29,20 +25,13 @@ const (
 )
 
 type SummaryCleanupManager struct {
-	managers.Manager
-	StateProvider            states.IStateProvider
+	SummaryManager
 	SummaryRetentionDuration time.Duration
 }
 
 func (s *SummaryCleanupManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	err := s.Manager.Init(ctx, config, providers)
+	err := s.SummaryManager.Init(ctx, config, providers)
 	if err != nil {
-		return err
-	}
-	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
-	if err == nil {
-		s.StateProvider = stateprovider
-	} else {
 		return err
 	}
 
@@ -95,57 +84,5 @@ func (s *SummaryCleanupManager) Poll() []error {
 }
 
 func (s *SummaryCleanupManager) Reconcil() []error {
-	return nil
-}
-
-func (s *SummaryCleanupManager) ListSummary(ctx context.Context, namespace string) ([]model.SummaryResult, error) {
-	listRequest := states.ListRequest{
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"resource":  "Summary",
-			"group":     model.SolutionGroup,
-		},
-	}
-	var entries []states.StateEntry
-	entries, _, err := s.StateProvider.List(ctx, listRequest)
-	if err != nil {
-		return []model.SummaryResult{}, nil
-	}
-
-	var summaries []model.SummaryResult
-	for _, entry := range entries {
-		var result model.SummaryResult
-		jData, _ := json.Marshal(entry.Body)
-		err = json.Unmarshal(jData, &result)
-		if err == nil {
-			result.SummaryId = entry.ID
-			summaries = append(summaries, result)
-		}
-	}
-	return summaries, nil
-}
-
-func (s *SummaryCleanupManager) DeleteSummary(ctx context.Context, id string, namespace string) error {
-	log.InfofCtx(ctx, " M (SummaryCleanup): delete summary, key: %s, namespace: %s", id, namespace)
-
-	err := s.StateProvider.Delete(ctx, states.DeleteRequest{
-		ID: id,
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     model.SolutionGroup,
-			"version":   "v1",
-			"resource":  Summary,
-		},
-	})
-
-	if err != nil {
-		if api_utils.IsNotFound(err) {
-			log.DebugfCtx(ctx, " M (SummaryCleanup): DeleteSummary NoutFound, id: %s, namespace: %s", id, namespace)
-			return nil
-		}
-		log.ErrorfCtx(ctx, " M (SummaryCleanup): failed to get summary[%s]: %+v", id, err)
-		return err
-	}
-
 	return nil
 }
