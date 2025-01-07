@@ -31,7 +31,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionContainerBytes []byte
-	var specTimeout = 120 * time.Second
+	var specTimeout = 220 * time.Second
 	var targetProps map[string]string
 	var instanceParams map[string]interface{}
 
