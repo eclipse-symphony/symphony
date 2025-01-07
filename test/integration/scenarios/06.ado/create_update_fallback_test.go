@@ -3,6 +3,7 @@ package scenarios_test
 import (
 	"context"
 	_ "embed"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/packages/testutils/conditions"
 	"github.com/eclipse-symphony/symphony/packages/testutils/expectations"
@@ -30,7 +31,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var solutionBytesV2 []byte
 	var solutionContainerBytes []byte
 	var targetProps map[string]string
-
+	var specTimeout = 220 * time.Second
 	BeforeAll(func(ctx context.Context) {
 		By("installing orchestrator in the cluster")
 		shell.LocalenvCmd(ctx, "mage cluster:deploy")
@@ -136,11 +137,14 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	DescribeTable("fail to deploy solution v2 then rollback to v1", Ordered, runner,
+	DescribeTable("fail to deploy solution v2 then rollback to v1", Ordered, runner, SpecTimeout(specTimeout),
 		Entry("with a single component", TestCase{
 			TargetComponents:     []string{"simple-chart-1"},
 			SolutionComponents:   []string{"simple-chart-2"},
 			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
+			TargetProperties: map[string]string{
+				"Arch": "arm",
+			},
 			PostUpdateExpectation: expectations.All(
 				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed
