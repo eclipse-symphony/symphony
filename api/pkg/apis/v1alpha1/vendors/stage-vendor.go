@@ -491,7 +491,7 @@ func (s *StageVendor) createPlanState(ctx context.Context, planEnvelope PlanEnve
 		Deployment:           planEnvelope.Deployment,
 		Namespace:            planEnvelope.Namespace,
 		Remove:               planEnvelope.Remove,
-		TargetResult:         make(map[string]int),
+		TargetResult:         make(map[string]model.ComponentResultSpec),
 		CurrentState:         planEnvelope.CurrentState,
 		StepStates:           make([]StepState, len(planEnvelope.Plan.Steps)),
 	}
