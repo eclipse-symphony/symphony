@@ -435,6 +435,8 @@ func (s *StageVendor) handleDeploymentPlan(ctx context.Context, event v1alpha2.E
 	for i, step := range planEnvelope.Plan.Steps {
 		switch planEnvelope.Phase {
 		case PhaseGet:
+			log.InfoCtx(ctx, "lock here %s", api_utils.GenerateKeyLockName(planEnvelope.Namespace, planEnvelope.Deployment.Instance.ObjectMeta.Name))
+			s.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(planEnvelope.Namespace, planEnvelope.Deployment.Instance.ObjectMeta.Name)) // && used as split character
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 			if err := s.publishStepResult(ctx, i, step, planState, planEnvelope); err != nil {
 				log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, i)
@@ -723,6 +725,7 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 	}
 	log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
 	if !s.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
+		log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 		s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	}
 	return nil
