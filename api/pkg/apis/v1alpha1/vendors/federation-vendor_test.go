@@ -13,9 +13,12 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	mockledger "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
+	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/stretchr/testify/assert"
@@ -37,11 +40,13 @@ func federationVendorInit() FederationVendor {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	graphProvider := &memorygraph.MemoryGraphProvider{}
 	graphProvider.Init(memorygraph.MemoryGraphProviderConfig{})
-
+	configProvider := mockconfig.MockConfigProvider{}
+	configProvider.Init(mockconfig.MockConfigProviderConfig{})
+	secretProvider := mocksecret.MockSecretProvider{}
+	secretProvider.Init(mocksecret.MockSecretProviderConfig{})
 	catalogProviders := make(map[string]providers.IProvider)
 	catalogProviders["StateProvider"] = stateProvider
 	catalogProviders["GraphProvider"] = graphProvider
-
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProvider{})
 	stagingProviders := make(map[string]providers.IProvider)
@@ -50,7 +55,8 @@ func federationVendorInit() FederationVendor {
 
 	siteProviders := make(map[string]providers.IProvider)
 	siteProviders["StateProvider"] = stateProvider
-
+	keyLockProvider := memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
 	mProvider := &mockledger.MockLedgerProvider{}
 	mProvider.Init(mockledger.MockLedgerProviderConfig{})
 	trailsProviders := make(map[string]providers.IProvider)
@@ -102,6 +108,16 @@ func federationVendorInit() FederationVendor {
 				Name: "trails-manager",
 				Type: "managers.symphony.trails",
 			},
+			{
+				Name: "solution-manager",
+				Type: "managers.symphony.solution",
+				Properties: map[string]string{
+					"providers.persistentstate": "mem-state",
+					"providers.config":          "mock-config",
+					"providers.secret":          "mock-secret",
+					"providers.keylock":         "mem-keylock",
+				},
+			},
 		},
 	}, []managers.IManagerFactroy{
 		&sym_mgr.SymphonyManagerFactory{},
@@ -110,6 +126,12 @@ func federationVendorInit() FederationVendor {
 		"trails-manager":  trailsProviders,
 		"sites-manager":   siteProviders,
 		"staging-manager": stagingProviders,
+		"solution-manager": {
+			"mem-state":   stateProvider,
+			"mem-keylock": &keyLockProvider,
+			"mock-config": &configProvider,
+			"mock-secret": &secretProvider,
+		},
 	}, &pubSubProvider)
 	return vendor
 }
@@ -118,7 +140,7 @@ func TestFederationGetEndpoint(t *testing.T) {
 	vendor := federationVendorInit()
 	endpoints := vendor.GetEndpoints()
 	assert.NotNil(t, endpoints)
-	assert.Equal(t, "federation/k8shook", endpoints[len(endpoints)-3].Route)
+	assert.Equal(t, "federation/k8shook", endpoints[len(endpoints)-1].Route)
 }
 
 func TestFederationGetInfo(t *testing.T) {
