@@ -491,7 +491,7 @@ func (s *StageVendor) createPlanState(ctx context.Context, planEnvelope PlanEnve
 		Deployment:           planEnvelope.Deployment,
 		Namespace:            planEnvelope.Namespace,
 		Remove:               planEnvelope.Remove,
-		TargetResult:         make(map[string]model.ComponentResultSpec),
+		TargetResult:         make(map[string]int),
 		CurrentState:         planEnvelope.CurrentState,
 		StepStates:           make([]StepState, len(planEnvelope.Plan.Steps)),
 	}
@@ -520,16 +520,20 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 					planState.Summary.CurrentDeployed++
 				}
 			}
+			if planState.TargetResult[stepResult.Target] == 1 || planState.TargetResult[stepResult.Target] == 0 {
+				planState.TargetResult[stepResult.Target] = -1
+				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
+			}
 		} else {
 			// Handle success case and update the target result status and message
-			if planState.TargetResult[stepResult.Target] == 0 {
-				planState.TargetResult[stepResult.Target] = 1
-				planState.Summary.SuccessCount++
-			}
 			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			log.InfoCtx(ctx, "Update plan state target spec %v", targetResultSpec)
 			planState.Summary.CurrentDeployed += len(stepResult.ApplyResult)
+			if planState.TargetResult[stepResult.Target] == 0 {
+				planState.TargetResult[stepResult.Target] = 1
+				planState.Summary.SuccessCount++
+			}
 		}
 
 		// If no components are deployed, set success count to target count

@@ -76,7 +76,7 @@ type PlanState struct {
 	CurrentState         model.DeploymentState                    `json:"currentState"`
 	PreviousDesiredState *solution.SolutionManagerDeploymentState `json:"previous`
 	Status               string                                   `json:"status"`
-	TargetResult         map[string]model.ComponentResultSpec
+	TargetResult         map[string]int
 	Namespace            string `json:"namespace"`
 	Remove               bool
 	StepStates           []StepState
