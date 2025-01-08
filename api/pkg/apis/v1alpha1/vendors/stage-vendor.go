@@ -721,6 +721,7 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 			})
 		}
 	}
+	log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
 	s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	return nil
 }
