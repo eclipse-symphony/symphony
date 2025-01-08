@@ -220,17 +220,18 @@ func (f *FederationVendor) handleDeploymentStep(ctx context.Context, event v1alp
 	}
 	return nil
 }
-func findAgentFromDeploymentState(stepComponents []model.ComponentStep) bool {
-	log.Info("compare between state and target name %+v", stepComponents)
-	for _, component := range stepComponents {
-		log.Info("compare between state and target name %+v, %s", component, component.Component.Name)
-		if component.Component.Type == "remote-agent" {
+func findAgentFromDeploymentState(deployment model.DeploymentSpec, targetName string) bool {
+	// find targt component
+	targetSpec := deployment.Targets[targetName]
+	log.Info("compare between state and target name %s, %+v", targetName, targetSpec)
+	for _, component := range targetSpec.Spec.Components {
+		log.Info("compare between state and target name %+v, %s", component, component.Name)
+		if component.Type == "remote-agent" {
 			log.Info("It is remote call ")
 			return true
 		} else {
-			log.Info(" it is not remote call %s", component.Component.Type)
+			log.Info(" it is not remote call target Name %s", targetName)
 		}
-
 	}
 	return false
 }
@@ -253,7 +254,7 @@ func (f *FederationVendor) publishStepResult(ctx context.Context, target string,
 }
 
 func (f *FederationVendor) handlePhaseGet(ctx context.Context, stepEnvelope StepEnvelope) error {
-	if findAgentFromDeploymentState(stepEnvelope.Step.Components) {
+	if findAgentFromDeploymentState(stepEnvelope.PlanState.Deployment, stepEnvelope.Step.Target) {
 		return f.enqueueProviderGetRequest(ctx, stepEnvelope)
 	}
 	return f.getProviderAndExecute(ctx, stepEnvelope)
@@ -293,7 +294,7 @@ func (f *FederationVendor) getProviderAndExecute(ctx context.Context, stepEnvelo
 	return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, getResult, map[string]model.ComponentResultSpec{})
 }
 func (f *FederationVendor) handlePhaseApply(ctx context.Context, stepEnvelope StepEnvelope) error {
-	if findAgentFromDeploymentState(stepEnvelope.Step.Components) {
+	if findAgentFromDeploymentState(stepEnvelope.PlanState.Deployment, stepEnvelope.Step.Target) {
 		return f.enqueueProviderApplyRequest(ctx, stepEnvelope)
 	}
 	return f.applyProviderAndExecute(ctx, stepEnvelope)
