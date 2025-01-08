@@ -137,7 +137,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	DescribeTable("fail to deploy solution v2 then rollback to v1", Ordered, runner, SpecTimeout(specTimeout),
+	DescribeTable("fail to deploy solution v2 then rollback to v1", Ordered, runner,
 		Entry("with a single component", TestCase{
 			TargetComponents:     []string{"simple-chart-1"},
 			SolutionComponents:   []string{"simple-chart-2"},
