@@ -3,7 +3,6 @@ package scenarios_test
 import (
 	"context"
 	_ "embed"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/packages/testutils/conditions"
 	"github.com/eclipse-symphony/symphony/packages/testutils/expectations"
@@ -31,7 +30,6 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var solutionBytesV2 []byte
 	var solutionContainerBytes []byte
 	var targetProps map[string]string
-	var specTimeout = 220 * time.Second
 	BeforeAll(func(ctx context.Context) {
 		By("installing orchestrator in the cluster")
 		shell.LocalenvCmd(ctx, "mage cluster:deploy")
