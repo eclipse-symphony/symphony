@@ -140,7 +140,7 @@ func TestFederationGetEndpoint(t *testing.T) {
 	vendor := federationVendorInit()
 	endpoints := vendor.GetEndpoints()
 	assert.NotNil(t, endpoints)
-	assert.Equal(t, "federation/k8shook", endpoints[len(endpoints)-1].Route)
+	assert.Equal(t, "federation/k8shook", endpoints[len(endpoints)-3].Route)
 }
 
 func TestFederationGetInfo(t *testing.T) {
