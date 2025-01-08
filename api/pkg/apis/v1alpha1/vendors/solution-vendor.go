@@ -13,6 +13,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -30,6 +31,8 @@ type SolutionVendor struct {
 	vendors.Vendor
 	SolutionManager *solution.SolutionManager
 }
+
+var apiOperationMetrics *metrics.Metrics
 
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	return vendors.VendorInfo{
@@ -251,6 +254,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 		}
 		delete := request.Parameters["delete"]
+		remove := delete == "true"
 		targetName := ""
 		if request.Metadata != nil {
 			if v, ok := request.Metadata["active-target"]; ok {
@@ -270,12 +274,54 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				ContentType: "application/json",
 			})
 		}
+		// save summary
+		summary := model.SummarySpec{
+			TargetResults:       make(map[string]model.TargetResultSpec),
+			TargetCount:         len(deployment.Targets),
+			SuccessCount:        0,
+			AllAssignedDeployed: false,
+			JobID:               deployment.JobID,
+		}
+		data, _ := json.Marshal(summary)
+
+		// get the components count for the deployment
+		componentCount := len(deployment.Solution.Spec.Components)
+		apiOperationMetrics.ApiComponentCount(
+			componentCount,
+			metrics.ReconcileOperation,
+			metrics.UpdateOperationType,
+		)
+
+		if c.SolutionManager.VendorContext != nil && c.SolutionManager.VendorContext.EvaluationContext != nil {
+			context := c.SolutionManager.VendorContext.EvaluationContext.Clone()
+			context.DeploymentSpec = deployment
+			context.Value = deployment
+			context.Component = ""
+			context.Namespace = namespace
+			context.Context = ctx
+			deployment, err = api_utils.EvaluateDeployment(*context)
+			if err != nil {
+				if remove {
+					log.InfofCtx(ctx, " M (Solution): skipped failure to evaluate deployment spec: %+v", err)
+				} else {
+					summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
+					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
+					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+						State:       v1alpha2.InternalError,
+						Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to evaluate deployment spec: %+v\"}", err)),
+						ContentType: "application/json",
+					})
+				}
+			}
+
+		}
+
 		// Generate new deployment plan for deployment
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.MethodNotAllowed,
-				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to generate initial plan: %+v\"}", err)),
 				ContentType: "application/json",
 			})
 		}
@@ -308,15 +354,6 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			},
 			Context: ctx,
 		})
-		// save summary
-		summary := model.SummarySpec{
-			TargetResults:       make(map[string]model.TargetResultSpec),
-			TargetCount:         len(deployment.Targets),
-			SuccessCount:        0,
-			AllAssignedDeployed: false,
-			JobID:               deployment.JobID,
-		}
-		data, _ := json.Marshal(summary)
 		c.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
