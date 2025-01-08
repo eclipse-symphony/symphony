@@ -337,6 +337,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			stepList = append(stepList, step)
 		}
 		initalPlan.Steps = stepList
+		log.InfoCtx(ctx, "publish topic for object %s", deployment.Instance.ObjectMeta.Name)
 		c.Vendor.Context.Publish(DeploymentPlanTopic, v1alpha2.Event{
 			Metadata: map[string]string{
 				"Id": deployment.JobID,
@@ -346,7 +347,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Deployment:           deployment,
 				MergedState:          model.DeploymentState{},
 				PreviousDesiredState: previousDesiredState,
-				PlanId:               fmt.Sprintf("%s-%s", deployment.Instance.ObjectMeta.Name, delete),
+				PlanId:               deployment.Instance.ObjectMeta.Name,
 				Remove:               delete == "true",
 				Namespace:            namespace,
 				Phase:                PhaseGet,
