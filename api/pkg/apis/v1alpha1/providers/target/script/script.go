@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -58,38 +57,6 @@ type ScriptProvider struct {
 
 func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderConfig, error) {
 	ret := ScriptProviderConfig{}
-	if v, ok := properties["name"]; ok {
-		ret.Name = v
-	}
-	if v, ok := properties["stagingFolder"]; ok {
-		ret.StagingFolder = v
-	}
-	if v, ok := properties["scriptFolder"]; ok {
-		ret.ScriptFolder = v
-	}
-	if v, ok := properties["applyScript"]; ok {
-		ret.ApplyScript = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "invalid script provider config, exptected 'applyScript'", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["removeScript"]; ok {
-		ret.RemoveScript = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "invalid script provider config, exptected 'removeScript'", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["getScript"]; ok {
-		ret.GetScript = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "invalid script provider config, exptected 'getScript'", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["scriptEngine"]; ok {
-		ret.ScriptEngine = v
-	} else {
-		ret.ScriptEngine = "bash"
-	}
-	if ret.ScriptEngine != "bash" && ret.ScriptEngine != "powershell" {
-		return ret, v1alpha2.NewCOAError(nil, "invalid script engine, exptected 'bash' or 'powershell'", v1alpha2.BadConfig)
-	}
 	return ret, nil
 }
 func (i *ScriptProvider) InitWithMap(properties map[string]string) error {
@@ -114,32 +81,6 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (Script Target): Init()")
-
-	updateConfig, err := toScriptProviderConfig(config)
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "  P (Script Target): expected ScriptProviderConfig - %+v", err)
-		err = errors.New("expected ScriptProviderConfig")
-		return err
-	}
-	i.Config = updateConfig
-
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		err = downloadFile(i.Config.ScriptFolder, i.Config.ApplyScript, i.Config.StagingFolder)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download apply script %s, error: %+v", i.Config.ApplyScript, err)
-			return err
-		}
-		err = downloadFile(i.Config.ScriptFolder, i.Config.RemoveScript, i.Config.StagingFolder)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download remove script %s, error: %+v", i.Config.RemoveScript, err)
-			return err
-		}
-		err = downloadFile(i.Config.ScriptFolder, i.Config.GetScript, i.Config.StagingFolder)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download get script %s, error: %+v", i.Config.GetScript, err)
-			return err
-		}
-	}
 
 	once.Do(func() {
 		if providerOperationMetrics == nil {
@@ -249,7 +190,7 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	components := step.GetUpdatedComponents()
 	sLog.InfofCtx(ctx, "  P (Script Target): get updated components: count - %d", len(components))
 	for _, c := range components {
-		path, ok := c.Parameters["path"]
+		path, ok := c.Properties["path"].(string)
 		if !ok {
 			sLog.ErrorfCtx(ctx, "  P (Script Target): invalid script provider config, expected 'path'")
 			err = v1alpha2.NewCOAError(nil, "  P (Script Target): invalid script component config, expected 'path'", v1alpha2.BadConfig)
@@ -264,8 +205,8 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		}
 
 		var cmd *exec.Cmd
-		args, ok := c.Parameters["args"]
-		flag, ok := c.Parameters["flag"]
+		args, ok := c.Properties["args"].(string)
+		flag, ok := c.Properties["flag"].(string)
 		if flag != "" {
 			cmd = exec.Command(path, flag, args)
 		} else {

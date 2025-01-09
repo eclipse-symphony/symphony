@@ -24,6 +24,7 @@ ls -l /etc/ssl/certs | grep localCA
 
 # config client CA and subjects in values.yaml and use the client cert sample in sample folder
 # add symphony-service to DNS mapping
+# may not be able to modify host file but to add DNS record
 sudo vi /etc/hosts
 # add the following line
 # 127.0.0.1 symphony-service
@@ -31,4 +32,6 @@ sudo vi /etc/hosts
 # create the remote target
 kubectl apply -f ../../remote-agent/bootstrap/sample_target.yaml
 # call the bootstrap.sh script
-./bootstrap.sh https://symphony-service:8081/v1alpha2 ../client-cert.pem ../client-key.pem remote-target default topologies.json
+# sign bootstrap script
+# sign binary
+./bootstrap.sh https://symphony-service:8081/v1alpha2 ../client-cert.pem ../client-key.pem remote-demo default topologies.json ../config.json

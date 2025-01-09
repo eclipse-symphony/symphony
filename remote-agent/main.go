@@ -20,7 +20,7 @@ import (
 )
 
 // The version should be hardcoded in the build process
-const version = "0.0.0.1"
+const version = "0.0.0.2"
 
 var (
 	symphonyEndpoints utils.SymphonyEndpoint
@@ -137,6 +137,8 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 				BaseUrl:        symphonyEndpoints.BaseUrl,
 				Version:        version,
 				Namespace:      *namespace,
+				TargetName:     *targetName,
+				TopologyPath:   topologyPath,
 			}
 			err = rProvider.Init(rProviderConfig)
 			if err != nil {

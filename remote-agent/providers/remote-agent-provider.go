@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	script     = "script"
-	loggerName = "providers.target.script"
+	loggerName = "providers.target.remote-agent"
 	maxRetries = 3
 	retryDelay = 5 * time.Second
 )
@@ -57,6 +56,8 @@ type RemoteAgentProviderConfig struct {
 	BaseUrl        string `json:"baseUrl,omitempty"`
 	ConfigPath     string `json:"configPath,omitempty"`
 	Namespace      string `json:"namespace,omitempty"`
+	TargetName     string `json:"targetName,omitempty"`
+	TopologyPath   string `json:"topologyPath,omitempty"`
 }
 
 type RemoteAgentProvider struct {
@@ -74,6 +75,21 @@ func RemoteAgentProviderConfigFromMap(properties map[string]string) (RemoteAgent
 	}
 	if v, ok := properties["privateKeyPath"]; ok {
 		ret.PrivateKeyPath = v
+	}
+	if v, ok := properties["baseUrl"]; ok {
+		ret.BaseUrl = v
+	}
+	if v, ok := properties["configPath"]; ok {
+		ret.ConfigPath = v
+	}
+	if v, ok := properties["namespace"]; ok {
+		ret.Namespace = v
+	}
+	if v, ok := properties["targetName"]; ok {
+		ret.TargetName = v
+	}
+	if v, ok := properties["topologyPath"]; ok {
+		ret.TopologyPath = v
 	}
 	return ret, nil
 }
@@ -94,6 +110,8 @@ func (i *RemoteAgentProvider) Init(config providers.IProviderConfig) error {
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	sLog.InfoCtx(ctx, "  P (Script Target): Init()")
 
 	updateConfig, err := toRemoteAgentConfig(config)
 	if err != nil {
@@ -216,7 +234,7 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 	ret := map[string]model.ComponentResultSpec{}
 	components := step.GetComponents()
 	for _, c := range components {
-		action, ok := c.Parameters["action"]
+		action, ok := c.Properties["action"].(string)
 		if !ok {
 			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): There is no action. Report status back.")
 			agentStatus, err := i.generateAgentStatus(ctx)
@@ -234,7 +252,7 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 		switch action {
 		case "upgrade":
 			// check the upgraded version
-			version, ok := c.Parameters["version"]
+			version, ok := c.Properties["version"].(string)
 			if !ok {
 				err = fmt.Errorf("missing version parameter in component %s", c.Name)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
@@ -341,7 +359,13 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 			}
 
 			// Restart the process
-			cmd := exec.Command(execPath, fmt.Sprintf("-config=%s", i.Config.ConfigPath), fmt.Sprintf("-client-key=%s", i.Config.PrivateKeyPath), fmt.Sprintf("-client-cert=%s", i.Config.PublicCertPath))
+			cmd := exec.Command(execPath, fmt.Sprintf("-config=%s", i.Config.ConfigPath),
+				fmt.Sprintf("-client-key=%s", i.Config.PrivateKeyPath),
+				fmt.Sprintf("-client-cert=%s", i.Config.PublicCertPath),
+				fmt.Sprintf("-target-name=%s", i.Config.TargetName),
+				fmt.Sprintf("-namespace=%s", i.Config.Namespace),
+				fmt.Sprintf("-topology=%s", i.Config.TopologyPath),
+			)
 			pid, err := restartTheProcessWithRetry(cmd)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to restart process: %+v", err)
@@ -349,8 +373,18 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				continue
 			} else {
 				sLog.InfofCtx(ctx, "  P (Remote Agent Provider): restarted process with PID %d", pid)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.OK, nil)
+				agentStatus, err := i.generateAgentStatus(ctx)
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
+					ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+					continue
+				}
+				ret[c.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.OK,
+					Message: agentStatus,
+				}
 				remoteHttp.ShouldEnd = "true"
+				continue
 			}
 		case "secretrotation":
 			// check if the target needs SR
@@ -360,16 +394,16 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
-			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): certificate thumbprint %s for %s.", c.Name, thumbprint)
-			upstreamThumb, ok := c.Parameters["thumbprint"]
+			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): certificate thumbprint %s for %s from local.", c.Name, thumbprint)
+			upstreamThumb, ok := c.Properties["thumbprint"].(string)
 			if !ok {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): missing thumbprint parameter in component %s", c.Name)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
-
+			sLog.InfofCtx(ctx, "  P (Remote Agent Provider): certificate thumbprint %s for %s from upstream.", c.Name, upstreamThumb)
 			if thumbprint == upstreamThumb {
-				sLog.InfofCtx(ctx, "  P (Remote Agent Provider): The two versions are identical. No need to upgrade.")
+				sLog.InfofCtx(ctx, "  P (Remote Agent Provider): The two certs are identical. No need to SR.")
 				agentStatus, err := i.generateAgentStatus(ctx)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
@@ -401,6 +435,7 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 			defer resp.Body.Close()
 			if resp.StatusCode != http.StatusOK {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to call secret rotation: %s", resp.Status)
+				err = fmt.Errorf("failed to call secret rotation: %s", resp.Status)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
@@ -467,8 +502,17 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 					Certificates: []tls.Certificate{cert},
 				},
 			}
-			ret[c.Name] = i.composeComponentResultSpec(v1alpha2.OK, nil)
-
+			agentStatus, err := i.generateAgentStatus(ctx)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
+				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
+				continue
+			}
+			ret[c.Name] = model.ComponentResultSpec{
+				Status:  v1alpha2.OK,
+				Message: agentStatus,
+			}
+			continue
 		case "log":
 		default:
 			err = fmt.Errorf("invalid action parameter in component %s", c.Name)

@@ -12,18 +12,19 @@ usage() {
 }
 
 # Check if the correct number of parameters are provided
-if [ "$#" -ne 6 ]; then
+if [ "$#" -ne 7 ]; then
     echo "Error: Invalid number of parameters."
     usage
 fi
 
 # Assign parameters to variables
-endpoint="https://symphony-service:8081/v1alpha2"
-cert_path="../client-cert.pem"
-key_path="../client-key.pem"
-target_name="remote-target"
-namespace="default"
-topology="topologies.json"
+endpoint=$1
+cert_path=$2
+key_path=$3
+target_name=$4
+namespace=$5
+topology=$6
+config=$7
 
 # Validate the endpoint (basic URL validation)
 if ! [[ $endpoint =~ ^https?:// ]]; then
@@ -58,6 +59,12 @@ fi
 # Validate the topology file (non-empty string)
 if [ -z "$topology" ]; then
     echo "Error: Topology file must be a non-empty string."
+    usage
+fi
+
+# Validate the config file (non-empty string)
+if [ -z "$config" ]; then
+    echo "Error: Config file must be a non-empty string."
     usage
 fi
 
@@ -111,4 +118,4 @@ echo "public.pem"
 echo "private.pem"
 echo "remote-agent"
 
-./remote-agent -config=../config.json -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace -topology=$topology
+./remote-agent -config=$config -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace -topology=$topology

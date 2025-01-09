@@ -1,0 +1,19 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: solutiontest
+spec:  
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: solutiontest-v-v1
+spec:
+  rootResource: solutiontest
+  components:
+  - name: getProcess
+    type: script
+    properties:
+      path: sh
+      flag: -c
+      args: "ps aux  | grep remote-agent"
