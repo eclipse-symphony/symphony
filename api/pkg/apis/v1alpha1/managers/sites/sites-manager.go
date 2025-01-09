@@ -14,13 +14,17 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type SitesManager struct {
 	managers.Manager
@@ -72,6 +76,7 @@ func (m *SitesManager) GetState(ctx context.Context, name string) (model.SiteSta
 	if err != nil {
 		return model.SiteState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
@@ -100,11 +105,6 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	current.Metadata = map[string]interface{}{
-		"version":  "v1",
-		"group":    model.FederationGroup,
-		"resource": "sites",
-	}
 	getRequest := states.GetRequest{
 		ID: current.Id,
 		Metadata: map[string]interface{}{
@@ -114,13 +114,14 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 		},
 	}
 
+	// Need to persist site spec if not exists
 	var entry states.StateEntry
 	entry, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		if !utils.IsNotFound(err) {
 			return err
 		}
-		err = t.UpsertSpec(ctx, current.Id, *current.Spec)
+		err = t.UpsertState(ctx, current.Id, current)
 		if err != nil {
 			return err
 		}
@@ -135,6 +136,7 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	if err != nil {
 		return err
 	}
+	siteState.ObjectMeta.UpdateEtag(entry.ETag)
 	if siteState.Status == nil {
 		siteState.Status = &model.SiteStatus{}
 	}
@@ -149,8 +151,12 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	siteState.Status.LastReported = time.Now().UTC().Format(time.RFC3339)
 
 	updateRequest := states.UpsertRequest{
-		Value:    states.StateEntry{ID: current.Id, Body: siteState, ETag: entry.ETag},
-		Metadata: current.Metadata,
+		Value: states.StateEntry{ID: current.Id, Body: siteState, ETag: entry.ETag},
+		Metadata: map[string]interface{}{
+			"version":  "v1",
+			"group":    model.FederationGroup,
+			"resource": "sites",
+		},
 	}
 
 	_, err = t.StateProvider.Upsert(ctx, updateRequest)
@@ -160,7 +166,7 @@ func (t *SitesManager) ReportState(ctx context.Context, current model.SiteState)
 	return nil
 }
 
-func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.SiteSpec) error {
+func (m *SitesManager) UpsertState(ctx context.Context, name string, state model.SiteState) error {
 	ctx, span := observability.StartSpan("Sites Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
@@ -168,17 +174,30 @@ func (m *SitesManager) UpsertSpec(ctx context.Context, name string, spec model.S
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.InfofCtx(ctx, "UpsertState: Upsert site state %s", name)
+
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		log.ErrorfCtx(ctx, "Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name)
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
+	log.InfofCtx(ctx, "Site state %+v", state)
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup + "/v1",
 				"kind":       "Site",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
+				"metadata":   state.ObjectMeta,
+				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Site", "metadata": {"name": "${{$site()}}"}}`, model.FederationGroup),
@@ -245,6 +264,7 @@ func (t *SitesManager) ListState(ctx context.Context) ([]model.SiteState, error)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
