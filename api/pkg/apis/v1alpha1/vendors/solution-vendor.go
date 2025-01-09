@@ -261,6 +261,14 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
+		log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
+			deployment.Instance.ObjectMeta.Name,
+			deployment.SolutionName,
+			remove,
+			namespace,
+			targetName,
+			deployment.Generation,
+			deployment.JobID)
 		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
 		// create new deployment state
 		var state model.DeploymentState
