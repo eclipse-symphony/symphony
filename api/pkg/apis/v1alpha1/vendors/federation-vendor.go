@@ -226,6 +226,9 @@ func (f *FederationVendor) handleDeploymentStep(ctx context.Context, event v1alp
 		log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal step envelope: %v", err)
 		return err
 	}
+	if stepEnvelope.Step.Role == "container" {
+		stepEnvelope.Step.Role = "instance"
+	}
 	switch stepEnvelope.PlanState.Phase {
 	case PhaseGet:
 		return f.handlePhaseGet(ctx, stepEnvelope)
