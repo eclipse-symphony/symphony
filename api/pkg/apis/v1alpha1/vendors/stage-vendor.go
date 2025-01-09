@@ -520,16 +520,20 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 					planState.Summary.CurrentDeployed++
 				}
 			}
+			if planState.TargetResult[stepResult.Target] == 1 || planState.TargetResult[stepResult.Target] == 0 {
+				planState.TargetResult[stepResult.Target] = -1
+				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
+			}
 		} else {
 			// Handle success case and update the target result status and message
-			if planState.TargetResult[stepResult.Target] == 0 {
-				planState.TargetResult[stepResult.Target] = 1
-				planState.Summary.SuccessCount++
-			}
 			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			log.InfoCtx(ctx, "Update plan state target spec %v", targetResultSpec)
 			planState.Summary.CurrentDeployed += len(stepResult.ApplyResult)
+			if planState.TargetResult[stepResult.Target] == 0 {
+				planState.TargetResult[stepResult.Target] = 1
+				planState.Summary.SuccessCount++
+			}
 		}
 
 		// If no components are deployed, set success count to target count
@@ -717,7 +721,11 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 			})
 		}
 	}
-	s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
+	if !s.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
+		log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+		s.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	}
 	return nil
 }
 func (p *PlanState) IsExpired() bool {

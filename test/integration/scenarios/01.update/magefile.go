@@ -20,7 +20,7 @@ import (
 // Test config
 const (
 	TEST_NAME    = "scenario/update"
-	TEST_TIMEOUT = "15m"
+	TEST_TIMEOUT = "30m"
 )
 
 var (

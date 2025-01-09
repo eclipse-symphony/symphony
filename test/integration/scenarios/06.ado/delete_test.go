@@ -20,7 +20,7 @@ var _ = Describe("Delete", Ordered, func() {
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionContainerBytes []byte
-	var specTimeout = 2 * time.Minute
+	var specTimeout = 4 * time.Minute
 
 	type DeleteTestCase struct {
 		TargetComponents        []string

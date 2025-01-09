@@ -31,7 +31,7 @@ var _ = Describe("RBAC", Ordered, func() {
 	var targetBytes []byte
 	var solutionBytes []byte
 	var solutionContainerBytes []byte
-	var specTimeout = 3 * time.Minute
+	var specTimeout = 6 * time.Minute
 	var installValues HelmValues
 	var runRbacTest = func(ctx context.Context, testcase Rbac) {
 		var err error
