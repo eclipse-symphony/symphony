@@ -513,7 +513,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 			// Handle error case and update the target result status and message
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[planState.Remove])
 			targetResultMessage := fmt.Sprintf("Failed to create provider %s, err: %s", deploymentTypeMap[planState.Remove], stepResult.Error)
-			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage}
+			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: stepResult.ApplyResult}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			planState.Summary.AllAssignedDeployed = false
 			for _, ret := range stepResult.ApplyResult {
