@@ -268,6 +268,7 @@ func (f *FederationVendor) enqueueProviderGetRequest(ctx context.Context, stepEn
 			Action:      string(PhaseGet),
 		},
 		References: stepEnvelope.Step.Components,
+		Deployment: stepEnvelope.PlanState.Deployment,
 	}
 	err := f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
 	if err != nil {
