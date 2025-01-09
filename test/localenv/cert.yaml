@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: remote-target1
+  namespace: default
+spec:
+  commonName: CN=default-remote-target.symphony-service
+  dnsNames:
+  - CN=default-remote-target.symphony-service
+  duration: 2160h0m0s
+  issuerRef:
+    kind: Issuer
+    name: symphony-ca-issuer
+  renewBefore: 360h0m0s
+  secretName: remote-target1-tls
+  subject:
+    organizations:
+    - symphony-service
