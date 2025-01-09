@@ -638,8 +638,8 @@ func (s *StageVendor) threeStateMerge(ctx context.Context, planState *PlanState)
 		for _, c := range StepState.GetResult {
 			key := fmt.Sprintf("%s::%s", c.Name, StepState.Target)
 			role := c.Type
-			if role == "" {
-				role = "container"
+			if role == "container" {
+				role = "instance"
 			}
 			log.InfoCtx(ctx, "V(Stage): Store key value in current key: %s value: %s", key, role)
 			currentState.TargetComponent[key] = role
