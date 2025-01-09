@@ -427,6 +427,7 @@ func (s *StageVendor) handleDeploymentPlan(ctx context.Context, event v1alpha2.E
 		return err
 	}
 	planState := s.createPlanState(ctx, planEnvelope)
+	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
 	if planState.isCompleted() {
 		return s.handlePlanComplete(ctx, planState)
@@ -542,6 +543,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 		}
 
 		// Save the summary information
+		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
@@ -685,6 +687,7 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 		return err
 	}
 	// update summary
+	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	if err := s.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
 		return err
