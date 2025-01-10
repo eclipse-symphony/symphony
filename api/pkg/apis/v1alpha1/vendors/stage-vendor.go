@@ -427,6 +427,7 @@ func (s *StageVendor) handleDeploymentPlan(ctx context.Context, event v1alpha2.E
 		return err
 	}
 	planState := s.createPlanState(ctx, planEnvelope)
+	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
 	if planState.isCompleted() {
 		return s.handlePlanComplete(ctx, planState)
@@ -512,7 +513,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 			// Handle error case and update the target result status and message
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[planState.Remove])
 			targetResultMessage := fmt.Sprintf("Failed to create provider %s, err: %s", deploymentTypeMap[planState.Remove], stepResult.Error)
-			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage}
+			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: stepResult.ApplyResult}
 			planState.Summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			planState.Summary.AllAssignedDeployed = false
 			for _, ret := range stepResult.ApplyResult {
@@ -542,6 +543,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 		}
 
 		// Save the summary information
+		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := s.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
@@ -637,7 +639,7 @@ func (s *StageVendor) threeStateMerge(ctx context.Context, planState *PlanState)
 			key := fmt.Sprintf("%s::%s", c.Name, StepState.Target)
 			role := c.Type
 			if role == "" {
-				role = "container"
+				role = "instance"
 			}
 			log.InfoCtx(ctx, "V(Stage): Store key value in current key: %s value: %s", key, role)
 			currentState.TargetComponent[key] = role
@@ -685,6 +687,7 @@ func (s *StageVendor) handleApplyPlanCompletetion(ctx context.Context, planState
 		return err
 	}
 	// update summary
+	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	if err := s.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
 		return err
