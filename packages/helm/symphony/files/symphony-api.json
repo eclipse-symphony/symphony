@@ -753,7 +753,7 @@
                 "type": "providers.queue.redis",
                 "config": {
                   "name": "redis",
-                  "host": "localhost:6380",
+                  "host": "{{ include "symphony.redisHost" . }}",
                   "requireTLS": false,
                   "password": ""
                 }
