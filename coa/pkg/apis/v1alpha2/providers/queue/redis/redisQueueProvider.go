@@ -212,7 +212,7 @@ func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) 
 	return &msg, nil
 }
 
-func (rq *RedisQueueProvider) Peek(queue string) (*Message, error) {
+func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	var start string
 	// Get the last ID processed by this consumer
 	var err error
@@ -244,7 +244,7 @@ func (rq *RedisQueueProvider) Peek(queue string) (*Message, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
-	return &msg, nil
+	return &msg.Content, nil
 }
 
 func (rq *RedisQueueProvider) RemoveFromQueue(ctx context.Context, queue string, messageID string) error {
