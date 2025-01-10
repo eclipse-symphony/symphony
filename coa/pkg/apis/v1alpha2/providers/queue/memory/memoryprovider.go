@@ -76,14 +76,18 @@ func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) error {
+// fake
+func (s *MemoryQueueProvider) RemoveFromQueue(queue string, messageID string) error {
+	return nil
+}
+func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) (string, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[queue]; !ok {
 		s.Data[queue] = make([]interface{}, 0)
 	}
 	s.Data[queue] = append(s.Data[queue], data)
-	return nil
+	return "key", nil
 }
 func (s *MemoryQueueProvider) Dequeue(queue string) (interface{}, error) {
 	mLock.Lock()
