@@ -26,11 +26,6 @@ import (
 var mLog = logger.NewLogger("coa.runtime")
 var mLock sync.Mutex
 
-type Message struct {
-	ID      string      `json:id`
-	Content interface{} `json:"content"`
-}
-
 type RedisQueueProviderConfig struct {
 	Name        string `json:"name"`
 	Host        string `json:"host"`
@@ -60,12 +55,6 @@ func RedisQueueProviderConfigFromMap(properties map[string]string) (RedisQueuePr
 	}
 	return ret, nil
 }
-
-// type RedisQueueProvider struct {
-// 	Config  RedisQueueProviderConfig
-// 	Data    map[string][]interface{}
-// 	Context *contexts.ManagerContext
-// }
 
 func (s *RedisQueueProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
@@ -170,11 +159,8 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (rq *RedisQueueProvider) Enqueue(queue string, data interface{}) (string, error) {
-	message := Message{
-		Content: data,
-	}
-	data, err := json.Marshal(message)
+func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}) (string, error) {
+	data, err := json.Marshal(element)
 	if err != nil {
 		return "", err
 	}
@@ -184,7 +170,7 @@ func (rq *RedisQueueProvider) Enqueue(queue string, data interface{}) (string, e
 		Values: map[string]interface{}{"data": data},
 	}).Result()
 }
-func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) (*Message, error) {
+func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) (interface{}, error) {
 	// Get the last ID processed by this consumer
 
 	// Read message
@@ -196,19 +182,14 @@ func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) 
 		return nil, nil
 	}
 	xMsg := xMessages[0]
-	var msg Message
 	jsonData := xMsg.Values["data"].(string)
-	err = json.Unmarshal([]byte(jsonData), &msg.Content)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message content: %w", err)
-	}
 	// update last read ID
 	lastReadKey := fmt.Sprintf("%s:lastID", queue)
-	err = rq.client.Set(rq.Ctx, lastReadKey, msg.ID, 0).Err()
+	err = rq.client.Set(rq.Ctx, lastReadKey, xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
-	return &msg, nil
+	return jsonData, nil
 }
 
 func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
@@ -231,19 +212,18 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 		return nil, nil
 	}
 	xMsg := xMessages[0]
-	var msg Message
+
 	jsonData := xMsg.Values["data"].(string)
-	err = json.Unmarshal([]byte(jsonData), &msg.Content)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal message content: %w", err)
 	}
 	// update last read ID
 	lastReadKey := fmt.Sprintf("%s:lastID", queue)
-	err = rq.client.Set(rq.Ctx, lastReadKey, msg.ID, 0).Err()
+	err = rq.client.Set(rq.Ctx, lastReadKey, xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
-	return &msg.Content, nil
+	return jsonData, nil
 }
 
 func (rq *RedisQueueProvider) RemoveFromQueue(queue string, messageID string) error {
@@ -269,28 +249,19 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 		return nil, nil
 	}
 	xMsg := xMessages[0]
-	var msg Message
 	jsonData := xMsg.Values["data"].(string)
-	err = json.Unmarshal([]byte(jsonData), &msg.Content)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message content: %w", err)
-	}
-	err = json.Unmarshal([]byte(jsonData), &msg.Content)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message content: %w", err)
-	}
 
 	// Delete message
-	err = rq.client.XDel(context.TODO(), queue, msg.ID).Err()
+	err = rq.client.XDel(context.TODO(), queue, xMsg.ID).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete message: %w", err)
 	}
 
 	// Update last read ID
-	err = rq.client.Set(context.TODO(), lastIDkey, msg.ID, 0).Err()
+	err = rq.client.Set(context.TODO(), lastIDkey, xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
 
-	return msg.Content, nil
+	return jsonData, nil
 }
