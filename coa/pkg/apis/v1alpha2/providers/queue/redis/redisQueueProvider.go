@@ -164,7 +164,6 @@ func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}) (string
 	if err != nil {
 		return "", err
 	}
-
 	return rq.client.XAdd(rq.Ctx, &redis.XAddArgs{
 		Stream: queue,
 		Values: map[string]interface{}{"data": data},
@@ -203,6 +202,7 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	var err error
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
 	start, err = rq.client.Get(rq.Ctx, lastIDkey).Result()
+	mLog.Errorf("  P redis queue: start is  %s", start)
 	if err == redis.Nil {
 		start = "0"
 	} else if err != nil {
@@ -217,7 +217,7 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 		return nil, nil
 	}
 	xMsg := xMessages[0]
-
+	mLog.Errorf("  P redis queue:xmsg id %s", xMsg.ID)
 	jsonData := xMsg.Values["data"].(string)
 	var result interface{}
 	err = json.Unmarshal([]byte(jsonData), &result)
