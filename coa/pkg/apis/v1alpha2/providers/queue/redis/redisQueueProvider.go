@@ -129,6 +129,13 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisQueueP
 	//TODO: Finish this
 	return ret, nil
 }
+func (rq *RedisQueueProvider) Size(queue string) int {
+	xMessages, err := rq.client.XRangeN(rq.Ctx, queue, "0", "+", 1000).Result()
+	if err != nil {
+		return 0
+	}
+	return len(xMessages)
+}
 func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	vConfig, err := toRedisQueueProviderConfig(config)
 	if err != nil {
@@ -155,7 +162,7 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	}
 	client := redis.NewClient(options)
 	if _, err := client.Ping(rq.Ctx).Result(); err != nil {
-		mLog.Errorf("  P (Redis PubSub): failed to connect to redis %+v", err)
+		mLog.Errorf("  P (Redis Queue): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", vConfig.Host), v1alpha2.InternalError)
 	}
 	rq.client = client
@@ -163,7 +170,7 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (rq *RedisQueueProvider) Enqueue(ctx context.Context, queue string, data interface{}) error {
+func (rq *RedisQueueProvider) Enqueue(queue string, data interface{}) error {
 	message := Message{
 		Content: data,
 	}
@@ -172,7 +179,7 @@ func (rq *RedisQueueProvider) Enqueue(ctx context.Context, queue string, data in
 		return err
 	}
 
-	_, err = rq.client.XAdd(ctx, &redis.XAddArgs{
+	_, err = rq.client.XAdd(rq.Ctx, &redis.XAddArgs{
 		Stream: queue,
 		Values: map[string]interface{}{"data": data},
 	}).Result()
