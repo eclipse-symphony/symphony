@@ -156,7 +156,7 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	client := redis.NewClient(options)
 	if _, err := client.Ping(rq.Ctx).Result(); err != nil {
 		mLog.Errorf("  P (Redis PubSub): failed to connect to redis %+v", err)
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", rq.Config.Host), v1alpha2.InternalError)
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", vConfig.Host), v1alpha2.InternalError)
 	}
 	rq.client = client
 
