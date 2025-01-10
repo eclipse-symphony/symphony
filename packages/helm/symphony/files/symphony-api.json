@@ -745,12 +745,12 @@
             "properties": {
               "poll.enabled": "true",
               "interval": "#15",
-              "providers.queue": "memory-queue",
+              "providers.queue": "redis-queue",
               "providers.volatilestate": "memory-state"              
             },
             "providers": {
-              "memory-queue": {
-                "type": "providers.queue.memory",
+              "redis-queue": {
+                "type": "providers.queue.redis",
                 "config": {}
               },
               "memory-state": {
