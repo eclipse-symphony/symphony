@@ -377,7 +377,7 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
-	case "provider.queue.redis":
+	case "providers.queue.redis":
 		mProvider := &redisqueue.RedisQueueProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
