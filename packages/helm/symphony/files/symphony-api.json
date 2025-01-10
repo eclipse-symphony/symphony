@@ -753,7 +753,7 @@
                 "type": "providers.queue.redis",
                 "config": {
                   "name": "redis",
-                  "host": "localhost:6379",
+                  "host": "localhost:6380",
                   "requireTLS": false,
                   "password": ""
                 }
