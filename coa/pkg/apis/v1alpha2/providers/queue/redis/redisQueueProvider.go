@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package memoryqueue
+package redisqueue
 
 import (
 	"context"
@@ -183,13 +183,18 @@ func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) 
 	}
 	xMsg := xMessages[0]
 	jsonData := xMsg.Values["data"].(string)
+	var result interface{}
+	err = json.Unmarshal([]byte(jsonData), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
+	}
 	// update last read ID
 	lastReadKey := fmt.Sprintf("%s:lastID", queue)
 	err = rq.client.Set(rq.Ctx, lastReadKey, xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
-	return jsonData, nil
+	return result, nil
 }
 
 func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
@@ -214,8 +219,10 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	xMsg := xMessages[0]
 
 	jsonData := xMsg.Values["data"].(string)
+	var result interface{}
+	err = json.Unmarshal([]byte(jsonData), &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message content: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
 	}
 	// update last read ID
 	lastReadKey := fmt.Sprintf("%s:lastID", queue)
@@ -223,7 +230,7 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
-	return jsonData, nil
+	return result, nil
 }
 
 func (rq *RedisQueueProvider) RemoveFromQueue(queue string, messageID string) error {
@@ -250,7 +257,11 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 	}
 	xMsg := xMessages[0]
 	jsonData := xMsg.Values["data"].(string)
-
+	var result interface{}
+	err = json.Unmarshal([]byte(jsonData), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
+	}
 	// Delete message
 	err = rq.client.XDel(context.TODO(), queue, xMsg.ID).Err()
 	if err != nil {
@@ -263,5 +274,5 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
 
-	return jsonData, nil
+	return result, nil
 }
