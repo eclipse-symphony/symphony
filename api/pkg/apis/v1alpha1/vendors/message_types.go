@@ -108,6 +108,7 @@ type OperationBody struct {
 	Action    JobPhase
 	NameSpace string
 	Remove    bool
+	MessageId string
 }
 
 type StepState struct {

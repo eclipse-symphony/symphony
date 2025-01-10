@@ -76,6 +76,10 @@ func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
+// fake
+func (s *MemoryQueueProvider) RemoveFromQueue(queue string, messageID string) error {
+	return nil
+}
 func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) (string, error) {
 	mLock.Lock()
 	defer mLock.Unlock()

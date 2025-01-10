@@ -11,4 +11,5 @@ type IQueueProvider interface {
 	Dequeue(queue string) (interface{}, error)
 	Peek(queue string) (interface{}, error)
 	Size(queue string) int
+	RemoveFromQueue(queue string, messageID string) error
 }

@@ -246,8 +246,8 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	return &msg.Content, nil
 }
 
-func (rq *RedisQueueProvider) RemoveFromQueue(ctx context.Context, queue string, messageID string) error {
-	return rq.client.XDel(ctx, queue, messageID).Err()
+func (rq *RedisQueueProvider) RemoveFromQueue(queue string, messageID string) error {
+	return rq.client.XDel(rq.Ctx, queue, messageID).Err()
 }
 
 func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
