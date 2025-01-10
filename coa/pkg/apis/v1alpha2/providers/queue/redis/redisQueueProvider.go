@@ -170,20 +170,19 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (rq *RedisQueueProvider) Enqueue(queue string, data interface{}) error {
+func (rq *RedisQueueProvider) Enqueue(queue string, data interface{}) (string, error) {
 	message := Message{
 		Content: data,
 	}
 	data, err := json.Marshal(message)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	_, err = rq.client.XAdd(rq.Ctx, &redis.XAddArgs{
+	return rq.client.XAdd(rq.Ctx, &redis.XAddArgs{
 		Stream: queue,
 		Values: map[string]interface{}{"data": data},
 	}).Result()
-	return err
 }
 func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) (*Message, error) {
 	// Get the last ID processed by this consumer

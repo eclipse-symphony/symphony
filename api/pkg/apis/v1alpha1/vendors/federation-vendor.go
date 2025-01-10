@@ -279,7 +279,8 @@ func (f *FederationVendor) enqueueProviderGetRequest(ctx context.Context, stepEn
 		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
 	log.InfoCtx(ctx, "V(Federation): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
-	return f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+	_, err = f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+	return err
 }
 
 func (f *FederationVendor) getProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
@@ -321,7 +322,8 @@ func (f *FederationVendor) enqueueProviderApplyRequest(ctx context.Context, step
 		log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
 		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
-	return f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
+	_, err = f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
+	return err
 }
 
 func (f *FederationVendor) applyProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
