@@ -226,7 +226,7 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	}
 	// update last read ID
 	lastReadKey := fmt.Sprintf("%s:lastID", queue)
-	err = rq.client.Set(rq.Ctx, lastReadKey, xMsg.ID, 0).Err()
+	err = rq.client.Set(rq.Ctx, lastReadKey, "("+xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
@@ -269,7 +269,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 	}
 
 	// Update last read ID
-	err = rq.client.Set(context.TODO(), lastIDkey, xMsg.ID, 0).Err()
+	err = rq.client.Set(context.TODO(), lastIDkey, "("+xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
