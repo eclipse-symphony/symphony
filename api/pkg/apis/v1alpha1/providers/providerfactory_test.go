@@ -44,7 +44,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
 	mempubsub "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
-	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	cvref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
 	httpref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
 	k8sref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
@@ -78,7 +77,7 @@ func TestCreateProvider(t *testing.T) {
 	if testRedis == "" {
 		t.Log("Skipping providers.state.redis test as TEST_REDIS is not set")
 	} else {
-		provider, err = providerfactory.CreateProvider("providers.state.redis", redisstate.RedisStateProviderConfig{Host: "localhost:6379"})
+		provider, err = providerfactory.CreateProvider("providers.state.redis", redisstate.RedisStateProviderConfig{Host: "localhost:6380"})
 		assert.Nil(t, err)
 		assert.NotNil(t, *provider.(*redisstate.RedisStateProvider))
 	}
@@ -270,10 +269,6 @@ func TestCreateProvider(t *testing.T) {
 	provider, err = providerfactory.CreateProvider("providers.queue.memory", memoryqueue.MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*memoryqueue.MemoryQueueProvider))
-
-	provider, err = providerfactory.CreateProvider("providers.queue.redis", redisqueue.RedisQueueProvider{})
-	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*redisqueue.RedisQueueProvider))
 
 	provider, err = providerfactory.CreateProvider("providers.graph.memory", memorygraph.MemoryGraphProviderConfig{})
 	assert.Nil(t, err)

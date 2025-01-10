@@ -565,7 +565,12 @@
             "providers": {
               "redis-queue": {
                 "type": "providers.queue.redis",
-                "config": {}
+                "config": {
+                  "name": "redis",
+                  "host": "localhost:6379",
+                  "requireTLS": false,
+                  "password": ""
+                }
               },
               "mem-state": {
                 "type": "providers.state.memory",
