@@ -40,6 +40,7 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 	if err != nil {
 		return err
 	}
+	log.Info(" config is %+v providers is %+v ", config, providers)
 	queueProvider, err := managers.GetQueueProvider(config, providers)
 	if err == nil {
 		s.QueueProvider = queueProvider
