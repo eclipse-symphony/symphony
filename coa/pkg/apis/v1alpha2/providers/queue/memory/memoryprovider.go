@@ -66,7 +66,7 @@ func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueP
 }
 
 // fake
-func (s *MemoryQueueProvider) PeekFromBegining(queue string, fromBegining bool) (interface{}, error) {
+func (s *MemoryQueueProvider) PeekFromBegining(queue string) (interface{}, error) {
 	var result interface{}
 	return result, nil
 }

@@ -535,8 +535,13 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
 	sLog.InfoCtx(ctx, "V(FederationVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
-
-	queueElement, err := f.StagingManager.QueueProvider.PeekFromBegining(queueName, fromBegining)
+	var queueElement interface{}
+	var err error
+	if fromBegining {
+		queueElement, err = f.StagingManager.QueueProvider.PeekFromBegining(queueName)
+	} else {
+		queueElement, err = f.StagingManager.QueueProvider.Peek(queueName)
+	}
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(FederationVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{

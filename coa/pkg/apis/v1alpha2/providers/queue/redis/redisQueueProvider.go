@@ -169,7 +169,7 @@ func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}) (string
 		Values: map[string]interface{}{"data": data},
 	}).Result()
 }
-func (rq *RedisQueueProvider) PeekFromBegining(queue string, fromBegining bool) (interface{}, error) {
+func (rq *RedisQueueProvider) PeekFromBegining(queue string) (interface{}, error) {
 	// Get the last ID processed by this consumer
 
 	// Read message
