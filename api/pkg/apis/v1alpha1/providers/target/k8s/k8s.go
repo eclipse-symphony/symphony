@@ -81,6 +81,7 @@ type K8sTargetProvider struct {
 type pollGet func() error
 
 func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProviderConfig, error) {
+	log.Info("init config %+v", properties)
 	ret := K8sTargetProviderConfig{}
 	if v, ok := properties["name"]; ok {
 		ret.Name = v
@@ -160,6 +161,7 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 	} else {
 		ret.RetryIntervalInSec = 2
 	}
+	log.Info("ret is here %+v", ret)
 	return ret, nil
 }
 func (i *K8sTargetProvider) InitWithMap(properties map[string]string) error {
@@ -659,7 +661,7 @@ func (i *K8sTargetProvider) upsertDeployment(ctx context.Context, namespace stri
 	if err != nil {
 		return err
 	}
-
+	log.Info("before poll check %+v", i.Config)
 	waitErr := i.pollCheck(ctx, false, func() error {
 		d, err := i.Client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
