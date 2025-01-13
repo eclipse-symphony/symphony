@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	sp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -170,6 +171,22 @@ func (s *SolutionManager) GetTargetProviderForStep(target string, role string, d
 			}
 			log.Info("test role %+v", testRole)
 			log.Info("binding %+v", binding)
+
+			if binding.Role == testRole {
+				log.Info("switch binding provider %+v", binding.Provider)
+				switch binding.Provider {
+				case "providers.target.k8s":
+					log.Info("it is k8s %+v", binding.Provider)
+					provider := &k8s.K8sTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					// provider.Context = context
+					return provider, nil
+				}
+			}
+
 		}
 	}
 	provider, err := sp.CreateProviderForTargetRole(s.Context, role, targetSpec, override)
