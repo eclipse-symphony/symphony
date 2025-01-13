@@ -414,7 +414,7 @@ func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.CO
 	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent")
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
-	getAll, exists := request.Parameters["getALL"]
+	getAll, exists := request.Parameters["getAll"]
 
 	if exists && getAll == "true" {
 		// Logic to handle getALL parameter
