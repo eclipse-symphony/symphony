@@ -165,6 +165,7 @@ func K8sTargetProviderConfigFromMap(properties map[string]string) (K8sTargetProv
 	return ret, nil
 }
 func (i *K8sTargetProvider) InitWithMap(properties map[string]string) error {
+	log.Info("init k8s with map %+v", properties)
 	config, err := K8sTargetProviderConfigFromMap(properties)
 	if err != nil {
 		log.Errorf("  P (K8s Target): expected K8sTargetProviderConfig: %+v", err)
@@ -187,13 +188,14 @@ func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfoCtx(ctx, "  P (K8s Target): Init()")
+	log.InfoCtx(ctx, "  P (K8s Target): Init() %+v", config)
 
 	updateConfig, err := toK8sTargetProviderConfig(config)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (K8s Target): expected K8sTargetProviderConfig - %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to convert to K8sTargetProviderConfig", componentName), v1alpha2.InitFailed)
 	}
+	log.Info("get updated config %+v", updateConfig)
 	i.Config = updateConfig
 	var kConfig *rest.Config
 	kConfig, err = i.getKubernetesConfig()
@@ -799,7 +801,7 @@ func (i *K8sTargetProvider) deployComponents(ctx context.Context, namespace stri
 		return err
 	}
 
-	log.DebugCtx(ctx, "  P (K8s Target): creating deployment")
+	log.DebugCtx(ctx, "  P (K8s Target): creating deployment i config %+v", i.Config)
 	err = i.upsertDeployment(ctx, namespace, name, deployment)
 	if err != nil {
 		log.DebugfCtx(ctx, "  P (K8s Target): failed to apply (API): %s", err.Error())
@@ -899,6 +901,7 @@ func (i *K8sTargetProvider) Apply(ctx context.Context, dep model.DeploymentSpec,
 	case "", SINGLE_POD:
 		updated := step.GetUpdatedComponents()
 		if len(updated) > 0 {
+			log.Info("get config %+v", i.Config)
 			err = i.deployComponents(ctx, dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name, dep.Instance.Spec.Metadata, components, projector, dep.Instance.ObjectMeta.Name)
 			if err != nil {
 				log.DebugfCtx(ctx, "  P (K8s Target): failed to apply components: %s", err.Error())
