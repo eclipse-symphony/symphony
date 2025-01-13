@@ -80,6 +80,7 @@ type PlanState struct {
 	Namespace            string `json:"namespace"`
 	Remove               bool
 	StepStates           []StepState
+	Steps                []model.DeploymentStep
 }
 
 // for step
