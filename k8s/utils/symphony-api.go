@@ -258,6 +258,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 
 	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
 	ret.IsDryRun = instance.Spec.IsDryRun
+	ret.IsInActive = instance.Spec.ActiveState == apimodel.ActiveState_Inactive
 
 	return ret, err
 }
