@@ -411,10 +411,17 @@ func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.CO
 	})
 	defer span.End()
 	var agentRequest AgentRequest
+	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent")
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
-	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent %+v", agentRequest)
-	return f.getTaskFromQueue(ctx, target, namespace)
+	getAll, exists := request.Parameters["getALL"]
+
+	if exists && getAll == "true" {
+		// Logic to handle getALL parameter
+		sLog.InfoCtx(ctx, "V(Federation): getALL request from remote agent %+v", agentRequest)
+		return f.getTaskFromQueue(ctx, target, namespace, true)
+	}
+	return f.getTaskFromQueue(ctx, target, namespace, false)
 }
 
 // onGetResponse handles the get response from the remote agent.
@@ -521,7 +528,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, namespace string) v1alpha2.COAResponse {
+func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, namespace string, fromBegining bool) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
@@ -529,7 +536,7 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 	sLog.InfoCtx(ctx, "V(FederationVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 
-	queueElement, err := f.StagingManager.QueueProvider.Peek(queueName)
+	queueElement, err := f.StagingManager.QueueProvider.PeekFromBegining(queueName, fromBegining)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(FederationVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{

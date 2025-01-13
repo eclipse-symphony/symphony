@@ -12,4 +12,5 @@ type IQueueProvider interface {
 	Peek(queue string) (interface{}, error)
 	Size(queue string) int
 	RemoveFromQueue(queue string, messageID string) error
+	PeekFromBegining(queue string, fromBegining bool) (interface{}, error)
 }
