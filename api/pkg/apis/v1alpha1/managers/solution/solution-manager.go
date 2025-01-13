@@ -161,7 +161,19 @@ func (s *SolutionManager) GetTargetProviderForStep(target string, role string, d
 		return v, nil
 	}
 	targetSpec := s.GetTargetStateForStep(target, deployment, previousDesiredState)
+	log.Info("get target spec %+v", targetSpec)
+	for _, topology := range targetSpec.Spec.Topologies {
+		for _, binding := range topology.Bindings {
+			testRole := role
+			if role == "" || role == "container" {
+				testRole = "instance"
+			}
+			log.Info("test role %+v", testRole)
+			log.Info("binding %+v", binding)
+		}
+	}
 	provider, err := sp.CreateProviderForTargetRole(s.Context, role, targetSpec, override)
+	log.Info("get provider %+v", provider)
 	if err != nil {
 		return nil, err
 	}
