@@ -504,6 +504,46 @@
         "route": "solution",
         "managers": [
           {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "poll.enabled": "true",
+              "interval": "#15",
+              "providers.queue": "redis-queue",
+              "providers.volatilestate": "memory-state"              
+            },
+            "providers": {
+              "redis-queue": {
+                "type": "providers.queue.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+              },
+              "memory-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "stage-manager",
+            "type": "managers.symphony.stage",
+            "properties": { 
+              "user": "admin",
+              "password": "",  
+              "providers.volatilestate": "memory"          
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
