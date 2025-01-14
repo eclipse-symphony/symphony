@@ -173,7 +173,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode" : "Shared"
+                  "mode" : "Global"
                 }
               },           
                 "mock-config": {
@@ -529,7 +529,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode" : "Shared"
+                  "mode" : "Global"
                 }
               },
               "mock-config": {
@@ -624,7 +624,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode" : "Shared"
+                  "mode" : "Global"
                 }
               },
                 "mem-state": {
