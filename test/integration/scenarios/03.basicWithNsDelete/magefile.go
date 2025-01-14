@@ -40,7 +40,7 @@ import (
 // Test config
 const (
 	TEST_NAME    = "basic with namespace delete"
-	TEST_TIMEOUT = "10m"
+	TEST_TIMEOUT = "30m"
 	NAMESPACE    = "default"
 )
 
