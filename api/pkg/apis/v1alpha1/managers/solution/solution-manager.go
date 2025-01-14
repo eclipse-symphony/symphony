@@ -83,6 +83,10 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			s.TargetProviders[k] = p
 		}
 	}
+	for key, _ := range providers {
+		log.Info(" key is %s", key)
+	}
+
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
 		s.KeyLockProvider = keylockprovider
@@ -292,7 +296,7 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 	}
 }
 
-func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
+func (s *SolutionManager) CleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
 	if !remove {
 		return
 	}
@@ -363,7 +367,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}()
 
 	defer func() {
-		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+		s.CleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
 	}()
 
 	stopCh := make(chan struct{})

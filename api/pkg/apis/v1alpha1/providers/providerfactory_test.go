@@ -77,7 +77,7 @@ func TestCreateProvider(t *testing.T) {
 	if testRedis == "" {
 		t.Log("Skipping providers.state.redis test as TEST_REDIS is not set")
 	} else {
-		provider, err = providerfactory.CreateProvider("providers.state.redis", redisstate.RedisStateProviderConfig{Host: "localhost:6379"})
+		provider, err = providerfactory.CreateProvider("providers.state.redis", redisstate.RedisStateProviderConfig{Host: "localhost:6380"})
 		assert.Nil(t, err)
 		assert.NotNil(t, *provider.(*redisstate.RedisStateProvider))
 	}

@@ -559,13 +559,18 @@
             "properties": {
               "poll.enabled": "true",
               "interval": "#15",
-              "providers.queue": "memory-queue",
+              "providers.queue": "redis-queue",
               "providers.volatilestate": "memory-state"              
             },
             "providers": {
-              "memory-queue": {
-                "type": "providers.queue.memory",
-                "config": {}
+              "redis-queue": {
+                "type": "providers.queue.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "localhost:6380",
+                  "requireTLS": false,
+                  "password": ""
+                }
               },
               "mem-state": {
                 "type": "providers.state.memory",

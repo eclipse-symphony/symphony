@@ -433,39 +433,45 @@ func (s *StageVendor) handleDeploymentPlan(ctx context.Context, event v1alpha2.E
 		return s.handlePlanComplete(ctx, planState)
 
 	}
-	for i, step := range planEnvelope.Plan.Steps {
+	for _, step := range planEnvelope.Plan.Steps {
 		switch planEnvelope.Phase {
 		case PhaseGet:
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
-			if err := s.publishStepResult(ctx, i, step, planState, planEnvelope); err != nil {
-				log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, i)
+			if err := s.publishStepResult(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
+				log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
 				return err
 			}
 		case PhaseApply:
 			planState.Summary.PlannedDeployment += len(step.Components)
-			log.InfoCtx(ctx, "V(Federation): publish deployment step id %s step %+v", i, step.Role)
-			if err := s.publishStepResult(ctx, i, step, planState, planEnvelope); err != nil {
-				log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, i)
-				return err
-			}
 		}
 	}
+	// for i, step := range planEnvelope.Plan.Steps {
+	switch planEnvelope.Phase {
+	case PhaseApply:
+		// planState.Summary.PlannedDeployment += len(planEnvelope.Plan.Steps[0].Components)
+		log.InfoCtx(ctx, "V(Federation): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
+		if err := s.publishStepResult(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
+			log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
+			return err
+		}
+	}
+	// }
 	log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId)
 	s.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
 	return nil
 }
-func (s *StageVendor) publishStepResult(ctx context.Context, stepId int, step model.DeploymentStep, planState *PlanState, planEnvelope PlanEnvelope) error {
+func (s *StageVendor) publishStepResult(ctx context.Context, stepId int, planState *PlanState, remove bool, step model.DeploymentStep) error {
 	log.InfoCtx(ctx, "V(StageVendor): publish deployment step for PlanId %s StepId %s", planState.PlanId, stepId)
 	if err := s.Vendor.Context.Publish("deployment-step", v1alpha2.Event{
 		Body: StepEnvelope{
 			Step:      step,
-			Remove:    planEnvelope.Remove,
 			StepId:    stepId,
+			Remove:    remove,
 			PlanState: planState,
 		},
 		Context: ctx,
 	}); err != nil {
-		log.InfoCtx(ctx, "V(StageVendor): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, stepId)
+		log.InfoCtx(ctx, "V(StageVendor): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 		return err
 	}
 	return nil
@@ -495,6 +501,7 @@ func (s *StageVendor) createPlanState(ctx context.Context, planEnvelope PlanEnve
 		TargetResult:         make(map[string]int),
 		CurrentState:         planEnvelope.CurrentState,
 		StepStates:           make([]StepState, len(planEnvelope.Plan.Steps)),
+		Steps:                planEnvelope.Plan.Steps,
 	}
 }
 
@@ -525,6 +532,7 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 				planState.TargetResult[stepResult.Target] = -1
 				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
 			}
+			return s.handlePlanComplete(ctx, planState)
 		} else {
 			// Handle success case and update the target result status and message
 			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
@@ -535,6 +543,15 @@ func (s *StageVendor) saveStepResult(ctx context.Context, planState *PlanState, 
 				planState.TargetResult[stepResult.Target] = 1
 				planState.Summary.SuccessCount++
 			}
+			// publish next step execute event
+			if stepResult.StepId != planState.TotalSteps-1 {
+				log.InfoCtx(ctx, "V(Stage): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
+				if err := s.publishStepResult(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
+					log.InfoCtx(ctx, "V(Stage): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
+					return err
+				}
+			}
+
 		}
 
 		// If no components are deployed, set success count to target count

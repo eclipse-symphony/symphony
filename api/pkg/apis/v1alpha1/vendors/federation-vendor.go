@@ -273,13 +273,15 @@ func (f *FederationVendor) enqueueProviderGetRequest(ctx context.Context, stepEn
 		References: stepEnvelope.Step.Components,
 		Deployment: stepEnvelope.PlanState.Deployment,
 	}
-	err := f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
+
+	log.InfoCtx(ctx, "V(Federation): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
+	messageID, err := f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+	err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageID)
 	if err != nil {
 		log.ErrorCtx(ctx, "V(Federation) Error in insert operation Id %s", operationId)
 		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
-	log.InfoCtx(ctx, "V(Federation): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
-	return f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+	return err
 }
 
 func (f *FederationVendor) getProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
@@ -315,13 +317,17 @@ func (f *FederationVendor) enqueueProviderApplyRequest(ctx context.Context, step
 		Step:       stepEnvelope.Step,
 		IsDryRun:   stepEnvelope.PlanState.Deployment.IsDryRun,
 	}
+	messageId, err := f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
+	if err != nil {
+		return err
+	}
 	log.InfoCtx(ctx, "V(Federation): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
-	err := f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove)
+	err = f.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageId)
 	if err != nil {
 		log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
 		return f.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
-	return f.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
+	return err
 }
 
 func (f *FederationVendor) applyProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
@@ -405,10 +411,17 @@ func (f *FederationVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.CO
 	})
 	defer span.End()
 	var agentRequest AgentRequest
+	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent")
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
-	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent %+v", agentRequest)
-	return f.getTaskFromQueue(ctx, target, namespace)
+	getAll, exists := request.Parameters["getAll"]
+
+	if exists && getAll == "true" {
+		// Logic to handle getALL parameter
+		sLog.InfoCtx(ctx, "V(Federation): getALL request from remote agent %+v", agentRequest)
+		return f.getTaskFromQueue(ctx, target, namespace, true)
+	}
+	return f.getTaskFromQueue(ctx, target, namespace, false)
 }
 
 // onGetResponse handles the get response from the remote agent.
@@ -445,7 +458,7 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 			Body:  []byte(err.Error()),
 		}
 	}
-
+	queueName := fmt.Sprintf("%s-%s", operationBody.Target, operationBody.NameSpace)
 	switch operationBody.Action {
 	case PhaseGet:
 		// Send to step result
@@ -470,6 +483,9 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 				ContentType: "application/json",
 			}
 		}
+		// delete from queue
+
+		f.StagingManager.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId)
 		return v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        []byte("{\"result\":\"200 - handle async result successfully\"}"),
@@ -488,8 +504,9 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 		deleteRequest := states.DeleteRequest{
 			ID: operationId,
 		}
-
 		err = f.StagingManager.StateProvider.Delete(ctx, deleteRequest)
+		// delete from queue
+		f.StagingManager.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId)
 		if err != nil {
 			return v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
@@ -511,15 +528,20 @@ func (f *FederationVendor) handleRemoteAgentExecuteResult(ctx context.Context, a
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, namespace string) v1alpha2.COAResponse {
+func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, namespace string, fromBegining bool) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
 	sLog.InfoCtx(ctx, "V(FederationVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
-
-	queueElement, err := f.StagingManager.QueueProvider.Dequeue(queueName)
+	var queueElement interface{}
+	var err error
+	if fromBegining {
+		queueElement, err = f.StagingManager.QueueProvider.PeekFromBegining(queueName)
+	} else {
+		queueElement, err = f.StagingManager.QueueProvider.Peek(queueName)
+	}
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(FederationVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
@@ -536,7 +558,7 @@ func (f *FederationVendor) getTaskFromQueue(ctx context.Context, target string, 
 }
 
 // upsertOperationState upserts the operation state for the specified parameters.
-func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action JobPhase, namespace string, remove bool) error {
+func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action JobPhase, namespace string, remove bool, messageId string) error {
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: operationId,
@@ -547,6 +569,7 @@ func (f *FederationVendor) upsertOperationState(ctx context.Context, operationId
 				"Action":    action,
 				"namespace": namespace,
 				"Remove":    remove,
+				"MessageId": messageId,
 			}},
 	}
 	_, err := f.StagingManager.StateProvider.Upsert(ctx, upsertRequest)

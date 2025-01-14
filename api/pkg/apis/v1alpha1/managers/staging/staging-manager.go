@@ -40,6 +40,7 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 	if err != nil {
 		return err
 	}
+	log.Info(" config is %+v providers is %+v ", config, providers)
 	queueProvider, err := managers.GetQueueProvider(config, providers)
 	if err == nil {
 		s.QueueProvider = queueProvider
@@ -152,7 +153,8 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 		return err
 	}
 	s.QueueProvider.Enqueue(Site_Job_Queue, event.Metadata["site"])
-	return s.QueueProvider.Enqueue(event.Metadata["site"], job)
+	_, err = s.QueueProvider.Enqueue(event.Metadata["site"], job)
+	return err
 }
 func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.JobData, error) {
 	//TODO: this should return a group of jobs as optimization

@@ -80,6 +80,7 @@ type PlanState struct {
 	Namespace            string `json:"namespace"`
 	Remove               bool
 	StepStates           []StepState
+	Steps                []model.DeploymentStep
 }
 
 // for step
@@ -108,6 +109,7 @@ type OperationBody struct {
 	Action    JobPhase
 	NameSpace string
 	Remove    bool
+	MessageId string
 }
 
 type StepState struct {
