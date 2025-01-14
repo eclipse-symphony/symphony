@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -324,6 +325,14 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		}
 		if !c.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
 			log.Info("can not get lock")
+		}
+		if !c.SolutionManager.KeyLockProvider.TryLockWithTimeout(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name), 120*time.Second) {
+			log.Info("can not get lock with timeout ")
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte("{\"result\":\"500 - M (Solution): failed to acquire lock\"}"),
+				ContentType: "application/json",
+			})
 		}
 		log.InfoCtx(ctx, "lock %s", deployment.Instance.ObjectMeta.Name)
 		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
