@@ -87,14 +87,14 @@ var (
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Solution to add bitnami nginx",
+			Name:                "Update Symphony Solution to add brigade ",
 			Target:              "solution",
-			ComponentsToAdd:     []string{"bitnami-nginx"},
-			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "nginx"},
+			ComponentsToAdd:     []string{"brigade"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "brigade"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Solution to remove bitnami nginx and add prometheus",
+			Name:                "Update Symphony Solution to remove brigade  and add prometheus",
 			Target:              "solution",
 			ComponentsToAdd:     []string{"prometheus-server"},
 			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "instance"},

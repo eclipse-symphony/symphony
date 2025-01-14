@@ -449,13 +449,12 @@ var (
 			},
 			Type: "container",
 		},
-		"bitnami-nginx": {
-			Name: "nginx",
+		"brigade": {
+			Name: "brigade",
 			Properties: map[string]interface{}{
 				"chart": map[string]interface{}{
-					"name":    "nginx",
-					"repo":    "https://charts.bitnami.com/bitnami",
-					"version": "18.1.7",
+					"name": "brigade",
+					"repo": "https://brigadecore.github.io/charts",
 				},
 			},
 			Type: "helm.v3",
