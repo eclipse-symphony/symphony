@@ -329,10 +329,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	if !exist {
 		namespace = constants.DefaultScope
 	}
-	osPlatform, exist := request.Parameters["osPlatform"]
-	if !exist {
-		osPlatform = "linux"
-	}
+
 	switch request.Method {
 	case fasthttp.MethodPost:
 		subject := fmt.Sprintf("CN=%s-%s.%s", namespace, id, ServiceName)
@@ -487,23 +484,6 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		public = strings.ReplaceAll(public, "\n", " ")
 		private = strings.ReplaceAll(private, "\n", " ")
 
-		filePath := fmt.Sprintf("%s/%s", AgentPath, "remote-agent")
-		if osPlatform == "windows" {
-			filePath = fmt.Sprintf("%s/%s", AgentPath, "remote-agent.exe")
-		}
-
-		fileContent, err := ioutil.ReadFile(filePath)
-		if err != nil {
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte(fmt.Sprintf("Error reading file: %v", err)),
-				ContentType: "text/plain",
-			})
-		}
-
-		// Base64 encode the file content
-		encodedFileContent := base64.StdEncoding.EncodeToString(fileContent)
-
 		// Update the target topology
 		target, err = c.TargetsManager.GetState(ctx, id, namespace)
 		if err != nil {
@@ -530,7 +510,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
-			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\", \"file\":\"%s\"}", public, private, encodedFileContent)),
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
 		})
 
 	}

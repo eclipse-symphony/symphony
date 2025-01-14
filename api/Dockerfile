@@ -63,7 +63,7 @@ ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=/zoneinfo.zip
 COPY --from=build /dist /
 RUN mkdir /remote-agent
-COPY --from=build /remote-agent /remote-agent
+COPY --from=build /remote-agent /v1alpha2/files
 ADD ./api/symphony-api.json /
 EXPOSE 8080
 EXPOSE 8081

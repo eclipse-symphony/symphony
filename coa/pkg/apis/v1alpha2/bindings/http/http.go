@@ -61,7 +61,6 @@ type HttpBinding struct {
 
 // Launch fasthttp server
 func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endpoint, pubsubProvider pubsub.IPubSubProvider) error {
-	handler := h.useRouter(endpoints)
 	var err error
 	h.pipeline, err = BuildPipeline(config, pubsubProvider)
 
@@ -99,6 +98,16 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	for _, cert := range certs {
 		caCertPool.AddCert(cert)
 	}
+	fs := &fasthttp.FS{
+		Root:               "/", // Directory to serve files from
+		IndexNames:         []string{"index.html"},
+		GenerateIndexPages: true, // Default file names to look for
+		Compress:           true, // Generate directory listing if index file is not found
+	}
+	fileServerHandler := fs.NewRequestHandler()
+
+	handler := h.useRouter(endpoints, fileServerHandler)
+
 	h.server = &fasthttp.Server{
 		Handler: h.pipeline.Apply(handler),
 		TLSConfig: &tls.Config{
@@ -149,11 +158,11 @@ func (h *HttpBinding) Shutdown(ctx context.Context) error {
 	return h.server.ShutdownWithContext(ctx)
 }
 
-func (h *HttpBinding) useRouter(endpoints []v1alpha2.Endpoint) fasthttp.RequestHandler {
-	router := h.getRouter(endpoints)
+func (h *HttpBinding) useRouter(endpoints []v1alpha2.Endpoint, fileHandler fasthttp.RequestHandler) fasthttp.RequestHandler {
+	router := h.getRouter(endpoints, fileHandler)
 	return router.Handler
 }
-func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint) *routing.Router {
+func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint, fileHandler fasthttp.RequestHandler) *routing.Router {
 	router := routing.New()
 	router.SaveMatchedRoutePath = true
 	for _, e := range endpoints {
@@ -165,6 +174,7 @@ func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint) *routing.Router {
 			router.Handle(m, path, wrapAsHTTPHandler(e, e.Handler))
 		}
 	}
+	router.Handle("GET", "/v1alpha2/files/{filepath:*}", fileHandler)
 	return router
 }
 

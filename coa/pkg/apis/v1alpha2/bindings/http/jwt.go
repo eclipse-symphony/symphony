@@ -164,7 +164,7 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 					return
 				} else {
 					uri := ctx.Request.URI().String()
-					if strings.Contains(uri, "/targets/bootstrap") {
+					if strings.Contains(uri, "/targets/bootstrap") || strings.Contains(uri, "/files") {
 						next(ctx)
 					} else {
 						log.Errorf("JWT: The cert is not a symphony working cert. \n")

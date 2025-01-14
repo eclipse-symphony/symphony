@@ -1,17 +1,15 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: remote-demo
+  name: remote-demo3
 spec:
-  displayName: remote-demo
+  displayName: remote-demo3
   scope: default
   components:
   - name: remote-agent
     type: remote-agent
     properties:
       mock: mock
-      action: upgrade
-      version: 0.0.0.2
   topologies:
   - bindings:
     - provider: providers.target.script

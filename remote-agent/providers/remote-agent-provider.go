@@ -12,12 +12,12 @@ import (
 	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -40,6 +40,7 @@ const (
 	loggerName = "providers.target.remote-agent"
 	maxRetries = 3
 	retryDelay = 5 * time.Second
+	agentName  = "remote-agent"
 )
 
 var (
@@ -222,6 +223,35 @@ func (i *RemoteAgentProvider) generateAgentStatus(ctx context.Context) (string, 
 	return string(statusBytes), nil
 }
 
+func downloadFile(client *http.Client, url string, filepath string) error {
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Remote Agent Provider", ctx, &map[string]string{
 		"method": "Apply",
@@ -274,62 +304,10 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				}
 				continue
 			}
-			// call the upgrade api
-			upgradeUrl := fmt.Sprintf("%s/targets/upgrade/%s?namespace=%s", i.Config.BaseUrl, step.Target, i.Config.Namespace)
-			req, err := http.NewRequest("POST", upgradeUrl, nil)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to create upgrade request: %+v", err)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-			req.Header.Set("Content-Type", "application/json")
-			resp, err := i.Client.Do(req)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to call upgrade", err)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusOK {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to call upgrade: %s", resp.Status)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-
-			// parse resp body to get the new agent binary
-			body, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to read response body: %+v", err)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-			var result map[string]interface{}
-			err = json.Unmarshal(body, &result)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to unmarshal response body: %+v", err)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-			fileString, ok := result["file"].(string)
-			// base64 decode the file string
-			fileData, err := base64.StdEncoding.DecodeString(fileString)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to decode file string: %+v", err)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-
-			// Save the decoded file data to a temporary file
-			tmpFile, err := os.CreateTemp("", "new-binary-*.tmp")
+			// download the new agent binary
+			err = downloadFile(i.Client, fmt.Sprintf("%s/files/%s", i.Config.BaseUrl, agentName), "new-binary")
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to create temp file: %+v", err)
-				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-				continue
-			}
-
-			_, err = tmpFile.Write(fileData)
-			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to write to temp file: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
@@ -342,14 +320,13 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				continue
 			}
 
-			err = os.Rename(tmpFile.Name(), execPath)
+			err = os.Rename("new-binary", execPath)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to replace binary: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
 
-			tmpFile.Close()
 			// Change the mode of the execPath to add execute permissions
 			err = os.Chmod(execPath, 0755)
 			if err != nil {
