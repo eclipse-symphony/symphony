@@ -113,6 +113,10 @@ func (e APIError) Error() string {
 	)
 }
 
+func (e APIError) IsRetriableErr() bool {
+	return ToCOAError(e).IsRetriableErr()
+}
+
 func NewAPIError(state v1alpha2.State, msg string) APIError {
 	return APIError{
 		Code:    state,

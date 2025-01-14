@@ -134,6 +134,11 @@ const (
 
 	//target controller errors
 	TargetPropertyNotFound State = 12000
+
+	// transient or retriable errors 4000 - 49999
+
+	// non-transient errors 50000 - 59999
+	GetComponentPropsFailed State = 50000
 )
 
 func GetHttpStatus(code int) State {
@@ -351,6 +356,8 @@ func (s State) String() string {
 		return "Timed Out"
 	case TargetPropertyNotFound:
 		return "Target Property Not Found"
+	case GetComponentPropsFailed:
+		return "Get component property failed"
 	default:
 		return fmt.Sprintf("Unknown State: %d", s)
 	}

@@ -105,7 +105,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 				tLog.ErrorfCtx(ctx, " V (Models): onModels failed to GetSpec, id: %s, err: %v", id, err)
 			}
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -138,7 +138,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to UpsertSpec, id: %s, error: %v", id, err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -152,7 +152,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to DeleteSpec, id: %s, error: %v", id, err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}

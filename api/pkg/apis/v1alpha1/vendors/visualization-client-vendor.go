@@ -100,7 +100,7 @@ func (c *VisualizationClientVendor) onVisClient(request v1alpha2.COARequest) v1a
 		if err != nil {
 			cvLog.ErrorfCtx(pCtx, "V (VisualizationClient): onVisClient failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
