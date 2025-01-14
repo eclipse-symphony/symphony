@@ -322,6 +322,14 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 
 		}
+		if !c.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
+			log.Info("can not get lock")
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte("{\"result\":\"200 - M (Solution): can not get lock\"}"),
+				ContentType: "application/json",
+			})
+		}
 		log.InfoCtx(ctx, "lock %s", deployment.Instance.ObjectMeta.Name)
 		c.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
 		// Generate new deployment plan for deployment
