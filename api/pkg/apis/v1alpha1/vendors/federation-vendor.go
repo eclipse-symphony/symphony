@@ -238,7 +238,7 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -284,7 +284,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -315,7 +315,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		err = f.SitesManager.UpsertState(ctx, id, site)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -328,7 +328,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		err := f.SitesManager.DeleteSpec(ctx, id)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -369,7 +369,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Federation): failed to publish job report: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -403,7 +403,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -416,7 +416,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 				catalog, err := f.CatalogsManager.GetState(ctx, c.Id, namespace)
 				if err != nil {
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State: v1alpha2.InternalError,
+						State: v1alpha2.GetErrorState(err),
 						Body:  []byte(err.Error()),
 					})
 				}
@@ -489,7 +489,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}

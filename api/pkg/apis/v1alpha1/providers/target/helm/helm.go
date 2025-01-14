@@ -784,11 +784,12 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil
 }
+
 func checkReleaseExists(ctx context.Context, config *action.Configuration, releaseName string) (bool, error) {
 	sLog.InfofCtx(ctx, "  P (Helm Target): begin to check release exists %s", releaseName)
 
 	if releaseName == "" {
-		return false, fmt.Errorf("Release name is required")
+		return false, v1alpha2.NewCOAError(nil, "Release name is required", v1alpha2.BadConfig)
 	}
 
 	client := action.NewHistory(config)
@@ -798,7 +799,7 @@ func checkReleaseExists(ctx context.Context, config *action.Configuration, relea
 		if errors.Is(err, driver.ErrReleaseNotFound) {
 			return false, nil
 		}
-		return false, err
+		return false, v1alpha2.NewCOAError(err, fmt.Sprintf("check release %s failed", releaseName), v1alpha2.HelmActionFailed)
 	}
 
 	if len(releases) > 0 {
@@ -850,11 +851,13 @@ func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) 
 	duration, err := time.ParseDuration(timeout)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to parse timeout duration: %v", err)
+		err = v1alpha2.NewCOAError(err, "failed to parse timeout duration", v1alpha2.GetComponentPropsFailed)
 		return 0, err
 	}
 	if duration < 0 {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): Timeout is negative: %s", timeout)
-		return 0, errors.New("timeout can not be negative")
+		err = v1alpha2.NewCOAError(err, "target provider timeout can not be negative", v1alpha2.GetComponentPropsFailed)
+		return 0, err
 	}
 	return duration, nil
 }
