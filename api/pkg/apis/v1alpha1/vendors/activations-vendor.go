@@ -187,6 +187,12 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
+		oldState, err := c.ActivationsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			activation.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
 		err = c.ActivationsManager.UpsertState(ctx, id, activation)
 		if err != nil {
 			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())

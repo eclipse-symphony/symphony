@@ -156,7 +156,14 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				solution.ObjectMeta.Name = id
 			}
 		}
-		err := c.SolutionsManager.UpsertState(ctx, id, solution)
+
+		oldState, err := c.SolutionsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			solution.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
+		err = c.SolutionsManager.UpsertState(ctx, id, solution)
 		if err != nil {
 			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

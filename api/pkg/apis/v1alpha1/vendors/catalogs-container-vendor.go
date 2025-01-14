@@ -133,6 +133,12 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 		catalogContainer.ObjectMeta.Namespace = namespace
 		catalogContainer.Spec = &model.CatalogContainerSpec{}
 
+		oldState, err := c.CatalogContainersManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			catalogContainer.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
 		err = c.CatalogContainersManager.UpsertState(ctx, id, catalogContainer)
 		if err != nil {
 			ctLog.ErrorfCtx(ctx, "V (CatalogContainers): onCatalogContainers failed - %s", err.Error())

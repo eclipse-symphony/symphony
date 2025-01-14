@@ -134,6 +134,12 @@ func (c *SkillsVendor) onSkills(request v1alpha2.COARequest) v1alpha2.COARespons
 			})
 		}
 
+		oldState, err := c.SkillsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			skill.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
 		err = c.SkillsManager.UpsertState(ctx, id, skill)
 		if err != nil {
 			kLog.ErrorfCtx(ctx, "V (Skills): onSkills failed to UpsertSpec, id: %s, error: %v", id, err)

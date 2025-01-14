@@ -170,7 +170,13 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				instance.ObjectMeta.Name = id
 			}
 		}
-		err := c.InstancesManager.UpsertState(ctx, id, instance)
+
+		oldState, err := c.InstancesManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			instance.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+		err = c.InstancesManager.UpsertState(ctx, id, instance)
 		if err != nil {
 			iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

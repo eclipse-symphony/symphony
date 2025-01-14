@@ -126,7 +126,13 @@ func (c *CampaignContainersVendor) onCampaignContainers(request v1alpha2.COARequ
 			Spec: &model.CampaignContainerSpec{},
 		}
 
-		err := c.CampaignContainersManager.UpsertState(ctx, id, campaign)
+		oldState, err := c.CampaignContainersManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			campaign.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
+		err = c.CampaignContainersManager.UpsertState(ctx, id, campaign)
 		if err != nil {
 			ccLog.InfofCtx(ctx, "V (CampaignContainers): onCampaignContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

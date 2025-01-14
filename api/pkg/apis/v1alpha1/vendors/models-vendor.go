@@ -134,6 +134,12 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 			})
 		}
 
+		oldState, err := c.ModelsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			model.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
 		err = c.ModelsManager.UpsertState(ctx, id, model)
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to UpsertSpec, id: %s, error: %v", id, err)

@@ -74,7 +74,13 @@ func (e *CatalogsVendor) Init(config vendors.VendorConfig, factories []managers.
 					if event.Context != nil {
 						ctx = event.Context
 					}
-					err := e.CatalogsManager.UpsertState(ctx, name, catalog)
+
+					oldState, err := e.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
+					if err == nil {
+						// Need to assign ETag to the new state
+						catalog.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+					}
+					err = e.CatalogsManager.UpsertState(ctx, name, catalog)
 					if err != nil {
 						return err
 					}
@@ -356,6 +362,12 @@ func (e *CatalogsVendor) onCatalogs(request v1alpha2.COARequest) v1alpha2.COARes
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
+		}
+
+		oldState, err := e.CatalogsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			catalog.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
 		}
 
 		err = e.CatalogsManager.UpsertState(ctx, id, catalog)

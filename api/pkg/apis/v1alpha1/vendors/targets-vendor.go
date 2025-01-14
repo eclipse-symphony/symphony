@@ -213,6 +213,11 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 				})
 			}
 		}
+		oldState, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			target.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
 		err = c.TargetsManager.UpsertState(ctx, id, target)
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())

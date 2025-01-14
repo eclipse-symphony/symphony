@@ -130,6 +130,11 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			})
 		}
 
+		oldState, err := c.DevicesManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			device.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
 		err = c.DevicesManager.UpsertState(ctx, id, device)
 		if err != nil {
 			log.ErrorfCtx(ctx, "V (Devices): failed to upsert device spec, error %v", err)

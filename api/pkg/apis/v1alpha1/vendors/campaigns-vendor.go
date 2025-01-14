@@ -128,6 +128,12 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 			})
 		}
 
+		oldState, err := c.CampaignsManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			campaign.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
 		err = c.CampaignsManager.UpsertState(ctx, id, campaign)
 		if err != nil {
 			cLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())

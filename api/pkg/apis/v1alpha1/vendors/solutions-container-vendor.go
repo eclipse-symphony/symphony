@@ -132,6 +132,12 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		solutionContainer.ObjectMeta.Namespace = namespace
 		solutionContainer.Spec = &model.SolutionContainerSpec{}
 
+		oldState, err := c.SolutionContainersManager.GetState(ctx, id, namespace)
+		if err == nil {
+			// Need to assign ETag to the new state
+			solutionContainer.ObjectMeta.UpdateEtag(oldState.ObjectMeta.ETag)
+		}
+
 		err = c.SolutionContainersManager.UpsertState(ctx, id, solutionContainer)
 		if err != nil {
 			scLog.ErrorfCtx(ctx, "V (SolutionContainers): onSolutionContainers failed - %s", err.Error())
