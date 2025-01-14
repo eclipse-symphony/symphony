@@ -109,6 +109,7 @@ func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error 
 }
 
 func (mslp *MemoryKeyLockProvider) Lock(key string) {
+	sLog.Info("Trying to init lock a memoryKeyLock", key)
 	mslp.memKeyLockInstance.lm.getLockNode(key).Lock()
 }
 
