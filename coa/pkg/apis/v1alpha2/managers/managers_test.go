@@ -16,7 +16,6 @@ import (
 	mockledger "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
-	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	mockreference "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
@@ -51,7 +50,7 @@ func TestGetQueueProvider(t *testing.T) {
 		},
 	}
 	pMap := map[string]providers.IProvider{
-		"-queue": queueProvider,
+		"memory-queue": queueProvider,
 	}
 
 	p, err := GetQueueProvider(config, pMap)
@@ -81,8 +80,8 @@ func TestGetQueueProvider(t *testing.T) {
 	assert.Equal(t, v1alpha2.MissingConfig, coaError.State)
 
 	// not a queue provider
-	stateProvider := &redisqueue.RedisQueueProvider{}
-	err = stateProvider.Init(redisqueue.RedisQueueProviderConfig{})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	err = stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	assert.Nil(t, err)
 	pMap3 := map[string]providers.IProvider{
 		"memory-queue": stateProvider,
