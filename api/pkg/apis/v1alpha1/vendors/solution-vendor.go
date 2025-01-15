@@ -335,7 +335,7 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 func (e *SolutionVendor) handleGetPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	// Collect result
 	log.InfoCtx(ctx, "V(Solution): Begin to get current state %v", planState)
-	Plan, err := e.threeStateMerge(ctx, planState)
+	Plan, planState, err := e.threeStateMerge(ctx, planState)
 	if err != nil {
 		log.ErrorfCtx(ctx, "V(Solution): Failed to merge states: %v", err)
 		return err
@@ -382,8 +382,9 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 			log.ErrorfCtx(ctx, "V(Solution): Failed to handle apply plan completion: %v", err)
 			return err
 		}
+		e.PlanManager.DeletePlan(planState.PlanId)
 	}
-	e.PlanManager.DeletePlan(planState.PlanId)
+
 	return nil
 }
 
@@ -1256,7 +1257,7 @@ func (e *SolutionVendor) doRemove(ctx context.Context, deployment model.Deployme
 }
 
 // threeStateMerge merges the current, previous, and desired states to create a deployment plan.
-func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanState) (model.DeploymentPlan, error) {
+func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanState) (model.DeploymentPlan, *PlanState, error) {
 	currentState := model.DeploymentState{}
 	currentState.TargetComponent = make(map[string]string)
 
@@ -1280,7 +1281,7 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 	currentDesiredState, err := solution.NewDeploymentState(planState.Deployment)
 	if err != nil {
 		log.ErrorfCtx(ctx, "V(Solution): Failed to get current desired state: %+v", err)
-		return model.DeploymentPlan{}, err
+		return model.DeploymentPlan{}, &PlanState{}, err
 	}
 	log.InfoCtx(ctx, "V(Solution): Get current desired state %+v", currentDesiredState)
 	desiredState := currentDesiredState
@@ -1301,10 +1302,11 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 		e.UnlockObject(ctx, lockName)
 		log.ErrorfCtx(ctx, "V(Solution): Plan generate error")
-		return model.DeploymentPlan{}, err
+		return model.DeploymentPlan{}, &PlanState{}, err
 	}
+	e.PlanManager.Plans.Store(planState.PlanId, planState)
 	log.InfoCtx(ctx, "V(Solution): Begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
-	return Plan, nil
+	return Plan, planState, nil
 }
 
 func (e *SolutionVendor) UnlockObject(ctx context.Context, lockName string) {
