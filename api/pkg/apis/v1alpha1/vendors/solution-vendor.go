@@ -818,9 +818,9 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 
 		}
 		lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
-		if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
-			log.Info("can not get lock %s", lockName)
-		}
+		// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
+		// 	log.Info("can not get lock %s", lockName)
+		// }
 		if !e.SolutionManager.KeyLockProvider.TryLockWithTimeout(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name), 30*time.Second) {
 			log.Info("can not get lock")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -829,8 +829,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				ContentType: "application/json",
 			})
 		}
-		log.InfoCtx(ctx, "lock %s", deployment.Instance.ObjectMeta.Name)
-		e.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
+		log.InfoCtx(ctx, "lock succeed %s", lockName)
+		// e.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
 		// Generate new deployment plan for deployment
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
