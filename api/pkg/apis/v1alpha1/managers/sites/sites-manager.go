@@ -186,8 +186,6 @@ func (m *SitesManager) UpsertState(ctx context.Context, name string, state model
 		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
-	log.InfofCtx(ctx, "Site state %+v", state)
-
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
