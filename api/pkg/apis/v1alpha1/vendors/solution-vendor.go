@@ -414,7 +414,6 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 		log.ErrorCtx(ctx, "Failed to update plan state: %v", err)
 		return err
 	}
-
 	return nil
 }
 
@@ -805,7 +804,14 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			JobID:               deployment.JobID,
 		}
 		data, _ := json.Marshal(summary)
-		e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
+		err = e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to save summary: %+v\"}", err)),
+				ContentType: "application/json",
+			})
+		}
 		// get the components count for the deployment
 		componentCount := len(deployment.Solution.Spec.Components)
 		apiOperationMetrics.ApiComponentCount(
