@@ -776,6 +776,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
+		log.InfoCtx(ctx, "get deployment %+v", deployment)
 		log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
 			deployment.Instance.ObjectMeta.Name,
 			deployment.SolutionName,
@@ -1337,7 +1338,8 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 	// update summary
 	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	planState.MergedState.ClearAllRemoved()
-
+	log.InfoCtx(ctx, "if it is dry run %+v", planState.Deployment.IsDryRun)
+	log.InfoCtx(ctx, "get dep %+v", planState.Deployment)
 	if !planState.Deployment.IsDryRun {
 		if len(planState.MergedState.TargetComponent) == 0 && planState.Remove {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
