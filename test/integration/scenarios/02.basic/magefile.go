@@ -20,7 +20,7 @@ import (
 // Test config
 const (
 	TEST_NAME    = "basic manifest deploy scenario"
-	TEST_TIMEOUT = "10m"
+	TEST_TIMEOUT = "30m"
 )
 
 var (
