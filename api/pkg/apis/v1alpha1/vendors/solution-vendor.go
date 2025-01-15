@@ -90,9 +90,6 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
 			err := e.handleDeploymentStep(ctx, event)
-			if err != nil {
-				e.UnlockObject(ctx)
-			}
 			return err
 		},
 		Group: "Solution-vendor",
