@@ -78,9 +78,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	if s.ActivationsManager == nil {
 		return v1alpha2.NewCOAError(nil, "activations manager is not supplied", v1alpha2.MissingConfig)
 	}
-	if s.SolutionManager == nil {
-		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
-	}
 	s.Vendor.Context.Subscribe("activation", v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
 			ctx := context.TODO()

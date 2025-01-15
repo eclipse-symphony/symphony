@@ -86,9 +86,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if f.CatalogsManager == nil {
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
-	if f.SolutionManager == nil {
-		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
-	}
 	f.apiClient, err = utils.GetParentApiClient(f.Vendor.Context.SiteInfo.ParentSite.BaseUrl)
 	if err != nil {
 		return err
