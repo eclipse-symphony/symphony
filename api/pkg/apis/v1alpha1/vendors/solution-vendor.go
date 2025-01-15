@@ -155,6 +155,7 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	planState := e.createPlanState(ctx, planEnvelope)
 	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
+
 	if planState.isCompleted() {
 		return e.handlePlanComplete(ctx, planState)
 
@@ -1286,7 +1287,17 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 }
 
 func (e *SolutionVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {
-	return e.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
+	err := e.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
+	if err != nil {
+		log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
+		if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
+			log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+		} else {
+			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+		}
+	}
+	return err
 }
 func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
@@ -1332,13 +1343,23 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 	if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
 		log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 		e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	} else {
+		e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	}
 	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
+		log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
+		if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
+			log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+		} else {
+			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+		}
 		return err
 	}
 	return nil
 }
+
 func (p *PlanState) IsExpired() bool {
 	log.Info("time now")
 	log.Info("time expired")
