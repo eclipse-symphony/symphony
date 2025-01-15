@@ -90,6 +90,9 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
 			err := e.handleDeploymentStep(ctx, event)
+			if err != nil {
+				e.UnlockObject(ctx)
+			}
 			return err
 		},
 		Group: "Solution-vendor",
@@ -102,7 +105,18 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 
 			log.InfoCtx(ctx, "V(StageVendor): Begin to execute deployment-plan")
-			return e.handleDeploymentPlan(ctx, event)
+			err := e.handleDeploymentPlan(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
+				// release lock
+				var planEnvelope PlanEnvelope
+				jData, _ := json.Marshal(event.Body)
+				json.Unmarshal(jData, &planEnvelope)
+				lockName := api_utils.GenerateKeyLockName(planEnvelope.Namespace, planEnvelope.Deployment.Instance.ObjectMeta.Name)
+				e.SolutionManager.KeyLockProvider.UnLock(lockName)
+				return err
+			}
+			return err
 		},
 		Group: "stage-vendor",
 	})
@@ -115,13 +129,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
-			for i := 0; i < MaxRetries; i++ {
-				err := e.handleDeploymentStep(ctx, event)
-				if err == nil {
-					return nil
-				}
-				time.Sleep(RetryDelay)
-			}
+			err := e.handleDeploymentStep(ctx, event)
 			return err
 		},
 		Group: "Solution-vendor",
@@ -770,14 +778,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
 		// 	log.Info("can not get lock %s", lockName)
 		// }
-		if !e.SolutionManager.KeyLockProvider.TryLock(lockName) {
-			log.Info("can not get lock")
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte("{\"result\":\"500 - M (Solution): failed to acquire lock\"}"),
-				ContentType: "application/json",
-			})
-		}
+		e.SolutionManager.KeyLockProvider.Lock(lockName)
 		log.InfoCtx(ctx, "lock succeed %s", lockName)
 		delete := request.Parameters["delete"]
 		remove := delete == "true"
@@ -801,6 +802,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
+			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.MethodNotAllowed,
