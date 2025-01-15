@@ -155,6 +155,8 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	planState := e.createPlanState(ctx, planEnvelope)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
+		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		e.UnlockObject(ctx, lockName)
 		return err
 	}
 	if planState.isCompleted() {
@@ -310,6 +312,7 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
+
 		}
 	}
 
