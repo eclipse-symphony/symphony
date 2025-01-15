@@ -637,7 +637,7 @@ func (e *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  data,
 				})
 			}
@@ -727,7 +727,7 @@ func (e *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue DeleteSummary failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -856,9 +856,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to generate initial plan: %+v\"}", err)),
-				ContentType: "application/json",
+				State: v1alpha2.GetErrorState(err),
+				Body:  data,
 			})
 		}
 
