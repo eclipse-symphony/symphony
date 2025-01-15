@@ -262,7 +262,10 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 			item.Object["spec"] = v
 
 			// If we update the labels, annotations or spec, we should respect the resource version provided by client.
-			item.SetResourceVersion(entry.Value.ETag)
+			// If client does not provide a ETag, we treat it as concurrency not required and ignore the ETag.
+			if entry.Value.ETag != "" {
+				item.SetResourceVersion(entry.Value.ETag)
+			}
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object: %v", err)
