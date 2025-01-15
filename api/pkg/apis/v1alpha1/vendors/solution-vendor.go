@@ -1306,6 +1306,7 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 }
 
 func (e *SolutionVendor) UnlockObject(ctx context.Context, lockName string) {
+	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	log.InfoCtx(ctx, "unlock %s", lockName)
 	e.SolutionManager.KeyLockProvider.UnLock(lockName)
 }
