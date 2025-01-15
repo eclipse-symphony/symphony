@@ -817,8 +817,9 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 
 		}
+		lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
 		if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
-			log.Info("can not get lock")
+			log.Info("can not get lock ", lockName)
 		}
 		if !e.SolutionManager.KeyLockProvider.TryLockWithTimeout(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name), 30*time.Second) {
 			log.Info("can not get lock")
