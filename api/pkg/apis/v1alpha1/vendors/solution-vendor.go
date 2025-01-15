@@ -89,13 +89,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
-			for i := 0; i < MaxRetries; i++ {
-				err := e.handleDeploymentStep(ctx, event)
-				if err == nil {
-					return nil
-				}
-				time.Sleep(RetryDelay)
-			}
+			err := e.handleDeploymentStep(ctx, event)
 			return err
 		},
 		Group: "Solution-vendor",
@@ -152,7 +146,10 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		log.ErrorCtx(ctx, "failed to unmarshal plan envelope :%v", err)
 		return err
 	}
+
 	planState := e.createPlanState(ctx, planEnvelope)
+	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
@@ -257,7 +254,8 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 	// Log the update of plan state with the step result
 	log.InfoCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
 	planState.CompletedSteps++
-
+	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	switch planState.Phase {
 	case PhaseGet:
 		// Update the GetResult for the specific step
@@ -392,7 +390,6 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 // handleStepResult processes the event and updates the plan state accordingly.
 func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Event) error {
 	var stepResult StepResult
-
 	// Marshal the event body to JSON
 	jData, _ := json.Marshal(event.Body)
 	log.InfofCtx(ctx, "Received event body: %s", string(jData))
@@ -404,7 +401,6 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	}
 
 	planId := stepResult.PlanId
-
 	// Load the plan state object from the PlanManager
 	planStateObj, exists := e.PlanManager.Plans.Load(planId)
 	if !exists {
@@ -475,6 +471,8 @@ func (e *SolutionVendor) handleDeploymentStep(ctx context.Context, event v1alpha
 	if stepEnvelope.Step.Role == "container" {
 		stepEnvelope.Step.Role = "instance"
 	}
+	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
+	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	switch stepEnvelope.PlanState.Phase {
 	case PhaseGet:
 		return e.handlePhaseGet(ctx, stepEnvelope)
