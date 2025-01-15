@@ -90,6 +90,16 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
 			err := e.handleDeploymentStep(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
+				// release lock
+				var stepEnvelope StepEnvelope
+				jData, _ := json.Marshal(event.Body)
+				json.Unmarshal(jData, &stepEnvelope)
+				lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
+				e.SolutionManager.KeyLockProvider.UnLock(lockName)
+				return err
+			}
 			return err
 		},
 		Group: "Solution-vendor",
@@ -117,27 +127,18 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 		},
 		Group: "stage-vendor",
 	})
-	// todo: add retry
-	e.Vendor.Context.Subscribe(DeploymentStepTopic, v1alpha2.EventHandler{
-		Handler: func(topic string, event v1alpha2.Event) error {
-			ctx := context.TODO()
-			if event.Context != nil {
-				ctx = event.Context
-			}
-			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
-			// get data
-			err := e.handleDeploymentStep(ctx, event)
-			return err
-		},
-		Group: "Solution-vendor",
-	})
 	e.Vendor.Context.Subscribe(CollectStepResultTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
 			ctx := event.Context
 			if ctx == nil {
 				ctx = context.TODO()
 			}
-			return e.handleStepResult(ctx, event)
+			err := e.handleStepResult(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(Solution): Failed to handle step result: %v", err)
+				return err
+			}
+			return err
 		},
 		Group: "stage-vendor",
 	})
@@ -157,8 +158,8 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
-		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		e.UnlockObject(ctx, lockName)
+		// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		// e.UnlockObject(ctx, lockName)
 		return err
 	}
 	if planState.isCompleted() {
@@ -201,8 +202,9 @@ func (e *SolutionVendor) publishDeploymentStep(ctx context.Context, stepId int, 
 		},
 		Context: ctx,
 	}); err != nil {
-		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		e.UnlockObject(ctx, lockName)
+		// log.InfoCtx(ctx, "unlock3")
+		// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		// e.UnlockObject(ctx, lockName)
 		log.InfoCtx(ctx, "V(StageVendor): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 		return err
 	}
@@ -213,7 +215,7 @@ func (e *SolutionVendor) publishStepResult(ctx context.Context, target string, p
 	if Error != nil {
 		errorString = Error.Error()
 	}
-	return e.Vendor.Context.Publish("step-result", v1alpha2.Event{
+	return e.Vendor.Context.Publish(CollectStepResultTopic, v1alpha2.Event{
 		Body: StepResult{
 			Target:      target,
 			PlanId:      planId,
@@ -282,7 +284,7 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 				planState.TargetResult[stepResult.Target] = -1
 				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
 			}
-			return e.handlePlanComplete(ctx, planState)
+			return e.handleAllPlanCompletetion(ctx, planState)
 		} else {
 			// Handle success case and update the target result status and message
 			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
@@ -297,8 +299,6 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 			if stepResult.StepId != planState.TotalSteps-1 {
 				log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
 				if err := e.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
-					lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-					e.UnlockObject(ctx, lockName)
 					log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
 					return err
 				}
@@ -327,9 +327,11 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		err := e.handlePlanComplete(ctx, planState)
 		if err != nil {
 			log.InfoCtx(ctx, "V(Solution): handle plan Complete failed %+v", err)
+			log.InfoCtx(ctx, "unlock2")
 			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 			e.UnlockObject(ctx, lockName)
 		}
+		return err
 	}
 
 	return nil
@@ -374,16 +376,17 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 	switch planState.Phase {
 	case PhaseGet:
 		if err := e.handleGetPlanCompletetion(ctx, planState); err != nil {
-			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-			e.UnlockObject(ctx, lockName)
-			log.ErrorfCtx(ctx, "V(Solution): Failed to handle get plan completion: %v", err)
+			e.PlanManager.DeletePlan(planState.PlanId)
+			// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			// e.UnlockObject(ctx, lockName)
+			// log.ErrorfCtx(ctx, "V(Solution): Failed to handle get plan completion: %v", err)
 			return err
 		}
 	case PhaseApply:
-		if err := e.handleApplyPlanCompletetion(ctx, planState); err != nil {
-			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-			e.UnlockObject(ctx, lockName)
-			log.ErrorfCtx(ctx, "V(Solution): Failed to handle apply plan completion: %v", err)
+		if err := e.handleAllPlanCompletetion(ctx, planState); err != nil {
+			// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			// e.UnlockObject(ctx, lockName)
+			// log.ErrorfCtx(ctx, "V(Solution): Failed to handle apply plan completion: %v", err)
 			return err
 		}
 		e.PlanManager.DeletePlan(planState.PlanId)
@@ -409,14 +412,18 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	// Load the plan state object from the PlanManager
 	planStateObj, exists := e.PlanManager.Plans.Load(planId)
 	if !exists {
-		log.ErrorCtx(ctx, "Plan not found: %s", planId)
+		// log.ErrorCtx(ctx, "Plan not found: %s", planId)
+		// e.UnlockObject(ctx, api_utils.GenerateKeyLockName(stepResult.Namespace, stepResult.PlanId))
 		return fmt.Errorf("Plan not found: %s", planId)
 	}
 	planState := planStateObj.(*PlanState)
 
 	// Update the plan state in the map and save the summary
 	if err := e.saveStepResult(ctx, planState, stepResult); err != nil {
-		log.ErrorCtx(ctx, "Failed to update plan state: %v", err)
+		log.ErrorCtx(ctx, "Failed to handle step result: %v", err)
+		// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		// log.InfoCtx(ctx, "unlock1")
+		// e.UnlockObject(ctx, lockName)
 		return err
 	}
 	return nil
@@ -475,8 +482,6 @@ func (e *SolutionVendor) handleDeploymentStep(ctx context.Context, event v1alpha
 	if stepEnvelope.Step.Role == "container" {
 		stepEnvelope.Step.Role = "instance"
 	}
-	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
-	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	switch stepEnvelope.PlanState.Phase {
 	case PhaseGet:
 		return e.handlePhaseGet(ctx, stepEnvelope)
@@ -799,6 +804,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
+			log.InfoCtx(ctx, "unlock5")
 			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -1319,7 +1325,7 @@ func (e *SolutionVendor) SaveSummaryInfo(ctx context.Context, planState *PlanSta
 	return e.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, state, planState.Namespace)
 }
 
-func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planState *PlanState) error {
+func (e *SolutionVendor) handleAllPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateDone); err != nil {
 		return err
@@ -1365,6 +1371,7 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		return err
 	}
+	log.InfoCtx(ctx, "final unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
 	e.UnlockObject(ctx, api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	return nil
 }
