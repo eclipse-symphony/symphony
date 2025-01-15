@@ -154,8 +154,9 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	}
 	planState := e.createPlanState(ctx, planEnvelope)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
-	e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
-
+	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
+		return err
+	}
 	if planState.isCompleted() {
 		return e.handlePlanComplete(ctx, planState)
 
@@ -165,9 +166,6 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		case PhaseGet:
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 			if err := e.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
-				log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
-				lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-				e.UnlockObject(ctx, lockName)
 				return err
 			}
 		case PhaseApply:
@@ -180,9 +178,6 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		// planState.Summary.PlannedDeployment += len(planEnvelope.Plan.Steps[0].Components)
 		log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
 		if err := e.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
-			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-			e.UnlockObject(ctx, lockName)
-			log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
 			return err
 		}
 	}
@@ -314,8 +309,6 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		// Save the summary information
 		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
-			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
 	}
@@ -325,7 +318,12 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 
 	// Check if all steps are completed and handle plan completion
 	if planState.isCompleted() {
-		return e.handlePlanComplete(ctx, planState)
+		err := e.handlePlanComplete(ctx, planState)
+		if err != nil {
+			log.InfoCtx(ctx, "V(Solution): handle plan Complete failed %+v", err)
+			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			e.UnlockObject(ctx, lockName)
+		}
 	}
 
 	return nil
@@ -1299,9 +1297,6 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 	log.InfoCtx(ctx, "get merged state %+v", mergedState)
 	Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 	if err != nil {
-		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		e.UnlockObject(ctx, lockName)
-		log.ErrorfCtx(ctx, "V(Solution): Plan generate error")
 		return model.DeploymentPlan{}, &PlanState{}, err
 	}
 	e.PlanManager.Plans.Store(planState.PlanId, planState)
@@ -1311,27 +1306,15 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 
 func (e *SolutionVendor) UnlockObject(ctx context.Context, lockName string) {
 	log.InfoCtx(ctx, "unlock %s", lockName)
-	if !e.SolutionManager.KeyLockProvider.TryLock(lockName) {
-		log.InfoCtx(ctx, "try lock no lock %s", lockName)
-		e.SolutionManager.KeyLockProvider.UnLock(lockName)
-	} else {
-		e.SolutionManager.KeyLockProvider.UnLock(lockName)
-	}
+	e.SolutionManager.KeyLockProvider.UnLock(lockName)
 }
 func (e *SolutionVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {
-	err := e.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
-	if err != nil {
-		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		e.UnlockObject(ctx, lockName)
-	}
-	return err
+	return e.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, state, planState.Namespace)
 }
+
 func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateDone); err != nil {
-		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		e.UnlockObject(ctx, lockName)
-		log.ErrorfCtx(ctx, "Failed to save summary progress done: %v", err)
 		return err
 	}
 	// update summary
@@ -1372,20 +1355,10 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 			})
 		}
 	}
-	log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
-	if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
-		log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-		e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-	} else {
-		e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-	}
 	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
-		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
-		log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
-		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		e.UnlockObject(ctx, lockName)
 		return err
 	}
+	e.UnlockObject(ctx, api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	return nil
 }
 
