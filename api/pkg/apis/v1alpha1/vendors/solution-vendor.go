@@ -87,7 +87,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			if event.Context != nil {
 				ctx = event.Context
 			}
-			log.InfoCtx(ctx, "V(Federation): subscribe deployment-step and begin to apply step ")
+			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
 			for i := 0; i < MaxRetries; i++ {
 				err := e.handleDeploymentStep(ctx, event)
@@ -98,7 +98,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 			return err
 		},
-		Group: "federation-vendor",
+		Group: "Solution-vendor",
 	})
 	e.Vendor.Context.Subscribe(DeploymentPlanTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
@@ -130,7 +130,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 			return err
 		},
-		Group: "federation-vendor",
+		Group: "Solution-vendor",
 	})
 	e.Vendor.Context.Subscribe(CollectStepResultTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
@@ -153,7 +153,7 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		return err
 	}
 	planState := e.createPlanState(ctx, planEnvelope)
-	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
+	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
 	e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning)
 
 	if planState.isCompleted() {
@@ -165,8 +165,9 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		case PhaseGet:
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 			if err := e.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
-				log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
-
+				log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
+				lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+				e.UnlockObject(ctx, lockName)
 				return err
 			}
 		case PhaseApply:
@@ -177,20 +178,22 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	switch planEnvelope.Phase {
 	case PhaseApply:
 		// planState.Summary.PlannedDeployment += len(planEnvelope.Plan.Steps[0].Components)
-		log.InfoCtx(ctx, "V(Federation): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
+		log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
 		if err := e.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
-			log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
+			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			e.UnlockObject(ctx, lockName)
+			log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
 			return err
 		}
 	}
 	// }
-	log.InfoCtx(ctx, "V(Federation): store plan id %s in map %+v", planEnvelope.PlanId)
+	log.InfoCtx(ctx, "V(Solution): store plan id %s in map %+v", planEnvelope.PlanId)
 	e.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
 	return nil
 }
 func (e *SolutionVendor) publishDeploymentStep(ctx context.Context, stepId int, planState *PlanState, remove bool, step model.DeploymentStep) error {
 	log.InfoCtx(ctx, "V(StageVendor): publish deployment step for PlanId %s StepId %s", planState.PlanId, stepId)
-	if err := e.Vendor.Context.Publish("deployment-step", v1alpha2.Event{
+	if err := e.Vendor.Context.Publish(DeploymentStepTopic, v1alpha2.Event{
 		Body: StepEnvelope{
 			Step:      step,
 			StepId:    stepId,
@@ -199,6 +202,8 @@ func (e *SolutionVendor) publishDeploymentStep(ctx context.Context, stepId int, 
 		},
 		Context: ctx,
 	}); err != nil {
+		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		e.UnlockObject(ctx, lockName)
 		log.InfoCtx(ctx, "V(StageVendor): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 		return err
 	}
@@ -253,7 +258,7 @@ func (e *SolutionVendor) createPlanState(ctx context.Context, planEnvelope PlanE
 // saveStepResult updates the plan state with the step result and saves the summary.
 func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanState, stepResult StepResult) error {
 	// Log the update of plan state with the step result
-	log.InfoCtx(ctx, "V(Stage): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
+	log.InfoCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
 	planState.CompletedSteps++
 
 	switch planState.Phase {
@@ -290,9 +295,11 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 			}
 			// publish next step execute event
 			if stepResult.StepId != planState.TotalSteps-1 {
-				log.InfoCtx(ctx, "V(Stage): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
+				log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
 				if err := e.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
-					log.InfoCtx(ctx, "V(Stage): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
+					lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+					e.UnlockObject(ctx, lockName)
+					log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
 					return err
 				}
 			}
@@ -307,6 +314,8 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		// Save the summary information
 		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
+			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
 	}
@@ -325,10 +334,10 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 // handleGetPlanCompletetion handles the completion of the get plan phase.
 func (e *SolutionVendor) handleGetPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	// Collect result
-	log.InfoCtx(ctx, "V(Stage): Begin to get current state %v", planState)
+	log.InfoCtx(ctx, "V(Solution): Begin to get current state %v", planState)
 	Plan, err := e.threeStateMerge(ctx, planState)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(Stage): Failed to merge states: %v", err)
+		log.ErrorfCtx(ctx, "V(Solution): Failed to merge states: %v", err)
 		return err
 	}
 	e.Vendor.Context.Publish(DeploymentPlanTopic, v1alpha2.Event{
@@ -341,7 +350,7 @@ func (e *SolutionVendor) handleGetPlanCompletetion(ctx context.Context, planStat
 			MergedState:          planState.MergedState,
 			CurrentState:         planState.CurrentState,
 			PreviousDesiredState: planState.PreviousDesiredState,
-			PlanId:               planState.Deployment.Instance.ObjectMeta.Name,
+			PlanId:               planState.PlanId,
 			Remove:               planState.Remove,
 			Namespace:            planState.Namespace,
 			Phase:                PhaseApply,
@@ -353,20 +362,24 @@ func (e *SolutionVendor) handleGetPlanCompletetion(ctx context.Context, planStat
 
 // handlePlanComplete handles the completion of a plan and updates its status.
 func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *PlanState) error {
-	log.InfoCtx(ctx, "V(Stage): Plan state %s is completed %v", planState.Phase, planState)
+	log.InfoCtx(ctx, "V(Solution): Plan state %s is completed %v", planState.Phase, planState)
 	if !planState.Summary.AllAssignedDeployed {
 		planState.Status = "failed"
 	}
-	log.InfoCtx(ctx, "V(Stage): Plan state is completed %v", planState.Summary.AllAssignedDeployed)
+	log.InfoCtx(ctx, "V(Solution): Plan state is completed %v", planState.Summary.AllAssignedDeployed)
 	switch planState.Phase {
 	case PhaseGet:
 		if err := e.handleGetPlanCompletetion(ctx, planState); err != nil {
-			log.ErrorfCtx(ctx, "V(Stage): Failed to handle get plan completion: %v", err)
+			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			e.UnlockObject(ctx, lockName)
+			log.ErrorfCtx(ctx, "V(Solution): Failed to handle get plan completion: %v", err)
 			return err
 		}
 	case PhaseApply:
 		if err := e.handleApplyPlanCompletetion(ctx, planState); err != nil {
-			log.ErrorfCtx(ctx, "V(Stage): Failed to handle apply plan completion: %v", err)
+			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+			e.UnlockObject(ctx, lockName)
+			log.ErrorfCtx(ctx, "V(Solution): Failed to handle apply plan completion: %v", err)
 			return err
 		}
 	}
@@ -450,11 +463,11 @@ func (e *SolutionVendor) handleDeploymentStep(ctx context.Context, event v1alpha
 	var stepEnvelope StepEnvelope
 	jData, err := json.Marshal(event.Body)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal event body: %v", err)
+		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal event body: %v", err)
 		return err
 	}
 	if err := json.Unmarshal(jData, &stepEnvelope); err != nil {
-		log.ErrorfCtx(ctx, "V (Federation): failed to unmarshal step envelope: %v", err)
+		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal step envelope: %v", err)
 		return err
 	}
 	if stepEnvelope.Step.Role == "container" {
@@ -502,11 +515,15 @@ func (e *SolutionVendor) enqueueProviderGetRequest(ctx context.Context, stepEnve
 		Deployment: stepEnvelope.PlanState.Deployment,
 	}
 
-	log.InfoCtx(ctx, "V(Federation): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
+	log.InfoCtx(ctx, "V(Solution): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
 	messageID, err := e.StagingManager.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+	if err != nil {
+		log.ErrorCtx(ctx, "V(Solution): Error in enqueue message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
+		return err
+	}
 	err = e.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageID)
 	if err != nil {
-		log.ErrorCtx(ctx, "V(Federation) Error in insert operation Id %s", operationId)
+		log.ErrorCtx(ctx, "V(Solution) Error in insert operation Id %s", operationId)
 		return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
 	return err
@@ -522,7 +539,7 @@ func (e *SolutionVendor) getProviderAndExecute(ctx context.Context, stepEnvelope
 	dep.ActiveTarget = stepEnvelope.Step.Target
 	getResult, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, dep, stepEnvelope.Step.Components)
 	if stepError != nil {
-		log.ErrorCtx(ctx, "V(Federation) Error in get target current states %+v", stepError)
+		log.ErrorCtx(ctx, "V(Solution) Error in get target current states %+v", stepError)
 		return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
 	return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, getResult, map[string]model.ComponentResultSpec{})
@@ -551,7 +568,7 @@ func (e *SolutionVendor) enqueueProviderApplyRequest(ctx context.Context, stepEn
 	if err != nil {
 		return err
 	}
-	log.InfoCtx(ctx, "V(Federation): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
+	log.InfoCtx(ctx, "V(Solution): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
 	err = e.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageId)
 	if err != nil {
 		log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
@@ -865,7 +882,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Deployment:           deployment,
 				MergedState:          model.DeploymentState{},
 				PreviousDesiredState: previousDesiredState,
-				PlanId:               deployment.Instance.ObjectMeta.Name,
+				PlanId:               uuid.New().String(),
 				Remove:               delete == "true",
 				Namespace:            namespace,
 				Phase:                PhaseGet,
@@ -894,14 +911,14 @@ func (e *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 	var agentRequest AgentRequest
-	sLog.InfoCtx(ctx, "V(Federation): get request from remote agent")
+	sLog.InfoCtx(ctx, "V(Solution): get request from remote agent")
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
 	getAll, exists := request.Parameters["getAll"]
 
 	if exists && getAll == "true" {
 		// Logic to handle getALL parameter
-		sLog.InfoCtx(ctx, "V(Federation): getALL request from remote agent %+v", agentRequest)
+		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
 		return e.getTaskFromQueue(ctx, target, namespace, true)
 	}
 	return e.getTaskFromQueue(ctx, target, namespace, false)
@@ -917,13 +934,13 @@ func (e *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 	var asyncResult AsyncResult
 	err := json.Unmarshal(request.Body, &asyncResult)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "V(Federation): onGetResponse failed - %s", err.Error())
+		sLog.ErrorfCtx(ctx, "V(Solution): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
 	}
-	sLog.InfoCtx(ctx, "V(Federation): get async result from remote agent %+v", asyncResult)
+	sLog.InfoCtx(ctx, "V(Solution): get async result from remote agent %+v", asyncResult)
 	return e.handleRemoteAgentExecuteResult(ctx, asyncResult)
 }
 
@@ -932,10 +949,10 @@ func (e *SolutionVendor) handleRemoteAgentExecuteResult(ctx context.Context, asy
 	// Get operation ID
 	operationId := asyncResult.OperationID
 	// Get related info from redis - todo: timeout
-	log.InfoCtx(ctx, "V(FederationVendor): handle remote agent request %+v", asyncResult)
+	log.InfoCtx(ctx, "V(SolutionVendor): handle remote agent request %+v", asyncResult)
 	operationBody, err := e.getOperationState(ctx, operationId)
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "V(FederationVendor): onGetResponse failed - %s", err.Error())
+		sLog.ErrorfCtx(ctx, "V(SolutionVendor): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -1016,7 +1033,7 @@ func (e *SolutionVendor) getTaskFromQueue(ctx context.Context, target string, na
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	sLog.InfoCtx(ctx, "V(FederationVendor): getFromQueue %s queue length %s", queueName)
+	sLog.InfoCtx(ctx, "V(SolutionVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 	var queueElement interface{}
 	var err error
@@ -1026,7 +1043,7 @@ func (e *SolutionVendor) getTaskFromQueue(ctx context.Context, target string, na
 		queueElement, err = e.StagingManager.QueueProvider.Peek(queueName)
 	}
 	if err != nil {
-		sLog.ErrorfCtx(ctx, "V(FederationVendor): getQueue failed - %s", err.Error())
+		sLog.ErrorfCtx(ctx, "V(SolutionVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -1072,7 +1089,7 @@ func (e *SolutionVendor) getOperationState(ctx context.Context, operationId stri
 	var ret OperationBody
 	ret, err = e.getOperationBody(entry.Body)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(FederationVendor): Failed to convert to operation state for %s", operationId)
+		log.ErrorfCtx(ctx, "V(SolutionVendor): Failed to convert to operation state for %s", operationId)
 		return OperationBody{}, err
 	}
 	return ret, err
@@ -1250,58 +1267,67 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 			if role == "" {
 				role = "instance"
 			}
-			log.InfoCtx(ctx, "V(Stage): Store key value in current key: %s value: %s", key, role)
+			log.InfoCtx(ctx, "V(Solution): Store key value in current key: %s value: %s", key, role)
 			currentState.TargetComponent[key] = role
 		}
 	}
-	log.InfoCtx(ctx, "V(Stage): Compute current state %v for Plan ID: %s", currentState, planState.PlanId)
+	log.InfoCtx(ctx, "V(Solution): Compute current state %v for Plan ID: %s", currentState, planState.PlanId)
 	planState.CurrentState = currentState
 	previousDesiredState := e.SolutionManager.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
+	log.InfoCtx(ctx, "V(Solution): Get previous desired state %+v", previousDesiredState)
 	planState.PreviousDesiredState = previousDesiredState
 	var currentDesiredState model.DeploymentState
 	currentDesiredState, err := solution.NewDeploymentState(planState.Deployment)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(Stage): Failed to get current desired state: %+v", err)
+		log.ErrorfCtx(ctx, "V(Solution): Failed to get current desired state: %+v", err)
 		return model.DeploymentPlan{}, err
 	}
-	log.InfoCtx(ctx, "V(Stage): Get current desired state %+v", currentDesiredState)
+	log.InfoCtx(ctx, "V(Solution): Get current desired state %+v", currentDesiredState)
 	desiredState := currentDesiredState
 	if previousDesiredState != nil {
 		desiredState = solution.MergeDeploymentStates(&previousDesiredState.State, currentDesiredState)
 	}
-	log.InfoCtx(ctx, "V(Stage): Get desired state %+v", desiredState)
+	log.InfoCtx(ctx, "V(Solution): Get desired state %+v", desiredState)
 	if planState.Remove {
 		desiredState.MarkRemoveAll()
-		log.InfoCtx(ctx, "V(Stage): After remove desired state %+v", desiredState)
+		log.InfoCtx(ctx, "V(Solution): After remove desired state %+v", desiredState)
 	}
 
 	mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
 	planState.MergedState = mergedState
 	Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(Stage): Plan generate error")
+		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		e.UnlockObject(ctx, lockName)
+		log.ErrorfCtx(ctx, "V(Solution): Plan generate error")
 		return model.DeploymentPlan{}, err
 	}
-	log.InfoCtx(ctx, "V(Stage): Begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
+	log.InfoCtx(ctx, "V(Solution): Begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
 	return Plan, nil
 }
 
+func (e *SolutionVendor) UnlockObject(ctx context.Context, lockName string) {
+	log.InfoCtx(ctx, "unlock %s", lockName)
+	if !e.SolutionManager.KeyLockProvider.TryLock(lockName) {
+		log.InfoCtx(ctx, "try lock no lock %s", lockName)
+		e.SolutionManager.KeyLockProvider.UnLock(lockName)
+	} else {
+		e.SolutionManager.KeyLockProvider.UnLock(lockName)
+	}
+}
 func (e *SolutionVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {
 	err := e.SolutionManager.SaveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, model.SummaryStateRunning, planState.Namespace)
 	if err != nil {
-		log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
-		if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
-			log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-		} else {
-			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-		}
+		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		e.UnlockObject(ctx, lockName)
 	}
 	return err
 }
 func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planState *PlanState) error {
 	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateDone); err != nil {
+		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		e.UnlockObject(ctx, lockName)
 		log.ErrorfCtx(ctx, "Failed to save summary progress done: %v", err)
 		return err
 	}
@@ -1349,12 +1375,8 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
 		log.InfoCtx(ctx, "unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
-		if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
-			log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-		} else {
-			e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
-		}
+		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+		e.UnlockObject(ctx, lockName)
 		return err
 	}
 	return nil
