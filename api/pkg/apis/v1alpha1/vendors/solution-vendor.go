@@ -770,7 +770,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
 		// 	log.Info("can not get lock %s", lockName)
 		// }
-		if !e.SolutionManager.KeyLockProvider.TryLockWithTimeout(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name), 30*time.Second) {
+		if !e.SolutionManager.KeyLockProvider.TryLock(lockName) {
 			log.Info("can not get lock")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,
