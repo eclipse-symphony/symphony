@@ -1295,6 +1295,7 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 
 	mergedState := solution.MergeDeploymentStates(&currentState, desiredState)
 	planState.MergedState = mergedState
+	log.InfoCtx(ctx, "get merged state %+v", mergedState)
 	Plan, err := solution.PlanForDeployment(planState.Deployment, mergedState)
 	if err != nil {
 		lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
@@ -1348,6 +1349,9 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 				},
 			})
 		} else {
+			log.InfoCtx(ctx, "begin to save state %s", planState.Deployment.Instance.ObjectMeta.Name)
+			log.InfoCtx(ctx, "begin to save state deployment%s", planState.Deployment)
+			log.InfoCtx(ctx, "begin to save state deployment%s", planState.MergedState)
 			e.SolutionManager.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
 					ID: planState.Deployment.Instance.ObjectMeta.Name,
