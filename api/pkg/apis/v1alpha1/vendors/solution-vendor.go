@@ -165,6 +165,7 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 			if err := e.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
 				log.InfoCtx(ctx, "V(Federation): publish deployment step failed PlanId %s, stepId %s", planEnvelope.PlanId, 0)
+
 				return err
 			}
 		case PhaseApply:
@@ -785,7 +786,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			JobID:               deployment.JobID,
 		}
 		data, _ := json.Marshal(summary)
-
+		e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		// get the components count for the deployment
 		componentCount := len(deployment.Solution.Spec.Components)
 		apiOperationMetrics.ApiComponentCount(
@@ -870,7 +871,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			},
 			Context: ctx,
 		})
-		e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
+
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        data,
@@ -1295,10 +1296,6 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 	}
 	// update summary
 	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
-	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
-		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
-		return err
-	}
 	planState.MergedState.ClearAllRemoved()
 
 	if !planState.Deployment.IsDryRun {
@@ -1335,6 +1332,10 @@ func (e *SolutionVendor) handleApplyPlanCompletetion(ctx context.Context, planSt
 	if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)) {
 		log.InfoCtx(ctx, "try lock no lock %s", api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 		e.SolutionManager.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	}
+	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
+		log.ErrorfCtx(ctx, "handle plan completetion: failed to conclude summary: %v", err)
+		return err
 	}
 	return nil
 }
