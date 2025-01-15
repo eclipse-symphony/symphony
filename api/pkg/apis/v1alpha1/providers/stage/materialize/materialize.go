@@ -379,7 +379,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+			if err != nil && api_utils.IsNotFound(err) {
 				mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
 				solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
 				containerObjectData, _ := json.Marshal(solutionContainerState)
@@ -533,7 +533,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+			if err != nil && api_utils.IsNotFound(err) {
 				mLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
 				catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
 				containerObjectData, _ := json.Marshal(catalogContainerState)
