@@ -264,7 +264,7 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	return nil
 }
 
-func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -372,7 +372,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+	go s.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)

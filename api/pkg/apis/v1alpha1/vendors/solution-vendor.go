@@ -328,6 +328,7 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		if err != nil {
 			log.InfoCtx(ctx, "V(Solution): handle plan Complete failed %+v", err)
 			log.InfoCtx(ctx, "unlock2")
+			e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 			e.UnlockObject(ctx, lockName)
 		}
@@ -824,12 +825,20 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		data, _ := json.Marshal(summary)
 		err = e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		if err != nil {
+			log.InfoCtx(ctx, "unlock6")
+			e.UnlockObject(ctx, lockName)
+			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,
 				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to save summary: %+v\"}", err)),
 				ContentType: "application/json",
 			})
 		}
+
+		stopCh := make(chan struct{})
+		defer close(stopCh)
+		go e.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+
 		// get the components count for the deployment
 		componentCount := len(deployment.Solution.Spec.Components)
 		apiOperationMetrics.ApiComponentCount(
@@ -1372,6 +1381,7 @@ func (e *SolutionVendor) handleAllPlanCompletetion(ctx context.Context, planStat
 		return err
 	}
 	log.InfoCtx(ctx, "final unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
+	e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 	e.UnlockObject(ctx, api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	return nil
 }
