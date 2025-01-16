@@ -158,8 +158,6 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
 	if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
-		// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		// e.UnlockObject(ctx, lockName)
 		return err
 	}
 	if planState.isCompleted() {
@@ -202,9 +200,6 @@ func (e *SolutionVendor) publishDeploymentStep(ctx context.Context, stepId int, 
 		},
 		Context: ctx,
 	}); err != nil {
-		// log.InfoCtx(ctx, "unlock3")
-		// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		// e.UnlockObject(ctx, lockName)
 		log.InfoCtx(ctx, "V(StageVendor): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 		return err
 	}
@@ -378,16 +373,10 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 	case PhaseGet:
 		if err := e.handleGetPlanCompletetion(ctx, planState); err != nil {
 			e.PlanManager.DeletePlan(planState.PlanId)
-			// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-			// e.UnlockObject(ctx, lockName)
-			// log.ErrorfCtx(ctx, "V(Solution): Failed to handle get plan completion: %v", err)
 			return err
 		}
 	case PhaseApply:
 		if err := e.handleAllPlanCompletetion(ctx, planState); err != nil {
-			// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-			// e.UnlockObject(ctx, lockName)
-			// log.ErrorfCtx(ctx, "V(Solution): Failed to handle apply plan completion: %v", err)
 			return err
 		}
 		e.PlanManager.DeletePlan(planState.PlanId)
@@ -413,8 +402,6 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	// Load the plan state object from the PlanManager
 	planStateObj, exists := e.PlanManager.Plans.Load(planId)
 	if !exists {
-		// log.ErrorCtx(ctx, "Plan not found: %s", planId)
-		// e.UnlockObject(ctx, api_utils.GenerateKeyLockName(stepResult.Namespace, stepResult.PlanId))
 		return fmt.Errorf("Plan not found: %s", planId)
 	}
 	planState := planStateObj.(*PlanState)
@@ -422,9 +409,6 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	// Update the plan state in the map and save the summary
 	if err := e.saveStepResult(ctx, planState, stepResult); err != nil {
 		log.ErrorCtx(ctx, "Failed to handle step result: %v", err)
-		// lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-		// log.InfoCtx(ctx, "unlock1")
-		// e.UnlockObject(ctx, lockName)
 		return err
 	}
 	return nil
@@ -805,7 +789,6 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
-			log.InfoCtx(ctx, "unlock5")
 			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -825,10 +808,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		data, _ := json.Marshal(summary)
 		err = e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		if err != nil {
-			log.InfoCtx(ctx, "unlock6")
 			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
-
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,
@@ -880,7 +861,6 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-			log.InfoCtx(ctx, "unlock8")
 			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
