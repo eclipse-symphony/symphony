@@ -862,12 +862,14 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 					log.InfofCtx(ctx, " M (Solution): skipped failure to evaluate deployment spec: %+v", err)
 				} else {
 					summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
+					data, _ = json.Marshal(summary)
 					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
 					e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+					log.InfoCtx(ctx, "unlock7")
+					e.UnlockObject(ctx, lockName)
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State:       v1alpha2.InternalError,
-						Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to evaluate deployment spec: %+v\"}", err)),
-						ContentType: "application/json",
+						State: v1alpha2.GetErrorState(err),
+						Body:  data,
 					})
 				}
 			}
@@ -877,6 +879,9 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		// Generate new deployment plan for deployment
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
+			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+			log.InfoCtx(ctx, "unlock8")
+			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  data,
