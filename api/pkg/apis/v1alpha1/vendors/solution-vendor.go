@@ -828,6 +828,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			log.InfoCtx(ctx, "unlock6")
 			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
+
+			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,
 				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to save summary: %+v\"}", err)),
@@ -861,6 +863,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				} else {
 					summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
+					e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 						State:       v1alpha2.InternalError,
 						Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to evaluate deployment spec: %+v\"}", err)),
