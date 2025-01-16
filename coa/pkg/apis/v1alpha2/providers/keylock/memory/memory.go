@@ -119,9 +119,7 @@ func (mslp *MemoryKeyLockProvider) UnLock(key string) {
 }
 
 func (mslp *MemoryKeyLockProvider) TryLock(key string) bool {
-	sLog.Info("Current locks:")
 	mslp.memKeyLockInstance.lm.m.Range(func(k, v interface{}) bool {
-		sLog.Info("lock is ", k, v)
 		return true
 	})
 	return mslp.memKeyLockInstance.lm.getLockNode(key).TryLock()
