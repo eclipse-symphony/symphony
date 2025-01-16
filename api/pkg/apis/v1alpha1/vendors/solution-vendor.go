@@ -1377,6 +1377,9 @@ func (e *SolutionVendor) handleAllPlanCompletetion(ctx context.Context, planStat
 			})
 		}
 	}
+	if planState.Deployment.IsDryRun {
+		planState.Summary.SuccessCount = 0
+	}
 	if err := e.SolutionManager.ConcludeSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, planState.Namespace); err != nil {
 		return err
 	}
