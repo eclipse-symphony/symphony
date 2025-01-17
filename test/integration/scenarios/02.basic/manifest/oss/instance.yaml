@@ -17,4 +17,4 @@ spec:
     name: TARGETREFNAME
   reconciliationPolicy:
     state: active
-    interval: 3m
+    interval: 1m

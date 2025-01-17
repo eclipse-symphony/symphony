@@ -140,9 +140,6 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 			TargetComponents:     []string{"simple-chart-1"},
 			SolutionComponents:   []string{"simple-chart-2"},
 			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
-			TargetProperties: map[string]string{
-				"Arch": "arm",
-			},
 			PostUpdateExpectation: expectations.All(
 				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed

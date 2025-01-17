@@ -90,7 +90,10 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
-			e.handleDeploymentStep(ctx, event)
+			err := e.handleDeploymentStep(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(Solution): Failed to handle deployment-step: %v", err)
+			}
 			return err
 		},
 		Group: "Solution-vendor",
@@ -102,17 +105,10 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 				ctx = event.Context
 			}
 
-			log.InfoCtx(ctx, "V(StageVendor): Begin to execute deployment-plan")
+			log.InfoCtx(ctx, "V(Solution): Begin to execute deployment-plan")
 			err := e.handleDeploymentPlan(ctx, event)
 			if err != nil {
-				log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
-				// // release lock
-				// var planEnvelope PlanEnvelope
-				// jData, _ := json.Marshal(event.Body)
-				// json.Unmarshal(jData, &planEnvelope)
-				// lockName := api_utils.GenerateKeyLockName(planEnvelope.Namespace, planEnvelope.Deployment.Instance.ObjectMeta.Name)
-				// e.SolutionManager.KeyLockProvider.UnLock(lockName)
-				// return err
+				log.ErrorfCtx(ctx, "V(Solution): Failed to handle deployment plan: %v", err)
 			}
 			return err
 		},
@@ -166,22 +162,20 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 			planState.Summary.PlannedDeployment += len(step.Components)
 		}
 	}
-	// for i, step := range planEnvelope.Plan.Steps {
+
 	switch planEnvelope.Phase {
 	case PhaseApply:
-		// planState.Summary.PlannedDeployment += len(planEnvelope.Plan.Steps[0].Components)
 		log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
 		if err := e.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
 			return err
 		}
 	}
-	// }
 	log.InfoCtx(ctx, "V(Solution): store plan id %s in map %+v", planEnvelope.PlanId)
 	e.PlanManager.Plans.Store(planEnvelope.PlanId, planState)
 	return nil
 }
 func (e *SolutionVendor) publishDeploymentStep(ctx context.Context, stepId int, planState *PlanState, remove bool, step model.DeploymentStep) error {
-	log.InfoCtx(ctx, "V(StageVendor): publish deployment step for PlanId %s StepId %s", planState.PlanId, stepId)
+	log.InfoCtx(ctx, "V(Solution): publish deployment step for PlanId %s StepId %s", planState.PlanId, stepId)
 	if err := e.Vendor.Context.Publish(DeploymentStepTopic, v1alpha2.Event{
 		Body: StepEnvelope{
 			Step:      step,
@@ -191,7 +185,7 @@ func (e *SolutionVendor) publishDeploymentStep(ctx context.Context, stepId int, 
 		},
 		Context: ctx,
 	}); err != nil {
-		log.InfoCtx(ctx, "V(StageVendor): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
+		log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 		return err
 	}
 	return nil
@@ -286,11 +280,8 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 				log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
 				if err := e.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
 					log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
-					// can not publish error here
-					// return err
 				}
 			}
-
 		}
 
 		// If no components are deployed, set success count to target count
@@ -299,7 +290,7 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		}
 
 		// Save the summary information
-		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
+		log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
@@ -313,14 +304,10 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		err := e.handlePlanComplete(ctx, planState)
 		if err != nil {
 			log.InfoCtx(ctx, "V(Solution): handle plan Complete failed %+v", err)
-			// e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 			e.UnlockObject(ctx, lockName)
 		}
-		// no need to return error here
-		// return err
 	}
-
 	return nil
 }
 

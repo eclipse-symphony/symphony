@@ -14,7 +14,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sites"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sync"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/trails"
@@ -40,7 +39,6 @@ type FederationVendor struct {
 	StagingManager  *staging.StagingManager
 	SyncManager     *sync.SyncManager
 	TrailsManager   *trails.TrailsManager
-	SolutionManager *solution.SolutionManager
 	apiClient       utils.ApiClient
 }
 
@@ -72,9 +70,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		}
 		if c, ok := m.(*trails.TrailsManager); ok {
 			f.TrailsManager = c
-		}
-		if c, ok := m.(*solution.SolutionManager); ok {
-			f.SolutionManager = c
 		}
 	}
 	if f.StagingManager == nil {
