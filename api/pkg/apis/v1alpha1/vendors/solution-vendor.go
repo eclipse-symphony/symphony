@@ -536,7 +536,7 @@ func (e *SolutionVendor) enqueueProviderGetRequest(ctx context.Context, stepEnve
 func (e *SolutionVendor) getProviderAndExecute(ctx context.Context, stepEnvelope StepEnvelope) error {
 	provider, err := e.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.PlanState.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
 	if err != nil {
-		log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
+		log.ErrorfCtx(ctx, " V (Solution): failed to create provider & Failed to save summary progress: %v", err)
 		return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
 	dep := stepEnvelope.PlanState.Deployment
@@ -585,7 +585,7 @@ func (e *SolutionVendor) applyProviderAndExecute(ctx context.Context, stepEnvelo
 	// get provider todo : is dry run
 	provider, err := e.SolutionManager.GetTargetProviderForStep(stepEnvelope.Step.Target, stepEnvelope.Step.Role, stepEnvelope.PlanState.Deployment, stepEnvelope.PlanState.PreviousDesiredState)
 	if err != nil {
-		log.ErrorfCtx(ctx, " M (Solution): failed to create provider & Failed to save summary progress: %v", err)
+		log.ErrorfCtx(ctx, " V (Solution): failed to create provider & Failed to save summary progress: %v", err)
 		return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
 	previousDesiredState := stepEnvelope.PlanState.PreviousDesiredState
@@ -594,7 +594,7 @@ func (e *SolutionVendor) applyProviderAndExecute(ctx context.Context, stepEnvelo
 	if previousDesiredState != nil {
 		testState := solution.MergeDeploymentStates(&previousDesiredState.State, currentState)
 		if e.SolutionManager.CanSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
-			log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
+			log.InfofCtx(ctx, " V (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 			return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, nil, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 		}
 	}
@@ -782,7 +782,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
+		log.InfofCtx(ctx, " V (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
 			deployment.Instance.ObjectMeta.Name,
 			deployment.SolutionName,
 			remove,
@@ -795,7 +795,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
+			log.ErrorfCtx(ctx, " V (Solution): failed to create manager state for deployment: %+v", err)
 			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,
@@ -814,7 +814,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		data, _ := json.Marshal(summary)
 		err = e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
+			log.ErrorfCtx(ctx, " V (Solution): failed to create manager state for deployment: %+v", err)
 			e.UnlockObject(ctx, lockName)
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -845,11 +845,11 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			deployment, err = api_utils.EvaluateDeployment(*context)
 			if err != nil {
 				if remove {
-					log.InfofCtx(ctx, " M (Solution): skipped failure to evaluate deployment spec: %+v", err)
+					log.InfofCtx(ctx, " V (Solution): skipped failure to evaluate deployment spec: %+v", err)
 				} else {
 					summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 					data, _ = json.Marshal(summary)
-					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
+					log.ErrorfCtx(ctx, " V (Solution): failed to evaluate deployment spec: %+v", err)
 					e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 					e.UnlockObject(ctx, lockName)
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -865,7 +865,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-			log.ErrorfCtx(ctx, " M (Solution): failed initalPlan for deployment: %+v", err)
+			log.ErrorfCtx(ctx, " V (Solution): failed initalPlan for deployment: %+v", err)
 			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
@@ -1398,7 +1398,7 @@ func (e *SolutionVendor) handleAllPlanCompletetion(ctx context.Context, planStat
 	log.InfoCtx(ctx, "get dep %+v", planState.Deployment)
 	if !planState.Deployment.IsDryRun {
 		if len(planState.MergedState.TargetComponent) == 0 && planState.Remove {
-			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
+			log.DebugfCtx(ctx, " V (Solution): no assigned components to manage, deleting state")
 			e.SolutionManager.StateProvider.Delete(ctx, states.DeleteRequest{
 				ID: planState.Deployment.Instance.ObjectMeta.Name,
 				Metadata: map[string]interface{}{

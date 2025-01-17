@@ -341,6 +341,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			}
 		}
 	}
+
 	return ret, nil
 }
 
