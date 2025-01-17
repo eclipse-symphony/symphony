@@ -13,7 +13,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
@@ -345,7 +344,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			return nil
 		},
 	})
-
 	return nil
 }
 
