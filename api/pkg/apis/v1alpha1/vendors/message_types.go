@@ -63,7 +63,7 @@ type PlanEnvelope struct {
 }
 
 type PlanState struct {
-	ID                   string `json:"opeateionId"`
+	ID                   string `json:"operationId"`
 	PlanId               string `json:"planId"`
 	Phase                JobPhase
 	StartTime            time.Time                                `json:"startTime"`
@@ -74,27 +74,27 @@ type PlanState struct {
 	MergedState          model.DeploymentState                    `json:"mergedState"`
 	Deployment           model.DeploymentSpec                     `json:"deployment"`
 	CurrentState         model.DeploymentState                    `json:"currentState"`
-	PreviousDesiredState *solution.SolutionManagerDeploymentState `json:"previous`
+	PreviousDesiredState *solution.SolutionManagerDeploymentState `json:"previousDesiredState"`
 	Status               string                                   `json:"status"`
-	TargetResult         map[string]int
-	Namespace            string `json:"namespace"`
-	Remove               bool
-	StepStates           []StepState
-	Steps                []model.DeploymentStep
+	TargetResult         map[string]int                           `json:"targetResult"`
+	Namespace            string                                   `json:"namespace"`
+	Remove               bool                                     `json:"remove"`
+	StepStates           []StepState                              `json:"stepStates"`
+	Steps                []model.DeploymentStep                   `json:"steps"`
 }
 
-// for step
 type StepResult struct {
 	Step             model.DeploymentStep                 `json:"step"`
 	TargetResultSpec model.TargetResultSpec               `json:"targetResult"`
 	PlanId           string                               `json:"planId"`
 	StepId           int                                  `json:"stepId"`
 	Timestamp        time.Time                            `json:"timestamp"`
-	GetResult        []model.ComponentSpec                // for get result
-	ApplyResult      map[string]model.ComponentResultSpec `json:"components"` // for apply result
-	Error            string                               `json:"string,omitempty"`
-	Target           string
+	GetResult        []model.ComponentSpec                `json:"getResult"`
+	ApplyResult      map[string]model.ComponentResultSpec `json:"components"`
+	Error            string                               `json:"error,omitempty"`
+	Target           string                               `json:"target"`
 }
+
 type StepEnvelope struct {
 	Step      model.DeploymentStep `json:"step"`
 	Remove    bool                 `json:"remove"`
@@ -103,23 +103,23 @@ type StepEnvelope struct {
 }
 
 type OperationBody struct {
-	StepId    int
-	PlanId    string
-	Target    string
-	Action    JobPhase
-	NameSpace string
-	Remove    bool
-	MessageId string
+	StepId    int      `json:"stepId"`
+	PlanId    string   `json:"planId"`
+	Target    string   `json:"target"`
+	Action    JobPhase `json:"action"`
+	NameSpace string   `json:"namespace"`
+	Remove    bool     `json:"remove"`
+	MessageId string   `json:"messageId"`
 }
 
 type StepState struct {
-	Index      int
-	Target     string
-	Role       string
-	Components []model.ComponentStep
-	State      string
-	GetResult  []model.ComponentSpec
-	Error      string
+	Index      int                   `json:"index"`
+	Target     string                `json:"target"`
+	Role       string                `json:"role"`
+	Components []model.ComponentStep `json:"components"`
+	State      string                `json:"state"`
+	GetResult  []model.ComponentSpec `json:"getResult"`
+	Error      string                `json:"error"`
 }
 
 var deploymentTypeMap = map[bool]string{

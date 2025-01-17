@@ -54,7 +54,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if err != nil {
 		return err
 	}
-
 	for _, m := range f.Managers {
 		if c, ok := m.(*sites.SitesManager); ok {
 			f.SitesManager = c
@@ -182,7 +181,6 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 
 	return f.SitesManager.UpsertState(context.Background(), f.Context.SiteInfo.SiteId, site)
 }
-
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 	route := "federation"
 	if f.Route != "" {
@@ -224,7 +222,6 @@ func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 	}
 }
-
 func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onStatus",
@@ -347,7 +344,6 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
-
 func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onSync",
@@ -448,7 +444,6 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
-
 func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onTrail",
