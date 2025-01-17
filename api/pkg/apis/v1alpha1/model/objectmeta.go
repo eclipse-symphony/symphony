@@ -22,7 +22,7 @@ type ObjectMeta struct {
 	// ETag is a string representing the version of the object, it bump whenever the object is updated.
 	// All the state store should support auto-incrementing the version number.
 	// For example, resourceVersion in kubernetes
-	ETag string `json:"eTag,omitempty"`
+	ETag string `json:"etag,omitempty"`
 	// ObjGeneration changes when Spec changes
 	// object manager need to detect spec changes and update the generation
 	// For example, generation in kubernetes
