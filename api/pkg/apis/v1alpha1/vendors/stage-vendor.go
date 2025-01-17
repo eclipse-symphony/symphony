@@ -36,7 +36,6 @@ type StageVendor struct {
 	StageManager       *stage.StageManager
 	CampaignsManager   *campaigns.CampaignsManager
 	ActivationsManager *activations.ActivationsManager
-	SolutionManager    *solution.SolutionManager
 }
 
 func (s *StageVendor) GetInfo() vendors.VendorInfo {
@@ -64,9 +63,6 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		}
 		if c, ok := m.(*activations.ActivationsManager); ok {
 			s.ActivationsManager = c
-		}
-		if c, ok := m.(*solution.SolutionManager); ok {
-			s.SolutionManager = c
 		}
 	}
 	if s.StageManager == nil {

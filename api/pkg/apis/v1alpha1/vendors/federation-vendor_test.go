@@ -13,7 +13,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	mockledger "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
@@ -38,9 +37,11 @@ func federationVendorInit() FederationVendor {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	graphProvider := &memorygraph.MemoryGraphProvider{}
 	graphProvider.Init(memorygraph.MemoryGraphProviderConfig{})
+
 	catalogProviders := make(map[string]providers.IProvider)
 	catalogProviders["StateProvider"] = stateProvider
 	catalogProviders["GraphProvider"] = graphProvider
+
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProvider{})
 	stagingProviders := make(map[string]providers.IProvider)
@@ -49,8 +50,7 @@ func federationVendorInit() FederationVendor {
 
 	siteProviders := make(map[string]providers.IProvider)
 	siteProviders["StateProvider"] = stateProvider
-	keyLockProvider := memorykeylock.MemoryKeyLockProvider{}
-	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+
 	mProvider := &mockledger.MockLedgerProvider{}
 	mProvider.Init(mockledger.MockLedgerProviderConfig{})
 	trailsProviders := make(map[string]providers.IProvider)

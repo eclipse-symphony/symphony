@@ -30,6 +30,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	var solutionBytesV2 []byte
 	var solutionContainerBytes []byte
 	var targetProps map[string]string
+
 	BeforeAll(func(ctx context.Context) {
 		By("installing orchestrator in the cluster")
 		shell.LocalenvCmd(ctx, "mage cluster:deploy")
