@@ -947,6 +947,7 @@ func (e *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 				size = 10
 			}
 		}
+
 		return e.getTaskFromQueueByPaging(ctx, target, namespace, start, size)
 	}
 	return e.getTaskFromQueue(ctx, target, namespace)
@@ -1091,7 +1092,7 @@ func (e *SolutionVendor) getTaskFromQueueByPaging(ctx context.Context, target st
 	defer span.End()
 	var queueElement interface{}
 	var err error
-
+	log.InfoCtx(ctx, "get task from queue by paging", start, size)
 	queueElement, lastMessageID, err := e.StagingManager.QueueProvider.QueryByPaging(queueName, start, size)
 	type ProviderPagingRequest struct {
 		requestList   interface{}
