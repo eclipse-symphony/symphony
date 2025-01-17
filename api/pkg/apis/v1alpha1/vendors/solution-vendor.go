@@ -931,7 +931,7 @@ func (e *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 		// Logic to handle getALL parameter
 		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
 
-		start, startExist := request.Parameters["getAll"]
+		start, startExist := request.Parameters["preindex"]
 		if !startExist {
 			start = "0"
 		}
@@ -1090,16 +1090,24 @@ func (e *SolutionVendor) getTaskFromQueueByPaging(ctx context.Context, target st
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
 	sLog.InfoCtx(ctx, "V(SolutionVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
-	var queueElement interface{}
 	var err error
 	log.InfoCtx(ctx, "get task from queue by paging", start, size)
 	queueElement, lastMessageID, err := e.StagingManager.QueueProvider.QueryByPaging(queueName, start, size)
-	type ProviderPagingRequest struct {
-		requestList   interface{}
-		lastMessageID string
+	var requestList []AgentRequest
+	for _, element := range queueElement {
+		var agentRequest AgentRequest
+		err = json.Unmarshal(element, &agentRequest)
+		if err != nil {
+			sLog.ErrorfCtx(ctx, "V(SolutionVendor): failed to unmarshal element - %s", err.Error())
+			return v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			}
+		}
+		requestList = append(requestList, agentRequest)
 	}
 	response := &ProviderPagingRequest{
-		requestList:   queueElement,
+		requestList:   requestList,
 		lastMessageID: lastMessageID,
 	}
 	if err != nil {

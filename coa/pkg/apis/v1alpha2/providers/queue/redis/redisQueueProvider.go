@@ -278,7 +278,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 }
 
 // GetRecords retrieves records from the queue starting from the specified index and retrieves the specified size of records.
-func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int) ([]interface{}, string, error) {
+func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
 	if start != "0" {
 		start = "(" + start
 	}
@@ -295,15 +295,10 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 	if len(xMessages) < size {
 		lastMessageID = ""
 	}
-	var results []interface{}
+	var results [][]byte
 	for _, xMsg := range xMessages {
 		jsonData := xMsg.Values["data"].(string)
-		var result interface{}
-		err = json.Unmarshal([]byte(jsonData), &result)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to unmarshal message: %w", err)
-		}
-		results = append(results, result)
+		results = append(results, []byte(jsonData))
 	}
 
 	return results, lastMessageID, nil

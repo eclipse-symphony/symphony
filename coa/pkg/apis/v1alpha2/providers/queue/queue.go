@@ -13,5 +13,5 @@ type IQueueProvider interface {
 	Size(queue string) int
 	RemoveFromQueue(queue string, messageID string) error
 	PeekFromBegining(queue string) (interface{}, error)
-	QueryByPaging(queueName string, start string, size int) ([]interface{}, string, error)
+	QueryByPaging(queueName string, start string, size int) ([][]byte, string, error)
 }

@@ -64,8 +64,8 @@ func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueP
 	//ret.Name = providers.LoadEnv(ret.Name)
 	return ret, err
 }
-func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int) ([]interface{}, string, error) {
-	return []interface{}{}, "", nil
+func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
+	return [][]byte{}, "", nil
 }
 
 // fake
