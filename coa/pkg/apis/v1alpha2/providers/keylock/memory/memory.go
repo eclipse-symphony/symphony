@@ -109,7 +109,6 @@ func (mslp *MemoryKeyLockProvider) Init(config providers.IProviderConfig) error 
 }
 
 func (mslp *MemoryKeyLockProvider) Lock(key string) {
-	sLog.Info("Trying to init lock a memoryKeyLock", key)
 	mslp.memKeyLockInstance.lm.getLockNode(key).Lock()
 }
 
@@ -119,9 +118,6 @@ func (mslp *MemoryKeyLockProvider) UnLock(key string) {
 }
 
 func (mslp *MemoryKeyLockProvider) TryLock(key string) bool {
-	mslp.memKeyLockInstance.lm.m.Range(func(k, v interface{}) bool {
-		return true
-	})
 	return mslp.memKeyLockInstance.lm.getLockNode(key).TryLock()
 }
 

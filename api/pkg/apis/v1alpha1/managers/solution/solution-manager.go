@@ -83,9 +83,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			s.TargetProviders[k] = p
 		}
 	}
-	for key, _ := range providers {
-		log.Info(" key is %s", key)
-	}
 
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
@@ -156,7 +153,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 // The deployment spec may have changed, so the previous target is not in the new deployment anymore
 func (s *SolutionManager) GetTargetProviderForStep(target string, role string, deployment model.DeploymentSpec, previousDesiredState *SolutionManagerDeploymentState) (providers.IProvider, error) {
 	var override tgt.ITargetProvider
-	log.Info("get step role %s", role)
 	if role == "container" {
 		role = "instance"
 	}
@@ -264,7 +260,7 @@ func (s *SolutionManager) DeleteSummary(ctx context.Context, key string, namespa
 	return nil
 }
 
-func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
+func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -296,7 +292,7 @@ func (s *SolutionManager) SendHeartbeat(ctx context.Context, id string, namespac
 	}
 }
 
-func (s *SolutionManager) CleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
+func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
 	if !remove {
 		return
 	}
@@ -367,12 +363,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	}()
 
 	defer func() {
-		s.CleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
+		s.cleanupHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove)
 	}()
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go s.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+	go s.sendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)
