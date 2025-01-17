@@ -48,6 +48,7 @@ func (s *StageVendor) GetInfo() vendors.VendorInfo {
 func (o *StageVendor) GetEndpoints() []v1alpha2.Endpoint {
 	return []v1alpha2.Endpoint{}
 }
+
 func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	err := s.Vendor.Init(config, factories, providers, pubsubProvider)
 	if err != nil {

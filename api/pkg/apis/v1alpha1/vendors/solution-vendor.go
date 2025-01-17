@@ -120,6 +120,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			if ctx == nil {
 				ctx = context.TODO()
 			}
+			log.InfoCtx(ctx, "V(Solution): Begin to handle step result")
 			err := e.handleStepResult(ctx, event)
 			if err != nil {
 				log.ErrorfCtx(ctx, "V(Solution): Failed to handle step result: %v", err)
@@ -160,7 +161,6 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	for stepId, step := range planEnvelope.Plan.Steps {
 		switch planEnvelope.Phase {
 		case PhaseGet:
-			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 			if err = e.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
 				log.ErrorCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 				return err
@@ -172,7 +172,6 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 
 	switch planEnvelope.Phase {
 	case PhaseApply:
-		log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
 		if err := e.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
 			log.ErrorCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
 			return err
@@ -307,9 +306,9 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		}
 
 		// Save the summary information
-		log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
+		log.InfoCtx(ctx, "V(Solution): Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err = e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
-			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
+			log.ErrorfCtx(ctx, "V(Solution): Failed to save summary progress: %v", err)
 			return err
 		}
 	}
@@ -393,11 +392,11 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	var stepResult StepResult
 	// Marshal the event body to JSON
 	jData, _ := json.Marshal(event.Body)
-	log.InfofCtx(ctx, "Received event body: %s", string(jData))
+	log.InfofCtx(ctx, "V(Solution): Received event body: %s", string(jData))
 
 	// Unmarshal the JSON data into stepResult
 	if err = json.Unmarshal(jData, &stepResult); err != nil {
-		log.ErrorfCtx(ctx, "Failed to unmarshal step result: %v", err)
+		log.ErrorfCtx(ctx, "V(Solution): Failed to unmarshal step result: %v", err)
 		return err
 	}
 
@@ -412,7 +411,7 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	// Update the plan state in the map and save the summary
 	if err = e.saveStepResult(ctx, planState, stepResult); err != nil {
-		log.ErrorCtx(ctx, "Failed to handle step result: %v", err)
+		log.ErrorCtx(ctx, "V(Solution): Failed to handle step result: %v", err)
 		return err
 	}
 	return nil
@@ -576,7 +575,7 @@ func (e *SolutionVendor) enqueueProviderApplyRequest(ctx context.Context, stepEn
 	log.InfoCtx(ctx, "V(Solution): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
 	err = e.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageId)
 	if err != nil {
-		log.ErrorCtx(ctx, "error in insert operation Id %s", operationId)
+		log.ErrorCtx(ctx, "V(Solution): Error in insert operation Id %s", operationId)
 		return e.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{})
 	}
 	return err
@@ -773,11 +772,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 		}
 		lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
-		// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
-		// 	log.Info("can not get lock %s", lockName)
-		// }
 		e.SolutionManager.KeyLockProvider.Lock(lockName)
-		log.InfoCtx(ctx, "lock succeed %s", lockName)
+		log.InfoCtx(ctx, "V(Solution): Lock succeed %s", lockName)
 		delete := request.Parameters["delete"]
 		remove := delete == "true"
 		targetName := ""
@@ -786,7 +782,6 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		log.InfoCtx(ctx, "get deployment %+v", deployment)
 		log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
 			deployment.Instance.ObjectMeta.Name,
 			deployment.SolutionName,
@@ -803,8 +798,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
 			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.MethodNotAllowed,
-				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+				State:       v1alpha2.InternalError,
+				Body:        []byte("{\"result\":\"500 - failed to create manager state for deployment\"}"),
 				ContentType: "application/json",
 			})
 		}
@@ -823,9 +818,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			e.UnlockObject(ctx, lockName)
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to save summary: %+v\"}", err)),
-				ContentType: "application/json",
+				State: v1alpha2.GetErrorState(err),
+				Body:  data,
 			})
 		}
 
@@ -857,7 +851,6 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 					data, _ = json.Marshal(summary)
 					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
 					e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-					log.InfoCtx(ctx, "unlock7")
 					e.UnlockObject(ctx, lockName)
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 						State: v1alpha2.GetErrorState(err),
