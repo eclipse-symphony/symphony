@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -89,17 +90,17 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			}
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
-			err := e.handleDeploymentStep(ctx, event)
-			if err != nil {
-				log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
-				// release lock
-				var stepEnvelope StepEnvelope
-				jData, _ := json.Marshal(event.Body)
-				json.Unmarshal(jData, &stepEnvelope)
-				lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
-				e.SolutionManager.KeyLockProvider.UnLock(lockName)
-				return err
-			}
+			e.handleDeploymentStep(ctx, event)
+			// if err != nil {
+			// 	log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
+			// 	// release lock
+			// 	var stepEnvelope StepEnvelope
+			// 	jData, _ := json.Marshal(event.Body)
+			// 	json.Unmarshal(jData, &stepEnvelope)
+			// 	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
+			// 	e.SolutionManager.KeyLockProvider.UnLock(lockName)
+			// 	return err
+			// }
 			return err
 		},
 		Group: "Solution-vendor",
@@ -295,7 +296,8 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 				log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
 				if err := e.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
 					log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
-					return err
+					// can not publish error here
+					// return err
 				}
 			}
 
@@ -310,7 +312,6 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 		if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
-
 		}
 	}
 
@@ -322,12 +323,12 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 		err := e.handlePlanComplete(ctx, planState)
 		if err != nil {
 			log.InfoCtx(ctx, "V(Solution): handle plan Complete failed %+v", err)
-			log.InfoCtx(ctx, "unlock2")
-			e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
+			// e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 			lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 			e.UnlockObject(ctx, lockName)
 		}
-		return err
+		// no need to return error here
+		// return err
 	}
 
 	return nil
@@ -377,6 +378,7 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 		}
 	case PhaseApply:
 		if err := e.handleAllPlanCompletetion(ctx, planState); err != nil {
+			e.PlanManager.DeletePlan(planState.PlanId)
 			return err
 		}
 		e.PlanManager.DeletePlan(planState.PlanId)
@@ -789,8 +791,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		var state model.DeploymentState
 		state, err = solution.NewDeploymentState(deployment)
 		if err != nil {
-			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
+			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.MethodNotAllowed,
 				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -808,8 +810,8 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		data, _ := json.Marshal(summary)
 		err = e.SolutionManager.SaveSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, model.SummaryStateRunning, namespace)
 		if err != nil {
-			e.UnlockObject(ctx, lockName)
 			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
+			e.UnlockObject(ctx, lockName)
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,
@@ -818,9 +820,9 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 		}
 
-		stopCh := make(chan struct{})
-		defer close(stopCh)
-		go e.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+		// stopCh := make(chan struct{})
+		// defer close(stopCh)
+		// go e.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
 
 		// get the components count for the deployment
 		componentCount := len(deployment.Solution.Spec.Components)
@@ -861,6 +863,7 @@ func (e *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
 			e.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+			log.ErrorfCtx(ctx, " M (Solution): failed initalPlan for deployment: %+v", err)
 			e.UnlockObject(ctx, lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
@@ -927,9 +930,26 @@ func (e *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 	if exists && getAll == "true" {
 		// Logic to handle getALL parameter
 		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
-		return e.getTaskFromQueue(ctx, target, namespace, true)
+
+		start, startExist := request.Parameters["getAll"]
+		if !startExist {
+			start = "0"
+		}
+		sizeStr, sizeExist := request.Parameters["size"]
+		var size int
+		var err error
+		if !sizeExist {
+			size = 10
+		} else {
+			size, err = strconv.Atoi(sizeStr)
+			if err != nil {
+				// Handle the error, for example, set a default value or return an error
+				size = 10
+			}
+		}
+		return e.getTaskFromQueueByPaging(ctx, target, namespace, start, size)
 	}
-	return e.getTaskFromQueue(ctx, target, namespace, false)
+	return e.getTaskFromQueue(ctx, target, namespace)
 }
 
 // onGetResponse handles the get response from the remote agent.
@@ -1036,7 +1056,7 @@ func (e *SolutionVendor) handleRemoteAgentExecuteResult(ctx context.Context, asy
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (e *SolutionVendor) getTaskFromQueue(ctx context.Context, target string, namespace string, fromBegining bool) v1alpha2.COAResponse {
+func (e *SolutionVendor) getTaskFromQueue(ctx context.Context, target string, namespace string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
@@ -1045,11 +1065,7 @@ func (e *SolutionVendor) getTaskFromQueue(ctx context.Context, target string, na
 	defer span.End()
 	var queueElement interface{}
 	var err error
-	if fromBegining {
-		queueElement, err = e.StagingManager.QueueProvider.PeekFromBegining(queueName)
-	} else {
-		queueElement, err = e.StagingManager.QueueProvider.Peek(queueName)
-	}
+	queueElement, err = e.StagingManager.QueueProvider.Peek(queueName)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(SolutionVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
@@ -1058,6 +1074,41 @@ func (e *SolutionVendor) getTaskFromQueue(ctx context.Context, target string, na
 		}
 	}
 	data, _ := json.Marshal(queueElement)
+	return v1alpha2.COAResponse{
+		State:       v1alpha2.OK,
+		Body:        data,
+		ContentType: "application/json",
+	}
+}
+
+// getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
+func (e *SolutionVendor) getTaskFromQueueByPaging(ctx context.Context, target string, namespace string, start string, size int) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
+		"method": "doGetFromQueue",
+	})
+	queueName := fmt.Sprintf("%s-%s", target, namespace)
+	sLog.InfoCtx(ctx, "V(SolutionVendor): getFromQueue %s queue length %s", queueName)
+	defer span.End()
+	var queueElement interface{}
+	var err error
+
+	queueElement, lastMessageID, err := e.StagingManager.QueueProvider.QueryByPaging(queueName, start, size)
+	type ProviderPagingRequest struct {
+		requestList   interface{}
+		lastMessageID string
+	}
+	response := &ProviderPagingRequest{
+		requestList:   queueElement,
+		lastMessageID: lastMessageID,
+	}
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "V(SolutionVendor): getQueue failed - %s", err.Error())
+		return v1alpha2.COAResponse{
+			State: v1alpha2.InternalError,
+			Body:  []byte(err.Error()),
+		}
+	}
+	data, _ := json.Marshal(response)
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
@@ -1314,7 +1365,7 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 }
 
 func (e *SolutionVendor) UnlockObject(ctx context.Context, lockName string) {
-	e.SolutionManager.KeyLockProvider.TryLock(lockName)
+	// e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	log.InfoCtx(ctx, "unlock %s", lockName)
 	e.SolutionManager.KeyLockProvider.UnLock(lockName)
 }
@@ -1372,7 +1423,7 @@ func (e *SolutionVendor) handleAllPlanCompletetion(ctx context.Context, planStat
 		return err
 	}
 	log.InfoCtx(ctx, "final unlock %s", planState.Deployment.Instance.ObjectMeta.Name)
-	e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
+	// e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
 	e.UnlockObject(ctx, api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
 	return nil
 }

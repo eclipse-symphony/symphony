@@ -166,7 +166,7 @@ func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}) (string
 	}
 	return rq.client.XAdd(rq.Ctx, &redis.XAddArgs{
 		Stream: queue,
-		Values: map[string]interface{}{"data": data},
+		Values: map[string]interface{}{"data": data, "timestamp": time.Now().Unix()},
 	}).Result()
 }
 func (rq *RedisQueueProvider) PeekFromBegining(queue string) (interface{}, error) {
@@ -248,7 +248,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 	}
 
 	// Read message
-	xMessages, err := rq.client.XRangeN(context.TODO(), queue, start, "+", 1).Result()
+	xMessages, err := rq.client.XRangeN(rq.Ctx, queue, start, "+", 1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -275,4 +275,33 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// GetRecords retrieves records from the queue starting from the specified index and retrieves the specified size of records.
+func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int) ([]interface{}, string, error) {
+
+	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, "("+start, "+", int64(size)).Result()
+	if err != nil {
+		return nil, "", err
+	}
+	if len(xMessages) == 0 {
+		return nil, "", err
+	}
+
+	lastMessageID := xMessages[len(xMessages)-1].ID
+	if len(xMessages) < size {
+		lastMessageID = ""
+	}
+	var results []interface{}
+	for _, xMsg := range xMessages {
+		jsonData := xMsg.Values["data"].(string)
+		var result interface{}
+		err = json.Unmarshal([]byte(jsonData), &result)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to unmarshal message: %w", err)
+		}
+		results = append(results, result)
+	}
+
+	return results, lastMessageID, nil
 }
