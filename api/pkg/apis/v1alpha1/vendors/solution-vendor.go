@@ -91,16 +91,6 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
 			e.handleDeploymentStep(ctx, event)
-			// if err != nil {
-			// 	log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
-			// 	// release lock
-			// 	var stepEnvelope StepEnvelope
-			// 	jData, _ := json.Marshal(event.Body)
-			// 	json.Unmarshal(jData, &stepEnvelope)
-			// 	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
-			// 	e.SolutionManager.KeyLockProvider.UnLock(lockName)
-			// 	return err
-			// }
 			return err
 		},
 		Group: "Solution-vendor",
@@ -116,13 +106,13 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 			err := e.handleDeploymentPlan(ctx, event)
 			if err != nil {
 				log.ErrorfCtx(ctx, "V(StageVendor): Failed to handle deployment plan: %v", err)
-				// release lock
-				var planEnvelope PlanEnvelope
-				jData, _ := json.Marshal(event.Body)
-				json.Unmarshal(jData, &planEnvelope)
-				lockName := api_utils.GenerateKeyLockName(planEnvelope.Namespace, planEnvelope.Deployment.Instance.ObjectMeta.Name)
-				e.SolutionManager.KeyLockProvider.UnLock(lockName)
-				return err
+				// // release lock
+				// var planEnvelope PlanEnvelope
+				// jData, _ := json.Marshal(event.Body)
+				// json.Unmarshal(jData, &planEnvelope)
+				// lockName := api_utils.GenerateKeyLockName(planEnvelope.Namespace, planEnvelope.Deployment.Instance.ObjectMeta.Name)
+				// e.SolutionManager.KeyLockProvider.UnLock(lockName)
+				// return err
 			}
 			return err
 		},
@@ -407,7 +397,8 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 		return fmt.Errorf("Plan not found: %s", planId)
 	}
 	planState := planStateObj.(*PlanState)
-
+	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	// Update the plan state in the map and save the summary
 	if err := e.saveStepResult(ctx, planState, stepResult); err != nil {
 		log.ErrorCtx(ctx, "Failed to handle step result: %v", err)
@@ -466,6 +457,8 @@ func (e *SolutionVendor) handleDeploymentStep(ctx context.Context, event v1alpha
 		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal step envelope: %v", err)
 		return err
 	}
+	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
+	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	if stepEnvelope.Step.Role == "container" {
 		stepEnvelope.Step.Role = "instance"
 	}
@@ -1091,12 +1084,12 @@ func (e *SolutionVendor) getTaskFromQueueByPaging(ctx context.Context, target st
 	sLog.InfoCtx(ctx, "V(SolutionVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 	var err error
-	log.InfoCtx(ctx, "get task from queue by paging", start, size)
 	queueElement, lastMessageID, err := e.StagingManager.QueueProvider.QueryByPaging(queueName, start, size)
 	var requestList []AgentRequest
 	for _, element := range queueElement {
 		var agentRequest AgentRequest
 		err = json.Unmarshal(element, &agentRequest)
+		log.InfoCtx(ctx, "unmarshal one element", agentRequest)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V(SolutionVendor): failed to unmarshal element - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -1107,8 +1100,8 @@ func (e *SolutionVendor) getTaskFromQueueByPaging(ctx context.Context, target st
 		requestList = append(requestList, agentRequest)
 	}
 	response := &ProviderPagingRequest{
-		requestList:   requestList,
-		lastMessageID: lastMessageID,
+		RequestList:   requestList,
+		LastMessageID: lastMessageID,
 	}
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(SolutionVendor): getQueue failed - %s", err.Error())
@@ -1374,8 +1367,6 @@ func (e *SolutionVendor) threeStateMerge(ctx context.Context, planState *PlanSta
 }
 
 func (e *SolutionVendor) UnlockObject(ctx context.Context, lockName string) {
-	// e.SolutionManager.KeyLockProvider.TryLock(lockName)
-	log.InfoCtx(ctx, "unlock %s", lockName)
 	e.SolutionManager.KeyLockProvider.UnLock(lockName)
 }
 func (e *SolutionVendor) SaveSummaryInfo(ctx context.Context, planState *PlanState, state model.SummaryState) error {

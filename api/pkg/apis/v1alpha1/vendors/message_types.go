@@ -140,8 +140,8 @@ type ProviderGetRequest struct {
 }
 
 type ProviderPagingRequest struct {
-	requestList   interface{}
-	lastMessageID string
+	RequestList   []AgentRequest `json:"requestList"`
+	LastMessageID string         `json:"lastMessageID"`
 }
 type ProviderApplyRequest struct {
 	AgentRequest
