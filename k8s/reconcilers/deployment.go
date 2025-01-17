@@ -56,6 +56,7 @@ type (
 		deleteSyncDelay        time.Duration // TODO: Use operator reconcile loop instead of this delay
 		delayFunc              func(time.Duration)
 		deploymentKeyResolver  func(Reconcilable) string
+		deploymentNameResolver func(Reconcilable) string
 		deploymentErrorBuilder func(*apimodel.SummaryResult, error, *apimodel.ErrorType)
 		deploymentBuilder      func(ctx context.Context, object Reconcilable) (*apimodel.DeploymentSpec, error)
 	}
@@ -80,6 +81,7 @@ var (
 func NewDeploymentReconciler(opts ...DeploymentReconcilerOptions) (*DeploymentReconciler, error) {
 	r := &DeploymentReconciler{
 		deploymentKeyResolver:  defaultDeploymentKeyResolver,
+		deploymentNameResolver: defaultDeploymentNameResolver,
 		deploymentErrorBuilder: defaultProvisioningErrorBuilder,
 		delayFunc:              time.Sleep,
 		applyTimeOut:           defaultTimeout,
@@ -450,7 +452,7 @@ func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Re
 }
 
 func (r *DeploymentReconciler) getDeploymentSummary(ctx context.Context, object Reconcilable) (*model.SummaryResult, error) {
-	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
+	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), r.deploymentNameResolver(object), object.GetNamespace(), "", "")
 }
 
 func (r *DeploymentReconciler) deleteDeploymentSummary(ctx context.Context, object Reconcilable) error {
@@ -696,6 +698,10 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 
 func defaultDeploymentKeyResolver(object Reconcilable) string {
 	return object.GetAnnotations()[apiconstants.GuidKey]
+}
+
+func defaultDeploymentNameResolver(object Reconcilable) string {
+	return object.GetName()
 }
 
 func defaultProvisioningErrorBuilder(summaryResult *model.SummaryResult, err error, errorObj *apimodel.ErrorType) {

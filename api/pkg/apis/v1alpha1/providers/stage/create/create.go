@@ -98,7 +98,7 @@ func toSymphonyStageProviderConfig(config providers.IProviderConfig) (CreateStag
 	if err != nil {
 		return ret, err
 	}
-	err = utils.Unmarshal[CreateStageProviderConfig](data, &ret)
+	err = utils.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *CreateStageProvider) InitWithMap(properties map[string]string) error {
@@ -219,7 +219,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			return nil, false, err
 		} else if strings.EqualFold(action, CreateAction) {
 			var instanceState model.InstanceState
-			err = utils.Unmarshal[model.InstanceState](objectData, &instanceState)
+			err = utils.UnmarshalJson(objectData, &instanceState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -291,8 +291,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				)
 				return outputs, false, err
 			}
-			objectGuid := ret.ObjectMeta.GetGuid()
-			if objectGuid == "" {
+			summaryId := ret.ObjectMeta.GetSummaryId()
+			if summaryId == "" {
 				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", objectName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
@@ -307,7 +307,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
 					Name: objectName,
-					Guid: objectGuid,
+					Guid: summaryId,
 				}
 				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {

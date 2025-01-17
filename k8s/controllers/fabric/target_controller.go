@@ -139,5 +139,8 @@ func (r *TargetReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, 
 		reconcilers.WithDeploymentKeyResolver(func(target reconcilers.Reconcilable) string {
 			return api_utils.GetTargetRuntimeKey(target.GetAnnotations()[api_constants.GuidKey])
 		}),
+		reconcilers.WithDeploymentNameResolver(func(target reconcilers.Reconcilable) string {
+			return api_utils.GetTargetRuntimeKey(target.GetName())
+		}),
 	)
 }

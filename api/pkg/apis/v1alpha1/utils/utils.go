@@ -518,13 +518,16 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 	var err error
 	for _, object := range objects {
 		var key string
+		var nameKey string
 		if isInstance {
 			key = object.Guid
+			nameKey = object.Name
 		} else {
 			key = GetTargetRuntimeKey(object.Guid)
+			nameKey = GetTargetRuntimeKey(object.Name)
 		}
 		var summary *model.SummaryResult
-		summary, err = (*apiclient).GetSummary(ctx, key, namespace, username, password)
+		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
 		if err == nil && summary.State == model.SummaryStateDone {
 			log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
 			if !summary.Summary.AllAssignedDeployed {

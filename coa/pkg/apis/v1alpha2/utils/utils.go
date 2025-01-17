@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 )
 
-func Unmarshal[T any](data []byte, obj *T) error {
+func UnmarshalJson[T any](data []byte, obj *T) error {
 	// var obj T
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()

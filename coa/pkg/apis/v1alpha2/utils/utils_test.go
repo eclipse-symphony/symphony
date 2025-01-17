@@ -34,7 +34,7 @@ func TestUnmarshal(t *testing.T) {
 	data, err := json.Marshal(context)
 	assert.Nil(t, err)
 	var ret EvaluationContext
-	err = Unmarshal[EvaluationContext](data, &ret)
+	err = UnmarshalJson(data, &ret)
 	assert.Nil(t, err)
 	assert.Equal(t, context, ret)
 }

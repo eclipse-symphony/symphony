@@ -155,6 +155,13 @@ func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 	}
 }
 
+func (c *ObjectMeta) GetSummaryId() string {
+	if c.Annotations == nil || c.Annotations[constants.GuidKey] == "" {
+		return c.Name
+	}
+	return fmt.Sprintf("%s-%s", c.Name, c.Annotations[constants.GuidKey])
+}
+
 func (c *ObjectMeta) GetGuid() string {
 	if c.Annotations == nil {
 		return ""
