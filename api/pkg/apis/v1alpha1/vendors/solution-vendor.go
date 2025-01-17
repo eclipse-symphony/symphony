@@ -132,9 +132,15 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	return nil
 }
 func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "HandleDeploymentPlan",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	var planEnvelope PlanEnvelope
 	jData, _ := json.Marshal(event.Body)
-	err := json.Unmarshal(jData, &planEnvelope)
+	err = json.Unmarshal(jData, &planEnvelope)
 	if err != nil {
 		log.ErrorCtx(ctx, "failed to unmarshal plan envelope :%v", err)
 		return err
@@ -155,7 +161,8 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		switch planEnvelope.Phase {
 		case PhaseGet:
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
-			if err := e.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
+			if err = e.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
+				log.ErrorCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, stepId)
 				return err
 			}
 		case PhaseApply:
@@ -167,6 +174,7 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 	case PhaseApply:
 		log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
 		if err := e.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
+			log.ErrorCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
 			return err
 		}
 	}
@@ -239,6 +247,12 @@ func (e *SolutionVendor) createPlanState(ctx context.Context, planEnvelope PlanE
 // saveStepResult updates the plan state with the step result and saves the summary.
 func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanState, stepResult StepResult) error {
 	// Log the update of plan state with the step result
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "SaveStepResult",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfoCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
 	planState.CompletedSteps++
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
@@ -264,7 +278,10 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 				planState.TargetResult[stepResult.Target] = -1
 				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
 			}
-			return e.handleAllPlanCompletetion(ctx, planState)
+			if err = e.handleAllPlanCompletetion(ctx, planState); err != nil {
+				log.InfoCtx(ctx, "V(Solution): handle plan Complete failed %+v", err)
+				return err
+			}
 		} else {
 			// Handle success case and update the target result status and message
 			targetResultSpec := model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: stepResult.ApplyResult}
@@ -278,7 +295,7 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 			// publish next step execute event
 			if stepResult.StepId != planState.TotalSteps-1 {
 				log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", stepResult.StepId+1, planState.Steps[stepResult.StepId+1].Role)
-				if err := e.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
+				if err = e.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
 					log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
 				}
 			}
@@ -291,8 +308,9 @@ func (e *SolutionVendor) saveStepResult(ctx context.Context, planState *PlanStat
 
 		// Save the summary information
 		log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
-		if err := e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
+		if err = e.SaveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
+			return err
 		}
 	}
 
@@ -366,13 +384,19 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 
 // handleStepResult processes the event and updates the plan state accordingly.
 func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "HandleStepResult",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	var stepResult StepResult
 	// Marshal the event body to JSON
 	jData, _ := json.Marshal(event.Body)
 	log.InfofCtx(ctx, "Received event body: %s", string(jData))
 
 	// Unmarshal the JSON data into stepResult
-	if err := json.Unmarshal(jData, &stepResult); err != nil {
+	if err = json.Unmarshal(jData, &stepResult); err != nil {
 		log.ErrorfCtx(ctx, "Failed to unmarshal step result: %v", err)
 		return err
 	}
@@ -387,7 +411,7 @@ func (e *SolutionVendor) handleStepResult(ctx context.Context, event v1alpha2.Ev
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	// Update the plan state in the map and save the summary
-	if err := e.saveStepResult(ctx, planState, stepResult); err != nil {
+	if err = e.saveStepResult(ctx, planState, stepResult); err != nil {
 		log.ErrorCtx(ctx, "Failed to handle step result: %v", err)
 		return err
 	}
@@ -434,6 +458,13 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 	}
 }
 func (e *SolutionVendor) handleDeploymentStep(ctx context.Context, event v1alpha2.Event) error {
+	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
+		"method": "HandleDeploymentStep",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
 	var stepEnvelope StepEnvelope
 	jData, err := json.Marshal(event.Body)
 	if err != nil {
@@ -451,23 +482,21 @@ func (e *SolutionVendor) handleDeploymentStep(ctx context.Context, event v1alpha
 	}
 	switch stepEnvelope.PlanState.Phase {
 	case PhaseGet:
-		return e.handlePhaseGet(ctx, stepEnvelope)
+		if err = e.handlePhaseGet(ctx, stepEnvelope); err != nil {
+			log.ErrorfCtx(ctx, "V(Solution): Failed to handle get phase: %v", err)
+		}
 	case PhaseApply:
-		return e.handlePhaseApply(ctx, stepEnvelope)
+		if err = e.handlePhaseApply(ctx, stepEnvelope); err != nil {
+			log.ErrorfCtx(ctx, "V(Solution): Failed to handle apply phase: %v", err)
+		}
 	}
 	return nil
 }
 func findAgentFromDeploymentState(deployment model.DeploymentSpec, targetName string) bool {
-	// find targt component
 	targetSpec := deployment.Targets[targetName]
-	log.Info("compare between state and target name %s, %+v", targetName, targetSpec)
 	for _, component := range targetSpec.Spec.Components {
-		log.Info("compare between state and target name %+v, %s", component, component.Name)
 		if component.Type == "remote-agent" {
-			log.Info("It is remote call ")
 			return true
-		} else {
-			log.Info(" it is not remote call target Name %s", targetName)
 		}
 	}
 	return false
@@ -900,7 +929,9 @@ func (e *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 	ctx, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onGetRequest",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	var agentRequest AgentRequest
 	sLog.InfoCtx(ctx, "V(Solution): get request from remote agent")
 	target := request.Parameters["target"]
@@ -938,10 +969,12 @@ func (e *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 	ctx, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onGetResponse",
 	})
-	defer span.End()
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var asyncResult AsyncResult
-	err := json.Unmarshal(request.Body, &asyncResult)
+	err = json.Unmarshal(request.Body, &asyncResult)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(Solution): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
