@@ -283,7 +283,7 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 		start = "(" + start
 	}
 
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, start, "+", 10).Result()
+	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, start, "+", int64(size)).Result()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get message : %s ", start)
 	}
