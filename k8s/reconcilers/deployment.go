@@ -697,7 +697,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 }
 
 func defaultDeploymentKeyResolver(object Reconcilable) string {
-	return object.GetAnnotations()[apiconstants.GuidKey]
+	return api_utils.ConstructSummaryId(object.GetName(), object.GetAnnotations()[apiconstants.GuidKey])
 }
 
 func defaultDeploymentNameResolver(object Reconcilable) string {

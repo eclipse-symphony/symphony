@@ -36,8 +36,8 @@ const (
 
 // Define the struct
 type ObjectInfo struct {
-	Name string
-	Guid string
+	Name      string
+	SummaryId string
 }
 
 func IsNotFound(err error) bool {
@@ -520,10 +520,10 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 		var key string
 		var nameKey string
 		if isInstance {
-			key = object.Guid
+			key = object.SummaryId
 			nameKey = object.Name
 		} else {
-			key = GetTargetRuntimeKey(object.Guid)
+			key = GetTargetRuntimeKey(object.SummaryId)
 			nameKey = GetTargetRuntimeKey(object.Name)
 		}
 		var summary *model.SummaryResult

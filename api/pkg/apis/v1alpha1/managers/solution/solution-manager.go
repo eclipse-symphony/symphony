@@ -171,7 +171,7 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string,
 	log.InfofCtx(ctx, " M (Solution): failed to get previous state for instance %s in namespace %s: %+v", instance, namespace, err)
 	return nil
 }
-func (s *SolutionManager) GetSummary(ctx context.Context, key string, name string, namespace string) (model.SummaryResult, error) {
+func (s *SolutionManager) GetSummary(ctx context.Context, summaryId string, name string, namespace string) (model.SummaryResult, error) {
 	// lock.Lock()
 	// defer lock.Unlock()
 
@@ -182,11 +182,11 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, name strin
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Solution): get summary, key: %s, namespace: %s", key, namespace)
+	log.InfofCtx(ctx, " M (Solution): get summary, name: %s, summaryId: %s, namespace: %s", name, summaryId, namespace)
 
 	var state states.StateEntry
 	state, err = s.StateProvider.Get(ctx, states.GetRequest{
-		ID: fmt.Sprintf("%s-%s", "summary", key),
+		ID: fmt.Sprintf("%s-%s", "summary", summaryId),
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
@@ -196,6 +196,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, name strin
 	})
 	if err != nil && api_utils.IsNotFound(err) {
 		// if get summary by guid not found, try to get the summary by name
+		log.InfofCtx(ctx, " M (Solution): failed to get deployment summary[%s] by summaryId, error: %+v. Try to get summary by name", summaryId, err)
 		state, err = s.StateProvider.Get(ctx, states.GetRequest{
 			ID: fmt.Sprintf("%s-%s", "summary", name),
 			Metadata: map[string]interface{}{
@@ -207,7 +208,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, name strin
 		})
 	}
 	if err != nil {
-		log.ErrorfCtx(ctx, " M (Solution): failed to get deployment summary[%s]: %+v", key, err)
+		log.ErrorfCtx(ctx, " M (Solution): failed to get deployment summary[%s]: %+v", summaryId, err)
 		return model.SummaryResult{}, err
 	}
 
@@ -215,11 +216,10 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, name strin
 	jData, _ := json.Marshal(state.Body)
 	err = json.Unmarshal(jData, &result)
 	if err != nil {
-		log.ErrorfCtx(ctx, " M (Solution): failed to deserailze deployment summary[%s]: %+v", key, err)
+		log.ErrorfCtx(ctx, " M (Solution): failed to deserailze deployment summary[%s]: %+v", summaryId, err)
 		return model.SummaryResult{}, err
 	}
 
-	log.InfofCtx(ctx, " M (Solution): get summary, key: %s, namespace: %s, summary: %+v", key, namespace, result)
 	return result, nil
 }
 

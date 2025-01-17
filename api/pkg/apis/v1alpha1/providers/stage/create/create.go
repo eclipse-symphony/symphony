@@ -306,8 +306,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
-					Name: objectName,
-					Guid: summaryId,
+					Name:      objectName,
+					SummaryId: summaryId,
 				}
 				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {

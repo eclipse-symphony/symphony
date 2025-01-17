@@ -527,7 +527,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			ObjectMeta: model.ObjectMeta{
 				Name: "target-runtime-someTargetName",
 				Annotations: map[string]string{
-					"Guid": "target-runtime-someGuid",
+					"Guid": "someGuid",
 				},
 			},
 			Spec: &model.InstanceSpec{

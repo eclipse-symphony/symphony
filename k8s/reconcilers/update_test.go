@@ -5,16 +5,19 @@ import (
 	"errors"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	solutionv1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/reconcilers"
+
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 
 	. "gopls-workspace/testing"
 
@@ -79,7 +82,9 @@ var _ = Describe("Creating a reconciler", func() {
 				reconcilers.WithClient(CreateFakeKubeClientForFabricGroup()),
 				reconcilers.WithApiClient(&MockApiClient{}),
 				reconcilers.WithDeploymentErrorBuilder(func(*model.SummaryResult, error, *apimodel.ErrorType) {}),
-				reconcilers.WithDeploymentKeyResolver(func(obj reconcilers.Reconcilable) string { return obj.GetName() }),
+				reconcilers.WithDeploymentKeyResolver(func(obj reconcilers.Reconcilable) string {
+					return api_utils.ConstructSummaryId(obj.GetName(), obj.GetAnnotations()[api_constants.GuidKey])
+				}),
 			)...)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(reconciler).NotTo(BeNil())

@@ -706,7 +706,7 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 		},
 	}
 	// TODO: is this a good way to set guid for deployment?
-	instance.ObjectMeta.SetGuid(GetTargetRuntimeKey(target.ObjectMeta.GetGuid()))
+	instance.ObjectMeta.SetGuid(target.ObjectMeta.GetGuid())
 
 	ret.Solution = solution
 	ret.Instance = instance
@@ -731,6 +731,13 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 // Add target-runtime prefix to notify the object is a target.
 func GetTargetRuntimeKey(guid string) string {
 	return fmt.Sprintf("%s-%s", constants.TargetRuntimePrefix, guid)
+}
+
+func ConstructSummaryId(name string, guid string) string {
+	if guid != "" {
+		return fmt.Sprintf("%s-%s", name, guid)
+	}
+	return name
 }
 
 func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
