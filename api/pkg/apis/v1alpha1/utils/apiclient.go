@@ -565,6 +565,7 @@ func (a *apiClient) QueueJob(ctx context.Context, id string, namespace string, i
 func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
+
 	path := "solution/reconcile" + "?namespace=" + namespace
 	if isDelete {
 		path = path + "&delete=true"
