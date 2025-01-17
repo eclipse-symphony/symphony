@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -24,7 +23,6 @@ import (
 )
 
 var mLog = logger.NewLogger("coa.runtime")
-var mLock sync.Mutex
 
 type RedisQueueProviderConfig struct {
 	Name        string `json:"name"`
@@ -169,32 +167,6 @@ func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}) (string
 		Values: map[string]interface{}{"data": data, "timestamp": time.Now().Unix()},
 	}).Result()
 }
-func (rq *RedisQueueProvider) PeekFromBegining(queue string) (interface{}, error) {
-	// Get the last ID processed by this consumer
-
-	// Read message
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queue, "0", "+", 1).Result()
-	if err != nil {
-		return nil, err
-	}
-	if len(xMessages) == 0 {
-		return nil, nil
-	}
-	xMsg := xMessages[0]
-	jsonData := xMsg.Values["data"].(string)
-	var result interface{}
-	err = json.Unmarshal([]byte(jsonData), &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
-	}
-	// update last read ID
-	lastReadKey := fmt.Sprintf("%s:lastID", queue)
-	err = rq.client.Set(rq.Ctx, lastReadKey, xMsg.ID, 0).Err()
-	if err != nil {
-		return nil, fmt.Errorf("failed to update last read ID: %w", err)
-	}
-	return result, nil
-}
 
 func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	var start string
@@ -283,7 +255,7 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 		start = "(" + start
 	}
 
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, start, "+", int64(size)).Result()
+	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, start, "+", int64(size+1)).Result()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get message : %s ", start)
 	}
@@ -292,14 +264,15 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 	}
 
 	lastMessageID := xMessages[len(xMessages)-1].ID
-	if len(xMessages) < size {
+	if len(xMessages) <= size {
 		lastMessageID = ""
+	} else {
+		xMessages = xMessages[:size]
 	}
 	var results [][]byte
 	for _, xMsg := range xMessages {
 		jsonData := xMsg.Values["data"].(string)
 		results = append(results, []byte(jsonData))
 	}
-
 	return results, lastMessageID, nil
 }
