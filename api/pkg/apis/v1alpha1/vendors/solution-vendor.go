@@ -147,7 +147,7 @@ func (e *SolutionVendor) handleDeploymentPlan(ctx context.Context, event v1alpha
 		return err
 	}
 
-	planState := e.createPlanState(ctx, planEnvelope)
+	planState := e.createPlanState(planEnvelope)
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	e.SolutionManager.KeyLockProvider.TryLock(lockName)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
@@ -216,7 +216,7 @@ func (e *SolutionVendor) publishStepResult(ctx context.Context, target string, p
 }
 
 // create inital plan state
-func (e *SolutionVendor) createPlanState(ctx context.Context, planEnvelope PlanEnvelope) *PlanState {
+func (e *SolutionVendor) createPlanState(planEnvelope PlanEnvelope) *PlanState {
 	return &PlanState{
 		PlanId:     planEnvelope.PlanId,
 		StartTime:  time.Now(),
