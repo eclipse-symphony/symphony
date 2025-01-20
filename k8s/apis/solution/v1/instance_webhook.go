@@ -29,7 +29,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -121,32 +120,6 @@ func (r *Instance) Default() {
 	}
 	r.Labels[api_constants.Solution] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
 	r.Labels[api_constants.Target] = r.Spec.Target.Name
-
-	if r.Spec.RootResource != "" {
-		var solutionContainer SolutionContainer
-		err := myInstanceClient.Get(context.Background(), client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &solutionContainer)
-		if err != nil {
-			diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to get solution container", "name", r.Spec.RootResource)
-		} else {
-			ownerReference := metav1.OwnerReference{
-				APIVersion: GroupVersion.String(),
-				Kind:       "SolutionContainer",
-				Name:       solutionContainer.Name,
-				UID:        solutionContainer.UID,
-			}
-
-			if !configutils.CheckOwnerReferenceAlreadySet(r.OwnerReferences, ownerReference) {
-				r.OwnerReferences = append(r.OwnerReferences, ownerReference)
-			}
-			if r.Labels == nil {
-				r.Labels = make(map[string]string)
-			}
-			r.Labels[api_constants.RootResource] = r.Spec.RootResource
-			if projectConfig.UniqueDisplayNameForSolution {
-				r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
-			}
-		}
-	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

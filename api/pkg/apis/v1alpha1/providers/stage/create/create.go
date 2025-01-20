@@ -260,6 +260,25 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			if err != nil && api_utils.IsNotFound(err) {
 				mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
 				solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: objectNamespace, Labels: solutionState.ObjectMeta.Labels}}
+
+				// Set the owner reference
+				target := stage.ReadInputString(inputs, "__target")
+				target = helper.GetInstanceTargetName(target)
+				ownerReference, err := helper.GetSolutionContainerOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
+				if err != nil {
+					mLog.ErrorfCtx(ctx, "Failed to get owner reference for solution %s: %s", objectName, err.Error())
+					providerOperationMetrics.ProviderOperationErrors(
+						create,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.CreateSolutionFailed.String(),
+					)
+					return outputs, false, err
+				}
+				if ownerReference != nil {
+					solutionContainerState.ObjectMeta.OwnerReferences = ownerReference
+				}
 				containerObjectData, _ := json.Marshal(solutionContainerState)
 				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solution container %v in namespace %s", solutionState.Spec.RootResource, objectNamespace)
 				err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, objectNamespace, i.Config.User, i.Config.Password)
@@ -367,15 +386,28 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			target := stage.ReadInputString(inputs, "__target")
 			if target != "" {
 				instanceState.Spec.Target = model.TargetSelector{
-					Name: target,
+					Name: helper.GetInstanceTargetName(target),
 				}
 			}
-			instanceState.Spec.Solution = helper.GetInstanceSolutionName(instanceState.Spec.Solution)
-			rootResource := helper.GetInstanceRootResource(instanceState.Spec.Solution)
-			if rootResource != "" {
-				instanceState.Spec.RootResource = rootResource
+
+			// Set the owner reference
+			ownerReference, err := helper.GetInstanceOwnerReferences(i.ApiClient, ctx, objectName, objectNamespace, instanceState, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", objectName, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if ownerReference != nil {
+				instanceState.ObjectMeta.OwnerReferences = ownerReference
 			}
 
+			// Set the labels
 			if label_key != "" && label_value != "" {
 				// Check if labels exists within metadata, if not create it
 				labels := instanceState.ObjectMeta.Labels
