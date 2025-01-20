@@ -98,6 +98,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		ctx, span := observability.StartSpan("onQueue-GET", rContext, nil)
 		defer span.End()
 		instance := request.Parameters["instance"]
+		instanceName := request.Parameters["name"]
 
 		if instance == "" {
 			sLog.ErrorCtx(ctx, "V (Solution): onQueue failed - 400 instance parameter is not found")
@@ -107,7 +108,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				ContentType: "application/json",
 			})
 		}
-		summary, err := c.SolutionManager.GetSummary(ctx, instance, namespace)
+		summary, err := c.SolutionManager.GetSummary(ctx, instance, instanceName, namespace)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - %s", err.Error())

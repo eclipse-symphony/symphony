@@ -287,7 +287,7 @@ func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string
 }
 
 // GetSummary implements ApiClient.
-func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error) {
+func (c *MockApiClient) GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	args := c.Called(ctx, id, namespace)
 	summary := args.Get(0)
 	if summary == nil {

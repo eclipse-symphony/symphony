@@ -43,7 +43,7 @@ type (
 	TokenProvider func(ctx context.Context, baseUrl string, client *http.Client, user string, password string) (string, error)
 
 	SummaryGetter interface {
-		GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error)
+		GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error)
 		DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error
 	}
 
@@ -469,7 +469,7 @@ func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []b
 	return nil
 }
 
-func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error) {
+func (a *apiClient) GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	result := model.SummaryResult{}
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
@@ -477,7 +477,7 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 	}
 
 	log.DebugfCtx(ctx, "apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
-	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&name="+url.QueryEscape(name)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
 		log.DebugfCtx(ctx, "apiClient.GetSummary: Not found")
