@@ -367,14 +367,17 @@ func (e *SolutionVendor) handlePlanComplete(ctx context.Context, planState *Plan
 	switch planState.Phase {
 	case PhaseGet:
 		if err := e.handleGetPlanCompletetion(ctx, planState); err != nil {
+			log.InfoCtx(ctx, "delete plan here %s", planState.PlanId)
 			e.PlanManager.DeletePlan(planState.PlanId)
 			return err
 		}
 	case PhaseApply:
 		if err := e.handleAllPlanCompletetion(ctx, planState); err != nil {
+			log.InfoCtx(ctx, "delete plan here %s", planState.PlanId)
 			e.PlanManager.DeletePlan(planState.PlanId)
 			return err
 		}
+		log.InfoCtx(ctx, "delete plan here %s", planState.PlanId)
 		e.PlanManager.DeletePlan(planState.PlanId)
 	}
 
