@@ -1,9 +1,9 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: remote-demo3
+  name: remote-demo5
 spec:
-  displayName: remote-demo3
+  displayName: remote-demo5
   scope: default
   components:
   - name: remote-agent
@@ -14,7 +14,5 @@ spec:
   - bindings:
     - provider: providers.target.script
       role: script
-      config:
-        hello: hello
     - provider: providers.target.remote-agent
       role: remote-agent

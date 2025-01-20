@@ -99,7 +99,6 @@ base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", 
 
 # Combine the header, base64 content, and footer
 corrected_private_content="$header\n$base64_content\n$footer"
-file=$(echo $result | jq -r '.file')
 
 # Save the public certificate to public.pem
 echo -e "$corrected_public_content" > public.pem
@@ -107,8 +106,8 @@ echo -e "$corrected_public_content" > public.pem
 # Save the private key to private.pem
 echo -e "$corrected_private_content" > private.pem
 
-# Decode the base64-encoded binary data and save it to remote-agent
-echo "$file" | base64 --decode > remote-agent
+# Download the remote-agent binary
+curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
 
 # Make the remote-agent binary executable
 chmod +x remote-agent

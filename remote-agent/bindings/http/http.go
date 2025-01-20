@@ -76,7 +76,7 @@ func (h *HttpBinding) Launch() error {
 
 			var req map[string]interface{}
 			err = json.Unmarshal(body, &req)
-			if err != nil {
+			if err != nil || req["operationID"] == "" {
 				fmt.Println("No requests")
 			} else {
 				// handle request
