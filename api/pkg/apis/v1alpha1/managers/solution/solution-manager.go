@@ -1724,27 +1724,8 @@ func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, pl
 	log.InfoCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Summary.TargetResults)
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: planId,
-			Body: map[string]interface{}{
-				"ID":                   planState.ID,
-				"PlanId":               planState.PlanId,
-				"Phase":                planState.Phase,
-				"StartTime":            planState.StartTime,
-				"ExpireTime":           planState.ExpireTime,
-				"TotalSteps":           planState.TotalSteps,
-				"CompletedSteps":       planState.CompletedSteps,
-				"Summary":              planState.Summary,
-				"MergedState":          planState.MergedState,
-				"Deployment":           planState.Deployment,
-				"CurrentState":         planState.CurrentState,
-				"PreviousDesiredState": planState.PreviousDesiredState,
-				"Status":               planState.Status,
-				"TargetResult":         planState.TargetResult,
-				"Namespace":            planState.Namespace,
-				"Remove":               planState.Remove,
-				"StepStates":           planState.StepStates,
-				"Steps":                planState.Steps,
-			},
+			ID:   planId,
+			Body: planState,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": planState.Namespace,
@@ -1803,7 +1784,8 @@ func (s *SolutionManager) deleteOperationState(ctx context.Context, operationId 
 
 // upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) deletePlanState(ctx context.Context, planId string, namespace string) error {
-	log.InfoCtx(ctx, "delete plan %s", planId)
+	log.InfofCtx(ctx, "delete plan %s", planId)
+	log.InfofCtx(ctx, "delete plan namespace %s", namespace)
 	deleteRequest := states.DeleteRequest{
 		ID: planId,
 		Metadata: map[string]interface{}{
