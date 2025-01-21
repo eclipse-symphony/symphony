@@ -79,6 +79,7 @@ type TargetSpec struct {
 	DisplayName   string               `json:"displayName,omitempty"`
 	Metadata      map[string]string    `json:"metadata,omitempty"`
 	Scope         string               `json:"scope,omitempty"`
+	AppScope      string               `json:"appScope,omitempty"`
 	Properties    map[string]string    `json:"properties,omitempty"`
 	Components    []ComponentSpec      `json:"components,omitempty"`
 	Constraints   string               `json:"constraints,omitempty"`

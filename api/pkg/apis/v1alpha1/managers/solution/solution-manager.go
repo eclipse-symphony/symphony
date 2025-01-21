@@ -535,6 +535,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// }
 
 		defaultScope := deployment.Instance.Spec.Scope
+		// ensure to restore the original scope defined in instance in case the scope is changed during the deployment
 		defer func() {
 			deployment.Instance.Spec.Scope = defaultScope
 		}()
@@ -898,8 +899,6 @@ func (s *SolutionManager) Reconcil() []error {
 }
 
 func getCurrentApplicationScope(ctx context.Context, instance model.InstanceState, target model.TargetState) string {
-	var err error = nil
-	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	if instance.Spec.Scope == "" {
 		if target.Spec.AppScope == "" {
 			return "default"
@@ -907,9 +906,9 @@ func getCurrentApplicationScope(ctx context.Context, instance model.InstanceStat
 		return target.Spec.AppScope
 	}
 	if target.Spec.AppScope != "" && target.Spec.AppScope != instance.Spec.Scope {
-		err = v1alpha2.NewCOAError(
-			nil, fmt.Sprintf(" M (Solution): target application scope: %s is inconsistent with instance scope: %s", target.Spec.AppScope, instance.Spec.Scope), v1alpha2.BadConfig)
-		log.WarnfCtx(ctx, err.Error())
+		message := fmt.Sprintf(" M (Solution): target application scope: %s is inconsistent with instance scope: %s", target.Spec.AppScope, instance.Spec.Scope)
+		log.WarnfCtx(ctx, message)
+		observ_utils.EmitUserAuditsLogs(ctx, message)
 	}
 	return instance.Spec.Scope
 }

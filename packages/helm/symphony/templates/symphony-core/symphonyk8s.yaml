@@ -1684,6 +1684,8 @@ spec:
           spec:
             description: Defines the desired state of Target
             properties:
+              appScope:
+                type: string
               components:
                 items:
                   description: Defines a desired runtime component
@@ -2507,38 +2509,18 @@ subjects:
 ---
 apiVersion: v1
 data:
-  controller_manager_config.yaml: |-
-    ##
-    ## Copyright (c) Microsoft Corporation.
-    ## Licensed under the MIT license.
-    ## SPDX-License-Identifier: MIT
-    ##
-    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-    kind: ControllerManagerConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: 33405cb8.symphony
-    syncIntervalSeconds: 180
-    uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
-    validationPolicies:
-      model:
-      - selectorType: properties
-        specField: model.project
-        type: unique
-        message: "there's already a model associated with the Custom Vision project: %s"
-      target:
-      - selectorType: topologies.bindings
-        selectorKey: provider
-        selectorValue: providers.target.azure.iotedge
-        specField: binding.config.deviceName
-        type: unique
-        message: "there's already a target associated with the IoT Edge device: %s"
+  controller_manager_config.yaml: "##\r\n## Copyright (c) Microsoft Corporation.\r\n##
+    Licensed under the MIT license.\r\n## SPDX-License-Identifier: MIT\r\n##\r\napiVersion:
+    controller-runtime.sigs.k8s.io/v1alpha1\r\nkind: ControllerManagerConfig\r\nhealth:\r\n
+    \ healthProbeBindAddress: :8081\r\nmetrics:\r\n  bindAddress: 127.0.0.1:8080\r\nwebhook:\r\n
+    \ port: 9443\r\nleaderElection:\r\n  leaderElect: true\r\n  resourceName: 33405cb8.symphony\r\nsyncIntervalSeconds:
+    180\r\nuniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution
+    }}\r\nvalidationPolicies:\r\n  model:\r\n  - selectorType: properties\r\n    specField:
+    model.project\r\n    type: unique\r\n    message: \"there's already a model associated
+    with the Custom Vision project: %s\"\r\n  target:\r\n  - selectorType: topologies.bindings\r\n
+    \   selectorKey: provider\r\n    selectorValue: providers.target.azure.iotedge\r\n
+    \   specField: binding.config.deviceName\r\n    type: unique\r\n    message: \"there's
+    already a target associated with the IoT Edge device: %s\""
 kind: ConfigMap
 metadata:
   name: '{{ include "symphony.fullname" . }}-manager-config'
