@@ -8,10 +8,12 @@ on:
     branches:
       - main
       - 'release/**'
+      - 'publicpreview_staging'
   pull_request:
     branches:
       - main
       - 'release/**'
+      - 'publicpreview_staging'
   workflow_dispatch:
 
 jobs:
