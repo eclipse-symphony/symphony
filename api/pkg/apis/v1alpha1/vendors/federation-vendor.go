@@ -194,12 +194,26 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 		},
 		Group: "federation-vendor",
 	})
-	//now register the current site
-	return f.SitesManager.UpsertSpec(context.Background(), f.Context.SiteInfo.SiteId, model.SiteSpec{
-		Name:       f.Context.SiteInfo.SiteId,
-		Properties: f.Context.SiteInfo.Properties,
-		IsSelf:     true,
-	})
+	// now register the current site
+	site := model.SiteState{
+		Id: f.Context.SiteInfo.SiteId,
+		ObjectMeta: model.ObjectMeta{
+			Name: f.Context.SiteInfo.SiteId,
+		},
+		Spec: &model.SiteSpec{
+			Name:       f.Context.SiteInfo.SiteId,
+			Properties: f.Context.SiteInfo.Properties,
+			IsSelf:     true,
+		},
+	}
+	oldSite, err := f.SitesManager.GetState(context.Background(), f.Context.SiteInfo.SiteId)
+	if err != nil && !utils.IsNotFound(err) {
+		return v1alpha2.NewCOAError(err, "Get previous site state failed", v1alpha2.InternalError)
+	} else if err == nil {
+		site.ObjectMeta.UpdateEtag(oldSite.ObjectMeta.ETag)
+	}
+
+	return f.SitesManager.UpsertState(context.Background(), f.Context.SiteInfo.SiteId, site)
 }
 func (f *FederationVendor) handleDeploymentStep(ctx context.Context, event v1alpha2.Event) error {
 	var stepEnvelope StepEnvelope
@@ -622,7 +636,7 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -668,7 +682,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -684,11 +698,10 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		return resp
 	case fasthttp.MethodPost:
-		// TODO: POST federation/registry need to pass SiteState as request body
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var site model.SiteSpec
+		var site model.SiteState
 		err := json.Unmarshal(request.Body, &site)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -697,10 +710,10 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			})
 		}
 		//TODO: generate site key pair as needed
-		err = f.SitesManager.UpsertSpec(ctx, id, site)
+		err = f.SitesManager.UpsertState(ctx, id, site)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -713,7 +726,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		err := f.SitesManager.DeleteSpec(ctx, id)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -755,7 +768,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Federation): failed to publish job report: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -789,7 +802,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -802,7 +815,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 				catalog, err := f.CatalogsManager.GetState(ctx, c.Id, namespace)
 				if err != nil {
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State: v1alpha2.InternalError,
+						State: v1alpha2.GetErrorState(err),
 						Body:  []byte(err.Error()),
 					})
 				}
@@ -876,7 +889,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}

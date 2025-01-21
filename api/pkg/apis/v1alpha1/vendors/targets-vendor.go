@@ -178,7 +178,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -253,7 +253,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -299,7 +299,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -708,7 +708,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Targets) : onStatus failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -747,7 +747,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		state, err := c.TargetsManager.GetState(pCtx, request.Parameters["__name"], namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -808,7 +808,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Targets) : onHeartBeat failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
