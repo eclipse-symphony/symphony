@@ -332,6 +332,7 @@ func getKeyNamePrefix(metadata map[string]interface{}) (string, error) {
 func getObjectTypePrefixForList(metadata map[string]interface{}) (string, error) {
 	// Construct object type
 	objectType := ""
+
 	if resource, ok := metadata["resource"]; ok {
 		if rstring, ok := resource.(string); ok && rstring != "" {
 			objectType = rstring
@@ -343,6 +344,7 @@ func getObjectTypePrefixForList(metadata map[string]interface{}) (string, error)
 		}
 	}
 	if objectType == "" {
+		rLog.Errorf("  P (Redis State): upsert states %s failed to get key prefix with error %s", metadata)
 		return "", v1alpha2.NewCOAError(nil, "Redis state provider object type is not specified", v1alpha2.BadConfig)
 	}
 	return objectType, nil

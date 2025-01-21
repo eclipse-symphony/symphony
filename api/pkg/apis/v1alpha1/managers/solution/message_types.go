@@ -58,7 +58,7 @@ type PlanState struct {
 	ExpireTime           time.Time                       `json:"expireTime"`
 	TotalSteps           int                             `json:"totalSteps"`
 	CompletedSteps       int                             `json:"completedSteps"`
-	Summary              model.SummarySpec               `json:"summary"`
+	Summary              *model.SummarySpec              `json:"summary"`
 	MergedState          model.DeploymentState           `json:"mergedState"`
 	Deployment           model.DeploymentSpec            `json:"deployment"`
 	CurrentState         model.DeploymentState           `json:"currentState"`
@@ -81,7 +81,8 @@ type StepResult struct {
 	GetResult        []model.ComponentSpec                // for get result
 	ApplyResult      map[string]model.ComponentResultSpec `json:"components"` // for apply result
 	Error            string                               `json:"string,omitempty"`
-	Target           string
+	Target           string                               `json:"Target"`
+	NameSpace        string                               `json:"Namespace"`
 }
 type StepEnvelope struct {
 	Step      model.DeploymentStep `json:"step"`
