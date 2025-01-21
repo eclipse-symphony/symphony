@@ -90,6 +90,7 @@ type TargetSpec struct {
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
 	// when the instance is created or updated.
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
+	AppScope             string                    `json:"appScope,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

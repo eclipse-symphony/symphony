@@ -1716,6 +1716,8 @@ spec:
           spec:
             description: Defines the desired state of Target
             properties:
+              appScope:
+                type: string
               components:
                 items:
                   description: Defines a desired runtime component
