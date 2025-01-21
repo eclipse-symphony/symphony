@@ -506,6 +506,7 @@ func (p *PlanState) IsExpired() bool {
 }
 
 func (p *PlanState) isCompleted() bool {
+	log.Info("plan state %s, count %s total %s", p.PlanId, p.CompletedSteps, p.TotalSteps)
 	return p.CompletedSteps == p.TotalSteps
 }
 func (pm *PlanManager) GetPlan(planId string) (*PlanState, bool) {
@@ -714,8 +715,9 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 // saveStepResult updates the plan state with the step result and saves the summary.
 func (s *SolutionManager) saveStepResult(ctx context.Context, planState *PlanState, stepResult StepResult) error {
 	// Log the update of plan state with the step result
-	log.InfoCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
-	log.InfoCtx(ctx, "get TargetResults %+v", planState.Summary.TargetResults)
+	log.InfofCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
+	log.InfofCtx(ctx, "get TargetResults %+v", planState.Summary.TargetResults)
+	log.InfofCtx(ctx, "get complete steps %s, total steps %s", planState.CompletedSteps, planState.TotalSteps)
 	if planState.Summary.TargetResults == nil {
 		planState.Summary.TargetResults = make(map[string]model.TargetResultSpec)
 		log.InfoCtx(ctx, "init target results %+v", planState.Summary.TargetResults)
@@ -1719,9 +1721,10 @@ func sortByDepedencies(components []model.ComponentSpec) ([]model.ComponentSpec,
 
 // upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, planState *PlanState) error {
-	log.InfoCtx(ctx, "V(Solution): upsert plan state for %s", planId)
-	log.InfoCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Namespace)
-	log.InfoCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Summary.TargetResults)
+	log.InfofCtx(ctx, "V(Solution): upsert plan state for %s", planId)
+	log.InfofCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Namespace)
+	log.InfofCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Summary.TargetResults)
+	log.InfofCtx(ctx, "upsert with complete steps %s total steps %s", planState.CompletedSteps, planState.TotalSteps)
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   planId,
