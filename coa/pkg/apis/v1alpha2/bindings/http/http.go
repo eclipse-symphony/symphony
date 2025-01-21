@@ -83,20 +83,23 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}
 
-	// Load the PEM file
-	pemData, err := ioutil.ReadFile(ClientCAFile)
-	if err != nil {
-		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
-	}
-
-	// Parse the certificates
-	certs, err := h.parseCertificates(pemData)
-	if err != nil {
-		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file", ClientCAFile), v1alpha2.BadConfig)
-	}
 	caCertPool := x509.NewCertPool()
-	for _, cert := range certs {
-		caCertPool.AddCert(cert)
+	// Load the PEM file
+	if ClientCAFile != "" {
+		pemData, err := ioutil.ReadFile(ClientCAFile)
+		if err != nil {
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
+		}
+
+		// Parse the certificates
+		certs, err := h.parseCertificates(pemData)
+		if err != nil {
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file, %s", ClientCAFile), v1alpha2.BadConfig)
+		}
+		caCertPool := x509.NewCertPool()
+		for _, cert := range certs {
+			caCertPool.AddCert(cert)
+		}
 	}
 	fs := &fasthttp.FS{
 		Root:               "/", // Directory to serve files from

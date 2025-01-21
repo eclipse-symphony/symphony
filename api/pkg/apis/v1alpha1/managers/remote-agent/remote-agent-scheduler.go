@@ -14,7 +14,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -177,13 +176,9 @@ func (s *RemoteTargetSchedulerManager) Reconcil() []error {
 	return nil
 }
 
-func (s *RemoteTargetSchedulerManager) getCertificateExpirationOrThumbPrint(certPath string, kind string) (string, error) {
-	certPEM, err := ioutil.ReadFile(certPath)
-	if err != nil {
-		return "", err
-	}
-
-	block, _ := pem.Decode(certPEM)
+func (s *RemoteTargetSchedulerManager) getCertificateExpirationOrThumbPrint(certPEM string, kind string) (string, error) {
+	certBytes := []byte(certPEM)
+	block, _ := pem.Decode(certBytes)
 	if block == nil {
 		return "", fmt.Errorf("failed to parse certificate PEM")
 	}
@@ -210,7 +205,7 @@ func (s *RemoteTargetSchedulerManager) updateTargetToIssueUpgradeJob(ctx context
 			newComponents = append(newComponents, model.ComponentSpec{
 				Name: component.Name,
 				Type: component.Type,
-				Parameters: map[string]string{
+				Properties: map[string]interface{}{
 					"action":  "upgrade",
 					"version": os.Getenv("AGENT_VERSION"),
 				},
@@ -234,7 +229,7 @@ func (s *RemoteTargetSchedulerManager) updateTargetToIssueSRJob(ctx context.Cont
 			newComponents = append(newComponents, model.ComponentSpec{
 				Name: component.Name,
 				Type: component.Type,
-				Parameters: map[string]string{
+				Properties: map[string]interface{}{
 					"action":     "secretrotation",
 					"thumbprint": thumbprint,
 				},

@@ -760,6 +760,7 @@ func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
 		t.Errorf("expected error to contain 'time: unknown unit', but got %s", err.Error())
 	}
 	assert.NotNil(t, err)
+	os.Setenv("TEST_MINIKUBE_ENABLED", "")
 }
 
 func TestHelmTargetProviderUpdateFailed(t *testing.T) {

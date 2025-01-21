@@ -130,7 +130,7 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			conn := ctx.Conn()
 			tlsConn, ok := conn.(*tls.Conn)
 			if !ok {
-				ctx.Error("Internal Server Error", fasthttp.StatusInternalServerError)
+				ctx.Error("Forbidden", fasthttp.StatusForbidden)
 				return
 			}
 

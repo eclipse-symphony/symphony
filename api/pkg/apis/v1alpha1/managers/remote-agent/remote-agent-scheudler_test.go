@@ -168,7 +168,10 @@ OMpY47SLwvc=
 	target, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	component := target.Spec.Components[0]
-	assert.Equal(t, "secretrotation", component.Parameters["action"])
+	action := component.Properties["action"].(string)
+	thumbprint := component.Properties["thumbprint"].(string)
+	assert.Equal(t, "secretrotation", action)
+	assert.Equal(t, "dff5df9b7bac5aa5e9a7ff5d78dd4b9ca4792ab6", thumbprint)
 
 	testTarget.Status = model.DeployableStatus{
 		Properties: map[string]string{
@@ -206,6 +209,8 @@ OMpY47SLwvc=
 	target, err = manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 	component = target.Spec.Components[0]
-	assert.Equal(t, "upgrade", component.Parameters["action"])
-	assert.Equal(t, "0.0.0.1", component.Parameters["version"])
+	action = component.Properties["action"].(string)
+	version := component.Properties["version"].(string)
+	assert.Equal(t, "upgrade", action)
+	assert.Equal(t, "0.0.0.1", version)
 }
