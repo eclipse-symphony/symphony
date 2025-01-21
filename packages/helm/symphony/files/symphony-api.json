@@ -473,7 +473,6 @@
               "providers.secret": "mock-secret",
               "providers.keylock": "mem-keylock"
             },
-            "shared": true,
             "providers": {
               "redis-state": {
                 {{- if .Values.redis.enabled }}
@@ -491,9 +490,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode": "Global",
-                  "cleanInterval" : 30,
-                  "purgeDuration" : 43200
+                  "mode" : "Shared"
                 }
               },
               "redis-queue": {

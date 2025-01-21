@@ -321,7 +321,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		// 	log.Info("can not get lock %s", lockName)
 		// }
 		c.SolutionManager.KeyLockProvider.Lock(lockName)
-		log.InfoCtx(ctx, "lock succeed %s", lockName)
+		log.InfofCtx(ctx, "lock succeed %s", lockName)
 		delete := request.Parameters["delete"]
 		remove := delete == "true"
 		targetName := ""
