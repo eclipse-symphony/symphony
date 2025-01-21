@@ -501,7 +501,7 @@ func (r *DeploymentReconciler) getCurJobIdInt64(object Reconcilable) int64 {
 	return intValue
 }
 
-func (r *DeploymentReconciler) ensureOperationState(annotations map[string]string, objectStatus *k8smodel.DeployableStatus, provisioningState string) {
+func (r *DeploymentReconciler) ensureOperationState(annotations map[string]string, objectStatus *k8smodel.DeployableStatusV2, provisioningState string) {
 	objectStatus.ProvisioningStatus.Status = provisioningState
 	objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
 }
@@ -555,72 +555,73 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 	}
 }
 
-func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions, log logr.Logger) {
-	if objectStatus.Properties == nil {
-		objectStatus.Properties = make(map[string]string)
-	}
-
+func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatusV2, opts patchStatusOptions, log logr.Logger) {
 	annotations := object.GetAnnotations()
 	if annotations != nil {
-		objectStatus.Properties["expectedRunningJobId"] = annotations[constants.SummaryJobIdKey]
+		objectStatus.ExpectedRunningJobId, _ = strconv.Atoi(annotations[constants.SummaryJobIdKey])
 	}
 
 	defer func() { // keeping for backward compatibility. Ideally we should remove this and use the provisioning status and provisioning status output
-		objectStatus.Properties["status"] = string(status)
+		objectStatus.Status = string(status)
 		if opts.nonTerminalErr != nil {
-			objectStatus.Properties["status-details"] = fmt.Sprintf("%s: due to %s", status, opts.nonTerminalErr.Error())
+			objectStatus.StatusDetails = fmt.Sprintf("%s: due to %s", status, opts.nonTerminalErr.Error())
 		}
 	}()
 
 	if summaryResult != nil {
-		objectStatus.Properties[apiconstants.Generation] = summaryResult.Generation
+		objectStatus.Generation, _ = strconv.Atoi(summaryResult.Generation)
 	}
 
 	if opts.terminalErr != nil {
-		objectStatus.Properties["deployed"] = "failed"
-		objectStatus.Properties["targets"] = "failed"
-		objectStatus.Properties["status-details"] = opts.terminalErr.Error()
+		// TODO: deployed, targets need to be string
+		// objectStatus.Properties["deployed"] = "failed"
+		// objectStatus.Properties["targets"] = "failed"
+		objectStatus.Targets = 0
+		objectStatus.Deployed = 0
+		objectStatus.StatusDetails = opts.terminalErr.Error()
 		return
 	}
 
 	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
-		objectStatus.Properties["deployed"] = "pending"
-		objectStatus.Properties["targets"] = "pending"
-		objectStatus.Properties["status-details"] = ""
+		// TODO: deployed, targets need to be string
+		// objectStatus.Properties["deployed"] = "pending"
+		// objectStatus.Properties["targets"] = "pending"
+		objectStatus.Targets = 0
+		objectStatus.Deployed = 0
+		objectStatus.StatusDetails = "pending"
 		return
 	}
 
 	summary := summaryResult.Summary
-	targetCount := strconv.Itoa(summary.TargetCount)
-	successCount := strconv.Itoa(summary.SuccessCount)
+	// targetCount := strconv.Itoa(summary.TargetCount)
+	// successCount := strconv.Itoa(summary.SuccessCount)
 
-	objectStatus.Properties["deployed"] = successCount
-	objectStatus.Properties["targets"] = targetCount
+	objectStatus.Deployed = summary.SuccessCount
+	// objectStatus.Properties["targets"] = targetCount
+	objectStatus.Targets = summary.TargetCount
 
 	if status == utilsmodel.ProvisioningStatusReconciling {
-		objectStatus.Properties["status-details"] = fmt.Sprintf(
+		objectStatus.StatusDetails = fmt.Sprintf(
 			"%v total deployments on %v targets, current completed %v deployments.",
 			summary.PlannedDeployment,
 			summary.TargetCount,
 			summary.CurrentDeployed,
 		)
 	} else {
-		objectStatus.Properties["status-details"] = summary.SummaryMessage
+		objectStatus.StatusDetails = summary.SummaryMessage
 	}
-	objectStatus.Properties["runningJobId"] = summary.JobID
+	objectStatus.RunningJobId, _ = strconv.Atoi(summary.JobID)
 }
 
-func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {
-	if objectStatus.Properties == nil {
-		return
-	}
+func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatusV2, log logr.Logger) {
 	// If a component is ever deployed, it will always show in Status.Properties
 	// If a component is not deleted, it will first be reset to Untouched and
 	// then changed to corresponding status later
-	for k, v := range objectStatus.Properties {
-		// Check status prefix (e.g. Deleted -) since status ends with a "-"
-		if utils.IsComponentKey(k) && !strings.HasPrefix(v, v1alpha2.Deleted.String()) {
-			objectStatus.Properties[k] = v1alpha2.Untouched.String()
+	for ti, _ := range objectStatus.TargetStatuses {
+		for _, c := range objectStatus.TargetStatuses[ti].ComponentStatuses {
+			if !strings.HasPrefix(c.Status, v1alpha2.Deleted.String()) {
+				c.Status = v1alpha2.Untouched.String()
+			}
 		}
 	}
 	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
@@ -630,20 +631,20 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 	// Change to corresponding status
 	// TargetResults should be empty if there a successful deletion
 	for k, v := range summary.TargetResults {
-		objectStatus.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
+		objectStatus.SetTargetStatus(k, fmt.Sprintf("%s - %s", v.Status, v.Message))
 		for kc, c := range v.ComponentResults {
 			if c.Message == "" {
 				// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/225
 				// If c.Message is empty, only show c.Status.
-				objectStatus.Properties["targets."+k+"."+kc] = c.Status.String()
+				objectStatus.SetComponentStatus(k, kc, c.Status.String())
 			} else {
-				objectStatus.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+				objectStatus.SetComponentStatus(k, kc, fmt.Sprintf("%s - %s", c.Status, c.Message))
 			}
 		}
 	}
 }
 
-func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, provisioningStatus utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions, log logr.Logger) {
+func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, provisioningStatus utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatusV2, opts patchStatusOptions, log logr.Logger) {
 	// THIS IS A HACK. to align with legacy expectations, we need to concatenate
 	// the status with the non-terminal error message. This is not ideal and should
 	// be removed in the future
