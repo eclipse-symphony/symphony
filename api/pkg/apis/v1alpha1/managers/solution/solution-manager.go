@@ -282,9 +282,28 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, planState *PlanState) error {
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
-			ID:   planId,
-			Body: planState},
-	}
+			ID: planId,
+			Body: map[string]interface{}{
+				"ID":                   planState.ID,
+				"PlanId":               planState.PlanId,
+				"Phase":                planState.Phase,
+				"StartTime":            planState.StartTime,
+				"ExpireTime":           planState.ExpireTime,
+				"TotalSteps":           planState.TotalSteps,
+				"CompletedSteps":       planState.CompletedSteps,
+				"Summary":              planState.Summary,
+				"MergedState":          planState.MergedState,
+				"Deployment":           planState.Deployment,
+				"CurrentState":         planState.CurrentState,
+				"PreviousDesiredState": planState.PreviousDesiredState,
+				"Status":               planState.Status,
+				"TargetResult":         planState.TargetResult,
+				"Namespace":            planState.Namespace,
+				"Remove":               planState.Remove,
+				"StepStates":           planState.StepStates,
+				"Steps":                planState.Steps,
+			},
+		}}
 	_, err := s.StateProvider.Upsert(ctx, upsertRequest)
 	return err
 }
