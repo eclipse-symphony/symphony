@@ -490,7 +490,7 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode" : "Global"
+                  "mode" : "Shared"
                 }
               },
               "redis-queue": {
