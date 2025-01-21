@@ -899,7 +899,7 @@ func (s *SolutionManager) Reconcil() []error {
 
 func getCurrentApplicationScope(ctx context.Context, instance model.InstanceState, target model.TargetState) string {
 	var err error = nil
-	observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	if instance.Spec.Scope == "" {
 		if target.Spec.AppScope == "" {
 			return "default"
