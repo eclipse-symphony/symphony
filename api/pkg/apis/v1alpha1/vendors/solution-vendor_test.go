@@ -180,7 +180,7 @@ func TestSolutionEndpoints(t *testing.T) {
 	vendor := createSolutionVendor()
 	vendor.Route = "solution"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 3, len(endpoints))
+	assert.Equal(t, 5, len(endpoints))
 }
 
 func TestSolutionInfo(t *testing.T) {

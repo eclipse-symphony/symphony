@@ -68,8 +68,7 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
-              "providers.volatilestate": "memory",
-              "providers.keylock": "mem-keylock"       
+              "providers.volatilestate": "memory"        
             },
             "providers": {
               "memory": {
@@ -91,12 +90,6 @@
                 "config": {
                   "inCluster": true
                 }
-              },
-              "mem-keylock": {
-                "type": "providers.keylock.memory",
-                "config": {
-                  "mode" : "Shared"
-                }
               }
             }
           },
@@ -115,29 +108,6 @@
                 }
               }
             }
-          },
-          {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
-            "properties": {
-              "providers.volatilestate": "mem-state",
-              "providers.config": "mock-config",  
-              "providers.secret": "mock-secret"
-            },
-            "providers": {
-              "mem-state": {
-                "type": "providers.state.memory",
-                "config": {}
-              },
-              "mock-config": {
-                "type": "providers.config.mock",
-                "config": {}
-              },
-              "mock-secret": {
-                "type": "providers.secret.mock",
-                "config": {}
-              }
-            }     
           }
         ]
       },
@@ -559,18 +529,13 @@
             "properties": {
               "poll.enabled": "true",
               "interval": "#15",
-              "providers.queue": "redis-queue",
+              "providers.queue": "memory-queue",
               "providers.volatilestate": "memory-state"              
             },
             "providers": {
-              "redis-queue": {
-                "type": "providers.queue.redis",
-                "config": {
-                  "name": "redis",
-                  "host": "localhost:6380",
-                  "requireTLS": false,
-                  "password": ""
-                }
+              "memory-queue": {
+                "type": "providers.queue.memory",
+                "config": {}
               },
               "mem-state": {
                 "type": "providers.state.memory",
@@ -588,41 +553,6 @@
               "user": "admin",
               "password": ""
             }
-          },
-          {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
-            "properties": {
-              "providers.persistentstate": "redis-state",
-              "providers.config": "mock-config",  
-              "providers.secret": "mock-secret",
-              "providers.keylock": "mem-keylock"
-            },
-            "providers": {
-              "redis-state": {
-                "type": "providers.state.redis",
-                "config": {
-                  "name": "redis",
-                  "host": "localhost:6379",
-                  "requireTLS": false,
-                  "password": ""
-                }
-              },
-              "mem-keylock": {
-                "type": "providers.keylock.memory",
-                "config": {
-                  "mode" : "Shared"
-                }
-              },
-              "mock-config": {
-                "type": "providers.config.mock",
-                "config": {}
-              },
-              "mock-secret": {
-                "type": "providers.secret.mock",
-                "config": {}
-              }
-            }     
           }
         ]
       },

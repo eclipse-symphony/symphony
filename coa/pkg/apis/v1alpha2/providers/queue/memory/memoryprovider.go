@@ -66,10 +66,10 @@ func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueP
 }
 
 // fake
-func (s *MemoryQueueProvider) PeekFromBegining(queue string) (interface{}, error) {
-	var result interface{}
-	return result, nil
+func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
+	return [][]byte{}, "", nil
 }
+
 func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 	// parameter checks
 	stateConfig, err := toMemoryQueueProviderConfig(config)

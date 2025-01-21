@@ -145,46 +145,6 @@
                 }
               }
             }
-          },
-          {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
-            "properties": {
-              "providers.persistentstate": "redis-state",
-              "providers.config": "mock-config",  
-              "providers.secret": "mock-secret",
-              "providers.keylock": "mem-keylock"
-            },
-            
-            "providers": {
-              "redis-state": {
-                {{- if .Values.redis.enabled }}
-                "type": "providers.state.redis",
-                "config": {
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
-                }
-                {{- else }}
-                "type": "providers.state.memory",
-                "config": {}
-                {{- end }}
-              }, 
-              "mem-keylock": {
-                "type": "providers.keylock.memory",
-                "config": {
-                  "mode" : "Shared"
-                }
-              },
-                "mock-config": {
-                  "type": "providers.config.mock",
-                  "config": {}
-                },
-                "mock-secret": {
-                  "type": "providers.secret.mock",
-                  "config": {}
-                }
-            }     
           }
         ],
         "properties": {
@@ -534,6 +494,46 @@
         "route": "solution",
         "managers": [
           {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "poll.enabled": "true",
+              "interval": "#15",
+              "providers.queue": "redis-queue",
+              "providers.volatilestate": "memory-state"              
+            },
+            "providers": {
+              "redis-queue": {
+                "type": "providers.queue.redis",
+                "config": {
+                  "name": "redis",
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+              },
+              "memory-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "stage-manager",
+            "type": "managers.symphony.stage",
+            "properties": { 
+              "user": "admin",
+              "password": "",  
+              "providers.volatilestate": "memory"          
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
@@ -627,46 +627,6 @@
                 "config": {}
               }
             }
-          },
-          {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
-            "properties": {
-              "providers.persistentstate": "redis-state",
-              "providers.config": "mock-config",  
-              "providers.secret": "mock-secret",
-              "providers.keylock": "mem-keylock"
-            },
-            
-            "providers": {
-              "redis-state": {
-                {{- if .Values.redis.enabled }}
-                "type": "providers.state.redis",
-                "config": {
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
-                }
-                {{- else }}
-                "type": "providers.state.memory",
-                "config": {}
-                {{- end }}
-              },
-              "mem-keylock": {
-                "type": "providers.keylock.memory",
-                "config": {
-                  "mode" : "Shared"
-                }
-              },
-                "mock-config": {
-                  "type": "providers.config.mock",
-                  "config": {}
-                },
-                "mock-secret": {
-                  "type": "providers.secret.mock",
-                  "config": {}
-                }
-            }     
           },
           {
             "name": "sites-manager",

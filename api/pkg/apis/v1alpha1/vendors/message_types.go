@@ -139,6 +139,10 @@ type ProviderGetRequest struct {
 	References []model.ComponentStep `json:"references"`
 }
 
+type ProviderPagingRequest struct {
+	RequestList   []AgentRequest `json:"requestList"`
+	LastMessageID string         `json:"lastMessageID"`
+}
 type ProviderApplyRequest struct {
 	AgentRequest
 	Deployment model.DeploymentSpec `json:"deployment"`

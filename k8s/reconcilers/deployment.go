@@ -548,9 +548,6 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 			status = utilsmodel.ProvisioningStatusFailed
 		}
 		return status
-	case model.SummaryStateTimeout:
-		status := utilsmodel.ProvisioningStatusTimeout
-		return status
 	default:
 		return utilsmodel.GetNonTerminalStatus(object)
 	}
@@ -683,7 +680,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 		objectStatus.ProvisioningStatus.PercentComplete = int64(percentComplete)
 	}
 
-	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus, "Summary result", summaryResult)
+	diagnostic.InfoWithCtx(log, ctx, "Update provisioning status", "ProvisioningStatus", objectStatus.ProvisioningStatus)
 
 	outputMap := objectStatus.ProvisioningStatus.Output
 	// Fill component details into output field
