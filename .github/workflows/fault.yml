@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - 'publicpreview_staging'
   #pull_request:
   #  branches:
   #    - main
