@@ -404,13 +404,13 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 		helmTargetStatus := deployableStatus.GetTargetStatus("helm-target")
 
 		fmt.Printf("Current instance status: %s\n", status)
-		fmt.Printf("Current instance deployment count: %s\n", targetCount)
+		fmt.Printf("Current instance deployment count: %d\n", targetCount)
 		fmt.Printf("Current instance deployment instance3: %s\n", target03Status)
 		fmt.Printf("Current instance deployment helm: %s\n", helmTargetStatus)
 
 		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
 		require.NotContains(t, target03Status, "OK", "instance should not show target03 status")
-		if status == "Succeeded" && targetCount == "1" && target03Status == "" && strings.Contains(helmTargetStatus, "OK") {
+		if status == "Succeeded" && targetCount == 1 && target03Status == "" && strings.Contains(helmTargetStatus, "OK") {
 			break
 		}
 
