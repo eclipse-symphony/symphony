@@ -233,6 +233,7 @@ type DeployableStatusV2 struct {
 	ExpectedRunningJobId int                      `json:"expectedRunningJobId,omitempty"`
 	Generation           int                      `json:"generation,omitempty"`
 	TargetStatuses       []TargetDeployableStatus `json:"targetStatuses,omitempty"`
+	Properties           map[string]string        `json:"properties,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

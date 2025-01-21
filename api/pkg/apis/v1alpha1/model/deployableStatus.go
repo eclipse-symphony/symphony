@@ -80,6 +80,10 @@ func (d *DeployableStatusV2) DeepCopy() *DeployableStatusV2 {
 	for i := range d.TargetStatuses {
 		out.TargetStatuses[i] = *d.TargetStatuses[i].DeepCopy()
 	}
+	out.Properties = make(map[string]string)
+	for k, v := range d.Properties {
+		out.Properties[k] = v
+	}
 	return out
 }
 

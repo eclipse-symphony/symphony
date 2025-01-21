@@ -152,6 +152,10 @@ spec:
               lastModified:
                 format: date-time
                 type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
                   operations
