@@ -69,6 +69,12 @@ func WithDeploymentKeyResolver(f func(Reconcilable) string) DeploymentReconciler
 	}
 }
 
+func WithDeploymentNameResolver(f func(Reconcilable) string) DeploymentReconcilerOptions {
+	return func(r *DeploymentReconciler) {
+		r.deploymentNameResolver = f
+	}
+}
+
 func WithDeploymentErrorBuilder(f func(*model.SummaryResult, error, *model.ErrorType)) DeploymentReconcilerOptions {
 	return func(r *DeploymentReconciler) {
 		r.deploymentErrorBuilder = f

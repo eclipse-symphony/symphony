@@ -22,7 +22,7 @@ type ObjectMeta struct {
 	// ETag is a string representing the version of the object, it bump whenever the object is updated.
 	// All the state store should support auto-incrementing the version number.
 	// For example, resourceVersion in kubernetes
-	ETag string `json:"eTag,omitempty"`
+	ETag string `json:"etag,omitempty"`
 	// ObjGeneration changes when Spec changes
 	// object manager need to detect spec changes and update the generation
 	// For example, generation in kubernetes
@@ -89,6 +89,10 @@ func (c ObjectMeta) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a ObjectMeta type")
 	}
 
+	if c.GetGuid() != otherC.GetGuid() {
+		return false, nil
+	}
+
 	if c.Name != otherC.Name {
 		return false, nil
 	}
@@ -149,4 +153,25 @@ func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 			}
 		}
 	}
+}
+
+func (c *ObjectMeta) GetSummaryId() string {
+	if c.Annotations == nil || c.Annotations[constants.GuidKey] == "" {
+		return c.Name
+	}
+	return fmt.Sprintf("%s-%s", c.Name, c.Annotations[constants.GuidKey])
+}
+
+func (c *ObjectMeta) GetGuid() string {
+	if c.Annotations == nil {
+		return ""
+	}
+	return c.Annotations[constants.GuidKey]
+}
+
+func (c *ObjectMeta) SetGuid(guid string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.GuidKey] = guid
 }

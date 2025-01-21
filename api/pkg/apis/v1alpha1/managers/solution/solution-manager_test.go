@@ -313,8 +313,12 @@ func TestSortByDepedenciesAllSelfReferences(t *testing.T) {
 }
 func TestMockGet(t *testing.T) {
 	id := uuid.New().String()
+	name := "testInstance"
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: name,
+			},
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
@@ -354,6 +358,8 @@ func TestMockGet(t *testing.T) {
 			},
 		},
 	}
+	guid := uuid.New().String()
+	deployment.Instance.ObjectMeta.SetGuid(guid)
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -374,7 +380,8 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	summaryKey := deployment.Instance.ObjectMeta.GetSummaryId()
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.NotNil(t, err)
 
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -389,7 +396,7 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, "mock", state.TargetComponent["a::T1"])
 	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
 
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.Nil(t, err)
 
 	// Test reconcile idempotency
@@ -397,9 +404,9 @@ func TestMockGet(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Test summary deletion
-	err = manager.DeleteSummary(context.Background(), "", "default")
+	err = manager.DeleteSummary(context.Background(), summaryKey, "default")
 	assert.Nil(t, err)
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.NotNil(t, err)
 }
 func TestMockGetTwoTargets(t *testing.T) {
@@ -466,6 +473,7 @@ func TestMockGetTwoTargets(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -564,6 +572,7 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -642,6 +651,7 @@ func TestMockApply(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -706,6 +716,7 @@ func TestMockApplyMultiRoles(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider2 := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id1})
@@ -769,6 +780,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -824,6 +836,7 @@ func TestMockApplyWithError(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
