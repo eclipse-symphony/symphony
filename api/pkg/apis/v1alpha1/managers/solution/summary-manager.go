@@ -98,7 +98,7 @@ func (s *SummaryManager) DeleteDeploymentState(ctx context.Context, instance str
 	return err
 }
 
-func (s *SummaryManager) GetSummary(ctx context.Context, summaryId string, namespace string) (model.SummaryResult, error) {
+func (s *SummaryManager) GetSummary(ctx context.Context, summaryId string, name string, namespace string) (model.SummaryResult, error) {
 	ctx, span := observability.StartSpan("Summary Manager", ctx, &map[string]string{
 		"method": "GetSummary",
 	})
@@ -106,7 +106,7 @@ func (s *SummaryManager) GetSummary(ctx context.Context, summaryId string, names
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Summary): get summary, key: %s, namespace: %s", summaryId, namespace)
+	log.InfofCtx(ctx, " M (Summary): get summary, name: %s, summaryId: %s, namespace: %s", name, summaryId, namespace)
 
 	var state states.StateEntry
 	state, err = s.StateProvider.Get(ctx, states.GetRequest{
@@ -118,6 +118,19 @@ func (s *SummaryManager) GetSummary(ctx context.Context, summaryId string, names
 			"resource":  Summary,
 		},
 	})
+	if err != nil && api_utils.IsNotFound(err) && name != "" {
+		// if get summary by guid not found, try to get the summary by name
+		log.InfofCtx(ctx, " M (Summary): failed to get deployment summary[%s] by summaryId, error: %+v. Try to get summary by name", summaryId, err)
+		state, err = s.StateProvider.Get(ctx, states.GetRequest{
+			ID: fmt.Sprintf("%s-%s", "summary", name),
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+				"group":     model.SolutionGroup,
+				"version":   "v1",
+				"resource":  Summary,
+			},
+		})
+	}
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Summary): failed to get deployment summary[%s]: %+v", summaryId, err)
 		return model.SummaryResult{}, err
@@ -163,7 +176,7 @@ func (s *SummaryManager) ListSummary(ctx context.Context, namespace string) ([]m
 }
 
 func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
-	oldSummary, err := s.GetSummary(ctx, summaryId, namespace)
+	oldSummary, err := s.GetSummary(ctx, summaryId, "", namespace)
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		log.ErrorfCtx(ctx, " M (Summary): failed to get previous summary: %+v", err)
 		return err
@@ -206,7 +219,7 @@ func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, ge
 	return err
 }
 
-func (s *SummaryManager) DeleteSummary(ctx context.Context, id string, namespace string) error {
+func (s *SummaryManager) DeleteSummary(ctx context.Context, summaryId string, namespace string) error {
 	ctx, span := observability.StartSpan("Summary Manager", ctx, &map[string]string{
 		"method": "DeleteSummary",
 	})
@@ -214,10 +227,10 @@ func (s *SummaryManager) DeleteSummary(ctx context.Context, id string, namespace
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Summary): delete summary, key: %s, namespace: %s", id, namespace)
+	log.InfofCtx(ctx, " M (Summary): delete summary, key: %s, namespace: %s", summaryId, namespace)
 
 	err = s.StateProvider.Delete(ctx, states.DeleteRequest{
-		ID: id,
+		ID: summaryId,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
 			"group":     model.SolutionGroup,
@@ -228,10 +241,10 @@ func (s *SummaryManager) DeleteSummary(ctx context.Context, id string, namespace
 
 	if err != nil {
 		if api_utils.IsNotFound(err) {
-			log.DebugfCtx(ctx, " M (Summary): DeleteSummary NoutFound, id: %s, namespace: %s", id, namespace)
+			log.DebugfCtx(ctx, " M (Summary): DeleteSummary NoutFound, id: %s, namespace: %s", summaryId, namespace)
 			return nil
 		}
-		log.ErrorfCtx(ctx, " M (Summary): failed to get summary[%s]: %+v", id, err)
+		log.ErrorfCtx(ctx, " M (Summary): failed to get summary[%s]: %+v", summaryId, err)
 		return err
 	}
 
