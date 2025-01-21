@@ -9,10 +9,10 @@ symphonyImage:
 paiImage:
   pullPolicy: Never
   repository: ghcr.io/eclipse-symphony/symphony-api
-installServiceExt: true
+installServiceExt: false
 api:
   labelKey:
   labelValue:
   annotationKey:
 remoteAgent:
-  version: "0.0.0.2"
+  version: "0.0.0.1"
