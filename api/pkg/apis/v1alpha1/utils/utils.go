@@ -474,9 +474,8 @@ type FailedDeployment struct {
 	Message string `json:"FailedMessage"`
 }
 
-func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatus) bool {
-	return status.Properties != nil && status.Properties[constants.Generation] == strconv.FormatInt(objectMeta.ObjGeneration, 10) &&
-		(status.Properties[constants.Status] == "Succeeded" || status.Properties[constants.Status] == "Failed")
+func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatusV2) bool {
+	return status.Generation == int(objectMeta.ObjGeneration) && (status.Status == "Succeeded" || status.Status == "Failed")
 }
 
 // Once status report is enabled in standalone mode, we need to use object status rather than summary to check the deployment status
@@ -485,7 +484,7 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
 	var objectMeta model.ObjectMeta
-	var status model.DeployableStatus
+	var status model.DeployableStatusV2
 	for _, objectName := range objectNames {
 		if isInstance {
 			var state model.InstanceState
@@ -505,8 +504,8 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 		}
 		if !DetermineObjectTerminalStatus(objectMeta, status) {
 			remainingObjects = append(remainingObjects, objectName)
-		} else if status.Properties[constants.Status] == "Failed" {
-			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.Properties["status-details"]})
+		} else if status.Status == "Failed" {
+			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.StatusDetails})
 		}
 	}
 	return remainingObjects, failedDeployments

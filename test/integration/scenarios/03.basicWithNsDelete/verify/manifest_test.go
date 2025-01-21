@@ -28,6 +28,7 @@ package verify
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,6 +37,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/require"
@@ -395,9 +397,11 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 		require.Len(t, resources.Items, 1, "there should be only one instance")
 
 		status := getStatus(resources.Items[0])
-		targetCount := getProperty(resources.Items[0], "targets")
-		target03Status := getProperty(resources.Items[0], "targets.target03")
-		helmTargetStatus := getProperty(resources.Items[0], "targets.helm-target")
+		deployableStatus, err := getDeployableStatus(resources.Items[0])
+		require.NoError(t, err)
+		targetCount := deployableStatus.Targets
+		target03Status := deployableStatus.GetTargetStatus("target03")
+		helmTargetStatus := deployableStatus.GetTargetStatus("helm-target")
 
 		fmt.Printf("Current instance status: %s\n", status)
 		fmt.Printf("Current instance deployment count: %s\n", targetCount)
@@ -449,6 +453,23 @@ func getStatus(resource unstructured.Unstructured) string {
 	}
 
 	return ""
+}
+
+func getDeployableStatus(resource unstructured.Unstructured) (model.DeployableStatusV2, error) {
+	status, ok := resource.Object["status"].(map[string]interface{})
+	if ok {
+		statusJson, err := json.Marshal(status)
+		if err != nil {
+			return model.DeployableStatusV2{}, err
+		}
+		var deployableStatus model.DeployableStatusV2
+		err = json.Unmarshal(statusJson, &deployableStatus)
+		if err != nil {
+			return model.DeployableStatusV2{}, err
+		}
+		return deployableStatus, nil
+	}
+	return model.DeployableStatusV2{}, nil
 }
 
 func getProperty(resource unstructured.Unstructured, propertyName string) string {

@@ -221,11 +221,118 @@ type DeployableStatus struct {
 	LastModified       metav1.Time              `json:"lastModified,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
+type DeployableStatusV2 struct {
+	ProvisioningStatus   model.ProvisioningStatus `json:"provisioningStatus"`
+	LastModified         metav1.Time              `json:"lastModified,omitempty"`
+	Deployed             int                      `json:"deployed,omitempty"`
+	Targets              int                      `json:"targets,omitempty"` // missing in typespec
+	Status               string                   `json:"status,omitempty"`
+	StatusDetails        string                   `json:"statusDetails,omitempty"`
+	RunningJobId         int                      `json:"runningJobId,omitempty"`
+	ExpectedRunningJobId int                      `json:"expectedRunningJobId,omitempty"`
+	Generation           int                      `json:"generation,omitempty"`
+	TargetStatuses       []TargetDeployableStatus `json:"targetStatuses,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type TargetDeployableStatus struct {
+	Name              string                      `json:"name,omitempty"`
+	Status            string                      `json:"status,omitempty"`
+	ComponentStatuses []ComponentDeployableStatus `json:"componentStatuses,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ComponentDeployableStatus struct {
+	Name   string `json:"name,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+func (c *DeployableStatusV2) GetComponentStatus(targetName string, componentName string) string {
+	if c == nil {
+		return ""
+	}
+	for _, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			for _, componentStatus := range targetStatus.ComponentStatuses {
+				if componentStatus.Name == componentName {
+					return componentStatus.Status
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func (c *DeployableStatusV2) SetTargetStatus(targetName string, status string) {
+	if c == nil {
+		return
+	}
+	for i, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			c.TargetStatuses[i].Status = status
+			return
+		}
+	}
+	c.TargetStatuses = append(c.TargetStatuses, TargetDeployableStatus{
+		Name:   targetName,
+		Status: status,
+	})
+}
+
+func (c *DeployableStatusV2) GetTargetStatus(targetName string) string {
+	if c == nil {
+		return ""
+	}
+	for _, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			return targetStatus.Status
+		}
+	}
+	return ""
+}
+
+func (c *DeployableStatusV2) SetComponentStatus(targetName string, componentName string, status string) {
+	if c == nil {
+		return
+	}
+	foundTarget := false
+	foundComponent := false
+	for i, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			for j, componentStatus := range targetStatus.ComponentStatuses {
+				if componentStatus.Name == componentName {
+					c.TargetStatuses[i].ComponentStatuses[j].Status = status
+					return
+				}
+			}
+			if !foundComponent {
+				c.TargetStatuses[i].ComponentStatuses = append(c.TargetStatuses[i].ComponentStatuses, ComponentDeployableStatus{
+					Name:   componentName,
+					Status: status,
+				})
+				return
+			}
+		}
+	}
+	if !foundTarget {
+		c.TargetStatuses = append(c.TargetStatuses, TargetDeployableStatus{
+			Name: targetName,
+			ComponentStatuses: []ComponentDeployableStatus{
+				{
+					Name:   componentName,
+					Status: status,
+				},
+			},
+		})
+	}
+}
+
 // InstanceStatus defines the observed state of Instance
-type InstanceStatus = DeployableStatus
+type InstanceStatus = DeployableStatusV2
 
 // TargetStatus defines the observed state of Target
-type TargetStatus = DeployableStatus
+type TargetStatus = DeployableStatusV2
 
 // +kubebuilder:object:generate=true
 type ReconciliationPolicySpec struct {
