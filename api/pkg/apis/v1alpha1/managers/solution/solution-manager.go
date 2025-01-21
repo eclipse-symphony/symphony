@@ -65,7 +65,7 @@ type SolutionManager struct {
 	StateProvider   states.IStateProvider
 	ConfigProvider  config.IExtConfigProvider
 	SecretProvider  secret.ISecretProvider
-	KeyLockProvider keylock.IKeyLockProvider
+	KeyLockProvider *keylock.IKeyLockProvider
 	QueueProvider   queue.IQueueProvider
 	IsTarget        bool
 	TargetNames     []string
@@ -91,7 +91,8 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
-		s.KeyLockProvider = keylockprovider
+		s.KeyLockProvider = &keylockprovider
+
 	} else {
 		return err
 	}
