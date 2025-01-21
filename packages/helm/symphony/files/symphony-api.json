@@ -473,6 +473,7 @@
               "providers.secret": "mock-secret",
               "providers.keylock": "mem-keylock"
             },
+            "shared": true,
             "providers": {
               "redis-state": {
                 {{- if .Values.redis.enabled }}
