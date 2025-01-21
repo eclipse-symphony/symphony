@@ -490,7 +490,9 @@
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
-                  "mode" : "Global"
+                  "mode": "Global",
+                  "cleanInterval" : 30,
+                  "purgeDuration" : 43200
                 }
               },
               "redis-queue": {
