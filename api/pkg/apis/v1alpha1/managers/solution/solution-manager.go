@@ -534,7 +534,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		// 	}
 		// }
 
+		defaultScope := deployment.Instance.Spec.Scope
+		defer func() {
+			deployment.Instance.Spec.Scope = defaultScope
+		}()
 		for i := 0; i < retryCount; i++ {
+			deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, deployment.Instance, deployment.Targets[step.Target])
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
 			if stepError == nil {
 				targetResult[step.Target] = 1
@@ -554,6 +559,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
 				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
 			}
+			deployment.Instance.Spec.Scope = defaultScope
 		}
 		if stepError != nil {
 			log.ErrorfCtx(ctx, " M (Solution): failed to execute deployment step: %+v", stepError)
@@ -773,6 +779,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	ret = state
 	ret.TargetComponent = make(map[string]string)
 	retComponents := make([]model.ComponentSpec, 0)
+	defaultScope := deployment.Instance.Spec.Scope
 
 	for _, step := range plan.Steps {
 		if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
@@ -783,6 +790,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		}
 
 		deployment.ActiveTarget = step.Target
+		deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, deployment.Instance, deployment.Targets[step.Target])
 
 		var override tgt.ITargetProvider
 		role := step.Role
@@ -828,6 +836,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 				retComponents = append(retComponents, c)
 			}
 		}
+		deployment.Instance.Spec.Scope = defaultScope
 	}
 	ret.Components = retComponents
 	return ret, retComponents, nil
@@ -886,6 +895,23 @@ func (s *SolutionManager) Poll() []error {
 }
 func (s *SolutionManager) Reconcil() []error {
 	return nil
+}
+
+func getCurrentApplicationScope(ctx context.Context, instance model.InstanceState, target model.TargetState) string {
+	var err error = nil
+	observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	if instance.Spec.Scope == "" {
+		if target.Spec.AppScope == "" {
+			return "default"
+		}
+		return target.Spec.AppScope
+	}
+	if target.Spec.AppScope != "" && target.Spec.AppScope != instance.Spec.Scope {
+		err = v1alpha2.NewCOAError(
+			nil, fmt.Sprintf(" M (Solution): target application scope: %s is inconsistent with instance scope: %s", target.Spec.AppScope, instance.Spec.Scope), v1alpha2.BadConfig)
+		log.WarnfCtx(ctx, err.Error())
+	}
+	return instance.Spec.Scope
 }
 
 func findAgentFromDeploymentState(state model.DeploymentState, targetName string) string {
