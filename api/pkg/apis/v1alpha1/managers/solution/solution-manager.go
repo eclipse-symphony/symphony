@@ -262,7 +262,8 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 		case PhaseGet:
 			log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
 			if err := s.publishDeploymentStep(ctx, stepId, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
-				return err
+				log.InfofCtx(ctx, "failed to publish deployment step %s", err)
+				// return err
 			}
 		case PhaseApply:
 			planState.Summary.PlannedDeployment += len(step.Components)
@@ -273,6 +274,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 	case PhaseApply:
 		log.InfoCtx(ctx, "V(Solution): publish deployment step id %s step %+v", 0, planEnvelope.Plan.Steps[0].Role)
 		if err := s.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
+			log.InfofCtx(ctx, "failed to publish deployment step %s", err)
 			return err
 		}
 	}
@@ -1722,13 +1724,21 @@ func sortByDepedencies(components []model.ComponentSpec) ([]model.ComponentSpec,
 // upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, planState *PlanState) error {
 	log.InfofCtx(ctx, "V(Solution): upsert plan state for %s", planId)
-	log.InfofCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Namespace)
-	log.InfofCtx(ctx, "V(Solution): upsert plan state for namespace", planState.Summary.TargetResults)
-	log.InfofCtx(ctx, "upsert with complete steps %s total steps %s", planState.CompletedSteps, planState.TotalSteps)
+	planStateCopy := new(PlanState)
+	data, err := json.Marshal(planState)
+	if err != nil {
+		log.ErrorfCtx(ctx, "V(SolutionVendor): Failed to marshal plan state for %s", planId)
+		return err
+	}
+	err = json.Unmarshal(data, planStateCopy)
+	if err != nil {
+		log.ErrorfCtx(ctx, "V(SolutionVendor): Failed to unmarshal plan state for %s", planId)
+		return err
+	}
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   planId,
-			Body: planState,
+			Body: planStateCopy,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": planState.Namespace,
@@ -1738,8 +1748,22 @@ func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, pl
 		},
 	}
 	log.InfoCtx(ctx, "get operation state %+v", upsertRequest)
-	_, err := s.StateProvider.Upsert(ctx, upsertRequest)
+	_, err = s.StateProvider.Upsert(ctx, upsertRequest)
 	return err
+}
+
+// DeepCopyPlanState creates a deep copy of the given PlanState.
+func DeepCopyPlanState(planState *PlanState) (*PlanState, error) {
+	planStateCopy := new(PlanState)
+	data, err := json.Marshal(planState)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(data, planStateCopy)
+	if err != nil {
+		return nil, err
+	}
+	return planStateCopy, nil
 }
 
 // upsertOperationState upserts the operation state for the specified parameters.
@@ -1819,6 +1843,7 @@ func (s *SolutionManager) getPlanState(ctx context.Context, planId string, names
 	log.InfoCtx(ctx, "get operation state %+v", getRequest)
 	entry, err := s.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to get deployment planstate[%s]: %+v", planId, err)
 		return PlanState{}, err
 	}
 	var ret PlanState
@@ -1837,8 +1862,9 @@ func (s *SolutionManager) getPlanStateBody(body interface{}) (PlanState, error) 
 	if err != nil {
 		return PlanState{}, err
 	}
-	log.Info("get plan state %+v", planState)
-	log.Info("get plan state %+v", planState.Summary.TargetResults)
+	log.Infof("get plan state %+v", planState.PlanId)
+	log.Infof("get plan state %+v", planState.Summary.TargetResults)
+	log.Infof("%s plan state get %+v", planState.PlanId, planState.CompletedSteps)
 	return planState, nil
 }
 
