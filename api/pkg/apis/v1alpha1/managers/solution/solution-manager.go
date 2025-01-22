@@ -253,6 +253,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 	if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 		return err
 	}
+	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
 	if planState.isCompleted() {
 		return s.handlePlanComplete(ctx, planState)
 
@@ -269,7 +270,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 			planState.Summary.PlannedDeployment += len(step.Components)
 		}
 	}
-
+	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
 	switch planEnvelope.Phase {
 	case PhaseGet:
 		log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
@@ -285,7 +286,6 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 		}
 	}
 	log.InfoCtx(ctx, "V(Solution): store plan id %s in map %+v", planEnvelope.PlanId)
-	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
 	return nil
 }
 
@@ -1756,6 +1756,8 @@ func sortByDepedencies(components []model.ComponentSpec) ([]model.ComponentSpec,
 // upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, planState PlanState) error {
 	log.InfofCtx(ctx, "V(Solution): upsert plan state for %s", planId)
+	log.InfofCtx(ctx, "V(Solution): upsert plan complete steps %s", planState.CompletedSteps)
+	log.InfofCtx(ctx, "V(Solution): upsert plan state previous steps %s", planState.PreviousDesiredState)
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   planId,
@@ -1772,9 +1774,10 @@ func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, pl
 	_, err := s.StateProvider.Upsert(ctx, upsertRequest)
 
 	planget, err := s.getPlanState(ctx, planId, planState.Namespace)
-	log.InfofCtx(ctx, "get plan state %+v", planget.Summary.TargetResults)
-	log.InfofCtx(ctx, "get plan state %+v", planget.PreviousDesiredState)
-	log.InfofCtx(ctx, "get plan state %+v", planget.Summary.TargetResults)
+	log.InfofCtx(ctx, "get tar plan state %+v", planget.Summary.TargetResults)
+	log.InfofCtx(ctx, "get pre plan state %+v", planget.PreviousDesiredState)
+	log.InfofCtx(ctx, "get targetresult plan state %+v", planget.Summary.TargetResults)
+	log.InfofCtx(ctx, "V(Solution): upsert plan complete steps %s", planget.CompletedSteps)
 	return err
 }
 
