@@ -761,8 +761,9 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 			}
 		}
 	case PhaseApply:
+		log.InfofCtx(ctx, "before %s ", planState.CompletedSteps)
 		planState.CompletedSteps++
-
+		log.InfofCtx(ctx, "after %s", planState.CompletedSteps)
 		if stepResult.Error != "" {
 			// Handle error case and update the target result status and message
 			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[planState.Remove])
