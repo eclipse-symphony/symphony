@@ -544,6 +544,12 @@ func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alph
 	if stepEnvelope.Step.Role == "container" {
 		stepEnvelope.Step.Role = "instance"
 	}
+	// Load the plan state object from the PlanManager
+	planState, err := s.getPlanState(ctx, stepEnvelope.PlanState.PlanId, stepEnvelope.PlanState.Namespace)
+	if err != nil {
+		return fmt.Errorf("Plan not found: %s", stepEnvelope.PlanState.PlanId)
+	}
+	stepEnvelope.PlanState = planState
 	switch stepEnvelope.PlanState.Phase {
 	case PhaseGet:
 		return s.handlePhaseGet(ctx, stepEnvelope)
