@@ -248,7 +248,8 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 
 	planState := createPlanState(planEnvelope)
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-	s.KeyLockProvider.TryLock(lockName)
+	tryLockresult := s.KeyLockProvider.TryLock(lockName)
+	log.InfofCtx(ctx, "M (Solution): Try lock result %s", tryLockresult)
 	log.InfoCtx(ctx, "begin to save summary for %s", planEnvelope.PlanId)
 	if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 		return err
@@ -541,12 +542,20 @@ func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alph
 		return err
 	}
 	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
-	s.KeyLockProvider.TryLock(lockName)
+	tryLockresult := s.KeyLockProvider.TryLock(lockName)
+	log.InfofCtx(ctx, "M (Solution): Try lock result %s", tryLockresult)
 	if stepEnvelope.Step.Role == "container" {
 		stepEnvelope.Step.Role = "instance"
 	}
 	// Load the plan state object from the PlanManager
 	planState, err := s.getPlanState(ctx, stepEnvelope.PlanState.PlanId, stepEnvelope.PlanState.Namespace)
+	err = s.CheckJobId(ctx, planState.Deployment.JobID, planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): job id is out of data, step will not be executed: %+v", err)
+		s.KeyLockProvider.UnLock(lockName)
+		return err
+	}
+
 	if err != nil {
 		return fmt.Errorf("Plan not found: %s", stepEnvelope.PlanState.PlanId)
 	}
@@ -718,7 +727,8 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 	}
 	// planState := planStateObj.(PlanState)
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-	s.KeyLockProvider.TryLock(lockName)
+	tryLockresult := s.KeyLockProvider.TryLock(lockName)
+	log.InfofCtx(ctx, "M (Solution): Try lock result %s", tryLockresult)
 	// Update the plan state in the map and save the summary
 	log.InfofCtx(ctx, "V(Solution): Handle step result for PlanId %s, StepId %d, Phase %s", planId, stepResult.StepId, planState.Phase)
 	if err := s.saveStepResult(ctx, planState, stepResult); err != nil {
@@ -739,7 +749,8 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 		log.InfoCtx(ctx, "init target results %+v", planState.Summary.TargetResults)
 	}
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-	s.KeyLockProvider.TryLock(lockName)
+	tryLockresult := s.KeyLockProvider.TryLock(lockName)
+	log.InfofCtx(ctx, "M (Solution): Try lock result %s", tryLockresult)
 	switch planState.Phase {
 	case PhaseGet:
 		// Update the GetResult for the specific step
