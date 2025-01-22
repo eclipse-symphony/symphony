@@ -273,7 +273,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 	switch planEnvelope.Phase {
 	case PhaseGet:
 		log.InfoCtx(ctx, "phase get begin deployment %+v", planEnvelope.Deployment)
-		if err := s.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[stepId]); err != nil {
+		if err := s.publishDeploymentStep(ctx, 0, planState, planEnvelope.Remove, planState.Steps[0]); err != nil {
 			log.InfofCtx(ctx, "failed to publish deployment step %s", err)
 			// return err
 		}
