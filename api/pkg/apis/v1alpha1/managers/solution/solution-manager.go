@@ -731,10 +731,10 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 	log.InfofCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
 	log.InfofCtx(ctx, "get TargetResults %+v", planState.Summary.TargetResults)
 	log.InfofCtx(ctx, "get complete steps %s, total steps %s", planState.CompletedSteps, planState.TotalSteps)
-	if planState.Summary.TargetResults == nil {
-		planState.Summary.TargetResults = make(map[string]model.TargetResultSpec)
-		log.InfoCtx(ctx, "init target results %+v", planState.Summary.TargetResults)
-	}
+	// if planState.Summary.TargetResults == nil {
+	// 	planState.Summary.TargetResults = make(map[string]model.TargetResultSpec)
+	// 	log.InfoCtx(ctx, "init target results %+v", planState.Summary.TargetResults)
+	// }
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	s.KeyLockProvider.TryLock(lockName)
 	switch planState.Phase {
