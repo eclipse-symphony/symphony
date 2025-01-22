@@ -37,16 +37,16 @@ type PlanResult struct {
 }
 
 type PlanEnvelope struct {
-	Plan                 model.DeploymentPlan            `json:"plan"`
-	Deployment           model.DeploymentSpec            `json:"deployment"`
-	MergedState          model.DeploymentState           `json:"mergedState"`
-	PreviousDesiredState *SolutionManagerDeploymentState `json:"previousDesiredState"`
-	CurrentState         model.DeploymentState           `json:"currentState"`
-	Remove               bool                            `json:"remove"`
-	Namespace            string                          `json:"namespace"`
-	PlanId               string                          `json:"planId"`
-	Generation           string                          `json:"generation"` // deployment version
-	Hash                 string                          `json:"hash"`
+	Plan                 model.DeploymentPlan           `json:"plan"`
+	Deployment           model.DeploymentSpec           `json:"deployment"`
+	MergedState          model.DeploymentState          `json:"mergedState"`
+	PreviousDesiredState SolutionManagerDeploymentState `json:"previousDesiredState"`
+	CurrentState         model.DeploymentState          `json:"currentState"`
+	Remove               bool                           `json:"remove"`
+	Namespace            string                         `json:"namespace"`
+	PlanId               string                         `json:"planId"`
+	Generation           string                         `json:"generation"` // deployment version
+	Hash                 string                         `json:"hash"`
 	Phase                JobPhase
 }
 
@@ -54,16 +54,16 @@ type PlanState struct {
 	ID                   string `json:"opeateionId"`
 	PlanId               string `json:"planId"`
 	Phase                JobPhase
-	StartTime            time.Time                       `json:"startTime"`
-	ExpireTime           time.Time                       `json:"expireTime"`
-	TotalSteps           int                             `json:"totalSteps"`
-	CompletedSteps       int                             `json:"completedSteps"`
-	Summary              *model.SummarySpec              `json:"summary"`
-	MergedState          model.DeploymentState           `json:"mergedState"`
-	Deployment           model.DeploymentSpec            `json:"deployment"`
-	CurrentState         model.DeploymentState           `json:"currentState"`
-	PreviousDesiredState *SolutionManagerDeploymentState `json:"previous`
-	Status               string                          `json:"status"`
+	StartTime            time.Time                      `json:"startTime"`
+	ExpireTime           time.Time                      `json:"expireTime"`
+	TotalSteps           int                            `json:"totalSteps"`
+	CompletedSteps       int                            `json:"completedSteps"`
+	Summary              model.SummarySpec              `json:"summary"`
+	MergedState          model.DeploymentState          `json:"mergedState"`
+	Deployment           model.DeploymentSpec           `json:"deployment"`
+	CurrentState         model.DeploymentState          `json:"currentState"`
+	PreviousDesiredState SolutionManagerDeploymentState `json:"previous`
+	Status               string                         `json:"status"`
 	TargetResult         map[string]int
 	Namespace            string `json:"namespace"`
 	Remove               bool
