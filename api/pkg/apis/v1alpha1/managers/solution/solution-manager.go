@@ -321,11 +321,10 @@ func (s *SolutionManager) publishDeploymentStep(ctx context.Context, stepId int,
 
 // handlePlanComplete handles the completion of a plan and updates its status.
 func (s *SolutionManager) handlePlanComplete(ctx context.Context, planState PlanState) error {
-	log.InfoCtx(ctx, "V(Solution): Plan state %s is completed %v", planState.Phase, planState)
+	log.InfoCtx(ctx, "V(Solution): Plan state %s is completed %s", planState.Phase, planState.PlanId)
 	if !planState.Summary.AllAssignedDeployed {
 		planState.Status = "failed"
 	}
-	log.InfoCtx(ctx, "V(Solution): Plan state is completed %v", planState.Summary.AllAssignedDeployed)
 	switch planState.Phase {
 	case PhaseGet:
 		if err := s.handleGetPlanCompletetion(ctx, planState); err != nil {
@@ -344,15 +343,12 @@ func (s *SolutionManager) handlePlanComplete(ctx context.Context, planState Plan
 }
 
 func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, planState PlanState) error {
-	log.InfofCtx(ctx, "handle plan completetion:begin to handle plan completetion %v", planState)
+	log.InfofCtx(ctx, "M(Solution): Handle plan completetion:begin to handle plan completetion %v", planState)
 	if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateDone); err != nil {
 		return err
 	}
 	// update summary
-	log.InfoCtx(ctx, "begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
 	planState.MergedState.ClearAllRemoved()
-	log.InfoCtx(ctx, "if it is dry run %+v", planState.Deployment.IsDryRun)
-	log.InfoCtx(ctx, "get dep %+v", planState.Deployment)
 	if !planState.Deployment.IsDryRun {
 		if len(planState.MergedState.TargetComponent) == 0 && planState.Remove {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
@@ -393,9 +389,8 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, planSta
 		return err
 	}
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
-	log.InfofCtx(ctx, "final unlock %s", lockName)
 	// e.SolutionManager.CleanupHeartbeat(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace, planState.Remove)
-	s.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name))
+	s.KeyLockProvider.UnLock(lockName)
 	return nil
 }
 
@@ -415,10 +410,10 @@ func (s *SolutionManager) threeStateMerge(ctx context.Context, planState PlanSta
 			currentState.TargetComponent[key] = role
 		}
 	}
-	log.InfoCtx(ctx, "V(Solution): Compute current state %v for Plan ID: %s", currentState, planState.PlanId)
+	// log.InfoCtx(ctx, "V(Solution): Compute current state %v for Plan ID: %s", currentState, planState.PlanId)
 	planState.CurrentState = currentState
 	previousDesiredState := s.GetPreviousState(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Namespace)
-	log.InfoCtx(ctx, "V(Solution): Get previous desired state %+v", previousDesiredState)
+	// log.InfoCtx(ctx, "V(Solution): Get previous desired state %+v", previousDesiredState)
 	planState.PreviousDesiredState = previousDesiredState
 	var currentDesiredState model.DeploymentState
 	currentDesiredState, err := NewDeploymentState(planState.Deployment)
@@ -426,10 +421,10 @@ func (s *SolutionManager) threeStateMerge(ctx context.Context, planState PlanSta
 		log.ErrorfCtx(ctx, "V(Solution): Failed to get current desired state: %+v", err)
 		return model.DeploymentPlan{}, PlanState{}, err
 	}
-	log.InfoCtx(ctx, "V(Solution): Get current desired state %+v", currentDesiredState)
+	// log.InfoCtx(ctx, "V(Solution): Get current desired state %+v", currentDesiredState)
 	desiredState := currentDesiredState
 	desiredState = MergeDeploymentStates(previousDesiredState.State, currentDesiredState)
-	log.InfoCtx(ctx, "V(Solution): Get desired state %+v", desiredState)
+	// log.InfoCtx(ctx, "V(Solution): Get desired state %+v", desiredState)
 	if planState.Remove {
 		desiredState.MarkRemoveAll()
 		log.InfoCtx(ctx, "V(Solution): After remove desired state %+v", desiredState)
@@ -512,7 +507,6 @@ func (p PlanState) IsExpired() bool {
 }
 
 func (p PlanState) isCompleted() bool {
-	log.Info("plan state %s, count %s total %s", p.PlanId, p.CompletedSteps, p.TotalSteps)
 	return p.CompletedSteps == p.TotalSteps
 }
 
