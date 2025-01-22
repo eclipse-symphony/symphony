@@ -721,13 +721,13 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.properties.status
+    - jsonPath: .status.status
       name: Status
       type: string
-    - jsonPath: .status.properties.targets
+    - jsonPath: .status.targets
       name: Targets
       type: string
-    - jsonPath: .status.properties.deployed
+    - jsonPath: .status.deployed
       name: Deployed
       type: string
     name: v1
@@ -1688,7 +1688,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.properties.status
+    - jsonPath: .status.status
       name: Status
       type: string
     name: v1
