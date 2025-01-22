@@ -31,9 +31,9 @@ type PlanManager struct {
 }
 
 type PlanResult struct {
-	PlanState *PlanState `json:"planstate"`
-	EndTime   time.Time  `json:"endTime"`
-	Error     string     `json:"error,omitempty"`
+	PlanState PlanState `json:"planstate"`
+	EndTime   time.Time `json:"endTime"`
+	Error     string    `json:"error,omitempty"`
 }
 
 type PlanEnvelope struct {
@@ -88,7 +88,7 @@ type StepEnvelope struct {
 	Step      model.DeploymentStep `json:"step"`
 	Remove    bool                 `json:"remove"`
 	StepId    int                  `json:"stepId"`
-	PlanState *PlanState           `json:"planState"`
+	PlanState PlanState            `json:"planState"`
 }
 
 type OperationBody struct {
