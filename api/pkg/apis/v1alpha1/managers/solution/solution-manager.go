@@ -731,10 +731,10 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 	log.InfofCtx(ctx, "V(Solution): Update plan state %v with step result %v phase %s", planState, stepResult, planState.Phase)
 	log.InfofCtx(ctx, "get TargetResults %+v", planState.Summary.TargetResults)
 	log.InfofCtx(ctx, "get complete steps %s, total steps %s", planState.CompletedSteps, planState.TotalSteps)
-	// if planState.Summary.TargetResults == nil {
-	// 	planState.Summary.TargetResults = make(map[string]model.TargetResultSpec)
-	// 	log.InfoCtx(ctx, "init target results %+v", planState.Summary.TargetResults)
-	// }
+	if planState.Summary.TargetResults == nil {
+		planState.Summary.TargetResults = make(map[string]model.TargetResultSpec)
+		log.InfoCtx(ctx, "init target results %+v", planState.Summary.TargetResults)
+	}
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	s.KeyLockProvider.TryLock(lockName)
 	switch planState.Phase {
@@ -778,6 +778,11 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
 			}
 			s.upsertPlanState(ctx, planState.PlanId, planState)
+			// Save the summary information
+			log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
+			if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
+				log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
+			}
 			return s.handleAllPlanCompletetion(ctx, planState)
 		} else {
 			// Handle success case and update the target result status and message
@@ -797,7 +802,16 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 				if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, planState, planState.Remove, planState.Steps[stepResult.StepId+1]); err != nil {
 					log.InfoCtx(ctx, "V(Solution): publish deployment step failed PlanId %s, stepId %s", planState.PlanId, 0)
 				}
+				// Save the summary information
+				log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
+				if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
+					log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
+				}
 			} else {
+				// If no components are deployed, set success count to target count
+				if planState.Summary.CurrentDeployed == 0 && planState.Summary.AllAssignedDeployed {
+					planState.Summary.SuccessCount = planState.Summary.TargetCount
+				}
 				log.InfofCtx(ctx, "V(Solution): handle apply plan Complete %+v", planState)
 				err := s.handlePlanComplete(ctx, planState)
 				if err != nil {
@@ -806,17 +820,6 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 					s.KeyLockProvider.UnLock(lockName)
 				}
 			}
-		}
-
-		// If no components are deployed, set success count to target count
-		if planState.Summary.CurrentDeployed == 0 && planState.Summary.AllAssignedDeployed {
-			planState.Summary.SuccessCount = planState.Summary.TargetCount
-		}
-
-		// Save the summary information
-		log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
-		if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
-			log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
 		}
 	}
 
