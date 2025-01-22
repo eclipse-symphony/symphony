@@ -7,6 +7,7 @@
 package http
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -31,6 +32,12 @@ func (m Metrics) Metrics(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		if endpoint != nil {
 			endpointString := utils.FormatAsString(endpoint)
+
+			ApiOperationMetrics.ApiOperationStatus(
+				endpointString,
+				string(ctx.Method()),
+				fmt.Sprintf("%d", ctx.Response.StatusCode()),
+			)
 
 			if ctx.Response.StatusCode() >= 400 {
 				ApiOperationMetrics.ApiOperationErrors(

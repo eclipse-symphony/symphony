@@ -6,6 +6,7 @@ Metrics Type | Meter Type | Purpose | How to emit | How to collect
 --- | --- | --- | --- | ---
 symphony_api_operation_latency | Gauge | measure of overall latency for API operation side | otelgrpc | otel-collector
 symphony_api_operation_errors | Counter | count of errors in API operation side | otelgrpc | otel-collector
+symphony_api_operation_status | Counter | count of return http status code in API operation side | otelgrpc | otel-collector
 symphony_api_component_count | Gauge | count of components in API operation | otelgrpc | otel-collector
 symphony_provider_operation_latency | Gauge | measure of overall latency for provider operation side | otelgrpc | otel-collector
 symphony_provider_operation_errors | Counter | count of errors in provider operation side | otelgrpc | otel-collector
@@ -65,7 +66,27 @@ Timestamp: 2024-07-28 18:03:10.428198305 +0000 UTC
 Value: 2.000000
 ```
 
-3. symphony_api_component_count
+3. symphony_api_operation_status
+```
+Metric #1
+Descriptor:
+     -> Name: symphony_api_operation_errors
+     -> Description: count of errors in API operation side
+     -> Unit: 
+     -> DataType: Sum
+     -> IsMonotonic: false
+     -> AggregationTemporality: Cumulative
+NumberDataPoints #0
+Data point attributes:
+     -> errorCode: Str(Not Found)
+     -> operation: Str(/v1alpha2/solution/queue)
+     -> operationType: Str(GET)
+StartTimestamp: 2025-01-22 15:18:13.231702938 +0000 UTC
+Timestamp: 2025-01-22 15:19:01.231057634 +0000 UTC
+Value: 2.000000
+```
+
+4. symphony_api_component_count
 ```
 ScopeMetrics #0
 ScopeMetrics SchemaURL: 
@@ -85,7 +106,7 @@ Timestamp: 2024-07-28 18:03:15.428296768 +0000 UTC
 Value: 2.000000
 ```
 
-4. symphony_provider_operation_latency (units: ms)
+5. symphony_provider_operation_latency (units: ms)
 ```
 ScopeMetrics #0
 ScopeMetrics SchemaURL: 
@@ -107,12 +128,12 @@ Timestamp: 2024-07-28 18:03:18.433396098 +0000 UTC
 Value: 2274.000000
 ```
 
-5. symphony_provider_operation_errors
+6. symphony_provider_operation_errors
 ```
 Todo...
 ```
 
-6. symphony_controller_validation_latency
+7. symphony_controller_validation_latency
 ```
 ...
 Metric #1
@@ -131,7 +152,7 @@ Timestamp: 2024-07-28 18:03:12.101742544 +0000 UTC
 Value: 0.000000
 ```
 
-7. symphony_controller_reconcile_latency
+8. symphony_controller_reconcile_latency
 ```
 ScopeMetrics #0
 ScopeMetrics SchemaURL: 

@@ -17,6 +17,7 @@ import (
 type Metrics struct {
 	apiOperationLatency observability.Gauge
 	apiOperationErrors  observability.Counter
+	apiOperationStatus  observability.Counter
 }
 
 func New() (*Metrics, error) {
@@ -38,9 +39,18 @@ func New() (*Metrics, error) {
 		return nil, err
 	}
 
+	apiOperationStatus, err := observable.Metrics.Counter(
+		constants.APIOperationStatus,
+		constants.APIOperationStatusDescription,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Metrics{
 		apiOperationLatency: apiOperationLatency,
 		apiOperationErrors:  apiOperationErrors,
+		apiOperationStatus:  apiOperationStatus,
 	}, nil
 }
 
@@ -51,6 +61,27 @@ func (m *Metrics) Close() {
 	}
 
 	m.apiOperationErrors.Close()
+}
+
+func (m *Metrics) ApiOperationStatus(
+	operation string,
+	operationType string,
+	statusCode string,
+) {
+	if m == nil {
+		return
+	}
+
+	m.apiOperationStatus.Add(
+		1,
+		Deployment(
+			operation,
+			operationType,
+		),
+		Error(
+			statusCode,
+		),
+	)
 }
 
 // ApiOperationLatency tracks the overall API operation latency.
