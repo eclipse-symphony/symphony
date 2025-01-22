@@ -899,6 +899,7 @@ func (s *SolutionManager) Reconcil() []error {
 }
 
 func getCurrentApplicationScope(ctx context.Context, instance model.InstanceState, target model.TargetState) string {
+	log.InfofCtx(ctx, " M (Solution): getting current application scope, instance scope: %s, target application scope: %s", instance.Spec.Scope, target.Spec.AppScope)
 	if instance.Spec.Scope == "" {
 		if target.Spec.AppScope == "" {
 			return "default"
