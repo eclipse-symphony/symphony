@@ -5,8 +5,7 @@ Symphony offers below kinds of metrics:
 Metrics Type | Meter Type | Purpose | How to emit | How to collect
 --- | --- | --- | --- | ---
 symphony_api_operation_latency | Gauge | measure of overall latency for API operation side | otelgrpc | otel-collector
-symphony_api_operation_errors | Counter | count of errors in API operation side | otelgrpc | otel-collector
-symphony_api_operation_status | Counter | count of return http status code in API operation side | otelgrpc | otel-collector
+symphony_api_operation_status | Counter | count of http status code in API operation side | otelgrpc | otel-collector
 symphony_api_component_count | Gauge | count of components in API operation | otelgrpc | otel-collector
 symphony_provider_operation_latency | Gauge | measure of overall latency for provider operation side | otelgrpc | otel-collector
 symphony_provider_operation_errors | Counter | count of errors in provider operation side | otelgrpc | otel-collector
@@ -20,9 +19,6 @@ Reference: [meters in open-telemetry](https://opentelemetry.io/docs/specs/otel/m
 1. symphony_api_operation_latency (units: ms)
 
 ```
-ScopeMetrics #1
-ScopeMetrics SchemaURL: 
-InstrumentationScope symphony_api 
 Metric #0
 Descriptor:
      -> Name: symphony_api_operation_latency
@@ -31,62 +27,46 @@ Descriptor:
      -> DataType: Gauge
 NumberDataPoints #0
 Data point attributes:
-     -> operation: Str(/v1alpha2/solution/reconcile/{delete?})
-     -> operationType: Str(POST)
-StartTimestamp: 2024-07-28 18:03:09.428680944 +0000 UTC
-Timestamp: 2024-07-28 18:03:10.428197305 +0000 UTC
-Value: 4.000000
-NumberDataPoints #1
-Data point attributes:
-     -> operation: Str(/v1alpha2/solution/queue)
-     -> operationType: Str(POST)
-StartTimestamp: 2024-07-28 18:03:09.428680944 +0000 UTC
-Timestamp: 2024-07-28 18:03:10.428197305 +0000 UTC
-Value: 2.000000
-```
-
-2. symphony_api_operation_errors
-```
-...
-Metric #1
-Descriptor:
-     -> Name: symphony_api_operation_errors
-     -> Description: count of errors in API operation side
-     -> Unit: 
-     -> DataType: Sum
-     -> IsMonotonic: false
-     -> AggregationTemporality: Delta
-NumberDataPoints #0
-Data point attributes:
-     -> errorCode: Str(Not Found)
+     -> formatedStatusCode: Str(Not Found)
      -> operation: Str(/v1alpha2/solution/queue)
      -> operationType: Str(GET)
-StartTimestamp: 2024-07-28 18:03:09.428681744 +0000 UTC
-Timestamp: 2024-07-28 18:03:10.428198305 +0000 UTC
-Value: 2.000000
+     -> statusCode: Int(404)
+StartTimestamp: 2025-01-22 17:05:27.24322216 +0000 UTC
+Timestamp: 2025-01-22 17:05:28.242572863 +0000 UTC
+Value: 5.000000
 ```
 
-3. symphony_api_operation_status
+2. symphony_api_operation_status
 ```
 Metric #1
 Descriptor:
-     -> Name: symphony_api_operation_errors
-     -> Description: count of errors in API operation side
+     -> Name: symphony_api_operation_status
+     -> Description: count of http status codes in API operation side
      -> Unit: 
      -> DataType: Sum
      -> IsMonotonic: false
      -> AggregationTemporality: Cumulative
 NumberDataPoints #0
 Data point attributes:
-     -> errorCode: Str(Not Found)
+     -> formatedStatusCode: Str(Not Found)
      -> operation: Str(/v1alpha2/solution/queue)
      -> operationType: Str(GET)
-StartTimestamp: 2025-01-22 15:18:13.231702938 +0000 UTC
-Timestamp: 2025-01-22 15:19:01.231057634 +0000 UTC
+     -> statusCode: Int(404)
+StartTimestamp: 2025-01-22 16:58:48.264263035 +0000 UTC
+Timestamp: 2025-01-22 17:05:28.242578664 +0000 UTC
+Value: 2.000000
+NumberDataPoints #1
+Data point attributes:
+     -> formatedStatusCode: Str(OK)
+     -> operation: Str(/v1alpha2/solution/queue)
+     -> operationType: Str(POST)
+     -> statusCode: Int(200)
+StartTimestamp: 2025-01-22 16:58:48.264263035 +0000 UTC
+Timestamp: 2025-01-22 17:05:28.242578664 +0000 UTC
 Value: 2.000000
 ```
 
-4. symphony_api_component_count
+3. symphony_api_component_count
 ```
 ScopeMetrics #0
 ScopeMetrics SchemaURL: 
@@ -106,7 +86,7 @@ Timestamp: 2024-07-28 18:03:15.428296768 +0000 UTC
 Value: 2.000000
 ```
 
-5. symphony_provider_operation_latency (units: ms)
+4. symphony_provider_operation_latency (units: ms)
 ```
 ScopeMetrics #0
 ScopeMetrics SchemaURL: 
@@ -128,12 +108,12 @@ Timestamp: 2024-07-28 18:03:18.433396098 +0000 UTC
 Value: 2274.000000
 ```
 
-6. symphony_provider_operation_errors
+5. symphony_provider_operation_errors
 ```
 Todo...
 ```
 
-7. symphony_controller_validation_latency
+6. symphony_controller_validation_latency
 ```
 ...
 Metric #1
@@ -152,7 +132,7 @@ Timestamp: 2024-07-28 18:03:12.101742544 +0000 UTC
 Value: 0.000000
 ```
 
-8. symphony_controller_reconcile_latency
+7. symphony_controller_reconcile_latency
 ```
 ScopeMetrics #0
 ScopeMetrics SchemaURL: 

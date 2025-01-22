@@ -16,7 +16,6 @@ import (
 // Metrics is a metrics tracker for an api operation.
 type Metrics struct {
 	apiOperationLatency observability.Gauge
-	apiOperationErrors  observability.Counter
 	apiOperationStatus  observability.Counter
 }
 
@@ -26,14 +25,6 @@ func New() (*Metrics, error) {
 	apiOperationLatency, err := observable.Metrics.Gauge(
 		constants.APIOperationLatency,
 		constants.APIOperationLatencyDescription,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	apiOperationErrors, err := observable.Metrics.Counter(
-		constants.APIOperationErrors,
-		constants.APIOperationErrorsDescription,
 	)
 	if err != nil {
 		return nil, err
@@ -49,7 +40,6 @@ func New() (*Metrics, error) {
 
 	return &Metrics{
 		apiOperationLatency: apiOperationLatency,
-		apiOperationErrors:  apiOperationErrors,
 		apiOperationStatus:  apiOperationStatus,
 	}, nil
 }
@@ -60,28 +50,8 @@ func (m *Metrics) Close() {
 		return
 	}
 
-	m.apiOperationErrors.Close()
-}
-
-func (m *Metrics) ApiOperationStatus(
-	operation string,
-	operationType string,
-	statusCode string,
-) {
-	if m == nil {
-		return
-	}
-
-	m.apiOperationStatus.Add(
-		1,
-		Deployment(
-			operation,
-			operationType,
-		),
-		Error(
-			statusCode,
-		),
-	)
+	m.apiOperationLatency.Close()
+	m.apiOperationStatus.Close()
 }
 
 // ApiOperationLatency tracks the overall API operation latency.
@@ -89,6 +59,8 @@ func (m *Metrics) ApiOperationLatency(
 	startTime time.Time,
 	operation string,
 	operationType string,
+	statusCode int,
+	formatStatusCode string,
 ) {
 	if m == nil {
 		return
@@ -100,27 +72,33 @@ func (m *Metrics) ApiOperationLatency(
 			operation,
 			operationType,
 		),
+		Status(
+			statusCode,
+			formatStatusCode,
+		),
 	)
 }
 
-// ApiOperationErrors increments the count of errors for API operation.
-func (m *Metrics) ApiOperationErrors(
+// ApiOperationStatus increments the count of status code for API operation.
+func (m *Metrics) ApiOperationStatus(
 	operation string,
 	operationType string,
-	errorCode string,
+	statusCode int,
+	formatStatusCode string,
 ) {
 	if m == nil {
 		return
 	}
 
-	m.apiOperationErrors.Add(
+	m.apiOperationStatus.Add(
 		1,
 		Deployment(
 			operation,
 			operationType,
 		),
-		Error(
-			errorCode,
+		Status(
+			statusCode,
+			formatStatusCode,
 		),
 	)
 }
