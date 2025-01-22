@@ -253,6 +253,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 	if err := s.saveSummaryInfo(ctx, planState, model.SummaryStateRunning); err != nil {
 		return err
 	}
+	log.InfofCtx(ctx, "upsert here 2")
 	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
 	if planState.isCompleted() {
 		return s.handlePlanComplete(ctx, planState)
@@ -270,6 +271,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 			planState.Summary.PlannedDeployment += len(step.Components)
 		}
 	}
+	log.InfofCtx(ctx, "upsert here 3")
 	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
 	switch planEnvelope.Phase {
 	case PhaseGet:
@@ -442,6 +444,7 @@ func (s *SolutionManager) threeStateMerge(ctx context.Context, planState PlanSta
 	if err != nil {
 		return model.DeploymentPlan{}, PlanState{}, err
 	}
+	log.InfofCtx(ctx, "upsert here 4")
 	s.upsertPlanState(ctx, planState.PlanId, planState)
 	log.InfoCtx(ctx, "V(Solution): Begin to publish topic to deployment plan %v merged state %v get plan %v", planState, mergedState, Plan)
 	return Plan, planState, nil
@@ -777,6 +780,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 				planState.TargetResult[stepResult.Target] = -1
 				planState.Summary.SuccessCount -= planState.TargetResult[stepResult.Target]
 			}
+			log.InfofCtx(ctx, "upsert here 5")
 			s.upsertPlanState(ctx, planState.PlanId, planState)
 			// Save the summary information
 			log.InfoCtx(ctx, "Begin to save summary for %s", planState.Deployment.Instance.ObjectMeta.Name)
@@ -819,11 +823,13 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 					lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 					s.KeyLockProvider.UnLock(lockName)
 				}
+				return nil
 			}
 		}
 	}
 
 	// Store the updated plan state
+	log.InfofCtx(ctx, "upsert here 1")
 	s.upsertPlanState(ctx, planState.PlanId, planState)
 	// Check if all steps are completed and handle plan completion
 	return nil
