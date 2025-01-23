@@ -308,7 +308,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - unmarshal request %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -489,7 +489,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Apply Deployment", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -503,7 +503,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Get Components", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -517,7 +517,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Delete Components", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -662,7 +662,7 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 	defer span.End()
 	sLog.InfoCtx(ctx, "V (Solution): onGetResponse")
 	var asyncResult solution.AsyncResult
-	err := json.Unmarshal(request.Body, &asyncResult)
+	err := utils.UnmarshalJson(request.Body, &asyncResult)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(Solution): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{

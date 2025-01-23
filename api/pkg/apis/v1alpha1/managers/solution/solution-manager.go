@@ -33,6 +33,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue"
 	secret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -169,7 +170,7 @@ func (s *SolutionManager) getPreviousState(ctx context.Context, instance string,
 	if err == nil {
 		var managerState SolutionManagerDeploymentState
 		jData, _ := json.Marshal(state.Body)
-		err = json.Unmarshal(jData, &managerState)
+		err = utils.UnmarshalJson(jData, &managerState)
 		if err == nil {
 			return &managerState
 		}
@@ -191,7 +192,7 @@ func (s *SolutionManager) GetPreviousState(ctx context.Context, instance string,
 	if err == nil {
 		var managerState SolutionManagerDeploymentState
 		jData, _ := json.Marshal(state.Body)
-		err = json.Unmarshal(jData, &managerState)
+		err = utils.UnmarshalJson(jData, &managerState)
 		if err == nil {
 			return managerState
 		}
@@ -229,7 +230,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, key string, namespace 
 
 	var result model.SummaryResult
 	jData, _ := json.Marshal(state.Body)
-	err = json.Unmarshal(jData, &result)
+	err = utils.UnmarshalJson(jData, &result)
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Solution): failed to deserailze deployment summary[%s]: %+v", key, err)
 		return model.SummaryResult{}, err
@@ -246,7 +247,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	var planEnvelope PlanEnvelope
 	jData, _ := json.Marshal(event.Body)
-	err = json.Unmarshal(jData, &planEnvelope)
+	err = utils.UnmarshalJson(jData, &planEnvelope)
 	if err != nil {
 		log.ErrorCtx(ctx, "failed to unmarshal plan envelope :%v", err)
 		return err
@@ -300,7 +301,7 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 func (c *SolutionManager) getOperationBody(body interface{}) (OperationBody, error) {
 	var operationBody OperationBody
 	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &operationBody)
+	err := utils.UnmarshalJson(bytes, &operationBody)
 	if err != nil {
 		return OperationBody{}, err
 	}
@@ -512,7 +513,7 @@ func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alph
 		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal event body: %v", err)
 		return err
 	}
-	if err := json.Unmarshal(jData, &stepEnvelope); err != nil {
+	if err := utils.UnmarshalJson(jData, &stepEnvelope); err != nil {
 		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal step envelope: %v", err)
 		return err
 	}
@@ -696,7 +697,7 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 	log.InfofCtx(ctx, "Received event body: %s", string(jData))
 
 	// Unmarshal the JSON data into stepResult
-	if err := json.Unmarshal(jData, &stepResult); err != nil {
+	if err := utils.UnmarshalJson(jData, &stepResult); err != nil {
 		log.ErrorfCtx(ctx, "Failed to unmarshal step result: %v", err)
 		return err
 	}
@@ -829,7 +830,7 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 	var requestList []AgentRequest
 	for _, element := range queueElement {
 		var agentRequest AgentRequest
-		err = json.Unmarshal(element, &agentRequest)
+		err = utils.UnmarshalJson(element, &agentRequest)
 		if err != nil {
 			log.ErrorfCtx(ctx, "V(SolutionVendor): failed to unmarshal element - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -1449,7 +1450,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 	case PhaseGet:
 		// Send to step result
 		var response []model.ComponentSpec
-		err := json.Unmarshal(asyncResult.Body, &response)
+		err := utils.UnmarshalJson(asyncResult.Body, &response)
 		if err != nil {
 			return v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -1475,7 +1476,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 		}
 	case PhaseApply:
 		var response map[string]model.ComponentResultSpec
-		err := json.Unmarshal(asyncResult.Body, &response)
+		err := utils.UnmarshalJson(asyncResult.Body, &response)
 		if err != nil {
 			return v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -1644,7 +1645,7 @@ func (s *SolutionManager) Poll() []error {
 				if vs, ok := c.Spec.Properties["deployment"]; ok {
 					deployment := model.DeploymentSpec{}
 					jData, _ := json.Marshal(vs)
-					err = json.Unmarshal(jData, &deployment)
+					err = utils.UnmarshalJson(jData, &deployment)
 					if err != nil {
 						return []error{err}
 					}
@@ -1838,7 +1839,7 @@ func (s *SolutionManager) getPlanState(ctx context.Context, planId string, names
 func (s *SolutionManager) getPlanStateBody(body interface{}) (PlanState, error) {
 	var planState PlanState
 	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &planState)
+	err := utils.UnmarshalJson(bytes, &planState)
 	if err != nil {
 		return PlanState{}, err
 	}
