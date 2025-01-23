@@ -623,7 +623,7 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 	})
 	defer span.End()
 	var agentRequest solution.AgentRequest
-	sLog.InfoCtx(ctx, "V(Solution): get request from remote agent")
+	sLog.InfoCtx(ctx, "V(Solution): onGetRequest")
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
 	getAll, exists := request.Parameters["getAll"]
@@ -660,7 +660,7 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 		"method": "onGetResponse",
 	})
 	defer span.End()
-
+	sLog.InfoCtx(ctx, "V (Solution): onGetResponse")
 	var asyncResult solution.AsyncResult
 	err := json.Unmarshal(request.Body, &asyncResult)
 	if err != nil {

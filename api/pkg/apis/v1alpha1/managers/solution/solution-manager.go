@@ -711,7 +711,7 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	tryLockresult := s.KeyLockProvider.TryLock(lockName)
 	log.InfofCtx(ctx, "M (Solution): Try lock result %s", tryLockresult)
-	err = s.CheckJobId(ctx, stepEnvelope.PlanState.Deployment.JobID, stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
+	err = s.CheckJobId(ctx, planState.Deployment.JobID, planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	if err != nil {
 		s.KeyLockProvider.UnLock(lockName)
 		return err
@@ -1436,7 +1436,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 	operationId := asyncResult.OperationID
 	// Get related info from redis - todo: timeout
 	log.InfoCtx(ctx, "V(SolutionVendor): handle remote agent request %+v", asyncResult)
-	operationBody, err := s.getOperationState(ctx, operationId)
+	operationBody, err := s.getOperationState(ctx, operationId, asyncResult.Namespace)
 	if err != nil {
 		log.ErrorfCtx(ctx, "V(SolutionVendor): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
@@ -1734,7 +1734,6 @@ func sortByDepedencies(components []model.ComponentSpec) ([]model.ComponentSpec,
 	return ret, nil
 }
 
-// upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, planState PlanState) error {
 	log.InfofCtx(ctx, "M(Solution): upsert plan state for %s", planId)
 	upsertRequest := states.UpsertRequest{
@@ -1769,7 +1768,7 @@ func (s *SolutionManager) upsertOperationState(ctx context.Context, operationId 
 				"MessageId": messageId,
 			}},
 		Metadata: map[string]interface{}{
-			"namespace": "default",
+			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
 			"resource":  OperationState,
@@ -1812,7 +1811,7 @@ func (s *SolutionManager) deletePlanState(ctx context.Context, planId string, na
 
 // getPlanState retrieves the operation state for the specified operation ID.
 func (s *SolutionManager) getPlanState(ctx context.Context, planId string, namespace string) (PlanState, error) {
-	log.InfoCtx(ctx, "get planstate %s", planId)
+	log.InfofCtx(ctx, "M(Solution) : Get plan %s", planId)
 	getRequest := states.GetRequest{
 		ID: planId,
 		Metadata: map[string]interface{}{
@@ -1823,10 +1822,9 @@ func (s *SolutionManager) getPlanState(ctx context.Context, planId string, names
 		},
 	}
 	var entry states.StateEntry
-	log.InfoCtx(ctx, "get operation state %+v", getRequest)
 	entry, err := s.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.ErrorfCtx(ctx, " M (Solution): failed to get deployment planstate[%s]: %+v", planId, err)
+		log.ErrorfCtx(ctx, " M (Solution): Failed to get deployment planstate[%s]: %+v", planId, err)
 		return PlanState{}, err
 	}
 	var ret PlanState
@@ -1835,7 +1833,6 @@ func (s *SolutionManager) getPlanState(ctx context.Context, planId string, names
 		log.ErrorfCtx(ctx, "V(SolutionVendor): Failed to convert to operation state for %s", planId)
 		return PlanState{}, err
 	}
-	log.InfoCtx(ctx, "M(Solution): upsert plan state for namespace", ret.Summary.TargetResults)
 	return ret, err
 }
 func (s *SolutionManager) getPlanStateBody(body interface{}) (PlanState, error) {
@@ -1849,19 +1846,16 @@ func (s *SolutionManager) getPlanStateBody(body interface{}) (PlanState, error) 
 }
 
 // getOperationState retrieves the operation state for the specified operation ID.
-func (s *SolutionManager) getOperationState(ctx context.Context, operationId string) (OperationBody, error) {
-	log.InfoCtx(ctx, "get operation state %s", operationId)
-
+func (s *SolutionManager) getOperationState(ctx context.Context, operationId string, namespace string) (OperationBody, error) {
 	getRequest := states.GetRequest{
 		ID: operationId,
 		Metadata: map[string]interface{}{
-			"namespace": "default",
+			"namespace": namespace,
 			"group":     model.SolutionGroup,
 			"version":   "v1",
 			"resource":  OperationState,
 		},
 	}
-	log.InfoCtx(ctx, "get operation state %+v", getRequest)
 	var entry states.StateEntry
 	entry, err := s.StateProvider.Get(ctx, getRequest)
 	if err != nil {

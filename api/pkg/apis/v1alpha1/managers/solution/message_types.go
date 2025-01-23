@@ -144,6 +144,7 @@ type ProviderApplyRequest struct {
 
 type AsyncResult struct {
 	OperationID string `json:"operationID"`
+	Namespace   string `json:"namespace"`
 	Error       error  `json:"error,omitempty"`
 	Body        []byte `json:"body"`
 }
