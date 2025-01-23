@@ -387,9 +387,11 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 	}
 	switch planEnvelope.Phase {
 	case model.PhaseGet:
-		if err := s.publishDeploymentStep(ctx, 0, summary.PlanState, planEnvelope.Remove, summary.PlanState.Steps[0]); err != nil {
-			log.InfofCtx(ctx, "failed to publish deployment step %s", err)
-			// return err
+		for stepId, step := range planEnvelope.Plan.Steps {
+			if err := s.publishDeploymentStep(ctx, stepId, summary.PlanState, planEnvelope.Remove, step); err != nil {
+				log.InfofCtx(ctx, "failed to publish deployment step %s", err)
+				// return err
+			}
 		}
 	case model.PhaseApply:
 		for _, step := range planEnvelope.Plan.Steps {
@@ -842,12 +844,14 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 	switch summary.PlanState.Phase {
 	case model.PhaseGet:
 		// Update the GetResult for the specific step
+		summary.PlanState.CompletedSteps++
 		summary.PlanState.StepStates[stepResult.StepId].GetResult = stepResult.GetResult
-		if stepResult.StepId != len(summary.PlanState.Steps)-1 {
-			if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.IsRemoval, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
-				log.ErrorfCtx(ctx, "M(Solution): publish deployment step failed PlanId %s, stepId %s", summary.PlanState.PlanId, 0)
-			}
-		} else {
+		// if stepResult.StepId != len(summary.PlanState.Steps)-1 {
+		// 	if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.IsRemoval, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
+		// 		log.ErrorfCtx(ctx, "M(Solution): publish deployment step failed PlanId %s, stepId %s", summary.PlanState.PlanId, 0)
+		// 	}
+		// } else {
+		if summary.PlanState.CompletedSteps == summary.PlanState.TotalSteps {
 			err := s.handlePlanComplete(ctx, summary)
 			if err != nil {
 				log.ErrorfCtx(ctx, "M(Solution): Failed to handle plan completion: %v", err)
@@ -855,6 +859,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 				s.KeyLockProvider.UnLock(lockName)
 			}
 		}
+		// }
 	case model.PhaseApply:
 		summary.PlanState.CompletedSteps++
 		if stepResult.Error != "" {
