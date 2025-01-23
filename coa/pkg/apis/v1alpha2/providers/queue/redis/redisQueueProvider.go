@@ -254,7 +254,6 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 	if start != "0" {
 		start = "(" + start
 	}
-
 	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, start, "+", int64(size+1)).Result()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get message : %s ", start)
