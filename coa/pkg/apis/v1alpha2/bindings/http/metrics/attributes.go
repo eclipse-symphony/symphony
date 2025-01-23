@@ -17,10 +17,12 @@ func Deployment(
 	}
 }
 
-func Error(
-	errorCode string,
+func Status(
+	statusCode int,
+	formatedStatusCode string,
 ) map[string]any {
 	return map[string]any{
-		"errorCode": errorCode,
+		"statusCode":         statusCode,
+		"formatedStatusCode": formatedStatusCode,
 	}
 }
