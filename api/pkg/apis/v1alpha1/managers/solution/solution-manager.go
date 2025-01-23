@@ -156,7 +156,122 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	}
 	return nil
 }
+func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
+	lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
+	// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
+	// 	log.Info("can not get lock %s", lockName)
+	// }
+	s.KeyLockProvider.Lock(lockName)
+	log.InfofCtx(ctx, "lock succeed %s", lockName)
 
+	log.InfoCtx(ctx, "get deployment %+v", deployment)
+	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
+		deployment.Instance.ObjectMeta.Name,
+		deployment.SolutionName,
+		remove,
+		namespace,
+		targetName,
+		deployment.Generation,
+		deployment.JobID)
+	previousDesiredState := s.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
+	// save summary
+	summary := model.SummarySpec{
+		TargetResults:       make(map[string]model.TargetResultSpec),
+		TargetCount:         len(deployment.Targets),
+		SuccessCount:        0,
+		AllAssignedDeployed: false,
+		JobID:               deployment.JobID,
+	}
+	// create new deployment state
+	var state model.DeploymentState
+	state, err := NewDeploymentState(deployment)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
+		s.KeyLockProvider.UnLock(lockName)
+		return summary, err
+	}
+	err = s.CheckJobId(ctx, deployment.JobID, namespace, deployment.Instance.ObjectMeta.Name)
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Solution): job id is less than exists for deployment: %+v", err)
+		s.KeyLockProvider.UnLock(lockName)
+		return summary, err
+	}
+
+	// stopCh := make(chan struct{})
+	// defer close(stopCh)
+	// go e.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
+
+	// get the components count for the deployment
+	componentCount := len(deployment.Solution.Spec.Components)
+	apiOperationMetrics.ApiComponentCount(
+		componentCount,
+		metrics.ReconcileOperation,
+		metrics.UpdateOperationType,
+	)
+
+	if s.VendorContext != nil && s.VendorContext.EvaluationContext != nil {
+		context := s.VendorContext.EvaluationContext.Clone()
+		context.DeploymentSpec = deployment
+		context.Value = deployment
+		context.Component = ""
+		context.Namespace = namespace
+		context.Context = ctx
+		deployment, err = api_utils.EvaluateDeployment(*context)
+		if err != nil {
+			if remove {
+				log.InfofCtx(ctx, " M (Solution): skipped failure to evaluate deployment spec: %+v", err)
+			} else {
+				summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
+				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
+				s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+				log.InfoCtx(ctx, "unlock7")
+				s.KeyLockProvider.UnLock(lockName)
+				return summary, err
+			}
+		}
+
+	}
+	// e.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
+	// Generate new deployment plan for deployment
+	initalPlan, err := PlanForDeployment(deployment, state)
+	if err != nil {
+		s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		log.ErrorfCtx(ctx, " M (Solution): failed initalPlan for deployment: %+v", err)
+		s.KeyLockProvider.UnLock(lockName)
+		return summary, err
+	}
+
+	// remove no use steps
+	var stepList []model.DeploymentStep
+	for _, step := range initalPlan.Steps {
+		if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
+			continue
+		}
+		if targetName != "" && targetName != step.Target {
+			continue
+		}
+		stepList = append(stepList, step)
+	}
+	initalPlan.Steps = stepList
+	log.InfoCtx(ctx, "publish topic for object %s", deployment.Instance.ObjectMeta.Name)
+	s.VendorContext.Publish(DeploymentPlanTopic, v1alpha2.Event{
+		Metadata: map[string]string{
+			"Id": deployment.JobID,
+		},
+		Body: PlanEnvelope{
+			Plan:                 initalPlan,
+			Deployment:           deployment,
+			MergedState:          model.DeploymentState{},
+			PreviousDesiredState: previousDesiredState,
+			PlanId:               uuid.New().String(),
+			Remove:               remove,
+			Namespace:            namespace,
+			Phase:                PhaseGet,
+		},
+		Context: ctx,
+	})
+	return summary, nil
+}
 func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,

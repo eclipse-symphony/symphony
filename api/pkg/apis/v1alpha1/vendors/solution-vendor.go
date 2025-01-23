@@ -25,7 +25,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 )
 
@@ -316,12 +315,6 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				Body:  []byte(err.Error()),
 			})
 		}
-		lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
-		// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
-		// 	log.Info("can not get lock %s", lockName)
-		// }
-		c.SolutionManager.KeyLockProvider.Lock(lockName)
-		log.InfofCtx(ctx, "lock succeed %s", lockName)
 		delete := request.Parameters["delete"]
 		remove := delete == "true"
 		targetName := ""
@@ -330,129 +323,15 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		log.InfoCtx(ctx, "get deployment %+v", deployment)
-		log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
-			deployment.Instance.ObjectMeta.Name,
-			deployment.SolutionName,
-			remove,
-			namespace,
-			targetName,
-			deployment.Generation,
-			deployment.JobID)
-		previousDesiredState := c.SolutionManager.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
-		// create new deployment state
-		var state model.DeploymentState
-		state, err = solution.NewDeploymentState(deployment)
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to create manager state for deployment: %+v", err)
-			c.SolutionManager.KeyLockProvider.UnLock(lockName)
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.MethodNotAllowed,
-				Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
-				ContentType: "application/json",
-			})
-		}
-		// save summary
-		summary := model.SummarySpec{
-			TargetResults:       make(map[string]model.TargetResultSpec),
-			TargetCount:         len(deployment.Targets),
-			SuccessCount:        0,
-			AllAssignedDeployed: false,
-			JobID:               deployment.JobID,
-		}
+		summary, err := c.SolutionManager.AsyncReconcile(ctx, deployment, remove, namespace, targetName)
 		data, _ := json.Marshal(summary)
-		err = c.SolutionManager.CheckJobId(ctx, deployment.JobID, namespace, deployment.Instance.ObjectMeta.Name)
 		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): job id is less than exists for deployment: %+v", err)
-			c.SolutionManager.KeyLockProvider.UnLock(lockName)
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte(fmt.Sprintf("{\"result\":\"500 - M (Solution): failed to execute job id: %+v\"}", err)),
-				ContentType: "application/json",
-			})
-		}
-
-		// stopCh := make(chan struct{})
-		// defer close(stopCh)
-		// go e.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
-
-		// get the components count for the deployment
-		componentCount := len(deployment.Solution.Spec.Components)
-		apiOperationMetrics.ApiComponentCount(
-			componentCount,
-			metrics.ReconcileOperation,
-			metrics.UpdateOperationType,
-		)
-
-		if c.SolutionManager.VendorContext != nil && c.SolutionManager.VendorContext.EvaluationContext != nil {
-			context := c.SolutionManager.VendorContext.EvaluationContext.Clone()
-			context.DeploymentSpec = deployment
-			context.Value = deployment
-			context.Component = ""
-			context.Namespace = namespace
-			context.Context = ctx
-			deployment, err = api_utils.EvaluateDeployment(*context)
-			if err != nil {
-				if remove {
-					log.InfofCtx(ctx, " M (Solution): skipped failure to evaluate deployment spec: %+v", err)
-				} else {
-					summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
-					data, _ = json.Marshal(summary)
-					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
-					c.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-					log.InfoCtx(ctx, "unlock7")
-					c.SolutionManager.KeyLockProvider.UnLock(lockName)
-					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State: v1alpha2.GetErrorState(err),
-						Body:  data,
-					})
-				}
-			}
-
-		}
-		// e.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
-		// Generate new deployment plan for deployment
-		initalPlan, err := solution.PlanForDeployment(deployment, state)
-		if err != nil {
-			c.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-			log.ErrorfCtx(ctx, " M (Solution): failed initalPlan for deployment: %+v", err)
-			c.SolutionManager.KeyLockProvider.UnLock(lockName)
+			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  data,
 			})
 		}
-
-		// remove no use steps
-		var stepList []model.DeploymentStep
-		for _, step := range initalPlan.Steps {
-			if c.SolutionManager.IsTarget && !api_utils.ContainsString(c.SolutionManager.TargetNames, step.Target) {
-				continue
-			}
-			if targetName != "" && targetName != step.Target {
-				continue
-			}
-			stepList = append(stepList, step)
-		}
-		initalPlan.Steps = stepList
-		log.InfoCtx(ctx, "publish topic for object %s", deployment.Instance.ObjectMeta.Name)
-		c.Vendor.Context.Publish(solution.DeploymentPlanTopic, v1alpha2.Event{
-			Metadata: map[string]string{
-				"Id": deployment.JobID,
-			},
-			Body: solution.PlanEnvelope{
-				Plan:                 initalPlan,
-				Deployment:           deployment,
-				MergedState:          model.DeploymentState{},
-				PreviousDesiredState: previousDesiredState,
-				PlanId:               uuid.New().String(),
-				Remove:               delete == "true",
-				Namespace:            namespace,
-				Phase:                solution.PhaseGet,
-			},
-			Context: ctx,
-		})
-
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        data,
