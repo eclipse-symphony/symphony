@@ -132,8 +132,8 @@ type ProviderGetRequest struct {
 }
 
 type ProviderPagingRequest struct {
-	RequestList   []AgentRequest `json:"requestList"`
-	LastMessageID string         `json:"lastMessageID"`
+	RequestList   []map[string]interface{} `json:"requestList"`
+	LastMessageID string                   `json:"lastMessageID"`
 }
 type ProviderApplyRequest struct {
 	AgentRequest
