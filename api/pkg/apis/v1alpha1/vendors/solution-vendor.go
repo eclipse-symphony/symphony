@@ -399,7 +399,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 					summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 					data, _ = json.Marshal(summary)
 					log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
-					c.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+					// c.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 					log.InfoCtx(ctx, "unlock7")
 					c.SolutionManager.KeyLockProvider.UnLock(lockName)
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -414,7 +414,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		// Generate new deployment plan for deployment
 		initalPlan, err := solution.PlanForDeployment(deployment, state)
 		if err != nil {
-			c.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+			// c.SolutionManager.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 			log.ErrorfCtx(ctx, " M (Solution): failed initalPlan for deployment: %+v", err)
 			c.SolutionManager.KeyLockProvider.UnLock(lockName)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

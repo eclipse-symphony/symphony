@@ -47,7 +47,7 @@ type PlanEnvelope struct {
 	PlanId               string                         `json:"planId"`
 	Generation           string                         `json:"generation"` // deployment version
 	Hash                 string                         `json:"hash"`
-	Phase                JobPhase
+	Phase                JobPhase                       `json:"phase"`
 }
 
 type PlanState struct {
@@ -64,11 +64,11 @@ type PlanState struct {
 	CurrentState         model.DeploymentState          `json:"currentState"`
 	PreviousDesiredState SolutionManagerDeploymentState `json:"previous`
 	Status               string                         `json:"status"`
-	TargetResult         map[string]int
-	Namespace            string `json:"namespace"`
-	Remove               bool
-	StepStates           []StepState
-	Steps                []model.DeploymentStep
+	TargetResult         map[string]int                 `json:"targetResult"`
+	Namespace            string                         `json:"namespace"`
+	Remove               bool                           `json:"remove"`
+	StepStates           []StepState                    `json:"stepStates"`
+	Steps                []model.DeploymentStep         `json:"steps"`
 }
 
 // for step
@@ -78,7 +78,7 @@ type StepResult struct {
 	PlanId           string                               `json:"planId"`
 	StepId           int                                  `json:"stepId"`
 	Timestamp        time.Time                            `json:"timestamp"`
-	GetResult        []model.ComponentSpec                // for get result
+	GetResult        []model.ComponentSpec                `json:"getResult"`  // for get result
 	ApplyResult      map[string]model.ComponentResultSpec `json:"components"` // for apply result
 	Error            string                               `json:"string,omitempty"`
 	Target           string                               `json:"Target"`
@@ -92,23 +92,26 @@ type StepEnvelope struct {
 }
 
 type OperationBody struct {
-	StepId    int
-	PlanId    string
-	Target    string
-	Action    JobPhase
-	NameSpace string
-	Remove    bool
-	MessageId string
+	StepId    int      `json:"stepId"`
+	PlanId    string   `json:"planId"`
+	Target    string   `json:"Target"`
+	Action    JobPhase `json:"action"`
+	NameSpace string   `json:"Namespace"`
+	Remove    bool     `json:"remove"`
+	MessageId string   `json:"messageId"`
 }
 
 type StepState struct {
-	Index      int
-	Target     string
-	Role       string
-	Components []model.ComponentStep
-	State      string
-	GetResult  []model.ComponentSpec
-	Error      string
+	Index      int                   `json:"Index"`
+	Target     string                `json:"Target"`
+	Role       string                `json:"Role"`
+	Components []model.ComponentStep `json:"Components"`
+	State      string                `json:"State"`
+	GetResult  []model.ComponentSpec `json:"GetResult"`
+	Error      string                `json:"Error"`
+}
+type ProviderGetValidationRuleRequest struct {
+	AgentRequest
 }
 
 var deploymentTypeMap = map[bool]string{
@@ -137,10 +140,6 @@ type ProviderApplyRequest struct {
 	Deployment model.DeploymentSpec `json:"deployment"`
 	Step       model.DeploymentStep `json:"step"`
 	IsDryRun   bool                 `json:"isDryRun,omitempty"`
-}
-
-type ProviderGetValidationRuleRequest struct {
-	AgentRequest
 }
 
 type AsyncResult struct {
