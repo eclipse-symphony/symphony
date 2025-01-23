@@ -1072,9 +1072,9 @@ func (e *SolutionVendor) getTaskFromQueueByPaging(ctx context.Context, target st
 	defer span.End()
 	var err error
 	queueElement, lastMessageID, err := e.StagingManager.QueueProvider.QueryByPaging(queueName, start, size)
-	var requestList []AgentRequest
+	var requestList []map[string]interface{}
 	for _, element := range queueElement {
-		var agentRequest AgentRequest
+		var agentRequest map[string]interface{}
 		err = json.Unmarshal(element, &agentRequest)
 		log.InfoCtx(ctx, "unmarshal one element", agentRequest)
 		if err != nil {
