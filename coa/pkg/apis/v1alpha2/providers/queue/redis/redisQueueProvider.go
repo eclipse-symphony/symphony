@@ -251,6 +251,9 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 
 // GetRecords retrieves records from the queue starting from the specified index and retrieves the specified size of records.
 func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
+	if size <= 0 {
+		return nil, "", fmt.Errorf("size cannot be 0")
+	}
 	if start != "0" {
 		start = "(" + start
 	}
@@ -262,11 +265,10 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 		return nil, "", err
 	}
 
-	lastMessageID := xMessages[len(xMessages)-1].ID
-	if len(xMessages) <= size {
-		lastMessageID = ""
-	} else {
+	lastMessageID := ""
+	if len(xMessages) > size {
 		xMessages = xMessages[:size]
+		lastMessageID = xMessages[len(xMessages)-2].ID
 	}
 	var results [][]byte
 	for _, xMsg := range xMessages {
