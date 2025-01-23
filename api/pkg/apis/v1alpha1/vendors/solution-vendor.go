@@ -538,7 +538,8 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 	defer span.End()
 	sLog.InfoCtx(ctx, "V (Solution): onGetResponse")
 	var asyncResult model.AsyncResult
-	err := utils.UnmarshalJson(request.Body, &asyncResult)
+	// err := utils.UnmarshalJson(request.Body, &asyncResult)
+	err := json.Unmarshal(request.Body, &asyncResult)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(Solution): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
