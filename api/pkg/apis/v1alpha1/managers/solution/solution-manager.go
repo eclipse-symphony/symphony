@@ -223,7 +223,7 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 			} else {
 				summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
-				s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+				s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 				log.InfoCtx(ctx, "unlock7")
 				s.KeyLockProvider.UnLock(lockName)
 				return summary, err
@@ -235,7 +235,7 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 	// Generate new deployment plan for deployment
 	initalPlan, err := PlanForDeployment(deployment, state)
 	if err != nil {
-		s.ConcludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
+		s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
 		log.ErrorfCtx(ctx, " M (Solution): failed initalPlan for deployment: %+v", err)
 		s.KeyLockProvider.UnLock(lockName)
 		return summary, err
@@ -625,11 +625,11 @@ func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alph
 	var stepEnvelope StepEnvelope
 	jData, err := json.Marshal(event.Body)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal event body: %v", err)
+		log.ErrorfCtx(ctx, "M (Solution): failed to unmarshal event body: %v", err)
 		return err
 	}
 	if err := utils.UnmarshalJson(jData, &stepEnvelope); err != nil {
-		log.ErrorfCtx(ctx, "V (Solution): failed to unmarshal step envelope: %v", err)
+		log.ErrorfCtx(ctx, "M (Solution): failed to unmarshal step envelope: %v", err)
 		return err
 	}
 	lockName := api_utils.GenerateKeyLockName(stepEnvelope.PlanState.Namespace, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name)
@@ -702,7 +702,7 @@ func (s *SolutionManager) enqueueProviderGetRequest(ctx context.Context, stepEnv
 	}
 	err = s.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageID)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(Solution) Error in insert operation Id %s", operationId)
+		log.ErrorfCtx(ctx, "M(Solution) Error in insert operation Id %s", operationId)
 		return s.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{}, stepEnvelope.PlanState.Namespace)
 	}
 	return err
@@ -718,7 +718,7 @@ func (s *SolutionManager) getProviderAndExecute(ctx context.Context, stepEnvelop
 	dep.ActiveTarget = stepEnvelope.Step.Target
 	getResult, stepError := (provider.(tgt.ITargetProvider)).Get(ctx, dep, stepEnvelope.Step.Components)
 	if stepError != nil {
-		log.ErrorCtx(ctx, "V(Solution) Error in get target current states %+v", stepError)
+		log.ErrorCtx(ctx, "M(Solution) Error in get target current states %+v", stepError)
 		return s.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{}, stepEnvelope.PlanState.Namespace)
 	}
 	return s.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, getResult, map[string]model.ComponentResultSpec{}, stepEnvelope.PlanState.Namespace)
@@ -938,7 +938,7 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	log.InfofCtx(ctx, "V(SolutionVendor): getFromQueue %s queue length %s", queueName)
+	log.InfofCtx(ctx, "M(SolutionVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 	var err error
 	queueElement, lastMessageID, err := s.QueueProvider.QueryByPaging(queueName, start, size)
@@ -947,7 +947,7 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 		var agentRequest AgentRequest
 		err = utils.UnmarshalJson(element, &agentRequest)
 		if err != nil {
-			log.ErrorfCtx(ctx, "V(SolutionVendor): failed to unmarshal element - %s", err.Error())
+			log.ErrorfCtx(ctx, "M(SolutionVendor): failed to unmarshal element - %s", err.Error())
 			return v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -960,7 +960,7 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 		LastMessageID: lastMessageID,
 	}
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(SolutionVendor): getQueue failed - %s", err.Error())
+		log.ErrorfCtx(ctx, "M(SolutionVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -1044,13 +1044,13 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	log.InfofCtx(ctx, "V(SolutionVendor): getFromQueue %s queue length %s", queueName)
+	log.InfofCtx(ctx, "M(SolutionVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 	var queueElement interface{}
 	var err error
 	queueElement, err = c.QueueProvider.Peek(queueName)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(SolutionVendor): getQueue failed - %s", err.Error())
+		log.ErrorfCtx(ctx, "M(SolutionVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -1474,16 +1474,6 @@ func (s *SolutionManager) CheckJobId(ctx context.Context, jobID string, namespac
 	return nil
 }
 
-func (s *SolutionManager) GetTargetStateForStep(target string, deployment model.DeploymentSpec, previousDeploymentState *SolutionManagerDeploymentState) model.TargetState {
-	//first find the target spec in the deployment
-	targetSpec, ok := deployment.Targets[target]
-	if !ok {
-		if previousDeploymentState != nil {
-			targetSpec = previousDeploymentState.Spec.Targets[target]
-		}
-	}
-	return targetSpec
-}
 func (s *SolutionManager) saveSummaryInfo(ctx context.Context, planState PlanState, state model.SummaryState) error {
 	return s.saveSummary(ctx, planState.Deployment.Instance.ObjectMeta.Name, planState.Deployment.Generation, planState.Deployment.Hash, planState.Summary, state, planState.Namespace)
 }
@@ -1542,19 +1532,16 @@ func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName st
 func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
 	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
 }
-func (s *SolutionManager) ConcludeSummary(ctx context.Context, objectName string, generation string, hash string, summary model.SummarySpec, namespace string) error {
-	return s.saveSummary(ctx, objectName, generation, hash, summary, model.SummaryStateDone, namespace)
-}
 
 // handleRemoteAgentExecuteResult handles the execution result from the remote agent.
 func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, asyncResult AsyncResult) v1alpha2.COAResponse {
 	// Get operation ID
 	operationId := asyncResult.OperationID
 	// Get related info from redis - todo: timeout
-	log.InfoCtx(ctx, "V(SolutionVendor): handle remote agent request %+v", asyncResult)
+	log.InfoCtx(ctx, "M(SolutionVendor): handle remote agent request %+v", asyncResult)
 	operationBody, err := s.getOperationState(ctx, operationId, asyncResult.Namespace)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(SolutionVendor): onGetResponse failed - %s", err.Error())
+		log.ErrorfCtx(ctx, "M(SolutionVendor): onGetResponse failed - %s", err.Error())
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
@@ -1796,9 +1783,6 @@ func (s *SolutionManager) Poll() []error {
 	}
 	return nil
 }
-func (s *SolutionManager) Reconcil() []error {
-	return nil
-}
 
 func findAgentFromDeploymentState(state model.DeploymentState, targetName string) string {
 	for _, targetDes := range state.Targets {
@@ -1946,7 +1930,7 @@ func (s *SolutionManager) getPlanState(ctx context.Context, planId string, names
 	var ret PlanState
 	ret, err = s.getPlanStateBody(entry.Body)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(SolutionVendor): Failed to convert to operation state for %s", planId)
+		log.ErrorfCtx(ctx, "M(SolutionVendor): Failed to convert to operation state for %s", planId)
 		return PlanState{}, err
 	}
 	return ret, err
@@ -1980,7 +1964,7 @@ func (s *SolutionManager) getOperationState(ctx context.Context, operationId str
 	var ret OperationBody
 	ret, err = s.getOperationBody(entry.Body)
 	if err != nil {
-		log.ErrorfCtx(ctx, "V(SolutionVendor): Failed to convert to operation state for %s", operationId)
+		log.ErrorfCtx(ctx, "M(SolutionVendor): Failed to convert to operation state for %s", operationId)
 		return OperationBody{}, err
 	}
 	return ret, err
