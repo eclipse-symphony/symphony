@@ -94,6 +94,13 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		}
 	}
 
+	queueProvider, err := managers.GetQueueProvider(config, providers)
+	if err == nil {
+		s.QueueProvider = queueProvider
+	} else {
+		return err
+	}
+
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
 		s.KeyLockProvider = keylockprovider
@@ -674,7 +681,7 @@ func (s *SolutionManager) enqueueProviderGetRequest(ctx context.Context, stepEnv
 		Deployment: stepEnvelope.PlanState.Deployment,
 	}
 
-	log.InfofCtx(ctx, "M(Solution): Enqueue get message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
+	log.InfofCtx(ctx, "M(Solution): Enqueue get message %s-%s with operation ID %+v", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
 	messageID, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
@@ -723,12 +730,12 @@ func (s *SolutionManager) enqueueProviderApplyRequest(ctx context.Context, stepE
 		Step:       stepEnvelope.Step,
 		IsDryRun:   stepEnvelope.PlanState.Deployment.IsDryRun,
 	}
+	log.InfofCtx(ctx, "M(Solution): Enqueue apply message %s-%s with operation ID ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, operationId)
 	messageId, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue apply message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
 		return err
 	}
-	log.InfofCtx(ctx, "M(Solution): Enqueue apply message %s-%s %+v ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providApplyRequest)
 	err = s.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageId)
 	if err != nil {
 		log.ErrorfCtx(ctx, "error in insert operation Id %s", operationId)
@@ -1540,6 +1547,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		s.publishStepResult(ctx, operationBody.Target, operationBody.PlanId, operationBody.StepId, asyncResult.Error, response, map[string]model.ComponentResultSpec{}, operationBody.NameSpace)
+		log.InfofCtx(ctx, "M(SolutionVendor):  delete operation ID", operationId)
 		err = s.deleteOperationState(ctx, operationId)
 		if err != nil {
 			return v1alpha2.COAResponse{
@@ -1565,6 +1573,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		s.publishStepResult(ctx, operationBody.Target, operationBody.PlanId, operationBody.StepId, asyncResult.Error, []model.ComponentSpec{}, response, operationBody.NameSpace)
+		log.InfofCtx(ctx, "M(SolutionVendor):  delete operation ID", operationId)
 		s.deleteOperationState(ctx, operationId)
 		// delete from queue
 		s.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId)
@@ -1815,7 +1824,7 @@ func sortByDepedencies(components []model.ComponentSpec) ([]model.ComponentSpec,
 
 // upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action model.JobPhase, namespace string, remove bool, messageId string) error {
-	log.InfoCtx(ctx, "upsert operationid %s", operationId)
+	log.InfoCtx(ctx, "M (Solution) : upsert operationid %s", operationId)
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: operationId,
@@ -1840,7 +1849,7 @@ func (s *SolutionManager) upsertOperationState(ctx context.Context, operationId 
 }
 
 func (s *SolutionManager) deleteOperationState(ctx context.Context, operationId string) error {
-	log.InfoCtx(ctx, "delete operationid %s", operationId)
+	log.InfoCtx(ctx, "M (Solution) : delete operationid %s", operationId)
 	deleteRequest := states.DeleteRequest{
 		ID: operationId,
 		Metadata: map[string]interface{}{
@@ -1856,6 +1865,7 @@ func (s *SolutionManager) deleteOperationState(ctx context.Context, operationId 
 
 // getOperationState retrieves the operation state for the specified operation ID.
 func (s *SolutionManager) getOperationState(ctx context.Context, operationId string, namespace string) (model.OperationBody, error) {
+	log.InfoCtx(ctx, "M (Solution) : get operationid %s", operationId)
 	getRequest := states.GetRequest{
 		ID: operationId,
 		Metadata: map[string]interface{}{
