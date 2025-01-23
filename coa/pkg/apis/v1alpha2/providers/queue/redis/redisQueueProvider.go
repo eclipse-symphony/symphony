@@ -268,9 +268,10 @@ func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size
 	lastMessageID := ""
 	if len(xMessages) > size {
 		xMessages = xMessages[:size]
-		lastMessageID = xMessages[len(xMessages)-2].ID
+		lastMessageID = xMessages[len(xMessages)-1].ID
 	}
 	var results [][]byte
+
 	for _, xMsg := range xMessages {
 		jsonData := xMsg.Values["data"].(string)
 		results = append(results, []byte(jsonData))
