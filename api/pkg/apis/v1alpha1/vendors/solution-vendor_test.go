@@ -40,6 +40,12 @@ func createSolutionVendor() SolutionVendor {
 	secretProvider.Init(mocksecret.MockSecretProviderConfig{})
 	keyLockProvider := memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	queueProvider := redisqueue.RedisQueueProvider{}
+	queueProvider.Init(redisqueue.RedisQueueProviderConfig{
+		Name:     "test",
+		Host:     "localhost:6379",
+		Password: "",
+	})
 	vendor := SolutionVendor{}
 	vendor.Init(vendors.VendorConfig{
 		Properties: map[string]string{
@@ -74,8 +80,12 @@ func createSolutionVendor() SolutionVendor {
 						Config: mocksecret.MockSecretProviderConfig{},
 					},
 					"redis-queue": {
-						Type:   "providers.queue.redis",
-						Config: redisqueue.RedisQueueProviderConfig{},
+						Type: "providers.queue.redis",
+						Config: redisqueue.RedisQueueProviderConfig{
+							Name:     "test",
+							Host:     "localhost:6379",
+							Password: "",
+						},
 					},
 				},
 			},
@@ -88,6 +98,7 @@ func createSolutionVendor() SolutionVendor {
 			"mem-keylock": &keyLockProvider,
 			"mock-config": &configProvider,
 			"mock-secret": &secretProvider,
+			"redis-queue": &queueProvider,
 		},
 	}, nil)
 	return vendor
