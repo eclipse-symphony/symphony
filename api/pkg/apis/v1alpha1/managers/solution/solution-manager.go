@@ -807,6 +807,9 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 	}
 
 	planId := stepResult.PlanId
+	// save summary one by one
+	s.KeyLockProvider.Lock(api_utils.GenerateKeyLockName("summary", stepResult.NameSpace, stepResult.PlanId))
+	defer s.KeyLockProvider.UnLock(api_utils.GenerateKeyLockName("summary", stepResult.NameSpace, stepResult.PlanId))
 	summaryResult, err := s.GetSummary(ctx, stepResult.PlanId, stepResult.NameSpace)
 	planState := summaryResult.Summary.PlanState
 	if err != nil {
@@ -859,6 +862,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 				s.KeyLockProvider.UnLock(lockName)
 			}
 		}
+
 		// }
 	case model.PhaseApply:
 		summary.PlanState.CompletedSteps++
