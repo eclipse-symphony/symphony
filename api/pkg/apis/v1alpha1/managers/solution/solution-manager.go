@@ -1336,7 +1336,6 @@ func (s *SolutionManager) CheckJobId(ctx context.Context, jobID string, namespac
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	lockName := api_utils.GenerateKeyLockName(namespace, objectName)
 	oldSummary, err := s.GetSummary(ctx, objectName, namespace)
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		log.ErrorfCtx(ctx, " M (Solution): failed to get previous summary: %+v", err)
@@ -1346,14 +1345,12 @@ func (s *SolutionManager) CheckJobId(ctx context.Context, jobID string, namespac
 			newId, err = strconv.ParseInt(jobID, 10, 64)
 			if err != nil {
 				log.ErrorfCtx(ctx, " M (Solution): failed to parse new job id: %+v", err)
-				s.KeyLockProvider.UnLock(lockName)
 				return v1alpha2.NewCOAError(err, "failed to parse new job id", v1alpha2.BadRequest)
 			}
 			oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
 			if err == nil && oldId > newId {
 				errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
 				log.ErrorfCtx(ctx, " M (Solution): %s", errMsg)
-				s.KeyLockProvider.UnLock(lockName)
 				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
 			}
 		} else {
