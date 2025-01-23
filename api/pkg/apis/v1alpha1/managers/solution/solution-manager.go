@@ -93,7 +93,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	keylockprovider, err := managers.GetKeyLockProvider(config, providers)
 	if err == nil {
 		s.KeyLockProvider = keylockprovider
-
 	} else {
 		return err
 	}
@@ -197,10 +196,6 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		return summary, err
 	}
 
-	// stopCh := make(chan struct{})
-	// defer close(stopCh)
-	// go e.SolutionManager.SendHeartbeat(ctx, deployment.Instance.ObjectMeta.Name, namespace, remove, stopCh)
-
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)
 	apiOperationMetrics.ApiComponentCount(
@@ -231,7 +226,6 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		}
 
 	}
-	// e.SolutionManager.KeyLockProvider.Lock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name))
 	// Generate new deployment plan for deployment
 	initalPlan, err := PlanForDeployment(deployment, state)
 	if err != nil {
@@ -381,17 +375,12 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 		return err
 	}
 	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
-	if planState.isCompleted() {
+	if planState.CompletedSteps == planState.TotalSteps {
 		// no step to run
 		return s.handlePlanComplete(ctx, planState)
 
 	}
-	// for _, step := range planEnvelope.Plan.Steps {
-	// 	switch planEnvelope.Phase {
-	// 	case PhaseApply:
-	// 		planState.Summary.PlannedDeployment += len(step.Components)
-	// 	}
-	// }
+
 	s.upsertPlanState(ctx, planEnvelope.PlanId, planState)
 	switch planEnvelope.Phase {
 	case PhaseGet:
@@ -609,10 +598,6 @@ func createPlanState(planEnvelope PlanEnvelope) PlanState {
 		StepStates:           make([]StepState, len(planEnvelope.Plan.Steps)),
 		Steps:                planEnvelope.Plan.Steps,
 	}
-}
-
-func (p PlanState) isCompleted() bool {
-	return p.CompletedSteps == p.TotalSteps
 }
 
 func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alpha2.Event) error {
@@ -928,7 +913,6 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, planState PlanStat
 
 	// Store the updated plan state
 	s.upsertPlanState(ctx, planState.PlanId, planState)
-	// Check if all steps are completed and handle plan completion
 	return nil
 }
 
