@@ -40,27 +40,6 @@ type PlanEnvelope struct {
 	Phase                JobPhase                       `json:"phase"`
 }
 
-// type PlanState struct {
-// 	ID                   string `json:"opeateionId"`
-// 	PlanId               string `json:"planId"`
-// 	Phase                JobPhase
-// 	StartTime            time.Time                      `json:"startTime"`
-// 	ExpireTime           time.Time                      `json:"expireTime"`
-// 	TotalSteps           int                            `json:"totalSteps"`
-// 	CompletedSteps       int                            `json:"completedSteps"`
-// 	Summary              model.SummarySpec              `json:"summary"`
-// 	MergedState          model.DeploymentState          `json:"mergedState"`
-// 	Deployment           model.DeploymentSpec           `json:"deployment"`
-// 	CurrentState         model.DeploymentState          `json:"currentState"`
-// 	PreviousDesiredState SolutionManagerDeploymentState `json:"previous`
-// 	Status               string                         `json:"status"`
-// 	TargetResult         map[string]int                 `json:"targetResult"`
-// 	Namespace            string                         `json:"namespace"`
-// 	Remove               bool                           `json:"remove"`
-// 	StepStates           []StepState                    `json:"stepStates"`
-// 	Steps                []model.DeploymentStep         `json:"steps"`
-// }
-
 // for step
 type StepResult struct {
 	Step             DeploymentStep                 `json:"step"`
