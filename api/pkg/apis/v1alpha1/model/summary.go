@@ -48,10 +48,9 @@ type PlanState struct {
 	MergedState          DeploymentState                `json:"mergedState"`
 	Deployment           DeploymentSpec                 `json:"deployment"`
 	CurrentState         DeploymentState                `json:"currentState"`
-	PreviousDesiredState SolutionManagerDeploymentState `json:"previous`
+	PreviousDesiredState SolutionManagerDeploymentState `json:"previousDesiredState`
 	TargetResult         map[string]int                 `json:"targetResult"`
 	Namespace            string                         `json:"namespace"`
-	Remove               bool                           `json:"remove"`
 	TotalSteps           int                            `json:"totalSteps"`
 	StepStates           []StepState                    `json:"stepStates"`
 	Steps                []DeploymentStep               `json:"steps"`

@@ -162,9 +162,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
 	s.KeyLockProvider.Lock(lockName)
-	log.InfofCtx(ctx, "lock succeed %s", lockName)
-
-	log.InfoCtx(ctx, "get deployment %+v", deployment)
 	log.InfofCtx(ctx, " M (Solution): reconciling deployment.InstanceName: %s, deployment.SolutionName: %s, remove: %t, namespace: %s, targetName: %s, generation: %s, jobID: %s",
 		deployment.Instance.ObjectMeta.Name,
 		deployment.SolutionName,
@@ -258,11 +255,10 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 			Deployment:           deployment,
 			MergedState:          model.DeploymentState{},
 			PreviousDesiredState: previousDesiredState,
-			// PlanId:               uuid.New().String(),
-			PlanId:    deployment.Instance.ObjectMeta.Name,
-			Remove:    remove,
-			Namespace: namespace,
-			Phase:     model.PhaseGet,
+			PlanId:               deployment.Instance.ObjectMeta.Name,
+			Remove:               remove,
+			Namespace:            namespace,
+			Phase:                model.PhaseGet,
 		},
 		Context: ctx,
 	})
@@ -377,14 +373,11 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 		return err
 	}
 	s.saveSummaryInfo(ctx, summary, model.SummaryStateRunning)
-	// s.upsertPlanState(ctx, planEnvelope.PlanId, summary.PlanState)
 	if summary.PlanState.CompletedSteps == summary.PlanState.TotalSteps {
 		// no step to run
 		return s.handlePlanComplete(ctx, summary)
 
 	}
-
-	// s.upsertPlanState(ctx, planEnvelope.PlanId, summary.PlanState)
 	switch planEnvelope.Phase {
 	case model.PhaseGet:
 		if err := s.publishDeploymentStep(ctx, 0, summary.PlanState, planEnvelope.Remove, summary.PlanState.Steps[0]); err != nil {
@@ -403,7 +396,6 @@ func (s *SolutionManager) HandleDeploymentPlan(ctx context.Context, event v1alph
 			return err
 		}
 	}
-	log.InfoCtx(ctx, "M(Solution): store plan id %s in map %+v", planEnvelope.PlanId)
 	return nil
 }
 
@@ -446,15 +438,12 @@ func (s *SolutionManager) handlePlanComplete(ctx context.Context, summary model.
 	switch summary.PlanState.Phase {
 	case model.PhaseGet:
 		if err := s.handleGetPlanCompletetion(ctx, summary); err != nil {
-			// s.deletePlanState(ctx, summary.PlanState.PlanId, summary.PlanState.Namespace)
 			return err
 		}
 	case model.PhaseApply:
 		if err := s.handleAllPlanCompletetion(ctx, summary); err != nil {
-			// s.deletePlanState(ctx, summary.PlanState.PlanId, summary.PlanState.Namespace)
 			return err
 		}
-		// s.deletePlanState(ctx, summary.PlanState.PlanId, summary.PlanState.Namespace)
 	}
 
 	return nil
@@ -468,7 +457,7 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 	// update summary
 	summary.PlanState.MergedState.ClearAllRemoved()
 	if !summary.PlanState.Deployment.IsDryRun {
-		if len(summary.PlanState.MergedState.TargetComponent) == 0 && summary.PlanState.Remove {
+		if len(summary.PlanState.MergedState.TargetComponent) == 0 && summary.IsRemoval {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
 			s.StateProvider.Delete(ctx, states.DeleteRequest{
 				ID: summary.PlanState.Deployment.Instance.ObjectMeta.Name,
@@ -534,7 +523,7 @@ func (s *SolutionManager) threeStateMerge(ctx context.Context, summary model.Sum
 	}
 	desiredState := currentDesiredState
 	desiredState = MergeDeploymentStates(previousDesiredState.State, currentDesiredState)
-	if summary.PlanState.Remove {
+	if summary.IsRemoval {
 		desiredState.MarkRemoveAll()
 	}
 	mergedState := MergeDeploymentStates(currentState, desiredState)
@@ -544,7 +533,6 @@ func (s *SolutionManager) threeStateMerge(ctx context.Context, summary model.Sum
 	if err != nil {
 		return model.DeploymentPlan{}, model.SummarySpec{}, err
 	}
-	// s.upsertPlanState(ctx, summary.PlanState.PlanId, summary.PlanState)
 	s.saveSummaryInfo(ctx, summary, model.SummaryStateRunning)
 	return Plan, summary, nil
 }
@@ -570,7 +558,7 @@ func (s *SolutionManager) handleGetPlanCompletetion(ctx context.Context, summary
 			CurrentState:         summary.PlanState.CurrentState,
 			PreviousDesiredState: summary.PlanState.PreviousDesiredState,
 			PlanId:               summary.PlanState.PlanId,
-			Remove:               summary.PlanState.Remove,
+			Remove:               summary.IsRemoval,
 			Namespace:            summary.PlanState.Namespace,
 			Phase:                model.PhaseApply,
 		},
@@ -579,27 +567,17 @@ func (s *SolutionManager) handleGetPlanCompletetion(ctx context.Context, summary
 	return nil
 }
 
-// create inital plan state
+// create inital summary
 func createSummary(planEnvelope model.PlanEnvelope) model.SummarySpec {
 	planState := model.PlanState{
-		PlanId: planEnvelope.PlanId,
-		// StartTime:  time.Now(),
-		TotalSteps: len(planEnvelope.Plan.Steps),
-		Phase:      planEnvelope.Phase,
-		// Summary: model.SummarySpec{
-		// 	TargetResults:       make(map[string]model.TargetResultSpec),
-		// 	TargetCount:         len(planEnvelope.Deployment.Targets),
-		// 	SuccessCount:        0,
-		// 	AllAssignedDeployed: true,
-		// 	JobID:               planEnvelope.Deployment.JobID,
-		// 	IsRemoval:           planEnvelope.Remove,
-		// },
+		PlanId:               planEnvelope.PlanId,
+		TotalSteps:           len(planEnvelope.Plan.Steps),
+		Phase:                planEnvelope.Phase,
 		PreviousDesiredState: planEnvelope.PreviousDesiredState,
 		CompletedSteps:       0,
 		MergedState:          planEnvelope.MergedState,
 		Deployment:           planEnvelope.Deployment,
 		Namespace:            planEnvelope.Namespace,
-		Remove:               planEnvelope.Remove,
 		TargetResult:         make(map[string]int),
 		CurrentState:         planEnvelope.CurrentState,
 		StepStates:           make([]model.StepState, len(planEnvelope.Plan.Steps)),
@@ -647,7 +625,6 @@ func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alph
 	}
 	summaryResult, err := s.GetSummary(ctx, stepEnvelope.PlanState.Deployment.Instance.ObjectMeta.Name, stepEnvelope.PlanState.Namespace)
 	planState := summaryResult.Summary.PlanState
-	// planState, err := s.getPlanState(ctx, stepEnvelope.PlanState.PlanId, stepEnvelope.PlanState.Namespace)
 	err = s.CheckJobId(ctx, planState.Deployment.JobID, planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Solution): job id is out of data, step will not be executed: %+v", err)
@@ -801,7 +778,7 @@ func (s *SolutionManager) publishStepResult(ctx context.Context, target string, 
 	})
 }
 
-// handleStepResult processes the event and updates the plan state accordingly.
+// handleStepResult processes the event and updates the summary accordingly.
 func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.Event) error {
 	ctx, span := observability.StartSpan("Solution Manager", ctx, &map[string]string{
 		"method": "HandleStepResult",
@@ -824,7 +801,8 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 	summaryResult, err := s.GetSummary(ctx, stepResult.PlanId, stepResult.NameSpace)
 	planState := summaryResult.Summary.PlanState
 	if err != nil {
-		return fmt.Errorf("Plan not found: %s", planId)
+		log.ErrorfCtx(ctx, "failed to unmarshal step result: %v", err)
+		return err
 	}
 	// planState := planStateObj.(PlanState)
 	lockName := api_utils.GenerateKeyLockName(planState.Namespace, planState.Deployment.Instance.ObjectMeta.Name)
@@ -835,7 +813,7 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 		s.KeyLockProvider.UnLock(lockName)
 		return err
 	}
-	// Update the plan state in the map and save the summary
+	// Update the summary in the map and save the summary
 	log.InfofCtx(ctx, "M(Solution): Handle step result for PlanId %s, StepId %d, Phase %s", planId, stepResult.StepId, planState.Phase)
 	if err := s.saveStepResult(ctx, summaryResult.Summary, stepResult); err != nil {
 		log.ErrorCtx(ctx, "Failed to handle step result: %v", err)
@@ -844,9 +822,9 @@ func (s *SolutionManager) HandleStepResult(ctx context.Context, event v1alpha2.E
 	return nil
 }
 
-// saveStepResult updates the plan state with the step result and saves the summary.
+// saveStepResult updates the summary with the step result and saves the summary.
 func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.SummarySpec, stepResult model.StepResult) error {
-	// Log the update of plan state with the step result
+	// Log the update of summary with the step result
 	if summary.TargetResults == nil {
 		summary.TargetResults = make(map[string]model.TargetResultSpec)
 	}
@@ -859,7 +837,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 		// Update the GetResult for the specific step
 		summary.PlanState.StepStates[stepResult.StepId].GetResult = stepResult.GetResult
 		if stepResult.StepId != len(summary.PlanState.Steps)-1 {
-			if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.PlanState.Remove, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
+			if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.IsRemoval, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
 				log.ErrorfCtx(ctx, "M(Solution): publish deployment step failed PlanId %s, stepId %s", summary.PlanState.PlanId, 0)
 			}
 		} else {
@@ -874,13 +852,13 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 		summary.PlanState.CompletedSteps++
 		if stepResult.Error != "" {
 			// Handle error case and update the target result status and message
-			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[summary.PlanState.Remove])
-			targetResultMessage := fmt.Sprintf("Failed to create provider %s, err: %s", deploymentTypeMap[summary.PlanState.Remove], stepResult.Error)
+			targetResultStatus := fmt.Sprintf("%s Failed", deploymentTypeMap[summary.IsRemoval])
+			targetResultMessage := fmt.Sprintf("Failed to create provider %s, err: %s", deploymentTypeMap[summary.IsRemoval], stepResult.Error)
 			targetResultSpec := model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: stepResult.ApplyResult}
 			summary.UpdateTargetResult(stepResult.Target, targetResultSpec)
 			summary.AllAssignedDeployed = false
 			for _, ret := range stepResult.ApplyResult {
-				if (!summary.PlanState.Remove && ret.Status == v1alpha2.Updated) || (summary.PlanState.Remove && ret.Status == v1alpha2.Deleted) {
+				if (!summary.IsRemoval && ret.Status == v1alpha2.Updated) || (summary.IsRemoval && ret.Status == v1alpha2.Deleted) {
 					summary.CurrentDeployed++
 				}
 			}
@@ -889,7 +867,6 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 				summary.SuccessCount -= summary.PlanState.TargetResult[stepResult.Target]
 			}
 			s.saveSummaryInfo(ctx, summary, model.SummaryStateRunning)
-			// s.upsertPlanState(ctx, summary.PlanState.PlanId, summary.PlanState)
 			// Save the summary information
 			if err := s.saveSummaryInfo(ctx, summary, model.SummaryStateRunning); err != nil {
 				log.ErrorfCtx(ctx, "Failed to save summary progress: %v", err)
@@ -906,7 +883,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 			}
 			// publish next step execute event
 			if stepResult.StepId != len(summary.PlanState.Steps)-1 {
-				if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.PlanState.Remove, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
+				if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.IsRemoval, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
 					log.ErrorfCtx(ctx, "M(Solution): publish deployment step failed PlanId %s, stepId %s", summary.PlanState.PlanId, 0)
 				}
 				// Save the summary information
@@ -930,8 +907,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 		}
 	}
 
-	// Store the updated plan state
-	// s.upsertPlanState(ctx, planState.PlanId, planState)
+	// Store the updated summary
 	s.saveSummaryInfo(ctx, summary, model.SummaryStateRunning)
 	return nil
 }
@@ -1564,7 +1540,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		s.publishStepResult(ctx, operationBody.Target, operationBody.PlanId, operationBody.StepId, asyncResult.Error, response, map[string]model.ComponentResultSpec{}, operationBody.NameSpace)
-		s.deleteOperationState(ctx, operationId)
+		err = s.deleteOperationState(ctx, operationId)
 		if err != nil {
 			return v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
@@ -1573,7 +1549,6 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		// delete from queue
-
 		s.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId)
 		return v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
@@ -1838,24 +1813,6 @@ func sortByDepedencies(components []model.ComponentSpec) ([]model.ComponentSpec,
 	return ret, nil
 }
 
-// func (s *SolutionManager) upsertPlanState(ctx context.Context, planId string, planState PlanState) error {
-// 	log.InfofCtx(ctx, "M(Solution): upsert plan state for %s", planId)
-// 	upsertRequest := states.UpsertRequest{
-// 		Value: states.StateEntry{
-// 			ID:   planId,
-// 			Body: planState,
-// 		},
-// 		Metadata: map[string]interface{}{
-// 			"namespace": planState.Namespace,
-// 			"group":     model.SolutionGroup,
-// 			"version":   "v1",
-// 			"resource":  DeploymentPlan,
-// 		},
-// 	}
-// 	_, err := s.StateProvider.Upsert(ctx, upsertRequest)
-// 	return err
-// }
-
 // upsertOperationState upserts the operation state for the specified parameters.
 func (s *SolutionManager) upsertOperationState(ctx context.Context, operationId string, stepId int, planId string, target string, action model.JobPhase, namespace string, remove bool, messageId string) error {
 	log.InfoCtx(ctx, "upsert operationid %s", operationId)
@@ -1895,59 +1852,6 @@ func (s *SolutionManager) deleteOperationState(ctx context.Context, operationId 
 	}
 	err := s.StateProvider.Delete(ctx, deleteRequest)
 	return err
-}
-
-// // upsertOperationState upserts the operation state for the specified parameters.
-// func (s *SolutionManager) deletePlanState(ctx context.Context, planId string, namespace string) error {
-// 	log.InfofCtx(ctx, "delete plan %s", planId)
-// 	deleteRequest := states.DeleteRequest{
-// 		ID: planId,
-// 		Metadata: map[string]interface{}{
-// 			"namespace": namespace,
-// 			"group":     model.SolutionGroup,
-// 			"version":   "v1",
-// 			"resource":  DeploymentPlan,
-// 		},
-// 	}
-// 	err := s.StateProvider.Delete(ctx, deleteRequest)
-// 	return err
-// }
-
-// // getPlanState retrieves the operation state for the specified operation ID.
-//
-//	func (s *SolutionManager) getPlanState(ctx context.Context, planId string, namespace string) (PlanState, error) {
-//		log.InfofCtx(ctx, "M(Solution) : Get plan %s", planId)
-//		getRequest := states.GetRequest{
-//			ID: planId,
-//			Metadata: map[string]interface{}{
-//				"namespace": namespace,
-//				"group":     model.SolutionGroup,
-//				"version":   "v1",
-//				"resource":  DeploymentPlan,
-//			},
-//		}
-//		var entry states.StateEntry
-//		entry, err := s.StateProvider.Get(ctx, getRequest)
-//		if err != nil {
-//			log.ErrorfCtx(ctx, " M (Solution): Failed to get deployment planstate[%s]: %+v", planId, err)
-//			return model.PlanState{}, err
-//		}
-//		var ret model.PlanState
-//		ret, err = s.getPlanStateBody(entry.Body)
-//		if err != nil {
-//			log.ErrorfCtx(ctx, "M(SolutionVendor): Failed to convert to operation state for %s", planId)
-//			return model.PlanState{}, err
-//		}
-//		return ret, err
-//	}
-func (s *SolutionManager) getPlanStateBody(body interface{}) (model.PlanState, error) {
-	var planState model.PlanState
-	bytes, _ := json.Marshal(body)
-	err := utils.UnmarshalJson(bytes, &planState)
-	if err != nil {
-		return model.PlanState{}, err
-	}
-	return planState, nil
 }
 
 // getOperationState retrieves the operation state for the specified operation ID.
