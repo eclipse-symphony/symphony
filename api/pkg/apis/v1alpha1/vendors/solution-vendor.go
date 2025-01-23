@@ -32,7 +32,6 @@ type SolutionVendor struct {
 	SolutionManager *solution.SolutionManager
 }
 
-
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	return vendors.VendorInfo{
 		Version:  o.Vendor.Version,
@@ -54,7 +53,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	if e.SolutionManager == nil {
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
 	}
-	e.Vendor.Context.Subscribe(solution.DeploymentStepTopic, v1alpha2.EventHandler{
+	e.Vendor.Context.Subscribe(model.DeploymentStepTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
 			ctx := context.TODO()
 			if event.Context != nil {
@@ -70,7 +69,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 		},
 		Group: "Solution-vendor",
 	})
-	e.Vendor.Context.Subscribe(solution.DeploymentPlanTopic, v1alpha2.EventHandler{
+	e.Vendor.Context.Subscribe(model.DeploymentPlanTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
 			ctx := context.TODO()
 			if event.Context != nil {
@@ -86,7 +85,7 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 		},
 		Group: "stage-vendor",
 	})
-	e.Vendor.Context.Subscribe(solution.CollectStepResultTopic, v1alpha2.EventHandler{
+	e.Vendor.Context.Subscribe(model.CollectStepResultTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
 			ctx := event.Context
 			if ctx == nil {
@@ -499,7 +498,7 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 		"method": "onGetRequest",
 	})
 	defer span.End()
-	var agentRequest solution.AgentRequest
+	var agentRequest model.AgentRequest
 	sLog.InfoCtx(ctx, "V(Solution): onGetRequest")
 	target := request.Parameters["target"]
 	namespace := request.Parameters["namespace"]
@@ -538,7 +537,7 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 	})
 	defer span.End()
 	sLog.InfoCtx(ctx, "V (Solution): onGetResponse")
-	var asyncResult solution.AsyncResult
+	var asyncResult model.AsyncResult
 	err := utils.UnmarshalJson(request.Body, &asyncResult)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "V(Solution): onGetResponse failed - %s", err.Error())
