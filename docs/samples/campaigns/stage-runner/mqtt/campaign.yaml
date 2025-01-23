@@ -1,0 +1,32 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: mqtt-runner
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: mqtt-runner-v-v1
+spec:
+  rootResource: mqtt-runner
+  firstStage: "mock"
+  selfDriving: true
+  stages:
+    mock:
+      name: "mock"
+      provider: providers.stage.script
+      config:
+        scriptFolder: "../docs/samples/campaigns/stage-runner/mqtt"
+        scriptEngine: "bash"
+        script: "my-processor.sh"
+      proxy:
+        provider: providers.stage.proxy.mqtt
+        config:
+          brokerAddress: "tcp://172.24.130.244:1883"
+          requestTopic: "test-request"
+          responseTopic: "test-response"
+          timeoutSeconds: 5
+          keepAliveSeconds: 2
+          pingTimeoutSeconds: 1
+          
