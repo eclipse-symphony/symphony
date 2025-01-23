@@ -21,6 +21,7 @@ import (
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
@@ -53,6 +54,7 @@ func createSolutionVendor() SolutionVendor {
 					"providers.config":          "mock-config",
 					"providers.secret":          "mock-secret",
 					"providers.keylock":         "mem-keylock",
+					"providers.queue":           "redis-queue",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -70,6 +72,10 @@ func createSolutionVendor() SolutionVendor {
 					"mock-secret": {
 						Type:   "providers.secret.mock",
 						Config: mocksecret.MockSecretProviderConfig{},
+					},
+					"redis-queue": {
+						Type:   "providers.queue.redis",
+						Config: redisqueue.RedisQueueProviderConfig{},
 					},
 				},
 			},
