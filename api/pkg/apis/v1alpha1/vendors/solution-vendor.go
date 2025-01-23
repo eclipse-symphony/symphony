@@ -14,7 +14,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -33,7 +32,6 @@ type SolutionVendor struct {
 	SolutionManager *solution.SolutionManager
 }
 
-var apiOperationMetrics *metrics.Metrics
 
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
 	return vendors.VendorInfo{
