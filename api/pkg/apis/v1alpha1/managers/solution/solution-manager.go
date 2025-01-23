@@ -157,9 +157,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 }
 func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
-	// if !e.SolutionManager.KeyLockProvider.TryLock(api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)) {
-	// 	log.Info("can not get lock %s", lockName)
-	// }
 	s.KeyLockProvider.Lock(lockName)
 	log.InfofCtx(ctx, "lock succeed %s", lockName)
 
