@@ -34,6 +34,7 @@ type SummarySpec struct {
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
+	Removed             bool                        `json:"removed"`
 }
 type SummaryResult struct {
 	Summary        SummarySpec  `json:"summary"`

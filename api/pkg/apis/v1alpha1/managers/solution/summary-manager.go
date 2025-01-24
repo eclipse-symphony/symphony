@@ -175,7 +175,7 @@ func (s *SummaryManager) ListSummary(ctx context.Context, namespace string) ([]m
 	return summaries, nil
 }
 
-func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
+func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string, softDelete bool) error {
 	oldSummary, err := s.GetSummary(ctx, summaryId, "", namespace)
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		log.ErrorfCtx(ctx, " M (Summary): failed to get previous summary: %+v", err)
@@ -191,6 +191,11 @@ func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, ge
 			oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
 			if err == nil && oldId > newId {
 				errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
+				log.ErrorfCtx(ctx, " M (Summary): %s", errMsg)
+				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
+			}
+			if !softDelete && summary.Removed {
+				errMsg := fmt.Sprintf("Cannot upsert a deleted summary: %s", summaryId)
 				log.ErrorfCtx(ctx, " M (Summary): %s", errMsg)
 				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
 			}

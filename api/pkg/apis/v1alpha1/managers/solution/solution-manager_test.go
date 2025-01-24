@@ -406,8 +406,9 @@ func TestMockGet(t *testing.T) {
 	// Test summary deletion
 	err = manager.DeleteSummary(context.Background(), summaryKey, "default")
 	assert.Nil(t, err)
-	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
-	assert.NotNil(t, err)
+	result, err := manager.GetSummary(context.Background(), summaryKey, name, "default")
+	assert.Nil(t, err)
+	assert.True(t, result.Summary.Removed, "Summary should have set the removed flag")
 }
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
