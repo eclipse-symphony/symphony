@@ -96,7 +96,6 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file, %s", ClientCAFile), v1alpha2.BadConfig)
 		}
-		caCertPool := x509.NewCertPool()
 		for _, cert := range certs {
 			caCertPool.AddCert(cert)
 		}

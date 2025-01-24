@@ -30,6 +30,7 @@ type ProviderGetValidationRuleRequest struct {
 type AsyncResult struct {
 	OperationID string `json:"operationID"`
 	Error       error  `json:"error,omitempty"`
+	Namespace   string `json:"namespace"`
 	Body        []byte `json:"body"`
 }
 
@@ -37,4 +38,9 @@ type SymphonyEndpoint struct {
 	BaseUrl          string `json:"baseUrl"`
 	RequestEndpoint  string `json:"requestEndpoint,omitempty"`
 	ResponseEndpoint string `json:"responseEndpoint,omitempty"`
+}
+
+type ProviderPagingRequest struct {
+	RequestList   []map[string]interface{} `json:"requestList"`
+	LastMessageID string                   `json:"lastMessageID"`
 }

@@ -1,5 +1,5 @@
 {
-    "requestEndpoint": "https://symphony-service:8081/v1alpha2/federation/tasks",
-    "responseEndpoint": "https://symphony-service:8081/v1alpha2/federation/task/getResult",
+    "requestEndpoint": "https://symphony-service:8081/v1alpha2/solution/tasks",
+    "responseEndpoint": "https://symphony-service:8081/v1alpha2/solution/task/getResult",
     "baseUrl": "https://symphony-service:8081/v1alpha2/"
 }
