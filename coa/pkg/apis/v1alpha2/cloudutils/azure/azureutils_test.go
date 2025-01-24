@@ -129,3 +129,21 @@ func TestUpdateADUDeployment(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateResourceGroup(t *testing.T) {
+	tenantId := os.Getenv("TEST_AZURE_TENANT_ID")
+	clientId := os.Getenv("TEST_AZURE_CLIENT_ID")
+	clientSecret := os.Getenv("TEST_AZURE_CLIENT_SECRET")
+	resourceGroup := os.Getenv("TEST_AZURE_RESOURCE_GROUP")
+	location := os.Getenv("TEST_AZURE_LOCATION")
+
+	if tenantId == "" || clientId == "" || clientSecret == "" || resourceGroup == "" || location == "" {
+		t.Skip("Skipping because TEST_AZURE_TENANT_ID, TEST_AZURE_CLIENT_ID, TEST_AZURE_CLIENT_SECRET, TEST_AZURE_RESOURCE_GROUP, or TEST_AZURE_LOCATION enviornment variable is not set")
+	}
+
+	token, err := GetAzureToken(tenantId, clientId, clientSecret, "https://management.azure.com/.default")
+	assert.Nil(t, err)
+	assert.NotEqual(t, "", token)
+	err = CreateResourceGroup(token, resourceGroup, location)
+	assert.Nil(t, err)
+}

@@ -175,3 +175,10 @@ func DeleteADUDeployment(token string, aduAccountEndpoint string, aduAccountInst
 	_, err := callRESTAPI("DELETE", getUrl, token, nil)
 	return err
 }
+
+func CreateResourceGroup(token string, group string, location string) error {
+	getUrl := fmt.Sprintf("https://management.azure.com/subscriptions/%s/resourceGroups/%s?api-version=2021-04-01", group, location)
+	data := fmt.Sprintf("{\"location\": \"%s\"}", location)
+	_, err := callRESTAPI("PUT", getUrl, token, strings.NewReader(data))
+	return err
+}
