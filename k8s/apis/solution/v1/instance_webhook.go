@@ -13,9 +13,11 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
+	k8smodel "gopls-workspace/apis/model/v1"
 	v1 "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/history"
 	"gopls-workspace/utils/diagnostic"
 	"time"
 
@@ -27,7 +29,9 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -41,12 +45,15 @@ import (
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
 var myInstanceClient client.Reader
+var upsertHistoryClient client.Client
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
 var instanceValidator validation.InstanceValidator
+var instanceHistory history.InstanceHistory
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
+	upsertHistoryClient = mgr.GetClient()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
@@ -80,6 +87,54 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	} else {
 		instanceValidator = validation.NewInstanceValidator(nil, solutionLookupFunc, targetLookupFunc)
 	}
+
+	saveInstanceHistoryFunc := func(ctx context.Context, objectName string, namespace string, object interface{}) error {
+		instance, ok := object.(*Instance)
+		if !ok {
+			err := fmt.Errorf("expected an Instance object")
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to convert old object to Instance", "name", r.Name, "namespace", r.Namespace)
+			return err
+		}
+		currentTime := time.Now()
+		diagnostic.InfoWithCtx(instancelog, ctx, "Saving old instance history", "Current time", currentTime, "name", instance.Name, "instance", instance)
+
+		var history InstanceHistory
+		history.ObjectMeta = metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%d", instance.Name, currentTime.Unix()),
+			Namespace: instance.Namespace,
+		}
+		history.Spec = k8smodel.InstanceHistorySpec{
+			InstanceSpec: instance.Spec,
+			RootResource: instance.Name,
+		}
+
+		// If the instance has a status, save it in the history
+		if !instance.Status.LastModified.IsZero() {
+			history.Spec.InstanceStatus = k8smodel.InstanceStatusHistory{
+				Properties:         instance.Status.Properties,
+				ProvisioningStatus: instance.Status.ProvisioningStatus,
+				LastModified:       instance.Status.LastModified.Format(time.RFC3339),
+			}
+		}
+
+		var result InstanceHistory
+		err := upsertHistoryClient.Get(ctx, client.ObjectKey{Name: history.GetName(), Namespace: history.GetNamespace()}, &result)
+		if err != nil && errors.IsNotFound(err) {
+			// Resource does not exist, create it
+			err = upsertHistoryClient.Create(ctx, &history)
+			if err != nil {
+				err := fmt.Errorf("upsert instance history failed, instance: %s, error: %v", instance.Name, err)
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
+				return err
+			}
+			diagnostic.InfoWithCtx(instancelog, ctx, "Saved instance history", "instance history", history)
+		} else if err != nil {
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "Unexpected error saving instance history", "name", r.Name, "namespace", r.Namespace)
+		}
+
+		return nil
+	}
+	instanceHistory = history.NewInstanceHistory(saveInstanceHistoryFunc)
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -166,6 +221,11 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to convert old object to Instance", "name", r.Name, "namespace", r.Namespace)
 		return nil, err
 	}
+
+	// Save the old object
+	diagnostic.InfoWithCtx(instancelog, ctx, "saving instance history", "oldInstance", oldInstance)
+	instanceHistory.SaveInstanceHistoryFunc(ctx, oldInstance.Name, oldInstance.Namespace, oldInstance)
+
 	validationError := r.validateUpdateInstance(ctx, oldInstance)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(

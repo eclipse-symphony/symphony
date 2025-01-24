@@ -233,6 +233,32 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
+  - instancehistories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instancehistories/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instancehistories/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
   - solutions/finalizers
   verbs:
   - update
