@@ -19,13 +19,13 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -98,7 +98,7 @@ func toSymphonyStageProviderConfig(config providers.IProviderConfig) (CreateStag
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *CreateStageProvider) InitWithMap(properties map[string]string) error {
@@ -200,7 +200,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return nil, false, err
 			}
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				remainings := utils.FilterIncompleteDelete(ctx, &i.ApiClient, objectNamespace, []string{objectName}, true, i.Config.User, i.Config.Password)
+				remainings := api_utils.FilterIncompleteDelete(ctx, &i.ApiClient, objectNamespace, []string{objectName}, true, i.Config.User, i.Config.Password)
 				if len(remainings) == 0 {
 					return outputs, false, nil
 				}
@@ -219,7 +219,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			return nil, false, err
 		} else if strings.EqualFold(action, CreateAction) {
 			var instanceState model.InstanceState
-			err = json.Unmarshal(objectData, &instanceState)
+			err = utils.UnmarshalJson(objectData, &instanceState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -277,8 +277,39 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
 				return nil, false, err
 			}
+
+			// check guid after instance created
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			summaryId := ret.ObjectMeta.GetSummaryId()
+			if summaryId == "" {
+				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", objectName), v1alpha2.BadRequest)
+			}
+
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
-				remaining, failed := utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []string{objectName}, true, i.Config.User, i.Config.Password)
+				obj := api_utils.ObjectInfo{
+					Name:      objectName,
+					SummaryId: summaryId,
+				}
+				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
 					outputs["objectName"] = objectName

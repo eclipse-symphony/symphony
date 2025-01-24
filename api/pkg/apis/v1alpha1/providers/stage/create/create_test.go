@@ -131,8 +131,10 @@ func TestCreateProcessCreate(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
-	instance := model.InstanceSpec{
-		DisplayName: "instance1",
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
@@ -156,8 +158,10 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
-	instance := model.InstanceSpec{
-		DisplayName: "instance1",
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
@@ -182,8 +186,10 @@ func TestCreateProcessRemove(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
-	instance := model.InstanceSpec{
-		DisplayName: "instance1",
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
@@ -209,8 +215,10 @@ func TestCreateProcessUnsupported(t *testing.T) {
 		"objectType": "instance",
 		"objectName": "instance1",
 		"action":     "upsert",
-		"object": model.InstanceSpec{
-			DisplayName: "instance1",
+		"object": model.InstanceState{
+			Spec: &model.InstanceSpec{
+				DisplayName: "instance1",
+			},
 		},
 	})
 	assert.NotNil(t, err)
@@ -235,6 +243,9 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "instance1",
+					Annotations: map[string]string{
+						"Guid": "test-guid",
+					},
 				},
 				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},
@@ -270,6 +281,9 @@ func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
 			response = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "instance1",
+					Annotations: map[string]string{
+						"Guid": "test-guid",
+					},
 				},
 				Spec:   &model.InstanceSpec{},
 				Status: model.InstanceStatus{},

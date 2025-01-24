@@ -73,6 +73,8 @@ func (m *Metrics) Close() {
 	if m == nil {
 		return
 	}
+
+	m.controllerReconcileLatency.Close()
 }
 
 // ControllerReconcileLatency tracks the overall Controller reconcile latency.

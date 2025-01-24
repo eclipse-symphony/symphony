@@ -57,6 +57,8 @@ func (m *Metrics) Close() {
 	if m == nil {
 		return
 	}
+
+	m.controllerValidationLatency.Close()
 }
 
 // ControllerValidationLatency tracks the overall Controller validation latency.
