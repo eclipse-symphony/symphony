@@ -18,10 +18,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
-	utils "github.com/eclipse-symphony/symphony/remote-agent/common"
 )
 
 var (
@@ -48,7 +48,7 @@ func (h *HttpBinding) Launch() error {
 	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s&getAll=%s&preindex=%s", h.RequestUrl, h.Target, h.Namespace, "true", "0")
 	var requests []map[string]interface{}
 	for {
-		var allRequests utils.ProviderPagingRequest
+		var allRequests model.ProviderPagingRequest
 		resp, err := h.Client.Get(pollingUri)
 		if err != nil {
 			fmt.Printf("Quitting the agent since polling failed for %s", err.Error())
@@ -169,14 +169,6 @@ func (h *HttpBinding) Launch() error {
 		}
 	}()
 
-	go func() {
-		for {
-			if ShouldEnd == "true" {
-				os.Exit(0)
-			}
-			time.Sleep(30 * time.Second)
-		}
-	}()
 	return nil
 }
 
@@ -204,7 +196,7 @@ func (h *HttpBinding) pollRequests() []map[string]interface{} {
 		if err != nil {
 			return requests
 		}
-		_, ok := req["operationId"].(string)
+		_, ok := req["operationID"].(string)
 		if !ok {
 			return requests
 		}

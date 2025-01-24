@@ -16,4 +16,4 @@ spec:
     properties:
       path: sh
       flag: -c
-      args: "ps aux  | grep remote-agent"
+      args: "echo hello&echo world"

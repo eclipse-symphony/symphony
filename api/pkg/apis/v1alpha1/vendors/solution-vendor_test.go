@@ -21,6 +21,7 @@ import (
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
@@ -39,6 +40,12 @@ func createSolutionVendor() SolutionVendor {
 	secretProvider.Init(mocksecret.MockSecretProviderConfig{})
 	keyLockProvider := memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
+	queueProvider := redisqueue.RedisQueueProvider{}
+	queueProvider.Init(redisqueue.RedisQueueProviderConfig{
+		Name:     "test",
+		Host:     "localhost:6379",
+		Password: "",
+	})
 	vendor := SolutionVendor{}
 	vendor.Init(vendors.VendorConfig{
 		Properties: map[string]string{
@@ -53,6 +60,7 @@ func createSolutionVendor() SolutionVendor {
 					"providers.config":          "mock-config",
 					"providers.secret":          "mock-secret",
 					"providers.keylock":         "mem-keylock",
+					"providers.queue":           "redis-queue",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -71,6 +79,14 @@ func createSolutionVendor() SolutionVendor {
 						Type:   "providers.secret.mock",
 						Config: mocksecret.MockSecretProviderConfig{},
 					},
+					"redis-queue": {
+						Type: "providers.queue.redis",
+						Config: redisqueue.RedisQueueProviderConfig{
+							Name:     "test",
+							Host:     "localhost:6379",
+							Password: "",
+						},
+					},
 				},
 			},
 		},
@@ -82,6 +98,7 @@ func createSolutionVendor() SolutionVendor {
 			"mem-keylock": &keyLockProvider,
 			"mock-config": &configProvider,
 			"mock-secret": &secretProvider,
+			"redis-queue": &queueProvider,
 		},
 	}, nil)
 	return vendor
@@ -299,7 +316,6 @@ func TestSolutionRemove(t *testing.T) {
 // 	json.Unmarshal(resp.Body, &summary)
 // 	assert.False(t, summary.Skipped)
 // }
-
 // func TestSolutionReconcile(t *testing.T) {
 // 	var summary model.SummarySpec
 // 	vendor := createSolutionVendor()

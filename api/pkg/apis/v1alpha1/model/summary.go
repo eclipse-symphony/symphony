@@ -34,7 +34,28 @@ type SummarySpec struct {
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
+	PlanState           PlanState                   `json:"planState"`
 }
+type SolutionManagerDeploymentState struct {
+	Spec  DeploymentSpec  `json:"spec,omitempty"`
+	State DeploymentState `json:"state,omitempty"`
+}
+type PlanState struct {
+	PlanId               string `json:"planId"`
+	Phase                JobPhase
+	CompletedSteps       int                            `json:"completedSteps"`
+	Status               string                         `json:"status"`
+	MergedState          DeploymentState                `json:"mergedState"`
+	Deployment           DeploymentSpec                 `json:"deployment"`
+	CurrentState         DeploymentState                `json:"currentState"`
+	PreviousDesiredState SolutionManagerDeploymentState `json:"previousDesiredState`
+	TargetResult         map[string]int                 `json:"targetResult"`
+	Namespace            string                         `json:"namespace"`
+	TotalSteps           int                            `json:"totalSteps"`
+	StepStates           []StepState                    `json:"stepStates"`
+	Steps                []DeploymentStep               `json:"steps"`
+}
+
 type SummaryResult struct {
 	Summary        SummarySpec  `json:"summary"`
 	Generation     string       `json:"generation"`

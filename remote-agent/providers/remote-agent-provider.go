@@ -33,7 +33,6 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 )
 
 const (
@@ -350,18 +349,7 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				continue
 			} else {
 				sLog.InfofCtx(ctx, "  P (Remote Agent Provider): restarted process with PID %d", pid)
-				agentStatus, err := i.generateAgentStatus(ctx)
-				if err != nil {
-					sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to generate agent status: %+v", err)
-					ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
-					continue
-				}
-				ret[c.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.OK,
-					Message: agentStatus,
-				}
-				remoteHttp.ShouldEnd = "true"
-				continue
+				os.Exit(0)
 			}
 		case "secretrotation":
 			// check if the target needs SR

@@ -15,15 +15,14 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
-	utils "github.com/eclipse-symphony/symphony/remote-agent/common"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
 )
 
 // The version should be hardcoded in the build process
-const version = "0.0.0.2"
+const version = "0.0.0.1"
 
 var (
-	symphonyEndpoints utils.SymphonyEndpoint
+	symphonyEndpoints model.SymphonyEndpoint
 	clientCertPath    *string
 	configPath        *string
 	clientKeyPath     *string

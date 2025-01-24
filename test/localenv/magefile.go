@@ -342,6 +342,7 @@ func shellExecWithoutOutput(cmd string, printCmdOrNot bool) error {
 func Logs(logRootFolder string) error {
 	// api logs
 	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
+	apiCrashLogFile := fmt.Sprintf("%s/api-crash.log", logRootFolder)
 	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
 	otelCollectorLogFile := fmt.Sprintf("%s/otel-collector.log", logRootFolder)
 	otelForwarderLogFile := fmt.Sprintf("%s/otel-forwarder.log", logRootFolder)
@@ -350,6 +351,7 @@ func Logs(logRootFolder string) error {
 	if err != nil {
 		fmt.Printf("Failed to collect api logs: %s\n", err)
 	}
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s --previous > %s", getChartNamespace(), apiCrashLogFile), true)
 	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
 	if err != nil {
 		fmt.Printf("Failed to collect controller-manager logs: %s\n", err)

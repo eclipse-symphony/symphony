@@ -94,10 +94,7 @@ func NewDeploymentState(deployment model.DeploymentSpec) (model.DeploymentState,
 
 	return ret, nil
 }
-func MergeDeploymentStates(previous *model.DeploymentState, current model.DeploymentState) model.DeploymentState {
-	if previous == nil {
-		return current
-	}
+func MergeDeploymentStates(previous model.DeploymentState, current model.DeploymentState) model.DeploymentState {
 	// merge components
 	for _, c := range previous.Components {
 		found := false
