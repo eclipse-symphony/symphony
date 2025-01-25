@@ -103,6 +103,22 @@ type ProviderApplyRequest struct {
 	IsDryRun   bool           `json:"isDryRun,omitempty"`
 }
 
+type PlanState struct {
+	PlanId               string `json:"planId"`
+	Phase                JobPhase
+	CompletedSteps       int                            `json:"completedSteps"`
+	Status               string                         `json:"status"`
+	MergedState          DeploymentState                `json:"mergedState"`
+	Deployment           DeploymentSpec                 `json:"deployment"`
+	CurrentState         DeploymentState                `json:"currentState"`
+	PreviousDesiredState SolutionManagerDeploymentState `json:"previousDesiredState`
+	TargetResult         map[string]int                 `json:"targetResult"`
+	Namespace            string                         `json:"namespace"`
+	TotalSteps           int                            `json:"totalSteps"`
+	StepStates           []StepState                    `json:"stepStates"`
+	Steps                []DeploymentStep               `json:"steps"`
+}
+
 type AsyncResult struct {
 	OperationID string `json:"operationID"`
 	Namespace   string `json:"namespace"`
