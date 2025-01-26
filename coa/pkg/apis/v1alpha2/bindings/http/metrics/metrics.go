@@ -11,6 +11,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 )
 
 // Metrics is a metrics tracker for an api operation.
@@ -81,6 +82,7 @@ func (m *Metrics) ApiOperationLatency(
 
 // ApiOperationStatus increments the count of status code for API operation.
 func (m *Metrics) ApiOperationStatus(
+	context contexts.ActivityLogContext,
 	operation string,
 	operationType string,
 	statusCode int,
@@ -90,8 +92,15 @@ func (m *Metrics) ApiOperationStatus(
 		return
 	}
 
+	customerResourceId := context.GetResourceCloudId()
+	locationId := context.GetResourceCloudLocation()
+
 	m.apiOperationStatus.Add(
 		1,
+		SLI(
+			customerResourceId,
+			locationId,
+		),
 		Deployment(
 			operation,
 			operationType,

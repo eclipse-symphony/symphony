@@ -26,3 +26,13 @@ func Status(
 		"formatedStatusCode": formatedStatusCode,
 	}
 }
+
+func SLI(
+	customerResourceId string,
+	locationId string,
+) map[string]any {
+	return map[string]any{
+		"CustomerResourceId": customerResourceId,
+		"LocationId":         locationId,
+	}
+}

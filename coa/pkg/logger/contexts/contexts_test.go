@@ -8,12 +8,13 @@ import (
 )
 
 func TestNewActivityLogContext(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	assert.Equal(t, "diagnosticResourceId", ctx.diagnosticResourceCloudId)
+	assert.Equal(t, "diagnosticResourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "resourceCloudId", ctx.resourceCloudId)
 	assert.Equal(t, "operationName", ctx.operationName)
-	assert.Equal(t, "cloudLocation", ctx.cloudLocation)
+	assert.Equal(t, "resourceCloudLocation", ctx.resourceCloudLocation)
 	assert.Equal(t, "edgeLocation", ctx.edgeLocation)
 	assert.Equal(t, "correlationId", ctx.correlationId)
 	assert.NotNil(t, ctx.properties)
@@ -22,14 +23,15 @@ func TestNewActivityLogContext(t *testing.T) {
 }
 
 func TestActivityLogContext_ToMap(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	m := ctx.ToMap()
 	assert.NotNil(t, m)
 	assert.Equal(t, "diagnosticResourceId", m[Activity_DiagnosticResourceCloudId])
+	assert.Equal(t, "diagnosticResourceCloudLocation", m[Activity_DiagnosticResourceLocation])
 	assert.Equal(t, "resourceCloudId", m[Activity_ResourceCloudId])
 	assert.Equal(t, "operationName", m[Activity_OperationName])
-	assert.Equal(t, "cloudLocation", m[Activity_Location])
+	assert.Equal(t, "resourceCloudLocation", m[OTEL_Activity_ResourceCloudLocation])
 	assert.Equal(t, "edgeLocation", m[Activity_EdgeLocation])
 	assert.Equal(t, "correlationId", m[Activity_CorrelationId])
 	assert.NotNil(t, m[Activity_Properties])
@@ -39,15 +41,16 @@ func TestActivityLogContext_ToMap(t *testing.T) {
 }
 
 func TestActivityLogContext_FromMap(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	m := map[string]interface{}{
-		Activity_DiagnosticResourceCloudId: "newDiagnosticResourceCloudId",
-		Activity_ResourceCloudId:           "newResourceCloudId",
-		Activity_OperationName:             "newOperationName",
-		Activity_Location:                  "newCloudLocation",
-		Activity_EdgeLocation:              "newEdgeLocation",
-		Activity_CorrelationId:             "newCorrelationId",
+		Activity_DiagnosticResourceCloudId:  "newDiagnosticResourceCloudId",
+		Activity_DiagnosticResourceLocation: "newDiagnosticResourceCloudLocation",
+		Activity_ResourceCloudId:            "newResourceCloudId",
+		Activity_OperationName:              "newOperationName",
+		Activity_ResourceCloudLocation:      "newResourceCloudLocation",
+		Activity_EdgeLocation:               "newEdgeLocation",
+		Activity_CorrelationId:              "newCorrelationId",
 		Activity_Properties: map[string]interface{}{
 			Activity_Props_CallerId:      "newCallerId",
 			Activity_Props_ResourceK8SId: "newResourceK8SId",
@@ -55,9 +58,10 @@ func TestActivityLogContext_FromMap(t *testing.T) {
 	}
 	ctx.FromMap(m)
 	assert.Equal(t, "newDiagnosticResourceCloudId", ctx.diagnosticResourceCloudId)
+	assert.Equal(t, "newDiagnosticResourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "newResourceCloudId", ctx.resourceCloudId)
 	assert.Equal(t, "newOperationName", ctx.operationName)
-	assert.Equal(t, "newCloudLocation", ctx.cloudLocation)
+	assert.Equal(t, "newResourceCloudLocation", ctx.resourceCloudLocation)
 	assert.Equal(t, "newEdgeLocation", ctx.edgeLocation)
 	assert.Equal(t, "newCorrelationId", ctx.correlationId)
 	assert.NotNil(t, ctx.properties)
@@ -66,16 +70,17 @@ func TestActivityLogContext_FromMap(t *testing.T) {
 }
 
 func TestActivityLogContext_FromMapMissingFields(t *testing.T) {
-	ctx := NewActivityLogContext("a_diagnosticResourceCloudId", "a_resourceCloudId", "a_cloudLocation", "a_edgeLocation", "a_operationName", "a_correlationId", "a_callerId", "a_resourceK8SId")
+	ctx := NewActivityLogContext("a_diagnosticResourceCloudId", "a_diagnosticResourceCloudLocation", "a_resourceCloudId", "a_resourceCloudLocation", "a_edgeLocation", "a_operationName", "a_correlationId", "a_callerId", "a_resourceK8SId")
 	assert.NotNil(t, ctx)
 	m := map[string]interface{}{
 		Activity_ResourceCloudId: "resourceCloudId",
 	}
 	ctx.FromMap(m)
 	assert.Equal(t, "a_diagnosticResourceCloudId", ctx.diagnosticResourceCloudId)
+	assert.Equal(t, "a_diagnosticResourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "resourceCloudId", ctx.resourceCloudId)
 	assert.Equal(t, "a_operationName", ctx.operationName)
-	assert.Equal(t, "a_cloudLocation", ctx.cloudLocation)
+	assert.Equal(t, "a_resourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "a_edgeLocation", ctx.edgeLocation)
 	assert.Equal(t, "a_correlationId", ctx.correlationId)
 	assert.NotNil(t, ctx.properties)
@@ -89,9 +94,10 @@ func TestActivityLogContext_FromMapMissingFields(t *testing.T) {
 	}
 	ctx.FromMap(m)
 	assert.Equal(t, "a_diagnosticResourceCloudId", ctx.diagnosticResourceCloudId)
+	assert.Equal(t, "a_diagnosticResourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "resourceCloudId", ctx.resourceCloudId)
 	assert.Equal(t, "a_operationName", ctx.operationName)
-	assert.Equal(t, "a_cloudLocation", ctx.cloudLocation)
+	assert.Equal(t, "a_resourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "a_edgeLocation", ctx.edgeLocation)
 	assert.Equal(t, "a_correlationId", ctx.correlationId)
 	assert.NotNil(t, ctx.properties)
@@ -106,9 +112,10 @@ func TestActivityLogContext_FromMapMissingFields(t *testing.T) {
 	}
 	ctx.FromMap(m)
 	assert.Equal(t, "a_diagnosticResourceCloudId", ctx.diagnosticResourceCloudId)
+	assert.Equal(t, "a_diagnosticResourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "resourceCloudId", ctx.resourceCloudId)
 	assert.Equal(t, "a_operationName", ctx.operationName)
-	assert.Equal(t, "a_cloudLocation", ctx.cloudLocation)
+	assert.Equal(t, "a_resourceCloudLocation", ctx.diagnosticResourceCloudLocation)
 	assert.Equal(t, "a_edgeLocation", ctx.edgeLocation)
 	assert.Equal(t, "a_correlationId", ctx.correlationId)
 	assert.NotNil(t, ctx.properties)
@@ -117,7 +124,7 @@ func TestActivityLogContext_FromMapMissingFields(t *testing.T) {
 }
 
 func TestActivityLogContext_Deadline(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	deadline, ok := ctx.Deadline()
 	assert.False(t, ok)
@@ -125,26 +132,27 @@ func TestActivityLogContext_Deadline(t *testing.T) {
 }
 
 func TestActivityLogContext_Done(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	done := ctx.Done()
 	assert.Nil(t, done)
 }
 
 func TestActivityLogContext_Err(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	err := ctx.Err()
 	assert.Nil(t, err)
 }
 
 func TestActivityLogContext_Value(t *testing.T) {
-	ctx := NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	ctx := NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	assert.NotNil(t, ctx)
 	assert.Equal(t, "diagnosticResourceId", ctx.Value(Activity_DiagnosticResourceCloudId))
+	assert.Equal(t, "diagnosticResourceCloudLocation", ctx.Value(Activity_DiagnosticResourceLocation))
 	assert.Equal(t, "resourceCloudId", ctx.Value(Activity_ResourceCloudId))
 	assert.Equal(t, "operationName", ctx.Value(Activity_OperationName))
-	assert.Equal(t, "cloudLocation", ctx.Value(Activity_Location))
+	assert.Equal(t, "resourceCloudLocation", ctx.Value(Activity_ResourceCloudLocation))
 	assert.Equal(t, "edgeLocation", ctx.Value(Activity_EdgeLocation))
 	assert.Equal(t, "correlationId", ctx.Value(Activity_CorrelationId))
 	assert.NotNil(t, ctx.Value(Activity_Properties))
