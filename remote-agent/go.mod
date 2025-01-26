@@ -8,6 +8,8 @@ replace github.com/eclipse-symphony/symphony/coa => ../coa
 
 replace github.com/eclipse-symphony/symphony/packages/mage => ../packages/mage
 
+replace github.com/eclipse-symphony/symphony/api => ../api
+
 require (
 	github.com/eclipse-symphony/symphony/api v0.0.0-20241129081400-5ea7d2a7ec27
 	github.com/eclipse-symphony/symphony/coa v0.0.0
