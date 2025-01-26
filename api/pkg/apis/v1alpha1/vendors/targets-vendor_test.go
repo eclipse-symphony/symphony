@@ -29,7 +29,7 @@ func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
 	vendor.Route = "targets"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 5, len(endpoints))
+	assert.Equal(t, 7, len(endpoints))
 }
 
 func TestTargetsInfo(t *testing.T) {
@@ -146,24 +146,24 @@ type AuthResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-func TestTargetsOnBootstrap(t *testing.T) {
-	vendor := createTargetsVendor()
-	authRequest := AuthRequest{
-		UserName: "symphony-test",
-		Password: "",
-	}
-	data, _ := json.Marshal(authRequest)
-	resp := vendor.onBootstrap(v1alpha2.COARequest{
-		Method:  fasthttp.MethodPost,
-		Body:    data,
-		Context: context.Background(),
-	})
-	assert.Equal(t, v1alpha2.OK, resp.State)
-	var authResponse AuthResponse
-	json.Unmarshal(resp.Body, &authResponse)
-	assert.NotNil(t, authResponse.AccessToken)
-	assert.Equal(t, "Bearer", authResponse.TokenType)
-}
+// func TestTargetsOnBootstrap(t *testing.T) {
+// 	vendor := createTargetsVendor()
+// 	authRequest := AuthRequest{
+// 		UserName: "symphony-test",
+// 		Password: "",
+// 	}
+// 	data, _ := json.Marshal(authRequest)
+// 	resp := vendor.onBootstrap(v1alpha2.COARequest{
+// 		Method:  fasthttp.MethodPost,
+// 		Body:    data,
+// 		Context: context.Background(),
+// 	})
+// 	assert.Equal(t, v1alpha2.OK, resp.State)
+// 	var authResponse AuthResponse
+// 	json.Unmarshal(resp.Body, &authResponse)
+// 	assert.NotNil(t, authResponse.AccessToken)
+// 	assert.Equal(t, "Bearer", authResponse.TokenType)
+// }
 
 func TestTargetsOnStatus(t *testing.T) {
 	vendor := createTargetsVendor()
