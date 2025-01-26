@@ -20,7 +20,7 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 	hook := NewContextHook()
 	entry := logrus.NewEntry(logrus.StandardLogger())
 	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
-	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "resourceId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithFields(logrus.Fields{
 		string(contexts.DiagnosticLogContextKey): diagCtx,
 		string(contexts.ActivityLogContextKey):   actCtx,
@@ -35,8 +35,9 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 	innerActCtx := innerEntry.(*contexts.ActivityLogContext)
 
 	assert.Equal(t, "diagnosticResourceId", innerActCtx.GetDiagnosticResourceCloudId())
+	assert.Equal(t, "diagnosticResourceCloudLocation", innerActCtx.GetDiagnosticResourceCloudLocation())
 	assert.Equal(t, "resourceId", innerActCtx.GetResourceCloudId())
-	assert.Equal(t, "cloudLocation", innerActCtx.GetCloudLocation())
+	assert.Equal(t, "resourceCloudLocation", innerActCtx.GetResourceCloudLocation())
 	assert.Equal(t, "edgeLocation", innerActCtx.GetEdgeLocation())
 	assert.Equal(t, "operationName", innerActCtx.GetOperationName())
 	assert.Equal(t, "correlationId", innerActCtx.GetCorrelationId())
@@ -58,7 +59,7 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 func TestContextHook_Fire_WithActivityLogContext(t *testing.T) {
 	hook := NewContextHook()
 	entry := logrus.NewEntry(logrus.StandardLogger())
-	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "resourceId", "cloudLocation", "edgeLocation", "operationId", "correlationId", "callerId", "resourceK8SId")
+	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceId", "resourceCloudLocation", "edgeLocation", "operationId", "correlationId", "callerId", "resourceK8SId")
 	entry = entry.WithContext(actCtx)
 	err := hook.Fire(entry)
 	assert.Nil(t, err)
@@ -70,8 +71,9 @@ func TestContextHook_Fire_WithActivityLogContext(t *testing.T) {
 	innerActCtx := innerEntry.(*contexts.ActivityLogContext)
 
 	assert.Equal(t, "diagnosticResourceId", innerActCtx.GetDiagnosticResourceCloudId())
+	assert.Equal(t, "diagnosticResourceCloudLocation", innerActCtx.GetDiagnosticResourceCloudLocation())
 	assert.Equal(t, "resourceId", innerActCtx.GetResourceCloudId())
-	assert.Equal(t, "cloudLocation", innerActCtx.GetCloudLocation())
+	assert.Equal(t, "resourceCloudLocation", innerActCtx.GetResourceCloudLocation())
 	assert.Equal(t, "edgeLocation", innerActCtx.GetEdgeLocation())
 	assert.Equal(t, "operationId", innerActCtx.GetOperationName())
 	assert.Equal(t, "correlationId", innerActCtx.GetCorrelationId())
