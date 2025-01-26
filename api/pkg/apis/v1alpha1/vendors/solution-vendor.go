@@ -55,9 +55,9 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	}
 	e.Vendor.Context.Subscribe(model.DeploymentStepTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
-			ctx := context.TODO()
-			if event.Context != nil {
-				ctx = event.Context
+			ctx := event.Context
+			if ctx == nil {
+				ctx = context.TODO()
 			}
 			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
 			// get data
@@ -71,11 +71,10 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	})
 	e.Vendor.Context.Subscribe(model.DeploymentPlanTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
-			ctx := context.TODO()
-			if event.Context != nil {
-				ctx = event.Context
+			ctx := event.Context
+			if ctx == nil {
+				ctx = context.TODO()
 			}
-
 			log.InfoCtx(ctx, "V(Solution): Begin to execute deployment-plan")
 			err := e.SolutionManager.HandleDeploymentPlan(ctx, event)
 			if err != nil {
