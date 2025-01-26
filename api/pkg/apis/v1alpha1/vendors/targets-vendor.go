@@ -329,7 +329,6 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 			if target.ObjectMeta.Name == "" {
 				target.ObjectMeta.Name = id
 			}
-
 			err = c.TargetsManager.UpsertState(ctx, id, target)
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
