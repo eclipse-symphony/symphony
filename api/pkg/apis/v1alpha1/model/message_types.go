@@ -119,6 +119,10 @@ type PlanState struct {
 	Steps                []DeploymentStep               `json:"steps"`
 }
 
+type ProviderGetValidationRuleRequest struct {
+	AgentRequest
+}
+
 type AsyncResult struct {
 	OperationID string `json:"operationID"`
 	Namespace   string `json:"namespace"`

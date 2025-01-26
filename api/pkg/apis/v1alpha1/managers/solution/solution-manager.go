@@ -43,10 +43,6 @@ var (
 	apiOperationMetrics *metrics.Metrics
 )
 
-type ProviderGetValidationRuleRequest struct {
-	model.AgentRequest
-}
-
 var deploymentTypeMap = map[bool]string{
 	true:  DeploymentType_Delete,
 	false: DeploymentType_Update,
