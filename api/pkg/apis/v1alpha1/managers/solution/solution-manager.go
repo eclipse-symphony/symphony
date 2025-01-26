@@ -224,7 +224,6 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 				summary.SummaryMessage = "failed to evaluate deployment spec: " + err.Error()
 				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate deployment spec: %+v", err)
 				s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, deployment.Generation, deployment.Hash, summary, namespace)
-				log.InfoCtx(ctx, "unlock7")
 				s.KeyLockProvider.UnLock(lockName)
 				return summary, err
 			}
@@ -682,9 +681,12 @@ func (s *SolutionManager) enqueueProviderGetRequest(ctx context.Context, stepEnv
 		References: stepEnvelope.Step.Components,
 		Deployment: stepEnvelope.PlanState.Deployment,
 	}
+	return s.enqueueRequest(ctx, stepEnvelope, providerGetRequest, operationId)
+}
 
-	log.InfofCtx(ctx, "M(Solution): Enqueue get message %s-%s with operation ID %+v", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, providerGetRequest)
-	messageID, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providerGetRequest)
+func (s *SolutionManager) enqueueRequest(ctx context.Context, stepEnvelope model.StepEnvelope, reuqest interface{}, operationId string) error {
+	log.InfofCtx(ctx, "M(Solution): Enqueue message %s-%s with operation ID %+v", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, reuqest)
+	messageID, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), reuqest)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
 		return err
@@ -732,18 +734,7 @@ func (s *SolutionManager) enqueueProviderApplyRequest(ctx context.Context, stepE
 		Step:       stepEnvelope.Step,
 		IsDryRun:   stepEnvelope.PlanState.Deployment.IsDryRun,
 	}
-	log.InfofCtx(ctx, "M(Solution): Enqueue apply message %s-%s with operation ID ", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, operationId)
-	messageId, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), providApplyRequest)
-	if err != nil {
-		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue apply message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
-		return err
-	}
-	err = s.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageId)
-	if err != nil {
-		log.ErrorfCtx(ctx, "error in insert operation Id %s", operationId)
-		return s.publishStepResult(ctx, stepEnvelope.Step.Target, stepEnvelope.PlanState.PlanId, stepEnvelope.StepId, err, []model.ComponentSpec{}, map[string]model.ComponentResultSpec{}, stepEnvelope.PlanState.Namespace)
-	}
-	return err
+	return s.enqueueRequest(ctx, stepEnvelope, providApplyRequest, operationId)
 }
 
 func (s *SolutionManager) applyProviderAndExecute(ctx context.Context, stepEnvelope model.StepEnvelope) error {
@@ -849,11 +840,6 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 		// Update the GetResult for the specific step
 		summary.PlanState.CompletedSteps++
 		summary.PlanState.StepStates[stepResult.StepId].GetResult = stepResult.GetResult
-		// if stepResult.StepId != len(summary.PlanState.Steps)-1 {
-		// 	if err := s.publishDeploymentStep(ctx, stepResult.StepId+1, summary.PlanState, summary.IsRemoval, summary.PlanState.Steps[stepResult.StepId+1]); err != nil {
-		// 		log.ErrorfCtx(ctx, "M(Solution): publish deployment step failed PlanId %s, stepId %s", summary.PlanState.PlanId, 0)
-		// 	}
-		// } else {
 		if summary.PlanState.CompletedSteps == summary.PlanState.TotalSteps {
 			err := s.handlePlanComplete(ctx, summary)
 			if err != nil {
