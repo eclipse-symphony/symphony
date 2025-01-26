@@ -103,6 +103,7 @@ type ProviderApplyRequest struct {
 	IsDryRun   bool           `json:"isDryRun,omitempty"`
 }
 
+<<<<<<< HEAD
 type PlanState struct {
 	PlanId               string `json:"planId"`
 	Phase                JobPhase
@@ -119,6 +120,8 @@ type PlanState struct {
 	Steps                []DeploymentStep               `json:"steps"`
 }
 
+=======
+>>>>>>> f590aa93 (remote agent bootstrap)
 type ProviderGetValidationRuleRequest struct {
 	AgentRequest
 }
