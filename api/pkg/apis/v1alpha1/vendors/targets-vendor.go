@@ -318,7 +318,6 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		target, err := c.TargetsManager.GetState(ctx, id, namespace)
 		if err != nil {
 			tLog.InfofCtx(ctx, "V (Targets) : onBootstrap target %s in namespace %s not found", id, namespace)
-			binding := request.Parameters["with-binding"]
 			err := json.Unmarshal(request.Body, &target)
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
@@ -330,48 +329,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 			if target.ObjectMeta.Name == "" {
 				target.ObjectMeta.Name = id
 			}
-			if binding != "" {
-				if binding == "staging" {
-					target.Spec.ForceRedeploy = true
-					if target.Spec.Topologies == nil {
-						target.Spec.Topologies = make([]model.TopologySpec, 0)
-					}
-					found := false
-					for _, t := range target.Spec.Topologies {
-						if t.Bindings != nil {
-							for _, b := range t.Bindings {
-								if b.Role == "instance" && b.Provider == "providers.target.staging" {
-									found = true
-									break
-								}
-							}
-						}
-					}
-					if !found {
-						newb := model.BindingSpec{
-							Role:     "instance",
-							Provider: "providers.target.staging",
-							Config: map[string]string{
-								"inCluster":  "true",
-								"targetName": id,
-							},
-						}
-						if len(target.Spec.Topologies) == 0 {
-							target.Spec.Topologies = append(target.Spec.Topologies, model.TopologySpec{})
-						}
-						if target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings == nil {
-							target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = make([]model.BindingSpec, 0)
-						}
-						target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = append(target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings, newb)
-					}
-				} else {
-					tLog.ErrorCtx(ctx, "V (Targets) : onBootstrap failed - invalid binding")
-					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State: v1alpha2.BadRequest,
-						Body:  []byte("invalid binding, supported is: 'staging'"),
-					})
-				}
-			}
+
 			err = c.TargetsManager.UpsertState(ctx, id, target)
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
