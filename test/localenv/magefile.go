@@ -131,7 +131,7 @@ func ghcrValuesOptions() string {
 	} else if enableNonTlsOtelSetup() {
 		return "-f symphony-ghcr-values.otel.non-tls.yaml"
 	} else {
-		return "-f symphony-ghcr-values.yaml"
+		return "-f symphony-ghcr-values.yaml --skip-crds"
 	}
 }
 
@@ -164,8 +164,14 @@ func (Cluster) Deploy() error {
 		if err != nil {
 			return err
 		}
+	} else {
+		err := ensureCertAndTrustManager()
+		if err != nil {
+			return err
+		}
 	}
-
+	ss := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())
+	fmt.Printf("%s\n", ss)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
 		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())),
@@ -928,7 +934,7 @@ func recreateMinikube() error {
 	return ensureMinikubeUp()
 }
 
-func ensureSecureOtelCollectorPrereqs() error {
+func ensureCertAndTrustManager() error {
 	fmt.Println("Deploying OSS cert-manager for otel-collector")
 	err := shellcmd.Command("kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.yaml --wait").Run()
 	if err != nil {
@@ -956,7 +962,16 @@ func ensureSecureOtelCollectorPrereqs() error {
 		return err
 	}
 
-	err = shellcmd.Command("helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-manager --wait").Run()
+	err = shellcmd.Command("helm upgrade trust-manager jetstack/trust-manager --install --namespace default --wait --set app.trust.namespace=default").Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureSecureOtelCollectorPrereqs() error {
+	// Ensure cert-manager is deployed
+	err := ensureCertAndTrustManager()
 	if err != nil {
 		return err
 	}

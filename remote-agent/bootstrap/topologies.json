@@ -1,0 +1,12 @@
+{
+    "bindings": [
+      {
+        "provider": "providers.target.script",
+        "role": "script"
+      },
+      {
+        "provider": "providers.target.remote-agent",
+        "role": "remote-agent"
+      }
+    ]
+}

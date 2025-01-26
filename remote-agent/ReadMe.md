@@ -30,5 +30,5 @@ The remote agent currently uses a mock to read requests from `samples/request.js
 
 ## Run draft agent
 ```
-go run main.go -config=./config.json
+go run main.go -config=./config.json -client-cert=./bootstrap/public.pem -client-key=./bootstrap/private.pem -target-name=$target_name -namespace=$namespace -topology=./bootstrap/topologies.json
 ```

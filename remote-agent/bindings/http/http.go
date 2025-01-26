@@ -10,112 +10,126 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
-	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
-	autogen "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/autogen"
-	localfile "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
-	"github.com/valyala/fasthttp"
 )
 
-// MiddlewareConfig configures a HTTP middleware.
-type MiddlewareConfig struct {
-	Type       string                 `json:"type"`
-	Properties map[string]interface{} `json:"properties"`
-}
-
-type CertProviderConfig struct {
-	Type   string                    `json:"type"`
-	Config providers.IProviderConfig `json:"config"`
-}
-
-// HttpBindingConfig configures a HttpBinding.
-type HttpBindingConfig struct {
-	Port         int                `json:"port"`
-	Pipeline     []MiddlewareConfig `json:"pipeline"`
-	TLS          bool               `json:"tls"`
-	CertProvider CertProviderConfig `json:"certProvider"`
-}
+var (
+	ShouldEnd      string        = "false"
+	ConcurrentJobs int           = 3
+	Interval       time.Duration = 10 * time.Second
+)
 
 // HttpBinding provides service endpoints as a fasthttp web server
 type HttpBinding struct {
 	CertProvider certs.ICertProvider
 	Agent        agent.Agent
-	ResponseUrl  *url.URL
-	RequestUrl   *url.URL
+	ResponseUrl  string
+	RequestUrl   string
+	Client       *http.Client
+	Target       string
+	Namespace    string
 }
 
 // Launch the polling agent
-func (h *HttpBinding) Launch(config HttpBindingConfig) error {
-	//handler := h.useRouter(endpoints)
-	var err error
-
-	if err != nil {
-		return err
-	}
-
-	if config.TLS {
-		switch config.CertProvider.Type {
-		case "certs.autogen":
-			h.CertProvider = &autogen.AutoGenCertProvider{}
-		case "certs.localfile":
-			h.CertProvider = &localfile.LocalCertFileProvider{}
-		default:
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("cert provider type '%s' is not recognized", config.CertProvider.Type), v1alpha2.BadConfig)
-		}
-		err = h.CertProvider.Init(config.CertProvider.Config)
+func (h *HttpBinding) Launch() error {
+	// Start the agent by handling starter requests
+	var wg sync.WaitGroup
+	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s&getAll=%s&preindex=%s", h.RequestUrl, h.Target, h.Namespace, "true", "0")
+	var requests []map[string]interface{}
+	for {
+		var allRequests model.ProviderPagingRequest
+		resp, err := h.Client.Get(pollingUri)
 		if err != nil {
-			return err
+			fmt.Printf("Quitting the agent since polling failed for %s", err.Error())
+			os.Exit(0)
 		}
+		body, err := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		err = json.Unmarshal(body, &allRequests)
+		requests = append(requests, allRequests.RequestList...)
+		if allRequests.LastMessageID == "" {
+			break
+		}
+		pollingUri = fmt.Sprintf("%s?target=%s&namespace=%s&getAll=%s&preindex=%s", h.RequestUrl, h.Target, h.Namespace, "true", allRequests.LastMessageID)
 	}
+	fmt.Printf("Found starter jobs: %d. \n", len(requests))
+
+	for _, request := range requests {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			correlationId, ok := request[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
+			if !ok {
+				fmt.Println("error: correlationId not found or not a string. Using a mock one.")
+				correlationId = "00000000-0000-0000-0000-000000000000"
+			}
+			retCtx := context.TODO()
+			retCtx = context.WithValue(retCtx, contexts.Activity_CorrelationId, correlationId)
+
+			body, err := json.Marshal(request)
+			if err != nil {
+				fmt.Println("error marshalling request:", err)
+				return
+			}
+			ret := h.Agent.Handle(body, retCtx)
+			ret.Namespace = h.Namespace
+
+			// Send response back - Mock
+			result, err := json.Marshal(ret)
+			if err != nil {
+				fmt.Println("error marshalling response:", err)
+			}
+			fmt.Println("Agent response:", string(result))
+
+			responseHost := fmt.Sprintf("%s?target=%s&namespace=%s", h.ResponseUrl, h.Target, h.Namespace)
+			responseUri, err := url.Parse(responseHost)
+			respRet, err := h.Client.Do(&http.Request{
+				URL:    responseUri,
+				Method: "POST",
+				Body:   io.NopCloser(strings.NewReader(string(result))),
+			})
+			if err != nil {
+				fmt.Println("error sending response:", err)
+			} else {
+				fmt.Println("response status:", respRet.Status)
+			}
+		}()
+	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+	fmt.Println("All starter requests processed. Starting polling agent.")
+	time.Sleep(Interval)
 
 	go func() {
-		// poll http response from a url - Mock
-		//httpclient := &http.Client{}
-		for {
-			//This is the correct logic - Mock
-			// resp, err := httpclient.Get(h.RequestUrl.Host)
-			// if err != nil {
-			// 	fmt.Println("error:", err)
-			// 	time.Sleep(5 * time.Second) // Retry after a delay
-			// 	continue
-			// }
-
+		for ShouldEnd == "false" {
 			// Mock to read request from file - Mock
-			file, err := ioutil.ReadFile("./samples/request.json")
-
-			// read response body - Mock
-			// body, err := io.ReadAll(resp.Body)
-
+			//file, err := os.ReadFile("./samples/request.json")
 			// - Mock
-			body := file
+			//body := file
 
-			if err != nil {
-				fmt.Println("error reading body:", err)
-			} else {
-				fmt.Println("response body:", string(body))
-			}
-
-			// close response body - Mock
-			// resp.Body.Close()
-
-			requests := make([]map[string]interface{}, 0)
-			err = json.Unmarshal(body, &requests)
-
+			// Poll requests
+			requests = h.pollRequests()
+			fmt.Printf("Found jobs: %d. \n", len(requests))
 			for _, req := range requests {
+				wg.Add(1)
 				// handle request
 				go func() {
-					// TODO Ack the requests
-
+					defer wg.Done()
 					correlationId, ok := req[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
 					if !ok {
-						fmt.Println("error: correlationId not found or not a string")
+						fmt.Println("error: correlationId not found or not a string. Using a mock one.")
 						correlationId = "00000000-0000-0000-0000-000000000000"
 					}
 					retCtx := context.TODO()
@@ -127,53 +141,66 @@ func (h *HttpBinding) Launch(config HttpBindingConfig) error {
 						return
 					}
 					ret := h.Agent.Handle(body, retCtx)
-					fmt.Println("Agent response:", string(ret.Body))
+					ret.Namespace = h.Namespace
+					result, err := json.Marshal(ret)
+					if err != nil {
+						fmt.Println("error marshalling response:", err)
+					}
+					fmt.Println("Agent response:", string(result))
 
-					// Send response back - Mock
-					// respBody, err := json.Marshal(ret)
-					// if err != nil {
-					// 	fmt.Println("error marshalling response:", err)
-					// }
-					// respRet, err := httpclient.Do(&http.Request{
-					// 	URL:    h.ResponseUrl,
-					// 	Method: "POST",
-					// 	Body:   io.NopCloser(strings.NewReader(string(respBody))),
-					// })
-					// if err != nil {
-					// 	fmt.Println("error sending response:", err)
-					// } else {
-					// 	fmt.Println("response status:", respRet.Status)
-					// }
+					responseHost := fmt.Sprintf("%s?target=%s&namespace=%s", h.ResponseUrl, h.Target, h.Namespace)
+					responseUri, err := url.Parse(responseHost)
+					respRet, err := h.Client.Do(&http.Request{
+						URL:    responseUri,
+						Method: "POST",
+						Body:   io.NopCloser(strings.NewReader(string(result))),
+					})
+					if err != nil {
+						fmt.Println("error sending response:", err)
+					} else {
+						fmt.Println("response status:", respRet.Status)
+					}
 				}()
 			}
-
+			// Wait for all goroutines to finish
+			wg.Wait()
 			// Sleep for a while before polling again
-			time.Sleep(15 * time.Second)
+			time.Sleep(Interval)
 		}
-
 	}()
+
 	return nil
 }
 
-func toHttpState(state v1alpha2.State) int {
-	switch state {
-	case v1alpha2.OK:
-		return fasthttp.StatusOK
-	case v1alpha2.Accepted:
-		return fasthttp.StatusAccepted
-	case v1alpha2.BadRequest:
-		return fasthttp.StatusBadRequest
-	case v1alpha2.Unauthorized:
-		return fasthttp.StatusUnauthorized
-	case v1alpha2.NotFound:
-		return fasthttp.StatusNotFound
-	case v1alpha2.MethodNotAllowed:
-		return fasthttp.StatusMethodNotAllowed
-	case v1alpha2.Conflict:
-		return fasthttp.StatusConflict
-	case v1alpha2.InternalError:
-		return fasthttp.StatusInternalServerError
-	default:
-		return fasthttp.StatusInternalServerError
+func (h *HttpBinding) pollRequests() []map[string]interface{} {
+	requests := []map[string]interface{}{}
+	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s", h.RequestUrl, h.Target, h.Namespace)
+
+	for i := 0; i < ConcurrentJobs; i++ {
+		resp, err := h.Client.Get(pollingUri)
+		if err != nil {
+			return requests
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return requests
+		}
+		defer resp.Body.Close()
+		if body == nil {
+			return requests
+		}
+
+		var req map[string]interface{}
+		err = json.Unmarshal(body, &req)
+		if err != nil {
+			return requests
+		}
+		_, ok := req["operationID"].(string)
+		if !ok {
+			return requests
+		}
+		requests = append(requests, req)
 	}
+	return requests
 }

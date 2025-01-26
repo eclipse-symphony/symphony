@@ -22,3 +22,5 @@ go.work
 
 docs-site/node_modules
 docs-site/.hugo_build.lock
+
+remote-agent/bin
