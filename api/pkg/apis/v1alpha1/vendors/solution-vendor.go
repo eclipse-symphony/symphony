@@ -10,17 +10,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/valyala/fasthttp"
 )
@@ -51,6 +53,52 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 	if e.SolutionManager == nil {
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
 	}
+	e.Vendor.Context.Subscribe(model.DeploymentStepTopic, v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := event.Context
+			if ctx == nil {
+				ctx = context.TODO()
+			}
+			log.InfoCtx(ctx, "V(Solution): subscribe deployment-step and begin to apply step ")
+			// get data
+			err := e.SolutionManager.HandleDeploymentStep(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(Solution): Failed to handle deployment-step: %v", err)
+			}
+			return err
+		},
+		Group: "Solution-vendor",
+	})
+	e.Vendor.Context.Subscribe(model.DeploymentPlanTopic, v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := event.Context
+			if ctx == nil {
+				ctx = context.TODO()
+			}
+			log.InfoCtx(ctx, "V(Solution): Begin to execute deployment-plan")
+			err := e.SolutionManager.HandleDeploymentPlan(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(Solution): Failed to handle deployment plan: %v", err)
+			}
+			return err
+		},
+		Group: "stage-vendor",
+	})
+	e.Vendor.Context.Subscribe(model.CollectStepResultTopic, v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := event.Context
+			if ctx == nil {
+				ctx = context.TODO()
+			}
+			err := e.SolutionManager.HandleStepResult(ctx, event)
+			if err != nil {
+				log.ErrorfCtx(ctx, "V(Solution): Failed to handle step result: %v", err)
+				return err
+			}
+			return err
+		},
+		Group: "stage-vendor",
+	})
 	return nil
 }
 
@@ -79,8 +127,21 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Version: o.Version,
 			Handler: o.onQueue,
 		},
+		{
+			Methods: []string{fasthttp.MethodGet},
+			Route:   route + "/tasks",
+			Version: o.Version,
+			Handler: o.onGetRequest,
+		},
+		{
+			Methods: []string{fasthttp.MethodPost},
+			Route:   route + "/task/getResult",
+			Version: o.Version,
+			Handler: o.onGetResponse,
+		},
 	}
 }
+
 func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onQueue",
@@ -111,7 +172,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - %s", err.Error())
-			if utils.IsNotFound(err) {
+			if api_utils.IsNotFound(err) {
 				errorMsg := fmt.Sprintf("instance '%s' is not found in namespace %s", instance, namespace)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
@@ -225,6 +286,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		ContentType: "application/json",
 	})
 }
+
 func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onReconcile",
@@ -241,7 +303,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - unmarshal request %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -250,13 +312,14 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 			})
 		}
 		delete := request.Parameters["delete"]
+		remove := delete == "true"
 		targetName := ""
 		if request.Metadata != nil {
 			if v, ok := request.Metadata["active-target"]; ok {
 				targetName = v
 			}
 		}
-		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", namespace, targetName)
+		summary, err := c.SolutionManager.AsyncReconcile(ctx, deployment, remove, namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
@@ -301,7 +364,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Apply Deployment", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -315,7 +378,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Get Components", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -329,7 +392,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Delete Components", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -426,4 +489,62 @@ func (c *SolutionVendor) doRemove(ctx context.Context, deployment model.Deployme
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, response)
 	return response
+}
+
+// onGetRequest handles the get request from the remote agent.
+func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
+		"method": "onGetRequest",
+	})
+	defer span.End()
+	var agentRequest model.AgentRequest
+	sLog.InfoCtx(ctx, "V(Solution): onGetRequest")
+	target := request.Parameters["target"]
+	namespace := request.Parameters["namespace"]
+	getAll, exists := request.Parameters["getAll"]
+
+	if exists && getAll == "true" {
+		// Logic to handle getALL parameter
+		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
+
+		start, startExist := request.Parameters["preindex"]
+		if !startExist {
+			start = "0"
+		}
+		sizeStr, sizeExist := request.Parameters["size"]
+		var size int
+		var err error
+		if !sizeExist {
+			size = 10
+		} else {
+			size, err = strconv.Atoi(sizeStr)
+			if err != nil {
+				// Handle the error, for example, set a default value or return an error
+				size = 10
+			}
+		}
+
+		return c.SolutionManager.GetTaskFromQueueByPaging(ctx, target, namespace, start, size)
+	}
+	return c.SolutionManager.GetTaskFromQueue(ctx, target, namespace)
+}
+
+// onGetResponse handles the get response from the remote agent.
+func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
+		"method": "onGetResponse",
+	})
+	defer span.End()
+	sLog.InfoCtx(ctx, "V (Solution): onGetResponse")
+	var asyncResult model.AsyncResult
+	err := utils.UnmarshalJson(request.Body, &asyncResult)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "V(Solution): onGetResponse failed - %s", err.Error())
+		return v1alpha2.COAResponse{
+			State: v1alpha2.InternalError,
+			Body:  []byte(err.Error()),
+		}
+	}
+	sLog.InfoCtx(ctx, "V(Solution): get async result from remote agent %+v", asyncResult)
+	return c.SolutionManager.HandleRemoteAgentExecuteResult(ctx, asyncResult)
 }

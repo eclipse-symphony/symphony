@@ -34,7 +34,13 @@ type SummarySpec struct {
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
+	PlanState           PlanState                   `json:"planState"`
 }
+type SolutionManagerDeploymentState struct {
+	Spec  DeploymentSpec  `json:"spec,omitempty"`
+	State DeploymentState `json:"state,omitempty"`
+}
+
 type SummaryResult struct {
 	Summary        SummarySpec  `json:"summary"`
 	Generation     string       `json:"generation"`
