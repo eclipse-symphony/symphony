@@ -126,6 +126,8 @@ const (
 	UnsupportedAction               State = 10058
 	InstanceGetFailed               State = 10059
 	TargetGetFailed                 State = 10060
+	DeleteSolutionFailed            State = 10061
+	CreateSolutionFailed            State = 10062
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000
