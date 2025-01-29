@@ -14,6 +14,8 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ObjectMeta struct {
@@ -22,7 +24,7 @@ type ObjectMeta struct {
 	// ETag is a string representing the version of the object, it bump whenever the object is updated.
 	// All the state store should support auto-incrementing the version number.
 	// For example, resourceVersion in kubernetes
-	ETag string `json:"eTag,omitempty"`
+	ETag string `json:"etag,omitempty"`
 	// ObjGeneration changes when Spec changes
 	// object manager need to detect spec changes and update the generation
 	// For example, generation in kubernetes
@@ -30,6 +32,10 @@ type ObjectMeta struct {
 
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
+
+	UID types.UID `json:"uid,omitempty" protobuf:"bytes,5,opt,name=uid,casttype=k8s.io/kubernetes/pkg/types.UID"`
+
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
 }
 
 // UnmarshalJSON custom unmarshaller to handle Generation field(accept both of number and string)
@@ -87,6 +93,10 @@ func (c ObjectMeta) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(ObjectMeta)
 	if !ok {
 		return false, errors.New("parameter is not a ObjectMeta type")
+	}
+
+	if c.GetGuid() != otherC.GetGuid() {
+		return false, nil
 	}
 
 	if c.Name != otherC.Name {
@@ -149,4 +159,25 @@ func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 			}
 		}
 	}
+}
+
+func (c *ObjectMeta) GetSummaryId() string {
+	if c.Annotations == nil || c.Annotations[constants.GuidKey] == "" {
+		return c.Name
+	}
+	return fmt.Sprintf("%s-%s", c.Name, c.Annotations[constants.GuidKey])
+}
+
+func (c *ObjectMeta) GetGuid() string {
+	if c.Annotations == nil {
+		return ""
+	}
+	return c.Annotations[constants.GuidKey]
+}
+
+func (c *ObjectMeta) SetGuid(guid string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.GuidKey] = guid
 }

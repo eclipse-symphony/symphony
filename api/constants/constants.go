@@ -1,6 +1,3 @@
-//go:build !azure
-// +build !azure
-
 /*
  * Copyright (c) Microsoft Corporation.
  * Licensed under the MIT license.
@@ -18,7 +15,8 @@ var (
 )
 
 const (
-	FullGroupName = "symphony"
+	FullGroupName       = "symphony"
+	TargetRuntimePrefix = "target-runtime"
 
 	// system annotations, reserved and should not be modified by client.
 	AzureCorrelationIdKey        = "management.azure.com/correlationId"
@@ -28,6 +26,7 @@ const (
 	AzureResourceIdKey           = "management.azure.com/resourceId"
 	AzureSystemDataKey           = "management.azure.com/systemData"
 	AzureTenantIdKey             = "management.azure.com/tenantId" // Not used
+	GuidKey                      = "Guid"
 	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
 	SummaryJobIdKey              = "SummaryJobIdKey"
 	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target

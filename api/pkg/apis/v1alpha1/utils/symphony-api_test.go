@@ -467,6 +467,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(ctx, model.TargetState{
 		ObjectMeta: model.ObjectMeta{
 			Name: "someTargetName",
+			Annotations: map[string]string{
+				"Guid": "someGuid",
+			},
 		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
@@ -523,6 +526,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "target-runtime-someTargetName",
+				Annotations: map[string]string{
+					"Guid": "someGuid",
+				},
 			},
 			Spec: &model.InstanceSpec{
 				Scope:       "targetScope",
@@ -537,6 +543,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			"someTargetName": {
 				ObjectMeta: model.ObjectMeta{
 					Name: "someTargetName",
+					Annotations: map[string]string{
+						"Guid": "someGuid",
+					},
 				},
 				Spec: &model.TargetSpec{
 					DisplayName: "someDisplayName",
@@ -579,6 +588,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		ObjectMeta: model.ObjectMeta{
 			Name:      "someOtherId",
 			Namespace: "instanceScope",
+			Annotations: map[string]string{
+				"Guid": "someGuid",
+			},
 		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
@@ -684,6 +696,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			ObjectMeta: model.ObjectMeta{
 				Name:      "someOtherId",
 				Namespace: "instanceScope",
+				Annotations: map[string]string{
+					"Guid": "someGuid",
+				},
 			},
 			Spec: &model.InstanceSpec{
 				Solution: "",

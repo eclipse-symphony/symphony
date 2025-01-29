@@ -104,7 +104,7 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 		if err != nil {
 			ctLog.ErrorfCtx(ctx, "V (CatalogContainers): onCatalogContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -137,7 +137,7 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 		if err != nil {
 			ctLog.ErrorfCtx(ctx, "V (CatalogContainers): onCatalogContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -151,7 +151,7 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 		if err != nil {
 			ctLog.ErrorfCtx(ctx, "V (CatalogContainers): onCatalogContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
