@@ -64,16 +64,39 @@ var MargoRunCmd = &cobra.Command{
 			fmt.Printf("\n%s  %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 			return
 		}
-		solutionName := solution.ObjectMeta.Name
-		solutions, err := utils.Get(c.Contexts[ctx].Url, c.Contexts[ctx].User, c.Contexts[ctx].Secret, "solutions", "", "", solutionName)
-		if err != nil && solutions != nil {
+		solutionContainerName := solution.ObjectMeta.Name
+
+		solutionContainers, err := utils.Get(c.Contexts[ctx].Url, c.Contexts[ctx].User, c.Contexts[ctx].Secret, "solutioncontainers", "", "", solutionContainerName)
+		if err != nil && solutionContainers != nil {
 			fmt.Printf("\n%s  %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 			return
 		}
-		if len(solutions) != 0 {
-			fmt.Printf("\n%s  Solution '%s' already exists%s\n\n", utils.ColorRed(), solutionName, utils.ColorReset())
+		if len(solutionContainers) != 0 {
+			fmt.Printf("\n%s  Solution '%s' already exists%s\n\n", utils.ColorRed(), solutionContainerName, utils.ColorReset())
 			return
 		}
+
+		//create solution container
+		solutionContainer := model.SolutionContainerState{
+			ObjectMeta: model.ObjectMeta{
+				Name: solutionContainerName,
+			},
+			Spec: &model.SolutionContainerSpec{},
+		}
+		solutionContainerData, err := json.Marshal(solutionContainer)
+		if err != nil {
+			fmt.Printf("\n%s  %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+			return
+		}
+		err = utils.Upsert(c.Contexts[ctx].Url, c.Contexts[ctx].User, c.Contexts[ctx].Secret, "solution-containers", solutionContainerName, solutionContainerData)
+		if err != nil {
+			fmt.Printf("\n%s  %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+			return
+		}
+		solutionName := solutionContainerName + "-v-v1"
+		solution.ObjectMeta.Name = solutionName
+		solution.Spec.RootResource = solutionContainerName
+
 		//create solution
 		solutionData, err := json.Marshal(solution)
 		if err != nil {
@@ -85,6 +108,7 @@ var MargoRunCmd = &cobra.Command{
 			fmt.Printf("\n%s  %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 			return
 		}
+
 		instanceName := solutionName + "-instance"
 		//check instance
 		instances, err := utils.Get(c.Contexts[ctx].Url, c.Contexts[ctx].User, c.Contexts[ctx].Secret, "instances", "", "", instanceName)
@@ -102,7 +126,7 @@ var MargoRunCmd = &cobra.Command{
 				Name: instanceName,
 			},
 			Spec: model.InstanceSpec{
-				Solution: solutionName,
+				Solution: solutionContainerName + ":v1",
 				Target: model.TargetSelector{
 					Name: target,
 				},
