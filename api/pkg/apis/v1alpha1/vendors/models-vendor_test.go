@@ -37,7 +37,7 @@ func createModelsVendor(route string) ModelsVendor {
 				Name: "models-manager",
 				Type: "managers.symphony.models",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {
@@ -72,7 +72,7 @@ func TestModelsVendorInit(t *testing.T) {
 				Name: "models-manager",
 				Type: "managers.symphony.models",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {
@@ -240,7 +240,7 @@ func TestModelsVendorOnModels_GetModelNotExists(t *testing.T) {
 		Context: context.Background(),
 	}
 	resp := vendor.onModels(getReq)
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
 }
 
 func TestModelsVendorOnModels_DeleteModelNotExists(t *testing.T) {
@@ -255,7 +255,7 @@ func TestModelsVendorOnModels_DeleteModelNotExists(t *testing.T) {
 		Context: context.Background(),
 	}
 	resp := vendor.onModels(deleteReq)
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
 }
 
 func TestModelsVendorOnModels_InvalidMethod(t *testing.T) {

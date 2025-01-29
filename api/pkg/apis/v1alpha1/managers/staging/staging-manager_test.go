@@ -11,9 +11,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
@@ -24,6 +27,8 @@ import (
 
 func TestPoll(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProviderConfig{})
 
@@ -44,6 +49,9 @@ func TestPoll(t *testing.T) {
 			},
 		},
 	}
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
 	queueProvider.Enqueue("site-job-queue", "fake")
 	errList := manager.Poll()
 	assert.Nil(t, errList)
@@ -63,6 +71,7 @@ func TestPoll(t *testing.T) {
 
 func TestHandleJobEvent(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProviderConfig{})
 
@@ -83,7 +92,10 @@ func TestHandleJobEvent(t *testing.T) {
 			},
 		},
 	}
-	err := manager.HandleJobEvent(context.Background(), v1alpha2.Event{
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
+	err = manager.HandleJobEvent(context.Background(), v1alpha2.Event{
 		Metadata: map[string]string{
 			"site": "fake",
 		},
@@ -155,7 +167,6 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Name: "catalog1",
 				},
 				Spec: &model.CatalogSpec{
-					Generation: "1",
 					ParentName: "fakeparent",
 				},
 				Status: &model.CatalogStatus{

@@ -15,12 +15,12 @@ import (
 
 func TestNewConsoleExporter(t *testing.T) {
 	writer := &bytes.Buffer{}
-	exporter, err := NewConsoleExporter(writer)
+	exporter, err := NewTraceConsoleExporter(writer)
 	assert.NoError(t, err)
 	assert.NotNil(t, exporter)
 
 	// Test writer is nil case
-	exporter, err = NewConsoleExporter(nil)
+	exporter, err = NewTraceConsoleExporter(nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, exporter)
 }

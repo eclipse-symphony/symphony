@@ -7,6 +7,7 @@
 package mock
 
 import (
+	"context"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -51,7 +52,7 @@ func TestGet(t *testing.T) {
 	provider := MockSecretProvider{}
 	err := provider.Init(MockSecretProviderConfig{})
 	assert.Nil(t, err)
-	val, err := provider.Get("obj", "field")
+	val, err := provider.Read(context.Background(), "obj", "field", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "obj>>field", val)
 }

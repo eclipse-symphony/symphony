@@ -4,7 +4,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: activations.workflow.symphony
 spec:
   conversion:
@@ -26,10 +26,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.nextStage
-      name: Next Stage
-      type: string
-    - jsonPath: .status.status
+    - jsonPath: .status.statusMessage
       name: Status
       type: string
     name: v1
@@ -38,22 +35,25 @@ spec:
         description: Activation is the Schema for the activations API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
             properties:
               campaign:
-                type: string
-              generation:
                 type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
@@ -64,24 +64,87 @@ spec:
             properties:
               activationGeneration:
                 type: string
-              errorMessage:
-                type: string
-              inputs:
-                x-kubernetes-preserve-unknown-fields: true
-              isActive:
-                type: boolean
-              nextStage:
-                type: string
-              outputs:
-                x-kubernetes-preserve-unknown-fields: true
-              stage:
-                type: string
+              stageHistory:
+                items:
+                  properties:
+                    errorMessage:
+                      type: string
+                    inputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    isActive:
+                      type: boolean
+                    nextStage:
+                      type: string
+                    outputs:
+                      x-kubernetes-preserve-unknown-fields: true
+                    stage:
+                      type: string
+                    status:
+                      type: integer
+                    statusMessage:
+                      type: string
+                  type: object
+                type: array
               status:
                 type: integer
+              statusMessage:
+                type: string
               updateTime:
                 type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: campaigncontainers.workflow.symphony
+spec:
+  group: workflow.symphony
+  names:
+    kind: CampaignContainer
+    listKind: CampaignContainerList
+    plural: campaigncontainers
+    singular: campaigncontainer
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: CampaignContainer is the Schema for the CampaignContainers API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+          status:
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
             required:
-            - stage
+            - properties
             type: object
         type: object
     served: true
@@ -95,7 +158,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: campaigns.workflow.symphony
 spec:
   conversion:
@@ -122,14 +185,19 @@ spec:
         description: Campaign is the Schema for the campaigns API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -138,6 +206,8 @@ spec:
               firstStage:
                 type: string
               name:
+                type: string
+              rootResource:
                 type: string
               selfDriving:
                 type: boolean
@@ -155,24 +225,15 @@ spec:
                     provider:
                       type: string
                     schedule:
-                      properties:
-                        date:
-                          type: string
-                        time:
-                          type: string
-                        zone:
-                          type: string
-                      required:
-                      - date
-                      - time
-                      - zone
-                      type: object
+                      type: string
                     stageSelector:
                       type: string
                     triggeringStage:
                       type: string
                   type: object
                 type: object
+              version:
+                type: string
             type: object
         type: object
     served: true
@@ -182,9 +243,193 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: catalogcontainers.federation.symphony
+spec:
+  group: federation.symphony
+  names:
+    kind: CatalogContainer
+    listKind: CatalogContainerList
+    plural: catalogcontainers
+    singular: catalogcontainer
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: CatalogContainer is the Schema for the CatalogContainers API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+          status:
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+            required:
+            - properties
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: catalogevalexpressions.federation.symphony
+spec:
+  group: federation.symphony
+  names:
+    kind: CatalogEvalExpression
+    listKind: CatalogEvalExpressionList
+    plural: catalogevalexpressions
+    singular: catalogevalexpression
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: CatalogEvalExpressionAction is the Schema for the CatalogEvalExpressionactions
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CatalogEvalExpressionActionSpec defines the desired state
+              of CatalogEvalExpressionActionSpec.
+            properties:
+              resourceRef:
+                description: ParentRef is a reference to Resource on which this action
+                  is to be performed.
+                properties:
+                  apiGroup:
+                    description: API group
+                    type: string
+                  kind:
+                    description: Resource kind
+                    type: string
+                  name:
+                    description: Resource name
+                    type: string
+                  namespace:
+                    description: Namespace
+                    type: string
+                type: object
+            required:
+            - resourceRef
+            type: object
+          status:
+            description: CatalogEvalExpressionActionStatus defines the observed state
+              of CatalogEvalExpressionAction.
+            properties:
+              actionStatus:
+                description: ActionStatus contains information about result of performing
+                  the action.
+                properties:
+                  error:
+                    description: Error indicates the error that occurred for a failed
+                      attempt at performing action.
+                    properties:
+                      additionalInfo:
+                        description: AdditionalInfo contains error info.
+                        items:
+                          description: TypedErrorInfo captures the additional error
+                            info details when provisioning has failed.
+                          properties:
+                            info:
+                              description: Info contains category.
+                              properties:
+                                category:
+                                  description: Category contains any extra information
+                                    relevant to the error.
+                                  type: string
+                                recommendedAction:
+                                  description: RecommendedAction contains action user
+                                    can take relevant to the error.
+                                  type: string
+                                troubleshootingURL:
+                                  description: TroubleshootingURL contains link to
+                                    the troubleshooting steps.
+                                  type: string
+                              type: object
+                            type:
+                              description: Type contains ErrorInfo.
+                              type: string
+                          type: object
+                        type: array
+                      code:
+                        description: Code contains any error code associated with
+                          the message.
+                        type: string
+                      message:
+                        description: Message contains the string suitable for logging
+                          and human consumption.
+                        type: string
+                    type: object
+                  operationID:
+                    description: OperationID is the unique identifier for tracking
+                      this action.
+                    type: string
+                  output:
+                    description: Output of the action if succeeds.
+                    x-kubernetes-preserve-unknown-fields: true
+                  status:
+                    description: Status indicates current state of action progress.
+                    type: string
+                required:
+                - status
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: catalogs.federation.symphony
 spec:
   conversion:
@@ -211,20 +456,25 @@ spec:
         description: Catalog is the Schema for the catalogs API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
             properties:
-              generation:
+              catalogType:
                 type: string
               metadata:
                 additionalProperties:
@@ -263,13 +513,14 @@ spec:
               parentName:
                 type: string
               properties:
-                type: object
                 x-kubernetes-preserve-unknown-fields: true
-              type:
+              rootResource:
+                type: string
+              version:
                 type: string
             required:
+            - catalogType
             - properties
-            - type
             type: object
           status:
             properties:
@@ -292,7 +543,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: devices.fabric.symphony
 spec:
   conversion:
@@ -319,14 +570,19 @@ spec:
         description: Device is the Schema for the devices API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -377,7 +633,73 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: diagnostics.monitor.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: '{{ include "symphony.fullname" . }}-webhook-service'
+          namespace: '{{ .Release.Namespace }}'
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: monitor.symphony
+  names:
+    kind: Diagnostic
+    listKind: DiagnosticList
+    plural: diagnostics
+    singular: diagnostic
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Diagnostic is the Schema for the diagnostics API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DiagnosticSpec defines the desired state of Diagnostic
+            properties:
+              foo:
+                description: Foo is an example field of Diagnostic. Edit diagnostic_types.go
+                  to remove/update
+                type: string
+            type: object
+          status:
+            description: DiagnosticStatus defines the observed state of Diagnostic
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: instances.solution.symphony
 spec:
   conversion:
@@ -414,29 +736,28 @@ spec:
         description: Instance is the Schema for the instances API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
             properties:
-              arguments:
-                additionalProperties:
-                  additionalProperties:
-                    type: string
-                  type: object
-                type: object
               displayName:
                 type: string
-              generation:
-                type: string
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -463,14 +784,18 @@ spec:
                   type: object
                 type: array
               reconciliationPolicy:
-                description: Optional ReconcilicationPolicy to specify how target
-                  controller should reconcile. Now only periodic reconciliation is
-                  supported. If the interval is 0, it will only reconcile when the
-                  instance is created or updated.
+                description: |-
+                  Optional ReconcilicationPolicy to specify how target controller should reconcile.
+                  Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+                  when the instance is created or updated.
                 properties:
                   interval:
+                    minLength: 1
                     type: string
                   state:
+                    enum:
+                    - active
+                    - inactive
                     type: string
                 required:
                 - state
@@ -581,6 +906,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:
@@ -602,7 +930,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: models.ai.symphony
 spec:
   conversion:
@@ -629,14 +957,19 @@ spec:
         description: Model is the Schema for the models API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -689,7 +1022,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: sites.federation.symphony
 spec:
   conversion:
@@ -716,14 +1049,19 @@ spec:
         description: Site is the Schema for the sites API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -777,7 +1115,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: skillpackages.ai.symphony
 spec:
   conversion:
@@ -804,14 +1142,19 @@ spec:
         description: SkillPackage is the Schema for the skillpackages API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -877,7 +1220,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: skills.ai.symphony
 spec:
   conversion:
@@ -904,14 +1247,19 @@ spec:
         description: Skill is the Schema for the skills API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -1080,9 +1428,63 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: solutioncontainers.solution.symphony
+spec:
+  group: solution.symphony
+  names:
+    kind: SolutionContainer
+    listKind: SolutionContainerList
+    plural: solutioncontainers
+    singular: solutioncontainer
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: SolutionContainer is the Schema for the SolutionContainers API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+          status:
+            properties:
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+            required:
+            - properties
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: solutions.solution.symphony
 spec:
   conversion:
@@ -1109,14 +1511,19 @@ spec:
         description: Solution is the Schema for the solutions API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -1139,7 +1546,6 @@ spec:
                     name:
                       type: string
                     properties:
-                      type: object
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
@@ -1179,7 +1585,6 @@ spec:
                           name:
                             type: string
                           properties:
-                            type: object
                             x-kubernetes-preserve-unknown-fields: true
                           type:
                             type: string
@@ -1202,8 +1607,9 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              rootResource:
+                type: string
               version:
-                description: Defines the version of a particular resource
                 type: string
             type: object
           status:
@@ -1228,7 +1634,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
-    controller-gen.kubebuilder.io/version: v0.11.1
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: targets.fabric.symphony
 spec:
   conversion:
@@ -1259,14 +1665,19 @@ spec:
         description: Target is the Schema for the targets API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -1290,7 +1701,6 @@ spec:
                     name:
                       type: string
                     properties:
-                      type: object
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
@@ -1330,7 +1740,6 @@ spec:
                           name:
                             type: string
                           properties:
-                            type: object
                             x-kubernetes-preserve-unknown-fields: true
                           type:
                             type: string
@@ -1353,8 +1762,8 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
-              generation:
-                type: string
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -1364,14 +1773,18 @@ spec:
                   type: string
                 type: object
               reconciliationPolicy:
-                description: Optional ReconcilicationPolicy to specify how target
-                  controller should reconcile. Now only periodic reconciliation is
-                  supported. If the interval is 0, it will only reconcile when the
-                  instance is created or updated.
+                description: |-
+                  Optional ReconcilicationPolicy to specify how target controller should reconcile.
+                  Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+                  when the instance is created or updated.
                 properties:
                   interval:
+                    minLength: 1
                     type: string
                   state:
+                    enum:
+                    - active
+                    - inactive
                     type: string
                 required:
                 - state
@@ -1467,6 +1880,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:
@@ -1885,6 +2301,26 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
+  - catalogevalexpressions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogevalexpressions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
   - catalogs/finalizers
   verbs:
   - update
@@ -1892,6 +2328,110 @@ rules:
   - federation.symphony
   resources:
   - catalogs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigncontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigncontainers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigncontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutioncontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutioncontainers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutioncontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogcontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogcontainers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogcontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/status
   verbs:
   - get
   - patch
@@ -1985,6 +2525,7 @@ data:
       leaderElect: true
       resourceName: 33405cb8.symphony
     syncIntervalSeconds: 180
+    uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
     validationPolicies:
       model:
       - selectorType: properties
@@ -2034,126 +2575,6 @@ spec:
   selector:
     control-plane: '{{ include "symphony.name" . }}-controller-manager'
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    control-plane: '{{ include "symphony.name" . }}-controller-manager'
-  name: '{{ include "symphony.fullname" . }}-controller-manager'
-  namespace: '{{ .Release.Namespace }}'
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      control-plane: '{{ include "symphony.name" . }}-controller-manager'
-  template:
-    metadata:
-      annotations:
-        kubectl.kubernetes.io/default-container: manager
-      labels:
-        control-plane: '{{ include "symphony.name" . }}-controller-manager'
-    spec:
-      containers:
-      - args:
-        - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
-        - --leader-elect
-        command:
-        - /manager
-        env:
-        - name: APP_VERSION
-          value: '{{ .Chart.AppVersion }}'
-        - name: CONFIG_NAME
-          value: '{{ include "symphony.fullname" . }}-manager-config'
-        - name: SERVICE_ACCOUNT_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.serviceAccountName
-        - name: USE_SERVICE_ACCOUNT_TOKENS
-          value: "true"
-        envFrom:
-        - configMapRef:
-            name: '{{ include "symphony.envConfigName" . }}'
-        image: '{{ .Values.symphonyImage.repository }}:{{ .Values.symphonyImage.tag
-          }}'
-        imagePullPolicy: '{{ .Values.symphonyImage.pullPolicy }}'
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        name: manager
-        ports:
-        - containerPort: 9443
-          name: webhook-server
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 64Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-        volumeMounts:
-        - mountPath: /var/run/secrets/tokens
-          name: symphony-api-token
-        - mountPath: '{{ include "symphony.apiServingCertsDir" . }}'
-          name: api-ca-cert
-          readOnly: true
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
-          name: cert
-          readOnly: true
-      - args:
-        - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http://127.0.0.1:8080/
-        - --logtostderr=true
-        - --v=0
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 500m
-            memory: 128Mi
-          requests:
-            cpu: 5m
-            memory: 64Mi
-      securityContext:
-        runAsNonRoot: true
-      serviceAccountName: '{{ include "symphony.fullname" . }}-controller-manager'
-      terminationGracePeriodSeconds: 10
-      volumes:
-      - name: cert
-        secret:
-          defaultMode: 420
-          secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
-      - name: symphony-api-token
-        projected:
-          sources:
-          - serviceAccountToken:
-              audience: '{{ include "symphony.url" . }}'
-              expirationSeconds: 600
-              path: symphony-api-token
-      - name: api-ca-cert
-        secret:
-          defaultMode: 420
-          items:
-          - key: ca.crt
-            path: ca.crt
-          secretName: '{{ include "symphony.apiServingCertName" . }}'
----
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -2163,9 +2584,11 @@ spec:
   dnsNames:
   - '{{ include "symphony.fullname" . }}-webhook-service.{{ .Release.Namespace }}.svc'
   - '{{ include "symphony.fullname" . }}-webhook-service.{{ .Release.Namespace }}.svc.cluster.local'
+  duration: '{{ include "symphony.certDurationTime" . }}'
   issuerRef:
     kind: Issuer
     name: '{{ include "symphony.fullname" . }}-selfsigned-issuer'
+  renewBefore: '{{ include "symphony.certRenewBeforeTime" . }}'
   secretName: '{{ include "symphony.fullname" . }}-webhook-server-cert'
 ---
 apiVersion: cert-manager.io/v1
@@ -2250,6 +2673,86 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /mutate-solution-symphony-v1-solutioncontainer
+  failurePolicy: Fail
+  name: msolutioncontainer.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: mactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-workflow-symphony-v1-campaign
+  failurePolicy: Fail
+  name: mcampaign.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaigns
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-workflow-symphony-v1-campaigncontainer
+  failurePolicy: Fail
+  name: mcampaigncontainer.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaigncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-federation-symphony-v1-catalog
   failurePolicy: Fail
   name: mcatalog.kb.io
@@ -2263,6 +2766,68 @@ webhooks:
     - UPDATE
     resources:
     - catalogs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-federation-symphony-v1-catalogcontainer
+  failurePolicy: Fail
+  name: mcatalogcontainer.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: mcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /mutate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -2290,6 +2855,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - targets
   sideEffects: None
@@ -2330,8 +2896,92 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - solutions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-solution-symphony-v1-solutioncontainer
+  failurePolicy: Fail
+  name: vsolutioncontainer.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - solutioncontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-workflow-symphony-v1-activation
+  failurePolicy: Fail
+  name: vactivation.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - activations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-workflow-symphony-v1-campaign
+  failurePolicy: Fail
+  name: vcampaign.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaigns
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-workflow-symphony-v1-campaigncontainer
+  failurePolicy: Fail
+  name: vcampaigncontainer.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaigncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -2350,6 +3000,70 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - catalogs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-federation-symphony-v1-catalogcontainer
+  failurePolicy: Fail
+  name: vcatalogcontainer.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogcontainers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-federation-symphony-v1-catalogevalexpression
+  failurePolicy: Fail
+  name: vcatalogevalexpression.kb.io
+  rules:
+  - apiGroups:
+    - federation.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - catalogevalexpressions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-monitor-symphony-v1-diagnostic
+  failurePolicy: Fail
+  name: mdiagnostic.kb.io
+  rules:
+  - apiGroups:
+    - monitor.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - diagnostics
   sideEffects: None

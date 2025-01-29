@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: ebpf-approval
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: ebpf-approval-v-v1
 spec:
+  rootResource: ebpf-approval
   firstStage: "approval"
   selfDriving: true
   stages:
@@ -23,7 +30,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: tiny-app
+        objectName: tiny-app:v1
         patchSource: inline
         patchContent:
           name: ebpf-module
@@ -34,10 +41,7 @@ spec:
             ebpf.event: "xdp"
         patchAction: add
       stageSelector: "remove" 
-      schedule:
-        date: "2033-10-23"
-        time: "4:00:00PM"
-        zone: "America/Los_Angeles"
+      schedule: "2023-10-23T16:00:00-08:00"
     remove:
       name: "remove"
       provider: "providers.stage.patch"
@@ -47,13 +51,10 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: tiny-app
+        objectName: tiny-app:v1
         patchSource: inline
         patchContent:
           name: ebpf-module          
         patchAction: add
       stageSelector: "remove" 
-      schedule:
-        date: "2033-10-23"
-        time: "4:00:00PM"
-        zone: "America/Los_Angeles"
+      schedule: "2023-10-23T16:00:00-08:00"

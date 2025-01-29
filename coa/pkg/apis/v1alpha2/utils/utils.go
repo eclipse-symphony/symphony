@@ -8,10 +8,12 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +22,17 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"k8s.io/client-go/util/jsonpath"
 )
+
+func UnmarshalJson[T any](data []byte, obj *T) error {
+	// var obj T
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func UnmarshalDuration(duration string) (time.Duration, error) {
 	var v interface{}
@@ -49,14 +62,17 @@ func ParseProperty(val string) string {
 
 type EvaluationContext struct {
 	ConfigProvider config.IExtConfigProvider
-	SecretProvider secret.ISecretProvider
+	SecretProvider secret.IExtSecretProvider
 	DeploymentSpec interface{}
 	Properties     map[string]string
 	Inputs         map[string]interface{}
 	Outputs        map[string]map[string]interface{}
+	Triggers       map[string]interface{}
 	Component      string
 	Value          interface{}
 	Namespace      string
+	ParentConfigs  map[string]map[string]bool
+	Context        context.Context
 }
 
 func (e *EvaluationContext) Clone() *EvaluationContext {
@@ -70,6 +86,47 @@ func (e *EvaluationContext) Clone() *EvaluationContext {
 		SecretProvider: e.SecretProvider,
 	}
 }
+
+func HasCircularDependency(object string, field string, context EvaluationContext) bool {
+	if context.ParentConfigs == nil {
+		return false
+	}
+	if catalogFields, exist := context.ParentConfigs[object]; exist {
+		if catalogFields[field] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func UpdateDependencyList(object string, field string, dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		dependencyList = make(map[string]map[string]bool)
+	}
+	if _, ok := dependencyList[object]; !ok {
+		dependencyList[object] = make(map[string]bool)
+	}
+	dependencyList[object][field] = true
+	return dependencyList
+}
+
+func DeepCopyDependencyList(dependencyList map[string]map[string]bool) map[string]map[string]bool {
+	if dependencyList == nil {
+		return nil
+	}
+
+	newMapConfigs := make(map[string]map[string]bool)
+	for key, innerMap := range dependencyList {
+		newInnerMap := make(map[string]bool)
+		for innerKey, value := range innerMap {
+			newInnerMap[innerKey] = value
+		}
+		newMapConfigs[key] = newInnerMap
+	}
+	return newMapConfigs
+}
+
 func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {
@@ -121,4 +178,34 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	} else {
 		return result, nil
 	}
+}
+func FormatAsString(val interface{}) string {
+	switch tv := val.(type) {
+	case string:
+		return tv
+	case int:
+		return strconv.Itoa(tv)
+	case int32:
+		return strconv.Itoa(int(tv))
+	case int64:
+		return strconv.Itoa(int(tv))
+	case float32:
+		return strconv.FormatFloat(float64(tv), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(tv, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(tv)
+	case map[string]interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	case []interface{}:
+		ret, _ := json.Marshal(tv)
+		return string(ret)
+	default:
+		return fmt.Sprintf("%v", tv)
+	}
+}
+
+func ConvertStringToValidLabel(s string) string {
+	return strings.ReplaceAll(s, " ", "")
 }

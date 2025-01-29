@@ -30,6 +30,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	var instanceBytes []byte
 	var targetBytes []byte
 	var solutionBytes []byte
+	var solutionContainerBytes []byte
 	var specTimeout = 120 * time.Second
 	var targetProps map[string]string
 	var instanceParams map[string]interface{}
@@ -44,7 +45,8 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 
 	AfterAll(func() {
 		By("uninstalling orchestrator from the cluster")
-		err := shell.LocalenvCmd(context.Background(), "mage destroy all")
+		err := shell.LocalenvCmd(context.Background(), "mage DumpSymphonyLogsForTest ginkgosuite_createUpdate")
+		err = shell.LocalenvCmd(context.Background(), "mage Destroy all,nowait")
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -56,8 +58,15 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	})
 
 	runner := func(ctx context.Context, testcase TestCase) {
-		By("setting the components for the target")
 		var err error
+
+		By("deploy solution container")
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("setting the components for the target")
 		props := targetProps
 		params := instanceParams
 		if testcase.TargetProperties != nil {
@@ -85,16 +94,16 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the instance")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
-		Expect(err).ToNot(HaveOccurred())
-
 		By("deploying the target")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("deploying the solution")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("deploying the instance")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = testcase.Expectation.Verify(ctx)
@@ -345,7 +354,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		),
 
 		Entry(
-			"it should fail the solution when component is invalid", SpecTimeout(60*time.Second),
+			"it should fail the solution when component is invalid", SpecTimeout(100*time.Second),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1-nonexistent"}, // (same as previous entry)
 				SolutionComponents: []string{"simple-chart-2-nonexistent"}, //

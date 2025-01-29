@@ -37,7 +37,7 @@ func createSkillsVendor(route string) SkillsVendor {
 				Name: "skills-manager",
 				Type: "managers.symphony.skills",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {
@@ -72,7 +72,7 @@ func TestSkillsVendorInit(t *testing.T) {
 				Name: "skills-manager",
 				Type: "managers.symphony.skills",
 				Properties: map[string]string{
-					"providers.state": "memory",
+					"providers.persistentstate": "memory",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"memory": {
@@ -259,7 +259,7 @@ func TestSkillsVendorOnSkills_GetSkillNotExists(t *testing.T) {
 		Context: context.Background(),
 	}
 	resp := vendor.onSkills(getReq)
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
 }
 
 func TestSkillsVendorOnSkills_DeleteSkillNotExists(t *testing.T) {
@@ -274,7 +274,7 @@ func TestSkillsVendorOnSkills_DeleteSkillNotExists(t *testing.T) {
 		Context: context.Background(),
 	}
 	resp := vendor.onSkills(deleteReq)
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
 }
 
 func TestSkillsVendorOnSkills_InvalidMethod(t *testing.T) {

@@ -13,6 +13,8 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -76,7 +78,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		"method": "onVisPacket",
 	})
 	defer span.End()
-	vcLog.Info("V (Models): onVisPacket")
+	vcLog.InfoCtx(pCtx, "V (Models): onVisPacket")
 
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -84,7 +86,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		var packet model.Packet
 		err := json.Unmarshal(request.Body, &packet)
 		if err != nil {
-			vcLog.Errorf("V (Visualization): onVisPacket failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte(err.Error()),
@@ -92,16 +94,16 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		}
 
 		if !packet.IsValid() {
-			vcLog.Errorf("V (Visualization): onVisPacket failed - %s, traceId: %s", "invalid visualization packet", span.SpanContext().TraceID().String())
+			vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", "invalid visualization packet")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte("invalid visualization packet"),
 			})
 		}
 
-		catalog, err := convertVisualizationPacketToCatalog(c.Context.SiteInfo.SiteId, packet)
+		catalog, err := convertVisualizationPacketToCatalog(packet)
 		if err != nil {
-			vcLog.Errorf("V (Visualization): onVisPacket failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -111,9 +113,9 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		if packet.Solution != "" {
 			err = c.updateSolutionTopologyCatalog(ctx, fmt.Sprintf("%s-topology", packet.Solution), catalog)
 			if err != nil {
-				vcLog.Errorf("V (Visualization): onVisPacket failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -122,9 +124,9 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		if packet.Instance != "" {
 			err = c.updateSolutionTopologyCatalog(ctx, fmt.Sprintf("%s-topology", packet.Instance), catalog)
 			if err != nil {
-				vcLog.Errorf("V (Visualization): onVisPacket failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -133,9 +135,9 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		if packet.Target != "" {
 			err = c.updateSolutionTopologyCatalog(ctx, fmt.Sprintf("%s-topology", packet.Target), catalog)
 			if err != nil {
-				vcLog.Errorf("V (Visualization): onVisPacket failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -155,19 +157,20 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 }
 
 func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogState) error {
-	catalog.ObjectMeta.Name = name
+	catalog.ObjectMeta.Name = name + "-v-v1"
+	catalog.Spec.RootResource = validation.GetRootResourceFromName(catalog.ObjectMeta.Name)
 	existingCatalog, err := c.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
 	if err != nil {
-		if !v1alpha2.IsNotFound(err) {
+		if !utils.IsNotFound(err) {
 			return err
 		}
-		return c.CatalogsManager.UpsertState(ctx, name, catalog)
+		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
 	} else {
 		catalog, err = mergeCatalogs(existingCatalog, catalog)
 		if err != nil {
 			return err
 		}
-		return c.CatalogsManager.UpsertState(ctx, name, catalog)
+		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
 	}
 }
 func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.CatalogState, error) {
@@ -196,10 +199,10 @@ func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.Catalo
 	return mergedCatalog, nil
 }
 
-func convertVisualizationPacketToCatalog(site string, packet model.Packet) (model.CatalogState, error) {
+func convertVisualizationPacketToCatalog(packet model.Packet) (model.CatalogState, error) {
 	catalog := model.CatalogState{
 		Spec: &model.CatalogSpec{
-			Type: "topology",
+			CatalogType: "topology",
 			Properties: map[string]interface{}{
 				packet.From: map[string]model.Packet{
 					packet.To: packet,

@@ -20,10 +20,12 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
@@ -36,6 +38,8 @@ func createSolutionVendor() SolutionVendor {
 	configProvider.Init(mockconfig.MockConfigProviderConfig{})
 	secretProvider := mocksecret.MockSecretProvider{}
 	secretProvider.Init(mocksecret.MockSecretProviderConfig{})
+	keyLockProvider := memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{})
 	vendor := SolutionVendor{}
 	vendor.Init(vendors.VendorConfig{
 		Properties: map[string]string{
@@ -46,14 +50,19 @@ func createSolutionVendor() SolutionVendor {
 				Name: "solution-manager",
 				Type: "managers.symphony.solution",
 				Properties: map[string]string{
-					"providers.state":  "mem-state",
-					"providers.config": "mock-config",
-					"providers.secret": "mock-secret",
+					"providers.persistentstate": "mem-state",
+					"providers.config":          "mock-config",
+					"providers.secret":          "mock-secret",
+					"providers.keylock":         "mem-keylock",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
 						Type:   "providers.state.memory",
 						Config: memorystate.MemoryStateProviderConfig{},
+					},
+					"mem-keylock": {
+						Type:   "providers.keylock.memory",
+						Config: memorykeylock.MemoryKeyLockProviderConfig{},
 					},
 					"mock-config": {
 						Type:   "providers.config.mock",
@@ -71,17 +80,22 @@ func createSolutionVendor() SolutionVendor {
 	}, map[string]map[string]providers.IProvider{
 		"solution-manager": {
 			"mem-state":   &stateProvider,
+			"mem-keylock": &keyLockProvider,
 			"mock-config": &configProvider,
 			"mock-secret": &secretProvider,
 		},
 	}, nil)
 	return vendor
 }
+
 func createDockerDeployment(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "instance-docker",
+				Annotations: map[string]string{
+					"Guid": uuid.New().String(),
+				},
 			},
 			Spec: &model.InstanceSpec{},
 		},
@@ -121,11 +135,15 @@ func createDockerDeployment(id string) model.DeploymentSpec {
 		},
 	}
 }
+
 func createDeployment2Mocks1Target(id string) model.DeploymentSpec {
 	return model.DeploymentSpec{
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "instance1",
+				Annotations: map[string]string{
+					"Guid": uuid.New().String(),
+				},
 			},
 			Spec: &model.InstanceSpec{},
 		},
@@ -383,18 +401,32 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 	vendor.Context.Init(&pubSubProvider)
 	succeededCount := 0
 	sig := make(chan bool)
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "scope1", event.Metadata["namespace"])
-		assert.Equal(t, "instance1", job.Id)
-		assert.Equal(t, v1alpha2.JobUpdate, job.Action)
-		succeededCount += 1
-		sig <- true
-		return nil
+	ctx := context.TODO()
+	correlationId := uuid.New().String()
+	resourceId := uuid.New().String()
+	ctx = coalogcontexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			assert.NotEqual(t, ctx, event.Context)
+			assert.NotNil(t, event.Context)
+			diagCtx, ok := event.Context.Value(coalogcontexts.DiagnosticLogContextKey).(*coalogcontexts.DiagnosticLogContext)
+			assert.True(t, ok)
+			assert.NotNil(t, diagCtx)
+			assert.Equal(t, correlationId, diagCtx.GetCorrelationId())
+			assert.Equal(t, resourceId, diagCtx.GetResourceId())
+
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "instance", event.Metadata["objectType"])
+			assert.Equal(t, "scope1", event.Metadata["namespace"])
+			assert.Equal(t, "instance1", job.Id)
+			assert.Equal(t, v1alpha2.JobUpdate, job.Action)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	resp := vendor.onQueue(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -403,7 +435,7 @@ func TestSolutionQueueInstanceUpdate(t *testing.T) {
 			"target":    "false",
 			"namespace": "scope1",
 		},
-		Context: context.Background(),
+		Context: ctx,
 	})
 	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
@@ -419,18 +451,20 @@ func TestSolutionQueueTargetUpdate(t *testing.T) {
 	vendor.Context.Init(&pubSubProvider)
 	sig := make(chan bool)
 	succeededCount := 0
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "target", event.Metadata["objectType"])
-		assert.Equal(t, "scope1", event.Metadata["namespace"])
-		assert.Equal(t, "target1", job.Id)
-		assert.Equal(t, v1alpha2.JobDelete, job.Action)
-		succeededCount += 1
-		sig <- true
-		return nil
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "target", event.Metadata["objectType"])
+			assert.Equal(t, "scope1", event.Metadata["namespace"])
+			assert.Equal(t, "target1", job.Id)
+			assert.Equal(t, v1alpha2.JobDelete, job.Action)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	resp := vendor.onQueue(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,

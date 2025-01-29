@@ -22,7 +22,7 @@ func TestCreateGetDeleteTargetsSpec(t *testing.T) {
 	manager := SitesManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.SiteSpec{})
+	err := manager.UpsertState(context.Background(), "test", model.SiteState{})
 	assert.Nil(t, err)
 	spec, err := manager.GetState(context.Background(), "test")
 	assert.Nil(t, err)

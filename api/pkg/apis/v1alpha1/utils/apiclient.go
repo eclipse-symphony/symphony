@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	coacontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 )
 
 type (
@@ -38,45 +40,105 @@ type (
 
 	ApiClientOption func(*apiClient)
 
-	TokenProvider func(ctx context.Context, baseUrl string, client *http.Client) (string, error)
+	TokenProvider func(ctx context.Context, baseUrl string, client *http.Client, user string, password string) (string, error)
 
 	SummaryGetter interface {
-		GetSummary(ctx context.Context, id string, namespace string) (*model.SummaryResult, error)
+		GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error)
+		DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error
 	}
 
 	Dispatcher interface {
-		QueueJob(ctx context.Context, id string, namespace string, isDelete bool, isTarget bool) error
-		QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec) error
+		QueueJob(ctx context.Context, id string, namespace string, isDelete bool, isTarget bool, user string, password string) error
+		QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error
 	}
 
 	ApiClient interface {
 		SummaryGetter
 		Dispatcher
-		GetInstancesForAllNamespaces(ctx context.Context) ([]model.InstanceState, error)
-		GetInstances(ctx context.Context, namespace string) ([]model.InstanceState, error)
-		GetInstance(ctx context.Context, instance string, namespace string) (model.InstanceState, error)
-		CreateInstance(ctx context.Context, instance string, payload []byte, namespace string) error
-		DeleteInstance(ctx context.Context, instance string, namespace string) error
-		DeleteTarget(ctx context.Context, target string, namespace string) error
-		GetSolutions(ctx context.Context, namespace string) ([]model.SolutionState, error)
-		GetSolution(ctx context.Context, solution string, namespace string) (model.SolutionState, error)
-		CreateSolution(ctx context.Context, solution string, payload []byte, namespace string) error
-		DeleteSolution(ctx context.Context, solution string, namespace string) error
-		GetTargetsForAllNamespaces(ctx context.Context) ([]model.TargetState, error)
-		GetTarget(ctx context.Context, target string, namespace string) (model.TargetState, error)
-		GetTargets(ctx context.Context, namespace string) ([]model.TargetState, error)
-		CreateTarget(ctx context.Context, target string, payload []byte, namespace string) error
-		Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string) (model.SummarySpec, error)
+		GetInstancesForAllNamespaces(ctx context.Context, user string, password string) ([]model.InstanceState, error)
+		GetInstances(ctx context.Context, namespace string, user string, password string) ([]model.InstanceState, error)
+		GetInstance(ctx context.Context, instance string, namespace string, user string, password string) (model.InstanceState, error)
+		CreateInstance(ctx context.Context, instance string, payload []byte, namespace string, user string, password string) error
+		DeleteInstance(ctx context.Context, instance string, namespace string, user string, password string) error
+		DeleteTarget(ctx context.Context, target string, namespace string, user string, password string) error
+		GetSolutions(ctx context.Context, namespace string, user string, password string) ([]model.SolutionState, error)
+		GetSolution(ctx context.Context, solution string, namespace string, user string, password string) (model.SolutionState, error)
+		CreateSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error
+		DeleteSolution(ctx context.Context, solution string, namespace string, user string, password string) error
+		GetTargetsForAllNamespaces(ctx context.Context, user string, password string) ([]model.TargetState, error)
+		GetTarget(ctx context.Context, target string, namespace string, user string, password string) (model.TargetState, error)
+		GetTargets(ctx context.Context, namespace string, user string, password string) ([]model.TargetState, error)
+		CreateTarget(ctx context.Context, target string, payload []byte, namespace string, user string, password string) error
+		Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error)
+		CatalogHook(ctx context.Context, payload []byte, user string, password string) error
+		PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error
+		GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error)
+		GetCatalog(ctx context.Context, catalog string, namespace string, user string, password string) (model.CatalogState, error)
+		UpsertCatalog(ctx context.Context, catalog string, payload []byte, user string, password string) error
+		DeleteCatalog(ctx context.Context, catalog string, user string, password string) error
+		UpsertSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error
+		GetSites(ctx context.Context, user string, password string) ([]model.SiteState, error)
+		GetCatalogs(ctx context.Context, namespace string, user string, password string) ([]model.CatalogState, error)
+		GetCatalogsWithFilter(ctx context.Context, namespace string, filterType string, filterValue string, user string, password string) ([]model.CatalogState, error)
+		UpdateSite(ctx context.Context, site string, payload []byte, user string, password string) error
+		GetABatchForSite(ctx context.Context, site string, user string, password string) (model.SyncPackage, error)
+		SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error
+		SendVisualizationPacket(ctx context.Context, payload []byte, user string, password string) error
+		ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error
+		CreateSolutionContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
+		DeleteSolutionContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
+		GetSolutionContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.SolutionContainerState, error)
+		CreateCatalogContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
+		DeleteCatalogContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
+		GetCatalogContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CatalogContainerState, error)
+		CreateCampaignContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
+		DeleteCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
+		GetCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignContainerState, error)
+		GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
 	}
 )
 
-func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client) (string, error) {
+// We shouldn't use specific error types
+// APIError represents an error that includes a SummarySpec in its message field.
+type APIError struct {
+	Code    v1alpha2.State `json:"code"`
+	Message string         `json:"message"`
+}
+
+func (e APIError) Error() string {
+	return fmt.Sprintf(
+		"failed to invoke Symphony API: [%v] - %s",
+		e.Code,
+		e.Message,
+	)
+}
+
+func (e APIError) IsRetriableErr() bool {
+	return ToCOAError(e).IsRetriableErr()
+}
+
+func NewAPIError(state v1alpha2.State, msg string) APIError {
+	return APIError{
+		Code:    state,
+		Message: msg,
+	}
+}
+
+func ToCOAError(apiErr APIError) v1alpha2.COAError {
+	return v1alpha2.COAError{
+		InnerError: apiErr,
+		Message:    apiErr.Message,
+		State:      apiErr.Code,
+	}
+}
+
+func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, user string, passowrd string) (string, error) {
 	return "", nil
 }
 
-func WithUserPassword(ctx context.Context, user string, password string) ApiClientOption {
+func WithUserPassword(ctx context.Context) ApiClientOption {
 	return func(a *apiClient) {
-		a.tokenProvider = func(ctx context.Context, baseUrl string, _ *http.Client) (string, error) {
+		a.tokenProvider = func(ctx context.Context, baseUrl string, _ *http.Client, user string, password string) (string, error) {
 			request := authRequest{Username: user, Password: password}
 			requestData, _ := json.Marshal(request)
 			ret, err := a.callRestAPI(ctx, "users/auth", "POST", requestData, "")
@@ -97,7 +159,7 @@ func WithUserPassword(ctx context.Context, user string, password string) ApiClie
 
 func WithServiceAccountToken() ApiClientOption {
 	return func(a *apiClient) {
-		a.tokenProvider = func(ctx context.Context, _ string, _ *http.Client) (string, error) {
+		a.tokenProvider = func(ctx context.Context, _ string, _ *http.Client, _ string, _ string) (string, error) {
 			path := os.Getenv(constants.SATokenPathName)
 			if path == "" {
 				path = constants.SATokenPath
@@ -117,7 +179,7 @@ func WithCertAuth(caCertPath string) ApiClientOption {
 	}
 }
 
-func NewAPIClient(ctx context.Context, baseUrl string, opts ...ApiClientOption) (*apiClient, error) {
+func NewApiClient(ctx context.Context, baseUrl string, opts ...ApiClientOption) (*apiClient, error) {
 	rUrl, err := url.Parse(baseUrl)
 	if err != nil {
 		return nil, err
@@ -143,9 +205,9 @@ func NewAPIClient(ctx context.Context, baseUrl string, opts ...ApiClientOption) 
 	return a, nil
 }
 
-func (a *apiClient) GetInstances(ctx context.Context, namespace string) ([]model.InstanceState, error) {
+func (a *apiClient) GetInstances(ctx context.Context, namespace string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -162,9 +224,9 @@ func (a *apiClient) GetInstances(ctx context.Context, namespace string) ([]model
 	return ret, nil
 }
 
-func (a *apiClient) GetInstancesForAllNamespaces(ctx context.Context) ([]model.InstanceState, error) {
+func (a *apiClient) GetInstancesForAllNamespaces(ctx context.Context, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -182,9 +244,9 @@ func (a *apiClient) GetInstancesForAllNamespaces(ctx context.Context) ([]model.I
 	return ret, nil
 }
 
-func (a *apiClient) GetInstance(ctx context.Context, instance string, namespace string) (model.InstanceState, error) {
+func (a *apiClient) GetInstance(ctx context.Context, instance string, namespace string, user string, password string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 
 	if err != nil {
 		return ret, err
@@ -203,8 +265,8 @@ func (a *apiClient) GetInstance(ctx context.Context, instance string, namespace 
 	return ret, nil
 }
 
-func (a *apiClient) CreateInstance(ctx context.Context, instance string, payload []byte, namespace string) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) CreateInstance(ctx context.Context, instance string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -217,8 +279,8 @@ func (a *apiClient) CreateInstance(ctx context.Context, instance string, payload
 	return nil
 }
 
-func (a *apiClient) DeleteInstance(ctx context.Context, instance string, namespace string) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) DeleteInstance(ctx context.Context, instance string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -231,8 +293,8 @@ func (a *apiClient) DeleteInstance(ctx context.Context, instance string, namespa
 	return nil
 }
 
-func (a *apiClient) DeleteTarget(ctx context.Context, target string, namespace string) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) DeleteTarget(ctx context.Context, target string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -245,9 +307,9 @@ func (a *apiClient) DeleteTarget(ctx context.Context, target string, namespace s
 	return nil
 }
 
-func (a *apiClient) GetSolutions(ctx context.Context, namespace string) ([]model.SolutionState, error) {
+func (a *apiClient) GetSolutions(ctx context.Context, namespace string, user string, password string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -265,9 +327,9 @@ func (a *apiClient) GetSolutions(ctx context.Context, namespace string) ([]model
 	return ret, nil
 }
 
-func (a *apiClient) GetSolution(ctx context.Context, solution string, namespace string) (model.SolutionState, error) {
+func (a *apiClient) GetSolution(ctx context.Context, solution string, namespace string, user string, password string) (model.SolutionState, error) {
 	ret := model.SolutionState{}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -285,8 +347,8 @@ func (a *apiClient) GetSolution(ctx context.Context, solution string, namespace 
 	return ret, nil
 }
 
-func (a *apiClient) CreateSolution(ctx context.Context, solution string, payload []byte, namespace string) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) CreateSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -299,8 +361,8 @@ func (a *apiClient) CreateSolution(ctx context.Context, solution string, payload
 	return nil
 }
 
-func (a *apiClient) DeleteSolution(ctx context.Context, solution string, namespace string) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) DeleteSolution(ctx context.Context, solution string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -313,9 +375,9 @@ func (a *apiClient) DeleteSolution(ctx context.Context, solution string, namespa
 	return nil
 }
 
-func (a *apiClient) GetTarget(ctx context.Context, target string, namespace string) (model.TargetState, error) {
+func (a *apiClient) GetTarget(ctx context.Context, target string, namespace string, user string, password string) (model.TargetState, error) {
 	ret := model.TargetState{}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -333,9 +395,9 @@ func (a *apiClient) GetTarget(ctx context.Context, target string, namespace stri
 	return ret, nil
 }
 
-func (a *apiClient) GetTargets(ctx context.Context, namespace string) ([]model.TargetState, error) {
+func (a *apiClient) GetTargets(ctx context.Context, namespace string, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -353,9 +415,29 @@ func (a *apiClient) GetTargets(ctx context.Context, namespace string) ([]model.T
 	return ret, nil
 }
 
-func (a *apiClient) GetTargetsForAllNamespaces(ctx context.Context) ([]model.TargetState, error) {
+func (a *apiClient) GetParsedCatalogProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error) {
+	ret := map[string]interface{}{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, fmt.Sprintf("settings/config/%s?namespace=%s", url.QueryEscape(name), url.QueryEscape(namespace)), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) GetTargetsForAllNamespaces(ctx context.Context, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
@@ -373,8 +455,8 @@ func (a *apiClient) GetTargetsForAllNamespaces(ctx context.Context) ([]model.Tar
 	return ret, nil
 }
 
-func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []byte, namespace string) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -387,18 +469,18 @@ func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []b
 	return nil
 }
 
-func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string) (*model.SummaryResult, error) {
+func (a *apiClient) GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	result := model.SummaryResult{}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
-	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	log.DebugfCtx(ctx, "apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
+	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&name="+url.QueryEscape(name)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
-		log.Debugf("apiClient.GetSummary: Not found")
+		log.DebugfCtx(ctx, "apiClient.GetSummary: Not found")
 		return nil, v1alpha2.NewCOAError(nil, "Not found", v1alpha2.NotFound)
 	}
 
@@ -406,7 +488,7 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string)
 		return nil, err
 	}
 	if ret != nil {
-		log.Debugf("apiClient.GetSummary: ret: %s", string(ret))
+		log.DebugfCtx(ctx, "apiClient.GetSummary: ret: %s", string(ret))
 		err = json.Unmarshal(ret, &result)
 		if err != nil {
 			return nil, err
@@ -415,8 +497,23 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string)
 	return &result, nil
 }
 
-func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	log.DebugfCtx(ctx, "apiClient.DeleteSummary: id: %s, namespace: %s", id, namespace)
+	_, err = a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	path := "solution/queue"
 	query := url.Values{
 		"namespace":  []string{namespace},
@@ -428,7 +525,7 @@ func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, is
 		return err
 	}
 	payload, err = json.Marshal(deployment)
-	log.Debugf("apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
+	log.DebugfCtx(ctx, "apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
 	if err != nil {
 		return err
 	}
@@ -441,8 +538,8 @@ func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, is
 }
 
 // Deprecated: Use QueueDeploymentJob instead
-func (a *apiClient) QueueJob(ctx context.Context, id string, namespace string, isDelete bool, isTarget bool) error {
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+func (a *apiClient) QueueJob(ctx context.Context, id string, namespace string, isDelete bool, isTarget bool, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
@@ -465,7 +562,7 @@ func (a *apiClient) QueueJob(ctx context.Context, id string, namespace string, i
 	return nil
 }
 
-func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string) (model.SummarySpec, error) {
+func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
@@ -473,7 +570,7 @@ func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSp
 	if isDelete {
 		path = path + "&delete=true"
 	}
-	token, err := a.tokenProvider(ctx, a.baseUrl, a.client)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return summary, err
 	}
@@ -490,6 +587,249 @@ func (a *apiClient) Reconcile(ctx context.Context, deployment model.DeploymentSp
 	return summary, nil
 }
 
+func (a *apiClient) CatalogHook(ctx context.Context, payload []byte, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+	path := "federation/k8shook?objectType=catalog"
+	_, err = a.callRestAPI(ctx, path, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return err
+	}
+	jData, _ := json.Marshal(event)
+	log.DebugfCtx(ctx, "apiClient.PublishActivationEvent: Activation event: %s", string(jData))
+	_, err = a.callRestAPI(ctx, "jobs", "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error) {
+	ret := model.ActivationState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "activations/registry/"+url.QueryEscape(activation)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) GetCatalog(ctx context.Context, catalog string, namespace string, user string, password string) (model.CatalogState, error) {
+	ret := model.CatalogState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	catalogName := catalog
+	if strings.HasPrefix(catalogName, "<") && strings.HasSuffix(catalogName, ">") {
+		catalogName = catalogName[1 : len(catalogName)-1]
+	}
+
+	path := "catalogs/registry/" + url.QueryEscape(catalogName)
+	if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+	}
+	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
+func (a *apiClient) GetCatalogsWithFilter(ctx context.Context, namespace string, filterType string, filterValue string, user string, password string) ([]model.CatalogState, error) {
+	ret := make([]model.CatalogState, 0)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+	path := "catalogs/registry"
+	if filterType != "" && filterValue != "" {
+		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
+		if namespace != "" {
+			path = path + "&namespace=" + url.QueryEscape(namespace)
+		}
+	} else if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+	}
+	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+func (a *apiClient) GetCatalogs(ctx context.Context, namespace string, user string, password string) ([]model.CatalogState, error) {
+	return a.GetCatalogsWithFilter(ctx, namespace, "", "", user, password)
+}
+
+func (a *apiClient) UpsertCatalog(ctx context.Context, catalog string, payload []byte, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "catalogs/registry/"+url.QueryEscape(catalog), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) DeleteCatalog(ctx context.Context, catalog string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "catalogs/registry/"+url.QueryEscape(catalog), "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+	path := "catalogs/status/" + url.QueryEscape(instance)
+	jData, _ := json.Marshal(components)
+	_, err = a.callRestAPI(ctx, path, "POST", jData, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) UpsertSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+	path := "solutions/" + url.QueryEscape(solution)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
+	_, err = a.callRestAPI(ctx, path, "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) GetSites(ctx context.Context, user string, password string) ([]model.SiteState, error) {
+	ret := make([]model.SiteState, 0)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "federation/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) UpdateSite(ctx context.Context, site string, payload []byte, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "federation/status/"+url.QueryEscape(site), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) GetABatchForSite(ctx context.Context, site string, user string, password string) (model.SyncPackage, error) {
+	ret := model.SyncPackage{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "federation/sync/"+url.QueryEscape(site)+"?count=10", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
+func (a *apiClient) SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return err
+	}
+	jData, _ := json.Marshal(status)
+	_, err = a.callRestAPI(ctx, "federation/sync", "POST", jData, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) SendVisualizationPacket(ctx context.Context, payload []byte, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+	_, err = a.callRestAPI(ctx, "visualization", "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (a *apiClient) callRestAPI(ctx context.Context, route string, method string, payload []byte, token string) ([]byte, error) {
 	urlString := fmt.Sprintf("%s%s", a.baseUrl, path.Clean(route))
 	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
@@ -499,6 +839,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var rUrl *url.URL
 	rUrl, err = url.Parse(urlString)
@@ -513,6 +854,8 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 
 	req, err = http.NewRequestWithContext(ctx, method, rUrl.String(), reqBody)
 	observ_utils.PropagateSpanContextToHttpRequestHeader(req)
+	coacontexts.PropagateActivityLogContextToHttpRequestHeader(req)
+	coacontexts.PropagateDiagnosticLogContextToHttpRequestHeader(req)
 	if err != nil {
 		return nil, err
 	}
@@ -527,6 +870,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	var bodyBytes []byte
@@ -536,17 +880,158 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
-			return nil, nil
-		}
-		object := &SummarySpecError{
-			Code:    fmt.Sprintf("Symphony API: [%d]", resp.StatusCode),
-			Message: string(bodyBytes),
-		}
+		object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 		return nil, object
 	}
 
 	return bodyBytes, nil
+}
+
+func (a *apiClient) CreateSolutionContainer(ctx context.Context, solutionContainer string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "solutioncontainers/"+url.QueryEscape(solutionContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) DeleteSolutionContainer(ctx context.Context, solutionContainer string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "solutioncontainers/"+url.QueryEscape(solutionContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) GetSolutionContainer(ctx context.Context, solutionContainer string, namespace string, user string, password string) (model.SolutionContainerState, error) {
+	ret := model.SolutionContainerState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "solutioncontainers/"+url.QueryEscape(solutionContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) CreateCatalogContainer(ctx context.Context, catalogContainer string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "catalogcontainers/"+url.QueryEscape(catalogContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) DeleteCatalogContainer(ctx context.Context, catalogContainer string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "catalogcontainers/"+url.QueryEscape(catalogContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) GetCatalogContainer(ctx context.Context, catalogContainer string, namespace string, user string, password string) (model.CatalogContainerState, error) {
+	ret := model.CatalogContainerState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "catalogcontainers/"+url.QueryEscape(catalogContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) CreateCampaignContainer(ctx context.Context, campaignContainer string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "campaigncontainers/"+url.QueryEscape(campaignContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) DeleteCampaignContainer(ctx context.Context, campaignContainer string, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "campaigncontainers/"+url.QueryEscape(campaignContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *apiClient) GetCampaignContainer(ctx context.Context, campaignContainer string, namespace string, user string, password string) (model.CampaignContainerState, error) {
+	ret := model.CampaignContainerState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "campaigncontainers/"+url.QueryEscape(campaignContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }
 
 func newHttpClient(ctx context.Context, secure bool) (*http.Client, error) {

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config-map
+data:
+  redis.conf: |
+    protected-mode {{ include "symphony.protectedMode" . }}
+    port {{ .Values.redis.port }}
+{{- if .Values.redis.persistentVolume.enabled }}
+    appendonly yes
+    appendfsync always
+    dir /data
+{{- end }}
+  pvEnabled: {{ .Values.redis.persistentVolume.enabled | quote }}
+  

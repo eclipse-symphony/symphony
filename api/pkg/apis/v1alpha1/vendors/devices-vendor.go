@@ -75,7 +75,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		"method": "onDevices",
 	})
 	defer span.End()
-	tLog.Infof("V (Devices): onDevices %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(pCtx, "V (Devices): onDevices %s", request.Method)
 
 	namespace, namespaceSupplied := request.Parameters["namespace"]
 	if !namespaceSupplied {
@@ -99,9 +99,9 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			state, err = c.DevicesManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			log.Errorf("V (Devices): failed to get device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, "V (Devices): failed to get device spec, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -112,7 +112,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
@@ -123,7 +123,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		err := json.Unmarshal(request.Body, &device)
 		if err != nil {
-			log.Errorf("V (Devices): failed to unmarshall request body, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, "V (Devices): failed to unmarshall request body, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -132,9 +132,9 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		err = c.DevicesManager.UpsertState(ctx, id, device)
 		if err != nil {
-			log.Errorf("V (Devices): failed to upsert device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, "V (Devices): failed to upsert device spec, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -146,9 +146,9 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		id := request.Parameters["__name"]
 		err := c.DevicesManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			log.Errorf("V (Devices): failed to delete device spec, error %v, traceId: %s", err, span.SpanContext().TraceID().String())
+			log.ErrorfCtx(ctx, "V (Devices): failed to delete device spec, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -157,7 +157,7 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		})
 	}
 
-	log.Infof("V (Devices): onDevices returns MethodNotAllowed, traceId: %s", span.SpanContext().TraceID().String())
+	log.ErrorCtx(pCtx, "V (Devices): onDevices returns MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

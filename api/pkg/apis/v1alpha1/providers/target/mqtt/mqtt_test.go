@@ -16,7 +16,9 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -166,12 +168,15 @@ func TestGet(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		err := json.Unmarshal(msg.Payload(), &request)
+		assert.Nil(t, err)
 		var response v1alpha2.COAResponse
 		ret := make([]model.ComponentSpec, 0)
 		data, _ := json.Marshal(ret)
 		response.State = v1alpha2.OK
 		response.Metadata = make(map[string]string)
-		response.Metadata["call-context"] = "TargetProvider-Get"
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		response.Body = data
 		data, _ = json.Marshal(response)
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
@@ -199,7 +204,7 @@ func TestGetBad(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://localhost:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -217,10 +222,13 @@ func TestGetBad(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		err := json.Unmarshal(msg.Payload(), &request)
+		assert.Nil(t, err)
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.InternalError
 		response.Metadata = make(map[string]string)
-		response.Metadata["call-context"] = "TargetProvider-Get"
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		response.Body = []byte("BAD!!")
 		data, _ := json.Marshal(response)
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
@@ -239,7 +247,7 @@ func TestGetBad(t *testing.T) {
 	}, nil)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, "BAD!!", err.Error())
+	assert.Equal(t, "Internal Error: BAD!!", err.Error())
 }
 func TestApply(t *testing.T) {
 	testMQTT := os.Getenv("TEST_MQTT")
@@ -277,6 +285,9 @@ func TestApply(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		err := json.Unmarshal(msg.Payload(), &request)
+		assert.Nil(t, err)
 		summarySpec := model.SummarySpec{
 			TargetCount:  1,
 			SuccessCount: 1,
@@ -299,7 +310,7 @@ func TestApply(t *testing.T) {
 		response.State = v1alpha2.OK
 		response.Body, _ = json.Marshal(summarySpec)
 		response.Metadata = make(map[string]string)
-		response.Metadata["call-context"] = "TargetProvider-Apply"
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		data, _ := json.Marshal(response)
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
 		token.Wait()
@@ -376,7 +387,7 @@ func TestApply(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
 	assert.Equal(t, ret["test-component"].Status, v1alpha2.Untouched)
-	assert.Equal(t, ret["test-component"].Message, "")
+	assert.Equal(t, ret["test-component"].Message, "No error. test-component is untouched")
 	assert.Equal(t, ret["test-target"].Status, v1alpha2.Updated)
 	assert.Equal(t, ret["test-target"].Message, TestTargetSuccessMessage)
 }
@@ -387,7 +398,7 @@ func TestApplyBad(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://localhost:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -405,10 +416,13 @@ func TestApplyBad(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		err := json.Unmarshal(msg.Payload(), &request)
+		assert.Nil(t, err)
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.InternalError
 		response.Metadata = make(map[string]string)
-		response.Metadata["call-context"] = "TargetProvider-Apply"
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		data, _ := json.Marshal(response)
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
 		token.Wait()
@@ -423,7 +437,16 @@ func TestApplyBad(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-	}, model.DeploymentStep{}, false) //TODO: this is probably broken - the step should contain at least one component
+	}, model.DeploymentStep{
+		Target: "test-target",
+		Components: []model.ComponentStep{{
+			Action: "update",
+			Component: model.ComponentSpec{
+				Name: "test-component",
+				Type: "test-component",
+			},
+		}},
+	}, false)
 
 	assert.NotNil(t, err)
 }
@@ -435,7 +458,7 @@ func TestARemove(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://localhost:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -453,10 +476,13 @@ func TestARemove(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		err := json.Unmarshal(msg.Payload(), &request)
+		assert.Nil(t, err)
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.OK
 		response.Metadata = make(map[string]string)
-		response.Metadata["call-context"] = "TargetProvider-Remove"
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		data, _ := json.Marshal(response)
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
 		token.Wait()
@@ -471,7 +497,16 @@ func TestARemove(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-	}, model.DeploymentStep{}, false)
+	}, model.DeploymentStep{
+		Target: "test-target",
+		Components: []model.ComponentStep{{
+			Action: "delete",
+			Component: model.ComponentSpec{
+				Name: "test-component",
+				Type: "test-component",
+			},
+		}},
+	}, false)
 	assert.Nil(t, err)
 }
 func TestARemoveBad(t *testing.T) {
@@ -481,7 +516,7 @@ func TestARemoveBad(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://localhost:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -499,10 +534,13 @@ func TestARemoveBad(t *testing.T) {
 		panic(token.Error())
 	}
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		err := json.Unmarshal(msg.Payload(), &request)
+		assert.Nil(t, err)
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.InternalError
 		response.Metadata = make(map[string]string)
-		response.Metadata["call-context"] = "TargetProvider-Remove"
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		data, _ := json.Marshal(response)
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
 		token.Wait()
@@ -517,7 +555,16 @@ func TestARemoveBad(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-	}, model.DeploymentStep{}, false) //TODO: this is probably broken, a step should have at least one component
+	}, model.DeploymentStep{
+		Target: "test-target",
+		Components: []model.ComponentStep{{
+			Action: "delete",
+			Component: model.ComponentSpec{
+				Name: "test-component",
+				Type: "test-component",
+			},
+		}},
+	}, false)
 
 	assert.NotNil(t, err)
 }
@@ -528,7 +575,7 @@ func TestGetApply(t *testing.T) {
 	}
 	config := MQTTTargetProviderConfig{
 		Name:          "me",
-		BrokerAddress: "tcp://20.118.146.198:1883",
+		BrokerAddress: "tcp://localhost:1883",
 		ClientID:      "coa-test2",
 		RequestTopic:  "coa-request",
 		ResponseTopic: "coa-response",
@@ -550,14 +597,13 @@ func TestGetApply(t *testing.T) {
 		json.Unmarshal(msg.Payload(), &request)
 		var response v1alpha2.COAResponse
 		response.Metadata = make(map[string]string)
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		if request.Method == "GET" {
-			response.Metadata["call-context"] = "TargetProvider-Get"
 			ret := make([]model.ComponentSpec, 0)
 			data, _ := json.Marshal(ret)
 			response.State = v1alpha2.OK
 			response.Body = data
 		} else {
-			response.Metadata["call-context"] = "TargetProvider-Apply"
 			response.State = v1alpha2.OK
 		}
 
@@ -587,7 +633,16 @@ func TestGetApply(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-	}, model.DeploymentStep{}, false) //TODO: this is probably broken - a step should have at least one component
+	}, model.DeploymentStep{
+		Target: "test-target",
+		Components: []model.ComponentStep{{
+			Action: "delete",
+			Component: model.ComponentSpec{
+				Name: "test-component",
+				Type: "test-component",
+			},
+		}},
+	}, false)
 	assert.Nil(t, err)
 }
 
@@ -616,20 +671,33 @@ func TestLocalApplyGet(t *testing.T) {
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
+
+	ctx := context.TODO()
+	correlationId := uuid.New().String()
+	resourceId := uuid.New().String()
+	ctx = contexts.PopulateResourceIdAndCorrelationIdToDiagnosticLogContext(correlationId, resourceId, ctx)
+
 	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
 		var response v1alpha2.COAResponse
 		response.State = v1alpha2.OK
 		response.Metadata = make(map[string]string)
 		var request v1alpha2.COARequest
 		json.Unmarshal(msg.Payload(), &request)
+
+		assert.NotEqual(t, ctx, request.Context)
+		assert.NotNil(t, request.Context)
+		diagCtx, ok := request.Context.Value(contexts.DiagnosticLogContextKey).(*contexts.DiagnosticLogContext)
+		assert.True(t, ok)
+		assert.NotNil(t, diagCtx)
+		assert.Equal(t, correlationId, diagCtx.GetCorrelationId())
+		assert.Equal(t, resourceId, diagCtx.GetResourceId())
+		response.Metadata["request-id"] = request.Metadata["request-id"]
 		if request.Method == "GET" {
-			response.Metadata["call-context"] = "TargetProvider-Get"
 			ret := make([]model.ComponentSpec, 0)
 			data, _ := json.Marshal(ret)
 			response.State = v1alpha2.OK
 			response.Body = data
 		} else {
-			response.Metadata["call-context"] = "TargetProvider-Apply"
 			response.State = v1alpha2.OK
 		}
 		data, _ := json.Marshal(response)
@@ -641,13 +709,13 @@ func TestLocalApplyGet(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
+	_, err = provider.Apply(ctx, model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
 	}, model.DeploymentStep{}, false)
 	assert.Nil(t, err)
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
+	arr, err := provider.Get(ctx, model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},

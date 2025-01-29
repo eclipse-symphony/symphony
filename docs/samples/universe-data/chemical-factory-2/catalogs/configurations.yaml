@@ -1,10 +1,16 @@
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: global-config
+  name: config-v-global
 spec: 
-  type: config
-  name: global-config
+  rootResource: config
+  catalogType: config  
   metadata:
     asset: hq
   properties:
@@ -13,11 +19,18 @@ spec:
     global3: global-value3
 ---
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config-line
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: l3-config
+  name: config-line-v-l3
 spec: 
-  type: config
+  rootResource: config-line
+  catalogType: config
   metadata:
     asset: l3
   properties:
@@ -28,9 +41,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: l4-config
+  name: config-line-v-l4
 spec: 
-  type: config
+  rootResource: config-line
+  catalogType: config
   metadata:
     asset: l4
   properties:
@@ -39,41 +53,62 @@ spec:
     l4-3: l4-value3
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
-  name: csad-config
-spec: 
-  type: config
-  parentName: global-config
-  metadata:
-    asset: use-case
-  properties:
-    l3: <l3-config>
-    l4: <l4-config>
+  name: config-csad
+spec:  
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-config
+  name: config-csad-v-1
 spec: 
-  type: config
+  rootResource: config-csad
+  catalogType: config
+  parentName: config:global
+  metadata:
+    asset: use-case
+  properties:
+    l3: <config-l3>
+    l4: <config-l4>
+---
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config-site
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: config-site-v-a
+spec: 
+  rootResource: config-site
+  catalogType: config
   metadata:
     asset: site
-  parentName: csad-config
+  parentName: config-csad:1
   properties:
     site1: site-value1
     site2: site-value2
     site3: site-value3
 ---
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config-site-line
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-a-config
+  name: config-site-line-v-a
 spec: 
-  type: config
+  rootResource: config-site-line
+  catalogType: config
   metadata:
     asset: line-a
-  parentName: site-config
+  parentName: config-site:a
   properties:
     line-a-1: line-a-value1
     line-a-2: line-a-value2
@@ -81,12 +116,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-b-config
+  name: config-site-line-v-b
 spec: 
-  type: config
+  rootResource: config-site-line
+  catalogType: config
   metadata:
     asset: line-b
-  parentName: site-config
+  parentName: config-site:a
   properties:
     line-a-1: line-b-value1
     line-a-2: line-b-value2

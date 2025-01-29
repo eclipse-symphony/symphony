@@ -48,12 +48,12 @@ function SideBar() {
         },
         {
             name: "Instances",
-            href: "/coming-soon",
+            href: "/instances",
             icon: IoLogoAppleAr,
         },
         {
             name: "Targets",
-            href: "/coming-soon",
+            href: "/targets",
             icon: FiServer,
         },
         {

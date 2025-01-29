@@ -13,6 +13,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -35,7 +36,7 @@ func createVisualizationVendor(t *testing.T) VisualizationVendor {
 				Name: "catalogs-manager",
 				Type: "managers.symphony.catalogs",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -53,6 +54,7 @@ func createVisualizationVendor(t *testing.T) VisualizationVendor {
 		},
 	}, &pubSubProvider)
 	assert.Nil(t, err)
+	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	return vendor
 }
 
@@ -90,19 +92,19 @@ func TestHandleVisPacket(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, response.State)
-	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology", "default")
+	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology-v-v1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "solution-1-topology", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology", "default")
+	assert.Equal(t, "solution-1-topology-v-v1", state.ObjectMeta.Name)
+	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology-v-v1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "target-1-topology", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology", "default")
+	assert.Equal(t, "target-1-topology-v-v1", state.ObjectMeta.Name)
+	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology-v-v1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "instance-1-topology", state.ObjectMeta.Name)
+	assert.Equal(t, "instance-1-topology-v-v1", state.ObjectMeta.Name)
 }
 
 func TestConvertVisualizationPacketToCatalog(t *testing.T) {
-	catalog, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -112,7 +114,7 @@ func TestConvertVisualizationPacketToCatalog(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog.Spec.Type)
+	assert.Equal(t, "topology", catalog.Spec.CatalogType)
 
 	v, ok := catalog.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
@@ -122,7 +124,7 @@ func TestConvertVisualizationPacketToCatalog(t *testing.T) {
 	assert.Equal(t, "bytes", v["to-1"].DataType)
 }
 func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
-	catalog, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -130,7 +132,7 @@ func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
 		To:       "to-1",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog.Spec.Type)
+	assert.Equal(t, "topology", catalog.Spec.CatalogType)
 
 	v, ok := catalog.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
@@ -138,7 +140,7 @@ func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
 	assert.Equal(t, "to-1", v["to-1"].To)
 }
 func TestMergeCatalogsSameKey(t *testing.T) {
-	catalog1, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog1, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -148,8 +150,8 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog1.Spec.Type)
-	catalog2, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
+	catalog2, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -159,7 +161,7 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog2.Spec.Type)
+	assert.Equal(t, "topology", catalog2.Spec.CatalogType)
 
 	mergedCatalog, err := mergeCatalogs(catalog1, catalog2)
 	assert.Nil(t, err)
@@ -176,7 +178,7 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 }
 
 func TestMergeCatalogsDifferentKey(t *testing.T) {
-	catalog1, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog1, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -186,8 +188,8 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog1.Spec.Type)
-	catalog2, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
+	catalog2, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -197,7 +199,7 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog2.Spec.Type)
+	assert.Equal(t, "topology", catalog2.Spec.CatalogType)
 
 	mergedCatalog, err := mergeCatalogs(catalog1, catalog2)
 	assert.Nil(t, err)

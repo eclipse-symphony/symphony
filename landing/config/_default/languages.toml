@@ -1,0 +1,10 @@
+############################# English ############################
+[en]
+languageName = "En"
+title = "Project Symphony"
+contentDir = "content"
+weight = 1
+########### footer content ##########
+footer_menu_left = "Learn"
+# copyright
+copyright = "© Project Symphony Authors"

@@ -1,10 +1,12 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: sample-staged-solution
-spec:  
+  name: sample-staged-solution-v-v1
+spec:
+  rootResource: sample-staged-solution
   components:
   - name: staged-component
+    type: container
     properties:
       foo: "bar"
       

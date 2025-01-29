@@ -12,6 +12,7 @@ import (
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -28,29 +29,26 @@ func (m Metrics) Metrics(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 		endpoint := ctx.UserValue(router.MatchedRoutePathParam)
 
+		var endpointString string
 		if endpoint != nil {
-			endpointString := endpoint.(string)
-
-			if ctx.Response.StatusCode() >= 400 {
-				ApiOperationMetrics.ApiOperationErrors(
-					endpointString,
-					string(ctx.Method()),
-					formatErrorCode(ctx.Response.StatusCode()),
-				)
-			} else {
-				ApiOperationMetrics.ApiOperationLatency(
-					startTime,
-					endpointString,
-					string(ctx.Method()),
-				)
-			}
+			endpointString = utils.FormatAsString(endpoint)
 		} else {
-			ApiOperationMetrics.ApiOperationErrors(
-				string(ctx.Path()),
-				string(ctx.Method()),
-				formatErrorCode(ctx.Response.StatusCode()),
-			)
+			endpointString = string(ctx.Path())
 		}
+		ApiOperationMetrics.ApiOperationStatus(
+			endpointString,
+			string(ctx.Method()),
+			ctx.Response.StatusCode(),
+			formatErrorCode(ctx.Response.StatusCode()),
+		)
+
+		ApiOperationMetrics.ApiOperationLatency(
+			startTime,
+			endpointString,
+			string(ctx.Method()),
+			ctx.Response.StatusCode(),
+			formatErrorCode(ctx.Response.StatusCode()),
+		)
 	}
 }
 

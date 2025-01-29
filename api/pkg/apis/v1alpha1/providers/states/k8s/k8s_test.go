@@ -275,8 +275,26 @@ func TestActivationUpsertWithState(t *testing.T) {
 		ConfigType: "path",
 	})
 	assert.Nil(t, err)
+
+	// Get current resource version
+	item, err := provider.Get(context.Background(), states.GetRequest{
+		ID: "a1",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "activations",
+			"kind":      "Activation",
+		},
+	})
+	assert.Nil(t, err)
+
 	activationStatus := model.ActivationStatus{
-		Stage: "s2",
+		StageHistory: []model.StageStatus{
+			{
+				Stage: "s2",
+			},
+		},
 	}
 	j, _ := json.Marshal(activationStatus)
 	var dict map[string]interface{}
@@ -296,6 +314,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 				},
 				"status": dict,
 			},
+			ETag: item.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"template":  fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Activation", "metadata": {"name": "${{$activation()}}"}}`, model.WorkflowGroup),
@@ -324,7 +343,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 	j, _ = json.Marshal(entry.Body.(map[string]interface{})["status"])
 	var rStatus model.ActivationStatus
 	json.Unmarshal(j, &rStatus)
-	assert.Equal(t, "s2", rStatus.Stage)
+	assert.Equal(t, "s2", rStatus.StageHistory[0].Stage)
 
 	err = provider.Delete(context.Background(), states.DeleteRequest{
 		ID: "a1",
@@ -640,6 +659,20 @@ func TestCatalogStatusFilter(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
+
+	// Get current resource version
+	item, err := provider.Get(context.Background(), states.GetRequest{
+		ID: "c2",
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     model.FederationGroup,
+			"version":   "v1",
+			"resource":  "catalogs",
+			"kind":      "Catalog",
+		},
+	})
+	assert.Nil(t, err)
+
 	_, err = provider.Upsert(context.Background(), states.UpsertRequest{ // An update is issued as in initial insert status is ignored. TODO: Isn't that a bug?
 		Value: states.StateEntry{
 			ID: "c2",
@@ -660,6 +693,7 @@ func TestCatalogStatusFilter(t *testing.T) {
 					},
 				},
 			},
+			ETag: item.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",

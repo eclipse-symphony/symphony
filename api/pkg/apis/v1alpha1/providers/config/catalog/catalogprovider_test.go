@@ -7,17 +7,22 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 )
+
+var ctx = context.Background()
 
 type AuthResponse struct {
 	AccessToken string   `json:"accessToken"`
@@ -42,13 +47,13 @@ func TestRead(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/catalog1":
+		case "/catalogs/registry/catalog1-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
+					Name: "catalog1-v-v1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent",
+					ParentName: "parent:v1",
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
 							{
@@ -56,13 +61,19 @@ func TestRead(t *testing.T) {
 								Type: "type",
 							},
 						},
+						"a": map[string]interface{}{
+							"b": map[string]interface{}{
+								"c": "nested",
+							},
+						},
+						"a.b.d": "dot",
 					},
 				},
 			}
-		case "/catalogs/registry/parent":
+		case "/catalogs/registry/parent-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent",
+					Name: "parent-v-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -82,9 +93,10 @@ func TestRead(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
-	err := provider.Init(CatalogConfigProviderConfig{BaseUrl: ts.URL + "/", User: "admin", Password: ""})
+	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
 		VencorContext: &contexts.VendorContext{
 			EvaluationContext: &utils.EvaluationContext{},
@@ -92,7 +104,7 @@ func TestRead(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.Read("catalog1", "components", nil)
+	res, err := provider.Read(ctx, "catalog1:v1", "components", nil)
 	assert.Nil(t, err)
 	data, err := json.Marshal(res)
 	assert.Nil(t, err)
@@ -101,13 +113,30 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
 
-	res, err = provider.Read("catalog1", "parentAttribute", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", "`.a.b.c`", nil)
+	assert.Nil(t, err)
+	data, err = json.Marshal(res)
+	assert.Nil(t, err)
+	var val string
+	err = json.Unmarshal(data, &val)
+	assert.Nil(t, err)
+	assert.Equal(t, "nested", val)
+
+	res, err = provider.Read(ctx, "catalog1:v1", "`.\"a.b.d\"`", nil)
+	assert.Nil(t, err)
+	data, err = json.Marshal(res)
+	assert.Nil(t, err)
+	err = json.Unmarshal(data, &val)
+	assert.Nil(t, err)
+	assert.Equal(t, "dot", val)
+
+	res, err = provider.Read(ctx, "catalog1:v1", "`.parentAttribute`", nil)
 	assert.Nil(t, err)
 	v, ok := res.(string)
 	assert.True(t, ok)
 	assert.Equal(t, "This is father", v)
 
-	res, err = provider.Read("catalog1", "notExist", nil)
+	res, err = provider.Read(ctx, "catalog1:v1", "notExist", nil)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.NotFound, coaErr.State)
 	assert.Empty(t, res)
@@ -117,13 +146,13 @@ func TestReadObject(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/catalog1":
+		case "/catalogs/registry/catalog1-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
+					Name: "catalog1-v-v1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent",
+					ParentName: "parent:v1",
 					Properties: map[string]interface{}{
 						"components": map[string]interface{}{
 							"Name": "name",
@@ -132,14 +161,17 @@ func TestReadObject(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/parent":
+		case "/catalogs/registry/parent-v-v1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent",
+					Name: "parent-v-v1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"parentAttribute": "This is father",
+						"components": map[string]interface{}{
+							"Name": "notaname",
+						},
 					},
 				},
 			}
@@ -155,9 +187,10 @@ func TestReadObject(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
-	err := provider.Init(CatalogConfigProviderConfig{BaseUrl: ts.URL + "/", User: "admin", Password: ""})
+	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
 		VencorContext: &contexts.VendorContext{
 			EvaluationContext: &utils.EvaluationContext{},
@@ -165,9 +198,9 @@ func TestReadObject(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.ReadObject("catalog1", nil)
+	res, err := provider.ReadObject(ctx, "catalog1:v1", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, "name", res["Name"])
+	assert.Equal(t, "name", res["components"].(map[string]interface{})["Name"])
 }
 
 func TestSetandRemove(t *testing.T) {
@@ -207,9 +240,10 @@ func TestSetandRemove(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
-	err := provider.Init(CatalogConfigProviderConfig{BaseUrl: ts.URL + "/", User: "admin", Password: ""})
+	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
 		VencorContext: &contexts.VendorContext{
 			EvaluationContext: &utils.EvaluationContext{},
@@ -217,13 +251,13 @@ func TestSetandRemove(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	err = provider.Set("catalog1", "random", "random")
+	err = provider.Set(ctx, "catalog1", "random", "random")
 	assert.Nil(t, err)
 
-	err = provider.Remove("catalog1", "components")
+	err = provider.Remove(ctx, "catalog1", "components")
 	assert.Nil(t, err)
 
-	err = provider.Remove("catalog1", "notExist")
+	err = provider.Remove(ctx, "catalog1", "notExist")
 	coeErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.NotFound, coeErr.State)
 }
@@ -265,9 +299,10 @@ func TestSetandRemoveObject(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	provider := CatalogConfigProvider{}
-	err := provider.Init(CatalogConfigProviderConfig{BaseUrl: ts.URL + "/", User: "admin", Password: ""})
+	err := provider.Init(CatalogConfigProviderConfig{})
 	provider.Context = &contexts.ManagerContext{
 		VencorContext: &contexts.VendorContext{
 			EvaluationContext: &utils.EvaluationContext{},
@@ -276,9 +311,9 @@ func TestSetandRemoveObject(t *testing.T) {
 	assert.Nil(t, err)
 	var data map[string]interface{} = make(map[string]interface{})
 	data["random"] = "random"
-	err = provider.SetObject("catalog1", data)
+	err = provider.SetObject(ctx, "catalog1", data)
 	assert.Nil(t, err)
 
-	err = provider.RemoveObject("catalog1")
+	err = provider.RemoveObject(ctx, "catalog1")
 	assert.Nil(t, err)
 }

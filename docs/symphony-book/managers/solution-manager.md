@@ -2,7 +2,7 @@
 
 _(last edit: 6/28/2023)_
 
-Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target_provider.md) to drive system states towards the desired state.
+Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target-providers/target_provider.md) to drive system states towards the desired state.
 
 Solution manager is the only stateful component in the Symphony system. When you scale out solution manager, you need to configure your solution manager instances to use a shared state store.
 
@@ -40,7 +40,7 @@ When using a in-memory store, Symphony maintains the generation number as an eve
 Solution manager caches the lasted deployment summary per instance and allows the summary to be queried. A client can decide to use the cache as the deployment state (within certain time window with matching generation number, for instance) instead of trying to queue additional reconciliation jobs.
 
 ```go
-summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.Name)
+summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.GetSummaryId())
 generationMatch := true
 if v, err := strconv.ParseInt(summary.Generation, 10, 64); err == nil {
     generationMatch = v == instance.GetGeneration()

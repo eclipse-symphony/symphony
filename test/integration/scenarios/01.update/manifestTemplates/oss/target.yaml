@@ -9,12 +9,14 @@ metadata:
   name: self
   annotations: {}
 spec:
-  displayName: int-virtual-02
-  scope: alice-springs
+  displayName: int-virtual-02-v1
+  scope: test-scope
   topologies:
   - bindings:
     - config:
         inCluster: "true"
+        noWait: "false"
+        timeout: "5m"
       provider: providers.target.k8s
       role: instance
     - config:

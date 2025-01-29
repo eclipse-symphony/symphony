@@ -10,8 +10,10 @@ import (
 	"context"
 	"errors"
 
+	"gopls-workspace/constants"
 	. "gopls-workspace/testing"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -33,10 +35,13 @@ import (
 var _ = Describe("Target controller", Ordered, func() {
 	var apiClient *MockApiClient
 	var kubeClient client.Client
-	var controller *TargetReconciler
+	var controllerQueueing *TargetQueueingReconciler
+	var controllerPolling *TargetPollingReconciler
 	var target *symphonyv1.Target
 	var reconcileError error
 	var reconcileResult ctrl.Result
+	var reconcileErrorPolling error
+	var jobID string
 
 	BeforeEach(func() {
 		By("setting up the controller")
@@ -48,16 +53,29 @@ var _ = Describe("Target controller", Ordered, func() {
 		kubeClient = CreateFakeKubeClientForFabricGroup(
 			BuildDefaultTarget(),
 		)
-		controller = &TargetReconciler{
-			Client:                 kubeClient,
-			Scheme:                 kubeClient.Scheme(),
-			ReconciliationInterval: TestReconcileInterval,
-			PollInterval:           TestPollInterval,
-			DeleteTimeOut:          TestReconcileTimout,
-			ApiClient:              apiClient,
-		}
+		controllerQueueing = &TargetQueueingReconciler{
+			TargetReconciler: TargetReconciler{
+				Client:                 kubeClient,
+				Scheme:                 kubeClient.Scheme(),
+				ReconciliationInterval: TestReconcileInterval,
+				PollInterval:           TestPollInterval,
+				DeleteTimeOut:          TestReconcileTimout,
+				ApiClient:              apiClient,
+			}}
 
-		controller.dr, err = controller.buildDeploymentReconciler()
+		controllerQueueing.dr, err = controllerQueueing.buildDeploymentReconciler()
+
+		controllerPolling = &TargetPollingReconciler{
+			TargetReconciler: TargetReconciler{
+				Client:                 kubeClient,
+				Scheme:                 kubeClient.Scheme(),
+				ReconciliationInterval: TestReconcileInterval,
+				PollInterval:           TestPollInterval,
+				DeleteTimeOut:          TestReconcileTimout,
+				ApiClient:              apiClient,
+			}}
+
+		controllerPolling.dr, err = controllerPolling.buildDeploymentReconciler()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -70,7 +88,16 @@ var _ = Describe("Target controller", Ordered, func() {
 
 		JustBeforeEach(func(ctx context.Context) {
 			By("simulating a reconcile event")
-			reconcileResult, reconcileError = controller.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
+			reconcileResult, reconcileError = controllerQueueing.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
+			kubeClient.Get(ctx, DefaultTargetNamepsacedName, target)
+			annotations := target.GetAnnotations()
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			annotations[constants.SummaryJobIdKey] = jobID
+			target.SetAnnotations(annotations)
+			kubeClient.Update(ctx, target)
+			_, reconcileErrorPolling = controllerPolling.Reconcile(ctx, ctrl.Request{NamespacedName: DefaultTargetNamepsacedName})
 		})
 
 		When("the target is created", func() {
@@ -83,7 +110,9 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func() {
 					By("mocking the get summary call to return a successful deployment")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(target, hash), nil)
+					jobID = uuid.New().String()
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(target, hash, jobID), nil)
 				})
 
 				It("should not return an error", func() {
@@ -91,14 +120,21 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue after the reconciliation interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controller.ReconciliationInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
+				})
+				It("should not return an error", func() {
+					Expect(reconcileErrorPolling).ToNot(HaveOccurred())
+				})
+
+				It("should requeue after the reconciliation interval", func() {
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 				})
 			})
 
 			Context("and the deployment failed due to some error", func() {
 				BeforeEach(func() {
 					By("mocking the get summary call to return a not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking a failed deployment to the api")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("some error"))
@@ -117,15 +153,19 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func() {
 					By("mocking the get summary call to return a successful deployment")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockFailureSummaryResult(target, hash), nil)
+					jobID = uuid.New().String()
+					summary := MockFailureSummaryResult(target, hash)
+					summary.Summary.JobID = jobID
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should not return an error", func() {
-					Expect(reconcileError).ToNot(HaveOccurred())
+					Expect(reconcileErrorPolling).ToNot(HaveOccurred())
 				})
 
 				It("should requeue after the reconciliation interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controller.ReconciliationInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.ReconciliationInterval))
 				})
 
 				It("should have a status of failed", func() {
@@ -174,9 +214,12 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a completed delete deployment from the api")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
+					jobID = uuid.New().String()
 					summary := MockSucessSummaryResult(target, hash)
 					summary.Summary.IsRemoval = true
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					summary.Summary.JobID = jobID
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should no longer exist in the kubernetes api", func(ctx context.Context) {
@@ -195,7 +238,8 @@ var _ = Describe("Target controller", Ordered, func() {
 					By("simulating a pending delete deployment from the api")
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
 					summary := MockInProgressDeleteSummaryResult(target, hash)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				JustBeforeEach(func(ctx context.Context) {
@@ -212,14 +256,15 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue after the poll interval", func() {
-					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controller.PollInterval))
+					Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(controllerQueueing.PollInterval))
 				})
 			})
 
 			Context("and the deletion deployment failed due to random error", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a failed delete deployment from the api")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
+					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
 				})
 
 				JustBeforeEach(func(ctx context.Context) {
@@ -232,7 +277,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				})
 
 				It("should requeue as soon as possible due to error", func() {
-					Expect(reconcileError).To(HaveOccurred())
+					Expect(reconcileErrorPolling).To(HaveOccurred())
 				})
 			})
 		})

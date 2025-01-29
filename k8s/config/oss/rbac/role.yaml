@@ -363,6 +363,26 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
+  - catalogevalexpressions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogevalexpressions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
   - catalogs/finalizers
   verbs:
   - update
@@ -370,6 +390,110 @@ rules:
   - federation.symphony
   resources:
   - catalogs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigncontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigncontainers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigncontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutioncontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutioncontainers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutioncontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogcontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogcontainers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogcontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/status
   verbs:
   - get
   - patch

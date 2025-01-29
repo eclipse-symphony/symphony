@@ -11,9 +11,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -29,8 +30,10 @@ var log = logger.NewLogger("coa.runtime")
 
 type CatalogsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
-	GraphProvider graph.IGraphProvider
+	StateProvider    states.IStateProvider
+	GraphProvider    graph.IGraphProvider
+	needValidate     bool
+	CatalogValidator validation.CatalogValidator
 }
 
 func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -38,7 +41,7 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 	if err != nil {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
@@ -49,6 +52,12 @@ func (s *CatalogsManager) Init(context *contexts.VendorContext, config managers.
 			s.GraphProvider = cProvider
 		}
 	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.CatalogValidator = validation.NewCatalogValidator(s.CatalogLookup, s.CatalogContainerLookup, s.ChildCatalogLookup)
+		s.CatalogValidator = validation.NewCatalogValidator(s.CatalogLookup, nil, s.ChildCatalogLookup)
+	}
 	return nil
 }
 
@@ -58,6 +67,7 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: name,
@@ -75,14 +85,15 @@ func (s *CatalogsManager) GetState(ctx context.Context, name string, namespace s
 		return model.CatalogState{}, err
 	}
 	var ret model.CatalogState
-	ret, err = getCatalogState(entry.Body, entry.ETag)
+	ret, err = getCatalogState(entry.Body)
 	if err != nil {
 		return model.CatalogState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
-func getCatalogState(body interface{}, etag string) (model.CatalogState, error) {
+func getCatalogState(body interface{}) (model.CatalogState, error) {
 	var catalogState model.CatalogState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &catalogState)
@@ -92,64 +103,43 @@ func getCatalogState(body interface{}, etag string) (model.CatalogState, error) 
 	if catalogState.Spec == nil {
 		catalogState.Spec = &model.CatalogSpec{}
 	}
-	catalogState.Spec.Generation = etag
 	if catalogState.Status == nil {
 		catalogState.Status = &model.CatalogStatus{}
 	}
 	return catalogState, nil
 }
-func (m *CatalogsManager) ValidateState(ctx context.Context, state model.CatalogState) (utils.SchemaResult, error) {
-	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
-		"method": "ValidateSpec",
-	})
-	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, &err)
 
-	if state.Spec != nil && state.Spec.Metadata != nil {
-		if schemaName, ok := state.Spec.Metadata["schema"]; ok {
-			var schema model.CatalogState
-			schema, err = m.GetState(ctx, schemaName, state.ObjectMeta.Namespace)
-			if err != nil {
-				err = v1alpha2.NewCOAError(err, "schema not found", v1alpha2.ValidateFailed)
-				return utils.SchemaResult{Valid: false}, err
-			}
-			if s, ok := schema.Spec.Properties["spec"]; ok {
-				var schemaObj utils.Schema
-				jData, _ := json.Marshal(s)
-				err = json.Unmarshal(jData, &schemaObj)
-				if err != nil {
-					err = v1alpha2.NewCOAError(err, "invalid schema", v1alpha2.ValidateFailed)
-					return utils.SchemaResult{Valid: false}, err
-				}
-				return schemaObj.CheckProperties(state.Spec.Properties, nil)
-			} else {
-				err = v1alpha2.NewCOAError(fmt.Errorf("schema not found"), "schema validation error", v1alpha2.ValidateFailed)
-				return utils.SchemaResult{Valid: false}, err
-			}
-		}
-	}
-	return utils.SchemaResult{Valid: true}, nil
-}
 func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state model.CatalogState) error {
 	ctx, span := observability.StartSpan("Catalogs Manager", ctx, &map[string]string{
 		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
 
-	var result utils.SchemaResult
-	result, err = m.ValidateState(ctx, state)
-	if err != nil {
-		return err
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
-	if !result.Valid {
-		err = v1alpha2.NewCOAError(nil, "schema validation error", v1alpha2.ValidateFailed)
-		return err
+
+	if m.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+			if state.Spec.ParentName != "" {
+				state.ObjectMeta.Labels[constants.ParentName] = validation.ConvertReferenceToObjectName(state.Spec.ParentName)
+			}
+		}
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CatalogValidator, state, oldState, getStateErr); err != nil {
+			return err
+		}
 	}
 
 	upsertRequest := states.UpsertRequest{
@@ -161,6 +151,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 				"metadata":   state.ObjectMeta,
 				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -176,13 +167,14 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 	}
 	m.Context.Publish("catalog", v1alpha2.Event{
 		Metadata: map[string]string{
-			"objectType": state.Spec.Type,
+			"objectType": state.Spec.CatalogType,
 		},
 		Body: v1alpha2.JobData{
 			Id:     state.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
 			Body:   state,
 		},
+		Context: ctx,
 	})
 	return nil
 }
@@ -193,6 +185,13 @@ func (m *CatalogsManager) DeleteState(ctx context.Context, name string, namespac
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if m.needValidate {
+		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	//TODO: publish DELETE event
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
@@ -214,6 +213,7 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -234,10 +234,11 @@ func (t *CatalogsManager) ListState(ctx context.Context, namespace string, filte
 	ret := make([]model.CatalogState, 0)
 	for _, t := range catalogs {
 		var rt model.CatalogState
-		rt, err = getCatalogState(t.Body, t.ETag)
+		rt, err = getCatalogState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
@@ -265,8 +266,9 @@ func (g *CatalogsManager) GetChains(ctx context.Context, filter string, namespac
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debug(" M (Graph): GetChains")
+	log.DebugCtx(ctx, " M (Graph): GetChains")
 	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
@@ -288,8 +290,9 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Debug(" M (Graph): GetTrees")
+	log.DebugCtx(ctx, " M (Graph): GetTrees")
 	err = g.setProviderDataIfNecessary(ctx, namespace)
 	if err != nil {
 		return nil, err
@@ -304,4 +307,25 @@ func (g *CatalogsManager) GetTrees(ctx context.Context, filter string, namespace
 		res[key] = set.Nodes
 	}
 	return res, nil
+}
+
+func (t *CatalogsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return validation.ValidateDeleteWrapper(ctx, &t.CatalogValidator, state, err)
+}
+
+func (t *CatalogsManager) CatalogContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.CatalogContainer, name, namespace)
+}
+
+func (t *CatalogsManager) CatalogLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Catalog, name, namespace)
+}
+
+func (t *CatalogsManager) ChildCatalogLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	catalogList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Catalog, namespace, map[string]string{constants.ParentName: name}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(catalogList) > 0, nil
 }

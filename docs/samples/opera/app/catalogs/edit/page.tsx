@@ -17,7 +17,7 @@ const getCatalogs = async (type: string) => {
     const data = await res.json();
     //map each element and do some transformation
     const catalogs = data
-    .filter((catalog: CatalogState) => catalog.spec.type === type);
+    .filter((catalog: CatalogState) => catalog.spec.catalogType === type);
     return catalogs;
   }
 

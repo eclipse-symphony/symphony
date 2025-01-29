@@ -30,7 +30,7 @@ type (
 		Constraints   string            `json:"constraints,omitempty"`
 		Topologies    []TopologySpec    `json:"topologies,omitempty"`
 		ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
-		Generation    string            `json:"generation,omitempty"`
+		IsDryRun      bool              `json:"isDryRun,omitempty"`
 	}
 )
 

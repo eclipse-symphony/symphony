@@ -8,6 +8,7 @@ package memory
 
 import (
 	"testing"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
@@ -18,10 +19,12 @@ func TestBasicPubSub(t *testing.T) {
 	msg := ""
 	provider := InMemoryPubSubProvider{}
 	provider.Init(InMemoryPubSubConfig{Name: "test"})
-	provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg = event.Body.(string)
-		sig <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg = event.Body.(string)
+			sig <- 1
+			return nil
+		},
 	})
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
@@ -35,15 +38,19 @@ func TestMultipleSubscriber(t *testing.T) {
 	msg2 := ""
 	provider := InMemoryPubSubProvider{}
 	provider.Init(InMemoryPubSubConfig{Name: "test"})
-	provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg1 = event.Body.(string)
-		sig1 <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg1 = event.Body.(string)
+			sig1 <- 1
+			return nil
+		},
 	})
-	provider.Subscribe("test", func(topic string, event v1alpha2.Event) error {
-		msg2 = event.Body.(string)
-		sig2 <- 1
-		return nil
+	provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg2 = event.Body.(string)
+			sig2 <- 1
+			return nil
+		},
 	})
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig1
@@ -59,15 +66,19 @@ func TestMultipleTopics(t *testing.T) {
 	msg2 := ""
 	provider := InMemoryPubSubProvider{}
 	provider.Init(InMemoryPubSubConfig{Name: "test"})
-	provider.Subscribe("test1", func(topic string, event v1alpha2.Event) error {
-		msg1 = event.Body.(string)
-		sig1 <- 1
-		return nil
+	provider.Subscribe("test1", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg1 = event.Body.(string)
+			sig1 <- 1
+			return nil
+		},
 	})
-	provider.Subscribe("test2", func(topic string, event v1alpha2.Event) error {
-		msg2 = event.Body.(string)
-		sig2 <- 1
-		return nil
+	provider.Subscribe("test2", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			msg2 = event.Body.(string)
+			sig2 <- 1
+			return nil
+		},
 	})
 	provider.Publish("test1", v1alpha2.Event{Body: "TEST1"})
 	provider.Publish("test2", v1alpha2.Event{Body: "TEST2"})
@@ -133,4 +144,82 @@ func TestCloneWithConfig(t *testing.T) {
 		Name: "my-name",
 	})
 	assert.Nil(t, err)
+}
+
+func TestMemoryPubsubProviderBadRequest(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	provider.Init(InMemoryPubSubConfig{
+		Name:                      "test",
+		SubscriberRetryCount:      5,
+		SubscriberRetryWaitSecond: 1,
+	})
+
+	ch := make(chan struct{})
+	count := 0
+
+	err := provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			count += 1
+			ch <- struct{}{}
+			return v1alpha2.NewCOAError(nil, "insert bad request", v1alpha2.BadRequest)
+		},
+	})
+	assert.Nil(t, err)
+	err = provider.Publish("test", v1alpha2.Event{
+		Body: "test",
+	})
+	assert.Nil(t, err)
+
+	signal := 0
+	for signal < 1 {
+		select {
+		case <-ch:
+			close(ch)
+		case <-time.After(5 * time.Second):
+			// Timeout, function was not called
+			t.Fatal("Function was not called within the timeout period")
+		}
+		signal += 1
+	}
+	time.Sleep(5 * time.Second) // Wait to ensure no further calls are made
+	assert.Equal(t, 1, count)
+}
+
+func TestMemoryPubsubProviderInternalError(t *testing.T) {
+	provider := InMemoryPubSubProvider{}
+	provider.Init(InMemoryPubSubConfig{
+		Name:                      "test",
+		SubscriberRetryCount:      4,
+		SubscriberRetryWaitSecond: 1,
+	})
+
+	ch := make(chan struct{})
+	count := 0
+
+	err := provider.Subscribe("test", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			count += 1
+			ch <- struct{}{}
+			return v1alpha2.NewCOAError(nil, "insert internal error", v1alpha2.InternalError)
+		},
+	})
+	assert.Nil(t, err)
+	err = provider.Publish("test", v1alpha2.Event{
+		Body: "test",
+	})
+	assert.Nil(t, err)
+
+	signal := 0
+	for signal < 5 {
+		select {
+		case <-ch:
+		case <-time.After(5 * time.Second):
+			// Timeout, function was not called
+			t.Fatal("Function was not called within the timeout period")
+		}
+		signal += 1
+	}
+	close(ch)
+	time.Sleep(2 * time.Second) // Wait to ensure no further calls are made
+	assert.Equal(t, 5, count)
 }

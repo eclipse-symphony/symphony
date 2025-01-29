@@ -8,7 +8,7 @@ kind: Catalog
 metadata:
   name: robot-config
 spec: 
-  type: config
+  catalogType: config
   properties:
     name: my-robot
     os_version: "1.34"

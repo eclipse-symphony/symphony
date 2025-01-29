@@ -30,11 +30,19 @@ var _ = Describe("RBAC", Ordered, func() {
 	var instanceBytes []byte
 	var targetBytes []byte
 	var solutionBytes []byte
+	var solutionContainerBytes []byte
 	var specTimeout = 3 * time.Minute
 	var installValues HelmValues
 	var runRbacTest = func(ctx context.Context, testcase Rbac) {
-		By("setting the components for the target and scope")
 		var err error
+
+		By("deploy solution container")
+		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("setting the components for the target and scope")
 		targetBytes, err = testhelpers.PatchTarget(defaultTargetManifest, testhelpers.TargetOptions{
 			ComponentNames: testcase.TargetComponents,
 			Scope:          testcase.TargetScope,
@@ -53,16 +61,16 @@ var _ = Describe("RBAC", Ordered, func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the instance")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
-		Expect(err).ToNot(HaveOccurred())
-
 		By("deploying the target")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("deploying the solution")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("deploying the instance")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("verifying the resources")
@@ -77,7 +85,8 @@ var _ = Describe("RBAC", Ordered, func() {
 
 	AfterAll(func() {
 		By("uninstalling orchestrator from the cluster")
-		err := shell.LocalenvCmd(context.Background(), "mage destroy all")
+		err := shell.LocalenvCmd(context.Background(), "mage DumpSymphonyLogsForTest ginkgosuite_rbac")
+		err = shell.LocalenvCmd(context.Background(), "mage Destroy all,nowait")
 		Expect(err).ToNot(HaveOccurred())
 	})
 

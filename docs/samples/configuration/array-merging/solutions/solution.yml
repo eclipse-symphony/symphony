@@ -1,9 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: array-merging-solution  
+spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: array-merging-solution
+  name: array-merging-solution-v-v1
 spec:
+  rootResource: array-merging-solution
   components:
     - name: array-merging-deployment
       type: yaml.k8s
@@ -44,8 +50,8 @@ spec:
     - name: merged-config-region1
       type: config
       properties:
-        tags: ${{$config('region1-config', '')}}
+        tags: ${{$config('region1:config', '')}}
     - name: merged-config-region2
       type: config
       properties:
-        tags: ${{$config('region2-config', '')}}
+        tags: ${{$config('region2:config', '')}}

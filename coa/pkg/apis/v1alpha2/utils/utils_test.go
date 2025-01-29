@@ -7,6 +7,8 @@
 package utils
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -14,6 +16,45 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUnmarshal(t *testing.T) {
+	context := EvaluationContext{
+		Properties: map[string]string{
+			"abc": "def",
+		},
+		Inputs: map[string]interface{}{
+			"abc": "def",
+		},
+		Outputs: map[string]map[string]interface{}{
+			"abc": {
+				"def": "ghi",
+			},
+		},
+	}
+	data, err := json.Marshal(context)
+	assert.Nil(t, err)
+	var ret EvaluationContext
+	err = UnmarshalJson(data, &ret)
+	assert.Nil(t, err)
+	assert.Equal(t, context, ret)
+}
+
+func TestUnmarshalWrongData(t *testing.T) {
+	type WrongContext struct {
+		Namespace string
+		Name      string
+	}
+	context := WrongContext{
+		Namespace: "test",
+		Name:      "wrong context",
+	}
+	data, err := json.Marshal(context)
+	assert.Nil(t, err)
+	var ret EvaluationContext
+	err = UnmarshalJson(data, &ret)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "unknown field")
+}
 
 func TestUnmarshalDuration(t *testing.T) {
 	duration, err := UnmarshalDuration("1")
@@ -56,7 +97,7 @@ func (t *TestSecretProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (t *TestSecretProvider) Get(object string, field string) (string, error) {
+func (t *TestSecretProvider) Get(ctx context.Context, object string, field string, localContext interface{}) (string, error) {
 	return "test", nil
 }
 
@@ -67,11 +108,11 @@ func (t *TestExtConfigProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (t *TestExtConfigProvider) Get(object string, field string, overrides []string, localContext interface{}) (interface{}, error) {
+func (t *TestExtConfigProvider) Get(ctx context.Context, object string, field string, overrides []string, localContext interface{}) (interface{}, error) {
 	return "test", nil
 }
 
-func (t *TestExtConfigProvider) GetObject(object string, overrides []string, localContext interface{}) (map[string]interface{}, error) {
+func (t *TestExtConfigProvider) GetObject(ctx context.Context, object string, overrides []string, localContext interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{"test": "test"}, nil
 }
 

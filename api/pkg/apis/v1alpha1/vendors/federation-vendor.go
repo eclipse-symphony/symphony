@@ -9,6 +9,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
@@ -38,6 +39,7 @@ type FederationVendor struct {
 	StagingManager  *staging.StagingManager
 	SyncManager     *sync.SyncManager
 	TrailsManager   *trails.TrailsManager
+	apiClient       utils.ApiClient
 }
 
 func (f *FederationVendor) GetInfo() vendors.VendorInfo {
@@ -78,62 +80,106 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 	if f.CatalogsManager == nil {
 		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
 	}
-	f.Vendor.Context.Subscribe("catalog", func(topic string, event v1alpha2.Event) error {
-		sites, err := f.SitesManager.ListState(context.TODO())
-		if err != nil {
-			return err
-		}
-		for _, site := range sites {
-			if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
-				event.Metadata["site"] = site.Spec.Name
-				f.StagingManager.HandleJobEvent(context.TODO(), event) //TODO: how to handle errors in this case?
-			}
-		}
-		return nil
-	})
-	f.Vendor.Context.Subscribe("remote", func(topic string, event v1alpha2.Event) error {
-		_, ok := event.Metadata["site"]
-		if !ok {
-			return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
-		}
-		f.StagingManager.HandleJobEvent(context.TODO(), event) //TODO: how to handle errors in this case?
-		return nil
-	})
-	f.Vendor.Context.Subscribe("report", func(topic string, event v1alpha2.Event) error {
-		fLog.Debugf("V (Federation): received report event: %v", event)
-		jData, _ := json.Marshal(event.Body)
-		var status model.ActivationStatus
-		err := json.Unmarshal(jData, &status)
-		if err == nil {
-			err := utils.SyncActivationStatus(
-				context.TODO(),
-				f.Vendor.Context.SiteInfo.ParentSite.BaseUrl,
-				f.Vendor.Context.SiteInfo.ParentSite.Username,
-				f.Vendor.Context.SiteInfo.ParentSite.Password, status)
+	f.apiClient, err = utils.GetParentApiClient(f.Vendor.Context.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
+	}
+	f.Vendor.Context.Subscribe("catalog", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			sites, err := f.SitesManager.ListState(context.TODO())
 			if err != nil {
-				fLog.Errorf("V (Federation): error while syncing activation status: %v", err)
 				return err
 			}
-		}
-		return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
-	})
-	f.Vendor.Context.Subscribe("trail", func(topic string, event v1alpha2.Event) error {
-		if f.TrailsManager != nil {
-			jData, _ := json.Marshal(event.Body)
-			var trails []v1alpha2.Trail
-			err := json.Unmarshal(jData, &trails)
-			if err == nil {
-				return f.TrailsManager.Append(context.TODO(), trails)
+			for _, site := range sites {
+				if site.Spec.Name != f.Vendor.Context.SiteInfo.SiteId {
+					event.Metadata["site"] = site.Spec.Name
+					ctx := context.TODO()
+					if event.Context != nil {
+						ctx = event.Context
+					}
+					f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
+				}
 			}
-		}
-		return nil
+			return nil
+		},
 	})
-	//now register the current site
-	return f.SitesManager.UpsertSpec(context.TODO(), f.Context.SiteInfo.SiteId, model.SiteSpec{
-		Name:       f.Context.SiteInfo.SiteId,
-		Properties: f.Context.SiteInfo.Properties,
-		IsSelf:     true,
+	f.Vendor.Context.Subscribe("remote", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			_, ok := event.Metadata["site"]
+			if !ok {
+				return v1alpha2.NewCOAError(nil, "site is not supplied", v1alpha2.BadRequest)
+			}
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			f.StagingManager.HandleJobEvent(ctx, event) //TODO: how to handle errors in this case?
+			return nil
+		},
 	})
+	f.Vendor.Context.Subscribe("report", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			fLog.DebugfCtx(ctx, "V (Federation): received report event: %v", event)
+			jData, _ := json.Marshal(event.Body)
+			var status model.StageStatus
+			err := json.Unmarshal(jData, &status)
+			if err == nil {
+				ctx := context.TODO()
+				if event.Context != nil {
+					ctx = event.Context
+				}
+				err := f.apiClient.SyncStageStatus(ctx, status,
+					f.Vendor.Context.SiteInfo.ParentSite.Username,
+					f.Vendor.Context.SiteInfo.ParentSite.Password)
+				if err != nil {
+					fLog.ErrorfCtx(ctx, "V (Federation): error while syncing activation status: %v", err)
+					return err
+				}
+			}
+			return v1alpha2.NewCOAError(nil, "report is not an activation status", v1alpha2.BadRequest)
+		},
+	})
+	f.Vendor.Context.Subscribe("trail", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			ctx := context.TODO()
+			if event.Context != nil {
+				ctx = event.Context
+			}
+			if f.TrailsManager != nil {
+				jData, _ := json.Marshal(event.Body)
+				var trails []v1alpha2.Trail
+				err := json.Unmarshal(jData, &trails)
+				if err == nil {
+					return f.TrailsManager.Append(ctx, trails)
+				}
+			}
+			return nil
+		},
+	})
+	// now register the current site
+	site := model.SiteState{
+		Id: f.Context.SiteInfo.SiteId,
+		ObjectMeta: model.ObjectMeta{
+			Name: f.Context.SiteInfo.SiteId,
+		},
+		Spec: &model.SiteSpec{
+			Name:       f.Context.SiteInfo.SiteId,
+			Properties: f.Context.SiteInfo.Properties,
+			IsSelf:     true,
+		},
+	}
+	oldSite, err := f.SitesManager.GetState(context.Background(), f.Context.SiteInfo.SiteId)
+	if err != nil && !utils.IsNotFound(err) {
+		return v1alpha2.NewCOAError(err, "Get previous site state failed", v1alpha2.InternalError)
+	} else if err == nil {
+		site.ObjectMeta.UpdateEtag(oldSite.ObjectMeta.ETag)
+	}
+
+	return f.SitesManager.UpsertState(context.Background(), f.Context.SiteInfo.SiteId, site)
 }
 func (f *FederationVendor) GetEndpoints() []v1alpha2.Endpoint {
 	route := "federation"
@@ -182,7 +228,7 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 
-	tLog.Info("V (Federation): OnStatus")
+	tLog.InfoCtx(pCtx, "V (Federation): OnStatus")
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var state model.SiteState
@@ -192,7 +238,7 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -230,14 +276,15 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = f.SitesManager.GetState(ctx, id)
 		}
 		if err != nil {
-			if v1alpha2.IsNotFound(err) {
+			if utils.IsNotFound(err) {
+				errorMsg := fmt.Sprintf("site '%s' is not found", id)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.NotFound,
-					Body:  []byte(err.Error()),
+					Body:  []byte(errorMsg),
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -249,15 +296,14 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
-		// TODO: POST federation/registry need to pass SiteState as request body
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var site model.SiteSpec
+		var site model.SiteState
 		err := json.Unmarshal(request.Body, &site)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -266,10 +312,10 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 			})
 		}
 		//TODO: generate site key pair as needed
-		err = f.SitesManager.UpsertSpec(ctx, id, site)
+		err = f.SitesManager.UpsertState(ctx, id, site)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -282,7 +328,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		err := f.SitesManager.DeleteSpec(ctx, id)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -307,22 +353,23 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	tLog.Info("V (Federation): onSync")
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var status model.ActivationStatus
+		var status model.StageStatus
 		err := json.Unmarshal(request.Body, &status)
 		if err != nil {
-			tLog.Errorf("V (Federation): failed to unmarshal activation status: %v", err)
+			tLog.ErrorfCtx(pCtx, "V (Federation): failed to unmarshal stage status: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.BadRequest,
 				Body:  []byte(err.Error()),
 			})
 		}
 		err = f.Vendor.Context.Publish("job-report", v1alpha2.Event{
-			Body: status,
+			Body:    status,
+			Context: pCtx,
 		})
 		if err != nil {
-			tLog.Errorf("V (Federation): failed to publish job report: %v", err)
+			tLog.ErrorfCtx(pCtx, "V (Federation): failed to publish job report: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -356,7 +403,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -369,7 +416,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 				catalog, err := f.CatalogsManager.GetState(ctx, c.Id, namespace)
 				if err != nil {
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State: v1alpha2.InternalError,
+						State: v1alpha2.GetErrorState(err),
 						Body:  []byte(err.Error()),
 					})
 				}
@@ -385,7 +432,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	}
@@ -411,7 +458,7 @@ func (f *FederationVendor) onTrail(request v1alpha2.COARequest) v1alpha2.COAResp
 	return resp
 }
 func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Federation Vendor", request.Context, &map[string]string{
 		"method": "onK8sHook",
 	})
 	defer span.End()
@@ -431,17 +478,18 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 			}
 			err = f.Vendor.Context.Publish("catalog", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Spec.Type,
+					"objectType": catalog.Spec.CatalogType,
 				},
 				Body: v1alpha2.JobData{
 					Id:     catalog.ObjectMeta.Name,
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
+				Context: ctx,
 			})
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}

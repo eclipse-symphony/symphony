@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: tiny-ml  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: tiny-ml
+  name: tiny-ml-v-v1
 spec:
+  rootResource: tiny-ml
   components:
   - name: model
     type: container

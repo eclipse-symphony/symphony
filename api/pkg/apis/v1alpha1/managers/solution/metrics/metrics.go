@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	GetSummaryOperation string = "GetSummary"
+	ReconcileOperation string = "Reconcile"
 
-	GetOperationType string = "Get"
+	UpdateOperationType string = "Update"
 )
 
 // Metrics is a metrics tracker for an api operation.
@@ -40,6 +40,11 @@ func New() (*Metrics, error) {
 
 // Close closes all metrics.
 func (m *Metrics) Close() {
+	if m == nil {
+		return
+	}
+
+	m.apiComponentCount.Close()
 }
 
 // ApiComponentCount gets the total count of components for an API operation.

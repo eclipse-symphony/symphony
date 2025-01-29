@@ -15,14 +15,14 @@ import (
 
 // Metrics is a metrics tracker for an api operation.
 type Metrics struct {
-	apiOperationLatency observability.Histogram
-	apiOperationErrors  observability.Counter
+	apiOperationLatency observability.Gauge
+	apiOperationStatus  observability.Counter
 }
 
 func New() (*Metrics, error) {
 	observable := observability.New(constants.API)
 
-	apiOperationLatency, err := observable.Metrics.Histogram(
+	apiOperationLatency, err := observable.Metrics.Gauge(
 		constants.APIOperationLatency,
 		constants.APIOperationLatencyDescription,
 	)
@@ -30,9 +30,9 @@ func New() (*Metrics, error) {
 		return nil, err
 	}
 
-	apiOperationErrors, err := observable.Metrics.Counter(
-		constants.APIOperationErrors,
-		constants.APIOperationErrorsDescription,
+	apiOperationStatus, err := observable.Metrics.Counter(
+		constants.APIOperationStatus,
+		constants.APIOperationStatusDescription,
 	)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func New() (*Metrics, error) {
 
 	return &Metrics{
 		apiOperationLatency: apiOperationLatency,
-		apiOperationErrors:  apiOperationErrors,
+		apiOperationStatus:  apiOperationStatus,
 	}, nil
 }
 
@@ -50,7 +50,8 @@ func (m *Metrics) Close() {
 		return
 	}
 
-	m.apiOperationErrors.Close()
+	m.apiOperationLatency.Close()
+	m.apiOperationStatus.Close()
 }
 
 // ApiOperationLatency tracks the overall API operation latency.
@@ -58,43 +59,51 @@ func (m *Metrics) ApiOperationLatency(
 	startTime time.Time,
 	operation string,
 	operationType string,
+	statusCode int,
+	formatStatusCode string,
 ) {
 	if m == nil {
 		return
 	}
 
-	m.apiOperationLatency.Add(
+	m.apiOperationLatency.Set(
 		latency(startTime),
 		Deployment(
 			operation,
 			operationType,
 		),
+		Status(
+			statusCode,
+			formatStatusCode,
+		),
 	)
 }
 
-// ApiOperationErrors increments the count of errors for API operation.
-func (m *Metrics) ApiOperationErrors(
+// ApiOperationStatus increments the count of status code for API operation.
+func (m *Metrics) ApiOperationStatus(
 	operation string,
 	operationType string,
-	errorCode string,
+	statusCode int,
+	formatStatusCode string,
 ) {
 	if m == nil {
 		return
 	}
 
-	m.apiOperationErrors.Add(
+	m.apiOperationStatus.Add(
 		1,
 		Deployment(
 			operation,
 			operationType,
 		),
-		Error(
-			errorCode,
+		Status(
+			statusCode,
+			formatStatusCode,
 		),
 	)
 }
 
-// Latency gets the time since the given start in milliseconds.
+// latency gets the time since the given start in milliseconds.
 func latency(start time.Time) float64 {
-	return float64(time.Since(start)) / float64(time.Millisecond)
+	return float64(time.Since(start).Milliseconds())
 }

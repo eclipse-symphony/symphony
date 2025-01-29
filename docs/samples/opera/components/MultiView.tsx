@@ -17,9 +17,12 @@ import {useState} from 'react';
 import CampaignCardList from "./campaigns/CampaignCardList";
 import SiteCardList from "./sites/SiteCardList";
 import SolutionCardList from "./solutions/SolutionCardList";
+import TargetCardList from "./targets/TargetCardList";
 import SiteMap from "./sites/SiteMap";
 import AssetList from "./assets/AssetList";
 import GraphTable from "./graph/GraphTable";
+import Filter from "./Filter";
+import InstanceCardList from "./instances/InstanceCardList";
 
 interface MenuInfo {
     name: string;
@@ -47,7 +50,9 @@ interface MultiViewProps {
 function MultiView(props: MultiViewProps) {
     const { params } = props;
     const [selected, setSelected] = useState("");
-    const [selectedColumn, setSelectedColumn] = useState("");
+    const [selectedColumn, setSelectedColumn] = useState("");    
+    const [selectedFilter, setSelectedFilter] = useState(""); // State to hold selected filter
+    const [isHovered, setIsHovered] = useState(true);
 
     function handleSelectionChange(key: any) {
         setSelected(key.toString());
@@ -57,9 +62,15 @@ function MultiView(props: MultiViewProps) {
         setSelectedColumn(key.toString());
     }
 
+    const handleFilterChange = (filter: string) => {
+        setSelectedFilter(filter); // Update selected filter state
+    };
+
     return (
-        <div>
-            <Navbar isBordered className="top_navbar">
+        <div className="top_navbar_container">
+            <Navbar isBordered className="top_navbar"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}>
                 <NavbarContent justify="start">
                     <Dropdown>
                         <NavbarItem>
@@ -82,8 +93,9 @@ function MultiView(props: MultiViewProps) {
                         </DropdownMenu>
                     </Dropdown>
                 </NavbarContent>    
+                {isHovered && (
                 <NavbarContent justify="start">
-                    <Tabs aria-label="Options" color="primary" variant="bordered" onSelectionChange={handleSelectionChange}>
+                    <Tabs aria-label="Options" color="secondary"  variant="bordered" radius="sm" onSelectionChange={handleSelectionChange} >
                         {params.views.map((view: string) => (
                             <Tab key={view}
                                 title={
@@ -96,10 +108,10 @@ function MultiView(props: MultiViewProps) {
                                     />  
                         ))}                    
                     </Tabs>
-                </NavbarContent>
+                </NavbarContent>)}
                 {selected === 'table' && params.columns && params.columns.length > 0 && (
                     <NavbarContent justify="start" id="columnSets">
-                        <Tabs aria-label="Options" color="primary" variant="bordered" onSelectionChange={handleColumnSelectionChange}>
+                        <Tabs aria-label="Options" color="secondary" onSelectionChange={handleColumnSelectionChange}>
                             {params.columns.map((column: ColumnSet) => (
                                 <Tab key={column.name}
                                     title={
@@ -115,6 +127,9 @@ function MultiView(props: MultiViewProps) {
                         </Tabs>
                     </NavbarContent>
                 )}
+                {/* <NavbarContent justify="end">
+                    <Filter onSelectFilter={handleFilterChange} />                  
+                </NavbarContent> */}
             </Navbar>
             <div className='view_container'>
                 <Tabs isDisabled aria-label="Options" selectedKey={`c${selected}`}>
@@ -129,6 +144,8 @@ function MultiView(props: MultiViewProps) {
                                     </div>}>
                             {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
                             {view === 'cards' && params.type === 'solutions' && <SolutionCardList solutions={params.items}  />}
+                            {view === 'cards' && params.type === 'targets' && <TargetCardList targets={params.items} filter={selectedFilter} />}
+                            {view === 'cards' && params.type === 'instances' && <InstanceCardList instances={params.items} filter={selectedFilter} />}
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
                             {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}

@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/apis/metrics/v1"
@@ -34,6 +35,7 @@ var modelWebhookValidationMetrics *metrics.Metrics
 
 func (r *Model) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myModelClient = mgr.GetClient()
+	// will check in the future if we need to use "uniqueDisplayNameForSolution" here, currently Model is not supported by toolchainorchestrator
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Model{}, ".spec.displayName", func(rawObj client.Object) []string {
 		model := rawObj.(*Model)
 		return []string{model.Spec.DisplayName}
@@ -76,7 +78,7 @@ func (r *Model) Default() {
 var _ webhook.Validator = &Model{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Model) ValidateCreate() error {
+func (r *Model) ValidateCreate() (admission.Warnings, error) {
 	modellog.Info("validate create", "name", r.Name)
 
 	validateCreateTime := time.Now()
@@ -97,11 +99,11 @@ func (r *Model) ValidateCreate() error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Model) ValidateUpdate(old runtime.Object) error {
+func (r *Model) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	modellog.Info("validate update", "name", r.Name)
 
 	validateUpdateTime := time.Now()
@@ -122,15 +124,15 @@ func (r *Model) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	return validationError
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Model) ValidateDelete() error {
+func (r *Model) ValidateDelete() (admission.Warnings, error) {
 	modellog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
 
 func (r *Model) validateCreateModel() error {
@@ -155,7 +157,8 @@ func (r *Model) validateCreateModel() error {
 			pack := extractModelValidationPack(models, p)
 			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readModelValiationTarget(r, p), p.ValidationType, pack)
 			if err != nil {
-				return err
+				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", "Validation encountered an unexpected error.")))
+				return apierrors.NewInvalid(schema.GroupKind{Group: "ai.symphony", Kind: "Model"}, r.Name, allErrs)
 			}
 			if ret != "" {
 				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret)))
@@ -188,7 +191,8 @@ func (r *Model) validateUpdateModel() error {
 			pack := extractModelValidationPack(models, p)
 			ret, err := configutils.CheckValidationPack(r.ObjectMeta.Name, readModelValiationTarget(r, p), p.ValidationType, pack)
 			if err != nil {
-				return err
+				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", "Validation encountered an unexpected error.")))
+				return apierrors.NewInvalid(schema.GroupKind{Group: "ai.symphony", Kind: "Model"}, r.Name, allErrs)
 			}
 			if ret != "" {
 				allErrs = append(allErrs, field.Forbidden(&field.Path{}, strings.ReplaceAll(p.Message, "%s", ret)))

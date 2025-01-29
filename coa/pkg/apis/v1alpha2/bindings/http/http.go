@@ -18,6 +18,8 @@ import (
 	autogen "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/autogen"
 	localfile "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs/localfile"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	routing "github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -115,13 +117,32 @@ func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint) *routing.Router {
 	return router
 }
 
+func composeCOARequestContext(reqCtx *fasthttp.RequestCtx, actCtx *contexts.ActivityLogContext, diagCtx *contexts.DiagnosticLogContext) context.Context {
+	retCtx := context.TODO()
+	if reqCtx != nil {
+		retCtx = context.WithValue(retCtx, v1alpha2.COAFastHTTPContextKey, reqCtx)
+	}
+	if actCtx != nil {
+		retCtx = context.WithValue(retCtx, contexts.ActivityLogContextKey, actCtx)
+	}
+	if diagCtx != nil {
+		retCtx = context.WithValue(retCtx, contexts.DiagnosticLogContextKey, diagCtx)
+	}
+	return retCtx
+}
+
 func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) fasthttp.RequestHandler {
 	return func(reqCtx *fasthttp.RequestCtx) {
+		actCtx := contexts.ParseActivityLogContextFromHttpRequestHeader(reqCtx)
+		diagCtx := contexts.ParseDiagnosticLogContextFromHttpRequestHeader(reqCtx)
+		ctx := composeCOARequestContext(reqCtx, actCtx, diagCtx)
+		// patch correlation id if missing
+		ctx = contexts.GenerateCorrelationIdToParentContextIfMissing(ctx)
 		req := v1alpha2.COARequest{
 			Body:    reqCtx.PostBody(),
 			Route:   string(reqCtx.Request.URI().Path()),
 			Method:  string(reqCtx.Method()),
-			Context: reqCtx,
+			Context: ctx,
 		}
 		meta := reqCtx.Request.Header.Peek(v1alpha2.COAMetaHeader)
 		if meta != nil {
@@ -141,7 +162,7 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 			if v == nil {
 				req.Parameters[k] = "" //TODO: chance to report on missing required parameters
 			} else {
-				req.Parameters[k] = v.(string)
+				req.Parameters[k] = utils.FormatAsString(v)
 			}
 		}
 
@@ -160,7 +181,30 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 			}
 			reqCtx.SetContentType(resp.ContentType)
 			reqCtx.SetBody(resp.Body)
-			reqCtx.SetStatusCode(int(resp.State))
+			reqCtx.SetStatusCode(toHttpState(resp.State))
 		}
+	}
+}
+
+func toHttpState(state v1alpha2.State) int {
+	switch state {
+	case v1alpha2.OK:
+		return fasthttp.StatusOK
+	case v1alpha2.Accepted:
+		return fasthttp.StatusAccepted
+	case v1alpha2.BadRequest:
+		return fasthttp.StatusBadRequest
+	case v1alpha2.Unauthorized:
+		return fasthttp.StatusUnauthorized
+	case v1alpha2.NotFound:
+		return fasthttp.StatusNotFound
+	case v1alpha2.MethodNotAllowed:
+		return fasthttp.StatusMethodNotAllowed
+	case v1alpha2.Conflict:
+		return fasthttp.StatusConflict
+	case v1alpha2.InternalError:
+		return fasthttp.StatusInternalServerError
+	default:
+		return fasthttp.StatusInternalServerError
 	}
 }

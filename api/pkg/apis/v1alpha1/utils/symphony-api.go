@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -28,7 +29,6 @@ import (
 
 var (
 	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
-	symphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
@@ -44,31 +44,76 @@ type authResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-// We shouldn't use specific error types
-// SummarySpecError represents an error that includes a SummarySpec in its message
-// field.
-type SummarySpecError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-func (e *SummarySpecError) Error() string {
-	return fmt.Sprintf(
-		"failed to invoke Symphony API: [%s] - %s",
-		e.Code,
-		e.Message,
-	)
-}
-
 func GetSymphonyAPIAddressBase() string {
-	if symphonyAPIAddressBase == "" {
+	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
 	}
-	return symphonyAPIAddressBase
+	return os.Getenv(constants.SymphonyAPIUrlEnvName)
+}
+
+var symphonyApiClients sync.Map
+
+func GetApiClient() (*apiClient, error) {
+	symphonyBaseUrl := os.Getenv(constants.SymphonyAPIUrlEnvName)
+	if value, ok := symphonyApiClients.Load(symphonyBaseUrl); ok {
+		client, ok := value.(*apiClient)
+		if !ok {
+			log.Info("Symphony base url apiclient is broken. Recreating it.")
+		} else {
+			return client, nil
+		}
+	}
+	log.Info("Creating the symphony base url apiclient.")
+	client, err := getApiClient()
+	if err != nil {
+		log.Errorf("Failed to create the apiclient: %+v", err.Error())
+		return nil, err
+	}
+	symphonyApiClients.Store(symphonyBaseUrl, client)
+	return client, nil
+}
+
+func getApiClient() (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+	baseUrl := GetSymphonyAPIAddressBase()
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	if ShouldUseSATokens() {
+		clientOptions = append(clientOptions, WithServiceAccountToken())
+	} else {
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
+	}
+
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func GetParentApiClient(baseUrl string) (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func ShouldUseSATokens() bool {
-	return useSAToken == "true"
+	return !ShouldUseUserCreds()
+}
+
+func ShouldUseUserCreds() bool {
+	return strings.ToLower(os.Getenv(constants.UseServiceAccountTokenEnvName)) == "false"
 }
 
 var log = logger.NewLogger("coa.runtime")
@@ -129,7 +174,7 @@ func GetSites(context context.Context, baseUrl string, user string, password str
 
 	return ret, nil
 }
-func SyncActivationStatus(context context.Context, baseUrl string, user string, password string, status model.ActivationStatus) error {
+func SyncStageStatus(context context.Context, baseUrl string, user string, password string, status model.StageStatus) error {
 	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
@@ -581,7 +626,8 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
+			targetName := ConvertReferenceToObjectName(instance.Spec.Target.Name)
+			if matchString(targetName, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
 			}
 		}
@@ -610,8 +656,8 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace string) (model.DeploymentSpec, error) {
-	key := fmt.Sprintf("%s-%s", "target-runtime", target.ObjectMeta.Name)
+func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.TargetState, namespace string) (model.DeploymentSpec, error) {
+	key := GetTargetRuntimeKey(target.ObjectMeta.Name)
 	scope := target.Spec.Scope
 	if scope == "" {
 		scope = constants.DefaultScope
@@ -659,14 +705,16 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 			},
 		},
 	}
+	// TODO: is this a good way to set guid for deployment?
+	instance.ObjectMeta.SetGuid(target.ObjectMeta.GetGuid())
 
 	ret.Solution = solution
 	ret.Instance = instance
 	ret.Targets = targets
 	ret.SolutionName = key
 	// set the target generation to the deployment
-	ret.Generation = target.Spec.Generation
-	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
+	ret.Generation = target.ObjectMeta.ETag
+	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -675,15 +723,28 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState, namespace stri
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, nil
 }
 
-func CreateSymphonyDeployment(instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
+// Add target-runtime prefix to notify the object is a target.
+func GetTargetRuntimeKey(guid string) string {
+	return fmt.Sprintf("%s-%s", constants.TargetRuntimePrefix, guid)
+}
+
+func ConstructSummaryId(name string, guid string) string {
+	if guid != "" {
+		return fmt.Sprintf("%s-%s", name, guid)
+	}
+	return name
+}
+
+func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	ret.Generation = instance.Spec.Generation
+	ret.Generation = instance.ObjectMeta.ETag
 
 	// convert targets
 	sTargets := make(map[string]model.TargetState)
@@ -701,8 +762,9 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	ret.Instance = instance
 	ret.SolutionName = solution.ObjectMeta.Name
 	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
+	ret.Instance.ObjectMeta.SetGuid(instance.ObjectMeta.GetGuid())
 
-	assignments, err := AssignComponentsToTargets(ret.Solution.Spec.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -711,11 +773,12 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = instance.Spec.IsDryRun
 
 	return ret, nil
 }
 
-func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
+func AssignComponentsToTargets(ctx context.Context, components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
 	//TODO: evaluate constraints
 	ret := make(map[string]string)
 	for key, target := range targets {
@@ -724,7 +787,10 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Spec.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{
+					Properties: target.Spec.Properties,
+					Context:    ctx,
+				})
 				if err != nil {
 					// append the error message with the component constraint expression
 					errMsg := fmt.Sprintf("%s in constraint expression: %s", err.Error(), component.Constraints)
@@ -759,7 +825,7 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 		}
 	}
 
-	log.Infof("Summary result: %s", string(ret))
+	log.InfofCtx(context, "Summary result: %s", string(ret))
 
 	return result, nil
 }
@@ -835,29 +901,30 @@ func auth(context context.Context, baseUrl string, user string, password string)
 
 	return response.AccessToken, nil
 }
-func callRestAPI(context context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
-	context, span := observability.StartSpan("Symphony-API-Client", context, &map[string]string{
+func callRestAPI(ctx context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
+	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
 		"method":      "callRestAPI",
 		"http.method": method,
 		"http.url":    baseUrl + route,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Infof("Calling Symphony API: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "Calling Symphony API: %s %s", method, baseUrl+route)
 
 	client := &http.Client{}
 	rUrl := baseUrl + route
 	var req *http.Request
 	if payload != nil {
-		req, err = http.NewRequestWithContext(context, method, rUrl, bytes.NewBuffer(payload))
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, bytes.NewBuffer(payload))
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req, err = http.NewRequestWithContext(context, method, rUrl, nil)
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, nil)
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
@@ -890,7 +957,7 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		return nil, err
 	}
 	err = nil
-	log.Infof("Symphony API succeeded: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "Symphony API succeeded: %s %s", method, baseUrl+route)
 
 	return bodyBytes, nil
 }

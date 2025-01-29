@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -34,11 +35,12 @@ func TestHandleEvent(t *testing.T) {
 	manager := JobsManager{}
 	err := manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "state",
-			"baseUrl":         "http://localhost:8082/v1alpha2/",
-			"password":        "",
-			"user":            "admin",
-			"interval":        "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -61,15 +63,17 @@ func TestHandleJobEvent(t *testing.T) {
 
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
-
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "state",
-			"baseUrl":         ts.URL + "/",
-			"password":        "",
-			"user":            "admin",
-			"interval":        "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   ts.URL + "/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -112,11 +116,12 @@ func TestHandleScheduleEvent(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "state",
-			"baseUrl":         "http://localhost:8082/v1alpha2/",
-			"password":        "",
-			"user":            "admin",
-			"interval":        "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
@@ -138,18 +143,19 @@ func TestHandleheartbeatEvent(t *testing.T) {
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "state",
-			"baseUrl":         "http://localhost:8082/v1alpha2/",
-			"password":        "",
-			"user":            "admin",
-			"interval":        "#15",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   "http://localhost:8082/v1alpha2/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
 	})
 	assert.Nil(t, err)
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.HeartBeatData{JobId: "instance1"},
+		Body: v1alpha2.HeartBeatData{JobId: "instance1", JobAction: v1alpha2.JobUpdate},
 	})
 
 	heartbeat, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "h_instance1"})
@@ -162,23 +168,26 @@ func TestPoll(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state":  "state",
-			"baseUrl":          ts.URL + "/",
-			"password":         "",
-			"user":             "admin",
-			"interval":         "#15",
-			"poll.enabled":     "true",
-			"schedule.enabled": "true",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   ts.URL + "/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
+			"poll.enabled":              "true",
+			"schedule.enabled":          "true",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
 	})
 	assert.Nil(t, err)
 	jobManager.HandleScheduleEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: &v1alpha2.ScheduleSpec{Time: "03:04:05PM", Date: "2006-01-02"}},
+		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: "2006-01-02T15:04:05Z"},
 	})
 	enabled := jobManager.Enabled()
 	assert.True(t, enabled)
@@ -191,29 +200,31 @@ func TestDelayOrSkipJobPoll(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	ts := InitializeMockSymphonyAPI()
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	jobManager := JobsManager{}
 	err := jobManager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state":  "state",
-			"baseUrl":          ts.URL + "/",
-			"password":         "",
-			"user":             "admin",
-			"interval":         "#15",
-			"poll.enabled":     "true",
-			"schedule.enabled": "true",
+			"providers.volatilestate":   "state",
+			"providers.persistentstate": "state",
+			"baseUrl":                   ts.URL + "/",
+			"password":                  "",
+			"user":                      "admin",
+			"interval":                  "#15",
+			"poll.enabled":              "true",
+			"schedule.enabled":          "true",
 		},
 	}, map[string]providers.IProvider{
 		"state": stateProvider,
 	})
 	assert.Nil(t, err)
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now().Add(-time.Hour)},
+		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now().Add(-time.Hour), JobAction: v1alpha2.JobUpdate},
 	})
 	err = jobManager.DelayOrSkipJob(context.Background(), "default", "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
 	assert.Nil(t, err)
 
 	jobManager.HandleHeartBeatEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now()},
+		Body: v1alpha2.HeartBeatData{JobId: "instance1", Time: time.Now(), JobAction: v1alpha2.JobUpdate},
 	})
 	err = jobManager.DelayOrSkipJob(context.Background(), "default", "instances", v1alpha2.JobData{Id: "instance1", Action: v1alpha2.JobUpdate})
 	assert.NotNil(t, err)

@@ -3,11 +3,17 @@
     "properties": {
       "serviceName": "symphony-api",
       "pipelines": [
-        {{- if .Values.otelCollectorAddress }}
+        {{- if .Values.otlpTracesEndpointGrpc }}
         {
           "exporter": {
             "type": "tracing.exporters.otlpgrpc",
-            "collectorUrl": "{{ tpl .Values.otelCollectorAddress $ }}"
+            "collectorUrl": "{{ tpl .Values.otlpTracesEndpointGrpc $ }}",
+            {{- if eq .Values.otlpInsecureGrpc true }}
+            "insecureEndpoint": true
+            {{- else }}
+            "insecureEndpoint": false,
+            "serverCAFilePath": "/certs/root-certs.pem"
+            {{- end }}
           }
         }
         {{- end }}

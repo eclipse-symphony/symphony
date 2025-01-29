@@ -93,7 +93,8 @@ func TestHTTPEcho(t *testing.T) {
 			Version: "v1",
 			Handler: func(c v1alpha2.COARequest) v1alpha2.COAResponse {
 				return v1alpha2.COAResponse{
-					Body: []byte("Hi there!!"),
+					Body:  []byte("Hi there!!"),
+					State: v1alpha2.OK,
 				}
 			},
 		},
@@ -103,7 +104,8 @@ func TestHTTPEcho(t *testing.T) {
 			Version: "v1",
 			Handler: func(c v1alpha2.COARequest) v1alpha2.COAResponse {
 				return v1alpha2.COAResponse{
-					Body: []byte("Hi " + c.Parameters["name"] + "!!"),
+					Body:  []byte("Hi " + c.Parameters["name"] + "!!"),
+					State: v1alpha2.OK,
 				}
 			},
 		},
@@ -114,7 +116,8 @@ func TestHTTPEcho(t *testing.T) {
 			Parameters: []string{"name"},
 			Handler: func(c v1alpha2.COARequest) v1alpha2.COAResponse {
 				return v1alpha2.COAResponse{
-					Body: []byte("Hi " + c.Parameters["__name"] + "!!!"),
+					Body:  []byte("Hi " + c.Parameters["__name"] + "!!!"),
+					State: v1alpha2.OK,
 				}
 			},
 		},
@@ -129,7 +132,8 @@ func TestHTTPEcho(t *testing.T) {
 					Metadata: map[string]string{
 						"key": value,
 					},
-					Body: []byte("Hi " + value + "!!!!"),
+					Body:  []byte("Hi " + value + "!!!!"),
+					State: v1alpha2.OK,
 				}
 			},
 		},
@@ -188,7 +192,8 @@ func TestHTTPEchoWithTLS(t *testing.T) {
 			Version: "v1",
 			Handler: func(c v1alpha2.COARequest) v1alpha2.COAResponse {
 				return v1alpha2.COAResponse{
-					Body: []byte("Hi there!!"),
+					Body:  []byte("Hi there!!"),
+					State: v1alpha2.OK,
 				}
 			},
 		},
@@ -309,7 +314,7 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 						ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 						IssuedAt:  jwt.NewNumericDate(time.Now()),
 						NotBefore: jwt.NewNumericDate(time.Now()),
-						Issuer:    "test",
+						Issuer:    "symphony",
 						Subject:   "test",
 						ID:        "1",
 						Audience:  []string{"*"},
@@ -340,12 +345,14 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 				switch c.Method {
 				case fasthttp.MethodGet:
 					return v1alpha2.COAResponse{
-						Body: []byte("Hi there!!"),
+						Body:  []byte("Hi there!!"),
+						State: v1alpha2.OK,
 					}
 				case fasthttp.MethodPost:
 					reqBody := string(c.Body)
 					return v1alpha2.COAResponse{
-						Body: []byte(fmt.Sprintf("Hi %s!!", reqBody)),
+						Body:  []byte(fmt.Sprintf("Hi %s!!", reqBody)),
+						State: v1alpha2.OK,
 					}
 				}
 				return v1alpha2.COAResponse{}
@@ -410,6 +417,7 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 		"http.url":    "http://localhost:8081/v1/greetings",
 	})
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	testHttpRequestHelperWithHeaders(ctx, t, fasthttp.MethodGet, "http://localhost:8081/v1/greetings", nil,
 		map[string]string{
 			"Authorization": "Bearer " + authHeader,

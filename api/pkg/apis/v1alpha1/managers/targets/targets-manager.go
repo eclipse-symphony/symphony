@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -19,14 +21,20 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type TargetsManager struct {
 	managers.Manager
 	StateProvider    states.IStateProvider
 	RegistryProvider registry.IRegistryProvider
+	needValidate     bool
+	TargetValidator  validation.TargetValidator
 }
 
 func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -34,13 +42,18 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	if err != nil {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
 		return err
 	}
-
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		// s.TargetValidator = validation.NewTargetValidator(s.targetInstanceLookup, s.targetUniqueNameLookup)
+		s.TargetValidator = validation.NewTargetValidator(nil, s.targetUniqueNameLookup)
+	}
 	return nil
 }
 
@@ -50,6 +63,13 @@ func (t *TargetsManager) DeleteSpec(ctx context.Context, name string, namespace 
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if t.needValidate {
+		if err = t.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
@@ -70,11 +90,29 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
 	}
 	state.ObjectMeta.FixNames(name)
+
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
+	if t.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+		}
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.TargetValidator, state, oldState, getStateErr); err != nil {
+			return err
+		}
+	}
 
 	body := map[string]interface{}{
 		"apiVersion": model.FabricGroup + "/v1",
@@ -87,7 +125,7 @@ func (t *TargetsManager) UpsertState(ctx context.Context, name string, state mod
 		Value: states.StateEntry{
 			ID:   name,
 			Body: body,
-			ETag: state.Spec.Generation,
+			ETag: state.ObjectMeta.ETag,
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
@@ -109,6 +147,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: current.ObjectMeta.Name,
@@ -123,7 +162,6 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	var target states.StateEntry
 	target, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -131,7 +169,6 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 	bytes, _ := json.Marshal(target.Body)
 	err = json.Unmarshal(bytes, &targetState)
 	if err != nil {
-		observ_utils.CloseSpanWithError(span, &err)
 		return model.TargetState{}, err
 	}
 
@@ -155,7 +192,7 @@ func (t *TargetsManager) ReportState(ctx context.Context, current model.TargetSt
 			"kind":      "Target",
 		},
 		Options: states.UpsertOption{
-			UpdateStateOnly: true,
+			UpdateStatusOnly: true,
 		},
 	}
 
@@ -171,6 +208,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
@@ -189,16 +227,17 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		var rt model.TargetState
-		rt, err = getTargetState(t.Body, t.ETag)
+		rt, err = getTargetState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getTargetState(body interface{}, etag string) (model.TargetState, error) {
+func getTargetState(body interface{}) (model.TargetState, error) {
 	var targetState model.TargetState
 	bytes, _ := json.Marshal(body)
 	err := json.Unmarshal(bytes, &targetState)
@@ -208,7 +247,6 @@ func getTargetState(body interface{}, etag string) (model.TargetState, error) {
 	if targetState.Spec == nil {
 		targetState.Spec = &model.TargetSpec{}
 	}
-	targetState.Spec.Generation = etag
 	return targetState, nil
 }
 
@@ -218,6 +256,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,
@@ -236,9 +275,27 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	}
 
 	var ret model.TargetState
-	ret, err = getTargetState(target.Body, target.ETag)
+	ret, err = getTargetState(target.Body)
 	if err != nil {
 		return model.TargetState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(target.ETag)
 	return ret, nil
+}
+
+func (t *TargetsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return validation.ValidateDeleteWrapper(ctx, &t.TargetValidator, state, err)
+}
+
+func (t *TargetsManager) targetUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, validation.Target, displayName, namespace)
+}
+
+func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Instance, namespace, map[string]string{constants.Target: name}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(instanceList) > 0, nil
 }

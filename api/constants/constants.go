@@ -1,6 +1,3 @@
-//go:build !azure
-// +build !azure
-
 /*
  * Copyright (c) Microsoft Corporation.
  * Licensed under the MIT license.
@@ -9,34 +6,81 @@
 
 package constants
 
+import _ "embed"
+
+// Eula Message
+var (
+	//go:embed eula.txt
+	EulaMessage string
+)
+
 const (
-	EulaMessage = `MIT License
+	FullGroupName       = "symphony"
+	TargetRuntimePrefix = "target-runtime"
 
-Copyright (c) Microsoft Corporation.
+	// system annotations, reserved and should not be modified by client.
+	AzureCorrelationIdKey        = "management.azure.com/correlationId"
+	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	AzureOperationIdKey          = "management.azure.com/operationId"
+	AzureNameIdKey               = "management.azure.com/azureName"
+	AzureResourceIdKey           = "management.azure.com/resourceId"
+	AzureSystemDataKey           = "management.azure.com/systemData"
+	AzureTenantIdKey             = "management.azure.com/tenantId" // Not used
+	GuidKey                      = "Guid"
+	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
+	SummaryJobIdKey              = "SummaryJobIdKey"
+	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+	ProviderName = "management.azure.com/provider-name"
+)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+func SystemReservedAnnotations() []string {
+	return []string{
+		AzureCorrelationIdKey,
+		AzureEdgeLocationKey,
+		AzureOperationIdKey,
+		AzureNameIdKey,
+		AzureResourceIdKey,
+		AzureSystemDataKey,
+		AzureTenantIdKey,
+		RunningAzureCorrelationIdKey,
+		SummaryJobIdKey,
+		OperationStartTimeKeyPostfix,
+	}
+}
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE`
+func SystemReservedLabels() []string {
+	return []string{
+		Campaign,
+		DisplayName,
+		ProviderName,
+		ManagerMetaKey,
+		ParentName,
+		RootResource,
+		Solution,
+		StagedTarget,
+		StatusMessage,
+		Target,
+	}
+}
+
+const (
 	DefaultScope = "default"
 	SATokenPath  = "/var/run/secrets/tokens/symphony-api-token"
 	// These constants need to be in a shared package.
-	GroupPrefix     = "symphony"
-	ManagerMetaKey  = GroupPrefix + "/managed-by"
-	InstanceMetaKey = GroupPrefix + "/instance"
+	GroupPrefix        = "symphony"
+	ManagerMetaKey     = GroupPrefix + "/managed-by"
+	InstanceMetaKey    = GroupPrefix + "/instance"
+	ResourceSeperator  = "-v-"
+	ReferenceSeparator = ":"
+	DisplayName        = "displayName"
+	RootResource       = "rootResource"
+	ParentName         = "parentName"
+	StatusMessage      = "statusMessage"
+	Solution           = "solution"
+	Target             = "target"
+	Campaign           = "campaign"
+	StagedTarget       = "staged_target"
 )
 
 // Environment variables keys
@@ -47,4 +91,10 @@ const (
 	UseServiceAccountTokenEnvName = "USE_SERVICE_ACCOUNT_TOKENS"
 	SymphonyAPIUrlEnvName         = "SYMPHONY_API_URL"
 	API                           = "symphony-api"
+	EmitTimeFieldInUserLogs       = "EMIT_TIME_FIELD_IN_USER_LOGS"
+)
+
+const (
+	Generation string = "generation"
+	Status     string = "status"
 )

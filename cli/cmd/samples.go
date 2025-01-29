@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -93,7 +93,8 @@ type ActionSpec struct {
 func listSamples() (SampleManifest, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		return SampleManifest{}, fmt.Errorf("failed to get user home directory: %s", err.Error())
+
 	}
 	sampleManifest := filepath.Join(dirname, ".symphony", "samples.json")
 	jsonFile, err := os.Open(sampleManifest)
@@ -101,7 +102,7 @@ func listSamples() (SampleManifest, error) {
 		return SampleManifest{}, fmt.Errorf("sample manifest file '%s' is not found", sampleManifest)
 	}
 	defer jsonFile.Close()
-	data, err := ioutil.ReadAll(jsonFile)
+	data, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return SampleManifest{}, fmt.Errorf("failed to read sample manifest: %s", err.Error())
 	}
@@ -244,6 +245,7 @@ func removeArtifact(artifact ArtifactSpec) error {
 		return err
 	}
 	fmt.Printf("%sdone\n%s", utils.ColorGreen(), utils.ColorReset())
+	time.Sleep(8 * time.Second)
 	return nil
 }
 func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]string) error {

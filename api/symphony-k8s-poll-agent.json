@@ -1,95 +1,113 @@
 {
-  "siteInfo": {
-    "siteId": "hq",
-    "currentSite": {
-      "baseUrl": "",
-      "username": "",
-      "password": ""
-    },
-    "parentSite": {
-      "baseUrl": "http://localhost:8082/v1alpha2/",
-      "username": "admin",
-      "password": ""
-    }
-  },
-  "api": {
-    "pubsub": {
-      "shared": true,
-      "provider": {
-        "type": "providers.pubsub.memory",
-        "config": {}
+    "siteInfo": {
+      "siteId": "hq",
+      "currentSite": {
+        "baseUrl": "",
+        "username": "",
+        "password": ""
+      },
+      "parentSite": {
+        "baseUrl": "http://localhost:8082/v1alpha2/",
+        "username": "admin",
+        "password": ""
       }
     },
-    "vendors": [
-      {
-        "type": "vendors.echo",
-        "route": "greetings",
-        "managers": []
+    "api": {
+      "pubsub": {
+        "shared": true,
+        "provider": {
+          "type": "providers.pubsub.memory",
+          "config": {}
+        }
       },
-      {
-        "type": "vendors.solution",
-        "loopInterval": 15,
-        "route": "solution",
-        "managers": [
-          {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
-            "properties": {
-              "providers.state": "mem-state",                
-              "providers.config": "mock-config",  
-              "providers.secret": "mock-secret",
-              "isTarget": "true",
-              "targetNames": "test-target",
-              "poll.enabled": "true"              
-            },
-            "providers": {
-              "mem-state": {
-                "type": "providers.state.memory",
-                "config": {}
-              },              
-              "helm.v3": {
-                "type": "providers.target.helm",
-                "config": {
-                  "inCluster": true                  
+      "keylock": {
+        "shared": true,
+        "provider": {      
+          "type": "providers.keylock.memory",
+          "config": {
+            "mode": "Global",
+            "cleanInterval" : 30,
+            "purgeDuration" : 43200
+          }
+        }
+      },
+      "vendors": [
+        {
+          "type": "vendors.echo",
+          "route": "greetings",
+          "managers": []
+        },
+        {
+          "type": "vendors.solution",
+          "loopInterval": 15,
+          "route": "solution",
+          "managers": [
+            {
+              "name": "solution-manager",
+              "type": "managers.symphony.solution",
+              "properties": {
+                "providers.persistentstate": "mem-state",                
+                "providers.config": "mock-config",  
+                "providers.secret": "mock-secret",
+                "providers.keylock": "mem-keylock",
+                "isTarget": "true",
+                "targetNames": "test-target",
+                "poll.enabled": "true"              
+              },
+              "providers": {
+                "mem-state": {
+                  "type": "providers.state.memory",
+                  "config": {}
+                },
+                "mem-keylock": {
+                  "type": "providers.keylock.memory",
+                  "config": {
+                    "mode" : "Shared"
+                  }
+                },              
+                "helm.v3": {
+                  "type": "providers.target.helm",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "yaml.k8s": {
+                  "type": "providers.target.kubectl",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "instance": {
+                  "type": "providers.target.k8s",
+                  "config": {
+                    "inCluster": true,
+                    "deploymentStrategy": "services"       
+                  }
+                },
+                "configmap": {
+                  "type": "providers.target.configmap",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "ingress": {
+                  "type": "providers.target.ingress",
+                  "config": {
+                    "inCluster": true                  
+                  }
+                },
+                "mock-config": {
+                  "type": "providers.config.mock",
+                  "config": {}
+                },
+                "mock-secret": {
+                  "type": "providers.secret.mock",
+                  "config": {}
                 }
-              },
-              "yaml.k8s": {
-                "type": "providers.target.kubectl",
-                "config": {
-                  "inCluster": true                  
-                }
-              },
-              "instance": {
-                "type": "providers.target.k8s",
-                "config": {
-                  "inCluster": true,
-                  "deploymentStrategy": "services"       
-                }
-              },
-              "configmap": {
-                "type": "providers.target.configmap",
-                "config": {
-                  "inCluster": true                  
-                }
-              },
-              "ingress": {
-                "type": "providers.target.ingress",
-                "config": {
-                  "inCluster": true                  
-                }
-              },
-              "mock-config": {
-                "type": "providers.config.mock",
-                "config": {}
-              },
-              "mock-secret": {
-                "type": "providers.secret.mock",
-                "config": {}
               }
             }
-          }
-        ]
-      }
-    ]
-  }  
-}
+          ]
+        }
+      ]
+    }  
+  }

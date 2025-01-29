@@ -115,15 +115,17 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		"method": "onRegistry",
 	})
 	defer span.End()
-	tLog.Infof("V (Targets) : onRegistry, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(pCtx, "V (Targets) : onRegistry, method: %s", request.Method)
+
+	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
 		namespace = constants.DefaultScope
 	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onRegistry-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
 		isArray := false
@@ -138,9 +140,9 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			state, err = c.TargetsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -151,17 +153,16 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
-		id := request.Parameters["__name"]
 		binding := request.Parameters["with-binding"]
 		var target model.TargetState
 		err := json.Unmarshal(request.Body, &target)
 		if err != nil {
-			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -205,7 +206,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 					target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings = append(target.Spec.Topologies[len(target.Spec.Topologies)-1].Bindings, newb)
 				}
 			} else {
-				tLog.Infof("V (Targets) : onRegistry failed - invalid binding, traceId: %s", span.SpanContext().TraceID().String())
+				tLog.ErrorCtx(ctx, "V (Targets) : onRegistry failed - invalid binding")
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.BadRequest,
 					Body:  []byte("invalid binding, supported is: 'staging'"),
@@ -214,9 +215,9 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		}
 		err = c.TargetsManager.UpsertState(ctx, id, target)
 		if err != nil {
-			tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -231,6 +232,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 					Action: v1alpha2.JobUpdate,
 					Scope:  namespace,
 				},
+				Context: ctx,
 			})
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -238,7 +240,6 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onRegistry-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		direct := request.Parameters["direct"]
 
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
@@ -252,6 +253,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 					Action: v1alpha2.JobDelete,
 					Scope:  namespace,
 				},
+				Context: ctx,
 			})
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.OK,
@@ -259,9 +261,9 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		} else {
 			err := c.TargetsManager.DeleteSpec(ctx, id, namespace)
 			if err != nil {
-				tLog.Infof("V (Targets) : onRegistry failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -270,7 +272,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			State: v1alpha2.OK,
 		})
 	}
-	tLog.Infof("V (Targets) : onRegistry failed - method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(pCtx, "V (Targets) : onRegistry failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -281,17 +283,17 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 }
 
 func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
 		"method": "onBootstrap",
 	})
 	defer span.End()
-	tLog.Infof("V (Targets) : onBootstrap, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(ctx, "V (Targets) : onBootstrap, method: %s", request.Method)
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var authRequest AuthRequest
 		err := json.Unmarshal(request.Body, &authRequest)
 		if err != nil || authRequest.UserName != "symphony-test" {
-			tLog.Infof("V (Targets) : onBootstrap failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.Unauthorized,
 				Body:  []byte(err.Error()),
@@ -324,7 +326,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 		observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 		return resp
 	}
-	tLog.Infof("V (Targets) : onRegistry failed - method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(ctx, "V (Targets) : onRegistry failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -339,7 +341,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		"method": "onStatus",
 	})
 	defer span.End()
-	tLog.Infof("V (Targets) : onStatus, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(pCtx, "V (Targets) : onStatus, method: %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPut:
@@ -379,9 +381,9 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		})
 
 		if err != nil {
-			tLog.Infof("V (Targets) : onStatus failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(pCtx, "V (Targets) : onStatus failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -394,7 +396,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 		return resp
 	}
-	tLog.Infof("V (Targets) : onStatus failed - method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(pCtx, "V (Targets) : onStatus failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -409,7 +411,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		"method": "onDownload",
 	})
 	defer span.End()
-	tLog.Infof("V (Targets) : onDownload, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(pCtx, "V (Targets) : onDownload, method: %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -420,13 +422,13 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		state, err := c.TargetsManager.GetState(pCtx, request.Parameters["__name"], namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
 		jData, err := utils.FormatObject(state, false, request.Parameters["path"], request.Parameters["__doc-type"])
 		if err != nil {
-			tLog.Infof("V (Targets) : onDownload failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(pCtx, "V (Targets) : onDownload failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -439,13 +441,13 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		}
 
 		if request.Parameters["__doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 
 		observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 		return resp
 	}
-	tLog.Infof("V (Targets) : onDownload failed - method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(pCtx, "V (Targets) : onDownload failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -460,7 +462,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		"method": "onHeartBeat",
 	})
 	defer span.End()
-	tLog.Infof("V (Targets) : onHeartBeat, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
+	tLog.InfofCtx(pCtx, "V (Targets) : onHeartBeat, method: %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -479,9 +481,9 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		})
 
 		if err != nil {
-			tLog.Infof("V (Targets) : onHeartBeat failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			tLog.ErrorfCtx(pCtx, "V (Targets) : onHeartBeat failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -494,7 +496,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 		return resp
 	}
-	tLog.Infof("V (Targets) : onHeartBeat failed - method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	tLog.ErrorCtx(pCtx, "V (Targets) : onHeartBeat failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

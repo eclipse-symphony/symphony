@@ -29,7 +29,7 @@ With Symphony, users can benefit from a powerful and versatile platform that str
 
 - **Symphony is platform agnostic**
 
-    Symphony was started by Microsoft as a platform-agnostic project, making it an ideal solution for organizations that already use Azure Edge and AI services like [Azure IoT Hub](https://docs.microsoft.com/azure/iot-hub/), [Azure IoT Edge](https://azure.microsoft.com/services/iot-edge/), [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/), [Azure Storage](https://azure.microsoft.com/products/category/storage/), [Azure ML](https://azure.microsoft.com/services/machine-learning/), Mon[Azure Monitor](https://docs.microsoft.com/azure/azure-monitor/)itor, and [Azure Arc](https://learn.microsoft.com/azure/azure-arc/overview). However, Symphony is also fully compatible with other non-Azure services or open-source software tools, allowing organizations to modify the solution to meet their specific needs. This flexibility ensures that Symphony meets customers where they are, making it an ideal solution for organizations of all sizes and complexities.
+    Symphony was started by Microsoft as a platform-agnostic project, making it an ideal solution for organizations that already use Azure Edge and AI services like [Azure IoT Hub](https://docs.microsoft.com/azure/iot-hub/), [Azure IoT Edge](https://azure.microsoft.com/services/iot-edge/), [Azure Cognitive Services](https://azure.microsoft.com/services/cognitive-services/), [Azure Storage](https://azure.microsoft.com/products/category/storage/), [Azure ML](https://azure.microsoft.com/services/machine-learning/), [Azure Monitor](https://docs.microsoft.com/azure/azure-monitor/), and [Azure Arc](https://learn.microsoft.com/azure/azure-arc/overview). However, Symphony is also fully compatible with other non-Azure services or open-source software tools, allowing organizations to modify the solution to meet their specific needs. This flexibility ensures that Symphony meets customers where they are, making it an ideal solution for organizations of all sizes and complexities.
 
 ## Getting Started
 There are several ways to get started with Symphony, including using the CLI tool, Helm, Docker, or the symphony-api binary.
@@ -56,14 +56,14 @@ maestro up
 ### Using Helm
 You can also install Symphony using Helm by running the following command:
 ```Bash
-helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.47.2'
+helm install symphony oci://ghcr.io/eclipse-symphony/helm/symphony --version '0.48.28'
 ```
 After Symphony is installed, you can use maestro to try out sample scenarios.
 
 ### Using Docker
-You can also install Symphony using Docker by running the following command:
+You can also install Symphony using Docker with the bundled `symphony-api.json` or volume mounting your own & injecting its reference via `CONFIG` env:
 ```Bash
-docker run -d --name symphony-api -p 8080:8080 ghcr.io/eclipse-symphony/symphony-api:0.47.1
+docker run -d --name symphony-api -p 8080:8080 -e CONFIG=/symphony-api.json ghcr.io/eclipse-symphony/symphony-api:0.48.28
 ```
 ### Using symphony-api binary
 You can also run Symphony in standalone mode as a single process by running the following command:
@@ -97,6 +97,53 @@ Symphony is an extensible system with the concept of providers. For each provide
 
 * [The Symphony Book](./docs/README.md)
 * [Set up a local environment](./test/localenv/README.md)
+
+## Community
+
+### Communication and Discord
+
+All your contributions and suggestions are greatly appreciated! One of the easiest ways to contribute is to participate in Discord discussions, report issues, or join the monthly community calls.
+
+### Questions and issues
+
+Reach out with any questions you may have and we'll make sure to answer them as soon as possible. Community members, please feel free to jump in to join discussions or answer questions!
+
+| Platform  | Link        |
+|:----------|:------------|
+| Discord | Join the [Discord server](https://discord.gg/JvY8qBkWbw)
+
+### Email announcements
+
+Want to stay up to date with Symphony releases, community calls, and other announcements? Join the Google Group to stay up to date on the latest Symphony news.
+
+| Group | Link |
+|:------|:-----|
+| symphonyoss | Join the [symphonyoss Group](https://groups.google.com/g/symphonyoss)
+
+### Community meetings
+
+Every month we host a community call to showcase new features, review upcoming milestones, and engage in a Q&A. For community calls, anyone from the Symphony community can participate or present a topic. All are welcome!
+
+
+You can always catch up offline by watching the recordings below.
+
+| Asset | Link        |
+|:-----------|:------------|
+| Meeting Link | [Teams Link](https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWE0MTE5YTItN2RlMy00ODFkLWFlNGQtOTUyM2YzNWMwNzg2%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%2203d4b2ae-f8d5-463c-8a45-2a8fb04390b7%22%7d)
+| Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
+
+### Upcoming calls
+
+| Date & time |
+|-------------|
+| Wednesday January 15 <sup>th</sup>, 2025 8:00am Pacific Time (PST) |
+
+### Previous calls
+
+| Date & time | Link |
+|-------------|:-------------|
+| 12/11/2024 | [Recording Link](https://www.youtube.com/watch?v=0WEDia5JD-Y)|
+
 
 ## Contributing
 
