@@ -126,6 +126,10 @@ const (
 	UnsupportedAction               State = 10058
 	InstanceGetFailed               State = 10059
 	TargetGetFailed                 State = 10060
+	GetARMDeploymentPropertyFailed  State = 10061
+	EnsureARMResourceGroupFailed    State = 10062
+	CreateARMDeploymentFailed       State = 10063
+	CleanUpARMDeploymentFailed      State = 10064
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000
