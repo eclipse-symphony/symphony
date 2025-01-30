@@ -201,6 +201,62 @@ func TestCreateProcessRemove(t *testing.T) {
 	assert.Contains(t, err.Error(), "Instance deletion reconcile timeout")
 }
 
+func TestCreateSolutionRemove(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       ts.URL + "/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	provider.InitWithMap(input)
+	solution := model.SolutionState{
+		Spec: &model.SolutionSpec{
+			DisplayName: "solution1",
+		},
+	}
+	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "solution",
+		"objectName": "solution1",
+		"action":     "remove",
+		"object":     solution,
+	})
+	assert.Nil(t, err)
+}
+
+func TestCreateSolutionCreate(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := CreateStageProvider{}
+	input := map[string]string{
+		"baseUrl":       ts.URL + "/",
+		"user":          "admin",
+		"password":      "",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	provider.InitWithMap(input)
+	solution := model.SolutionState{
+		Spec: &model.SolutionSpec{
+			DisplayName: "solution1",
+		},
+	}
+	outpts, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "solution",
+		"objectName": "sample:v1",
+		"action":     "create",
+		"object":     solution,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "sample-v-v1", outpts["objectName"])
+	assert.Equal(t, "solution", outpts["objectType"])
+}
+
 func TestCreateProcessUnsupported(t *testing.T) {
 	provider := CreateStageProvider{}
 	input := map[string]string{
@@ -211,24 +267,26 @@ func TestCreateProcessUnsupported(t *testing.T) {
 		"wait.count":    "3",
 	}
 	provider.InitWithMap(input)
+	instance := model.InstanceState{
+		Spec: &model.InstanceSpec{
+			DisplayName: "instance1",
+			Solution:    "solution1",
+		},
+	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
 		"action":     "upsert",
-		"object": model.InstanceState{
-			Spec: &model.InstanceSpec{
-				DisplayName: "instance1",
-			},
-		},
+		"object":     instance,
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unsupported action:")
 
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType": "solution",
-		"objectName": "solution1",
+		"objectType": "catalog",
+		"objectName": "catalog1",
 		"action":     "delete",
-		"object":     model.SolutionSpec{},
+		"object":     model.SolutionState{},
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unsupported object type:")
@@ -238,6 +296,7 @@ func TestCreateProcessUnsupported(t *testing.T) {
 func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
+		statuCode := 200
 		switch r.URL.Path {
 		case "/instances/instance1":
 			response = model.InstanceState{
@@ -259,6 +318,14 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				},
 				State: model.SummaryStateDone,
 			}
+		case "/solutions/sample-v-v1":
+			response = nil
+		case "/solutioncontainers/sample":
+			if r.Method == http.MethodGet {
+				statuCode = 404
+			} else {
+				statuCode = 200
+			}
 		default:
 			response = AuthResponse{
 				AccessToken: "test-token",
@@ -267,7 +334,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				Roles:       []string{"role1", "role2"},
 			}
 		}
-
+		w.WriteHeader(statuCode)
 		json.NewEncoder(w).Encode(response)
 	}))
 	return ts

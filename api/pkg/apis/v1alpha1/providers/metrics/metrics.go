@@ -87,6 +87,7 @@ func (m *Metrics) Close() {
 		return
 	}
 
+	m.providerOperationLatency.Close()
 	m.providerOperationErrors.Close()
 }
 
