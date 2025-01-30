@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -45,13 +46,18 @@ const (
 
 type (
 	ArmTargetProviderConfig struct {
-		SubscriptionId string `json:"subscriptionId"`
+		SubscriptionId     string `json:"subscriptionId"`
+		UseManagedIdentity bool   `json:"useManagedIdentity"`
+		ClientID           string `json:"clientId,omitempty"`
+		ClientSecret       string `json:"clientSecret,omitempty"`
+		TenantID           string `json:"tenantId,omitempty"`
 	}
 	ArmTargetProvider struct {
 		Config              ArmTargetProviderConfig
 		Context             *contexts.ManagerContext
 		ResourceGroupClient *armresources.ResourceGroupsClient
 		DeploymentsClient   *armresources.DeploymentsClient
+		Credential          azcore.TokenCredential
 	}
 	UrlOrJson struct {
 		URL  *url.URL    `json:"url,omitempty"`
@@ -111,7 +117,30 @@ func (u *UrlOrJson) GetJson() (map[string]interface{}, error) {
 
 	return nil, errors.New("both URL and JSON are empty")
 }
+func getAzureCredential(config ArmTargetProviderConfig) (azcore.TokenCredential, error) {
+	if config.UseManagedIdentity {
+		cred, err := azidentity.NewManagedIdentityCredential(nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Managed Identity credential: %v", err)
+		}
+		return cred, nil
+	}
 
+	if config.ClientID != "" && config.ClientSecret != "" && config.TenantID != "" {
+		cred, err := azidentity.NewClientSecretCredential(config.TenantID, config.ClientID, config.ClientSecret, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Client Secret credential: %v", err)
+		}
+		return cred, nil
+	}
+
+	// Fallback to DefaultAzureCredential if no explicit configuration
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Default Azure credential: %v", err)
+	}
+	return cred, nil
+}
 func getArmDeploymentFromComponent(component model.ComponentSpec) (*ArmDeployment, error) {
 	ret := ArmDeployment{}
 	data, err := json.Marshal(component.Properties)
@@ -143,6 +172,18 @@ func ArmTargetProviderConfigFromMap(properties map[string]string) (ArmTargetProv
 		ret.SubscriptionId = v
 	} else {
 		return ret, errors.New("subscriptionId is required")
+	}
+	if v, ok := properties["useManagedIdentity"]; ok && v == "true" {
+		ret.UseManagedIdentity = true
+	}
+	if v, ok := properties["clientId"]; ok {
+		ret.ClientID = v
+	}
+	if v, ok := properties["clientSecret"]; ok {
+		ret.ClientSecret = v
+	}
+	if v, ok := properties["tenantId"]; ok {
+		ret.TenantID = v
 	}
 	return ret, nil
 }
@@ -182,13 +223,16 @@ func (r *ArmTargetProvider) Init(config providers.IProviderConfig) error {
 	}
 	r.Config = updateConfig
 
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	r.Credential, err = getAzureCredential(r.Config)
 	if err != nil {
-		log.Fatal(err)
+		sLog.ErrorfCtx(ctx, "  P (ARM Target): failed to initialize Azure credentials: %+v", err)
+		return err
 	}
-	resourcesClientFactory, err := armresources.NewClientFactory(r.Config.SubscriptionId, cred, nil)
+
+	resourcesClientFactory, err := armresources.NewClientFactory(r.Config.SubscriptionId, r.Credential, nil)
 	if err != nil {
-		log.Fatal(err)
+		sLog.ErrorfCtx(ctx, "  P (ARM Target): failed to create resources client factory: %+v", err)
+		return err
 	}
 	r.ResourceGroupClient = resourcesClientFactory.NewResourceGroupsClient()
 	r.DeploymentsClient = resourcesClientFactory.NewDeploymentsClient()
@@ -203,23 +247,6 @@ func (r *ArmTargetProvider) Init(config providers.IProviderConfig) error {
 		}
 	})
 	return err
-}
-
-func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	ctx, span := observability.StartSpan(
-		"ARM Target Provider",
-		ctx, &map[string]string{
-			"method": "Get",
-		},
-	)
-	var err error
-	defer utils.CloseSpanWithError(span, &err)
-	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (ARM Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
-
-	ret := make([]model.ComponentSpec, 0)
-
-	return ret, nil
 }
 func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
@@ -237,13 +264,15 @@ func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.Deployment
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
 		deploymentProp, err := getArmDeploymentFromComponent(component.Component)
+		deploymentName := deployment.Instance.ObjectMeta.Name + "_" + component.Component.Name
 		if err != nil {
 			return ret, err
 		}
-		_, err = r.analyzeDeployment(ctx, deploymentName, deploymentProp)
+		err = r.analyzeDeployment(ctx, deploymentName, deploymentProp)
 		if err != nil {
 			return ret, err
 		}
+		ret = append(ret, component.Component)
 	}
 	return ret, nil
 }
@@ -398,6 +427,43 @@ func (r *ArmTargetProvider) analyzeDeployment(ctx context.Context, deploymentNam
 	if err != nil {
 		return fmt.Errorf("cannot get template json: %v", err)
 	}
+	params := map[string]interface{}{}
+	if !deployment.Parameters.IsEmpty() {
+		params, err = deployment.Parameters.GetJson()
+		if err != nil {
+			return fmt.Errorf("cannot get parameters json: %v", err)
+		}
+	}
+	whatIfRequest := armresources.DeploymentWhatIf{
+		Properties: &armresources.DeploymentWhatIfProperties{
+			Mode:       to.Ptr(armresources.DeploymentModeIncremental),
+			Template:   template,
+			Parameters: params,
+		},
+	}
+	pollerResp, err := r.DeploymentsClient.BeginWhatIf(ctx, deployment.ResourceGroup, deploymentName, whatIfRequest, nil)
+	if err != nil {
+		return fmt.Errorf("cannot analyze the deployment: %v", err)
+	}
+	resp, err := pollerResp.PollUntilDone(ctx, nil)
+	if err != nil {
+		log.Fatalf("failed to complete What-If operation: %v", err)
+	}
+	if resp.Status != nil && *resp.Status == "Succeeded" && (resp.Properties.Changes == nil || len(resp.Properties.Changes) == 0) {
+		return nil // No changes happened
+	}
+
+	if resp.Properties == nil {
+		return fmt.Errorf("deployment will make changes")
+	}
+
+	for _, change := range resp.Properties.Changes {
+		if change.ChangeType == nil || *change.ChangeType != "NoChange" {
+			return fmt.Errorf("deployment will make changes")
+		}
+	}
+	// If we reach here, all changes are "NoChange"
+	return nil
 
 }
 func (r *ArmTargetProvider) createDeployment(ctx context.Context, deploymentName string, deployment *ArmDeployment, completeMode bool) (*armresources.DeploymentExtended, error) {
@@ -472,14 +538,14 @@ func (*ArmTargetProvider) GetValidationRule(ctx context.Context) model.Validatio
 	return model.ValidationRule{
 		AllowSidecar: false,
 		ComponentValidationRule: model.ComponentValidationRule{
-			RequiredProperties:    []string{},
-			OptionalProperties:    []string{"yaml", "resource"},
+			RequiredProperties:    []string{"resourceGroup", "location", "template"},
+			OptionalProperties:    []string{},
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
 			ChangeDetectionProperties: []model.PropertyDesc{
-				{Name: "yaml", IgnoreCase: false, SkipIfMissing: true},
-				{Name: "resource", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "resourceGroup", IgnoreCase: true, SkipIfMissing: false},
+				{Name: "location", IgnoreCase: true, SkipIfMissing: false},
 			},
 		},
 	}

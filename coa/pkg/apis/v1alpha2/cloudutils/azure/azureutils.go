@@ -8,7 +8,6 @@ package azure
 
 import (
 	"bytes"
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -22,8 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
@@ -74,17 +71,6 @@ func CreateSASToken(resourceUri string, keyName string, key string) string {
 		expiry,
 		keyName)
 	return sasToken
-}
-
-func GetAzureTokenUsingCredential(credential azcore.TokenCredential) (string, error) {
-	// Request a token for the Azure Resource Manager scope
-	token, err := credential.GetToken(context.Background(), policy.TokenRequestOptions{
-		Scopes: []string{"https://management.azure.com/.default"},
-	})
-	if err != nil {
-		return "", err
-	}
-	return token.Token, nil
 }
 
 func GetAzureToken(tenantId string, clientId string, clientSecret string, scope string) (string, error) {
@@ -190,8 +176,8 @@ func DeleteADUDeployment(token string, aduAccountEndpoint string, aduAccountInst
 	return err
 }
 
-func CreateResourceGroup(token string, group string, location string) error {
-	getUrl := fmt.Sprintf("https://management.azure.com/subscriptions/%s/resourceGroups/%s?api-version=2021-04-01", group, location)
+func CreateResourceGroup(token string, subscription string, group string, location string) error {
+	getUrl := fmt.Sprintf("https://management.azure.com/subscriptions/%s/resourceGroups/%s?api-version=2021-04-01", subscription, group)
 	data := fmt.Sprintf("{\"location\": \"%s\"}", location)
 	_, err := callRESTAPI("PUT", getUrl, token, strings.NewReader(data))
 	return err

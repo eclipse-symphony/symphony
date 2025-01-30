@@ -8,6 +8,7 @@ package arm
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -22,9 +23,14 @@ func TestInitWithNil(t *testing.T) {
 }
 
 func TestApply(t *testing.T) {
+	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if subscription == "" {
+		t.Skip("Skipping because AZURE_SUBSCRIPTION_ID is not set")
+	}
+
 	provider := ArmTargetProvider{}
 	err := provider.Init(ArmTargetProviderConfig{
-		SubscriptionId: "",
+		SubscriptionId: subscription,
 	})
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
@@ -96,4 +102,69 @@ func TestApply(t *testing.T) {
 	result, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 	assert.Equal(t, result["test"].Status, v1alpha2.Deleted)
+}
+func TestGet(t *testing.T) {
+	subscription := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	if subscription == "" {
+		t.Skip("Skipping because AZURE_SUBSCRIPTION_ID is not set")
+	}
+
+	provider := ArmTargetProvider{}
+	err := provider.Init(ArmTargetProviderConfig{
+		SubscriptionId: subscription,
+	})
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "test",
+		Properties: map[string]interface{}{
+			"resourceGroup": "test",
+			"location":      "westus",
+			"template": UrlOrJson{
+				JSON: map[string]interface{}{
+					"$schema":        "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+					"contentVersion": "1.0.0.0",
+					"parameters":     map[string]interface{}{},
+					"variables":      map[string]interface{}{},
+					"resources": []interface{}{
+						map[string]interface{}{
+							"name":       "thestroageaaa",
+							"type":       "Microsoft.Storage/storageAccounts",
+							"apiVersion": "2021-04-01",
+							"tags": map[string]string{
+								"displayName": "thestroageaaa",
+							},
+							"location": "EastUS",
+							"kind":     "StorageV2",
+							"sku": map[string]string{
+								"name": "Premium_LRS",
+								"tier": "Premium",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+			ObjectMeta: model.ObjectMeta{
+				Name: "deepseek",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	components := []model.ComponentStep{
+		{
+			Action:    model.ComponentUpdate,
+			Component: component,
+		},
+	}
+
+	_, err = provider.Get(context.Background(), deployment, components)
+	assert.Nil(t, err)
 }
