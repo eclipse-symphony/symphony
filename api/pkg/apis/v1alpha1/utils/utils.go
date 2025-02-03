@@ -34,6 +34,12 @@ const (
 	Any    = "any"
 )
 
+// Define the struct
+type ObjectInfo struct {
+	Name      string
+	SummaryId string
+}
+
 func IsNotFound(err error) bool {
 	if apiError, ok := err.(APIError); ok {
 		return apiError.Code == v1alpha2.NotFound
@@ -125,6 +131,17 @@ func MergeCollection(cols ...map[string]string) map[string]string {
 	for _, col := range cols {
 		for k, v := range col {
 			ret[k] = v
+		}
+	}
+	return ret
+}
+func GenerateKeyLockName(strs ...string) string {
+	ret := ""
+	for i, str := range strs {
+		if i == 0 {
+			ret += str
+		} else {
+			ret += ("&&" + str)
 		}
 	}
 	return ret
@@ -495,28 +512,31 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 	return remainingObjects, failedDeployments
 }
 
-func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
-	remainingObjects := make([]string, 0)
+func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objects []ObjectInfo, isInstance bool, username string, password string) ([]ObjectInfo, []FailedDeployment) {
+	remainingObjects := make([]ObjectInfo, 0)
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
-	for _, objectName := range objectNames {
+	for _, object := range objects {
 		var key string
+		var nameKey string
 		if isInstance {
-			key = objectName
+			key = object.SummaryId
+			nameKey = object.Name
 		} else {
-			key = fmt.Sprintf("target-runtime-%s", objectName)
+			key = GetTargetRuntimeKey(object.SummaryId)
+			nameKey = GetTargetRuntimeKey(object.Name)
 		}
 		var summary *model.SummaryResult
-		summary, err = (*apiclient).GetSummary(ctx, key, namespace, username, password)
+		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
 		if err == nil && summary.State == model.SummaryStateDone {
-			log.DebugfCtx(ctx, "Summary for %s is %v", objectName, summary.Summary)
+			log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
 			if !summary.Summary.AllAssignedDeployed {
-				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", objectName, summary.Summary.SummaryMessage)
-				failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: summary.Summary.SummaryMessage})
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
 			}
 			continue
 		}
-		remainingObjects = append(remainingObjects, objectName)
+		remainingObjects = append(remainingObjects, object)
 	}
 	return remainingObjects, failedDeployments
 }

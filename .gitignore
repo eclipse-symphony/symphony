@@ -20,3 +20,6 @@ api/pkg/apis/v1alpha1/providers/target/rust/target
 go.work
 Cargo.lock
 *.log
+
+docs-site/node_modules
+docs-site/.hugo_build.lock

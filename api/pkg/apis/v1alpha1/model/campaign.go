@@ -41,6 +41,7 @@ type StageSpec struct {
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 	Proxy         *v1alpha2.ProxySpec    `json:"proxy,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
+	Target        string                 `json:"target,omitempty"`
 }
 
 // UnmarshalJSON customizes the JSON unmarshalling for StageSpec

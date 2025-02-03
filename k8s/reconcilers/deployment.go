@@ -56,6 +56,7 @@ type (
 		deleteSyncDelay        time.Duration // TODO: Use operator reconcile loop instead of this delay
 		delayFunc              func(time.Duration)
 		deploymentKeyResolver  func(Reconcilable) string
+		deploymentNameResolver func(Reconcilable) string
 		deploymentErrorBuilder func(*apimodel.SummaryResult, error, *apimodel.ErrorType)
 		deploymentBuilder      func(ctx context.Context, object Reconcilable) (*apimodel.DeploymentSpec, error)
 	}
@@ -80,6 +81,7 @@ var (
 func NewDeploymentReconciler(opts ...DeploymentReconcilerOptions) (*DeploymentReconciler, error) {
 	r := &DeploymentReconciler{
 		deploymentKeyResolver:  defaultDeploymentKeyResolver,
+		deploymentNameResolver: defaultDeploymentNameResolver,
 		deploymentErrorBuilder: defaultProvisioningErrorBuilder,
 		delayFunc:              time.Sleep,
 		applyTimeOut:           defaultTimeout,
@@ -147,6 +149,9 @@ func (r *DeploymentReconciler) populateDiagnosticsAndActivitiesFromAnnotations(c
 
 // attemptUpdate attempts to update the instance
 func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var delayAttemptUpdate string
+
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	if !controllerutil.ContainsFinalizer(object, r.finalizerName) && !isRemoval {
@@ -194,11 +199,14 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
-
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var beforeQueueJob string
 	if err := r.queueDeploymentJob(ctx, object, isRemoval, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
 		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
 	}
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var afterQueueJob string
 
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
 	if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{deploymentQueued: true}, log); err != nil {
@@ -218,6 +226,9 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 }
 
 func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconcilable, isRemoval bool, log logr.Logger, operationStartTimeKey string, operationName string) (metrics.OperationStatus, reconcile.Result, error) {
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var delayBeforePolling string
+
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
 	// Get reconciliation interval
@@ -441,7 +452,7 @@ func (r *DeploymentReconciler) queueDeploymentJob(ctx context.Context, object Re
 }
 
 func (r *DeploymentReconciler) getDeploymentSummary(ctx context.Context, object Reconcilable) (*model.SummaryResult, error) {
-	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), object.GetNamespace(), "", "")
+	return r.apiClient.GetSummary(ctx, r.deploymentKeyResolver(object), r.deploymentNameResolver(object), object.GetNamespace(), "", "")
 }
 
 func (r *DeploymentReconciler) deleteDeploymentSummary(ctx context.Context, object Reconcilable) error {
@@ -511,7 +522,7 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 	nextStatus.LastModified = metav1.Now()
 	object.SetStatus(*nextStatus)
 
-	err = r.kubeClient.Status().Update(context.Background(), object)
+	err = r.kubeClient.Status().Update(ctx, object)
 	if err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 	}
@@ -686,6 +697,10 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 }
 
 func defaultDeploymentKeyResolver(object Reconcilable) string {
+	return api_utils.ConstructSummaryId(object.GetName(), object.GetAnnotations()[apiconstants.GuidKey])
+}
+
+func defaultDeploymentNameResolver(object Reconcilable) string {
 	return object.GetName()
 }
 

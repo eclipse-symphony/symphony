@@ -1,6 +1,3 @@
-//go:build !azure
-// +build !azure
-
 /*
  * Copyright (c) Microsoft Corporation.
  * Licensed under the MIT license.
@@ -18,6 +15,56 @@ var (
 )
 
 const (
+	FullGroupName       = "symphony"
+	TargetRuntimePrefix = "target-runtime"
+
+	// system annotations, reserved and should not be modified by client.
+	AzureCorrelationIdKey        = "management.azure.com/correlationId"
+	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	AzureOperationIdKey          = "management.azure.com/operationId"
+	AzureNameIdKey               = "management.azure.com/azureName"
+	AzureResourceIdKey           = "management.azure.com/resourceId"
+	AzureSystemDataKey           = "management.azure.com/systemData"
+	AzureTenantIdKey             = "management.azure.com/tenantId" // Not used
+	GuidKey                      = "Guid"
+	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
+	SummaryJobIdKey              = "SummaryJobIdKey"
+	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target
+
+	ProviderName = "management.azure.com/provider-name"
+)
+
+func SystemReservedAnnotations() []string {
+	return []string{
+		AzureCorrelationIdKey,
+		AzureEdgeLocationKey,
+		AzureOperationIdKey,
+		AzureNameIdKey,
+		AzureResourceIdKey,
+		AzureSystemDataKey,
+		AzureTenantIdKey,
+		RunningAzureCorrelationIdKey,
+		SummaryJobIdKey,
+		OperationStartTimeKeyPostfix,
+	}
+}
+
+func SystemReservedLabels() []string {
+	return []string{
+		Campaign,
+		DisplayName,
+		ProviderName,
+		ManagerMetaKey,
+		ParentName,
+		RootResource,
+		Solution,
+		StagedTarget,
+		StatusMessage,
+		Target,
+	}
+}
+
+const (
 	DefaultScope = "default"
 	SATokenPath  = "/var/run/secrets/tokens/symphony-api-token"
 	// These constants need to be in a shared package.
@@ -33,6 +80,7 @@ const (
 	Solution           = "solution"
 	Target             = "target"
 	Campaign           = "campaign"
+	StagedTarget       = "staged_target"
 )
 
 // Environment variables keys

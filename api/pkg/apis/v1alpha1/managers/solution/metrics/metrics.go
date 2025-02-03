@@ -40,6 +40,11 @@ func New() (*Metrics, error) {
 
 // Close closes all metrics.
 func (m *Metrics) Close() {
+	if m == nil {
+		return
+	}
+
+	m.apiComponentCount.Close()
 }
 
 // ApiComponentCount gets the total count of components for an API operation.

@@ -119,6 +119,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 					Context: ctx,
 				})
 			}
+			// DO NOT REMOVE THIS COMMENT
+			// gofail: var afterPublishTrigger string
 			return nil
 		},
 		Group: "0",

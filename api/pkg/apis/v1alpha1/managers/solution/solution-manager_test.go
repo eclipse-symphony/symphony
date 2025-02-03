@@ -13,6 +13,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -312,8 +313,12 @@ func TestSortByDepedenciesAllSelfReferences(t *testing.T) {
 }
 func TestMockGet(t *testing.T) {
 	id := uuid.New().String()
+	name := "testInstance"
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: name,
+			},
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
@@ -353,22 +358,28 @@ func TestMockGet(t *testing.T) {
 			},
 		},
 	}
+	guid := uuid.New().String()
+	deployment.Instance.ObjectMeta.SetGuid(guid)
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	summaryKey := deployment.Instance.ObjectMeta.GetSummaryId()
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.NotNil(t, err)
 
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -383,7 +394,7 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, "mock", state.TargetComponent["a::T1"])
 	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
 
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.Nil(t, err)
 
 	// Test reconcile idempotency
@@ -391,9 +402,9 @@ func TestMockGet(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Test summary deletion
-	err = manager.DeleteSummary(context.Background(), "", "default")
+	err = manager.DeleteSummary(context.Background(), summaryKey, "default")
 	assert.Nil(t, err)
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.NotNil(t, err)
 }
 func TestMockGetTwoTargets(t *testing.T) {
@@ -460,15 +471,19 @@ func TestMockGetTwoTargets(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
@@ -553,16 +568,20 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock1": targetProvider,
 			"mock2": targetProvider,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
@@ -626,15 +645,19 @@ func TestMockApply(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
@@ -685,18 +708,22 @@ func TestMockApplyMultiRoles(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider2 := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id1})
 	targetProvider2.Init(mock.MockTargetProviderConfig{ID: id2})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock":  targetProvider,
 			"mock2": targetProvider2,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
@@ -743,15 +770,19 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
@@ -793,15 +824,19 @@ func TestMockApplyWithError(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider: stateProvider,
+		StateProvider:   stateProvider,
+		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.NotNil(t, err)

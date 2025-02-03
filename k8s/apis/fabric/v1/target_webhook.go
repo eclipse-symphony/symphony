@@ -23,6 +23,7 @@ import (
 	"gopls-workspace/constants"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/google/uuid"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
@@ -113,6 +114,13 @@ func (r *Target) Default() {
 		r.Spec.ReconciliationPolicy.State = v1.ReconciliationPolicy_Active
 	}
 
+	if r.Annotations == nil {
+		r.Annotations = make(map[string]string)
+	}
+	if r.Annotations[api_constants.GuidKey] == "" {
+		r.Annotations[api_constants.GuidKey] = uuid.New().String()
+	}
+
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)
 	}
@@ -132,6 +140,9 @@ func (r *Target) ValidateCreate() (admission.Warnings, error) {
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 	operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myTargetClient, context.TODO(), targetlog)
+
+	// DO NOT REMOVE THIS COMMENT
+	// gofail: var validateError error
 
 	diagnostic.InfoWithCtx(targetlog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Target %s is being created on namespace %s", r.Name, r.Namespace)

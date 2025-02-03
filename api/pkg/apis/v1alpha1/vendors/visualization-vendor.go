@@ -101,7 +101,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		catalog, err := convertVisualizationPacketToCatalog(c.Context.SiteInfo.SiteId, packet)
+		catalog, err := convertVisualizationPacketToCatalog(packet)
 		if err != nil {
 			vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -115,7 +115,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 			if err != nil {
 				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -126,7 +126,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 			if err != nil {
 				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -137,7 +137,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 			if err != nil {
 				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -199,7 +199,7 @@ func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.Catalo
 	return mergedCatalog, nil
 }
 
-func convertVisualizationPacketToCatalog(site string, packet model.Packet) (model.CatalogState, error) {
+func convertVisualizationPacketToCatalog(packet model.Packet) (model.CatalogState, error) {
 	catalog := model.CatalogState{
 		Spec: &model.CatalogSpec{
 			CatalogType: "topology",

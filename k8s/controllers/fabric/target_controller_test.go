@@ -112,7 +112,7 @@ var _ = Describe("Target controller", Ordered, func() {
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
 					jobID = uuid.New().String()
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(target, hash, jobID), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(target, hash, jobID), nil)
 				})
 
 				It("should not return an error", func() {
@@ -134,7 +134,7 @@ var _ = Describe("Target controller", Ordered, func() {
 			Context("and the deployment failed due to some error", func() {
 				BeforeEach(func() {
 					By("mocking the get summary call to return a not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking a failed deployment to the api")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("some error"))
@@ -157,7 +157,7 @@ var _ = Describe("Target controller", Ordered, func() {
 					summary := MockFailureSummaryResult(target, hash)
 					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should not return an error", func() {
@@ -219,7 +219,7 @@ var _ = Describe("Target controller", Ordered, func() {
 					summary.Summary.IsRemoval = true
 					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should no longer exist in the kubernetes api", func(ctx context.Context) {
@@ -239,7 +239,7 @@ var _ = Describe("Target controller", Ordered, func() {
 					hash := utils.HashObjects(utils.DeploymentResources{TargetCandidates: []symphonyv1.Target{*target}})
 					summary := MockInProgressDeleteSummaryResult(target, hash)
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				JustBeforeEach(func(ctx context.Context) {
@@ -264,7 +264,7 @@ var _ = Describe("Target controller", Ordered, func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a failed delete deployment from the api")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
 				})
 
 				JustBeforeEach(func(ctx context.Context) {

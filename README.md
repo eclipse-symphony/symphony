@@ -102,6 +102,53 @@ Symphony is an extensible system with the concept of providers. For each provide
 * [The Symphony Book](./docs/README.md)
 * [Set up a local environment](./test/localenv/README.md)
 
+## Community
+
+### Communication and Discord
+
+All your contributions and suggestions are greatly appreciated! One of the easiest ways to contribute is to participate in Discord discussions, report issues, or join the monthly community calls.
+
+### Questions and issues
+
+Reach out with any questions you may have and we'll make sure to answer them as soon as possible. Community members, please feel free to jump in to join discussions or answer questions!
+
+| Platform  | Link        |
+|:----------|:------------|
+| Discord | Join the [Discord server](https://discord.gg/JvY8qBkWbw)
+
+### Email announcements
+
+Want to stay up to date with Symphony releases, community calls, and other announcements? Join the Google Group to stay up to date on the latest Symphony news.
+
+| Group | Link |
+|:------|:-----|
+| symphonyoss | Join the [symphonyoss Group](https://groups.google.com/g/symphonyoss)
+
+### Community meetings
+
+Every month we host a community call to showcase new features, review upcoming milestones, and engage in a Q&A. For community calls, anyone from the Symphony community can participate or present a topic. All are welcome!
+
+
+You can always catch up offline by watching the recordings below.
+
+| Asset | Link        |
+|:-----------|:------------|
+| Meeting Link | [Teams Link](https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWE0MTE5YTItN2RlMy00ODFkLWFlNGQtOTUyM2YzNWMwNzg2%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%2203d4b2ae-f8d5-463c-8a45-2a8fb04390b7%22%7d)
+| Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
+
+### Upcoming calls
+
+| Date & time |
+|-------------|
+| Wednesday January 15 <sup>th</sup>, 2025 8:00am Pacific Time (PST) |
+
+### Previous calls
+
+| Date & time | Link |
+|-------------|:-------------|
+| 12/11/2024 | [Recording Link](https://www.youtube.com/watch?v=0WEDia5JD-Y)|
+
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  

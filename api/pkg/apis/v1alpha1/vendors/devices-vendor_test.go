@@ -173,7 +173,7 @@ func TestPostAndDelete(t *testing.T) {
 		},
 	}
 	res = vendor.onDevices(*request)
-	assert.Equal(t, v1alpha2.InternalError, res.State)
+	assert.Equal(t, v1alpha2.NotFound, res.State)
 
 	requestGet := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -194,7 +194,7 @@ func TestPostAndDelete(t *testing.T) {
 	res = vendor.onDevices(*request)
 	assert.Equal(t, v1alpha2.OK, res.State)
 	res = vendor.onDevices(*requestGet)
-	assert.Equal(t, v1alpha2.InternalError, res.State)
+	assert.Equal(t, v1alpha2.NotFound, res.State)
 }
 
 func TestNotAllowed(t *testing.T) {
