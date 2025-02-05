@@ -67,7 +67,9 @@ func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueP
 
 // fake
 func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
-	return [][]byte{}, "", nil
+	// Implement the logic to retrieve items from the queue based on the provided parameters.
+	// For now, returning an empty result and a not implemented error.
+	return [][]byte{}, "", errors.New("functionality not implemented yet")
 }
 
 func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
@@ -83,7 +85,7 @@ func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 
 // fake
 func (s *MemoryQueueProvider) RemoveFromQueue(queue string, messageID string) error {
-	return nil
+	return errors.New("functionality not implemented yet")
 }
 func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) (string, error) {
 	mLock.Lock()
