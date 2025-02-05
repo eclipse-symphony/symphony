@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	bluefinRepo      = "azbluefin.azurecr.io/helm/bluefin-arc-extension"
-	bluefinVersion   = "0.2.0-20230717.3-develop"
+	odooRepo         = "registry-1.docker.io/bitnamicharts/odoo"
+	odooVersion      = "28.1.1"
 	defaultTestScope = "alice-springs"
 )
 
@@ -82,18 +82,17 @@ func TestInitWithMap(t *testing.T) {
 // TestHelmTargetProviderGetHelmProperty tests the getHelmValuesFromComponent function with valid input
 func TestHelmTargetProviderGetHelmPropertyMissingRepo(t *testing.T) {
 	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
 				"repo":    "", // blank repo
-				"name":    "bluefin-arc-extension",
+				"name":    "odoo",
 				"version": "0.1.1",
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	})
@@ -102,17 +101,16 @@ func TestHelmTargetProviderGetHelmPropertyMissingRepo(t *testing.T) {
 
 func TestHelmTargetProviderGetHelmProperty(t *testing.T) {
 	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    bluefinRepo,
-				"version": bluefinVersion,
+				"repo":    odooRepo,
+				"version": odooVersion,
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	})
@@ -131,9 +129,9 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 		ChartRepo     string
 		ExpectedError bool
 	}{
-		{Name: "install with wrong protocol", ChartRepo: fmt.Sprintf("wrongproto://%s", bluefinRepo), ExpectedError: true},
-		{Name: "install with oci prefix", ChartRepo: fmt.Sprintf("oci://%s", bluefinRepo), ExpectedError: false},
-		{Name: "install without oci prefix", ChartRepo: bluefinRepo, ExpectedError: false},
+		{Name: "install with wrong protocol", ChartRepo: fmt.Sprintf("wrongproto://%s", odooRepo), ExpectedError: true},
+		{Name: "install with oci prefix", ChartRepo: fmt.Sprintf("oci://%s", odooRepo), ExpectedError: false},
+		{Name: "install without oci prefix", ChartRepo: odooRepo, ExpectedError: false},
 		// cleanup step is in TestHelmTargetProviderRemove
 	}
 
@@ -144,17 +142,16 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 			err := provider.Init(config)
 			assert.Nil(t, err)
 			component := model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
+				Name: "odoo",
 				Type: "helm.v3",
 				Properties: map[string]interface{}{
 					"chart": map[string]string{
 						"repo":    tc.ChartRepo,
-						"version": bluefinVersion,
+						"version": odooVersion,
 					},
 					"values": map[string]interface{}{
-						"CUSTOM_VISION_KEY": "BBB",
-						"CLUSTER_SECRET":    "test",
-						"CERTIFICATES":      []string{"a", "b"},
+						"service.type": "NodePort",
+						"service.port": 80,
 					},
 				},
 			}
@@ -212,7 +209,7 @@ func TestHelmTargetProviderGet(t *testing.T) {
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
 					{
-						Name: "bluefin-arc-extensions",
+						Name: "odoo",
 					},
 				},
 			},
@@ -221,7 +218,7 @@ func TestHelmTargetProviderGet(t *testing.T) {
 		{
 			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
+				Name: "odoo",
 			},
 		},
 	})
@@ -488,12 +485,12 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    bluefinRepo,
-				"version": bluefinVersion,
+				"repo":    odooRepo,
+				"version": odooVersion,
 			},
 		},
 	}
@@ -574,18 +571,17 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-				"name":    "bluefin-arc-extension",
-				"version": "0.1.1",
+				"repo":    "registry-1.docker.io/bitnamicharts/odoo",
+				"name":    "odoo",
+				"version": "28.1.1",
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	}
@@ -772,18 +768,17 @@ func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
 				"repo":    "abc/def",
-				"name":    "bluefin-arc-extension",
+				"name":    "odoo",
 				"version": "0.1.1",
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	}
@@ -826,7 +821,7 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
 					{
-						Name: "bluefin-arc-extensions",
+						Name: "odoo",
 					},
 				},
 			},
@@ -835,7 +830,7 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 		{
 			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
+				Name: "odoo",
 			},
 		},
 	})
