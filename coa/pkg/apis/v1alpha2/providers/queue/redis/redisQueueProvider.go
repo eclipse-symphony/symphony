@@ -126,7 +126,7 @@ func (rq *RedisQueueProvider) Size(queue string) int {
 func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	vConfig, err := toRedisQueueProviderConfig(config)
 	if err != nil {
-		mLog.Errorf("  P (Redis PubSub): failed to parse provider config %+v", err)
+		mLog.ErrorfCtx(rq.Ctx, "  P (Redis PubSub): failed to parse provider config %+v", err)
 		return v1alpha2.NewCOAError(nil, "provided config is not a valid redis pub-sub provider config", v1alpha2.BadConfig)
 	}
 	if vConfig.Host == "" {
@@ -149,7 +149,7 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	}
 	client := redis.NewClient(options)
 	if _, err := client.Ping(rq.Ctx).Result(); err != nil {
-		mLog.Errorf("  P (Redis Queue): failed to connect to redis %+v", err)
+		mLog.ErrorfCtx(rq.Ctx, "  P (Redis Queue): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", vConfig.Host), v1alpha2.InternalError)
 	}
 	rq.client = client
@@ -174,7 +174,6 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	var err error
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
 	start, err = rq.client.Get(rq.Ctx, lastIDkey).Result()
-	mLog.Errorf("  P redis queue: start is  %s", start)
 	if err == redis.Nil {
 		start = "0"
 	} else if err != nil {
@@ -189,7 +188,6 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 		return nil, nil
 	}
 	xMsg := xMessages[0]
-	mLog.Errorf("  P redis queue:xmsg id %s", xMsg.ID)
 	jsonData := xMsg.Values["data"].(string)
 	var result interface{}
 	err = json.Unmarshal([]byte(jsonData), &result)
@@ -235,13 +233,13 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
 	}
 	// Delete message
-	err = rq.client.XDel(context.TODO(), queue, xMsg.ID).Err()
+	err = rq.client.XDel(rq.Ctx, queue, xMsg.ID).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete message: %w", err)
 	}
 
 	// Update last read ID
-	err = rq.client.Set(context.TODO(), lastIDkey, "("+xMsg.ID, 0).Err()
+	err = rq.client.Set(rq.Ctx, lastIDkey, "("+xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
