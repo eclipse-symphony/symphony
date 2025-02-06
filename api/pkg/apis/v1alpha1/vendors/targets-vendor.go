@@ -7,7 +7,10 @@
 package vendors
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -21,13 +24,28 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var tLog = logger.NewLogger("coa.runtime")
+const (
+	maxRetries = 3
+	retryDelay = 5 * time.Second
+)
+
+var (
+	tLog        = logger.NewLogger("coa.runtime")
+	CAIssuer    = os.Getenv("ISSUER_NAME")
+	ServiceName = os.Getenv("SYMPHONY_SERVICE_NAME")
+	AgentPath   = os.Getenv("AGENT_PATH")
+)
 
 type TargetsVendor struct {
 	vendors.Vendor
@@ -288,43 +306,153 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	})
 	defer span.End()
 	tLog.InfofCtx(ctx, "V (Targets) : onBootstrap, method: %s", request.Method)
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var authRequest AuthRequest
-		err := json.Unmarshal(request.Body, &authRequest)
-		if err != nil || authRequest.UserName != "symphony-test" {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.Unauthorized,
-				Body:  []byte(err.Error()),
-			})
+		subject := fmt.Sprintf("CN=%s-%s.%s", namespace, id, ServiceName)
+		target, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			tLog.InfofCtx(ctx, "V (Targets) : onBootstrap target %s in namespace %s not found", id, namespace)
+			err := json.Unmarshal(request.Body, &target)
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+			if target.ObjectMeta.Name == "" {
+				target.ObjectMeta.Name = id
+			}
+
+			err = c.TargetsManager.UpsertState(ctx, id, target)
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
-		mySigningKey := []byte("SymphonyKey")
-		claims := MyCustomClaims{
-			authRequest.UserName,
-			jwt.RegisteredClaims{
-				// A usual scenario is to set the expiration time relative to the current time
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-				NotBefore: jwt.NewNumericDate(time.Now()),
-				Issuer:    "symphony",
-				Subject:   "symphony",
-				ID:        "1",
-				Audience:  []string{"*"},
+		// create working cert
+		gvk := schema.GroupVersionKind{
+			Group:   "cert-manager.io",
+			Version: "v1",
+			Kind:    "Certificate",
+		}
+
+		// Create an unstructured object
+		cert := &unstructured.Unstructured{}
+		cert.SetGroupVersionKind(gvk)
+
+		// Set the metadata
+		cert.SetName(id)
+		cert.SetNamespace(namespace)
+
+		secretName := fmt.Sprintf("%s-tls", id)
+		// Set the spec fields
+		spec := map[string]interface{}{
+			"secretName":  secretName,
+			"duration":    "2160h", // 90 days
+			"renewBefore": "360h",  // 15 days
+			"commonName":  subject,
+			"dnsNames": []string{
+				subject,
+			},
+			"issuerRef": map[string]interface{}{
+				"name": CAIssuer,
+				"kind": "Issuer",
+			},
+			"subject": map[string]interface{}{
+				"organizations": []interface{}{
+					ServiceName,
+				},
 			},
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		ss, _ := token.SignedString(mySigningKey)
+		// Set the spec in the unstructured object
+		cert.Object["spec"] = spec
 
-		resp := v1alpha2.COAResponse{
-			State:       v1alpha2.OK,
-			Body:        []byte(`{"accessToken":"` + ss + `", "tokenType": "Bearer"}`),
-			ContentType: "application/json",
+		upsertRequest := states.UpsertRequest{
+			Value: states.StateEntry{
+				ID:   id,
+				Body: cert.Object,
+			},
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+				"group":     gvk.Group,
+				"version":   gvk.Version,
+				"resource":  "certificates",
+				"kind":      gvk.Kind,
+			},
+		}
+		jsonData, _ := json.Marshal(upsertRequest)
+		tLog.InfofCtx(ctx, "V (Targets) : create certificate object - %s", jsonData)
+		_, err = c.TargetsManager.StateProvider.Upsert(ctx, upsertRequest)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
 		}
 
-		observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-		return resp
+		// get secret
+		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		private, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+
+		// remove the \n from the public and private cert
+		public = strings.ReplaceAll(public, "\n", " ")
+		private = strings.ReplaceAll(private, "\n", " ")
+
+		// Update the target topology
+		target, err = c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("Error reading target: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+		var topology model.TopologySpec
+		json.Unmarshal(request.Body, &topology)
+		topologies := []model.TopologySpec{topology}
+		target.Spec.Topologies = topologies
+		err = c.TargetsManager.UpsertState(ctx, id, target)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("Error updating target topology: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
+		})
+
 	}
 	tLog.ErrorCtx(ctx, "V (Targets) : onRegistry failed - method not allowed")
 	resp := v1alpha2.COAResponse{
@@ -336,6 +464,19 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	return resp
 }
 
+func readSecretWithRetry(ctx context.Context, secretProvider secret.ISecretProvider, secretName, key string, evalCtx coa_utils.EvaluationContext) (string, error) {
+	var data string
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		data, err = secretProvider.Read(ctx, secretName, key, evalCtx)
+		if err == nil {
+			return data, nil
+		}
+		tLog.ErrorfCtx(ctx, "V (Targets) : failed to read secret %s (attempt %d/%d) - %s", key, i+1, maxRetries, err.Error())
+		time.Sleep(retryDelay)
+	}
+	return "", fmt.Errorf("failed to read secret %s after %d attempts: %w", key, maxRetries, err)
+}
 func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
 		"method": "onStatus",

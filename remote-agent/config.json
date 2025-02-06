@@ -1,4 +1,5 @@
 {
-    "requestEndpoint": "http://localhost:3000/agent/request",
-    "responseEndpoint": "http://localhost:3000/agent/response"
+    "requestEndpoint": "https://symphony-service:8081/v1alpha2/solution/tasks",
+    "responseEndpoint": "https://symphony-service:8081/v1alpha2/solution/task/getResult",
+    "baseUrl": "https://symphony-service:8081/v1alpha2/"
 }
