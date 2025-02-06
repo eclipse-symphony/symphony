@@ -65,7 +65,7 @@ func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueP
 	return ret, err
 }
 
-// fake
+// not implemented
 func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
 	// Implement the logic to retrieve items from the queue based on the provided parameters.
 	// For now, returning an empty result and a not implemented error.
@@ -83,7 +83,7 @@ func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-// fake
+// not implemented
 func (s *MemoryQueueProvider) RemoveFromQueue(queue string, messageID string) error {
 	return errors.New("functionality not implemented yet")
 }
