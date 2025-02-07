@@ -8,8 +8,10 @@ package vendors
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -73,6 +75,7 @@ func (e *TargetsVendor) Init(config vendors.VendorConfig, factories []managers.I
 	if e.TargetsManager == nil {
 		return v1alpha2.NewCOAError(nil, "targets manager is not supplied", v1alpha2.MissingConfig)
 	}
+
 	return nil
 }
 
@@ -90,10 +93,25 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name?"},
 		},
 		{
-			Methods: []string{fasthttp.MethodPost},
-			Route:   route + "/bootstrap",
-			Version: o.Version,
-			Handler: o.onBootstrap,
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/bootstrap",
+			Version:    o.Version,
+			Handler:    o.onBootstrap,
+			Parameters: []string{"name?"},
+		},
+		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/secretrotate",
+			Version:    o.Version,
+			Handler:    o.onSecretRotate,
+			Parameters: []string{"name?"},
+		},
+		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/upgrade",
+			Version:    o.Version,
+			Handler:    o.onUpgrade,
+			Parameters: []string{"name?"},
 		},
 		{
 			Methods:    []string{fasthttp.MethodPost},
@@ -329,7 +347,6 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 			if target.ObjectMeta.Name == "" {
 				target.ObjectMeta.Name = id
 			}
-
 			err = c.TargetsManager.UpsertState(ctx, id, target)
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
@@ -477,6 +494,130 @@ func readSecretWithRetry(ctx context.Context, secretProvider secret.ISecretProvi
 	}
 	return "", fmt.Errorf("failed to read secret %s after %d attempts: %w", key, maxRetries, err)
 }
+
+func (c *TargetsVendor) onSecretRotate(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onSecretRotate",
+	})
+	defer span.End()
+	tLog.InfofCtx(ctx, "V (Targets) : onSecretRotate, method: %s", request.Method)
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		_, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onSecretRotate failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		// get the new secret
+		secretName := fmt.Sprintf("%s-tls", id)
+
+		// get secret
+		public, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onSecretRotate failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		private, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onSecretRotate failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+
+		// remove the \n from the public and private cert
+		public = strings.ReplaceAll(public, "\n", " ")
+		private = strings.ReplaceAll(private, "\n", " ")
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
+		})
+
+	}
+	tLog.ErrorCtx(ctx, "V (Targets) : onSecretRotate failed - method not allowed")
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func (c *TargetsVendor) onUpgrade(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onUpgrade",
+	})
+	defer span.End()
+	tLog.InfofCtx(ctx, "V (Targets) : onUpgrade, method: %s", request.Method)
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+	osPlatform, exist := request.Parameters["osPlatform"]
+	if !exist {
+		osPlatform = "linux"
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		_, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : onUpgrade failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+		}
+
+		filePath := fmt.Sprintf("%s/%s", AgentPath, "remote-agent")
+		if osPlatform == "windows" {
+			filePath = fmt.Sprintf("%s/%s", AgentPath, "remote-agent.exe")
+		}
+
+		fileContent, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(fmt.Sprintf("Error reading file: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+
+		// Base64 encode the file content
+		encodedFileContent := base64.StdEncoding.EncodeToString(fileContent)
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte(fmt.Sprintf("{\"file\":\"%s\"}", encodedFileContent)),
+		})
+
+	}
+	tLog.ErrorCtx(ctx, "V (Targets) : onUpgrade failed - method not allowed")
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
 func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
 		"method": "onStatus",
