@@ -153,6 +153,18 @@ func K8SSolutionToAPISolutionState(solution solution_v1.Solution) (apimodel.Solu
 
 }
 
+func ContainsString(slice []string, target string) bool {
+	if slice == nil {
+		return false
+	}
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
 func matchString(src string, target string) bool {
 	if strings.Contains(src, "*") || strings.Contains(src, "%") {
 		p := strings.ReplaceAll(src, "*", ".*")
