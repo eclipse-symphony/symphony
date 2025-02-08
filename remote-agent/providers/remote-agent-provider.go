@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -58,6 +59,7 @@ type RemoteAgentProviderConfig struct {
 	Namespace      string `json:"namespace,omitempty"`
 	TargetName     string `json:"targetName,omitempty"`
 	TopologyPath   string `json:"topologyPath,omitempty"`
+	ExecDir        string `json:"execDir,omitempty"`
 }
 
 type RemoteAgentProvider struct {
@@ -304,7 +306,8 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				continue
 			}
 			// download the new agent binary
-			err = downloadFile(i.Client, fmt.Sprintf("%s/files/%s", i.Config.BaseUrl, agentName), "new-binary")
+			newBinaryPath := filepath.Join(i.Config.ExecDir, "new-binary")
+			err = downloadFile(i.Client, fmt.Sprintf("%s/files/%s", i.Config.BaseUrl, agentName), newBinaryPath)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to create temp file: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
@@ -319,7 +322,7 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				continue
 			}
 
-			err = os.Rename("new-binary", execPath)
+			err = os.Rename(newBinaryPath, execPath)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to replace binary: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)

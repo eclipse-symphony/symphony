@@ -303,6 +303,12 @@
                 "config": {
                   "inCluster": true
                 }
+              },
+              "secret": {
+                "type": "providers.secret.k8s",
+                "config": {
+                  "inCluster": true
+                }
               }
             }
           }

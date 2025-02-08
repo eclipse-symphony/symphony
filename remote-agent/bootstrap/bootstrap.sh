@@ -68,53 +68,90 @@ if [ -z "$config" ]; then
     usage
 fi
 
+# cert_path, key_path, topology_path, config to abosolute path
+cert_path=$(realpath $cert_path)
+key_path=$(realpath $key_path)
+topology=$(realpath $topology)
+config=$(realpath $config)
 
-# call the endpoint with targetName and cert
-bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
-# read the topology file and POST as the body
-TOPOLOGY_DATA=$(cat "$topology")
 
-result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpEndpoint" \
-        -H "Content-Type: application/json" \
-        -d "$TOPOLOGY_DATA")
-# Parse the JSON response and extract the fields
-public=$(echo $result | jq -r '.public')
-# Extract the header and footer
-header=$(echo "$public" | awk '{print $1, $2}')
-footer=$(echo "$public" | awk '{print $(NF-1), $NF}')
+# # call the endpoint with targetName and cert
+# bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
+# # read the topology file and POST as the body
+# TOPOLOGY_DATA=$(cat "$topology")
 
-# Extract the base64 content and replace spaces with newlines
-base64_content=$(echo "$public" | awk '{for (i=3; i<=NF-2; i++) printf "%s\n", $i}')
+# result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpEndpoint" \
+#         -H "Content-Type: application/json" \
+#         -d "$TOPOLOGY_DATA")
+# # Parse the JSON response and extract the fields
+# public=$(echo $result | jq -r '.public')
+# # Extract the header and footer
+# header=$(echo "$public" | awk '{print $1, $2}')
+# footer=$(echo "$public" | awk '{print $(NF-1), $NF}')
 
-# Combine the header, base64 content, and footer
-corrected_public_content="$header\n$base64_content\n$footer"
+# # Extract the base64 content and replace spaces with newlines
+# base64_content=$(echo "$public" | awk '{for (i=3; i<=NF-2; i++) printf "%s\n", $i}')
 
-private=$(echo $result | jq -r '.private')
-# Extract the header and footer
-header=$(echo "$private" | awk '{print $1, $2, $3, $4}')
-footer=$(echo "$private" | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}')
+# # Combine the header, base64 content, and footer
+# corrected_public_content="$header\n$base64_content\n$footer"
 
-# Extract the base64 content and replace spaces with newlines
-base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", $i}')
+# private=$(echo $result | jq -r '.private')
+# # Extract the header and footer
+# header=$(echo "$private" | awk '{print $1, $2, $3, $4}')
+# footer=$(echo "$private" | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}')
 
-# Combine the header, base64 content, and footer
-corrected_private_content="$header\n$base64_content\n$footer"
+# # Extract the base64 content and replace spaces with newlines
+# base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", $i}')
 
-# Save the public certificate to public.pem
-echo -e "$corrected_public_content" > public.pem
+# # Combine the header, base64 content, and footer
+# corrected_private_content="$header\n$base64_content\n$footer"
 
-# Save the private key to private.pem
-echo -e "$corrected_private_content" > private.pem
+# # Save the public certificate to public.pem
+# echo -e "$corrected_public_content" > public.pem
 
-# Download the remote-agent binary
-curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
+# # Save the private key to private.pem
+# echo -e "$corrected_private_content" > private.pem
 
-# Make the remote-agent binary executable
-chmod +x remote-agent
+# # Download the remote-agent binary
+# curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
+
+# # Make the remote-agent binary executable
+# chmod +x remote-agent
 
 echo "Files created successfully:"
 echo "public.pem"
 echo "private.pem"
 echo "remote-agent"
 
-./remote-agent -config=$config -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace -topology=$topology
+# public.pem, private.pem, remote-agent to abosolute path
+public_path=$(realpath "./public.pem")
+private_path=$(realpath "./private.pem")
+agent_path=$(realpath "./remote-agent")
+
+# Create the remote-agent.service file
+sudo bash -c "cat <<EOF > /etc/systemd/system/remote-agent.service
+[Unit]
+Description=Remote Agent Service
+After=network.target
+
+[Service]
+ExecStart=$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology
+Restart=always
+User=jesse
+Group=jesse
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# Reload systemd to recognize the new service
+sudo systemctl daemon-reload
+
+# Enable the service to start on boot
+sudo systemctl enable remote-agent.service
+
+# Start the service
+sudo systemctl start remote-agent.service
+
+# Check the status of the service
+sudo systemctl status remote-agent.service
