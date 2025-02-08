@@ -6,7 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 
 	"net/http"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
+	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
 )
 
 // The version should be hardcoded in the build process
@@ -28,9 +31,35 @@ var (
 	namespace         *string
 	targetName        *string
 	httpClient        *http.Client
+	execDir           string
 )
 
 func main() {
+	// Get the location of the currently running program
+	execPath, err := os.Executable()
+	if err != nil {
+		log.Fatalf("Failed to get executable path: %v", err)
+	}
+	execPath, err = filepath.Abs(execPath)
+	if err != nil {
+		log.Fatalf("Failed to get absolute path: %v", err)
+	}
+	execDir = filepath.Dir(execPath)
+	fmt.Printf("Executable directory: %s\n", execDir)
+
+	// Create a transcript file in the current working directory
+	transcriptFilePath := filepath.Join(execDir, "transcript.log")
+	logFile, err := os.OpenFile(transcriptFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+	defer logFile.Close()
+
+	// Redirect stdout and stderr to the transcript file
+	log.SetOutput(logFile)
+	os.Stdout = logFile
+	os.Stderr = logFile
+
 	// Allocate memory for shouldEnd
 	// Define a command-line flag for the configuration file path
 	configPath = flag.String("config", "config.json", "Path to the configuration file")
@@ -125,24 +154,25 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 				fmt.Println("Error initializing script provider:", err)
 			}
 			providers["script"] = provider
-		// case "remote-agent":
-		// 	rProvider := &remoteProviders.RemoteAgentProvider{}
-		// 	rProvider.Client = httpClient
-		// 	rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
-		// 		PublicCertPath: *clientCertPath,
-		// 		PrivateKeyPath: *clientKeyPath,
-		// 		ConfigPath:     *configPath,
-		// 		BaseUrl:        symphonyEndpoints.BaseUrl,
-		// 		Version:        version,
-		// 		Namespace:      *namespace,
-		// 		TargetName:     *targetName,
-		// 		TopologyPath:   topologyPath,
-		// 	}
-		// 	err = rProvider.Init(rProviderConfig)
-		// 	if err != nil {
-		// 		fmt.Println("Error remote agent provider:", err)
-		// 	}
-		// 	providers["remote-agent"] = rProvider
+		case "remote-agent":
+			rProvider := &remoteProviders.RemoteAgentProvider{}
+			rProvider.Client = httpClient
+			rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
+				PublicCertPath: *clientCertPath,
+				PrivateKeyPath: *clientKeyPath,
+				ConfigPath:     *configPath,
+				BaseUrl:        symphonyEndpoints.BaseUrl,
+				Version:        version,
+				Namespace:      *namespace,
+				TargetName:     *targetName,
+				TopologyPath:   topologyPath,
+				ExecDir:        execDir,
+			}
+			err = rProvider.Init(rProviderConfig)
+			if err != nil {
+				fmt.Println("Error remote agent provider:", err)
+			}
+			providers["remote-agent"] = rProvider
 		default:
 			fmt.Println("Unknown provider type:", binding.Role)
 		}

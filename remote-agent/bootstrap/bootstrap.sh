@@ -68,6 +68,12 @@ if [ -z "$config" ]; then
     usage
 fi
 
+# cert_path, key_path, topology_path, config to abosolute path
+cert_path=$(realpath $cert_path)
+key_path=$(realpath $key_path)
+topology=$(realpath $topology)
+config=$(realpath $config)
+
 
 # call the endpoint with targetName and cert
 bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
@@ -117,4 +123,35 @@ echo "public.pem"
 echo "private.pem"
 echo "remote-agent"
 
-./remote-agent -config=$config -client-cert=./public.pem -client-key=./private.pem -target-name=$target_name -namespace=$namespace -topology=$topology
+# public.pem, private.pem, remote-agent to abosolute path
+public_path=$(realpath "./public.pem")
+private_path=$(realpath "./private.pem")
+agent_path=$(realpath "./remote-agent")
+
+# Create the remote-agent.service file
+sudo bash -c "cat <<EOF > /etc/systemd/system/remote-agent.service
+[Unit]
+Description=Remote Agent Service
+After=network.target
+
+[Service]
+ExecStart=$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology
+Restart=always
+User=jesse
+Group=jesse
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# Reload systemd to recognize the new service
+sudo systemctl daemon-reload
+
+# Enable the service to start on boot
+sudo systemctl enable remote-agent.service
+
+# Start the service
+sudo systemctl start remote-agent.service
+
+# Check the status of the service
+sudo systemctl status remote-agent.service
