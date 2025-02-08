@@ -75,48 +75,48 @@ topology=$(realpath $topology)
 config=$(realpath $config)
 
 
-# # call the endpoint with targetName and cert
-# bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
-# # read the topology file and POST as the body
-# TOPOLOGY_DATA=$(cat "$topology")
+# call the endpoint with targetName and cert
+bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
+# read the topology file and POST as the body
+TOPOLOGY_DATA=$(cat "$topology")
 
-# result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpEndpoint" \
-#         -H "Content-Type: application/json" \
-#         -d "$TOPOLOGY_DATA")
-# # Parse the JSON response and extract the fields
-# public=$(echo $result | jq -r '.public')
-# # Extract the header and footer
-# header=$(echo "$public" | awk '{print $1, $2}')
-# footer=$(echo "$public" | awk '{print $(NF-1), $NF}')
+result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpEndpoint" \
+        -H "Content-Type: application/json" \
+        -d "$TOPOLOGY_DATA")
+# Parse the JSON response and extract the fields
+public=$(echo $result | jq -r '.public')
+# Extract the header and footer
+header=$(echo "$public" | awk '{print $1, $2}')
+footer=$(echo "$public" | awk '{print $(NF-1), $NF}')
 
-# # Extract the base64 content and replace spaces with newlines
-# base64_content=$(echo "$public" | awk '{for (i=3; i<=NF-2; i++) printf "%s\n", $i}')
+# Extract the base64 content and replace spaces with newlines
+base64_content=$(echo "$public" | awk '{for (i=3; i<=NF-2; i++) printf "%s\n", $i}')
 
-# # Combine the header, base64 content, and footer
-# corrected_public_content="$header\n$base64_content\n$footer"
+# Combine the header, base64 content, and footer
+corrected_public_content="$header\n$base64_content\n$footer"
 
-# private=$(echo $result | jq -r '.private')
-# # Extract the header and footer
-# header=$(echo "$private" | awk '{print $1, $2, $3, $4}')
-# footer=$(echo "$private" | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}')
+private=$(echo $result | jq -r '.private')
+# Extract the header and footer
+header=$(echo "$private" | awk '{print $1, $2, $3, $4}')
+footer=$(echo "$private" | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}')
 
-# # Extract the base64 content and replace spaces with newlines
-# base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", $i}')
+# Extract the base64 content and replace spaces with newlines
+base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", $i}')
 
-# # Combine the header, base64 content, and footer
-# corrected_private_content="$header\n$base64_content\n$footer"
+# Combine the header, base64 content, and footer
+corrected_private_content="$header\n$base64_content\n$footer"
 
-# # Save the public certificate to public.pem
-# echo -e "$corrected_public_content" > public.pem
+# Save the public certificate to public.pem
+echo -e "$corrected_public_content" > public.pem
 
-# # Save the private key to private.pem
-# echo -e "$corrected_private_content" > private.pem
+# Save the private key to private.pem
+echo -e "$corrected_private_content" > private.pem
 
-# # Download the remote-agent binary
-# curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
+# Download the remote-agent binary
+curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
 
-# # Make the remote-agent binary executable
-# chmod +x remote-agent
+# Make the remote-agent binary executable
+chmod +x remote-agent
 
 echo "Files created successfully:"
 echo "public.pem"

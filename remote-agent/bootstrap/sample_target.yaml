@@ -10,8 +10,6 @@ spec:
     type: remote-agent
     properties:
       description: this is a demo remote agent
-      action: upgrade
-      version: 0.0.0.2
   topologies:
   - bindings:
     - provider: providers.target.script
