@@ -116,14 +116,15 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisQueueP
 	//TODO: Finish this
 	return ret, nil
 }
-func (rq *RedisQueueProvider) Size(queue string) int {
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queue, "0", "+", 1000).Result()
+func (rq *RedisQueueProvider) Size(queue string, context context.Context) int {
+	xMessages, err := rq.client.XRangeN(context, queue, "0", "+", 1000).Result()
 	if err != nil {
 		return 0
 	}
 	return len(xMessages)
 }
 func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
+	rq.Ctx = context.TODO()
 	vConfig, err := toRedisQueueProviderConfig(config)
 	if err != nil {
 		mLog.ErrorfCtx(rq.Ctx, "  P (Redis PubSub): failed to parse provider config %+v", err)
@@ -133,7 +134,6 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(nil, "Redis host is not supplied", v1alpha2.MissingConfig)
 	}
 	rq.MaxRetries = 3
-	rq.Ctx, rq.Cancel = context.WithCancel(context.Background())
 
 	options := &redis.Options{
 		Addr:            vConfig.Host,
@@ -157,30 +157,30 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}) (string, error) {
+func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}, context context.Context) (string, error) {
 	data, err := json.Marshal(element)
 	if err != nil {
 		return "", err
 	}
-	return rq.client.XAdd(rq.Ctx, &redis.XAddArgs{
+	return rq.client.XAdd(context, &redis.XAddArgs{
 		Stream: queue,
 		Values: map[string]interface{}{"data": data, "timestamp": time.Now().Unix()},
 	}).Result()
 }
 
-func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
+func (rq *RedisQueueProvider) Peek(queue string, context context.Context) (interface{}, error) {
 	var start string
 	// Get the last ID processed by this consumer
 	var err error
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
-	start, err = rq.client.Get(rq.Ctx, lastIDkey).Result()
+	start, err = rq.client.Get(context, lastIDkey).Result()
 	if err == redis.Nil {
 		start = "0"
 	} else if err != nil {
 		return nil, err
 	}
 	// Read message
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queue, start, "+", 1).Result()
+	xMessages, err := rq.client.XRangeN(context, queue, start, "+", 1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -196,21 +196,21 @@ func (rq *RedisQueueProvider) Peek(queue string) (interface{}, error) {
 	}
 	// update last read ID
 	lastReadKey := fmt.Sprintf("%s:lastID", queue)
-	err = rq.client.Set(rq.Ctx, lastReadKey, "("+xMsg.ID, 0).Err()
+	err = rq.client.Set(context, lastReadKey, "("+xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
 	return result, nil
 }
 
-func (rq *RedisQueueProvider) RemoveFromQueue(queue string, messageID string) error {
-	return rq.client.XDel(rq.Ctx, queue, messageID).Err()
+func (rq *RedisQueueProvider) RemoveFromQueue(queue string, messageID string, context context.Context) error {
+	return rq.client.XDel(context, queue, messageID).Err()
 }
 
-func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
+func (rq *RedisQueueProvider) Dequeue(queue string, context context.Context) (interface{}, error) {
 	// Get the last ID processed by this consumer
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
-	start, err := rq.client.Get(context.TODO(), lastIDkey).Result()
+	start, err := rq.client.Get(context, lastIDkey).Result()
 	if err == redis.Nil {
 		start = "0"
 	} else if err != nil {
@@ -218,7 +218,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 	}
 
 	// Read message
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queue, start, "+", 1).Result()
+	xMessages, err := rq.client.XRangeN(context, queue, start, "+", 1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to unmarshal message: %w", err)
 	}
 	// Delete message
-	err = rq.client.XDel(rq.Ctx, queue, xMsg.ID).Err()
+	err = rq.client.XDel(context, queue, xMsg.ID).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete message: %w", err)
 	}
@@ -248,14 +248,14 @@ func (rq *RedisQueueProvider) Dequeue(queue string) (interface{}, error) {
 }
 
 // GetRecords retrieves records from the queue starting from the specified index and retrieves the specified size of records.
-func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
+func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int, context context.Context) ([][]byte, string, error) {
 	if size <= 0 {
 		return nil, "", fmt.Errorf("size cannot be 0")
 	}
 	if start != "0" {
 		start = "(" + start
 	}
-	xMessages, err := rq.client.XRangeN(rq.Ctx, queueName, start, "+", int64(size+1)).Result()
+	xMessages, err := rq.client.XRangeN(context, queueName, start, "+", int64(size+1)).Result()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get message : %s ", start)
 	}

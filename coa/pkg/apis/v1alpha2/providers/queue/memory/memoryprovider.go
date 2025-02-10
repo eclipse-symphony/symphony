@@ -7,6 +7,7 @@
 package memoryqueue
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -66,7 +67,7 @@ func toMemoryQueueProviderConfig(config providers.IProviderConfig) (MemoryQueueP
 }
 
 // not implemented
-func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int) ([][]byte, string, error) {
+func (s *MemoryQueueProvider) QueryByPaging(queueName string, start string, size int, context context.Context) ([][]byte, string, error) {
 	// Implement the logic to retrieve items from the queue based on the provided parameters.
 	// For now, returning an empty result and a not implemented error.
 	return [][]byte{}, "", errors.New("functionality not implemented yet")
@@ -84,10 +85,10 @@ func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 }
 
 // not implemented
-func (s *MemoryQueueProvider) RemoveFromQueue(queue string, messageID string) error {
+func (s *MemoryQueueProvider) RemoveFromQueue(queue string, messageID string, context context.Context) error {
 	return errors.New("functionality not implemented yet")
 }
-func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) (string, error) {
+func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}, context context.Context) (string, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[queue]; !ok {
@@ -96,7 +97,7 @@ func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) (string, e
 	s.Data[queue] = append(s.Data[queue], data)
 	return "key", nil
 }
-func (s *MemoryQueueProvider) Dequeue(queue string) (interface{}, error) {
+func (s *MemoryQueueProvider) Dequeue(queue string, context context.Context) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[queue]; !ok {
@@ -112,7 +113,7 @@ func (s *MemoryQueueProvider) Dequeue(queue string) (interface{}, error) {
 	return ret, nil
 }
 
-func (s *MemoryQueueProvider) Peek(queue string) (interface{}, error) {
+func (s *MemoryQueueProvider) Peek(queue string, context context.Context) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[queue]; !ok {
@@ -125,7 +126,7 @@ func (s *MemoryQueueProvider) Peek(queue string) (interface{}, error) {
 	return s.Data[queue][0], nil
 }
 
-func (s *MemoryQueueProvider) Size(queue string) int {
+func (s *MemoryQueueProvider) Size(queue string, context context.Context) int {
 	mLock.Lock()
 	defer mLock.Unlock()
 	if _, ok := s.Data[queue]; !ok {
