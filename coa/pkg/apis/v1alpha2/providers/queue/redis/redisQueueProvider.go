@@ -239,7 +239,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string, context context.Context) (in
 	}
 
 	// Update last read ID
-	err = rq.client.Set(rq.Ctx, lastIDkey, "("+xMsg.ID, 0).Err()
+	err = rq.client.Set(context, lastIDkey, "("+xMsg.ID, 0).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update last read ID: %w", err)
 	}
