@@ -24,7 +24,7 @@ func TestRedisQueueProvider_Enqueue(t *testing.T) {
 	rq.Ctx = context.TODO()
 
 	element := map[string]interface{}{"key": "value"}
-	messageID, err := rq.Enqueue(queueName, element)
+	messageID, err := rq.Enqueue(queueName, element, context.Background())
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, messageID)
@@ -37,10 +37,10 @@ func TestRedisQueueProvider_Peek(t *testing.T) {
 	rq.Ctx = context.TODO()
 
 	element := map[string]interface{}{"key": "value"}
-	_, err := rq.Enqueue(queueName, element)
+	_, err := rq.Enqueue(queueName, element, context.Background())
 	assert.NoError(t, err)
 
-	result, err := rq.Peek(queueName)
+	result, err := rq.Peek(queueName, context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, element, result)
 }
@@ -52,10 +52,10 @@ func TestRedisQueueProvider_Dequeue(t *testing.T) {
 	rq.Ctx = context.TODO()
 
 	element := map[string]interface{}{"key": "value"}
-	_, err := rq.Enqueue(queueName, element)
+	_, err := rq.Enqueue(queueName, element, context.Background())
 	assert.NoError(t, err)
 
-	result, err := rq.Dequeue(queueName)
+	result, err := rq.Dequeue(queueName, context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, element, result)
 }
@@ -68,11 +68,11 @@ func TestRedisQueueProvider_Size(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		element := map[string]interface{}{"key": "value_" + strconv.Itoa(i)}
-		_, err := rq.Enqueue(queueName, element)
+		_, err := rq.Enqueue(queueName, element, context.Background())
 		assert.NoError(t, err)
 	}
 
-	size := rq.Size(queueName)
+	size := rq.Size(queueName, context.Background())
 	assert.Equal(t, 10, size)
 }
 
@@ -85,12 +85,12 @@ func TestRedisQueueProvider_QueryByPaging(t *testing.T) {
 	// 插入测试数据
 	for i := 0; i < 10; i++ {
 		element := map[string]interface{}{"key": "value_" + strconv.Itoa(i)}
-		_, err := rq.Enqueue(queueName, element)
+		_, err := rq.Enqueue(queueName, element, context.Background())
 		assert.NoError(t, err)
 	}
 
 	// 测试 QueryByPaging 方法
-	results, lastMessageID, err := rq.QueryByPaging(queueName, "0", 5)
+	results, lastMessageID, err := rq.QueryByPaging(queueName, "0", 5, context.Background())
 	assert.NoError(t, err)
 
 	// 预期结果
@@ -99,7 +99,7 @@ func TestRedisQueueProvider_QueryByPaging(t *testing.T) {
 		expectedResults[i] = map[string]interface{}{"key": "value_" + strconv.Itoa(i)}
 	}
 
-	results, lastMessageID, err = rq.QueryByPaging(queueName, lastMessageID, 2)
+	results, lastMessageID, err = rq.QueryByPaging(queueName, lastMessageID, 2, context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(results))
 
