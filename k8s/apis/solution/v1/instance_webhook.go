@@ -119,7 +119,7 @@ func (r *Instance) Default() {
 		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
 	r.Labels[api_constants.Solution] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
-	r.Labels[api_constants.Target] = r.Spec.Target.Name
+	r.Labels[api_constants.Target] = validation.ConvertReferenceToObjectName(r.Spec.Target.Name)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

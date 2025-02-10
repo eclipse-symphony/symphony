@@ -180,9 +180,12 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	return ret
 }
 
-func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionRef string, solutionRefNamespace string, updatedInstanceNames []string) ([]ctrl.Request, []string) {
+func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionRef string, solutionRefNamespace string, updatedInstanceNames []string, requests []ctrl.Request) ([]ctrl.Request, []string) {
 	var instances solution_v1.InstanceList
 	ret := make([]ctrl.Request, 0)
+	if requests != nil {
+		ret = requests
+	}
 	if updatedInstanceNames == nil {
 		updatedInstanceNames = make([]string, 0)
 	}
@@ -218,18 +221,22 @@ func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionR
 }
 
 func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
-	ret := make([]ctrl.Request, 0)
 	solObj := obj.(*solution_v1.Solution)
 	updatedInstanceNames := make([]string, 0)
+	ret := make([]ctrl.Request, 0)
 
 	// oss reference
 	solutionName := api_utils.ConvertObjectNameToReference(solObj.Name)
-	ret, updatedInstanceNames = r.findRelatedInstances(ctx, solutionName, solObj.Namespace, updatedInstanceNames)
+	ret, updatedInstanceNames = r.findRelatedInstances(ctx, solutionName, solObj.Namespace, updatedInstanceNames, ret)
 
 	// azure reference
 	azureSolutionName := solObj.Annotations[constants.AzureResourceIdKey]
 	if azureSolutionName != "" {
-		ret, updatedInstanceNames = r.findRelatedInstances(ctx, azureSolutionName, solObj.Namespace, updatedInstanceNames)
+		ret, updatedInstanceNames = r.findRelatedInstances(ctx, azureSolutionName, solObj.Namespace, updatedInstanceNames, ret)
+	}
+
+	if len(ret) > 0 {
+		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("In total, needs to requeue instances related, count: %d, list: %s", len(ret), strings.Join(updatedInstanceNames, ",")))
 	}
 
 	return ret
