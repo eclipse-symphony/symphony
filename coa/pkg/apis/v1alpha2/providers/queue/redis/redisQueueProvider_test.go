@@ -2,8 +2,10 @@ package redisqueue
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
@@ -11,13 +13,21 @@ import (
 
 func setupRedisClient() *redis.Client {
 	options := &redis.Options{
-		Addr: "localhost:6380",
+		Addr:            "localhost:6379",
+		Password:        "",
+		DB:              0,
+		MaxRetries:      3,
+		MaxRetryBackoff: time.Second * 2,
 	}
 	client := redis.NewClient(options)
 	return client
 }
 
 func TestRedisQueueProvider_Enqueue(t *testing.T) {
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
 	client := setupRedisClient()
 	queueName := "test_queue"
 	rq := NewRedisQueue(client, queueName)
@@ -31,6 +41,10 @@ func TestRedisQueueProvider_Enqueue(t *testing.T) {
 }
 
 func TestRedisQueueProvider_Peek(t *testing.T) {
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
 	client := setupRedisClient()
 	queueName := "test_queue"
 	rq := NewRedisQueue(client, queueName)
@@ -46,6 +60,10 @@ func TestRedisQueueProvider_Peek(t *testing.T) {
 }
 
 func TestRedisQueueProvider_Dequeue(t *testing.T) {
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
 	client := setupRedisClient()
 	queueName := "test_queue"
 	rq := NewRedisQueue(client, queueName)
@@ -61,6 +79,10 @@ func TestRedisQueueProvider_Dequeue(t *testing.T) {
 }
 
 func TestRedisQueueProvider_Size(t *testing.T) {
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
 	client := setupRedisClient()
 	queueName := "test_queue"
 	rq := NewRedisQueue(client, queueName)
@@ -77,6 +99,10 @@ func TestRedisQueueProvider_Size(t *testing.T) {
 }
 
 func TestRedisQueueProvider_QueryByPaging(t *testing.T) {
+	testRedis := os.Getenv("TEST_REDIS")
+	if testRedis == "" {
+		t.Skip("Skipping because TEST_REDIS enviornment variable is not set")
+	}
 	client := setupRedisClient()
 	queueName := "test_queue"
 	rq := NewRedisQueue(client, queueName)

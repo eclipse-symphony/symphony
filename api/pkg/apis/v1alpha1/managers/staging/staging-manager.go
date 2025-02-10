@@ -70,11 +70,11 @@ func (s *StagingManager) Poll() []error {
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.Debug(" M (Staging): Polling...")
-	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
+	if s.QueueProvider.Size(Site_Job_Queue, context.Background()) == 0 {
 		return nil
 	}
 	var site interface{}
-	site, err = s.QueueProvider.Dequeue(Site_Job_Queue)
+	site, err = s.QueueProvider.Dequeue(Site_Job_Queue, context.Background())
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
@@ -111,7 +111,7 @@ func (s *StagingManager) Poll() []error {
 			Id:     catalog.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
-		})
+		}, context.Background())
 
 		// TODO: clean up the catalog synchronization status for multi-site
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
@@ -151,20 +151,20 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 		err = v1alpha2.NewCOAError(nil, "event body is not a job", v1alpha2.BadRequest)
 		return err
 	}
-	s.QueueProvider.Enqueue(Site_Job_Queue, event.Metadata["site"])
-	_, err = s.QueueProvider.Enqueue(event.Metadata["site"], job)
+	s.QueueProvider.Enqueue(Site_Job_Queue, event.Metadata["site"], ctx)
+	_, err = s.QueueProvider.Enqueue(event.Metadata["site"], job, ctx)
 	return err
 }
 func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.JobData, error) {
 	//TODO: this should return a group of jobs as optimization
-	s.QueueProvider.Enqueue(Site_Job_Queue, site)
-	if s.QueueProvider.Size(site) == 0 {
+	s.QueueProvider.Enqueue(Site_Job_Queue, site, context.Background())
+	if s.QueueProvider.Size(site, context.Background()) == 0 {
 		return nil, nil
 	}
 	items := []v1alpha2.JobData{}
 	itemCount := 0
 	for {
-		queueElement, err := s.QueueProvider.Dequeue(site)
+		queueElement, err := s.QueueProvider.Dequeue(site, context.Background())
 		if err != nil {
 			return nil, err
 		}
@@ -172,9 +172,9 @@ func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.Jo
 			items = append(items, job)
 			itemCount++
 		} else {
-			s.QueueProvider.Enqueue(site, queueElement)
+			s.QueueProvider.Enqueue(site, queueElement, context.Background())
 		}
-		if itemCount == count || s.QueueProvider.Size(site) == 0 {
+		if itemCount == count || s.QueueProvider.Size(site, context.Background()) == 0 {
 			break
 		}
 	}
