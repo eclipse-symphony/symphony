@@ -682,7 +682,7 @@ func (s *SolutionManager) enqueueProviderGetRequest(ctx context.Context, stepEnv
 
 func (s *SolutionManager) enqueueRequest(ctx context.Context, stepEnvelope model.StepEnvelope, reuqest interface{}, operationId string) error {
 	log.InfofCtx(ctx, "M(Solution): Enqueue message %s-%s with operation ID %+v", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, reuqest)
-	messageID, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), reuqest)
+	messageID, err := s.QueueProvider.Enqueue(fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), reuqest, ctx)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
 		return err
@@ -919,7 +919,7 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 	log.InfofCtx(ctx, "M(SolutionVendor): getFromQueue %s queue length %s", queueName)
 	defer span.End()
 	var err error
-	queueElement, lastMessageID, err := s.QueueProvider.QueryByPaging(queueName, start, size)
+	queueElement, lastMessageID, err := s.QueueProvider.QueryByPaging(queueName, start, size, ctx)
 	var requestList []map[string]interface{}
 	for _, element := range queueElement {
 		var agentRequest map[string]interface{}
@@ -1026,7 +1026,7 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 	defer span.End()
 	var queueElement interface{}
 	var err error
-	queueElement, err = c.QueueProvider.Peek(queueName)
+	queueElement, err = c.QueueProvider.Peek(queueName, ctx)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(SolutionVendor): getQueue failed - %s", err.Error())
 		return v1alpha2.COAResponse{
@@ -1548,7 +1548,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		// delete from queue
-		s.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId)
+		s.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId, ctx)
 		return v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        []byte("{\"result\":\"200 - handle async result successfully\"}"),
@@ -1567,7 +1567,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 		log.InfofCtx(ctx, "M(SolutionVendor):  delete operation ID", operationId)
 		s.deleteOperationState(ctx, operationId)
 		// delete from queue
-		s.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId)
+		s.QueueProvider.RemoveFromQueue(queueName, operationBody.MessageId, ctx)
 		if err != nil {
 			return v1alpha2.COAResponse{
 				State:       v1alpha2.BadRequest,
