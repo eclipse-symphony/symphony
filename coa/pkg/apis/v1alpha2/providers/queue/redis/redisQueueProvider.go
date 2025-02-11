@@ -116,7 +116,7 @@ func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisQueueP
 	//TODO: Finish this
 	return ret, nil
 }
-func (rq *RedisQueueProvider) Size(queue string, context context.Context) int {
+func (rq *RedisQueueProvider) Size(context context.Context, queue string) int {
 	xMessages, err := rq.client.XRangeN(context, queue, "0", "+", 1000).Result()
 	if err != nil {
 		return 0
@@ -157,7 +157,7 @@ func (rq *RedisQueueProvider) Init(config providers.IProviderConfig) error {
 	return nil
 }
 
-func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}, context context.Context) (string, error) {
+func (rq *RedisQueueProvider) Enqueue(context context.Context, queue string, element interface{}) (string, error) {
 	data, err := json.Marshal(element)
 	if err != nil {
 		return "", err
@@ -168,7 +168,7 @@ func (rq *RedisQueueProvider) Enqueue(queue string, element interface{}, context
 	}).Result()
 }
 
-func (rq *RedisQueueProvider) Peek(queue string, context context.Context) (interface{}, error) {
+func (rq *RedisQueueProvider) Peek(context context.Context, queue string) (interface{}, error) {
 	var start string
 	// Get the last ID processed by this consumer
 	var err error
@@ -203,11 +203,11 @@ func (rq *RedisQueueProvider) Peek(queue string, context context.Context) (inter
 	return result, nil
 }
 
-func (rq *RedisQueueProvider) RemoveFromQueue(queue string, messageID string, context context.Context) error {
+func (rq *RedisQueueProvider) RemoveFromQueue(context context.Context, queue string, messageID string) error {
 	return rq.client.XDel(context, queue, messageID).Err()
 }
 
-func (rq *RedisQueueProvider) Dequeue(queue string, context context.Context) (interface{}, error) {
+func (rq *RedisQueueProvider) Dequeue(context context.Context, queue string) (interface{}, error) {
 	// Get the last ID processed by this consumer
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
 	start, err := rq.client.Get(context, lastIDkey).Result()
@@ -248,7 +248,7 @@ func (rq *RedisQueueProvider) Dequeue(queue string, context context.Context) (in
 }
 
 // GetRecords retrieves records from the queue starting from the specified index and retrieves the specified size of records.
-func (rq *RedisQueueProvider) QueryByPaging(queueName string, start string, size int, context context.Context) ([][]byte, string, error) {
+func (rq *RedisQueueProvider) QueryByPaging(context context.Context, queueName string, start string, size int) ([][]byte, string, error) {
 	if size <= 0 {
 		return nil, "", fmt.Errorf("size cannot be 0")
 	}
