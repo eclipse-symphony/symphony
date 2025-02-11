@@ -7,6 +7,18 @@
       {
         "provider": "providers.target.remote-agent",
         "role": "remote-agent"
+      },
+      {
+        "provider": "providers.target.http",
+        "role": "http"
+      },
+      {
+        "provider": "providers.target.win10.sideload",
+        "role": "win10.sideload"
+      },
+      {
+        "provider": "providers.target.docker",
+        "role": "docker"
       }
     ]
 }
