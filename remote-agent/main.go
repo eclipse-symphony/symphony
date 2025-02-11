@@ -14,7 +14,10 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
+	targethttp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
@@ -173,6 +176,27 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 				fmt.Println("Error remote agent provider:", err)
 			}
 			providers["remote-agent"] = rProvider
+		case "win10.sideload":
+			mProvider := &sideload.Win10SideLoadProvider{}
+			err := mProvider.Init(binding.Config)
+			if err != nil {
+				fmt.Println("Error initializing win10.sideload provider:", err)
+			}
+			providers["win10.sideload"] = mProvider
+		case "docker":
+			mProvider := &docker.DockerTargetProvider{}
+			err = mProvider.Init(binding.Config)
+			if err == nil {
+				fmt.Println("Error initializing docker provider:", err)
+			}
+			providers["docker"] = mProvider
+		case "http":
+			mProvider := &targethttp.HttpTargetProvider{}
+			err = mProvider.Init(binding.Config)
+			if err == nil {
+				fmt.Println("Error initializing http provider:", err)
+			}
+			providers["http"] = mProvider
 		default:
 			fmt.Println("Unknown provider type:", binding.Role)
 		}
