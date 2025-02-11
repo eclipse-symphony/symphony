@@ -412,6 +412,30 @@ func formatPathForNestedJsonField(s string) string {
 	}
 }
 
+// region: Azure
+const (
+	AzureSolutionVersionIdPattern = "^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
+	AzureTargetIdPattern          = "^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
+)
+
+func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool) {
+	r := regexp.MustCompile(AzureSolutionVersionIdPattern)
+	if !r.MatchString(name) {
+		return "", false
+	}
+	return r.ReplaceAllString(name, fmt.Sprintf("$4%s$5%s$6", constants.ResourceSeperator, constants.ResourceSeperator)), true
+}
+
+func ConvertAzureTargetReferenceToObjectName(name string) (string, bool) {
+	r := regexp.MustCompile(AzureTargetIdPattern)
+	if !r.MatchString(name) {
+		return "", false
+	}
+	return r.ReplaceAllString(name, "$4"), true
+}
+
+// endregion
+
 func ConvertReferenceToObjectName(name string) string {
 	if strings.Contains(name, constants.ReferenceSeparator) {
 		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
