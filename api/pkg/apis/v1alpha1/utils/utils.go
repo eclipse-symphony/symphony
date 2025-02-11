@@ -414,8 +414,8 @@ func formatPathForNestedJsonField(s string) string {
 
 // region: Azure
 const (
-	AzureSolutionVersionIdPattern = "^/subscriptions/([0-9a-fA-F-]+)/resourceGroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
-	AzureTargetIdPattern          = "^/subscriptions/([0-9a-fA-F-]+)/resourceGroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
+	AzureSolutionVersionIdPattern = "^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
+	AzureTargetIdPattern          = "^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
 )
 
 func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool) {
