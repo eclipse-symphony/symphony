@@ -35,6 +35,7 @@ type StageSpec struct {
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
+	Target        string                 `json:"target,omitempty"`
 }
 
 // UnmarshalJSON customizes the JSON unmarshalling for StageSpec

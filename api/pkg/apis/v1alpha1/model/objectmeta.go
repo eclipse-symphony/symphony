@@ -14,6 +14,8 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ObjectMeta struct {
@@ -30,6 +32,10 @@ type ObjectMeta struct {
 
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
+
+	UID types.UID `json:"uid,omitempty" protobuf:"bytes,5,opt,name=uid,casttype=k8s.io/kubernetes/pkg/types.UID"`
+
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
 }
 
 // UnmarshalJSON custom unmarshaller to handle Generation field(accept both of number and string)
