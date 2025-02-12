@@ -268,11 +268,16 @@ func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.Deployment
 		if err != nil {
 			return ret, err
 		}
-		err = r.analyzeDeployment(ctx, deploymentName, deploymentProp)
+		willChange, err := r.analyzeDeployment(ctx, deploymentName, deploymentProp)
 		if err != nil {
 			return ret, err
 		}
-		ret = append(ret, component.Component)
+		if !willChange {
+			// we don't return component that will lead to changes. Although this is not an accurate reflection
+			// of the current state, it should be enough for the manager to run another round of reconcilation
+			// because it would think the component is missing
+			ret = append(ret, component.Component)
+		}
 	}
 	return ret, nil
 }
@@ -422,16 +427,16 @@ func (r *ArmTargetProvider) cleanUpDeployment(ctx context.Context, deploymentNam
 	}
 	return nil
 }
-func (r *ArmTargetProvider) analyzeDeployment(ctx context.Context, deploymentName string, deployment *ArmDeployment) error {
+func (r *ArmTargetProvider) analyzeDeployment(ctx context.Context, deploymentName string, deployment *ArmDeployment) (bool, error) {
 	template, err := deployment.Template.GetJson()
 	if err != nil {
-		return fmt.Errorf("cannot get template json: %v", err)
+		return false, fmt.Errorf("cannot get template json: %v", err)
 	}
 	params := map[string]interface{}{}
 	if !deployment.Parameters.IsEmpty() {
 		params, err = deployment.Parameters.GetJson()
 		if err != nil {
-			return fmt.Errorf("cannot get parameters json: %v", err)
+			return false, fmt.Errorf("cannot get parameters json: %v", err)
 		}
 	}
 	whatIfRequest := armresources.DeploymentWhatIf{
@@ -443,27 +448,27 @@ func (r *ArmTargetProvider) analyzeDeployment(ctx context.Context, deploymentNam
 	}
 	pollerResp, err := r.DeploymentsClient.BeginWhatIf(ctx, deployment.ResourceGroup, deploymentName, whatIfRequest, nil)
 	if err != nil {
-		return fmt.Errorf("cannot analyze the deployment: %v", err)
+		return false, fmt.Errorf("cannot analyze the deployment: %v", err)
 	}
 	resp, err := pollerResp.PollUntilDone(ctx, nil)
 	if err != nil {
 		log.Fatalf("failed to complete What-If operation: %v", err)
 	}
 	if resp.Status != nil && *resp.Status == "Succeeded" && (resp.Properties.Changes == nil || len(resp.Properties.Changes) == 0) {
-		return nil // No changes happened
+		return false, nil // No changes happened
 	}
 
 	if resp.Properties == nil {
-		return fmt.Errorf("deployment will make changes")
+		return true, nil // deployment will make changes
 	}
 
 	for _, change := range resp.Properties.Changes {
 		if change.ChangeType == nil || *change.ChangeType != "NoChange" {
-			return fmt.Errorf("deployment will make changes")
+			return true, nil // deployment will make changes
 		}
 	}
 	// If we reach here, all changes are "NoChange"
-	return nil
+	return false, nil
 
 }
 func (r *ArmTargetProvider) createDeployment(ctx context.Context, deploymentName string, deployment *ArmDeployment, completeMode bool) (*armresources.DeploymentExtended, error) {
