@@ -91,6 +91,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &sites.SitesManager{}
 	case "managers.symphony.staging":
 		manager = &staging.StagingManager{}
+	case "managers.symphony.summarycleanup":
+		manager = &solution.SummaryCleanupManager{}
 	case "managers.symphony.sync":
 		manager = &sync.SyncManager{}
 	case "managers.symphony.models":

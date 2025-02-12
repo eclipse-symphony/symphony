@@ -34,9 +34,11 @@ type SummarySpec struct {
 	Skipped             bool                        `json:"skipped"`
 	IsRemoval           bool                        `json:"isRemoval"`
 	AllAssignedDeployed bool                        `json:"allAssignedDeployed"`
+	Removed             bool                        `json:"removed"`
 }
 type SummaryResult struct {
 	Summary        SummarySpec  `json:"summary"`
+	SummaryId      string       `json:"summaryid,omitempty"`
 	Generation     string       `json:"generation"`
 	Time           time.Time    `json:"time"`
 	State          SummaryState `json:"state"`
