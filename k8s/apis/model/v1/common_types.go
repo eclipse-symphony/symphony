@@ -111,6 +111,22 @@ type InstanceSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type InstanceStatusHistory struct {
+	Properties         map[string]string        `json:"properties,omitempty"`
+	ProvisioningStatus model.ProvisioningStatus `json:"provisioningStatus"`
+	LastModified       string                   `json:"lastModified,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type InstanceHistorySpec struct {
+	// Snapshot of the instance spec
+	InstanceSpec   `json:",inline"`
+	InstanceStatus InstanceStatusHistory `json:"instanceStatus,omitempty"`
+	// Add rootresoure to the instance history spec
+	RootResource string `json:"rootResource,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
 type SolutionSpec struct {
 	DisplayName  string            `json:"displayName,omitempty"`
 	Metadata     map[string]string `json:"metadata,omitempty"`
