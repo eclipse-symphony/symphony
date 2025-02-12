@@ -4,7 +4,7 @@
 ## SPDX-License-Identifier: MIT
 ##
 
-ARG BUILD_BASE_IMAGE=golang:1.22.4-alpine
+ARG BUILD_BASE_IMAGE=ubuntu:22.04
 ARG TARGET_BASE_IMAGE=ubuntu:latest
 
 FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS build
@@ -15,7 +15,10 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG FAULT_INJECTION_ENABLED=false
 
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
+ENV GO_VERSION=1.22.4
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 RUN mkdir /workspace
 COPY ./packages /workspace/packages
@@ -24,6 +27,52 @@ COPY ./api /workspace/api
 WORKDIR /workspace/api
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
+
+# Install necessary build tools, cross-compilers, and Go
+RUN apt-get update && apt-get install -y \
+    gcc g++ make curl wget git cargo \
+    gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+    libssl-dev pkg-config \
+    && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
+    && rm go${GO_VERSION}.linux-amd64.tar.gz
+
+# Install Rust and rustup, overriding any existing Rust installation
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path \
+    && . "$HOME/.cargo/env" \
+    && rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu
+
+# Set up Rust environment
+ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+ENV PATH=/root/.cargo/bin:$PATH
+
+# Set the correct cross-compiler based on the target architecture
+RUN if [ "$TARGETARCH" = "arm" ]; then \
+        export CC=arm-linux-gnueabihf-gcc; \
+        export CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        export CC=aarch64-linux-gnu-gcc; \
+        export CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu; \
+    else \
+        export CC=gcc; \
+    fi
+
+# Build the Rust component
+WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
+
+# Clean build artifacts from any previous build attempts
+RUN cargo clean
+
+RUN if [ "$TARGETARCH" = "arm" ]; then \
+        cargo build --release --target=armv7-unknown-linux-gnueabihf; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        cargo build --release --target=aarch64-unknown-linux-gnu; \
+    else \
+        cargo build --release; \
+    fi
+
+WORKDIR /workspace/api
 
 # Install gofail
 RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
@@ -41,7 +90,7 @@ ARG TARGETARCH
 RUN \
     set -x \
     && apt-get update \
-    && apt-get install -y openssl libssl-dev ca-certificates curl jq wget android-tools-adb \
+    && apt-get install -y gcc g++ openssl libc6 libc6-dev libssl-dev ca-certificates curl jq android-tools-adb binutils \
     && if [ "${TARGETARCH}" = "arm64" ]; then \
         wget -O helm-v3.16.2-linux-arm64.tar.gz https://get.helm.sh/helm-v3.16.2-linux-arm64.tar.gz && \
         tar -zxvf helm-v3.16.2-linux-arm64.tar.gz && \
@@ -57,6 +106,7 @@ ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=/zoneinfo.zip
 COPY --from=build /dist /
 ADD ./api/symphony-api.json /
+ADD ./api/symphony-api-no-k8s.json /
 EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL=Debug
