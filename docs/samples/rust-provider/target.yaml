@@ -14,5 +14,5 @@ spec:
       provider: providers.target.rust
       config:
         name: "rust-lib"
-        libFile: "pkg/apis/v1alpha1/providers/target/rust/target/release/libmock.so"
+        libFile: "/libmock.so"
         libHash: "f9cf10a4f68b0d2912892a814beea2c5f8a9023974d4dd6bb88afb51c90be1fc"
