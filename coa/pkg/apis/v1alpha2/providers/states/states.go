@@ -19,6 +19,11 @@ import (
 	//"encoding/json"
 )
 
+const (
+	FirstWrite = "first-write"
+	LastWrite  = "last-write"
+)
+
 type StateEntry struct {
 	ID   string      `json:"id"`
 	Body interface{} `json:"body"`
