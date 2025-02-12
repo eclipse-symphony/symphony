@@ -3,7 +3,7 @@ kind: Target
 metadata:
   name: target-configmap 
 spec:
-  appScope: target-scope
+  solutionScope: target-scope
   topologies:
   - bindings:
     - role: config

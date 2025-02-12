@@ -1684,7 +1684,7 @@ spec:
           spec:
             description: Defines the desired state of Target
             properties:
-              appScope:
+              solutionScope:
                 type: string
               components:
                 items:

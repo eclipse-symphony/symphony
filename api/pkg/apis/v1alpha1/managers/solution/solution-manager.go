@@ -899,15 +899,15 @@ func (s *SolutionManager) Reconcil() []error {
 }
 
 func getCurrentApplicationScope(ctx context.Context, instance model.InstanceState, target model.TargetState) string {
-	log.InfofCtx(ctx, " M (Solution): getting current application scope, instance scope: %s, target application scope: %s", instance.Spec.Scope, target.Spec.AppScope)
+	log.InfofCtx(ctx, " M (Solution): getting current application scope, instance scope: %s, target application scope: %s", instance.Spec.Scope, target.Spec.SolutionScope)
 	if instance.Spec.Scope == "" {
-		if target.Spec.AppScope == "" {
+		if target.Spec.SolutionScope == "" {
 			return "default"
 		}
-		return target.Spec.AppScope
+		return target.Spec.SolutionScope
 	}
-	if target.Spec.AppScope != "" && target.Spec.AppScope != instance.Spec.Scope {
-		message := fmt.Sprintf(" M (Solution): target application scope: %s is inconsistent with instance scope: %s", target.Spec.AppScope, instance.Spec.Scope)
+	if target.Spec.SolutionScope != "" && target.Spec.SolutionScope != instance.Spec.Scope {
+		message := fmt.Sprintf(" M (Solution): target application scope: %s is inconsistent with instance scope: %s", target.Spec.SolutionScope, instance.Spec.Scope)
 		log.WarnfCtx(ctx, message)
 		observ_utils.EmitUserAuditsLogs(ctx, message)
 	}

@@ -415,7 +415,7 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 	}
 }
 
-func TestBasic_VerifyTargetAppScope(t *testing.T) {
+func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 	// Manifests to deploy
 	var testManifests = []string{
 		"../manifest/oss/solution-configmap.yaml",
@@ -451,14 +451,14 @@ func TestBasic_VerifyTargetAppScope(t *testing.T) {
 		time.Sleep(sleepDuration)
 	}
 
-	// update target with appScope
+	// update target with solutionScope
 	targetFile := "../manifest/oss/target-configmap.yaml"
 	fullPath, err := filepath.Abs(targetFile)
 	require.NoError(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
 	require.NoError(t, err)
 
-	// Verify configmp in target appScope
+	// Verify configmp in target solutionScope
 	for {
 		namespace := "target-scope"
 		configMapName := "configmap"
