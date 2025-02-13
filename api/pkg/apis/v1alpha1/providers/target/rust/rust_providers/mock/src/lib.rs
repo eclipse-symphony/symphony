@@ -8,7 +8,7 @@
 
  use rust_binding::models::{
      ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep, ComponentSpec,
-     DeploymentStep, ComponentResultSpec, PropertyDesc,
+     DeploymentStep, ComponentResultSpec,
      ComponentValidationRule, RouteSpec, SidecarSpec, State
  };
  use rust_binding::ITargetProvider;
@@ -33,43 +33,19 @@
      fn get_validation_rule(&self) -> Result<ValidationRule, String> {
          println!("MOCK RUST PROVIDER: ------ get_validation_rule()");
          let validation_rule = ValidationRule {
-             required_component_type: "example_type".to_string(),
+             required_component_type: "".to_string(),
              component_validation_rule: ComponentValidationRule {
-                 required_component_type: "example_type".to_string(),
-                 change_detection_properties: vec![
-                     PropertyDesc {
-                         name: "example_property".to_string(),
-                         ignore_case: true,
-                         skip_if_missing: true,
-                         prefix_match: true,
-                         is_component_name: true,
-                     }
-                 ],
-                 change_detection_metadata: vec![
-                     PropertyDesc {
-                         name: "example_metadata_property".to_string(),
-                         ignore_case: false,
-                         skip_if_missing: false,
-                         prefix_match: false,
-                         is_component_name: false,
-                     }
-                 ],
-                 required_properties: vec!["required_property_name".to_string()],
-                 optional_properties: vec!["optional_property_name".to_string()],
-                 required_metadata: vec!["required_metadata_name".to_string()],
-                 optional_metadata: vec!["optional_metadata_name".to_string()],
+                 required_component_type: "".to_string(),
+                 change_detection_properties: vec![],
+                 change_detection_metadata: vec![],
+                 required_properties: vec![],
+                 optional_properties: vec![],
+                 required_metadata: vec![],
+                 optional_metadata: vec![],
              },
              sidecar_validation_rule: ComponentValidationRule {
-                 required_component_type: "sidecar_example_type".to_string(),
-                 change_detection_properties: vec![
-                     PropertyDesc {
-                         name: "sidecar_example_property".to_string(),
-                         ignore_case: false,
-                         skip_if_missing: false,
-                         prefix_match: true,
-                         is_component_name: false,
-                     }
-                 ],
+                 required_component_type: "".to_string(),
+                 change_detection_properties: vec![],
                  change_detection_metadata: vec![],
                  required_properties: vec![],
                  optional_properties: vec![],

@@ -17,22 +17,20 @@ import (
 )
 
 func TestMockRustProviderGetValidationRule(t *testing.T) {
-	libPath := "/home/hbai/projects/go/src/github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust/target/release/libmock.so"
+	libPath := os.Getenv("RUST_LIB_PATH")
 	if libPath == "" {
 		t.Skip("Skipping because RUST_LIB_PATH is not set")
 	}
-	libHash := "f9cf10a4f68b0d2912892a814beea2c5f8a9023974d4dd6bb88afb51c90be1fc"
-	if libPath == "" {
+	libHash := os.Getenv("RUST_LIB_HASH")
+	if libHash == "" {
 		t.Skip("Skipping because RUST_LIB_HASH is not set")
 	}
-
-	config := RustTargetProviderConfig{
-		Name:    "mock",
-		LibFile: libPath,
-		LibHash: libHash,
-	}
 	rustProvider := &RustTargetProvider{}
-	err := rustProvider.Init(config)
+	err := rustProvider.InitWithMap(map[string]string{
+		"name":    "mock",
+		"libFile": libPath,
+		"libHash": libHash,
+	})
 	assert.Nil(t, err)
 
 	// Example usage of GetValidationRule

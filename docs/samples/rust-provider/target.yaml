@@ -5,14 +5,15 @@ metadata:
 spec:  
   components:
   - name: mock
+    type: example_type
     properties:
       foo: bar
   forceRedeploy: true
   topologies:
   - bindings:
-    - role: instance
+    - role: example_type
       provider: providers.target.rust
       config:
         name: "rust-lib"
-        libFile: "/libmock.so"
-        libHash: "f9cf10a4f68b0d2912892a814beea2c5f8a9023974d4dd6bb88afb51c90be1fc"
+        libFile: "/extensions/libmock.so"
+        libHash: "f2342da73ca70aadaa8c0062cac5bbb728631e1f232ce2d76dd53961da62a58d"

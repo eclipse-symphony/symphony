@@ -20,7 +20,7 @@ ENV GO_VERSION=1.22.4
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
-RUN mkdir /workspace
+RUN mkdir /workspace /extensions
 COPY ./packages /workspace/packages
 COPY ./coa /workspace/coa
 COPY ./api /workspace/api
@@ -66,10 +66,13 @@ RUN cargo clean
 
 RUN if [ "$TARGETARCH" = "arm" ]; then \
         cargo build --release --target=armv7-unknown-linux-gnueabihf; \
+        cp target/armv7-unknown-linux-gnueabihf/release/*.so /extensions/; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
         cargo build --release --target=aarch64-unknown-linux-gnu; \
+        cp target/aarch64-unknown-linux-gnu/release/*.so /extensions/; \
     else \
         cargo build --release; \
+        cp target/release/*.so /extensions/; \
     fi
 
 WORKDIR /workspace/api
@@ -105,6 +108,7 @@ RUN \
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=/zoneinfo.zip
 COPY --from=build /dist /
+COPY --from=build /extensions /extensions
 ADD ./api/symphony-api.json /
 ADD ./api/symphony-api-no-k8s.json /
 EXPOSE 8080
