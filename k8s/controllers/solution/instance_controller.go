@@ -230,7 +230,7 @@ func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Obje
 	ret, updatedInstanceNames = r.findRelatedInstances(ctx, solutionName, solObj.Namespace, updatedInstanceNames, ret)
 
 	// azure reference
-	azureSolutionName := solObj.Annotations[constants.AzureResourceIdKey]
+	azureSolutionName := strings.ToLower(solObj.Annotations[constants.AzureResourceIdKey])
 	if azureSolutionName != "" {
 		ret, updatedInstanceNames = r.findRelatedInstances(ctx, azureSolutionName, solObj.Namespace, updatedInstanceNames, ret)
 	}
