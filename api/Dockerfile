@@ -80,7 +80,14 @@ RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
     find /workspace/coa -type d | while read -r dir; do gofail enable $dir; done && \
     cd /workspace/api && go get go.etcd.io/gofail/runtime; \
 fi
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api
+
+RUN if [ "$TARGETARCH" = "arm" ]; then \
+    CC=arm-linux-gnueabihf-gcc \
+    RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc" \
+    RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api \
+else \
+    RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api \
+fi
 
 FROM ${TARGET_BASE_IMAGE}
 
