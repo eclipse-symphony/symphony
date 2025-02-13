@@ -47,32 +47,27 @@ ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 ENV PATH=/root/.cargo/bin:$PATH
 
-# Set the correct cross-compiler based on the target architecture
-RUN if [ "$TARGETARCH" = "arm" ]; then \
-        export CC=arm-linux-gnueabihf-gcc; \
-        export CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf; \
-        export RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc"; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc; \
-        export CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu; \
-    else \
-        export CC=gcc; \
-    fi
-
 # Build the Rust component
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
 
 # Clean build artifacts from any previous build attempts
 RUN cargo clean
 
-RUN if [ "$TARGETARCH" = "arm" ]; then \
-        cargo build --release --target=armv7-unknown-linux-gnueabihf; \
+# Clean previous build artifacts and build in one step
+RUN cargo clean && \
+    if [ "$TARGETARCH" = "arm" ]; then \
+        CC=arm-linux-gnueabihf-gcc \
+        CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf \
+        RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc" \
+        cargo build --release --target=armv7-unknown-linux-gnueabihf && \
         cp target/armv7-unknown-linux-gnueabihf/release/*.so /extensions/; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        cargo build --release --target=aarch64-unknown-linux-gnu; \
+        CC=aarch64-linux-gnu-gcc \
+        CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu \
+        cargo build --release --target=aarch64-unknown-linux-gnu && \
         cp target/aarch64-unknown-linux-gnu/release/*.so /extensions/; \
     else \
-        cargo build --release; \
+        cargo build --release && \
         cp target/release/*.so /extensions/; \
     fi
 
