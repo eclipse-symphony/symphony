@@ -84,9 +84,9 @@ fi
 RUN if [ "$TARGETARCH" = "arm" ]; then \
     CC=arm-linux-gnueabihf-gcc \
     RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc" \
-    RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api \
+    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api; \
 else \
-    RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api \
+    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api; \
 fi
 
 FROM ${TARGET_BASE_IMAGE}
