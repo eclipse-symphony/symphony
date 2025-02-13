@@ -49,13 +49,14 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # Set the correct cross-compiler based on the target architecture
 RUN if [ "$TARGETARCH" = "arm" ]; then \
-        export CC=arm-linux-gnueabihf-gcc; \
-        export CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf; \
+        ENV CC=arm-linux-gnueabihf-gcc; \
+        ENV CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf; \
+        ENV RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        export CC=aarch64-linux-gnu-gcc; \
-        export CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu; \
+        ENV CC=aarch64-linux-gnu-gcc; \
+        ENV CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu; \
     else \
-        export CC=gcc; \
+        ENV CC=gcc; \
     fi
 
 # Build the Rust component
