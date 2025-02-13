@@ -203,7 +203,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	// gofail: var beforeQueueJob string
 	if err := r.queueDeploymentJob(ctx, object, isRemoval, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-		return r.handleDeploymentError(ctx, object, nil, reconciliationInterval, err, log)
+		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
 	}
 	// DO NOT REMOVE THIS COMMENT
 	// gofail: var afterQueueJob string
@@ -349,7 +349,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 	}
 }
 
-func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, reconcileInterval time.Duration, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
+func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, isRemoval bool, reconcileInterval time.Duration, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
 	patchOptions := patchStatusOptions{}
 	if isTermnalError(err, termialErrors) {
 		patchOptions.terminalErr = err
