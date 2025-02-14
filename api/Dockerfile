@@ -99,7 +99,7 @@ ARG TARGETARCH
 RUN \
     set -x \
     && apt-get update \
-    && apt-get install -y gcc g++ openssl libc6 libc6-dev libssl-dev ca-certificates curl jq android-tools-adb binutils \
+    && apt-get install -y gcc g++ openssl libc6 libc6-dev libssl-dev ca-certificates curl wget jq android-tools-adb binutils \
     && if [ "${TARGETARCH}" = "arm64" ]; then \
         wget -O helm-v3.16.2-linux-arm64.tar.gz https://get.helm.sh/helm-v3.16.2-linux-arm64.tar.gz && \
         tar -zxvf helm-v3.16.2-linux-arm64.tar.gz && \
