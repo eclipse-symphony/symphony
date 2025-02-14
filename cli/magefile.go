@@ -39,16 +39,34 @@ func BuildApi() error {
 	if err != nil {
 		return err
 	}
+	err = os.Chdir(filepath.Join(wd, "..", "api/pkg/apis/v1alpha1/providers/target/rust"))
+	if err != nil {
+		return err
+	}
+	if err := shellcmd.RunAll(
+		// Build the Cargo project for each target
+		// shellcmd.Command("cargo clean"),
+		shellcmd.Command("cargo build --release --target aarch64-unknown-linux-gnu"),
+		shellcmd.Command("cargo build --release --target armv7-unknown-linux-gnueabihf"),
+		shellcmd.Command("cargo build --release --target x86_64-pc-windows-gnu"),
+		shellcmd.Command("cargo build --release --target x86_64-apple-darwin"),
+		shellcmd.Command("cargo build --release --target x86_64-unknown-linux-gnu"),
+		shellcmd.Command("cargo build --release"),
+	); err != nil {
+		return err
+	}
+
 	err = os.Chdir(filepath.Join(wd, "..", "api"))
 	if err != nil {
 		return err
 	}
 	if err := shellcmd.RunAll(
-		shellcmd.Command("CGO_ENABLED=0 go build -o symphony-api"),
-		shellcmd.Command("CGO_ENABLED=0 GOARCH=arm64 go build -o symphony-api-arm64"),
-		shellcmd.Command("CGO_ENABLED=0 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
-		shellcmd.Command("CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe"),
-		shellcmd.Command("CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOARCH=arm64 go build -o symphony-api-arm64"),
+		shellcmd.Command("CC=arm-linux-gnueabihf-gcc CGO_ENABLED=1 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
+		// TODO: Re-enable Mac and Windows cross build
+		// shellcmd.Command("CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe -ldflags=\"-extldflags=-static -w\""),
+		// shellcmd.Command("CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
+		shellcmd.Command("CC=gcc CGO_ENABLED=1 go build -o symphony-api"),
 	); err != nil {
 		return err
 	}
@@ -101,8 +119,9 @@ func GeneratePackages(des string) error {
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm64 %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm %s", symphonyPath, des)),
-		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
-		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
+		// TODO: Re-enable Mac and Windows cross build
+		// shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
+		// shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-agent.json %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-no-k8s.json %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro %s", symphonyPath, des)),
@@ -150,7 +169,9 @@ func GeneratePackages(des string) error {
 	}
 
 	// package windows
-	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
+	// windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge")
+	// TODO: re-enable windows package
+	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api-no-k8s.json samples.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(windowsCommand),
 	); err != nil {
@@ -158,12 +179,15 @@ func GeneratePackages(des string) error {
 	}
 
 	// package mac
-	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
+	//macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	// TODO: re-enable mac package
+	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api-no-k8s.json samples.json k8s iot-edge")
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
-		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
+		// shellcmd.Command(fmt.Sprintf("rm symphony-api")),
 		shellcmd.Command(fmt.Sprintf("mv maestro-mac maestro")),
-		shellcmd.Command(fmt.Sprintf("mv symphony-api-mac symphony-api")),
+		// TODO: re-enable mac package
+		// shellcmd.Command(fmt.Sprintf("mv symphony-api-mac symphony-api")),
 		shellcmd.Command(macComomand),
 	); err != nil {
 		return err
