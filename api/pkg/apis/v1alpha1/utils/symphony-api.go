@@ -752,10 +752,6 @@ func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState,
 		sTargets[t.ObjectMeta.Name] = t
 	}
 
-	if instance.Spec.Scope == "" {
-		instance.Spec.Scope = constants.DefaultScope
-	}
-
 	//TODO: handle devices
 	ret.Solution = solution
 	ret.Targets = sTargets
