@@ -18,7 +18,7 @@ ENV GO_VERSION=1.22.4
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
-RUN mkdir /workspace
+RUN mkdir /workspace /extensions
 COPY ./packages /workspace/packages
 COPY ./coa /workspace/coa
 COPY ./api /workspace/api
@@ -104,6 +104,7 @@ RUN \
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=zoneinfo.zip
 COPY --from=build /dist /
+COPY --from=build /extensions /extensions
 ADD ./api/symphony-k8s-poll-agent.json /
 EXPOSE 8088
 EXPOSE 8089
