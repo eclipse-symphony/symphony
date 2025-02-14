@@ -14,6 +14,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/princjef/mageutil/shellcmd"
@@ -33,46 +34,111 @@ func BuildCli() error {
 	return nil
 }
 
-// Build Symphony api for Windows, Mac and Linux.
+// Build Symphony API for Windows, Mac, and Linux.
 func BuildApi() error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
+
+	// Change directory to Rust project
 	err = os.Chdir(filepath.Join(wd, "..", "api/pkg/apis/v1alpha1/providers/target/rust"))
 	if err != nil {
 		return err
 	}
-	if err := shellcmd.RunAll(
-		// Build the Cargo project for each target
-		// shellcmd.Command("cargo clean"),
-		shellcmd.Command("cargo build --release --target aarch64-unknown-linux-gnu"),
-		shellcmd.Command("cargo build --release --target armv7-unknown-linux-gnueabihf"),
-		shellcmd.Command("cargo build --release --target x86_64-pc-windows-gnu"),
-		shellcmd.Command("cargo build --release --target x86_64-apple-darwin"),
-		shellcmd.Command("cargo build --release --target x86_64-unknown-linux-gnu"),
-		shellcmd.Command("cargo build --release"),
-	); err != nil {
-		return err
+
+	// Define build commands with environment variables
+	cmds := []struct {
+		env  []string
+		args []string
+	}{
+		{ // Aarch64
+			env:  []string{"CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc", "CC=aarch64-linux-gnu-gcc", "RUSTFLAGS=-C linker=aarch64-linux-gnu-gcc"},
+			args: []string{"cargo", "build", "--release", "--target", "aarch64-unknown-linux-gnu"},
+		},
+		{ // ARMv7
+			env:  []string{"CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc", "CC=arm-linux-gnueabihf-gcc", "RUSTFLAGS=-C linker=arm-linux-gnueabihf-gcc"},
+			args: []string{"cargo", "build", "--release", "--target", "armv7-unknown-linux-gnueabihf"},
+		},
+		{ // Standard targets
+			env:  []string{"CC=", "RUSTFLAGS="},
+			args: []string{"cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"},
+		},
+		// {
+		// 	env:  []string{"CC=o64-clang", "CXX=o64-clang++", "RUSTFLAGS=-C linker=o64-clang"},
+		// 	args: []string{"cargo", "build", "--release", "--target", "x86_64-apple-darwin"},
+		// },
+		{
+			env:  []string{"CC=", "RUSTFLAGS="},
+			args: []string{"cargo", "build", "--release", "--target", "x86_64-unknown-linux-gnu"},
+		},
 	}
 
+	// Run commands
+	for _, cmd := range cmds {
+		if err := runCommand(cmd.env, cmd.args...); err != nil {
+			return err
+		}
+	}
+
+	// Change back to API directory
 	err = os.Chdir(filepath.Join(wd, "..", "api"))
 	if err != nil {
 		return err
 	}
-	if err := shellcmd.RunAll(
-		shellcmd.Command("CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOARCH=arm64 go build -o symphony-api-arm64"),
-		shellcmd.Command("CC=arm-linux-gnueabihf-gcc CGO_ENABLED=1 GOARCH=arm GOARM=7 go build -o symphony-api-arm"),
-		// TODO: Re-enable Mac and Windows cross build
-		// shellcmd.Command("CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe -ldflags=\"-extldflags=-static -w\""),
-		// shellcmd.Command("CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac"),
-		shellcmd.Command("CC=gcc CGO_ENABLED=1 go build -o symphony-api"),
-	); err != nil {
-		return err
+
+	// Build Symphony API with proper cross-compilation settings
+	cmds = []struct {
+		env  []string
+		args []string
+	}{
+		{ // Aarch64
+			env:  []string{"CC=aarch64-linux-gnu-gcc", "CGO_ENABLED=1", "GOARCH=arm64"},
+			args: []string{"go", "build", "-o", "symphony-api-arm64"},
+		},
+		{ // ARMv7
+			env:  []string{"CC=arm-linux-gnueabihf-gcc", "CGO_ENABLED=1", "GOARCH=arm", "GOARM=7"},
+			args: []string{"go", "build", "-o", "symphony-api-arm"},
+		},
+		{ // Linux x86_64
+			env: []string{
+				"CGO_ENABLED=1",
+				"GOARCH=amd64",
+				"GOOS=linux",
+				"CC=gcc",
+				"LD_LIBRARY=./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release",
+				"CGO_LDFLAGS=-L./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"},
+			args: []string{"go", "build", "-o", "symphony-api"},
+		},
 	}
-	err = os.Chdir(filepath.Join(wd))
-	if err != nil {
-		return err
+
+	// Run commands
+	for _, cmd := range cmds {
+		if err := runCommand(cmd.env, cmd.args...); err != nil {
+			return err
+		}
+	}
+
+	// Change back to the original working directory
+	return os.Chdir(wd)
+}
+
+// Run a command with optional environment variables
+func runCommand(envVars []string, args ...string) error {
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), envVars...) // Append to existing env vars
+	fmt.Printf("Running command: %s\n", cmd.String())
+	return cmd.Run()
+}
+
+// Run multiple commands
+func runCommands(commands [][]string, envVars []string) error {
+	for _, cmdArgs := range commands {
+		if err := runCommand(envVars, cmdArgs...); err != nil {
+			return err
+		}
 	}
 	return nil
 }
