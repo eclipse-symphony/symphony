@@ -128,6 +128,10 @@ const (
 	TargetGetFailed                 State = 10060
 	DeleteSolutionFailed            State = 10061
 	CreateSolutionFailed            State = 10062
+	GetARMDeploymentPropertyFailed  State = 10071
+	EnsureARMResourceGroupFailed    State = 10072
+	CreateARMDeploymentFailed       State = 10073
+	CleanUpARMDeploymentFailed      State = 10074
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000

@@ -74,7 +74,7 @@ jobs:
 
     - name: Install Ginkgo
       run: |
-        go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.1
+        go install github.com/onsi/ginkgo/v2/ginkgo@v2.17.1
         export PATH=$PATH:$(go env GOPATH)/bin
 
     - name: Login to Docker Hub
