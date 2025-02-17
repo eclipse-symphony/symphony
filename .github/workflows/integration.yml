@@ -79,6 +79,9 @@ jobs:
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Clean up docker
+      run: docker system prune -a -f
+
     - name: Build docker images
       run: |
         cd test/localenv/
