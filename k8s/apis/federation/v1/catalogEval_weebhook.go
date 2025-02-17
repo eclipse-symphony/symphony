@@ -75,11 +75,12 @@ func (r *CatalogEvalExpression) ValidateUpdate(old runtime.Object) (admission.Wa
 	oldCatalogEvalExpression, ok := old.(*CatalogEvalExpression)
 	if ok {
 		if oldCatalogEvalExpression.Status.ActionStatus.Status == SucceededActionState || oldCatalogEvalExpression.Status.ActionStatus.Status == FailedActionState {
+			statusStr := fmt.Sprintf("CatalogEvalExpression %s under namespace %s has already reached termination status: %v", oldCatalogEvalExpression.Name, oldCatalogEvalExpression.Namespace, oldCatalogEvalExpression.Status.ActionStatus.Status)
 			resourceK8SId := r.GetNamespace() + "/" + r.GetName()
 			operationName := fmt.Sprintf("%s/%s", constants.CatalogOperationNamePrefix, constants.ActivityOperation_Write)
 			ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, myCatalogReaderClient, context.TODO(), cataloglog)
 			validationError := apierrors.NewForbidden(schema.GroupResource{Group: "federation.symphony", Resource: "CatalogEvalExpression"}, r.Name, errors.New("CatalogEvalExpression update is not allowed when terminal state is reached"))
-			diagnostic.ErrorWithCtx(catalogEvalExpressionLog, ctx, validationError, "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
+			diagnostic.ErrorWithCtx(catalogEvalExpressionLog, ctx, validationError, statusStr)
 			return nil, validationError
 		}
 	}
