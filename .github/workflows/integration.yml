@@ -80,7 +80,18 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Clean up docker
-      run: docker system prune -a -f
+      run: |
+        docker system prune -a -f
+        docker volume prune -f
+        docker builder prune -a -f
+
+    - name: Free up disk space
+      run: |
+        sudo apt-get clean
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/swift
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
     - name: Build docker images
       run: |

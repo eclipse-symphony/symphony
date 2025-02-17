@@ -105,6 +105,20 @@ jobs:
         go run bootstrap.go
         cd ..
 
+    - name: Clean up docker
+      run: |
+        docker system prune -a -f
+        docker volume prune -f
+        docker builder prune -a -f
+
+    - name: Free up disk space
+      run: |
+        sudo apt-get clean
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/swift
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+    
     - name: COA Test
       run: cd coa && mage cleanTest
 
@@ -115,10 +129,7 @@ jobs:
 
     - name: API Build
       run: cd api && CGO_ENABLED=1 GOARCH=amd64 GOOS=linux CC=gcc LD_LIBRARY=./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release CGO_LDFLAGS=-L./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release go build -o symphony-api
-
-    - name: Clean up docker
-      run: docker system prune -a -f
-      
+  
     - name: API Test
       run: |
         echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE TEST_CONFIGMAP: $TEST_CONFIGMAP"
