@@ -147,20 +147,7 @@ func (s *SolutionManager) GetSummary(ctx context.Context, summaryId string, name
 
 func (s *SolutionManager) DeleteSummary(ctx context.Context, summaryId string, namespace string) error {
 	// Slient side delete summary is soft delete: will only add a deleted flag.
-	result, err := s.SummaryManager.GetSummary(ctx, fmt.Sprintf("%s-%s", "summary", summaryId), "", namespace)
-	if err != nil {
-		return err
-	}
-	result.Summary.Removed = true
-	return s.SummaryManager.UpsertSummary(ctx,
-		fmt.Sprintf("%s-%s", "summary", summaryId),
-		result.Generation,
-		result.DeploymentHash,
-		result.Summary,
-		result.State,
-		namespace,
-		true, // upsert softDelete flag to summary.
-	)
+	return s.SummaryManager.DeleteSummary(ctx, summaryId, namespace, true)
 }
 
 func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespace string, remove bool, stopCh chan struct{}) {
@@ -551,7 +538,7 @@ func (s *SolutionManager) saveSummary(ctx context.Context, objectName string, su
 	// TODO: delete this state when time expires. This should probably be invoked by the vendor (via GetSummary method, for instance)
 	log.DebugfCtx(ctx, " M (Solution): saving summary, objectName: %s, summaryId: %s, state: %v, namespace: %s, jobid: %s, hash %s, targetCount %d, successCount %d",
 		objectName, summaryId, state, namespace, summary.JobID, hash, summary.TargetCount, summary.SuccessCount)
-	return s.SummaryManager.UpsertSummary(ctx, fmt.Sprintf("%s-%s", "summary", summaryId), generation, hash, summary, state, namespace, false)
+	return s.SummaryManager.UpsertSummary(ctx, fmt.Sprintf("%s-%s", "summary", summaryId), generation, hash, summary, state, namespace)
 }
 
 func (s *SolutionManager) saveSummaryProgress(ctx context.Context, objectName string, summaryId string, generation string, hash string, summary model.SummarySpec, namespace string) error {

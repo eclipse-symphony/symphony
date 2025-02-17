@@ -74,7 +74,7 @@ func (s *SummaryCleanupManager) Poll() []error {
 		duration := time.Since(summary.Time)
 		if duration > s.SummaryRetentionDuration {
 			log.InfofCtx(ctx, "M (Summary Cleanup): Deleting summary %s since it has deprecated for %s", summary.SummaryId, duration.String())
-			err = s.DeleteSummary(ctx, summary.SummaryId, "")
+			err = s.DeleteSummary(ctx, summary.SummaryId, "", false)
 			if err != nil {
 				ret = append(ret, err)
 			}

@@ -175,7 +175,7 @@ func (s *SummaryManager) ListSummary(ctx context.Context, namespace string) ([]m
 	return summaries, nil
 }
 
-func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string, softDelete bool) error {
+func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	oldSummary, err := s.GetSummary(ctx, summaryId, "", namespace)
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		log.ErrorfCtx(ctx, " M (Summary): failed to get previous summary: %+v", err)
@@ -191,11 +191,6 @@ func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, ge
 			oldId, err = strconv.ParseInt(oldSummary.Summary.JobID, 10, 64)
 			if err == nil && oldId > newId {
 				errMsg := fmt.Sprintf("old job id %d is greater than new job id %d", oldId, newId)
-				log.ErrorfCtx(ctx, " M (Summary): %s", errMsg)
-				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
-			}
-			if !softDelete && summary.Removed {
-				errMsg := fmt.Sprintf("Cannot upsert a deleted summary: %s", summaryId)
 				log.ErrorfCtx(ctx, " M (Summary): %s", errMsg)
 				return v1alpha2.NewCOAError(err, errMsg, v1alpha2.BadRequest)
 			}
@@ -224,13 +219,34 @@ func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, ge
 	return err
 }
 
-func (s *SummaryManager) DeleteSummary(ctx context.Context, summaryId string, namespace string) error {
+func (s *SummaryManager) DeleteSummary(ctx context.Context, summaryId string, namespace string, softDelete bool) error {
 	ctx, span := observability.StartSpan("Summary Manager", ctx, &map[string]string{
 		"method": "DeleteSummary",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if softDelete {
+		// soft delete summary
+		log.InfofCtx(ctx, " M (Summary): soft delete summary, key: %s, namespace: %s", summaryId, namespace)
+
+		result, err := s.GetSummary(ctx, fmt.Sprintf("%s-%s", "summary", summaryId), "", namespace)
+		if err != nil {
+			log.InfofCtx(ctx, " M (Summary): failed to soft delete summary due to get summary error: %s", err.Error())
+			return err
+		}
+
+		result.Summary.Removed = true
+		return s.UpsertSummary(ctx,
+			fmt.Sprintf("%s-%s", "summary", summaryId),
+			result.Generation,
+			result.DeploymentHash,
+			result.Summary,
+			result.State,
+			namespace,
+		)
+	}
 
 	log.InfofCtx(ctx, " M (Summary): delete summary, key: %s, namespace: %s", summaryId, namespace)
 
