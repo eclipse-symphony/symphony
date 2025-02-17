@@ -137,8 +137,8 @@ After=network.target
 [Service]
 ExecStart=$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology
 Restart=always
-User=jesse
-Group=jesse
+User=jiaxinyan
+Group=jiaxinyan
 
 [Install]
 WantedBy=multi-user.target
