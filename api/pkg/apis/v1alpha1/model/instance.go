@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	InstanceStatus = DeployableStatus
+	InstanceStatus = DeployableStatusV2
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
