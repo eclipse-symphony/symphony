@@ -741,8 +741,6 @@ func TestReadPropertyNameWithArraySlicing(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, val, m3)
 }
-<<<<<<< HEAD
-=======
 
 // region: Azure
 func TestConvertAzureSolutionVersionReferenceToObjectName(t *testing.T) {
@@ -798,4 +796,3 @@ func TestConvertObjectNameToReference_Target(t *testing.T) {
 }
 
 // endregion
->>>>>>> 00562128 (resource id use lower case)
