@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: windows-target
+spec:
+  properties:
+    location: "windows"
+    scenario: "retail-app"
+  displayName: windows-target
+  scope: default
+  components:
+  - name: remote-agent
+    type: remote-agent
+    properties:
+      description: this is a demo remote agent
+  topologies:
+  - bindings:
+    - provider: providers.target.remote-agent
+      role: remote-agent
