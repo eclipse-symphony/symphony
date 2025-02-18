@@ -628,6 +628,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		}
 		mLog.InfofCtx(ctx, "  P (Materialize Processor): successfully waited for deployment to finish.")
 	}
+	outputs["failedDeploymentCount"] = len(outputs["failedDeployment"].([]api_utils.FailedDeployment))
 	return outputs, false, nil
 }
 
