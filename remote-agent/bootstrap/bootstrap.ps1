@@ -2,6 +2,7 @@
 param (
     [string]$endpoint,
     [string]$cert_path,
+    [string]$cert_password,
     [string]$target_name,
     [string]$namespace = "default",
     [string]$topology,
@@ -15,7 +16,7 @@ function usage {
 
 # Check if the correct number of parameters are provided
 Write-Host "Debug: Number of parameters provided: $($PSCmdlet.MyInvocation.BoundParameters.Count)"
-if ($PSCmdlet.MyInvocation.BoundParameters.Count -ne 6) {
+if ($PSCmdlet.MyInvocation.BoundParameters.Count -ne 7) {
     Write-Host "Error: Invalid number of parameters."
     usage
 }
@@ -31,6 +32,12 @@ if ($endpoint -notmatch "^https?://") {
 Write-Host "Debug: Cert Path: $cert_path"
 if (-not (Test-Path $cert_path)) {
     Write-Host "Error: Certificate file not found at path: $cert_path"
+    usage
+}
+# Validate the certificate password (check if the file exists)
+Write-Host "Debug: Cert Path: $cert_password"
+if ([string]::IsNullOrEmpty($cert_password)) {
+    Write-Host "Error: Certificate password must be a non-empty string."
     usage
 }
 
@@ -70,9 +77,9 @@ $config = Resolve-Path $config
 
 # for pfx
 try{
-    $password = ConvertTo-SecureString -String "006655" -Force -AsPlainText
+    $password = ConvertTo-SecureString -String $cert_password  -Force -AsPlainText
     $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-    $cert.Import($cert_path, $password, "Exportable, PersistKeySet")
+    $cert.Import($cert_path, $cert_password, "Exportable, PersistKeySet")
 }
 catch {
     Write-Host "Error: Failed to load certificate or key file."
