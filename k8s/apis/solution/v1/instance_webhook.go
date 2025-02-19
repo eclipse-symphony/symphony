@@ -129,7 +129,7 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 		var history InstanceHistory
 		history.ObjectMeta = metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%d", instance.Name, currentTime.Unix()),
+			Name:      fmt.Sprintf("%s-v-%s", instance.Name, currentTime.Format("20060102150405")),
 			Namespace: instance.Namespace,
 		}
 
