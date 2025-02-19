@@ -12,12 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// SolutionStatus defines the observed state of Solution
-type InstanceHistoryStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
-	Properties map[string]string `json:"properties,omitempty"`
-}
-
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -29,8 +23,8 @@ type InstanceHistory struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   k8smodel.InstanceHistorySpec `json:"spec,omitempty"`
-	Status InstanceHistoryStatus        `json:"status,omitempty"`
+	Spec   k8smodel.InstanceHistorySpec   `json:"spec,omitempty"`
+	Status k8smodel.InstanceHistoryStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true

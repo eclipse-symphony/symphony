@@ -745,77 +745,8 @@ spec:
           spec:
             properties:
               displayName:
+                description: Snapshot of the instance
                 type: string
-              instanceStatus:
-                properties:
-                  lastModified:
-                    type: string
-                  properties:
-                    additionalProperties:
-                      type: string
-                    type: object
-                  provisioningStatus:
-                    description: Defines the state of the ARM resource for long running
-                      operations
-                    properties:
-                      error:
-                        description: Defines an error in the ARM resource for long
-                          running operations
-                        properties:
-                          code:
-                            type: string
-                          details:
-                            items:
-                              description: Defines an error for symphony target
-                              properties:
-                                code:
-                                  type: string
-                                details:
-                                  items:
-                                    description: Defines an error for components defined
-                                      in symphony
-                                    properties:
-                                      code:
-                                        type: string
-                                      message:
-                                        type: string
-                                      target:
-                                        type: string
-                                    type: object
-                                  type: array
-                                message:
-                                  type: string
-                                target:
-                                  type: string
-                              type: object
-                            type: array
-                          message:
-                            type: string
-                          target:
-                            type: string
-                        type: object
-                      failureCause:
-                        type: string
-                      logErrors:
-                        type: boolean
-                      operationId:
-                        type: string
-                      output:
-                        additionalProperties:
-                          type: string
-                        type: object
-                      percentComplete:
-                        format: int64
-                        type: integer
-                      status:
-                        type: string
-                    required:
-                    - operationId
-                    - status
-                    type: object
-                required:
-                - provisioningStatus
-                type: object
               isDryRun:
                 type: boolean
               metadata:
@@ -844,10 +775,6 @@ spec:
                   type: object
                 type: array
               reconciliationPolicy:
-                description: |-
-                  Optional ReconcilicationPolicy to specify how target controller should reconcile.
-                  Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
-                  when the instance is created or updated.
                 properties:
                   interval:
                     minLength: 1
@@ -866,18 +793,236 @@ spec:
               scope:
                 type: string
               solution:
-                type: string
-              target:
-                description: TargertRefSpec defines the target the instance will deploy
-                  to
                 properties:
-                  name:
+                  components:
+                    items:
+                      description: Defines a desired runtime component
+                      properties:
+                        constraints:
+                          type: string
+                        dependencies:
+                          items:
+                            type: string
+                          type: array
+                        metadata:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        properties:
+                          x-kubernetes-preserve-unknown-fields: true
+                        routes:
+                          items:
+                            properties:
+                              filters:
+                                items:
+                                  properties:
+                                    direction:
+                                      type: string
+                                    parameters:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    type:
+                                      type: string
+                                  required:
+                                  - direction
+                                  - type
+                                  type: object
+                                type: array
+                              properties:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              route:
+                                type: string
+                              type:
+                                type: string
+                            required:
+                            - route
+                            - type
+                            type: object
+                          type: array
+                        sidecars:
+                          items:
+                            properties:
+                              name:
+                                type: string
+                              properties:
+                                x-kubernetes-preserve-unknown-fields: true
+                              type:
+                                type: string
+                            type: object
+                          type: array
+                        skills:
+                          items:
+                            type: string
+                          type: array
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  displayName:
                     type: string
-                  selector:
+                  metadata:
                     additionalProperties:
                       type: string
                     type: object
+                  rootResource:
+                    type: string
+                  version:
+                    type: string
                 type: object
+              solutionId:
+                type: string
+              target:
+                description: Defines the desired state of Target
+                properties:
+                  appScope:
+                    type: string
+                  components:
+                    items:
+                      description: Defines a desired runtime component
+                      properties:
+                        constraints:
+                          type: string
+                        dependencies:
+                          items:
+                            type: string
+                          type: array
+                        metadata:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        properties:
+                          x-kubernetes-preserve-unknown-fields: true
+                        routes:
+                          items:
+                            properties:
+                              filters:
+                                items:
+                                  properties:
+                                    direction:
+                                      type: string
+                                    parameters:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    type:
+                                      type: string
+                                  required:
+                                  - direction
+                                  - type
+                                  type: object
+                                type: array
+                              properties:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              route:
+                                type: string
+                              type:
+                                type: string
+                            required:
+                            - route
+                            - type
+                            type: object
+                          type: array
+                        sidecars:
+                          items:
+                            properties:
+                              name:
+                                type: string
+                              properties:
+                                x-kubernetes-preserve-unknown-fields: true
+                              type:
+                                type: string
+                            type: object
+                          type: array
+                        skills:
+                          items:
+                            type: string
+                          type: array
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  constraints:
+                    type: string
+                  displayName:
+                    type: string
+                  forceRedeploy:
+                    type: boolean
+                  isDryRun:
+                    type: boolean
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  properties:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  reconciliationPolicy:
+                    description: |-
+                      Optional ReconcilicationPolicy to specify how target controller should reconcile.
+                      Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+                      when the instance is created or updated.
+                    properties:
+                      interval:
+                        minLength: 1
+                        type: string
+                      state:
+                        enum:
+                        - active
+                        - inactive
+                        type: string
+                    required:
+                    - state
+                    type: object
+                  scope:
+                    type: string
+                  topologies:
+                    items:
+                      description: TopologySpec defines the desired device topology
+                        the instance
+                      properties:
+                        bindings:
+                          items:
+                            properties:
+                              config:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              provider:
+                                type: string
+                              role:
+                                type: string
+                            required:
+                            - provider
+                            - role
+                            type: object
+                          type: array
+                        device:
+                          type: string
+                        selector:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      type: object
+                    type: array
+                type: object
+              targetId:
+                type: string
               topologies:
                 items:
                   description: TopologySpec defines the desired device topology the
@@ -909,16 +1054,110 @@ spec:
                 type: array
             required:
             - solution
+            - solutionId
             type: object
           status:
-            description: SolutionStatus defines the observed state of Solution
             properties:
+              deployed:
+                type: integer
+              expectedRunningJobId:
+                type: integer
+              generation:
+                type: integer
+              lastModified:
+                format: date-time
+                type: string
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+              runningJobId:
+                type: integer
+              status:
+                type: string
+              statusDetails:
+                type: string
+              targetStatuses:
+                items:
+                  properties:
+                    componentStatuses:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              targets:
+                type: integer
+            required:
+            - provisioningStatus
             type: object
         type: object
     served: true

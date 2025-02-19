@@ -12,7 +12,7 @@ import (
 
 type (
 	// Prototype for instance snapshot.
-	SaveObjectSnapshotFunc func(ctx context.Context, objectName string, namespace string, instance interface{}) error
+	SaveObjectSnapshotFunc func(ctx context.Context, objectName string, instance interface{}) error
 )
 
 type InstanceHistory struct {
@@ -31,6 +31,6 @@ func NewInstanceHistory(saveInstanceHistoryFunc SaveObjectSnapshotFunc) Instance
 // 3. Target exists if provided by name rather than selector
 // 4. Target is valid, i.e. either name or selector is provided
 
-func (i *InstanceHistory) SaveInstanceHistory(ctx context.Context, objectName string, namespace string, instance interface{}) error {
-	return i.SaveInstanceHistoryFunc(ctx, objectName, namespace, instance)
+func (i *InstanceHistory) SaveInstanceHistory(ctx context.Context, objectName string, namespace string, instance interface{}, solutionSpec interface{}, targetSpec interface{}) error {
+	return i.SaveInstanceHistoryFunc(ctx, objectName, instance)
 }
