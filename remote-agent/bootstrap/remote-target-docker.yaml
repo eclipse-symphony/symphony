@@ -4,7 +4,6 @@ metadata:
   name: remote-demo4
 spec:
   displayName: remote-demo4
-  scope: default
   components:
   - name: remote-agent
     type: remote-agent

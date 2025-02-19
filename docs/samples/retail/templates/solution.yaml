@@ -13,7 +13,7 @@ spec:
   components:
   - name: kiosk
     constraints: ${{$equal($property(location), 'windows')}}
-    type: win10.sideload
+    type: win.uwp
     properties:
       app.package.path: "C:\\demo3\\ContosoCafeteriaKiosk_1.0.3.0_Debug_Test\\ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle"
   - name: nginx-ingress
