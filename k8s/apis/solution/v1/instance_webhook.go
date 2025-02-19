@@ -149,15 +149,6 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			RootResource:         instance.Name,
 		}
 
-		// If the instance has a status, save it in the history
-		if !instance.Status.LastModified.IsZero() {
-			history.Status = k8smodel.InstanceHistoryStatus{
-				Properties:         instance.Status.Properties,
-				ProvisioningStatus: instance.Status.ProvisioningStatus,
-				LastModified:       instance.Status.LastModified,
-			}
-		}
-
 		var result InstanceHistory
 		err = upsertHistoryClient.Get(ctx, client.ObjectKey{Name: history.GetName(), Namespace: history.GetNamespace()}, &result)
 		if err != nil && errors.IsNotFound(err) {
@@ -168,7 +159,17 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
 				return err
 			}
-			diagnostic.InfoWithCtx(instancelog, ctx, "Saved instance history", "instance history", history)
+			// If the instance has a status, save it in the history
+			if !instance.Status.LastModified.IsZero() {
+				history.Status = instance.Status
+				err = upsertHistoryClient.Status().Update(ctx, &history)
+				if err != nil {
+					err := fmt.Errorf("upsert instance history status failed, instance: %s, error: %v", instance.Name, err)
+					diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
+					return err
+				}
+			}
+			diagnostic.InfoWithCtx(instancelog, ctx, "Saved instance history", "name", history.ObjectMeta.Name, "namespace", instance.Namespace)
 		} else if err != nil {
 			diagnostic.ErrorWithCtx(instancelog, ctx, err, "Unexpected error saving instance history", "name", r.Name, "namespace", r.Namespace)
 		}
