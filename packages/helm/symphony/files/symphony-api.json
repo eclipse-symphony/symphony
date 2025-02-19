@@ -197,8 +197,31 @@
                 }
               }
             }
-          }
+          },
           {{- end }}
+          {
+            "name": "summary-cleanup-manager",
+            "type": "managers.symphony.summarycleanup",
+            "properties": {
+              "providers.persistentstate": "redis-state",
+              "RetentionDuration": "{{ .Values.SummaryCleanup.retentionDuration }}"                      
+            },
+            "providers": {
+              "redis-state": {
+                {{- if .Values.redis.enabled }}
+                "type": "providers.state.redis",
+                "config": {
+                  "host": "{{ include "symphony.redisHost" . }}",
+                  "requireTLS": false,
+                  "password": ""
+                }
+                {{- else }}
+                "type": "providers.state.memory",
+                "config": {}
+                {{- end }}
+              }
+            }
+          }
         ]
       },
       {
