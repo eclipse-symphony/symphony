@@ -413,6 +413,12 @@ func (Build) All() error {
 	if err != nil {
 		return err
 	}
+
+	err = buildRustBinding()
+	if err != nil {
+		return err
+	}
+
 	err = buildAPI()
 	if err != nil {
 		return err
@@ -454,6 +460,13 @@ func (Build) Save() error {
 
 func saveDockerImageToTarFile(tarFilePath string, imageTag string) error {
 	return shellcmd.Command(fmt.Sprintf("docker image save -o %s %s", tarFilePath, imageTag)).Run()
+}
+
+func (Build) RustBinding() error {
+	return buildRustBinding()
+}
+func buildRustBinding() error {
+	return shellcmd.Command("cargo build --release --manifest-path ../../api/pkg/apis/v1alpha1/providers/target/rust/Cargo.toml").Run()
 }
 
 // Build api container

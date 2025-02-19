@@ -1,0 +1,19 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: rust-test-target
+spec:  
+  components:
+  - name: mock
+    type: example_type
+    properties:
+      foo: bar
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: example_type
+      provider: providers.target.rust
+      config:
+        name: "rust-lib"
+        libFile: "/extensions/libmock.so"
+        libHash: "f2342da73ca70aadaa8c0062cac5bbb728631e1f232ce2d76dd53961da62a58d"

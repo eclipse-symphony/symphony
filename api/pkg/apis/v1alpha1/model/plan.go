@@ -17,10 +17,10 @@ type DeploymentPlan struct {
 	Steps []DeploymentStep
 }
 type DeploymentStep struct {
-	Target     string
-	Components []ComponentStep
-	Role       string
-	IsFirst    bool
+	Target     string          `json:"target"`
+	Components []ComponentStep `json:"components"`
+	Role       string          `json:"role"`
+	IsFirst    bool            `json:"isFirst"`
 }
 
 type ComponentAction string
