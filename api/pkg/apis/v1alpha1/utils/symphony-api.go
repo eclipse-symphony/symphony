@@ -295,6 +295,26 @@ func PublishActivationEvent(context context.Context, baseUrl string, user string
 
 	return nil
 }
+func CallRemoteProcessor(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) (model.StageStatus, error) {
+	ret := model.StageStatus{}
+	token, err := auth(context, baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+	event.Proxy = nil
+	jData, _ := json.Marshal(event)
+	response, err := callRestAPI(context, baseUrl, "processor", "POST", jData, token)
+
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
 func GetABatchForSite(context context.Context, baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
 	ret := model.SyncPackage{}
 	token, err := auth(context, baseUrl, user, password)
@@ -942,7 +962,6 @@ func callRestAPI(ctx context.Context, baseUrl string, route string, method strin
 	if err != nil {
 		return nil, err
 	}
-
 	if resp.StatusCode >= 300 {
 		// TODO: Can we remove the following? It doesn't seem right.
 		// I'm afraid some downstream logic is expecting this behavior, though.
