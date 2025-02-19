@@ -136,13 +136,13 @@ You can always catch up offline by watching the recordings below.
 
 | Date & time |
 |-------------|
-| Wednesday December 11 <sup>th</sup>, 2024 8:00am Pacific Time (PST) |
+| Wednesday January 15 <sup>th</sup>, 2025 8:00am Pacific Time (PST) |
 
 ### Previous calls
 
-| Date & time |
-|-------------|
-| |
+| Date & time | Link |
+|-------------|:-------------|
+| 12/11/2024 | [Recording Link](https://www.youtube.com/watch?v=0WEDia5JD-Y)|
 
 
 ## Contributing

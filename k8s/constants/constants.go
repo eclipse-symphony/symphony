@@ -1,6 +1,3 @@
-//go:build !azure
-// +build !azure
-
 /*
  * Copyright (c) Microsoft Corporation.
  * Licensed under the MIT license.
@@ -9,29 +6,24 @@
 
 package constants
 
-import _ "embed"
+import (
+	_ "embed"
+
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+)
 
 const (
-	FullGroupName                = "symphony"
-	AzureOperationIdKey          = "management.azure.com/operationId"
-	AzureCorrelationIdKey        = "management.azure.com/correlationId"
-	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
-	AzureResourceIdKey           = "management.azure.com/resourceId"
-	AzureSystemDataKey           = "management.azure.com/systemData"
-	AzureTenantIdKey             = "management.azure.com/tenantId"
-	AzureLocationKey             = "management.azure.com/location"
-	AzureEdgeLocationKey         = "management.azure.com/customLocation"
-	SummaryJobIdKey              = "SummaryJobIdKey"
-	AzureCreatedByKey            = "createdBy"
-	DefaultScope                 = "default"
-	K8S                          = "symphony-k8s"
-	OperationStartTimeKeyPostfix = FullGroupName + "/started-at"
-	FinalizerPostfix             = FullGroupName + "/finalizer"
-	ResourceSeperator            = "-v-"
-	ReferenceSeparator           = ":"
-	ActivityOperation_Write      = "Write"
-	ActivityOperation_Read       = "Read"
-	ActivityOperation_Delete     = "Delete"
+	FullGroupName            = api_constants.FullGroupName
+	AzureLocationKey         = "management.azure.com/location" // diagnostic
+	AzureCreatedByKey        = "createdBy"                     // systemDataMap
+	DefaultScope             = "default"                       // Namespace
+	K8S                      = "symphony-k8s"                  // observable
+	FinalizerPostfix         = FullGroupName + "/finalizer"    // finalizerName, instance/target
+	ResourceSeperator        = "-v-"
+	ReferenceSeparator       = ":"
+	ActivityOperation_Write  = "Write"
+	ActivityOperation_Read   = "Read"
+	ActivityOperation_Delete = "Delete"
 
 	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
 	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
@@ -43,6 +35,19 @@ const (
 	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
 	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
 	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
+)
+
+// system annotations, reserved and should not be modified by client.
+const (
+	AzureCorrelationIdKey        = api_constants.AzureCorrelationIdKey
+	AzureEdgeLocationKey         = api_constants.AzureEdgeLocationKey
+	AzureOperationIdKey          = api_constants.AzureOperationIdKey
+	AzureResourceIdKey           = api_constants.AzureResourceIdKey
+	AzureSystemDataKey           = api_constants.AzureSystemDataKey
+	AzureTenantIdKey             = api_constants.AzureTenantIdKey
+	RunningAzureCorrelationIdKey = api_constants.RunningAzureCorrelationIdKey
+	SummaryJobIdKey              = api_constants.SummaryJobIdKey
+	OperationStartTimeKeyPostfix = api_constants.OperationStartTimeKeyPostfix // instance/target
 )
 
 // Environment variables keys

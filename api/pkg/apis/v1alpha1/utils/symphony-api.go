@@ -677,7 +677,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 }
 
 func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.TargetState, namespace string) (model.DeploymentSpec, error) {
-	key := fmt.Sprintf("%s-%s", "target-runtime", target.ObjectMeta.Name)
+	key := GetTargetRuntimeKey(target.ObjectMeta.Name)
 	scope := target.Spec.Scope
 	if scope == "" {
 		scope = constants.DefaultScope
@@ -725,6 +725,8 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 			},
 		},
 	}
+	// TODO: is this a good way to set guid for deployment?
+	instance.ObjectMeta.SetGuid(target.ObjectMeta.GetGuid())
 
 	ret.Solution = solution
 	ret.Instance = instance
@@ -746,6 +748,18 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 	return ret, nil
 }
 
+// Add target-runtime prefix to notify the object is a target.
+func GetTargetRuntimeKey(guid string) string {
+	return fmt.Sprintf("%s-%s", constants.TargetRuntimePrefix, guid)
+}
+
+func ConstructSummaryId(name string, guid string) string {
+	if guid != "" {
+		return fmt.Sprintf("%s-%s", name, guid)
+	}
+	return name
+}
+
 func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
@@ -758,16 +772,13 @@ func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState,
 		sTargets[t.ObjectMeta.Name] = t
 	}
 
-	if instance.Spec.Scope == "" {
-		instance.Spec.Scope = constants.DefaultScope
-	}
-
 	//TODO: handle devices
 	ret.Solution = solution
 	ret.Targets = sTargets
 	ret.Instance = instance
 	ret.SolutionName = solution.ObjectMeta.Name
 	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
+	ret.Instance.ObjectMeta.SetGuid(instance.ObjectMeta.GetGuid())
 
 	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {

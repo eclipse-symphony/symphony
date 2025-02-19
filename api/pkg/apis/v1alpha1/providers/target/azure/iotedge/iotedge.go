@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -530,7 +531,7 @@ func toModule(component model.ComponentSpec, name string, agentName string, targ
 	module.Environments[ENV_SALT] = EnvValue{Value: uuid.New().String()}
 
 	if agentName != "" {
-		module.Environments[ENV_NAME] = EnvValue{Value: fmt.Sprintf("%s-%s-%s", "target-runtime", targetName, agentName)}
+		module.Environments[ENV_NAME] = EnvValue{Value: fmt.Sprintf("%s-%s-%s", constants.TargetRuntimePrefix, targetName, agentName)}
 	}
 	for _, v := range component.Routes {
 		if v.Type == "iothub" {

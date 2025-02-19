@@ -21,7 +21,7 @@ Please refer to the [instruction](../../../test/localenv/README.md) to set up mi
   ```
 
 We'll use a MQTT broker to facilitate communication between Symphony and the remote agent, which you'll run from your machine or on your target device. 
-We offer a sample deployment file at `templates/mosquitto.yaml`, which you can use to deploy a [mosquitto](https://mosquitto.org/) test MQTT broker with anoymous access enabled.
+We offer a sample deployment file at `templates/mosquitto.yaml`, which you can use to deploy a [mosquitto](https://mosquitto.org/) test MQTT broker with anonymous access enabled.
 
   ```bash
   kubectl apply -f ./templates/mosquitto.yaml
@@ -69,8 +69,9 @@ You can use the [`templates/symphony-agent.json`](./templates/symphony-agent.jso
 
 4. Copy the `symphony-agent.json` file under the `api` folder to the `C:\demo` folder. This is the configuration file that you'll use to launch the Symphony agent. In a production environment, the Symphony agent can be configured as a Windows service that is automatically launched upon start.
 
+5. Please edit the address of the MQTT broker and your PC machine in the json file.
 
-5. Once you've finished previous configuration steps, you can launch a new instance of Symphony Agent through command line (under `C:\demo` folder):
+6. Once you've finished previous configuration steps, you can launch a new instance of Symphony Agent through command line (under `C:\demo` folder):
 
     ```powershell
     .\symphony-api.exe -c symphony-agent.json -l Debug
@@ -87,6 +88,8 @@ You can use the [`templates/symphony-agent.json`](./templates/symphony-agent.jso
     ```
 
 The docker image used for deploy the backend service is described in the `solution.yaml` file. If you want to change it to another image, you can edit the link.
+
+In `target.yaml`, please edit the broker link as well.
 
 2. Examine the current state of all targets:
 
