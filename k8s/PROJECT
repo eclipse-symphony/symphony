@@ -188,4 +188,13 @@ resources:
   kind: Diagnostic
   path: gopls-workspace/apis/monitor/v1
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: symphony
+  group: solution
+  kind: InstanceHistory
+  path: gopls-workspace/apis/solution/v1
+  version: v1
 version: "3"

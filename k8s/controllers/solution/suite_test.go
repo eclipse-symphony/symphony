@@ -31,9 +31,11 @@ import (
 	"sigs.k8s.io/yaml"
 
 	fabric_api "gopls-workspace/apis/fabric/v1"
+
 	api "gopls-workspace/apis/solution/v1"
 	controllers "gopls-workspace/controllers/solution"
 
+	solutionv1 "gopls-workspace/apis/solution/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	//+kubebuilder:scaffold:imports
 )
@@ -114,6 +116,9 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		cfg, err = testEnv.Start()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cfg).NotTo(BeNil())
+
+		err = solutionv1.AddToScheme(scheme.Scheme)
+		Expect(err).NotTo(HaveOccurred())
 
 		//+kubebuilder:scaffold:scheme
 		err = api.AddToScheme(scheme.Scheme)
