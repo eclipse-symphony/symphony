@@ -9,7 +9,7 @@ symphonyImage:
 paiImage:
   pullPolicy: Never
   repository: ghcr.io/eclipse-symphony/symphony-api
-installServiceExt: true
+installServiceExt: false
 api:
   labelKey:
   labelValue:
