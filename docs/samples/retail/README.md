@@ -125,16 +125,8 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 ## Get Server cert From Symphony
   Get localCA.crt from symphony server
   ```bash
-  # remove the localCA.crt from the system (optional)
-  sudo rm /etc/ssl/certs/localCA.pem
-  sudo rm /etc/ssl/certs/8ce967e1.0
-  echo "localCA.crt removed from the certificate store."
   # Get the server CA certificate
   kubectl get secret -n default symphony-api-serving-cert  -o jsonpath="{['data']['ca\.crt']}" | base64 --decode > localCA.crt
-  sudo cp localCA.crt /usr/local/share/ca-certificates/localCA.crt
-  # config client CA and subjects in values.yaml and use the client cert sample in sample folder
-  # add symphony-service to DNS mapping
-  # may not be able to modify host file but to add DNS record
   ```
 
 ### Trust Server Cert(For windows)
