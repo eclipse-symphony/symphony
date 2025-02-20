@@ -8,7 +8,7 @@ spec:
   - secret:
       name: {{ include "symphony.apiServingCertName" . }}
       key: "tls.crt"
-  {{ - if .Values.Cert.ClientCAs.SecretName}}
+  {{- if .Values.Cert.ClientCAs.SecretName}}
   - secret: 
       name: {{ .Values.Cert.ClientCAs.SecretName }}
       key: {{ .Values.Cert.ClientCAs.SecretKey }}
