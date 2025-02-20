@@ -128,6 +128,10 @@ func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
 	// 	return false
 	// }
 
+	if c.Solution != other.Solution {
+		return false
+	}
+
 	equal, err := c.Target.DeepEquals(other.Target)
 	if err != nil {
 		return false
@@ -142,6 +146,14 @@ func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
 	}
 
 	if !model.SlicesEqual(c.Pipelines, other.Pipelines) {
+		return false
+	}
+
+	if c.IsDryRun != other.IsDryRun {
+		return false
+	}
+
+	if !c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy) {
 		return false
 	}
 
@@ -401,4 +413,14 @@ type ReconciliationPolicySpec struct {
 	State ReconciliationPolicyState `json:"state"`
 	// +kubebuilder:validation:MinLength=1
 	Interval *string `json:"interval,omitempty"`
+}
+
+func (c ReconciliationPolicySpec) DeepEquals(other ReconciliationPolicySpec) bool {
+	if c.State != other.State {
+		return false
+	}
+	if *c.Interval != *other.Interval {
+		return false
+	}
+	return true
 }
