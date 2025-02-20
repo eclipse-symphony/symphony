@@ -19,7 +19,6 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
       (Select Packages only x86 and x64)
       ![alt text](image-2.png)
    4. **Create Succeeded**
-   ![alt text](image-3.png)
    Remember the **Output location** you choose.
 
 ### Step 2: Trust Certificate Generated in App Package
