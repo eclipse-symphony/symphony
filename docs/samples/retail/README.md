@@ -155,7 +155,7 @@ Add this line:
 ## Remote Agent Bootstrap
   Apply remote agent target
   ```bash
-  cd ../../docs/samples/retail/templates/
+  cd docs/samples/retail/templates/
   kubectl apply -f remote-target-win10.yaml
   ```
   For windows Client You need to generate a .pfx from client cert (templates\client-cert.pem and templates\client-key.pem)
@@ -166,6 +166,7 @@ Add this line:
   Then you need to set your pfx password.
   Run bootstrap ps1
   ```bash
+  cd remote-agent\bootstrap
   .\bootstrap.ps1 <Your Endpoint> <path/to/pfx/> <Your password> windows-target default topologies.json ..\config.json
   .\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json ..\config.json
   ```
