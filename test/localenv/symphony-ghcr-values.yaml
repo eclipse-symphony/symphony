@@ -18,5 +18,5 @@ remoteAgent:
   version: "0.0.0.1"
 Cert:
   ClientCAs: 
-    SecretName: <name>
-    SecretKey: <key>
+    SecretName:
+    SecretKey: 

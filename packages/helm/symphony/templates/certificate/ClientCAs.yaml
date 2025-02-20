@@ -9,8 +9,10 @@ spec:
       name: {{ include "symphony.apiServingCertName" . }}
       key: "tls.crt"
   - secret: 
+    {{ - if .Values.Cert.ClientCAs.SecretName}}
       name: {{ .Values.Cert.ClientCAs.SecretName }}
       key: {{ .Values.Cert.ClientCAs.SecretKey }}
+    {{- end }}
   target:
     configMap:
       key: {{ include "symphony.apiClientCATrustBundleKey" . }}
