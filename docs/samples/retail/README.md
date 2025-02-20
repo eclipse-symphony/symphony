@@ -167,8 +167,8 @@ Add this line:
   Run bootstrap ps1
   ```bash
   cd remote-agent\bootstrap
-  .\bootstrap.ps1 <Your Endpoint> <path/to/pfx/> <Your password> windows-target default topologies.json ..\config.json
-  .\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json ..\config.json
+  .\bootstrap.ps1 <Your Endpoint> <path/to/pfx> <Your password> windows-target default topologies.json 
+  .\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
   ```
   wait for remote-target ready
   ```bash
