@@ -131,7 +131,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 
 ### Trust Server Cert(For windows)
   Put the localCA.crt to windows computer
-  Find the cert and Double click the crt -> install as Local Machine Root
+  Find the cert and Double click the crt -> Trust it in your windows computer
 ### Modify host file(For windows): 
 edit this file with notepad:C:\Windows\System32\drivers\etc\hosts
 Add this line:
