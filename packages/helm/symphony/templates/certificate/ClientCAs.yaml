@@ -8,7 +8,11 @@ spec:
   - secret:
       name: {{ include "symphony.apiServingCertName" . }}
       key: "tls.crt"
-
+  {{- if .Values.Cert.ClientCAs.SecretName}}
+  - secret: 
+      name: {{ .Values.Cert.ClientCAs.SecretName }}
+      key: {{ .Values.Cert.ClientCAs.SecretKey }}
+  {{- else }}
   - inLine: |
       -----BEGIN CERTIFICATE-----
       MIIDdjCCAl6gAwIBAgIRALWXzT6inC8HPqguhQvGmQEwDQYJKoZIhvcNAQELBQAw
@@ -31,6 +35,7 @@ spec:
       nkuAe92/MIKxgun+tKb5WXdMI1ZHumMY/LLjPC0C+rxZOmozAOus8qMrG0pNP1RA
       uAo2KyDAktR6qkOSVG3TTwMw0scEdTk/EaA=
       -----END CERTIFICATE-----
+  {{- end }}
   target:
     configMap:
       key: {{ include "symphony.apiClientCATrustBundleKey" . }}

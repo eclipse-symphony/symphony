@@ -16,3 +16,7 @@ api:
   annotationKey:
 remoteAgent:
   version: "0.0.0.1"
+Cert:
+  ClientCAs: 
+    SecretName:
+    SecretKey: 

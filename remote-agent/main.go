@@ -14,7 +14,10 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
+	targethttp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
@@ -146,15 +149,15 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 	// Add the target providers to the map
 	// Add the script provider
 	for _, binding := range topology.Bindings {
-		switch binding.Role {
-		case "script":
+		switch binding.Provider {
+		case "providers.target.script":
 			provider := &script.ScriptProvider{}
 			err := provider.Init(binding.Config)
 			if err != nil {
 				fmt.Println("Error initializing script provider:", err)
 			}
-			providers["script"] = provider
-		case "remote-agent":
+			providers[binding.Role] = provider
+		case "providers.target.remote-agent":
 			rProvider := &remoteProviders.RemoteAgentProvider{}
 			rProvider.Client = httpClient
 			rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
@@ -172,7 +175,28 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 			if err != nil {
 				fmt.Println("Error remote agent provider:", err)
 			}
-			providers["remote-agent"] = rProvider
+			providers[binding.Role] = rProvider
+		case "providers.target.win10.sideload":
+			mProvider := &sideload.Win10SideLoadProvider{}
+			err := mProvider.Init(binding.Config)
+			if err != nil {
+				fmt.Println("Error initializing win10.sideload provider:", err)
+			}
+			providers[binding.Role] = mProvider
+		case "providers.target.docker":
+			mProvider := &docker.DockerTargetProvider{}
+			err = mProvider.Init(binding.Config)
+			if err == nil {
+				fmt.Println("Error initializing docker provider:", err)
+			}
+			providers[binding.Role] = mProvider
+		case "providers.target.http":
+			mProvider := &targethttp.HttpTargetProvider{}
+			err = mProvider.Init(binding.Config)
+			if err == nil {
+				fmt.Println("Error initializing http provider:", err)
+			}
+			providers[binding.Role] = mProvider
 		default:
 			fmt.Println("Unknown provider type:", binding.Role)
 		}
