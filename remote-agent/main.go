@@ -156,7 +156,7 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 			if err != nil {
 				fmt.Println("Error initializing script provider:", err)
 			}
-			providers[binding.Provider] = provider
+			providers[binding.Role] = provider
 		case "providers.target.remote-agent":
 			rProvider := &remoteProviders.RemoteAgentProvider{}
 			rProvider.Client = httpClient
@@ -175,28 +175,28 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 			if err != nil {
 				fmt.Println("Error remote agent provider:", err)
 			}
-			providers[binding.Provider] = rProvider
+			providers[binding.Role] = rProvider
 		case "providers.target.win10.sideload":
 			mProvider := &sideload.Win10SideLoadProvider{}
 			err := mProvider.Init(binding.Config)
 			if err != nil {
 				fmt.Println("Error initializing win10.sideload provider:", err)
 			}
-			providers[binding.Provider] = mProvider
+			providers[binding.Role] = mProvider
 		case "providers.target.docker":
 			mProvider := &docker.DockerTargetProvider{}
 			err = mProvider.Init(binding.Config)
 			if err == nil {
 				fmt.Println("Error initializing docker provider:", err)
 			}
-			providers["docker"] = mProvider
+			providers[binding.Role] = mProvider
 		case "providers.target.http":
 			mProvider := &targethttp.HttpTargetProvider{}
 			err = mProvider.Init(binding.Config)
 			if err == nil {
 				fmt.Println("Error initializing http provider:", err)
 			}
-			providers[binding.Provider] = mProvider
+			providers[binding.Role] = mProvider
 		default:
 			fmt.Println("Unknown provider type:", binding.Role)
 		}
