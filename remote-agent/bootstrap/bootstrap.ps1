@@ -164,10 +164,7 @@ try {
     exit 1
 }
 
-Write-Host "Files created successfully:"
-Write-Host "public.pem"
-Write-Host "private.pem"
-Write-Host "remote-agent"
+Write-Host "Begin to start remote agent process"
 
 # Convert public.pem, private.pem, remote-agent to absolute paths
 $public_path = Resolve-Path "./public.pem"
