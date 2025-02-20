@@ -132,8 +132,6 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
   # Get the server CA certificate
   kubectl get secret -n default symphony-api-serving-cert  -o jsonpath="{['data']['ca\.crt']}" | base64 --decode > localCA.crt
   sudo cp localCA.crt /usr/local/share/ca-certificates/localCA.crt
-  sudo update-ca-certificates
-  ls -l /etc/ssl/certs | grep localCA
   # config client CA and subjects in values.yaml and use the client cert sample in sample folder
   # add symphony-service to DNS mapping
   # may not be able to modify host file but to add DNS record
