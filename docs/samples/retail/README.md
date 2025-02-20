@@ -74,9 +74,45 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
       ```
 ## Start Symphony (in WSL)
 
-1. Set `installServiceExt` as true in `symphony\test\localenv\symphony-ghcr-values.yaml`
-2. Refer to the [instruction](../../../test/localenv/README.md) to set up minikube to run symphony. Here are some command that can be useful:
+1. Start minikube cluster
+    ```
+    minikube start
+    ```
+2. Sign Your Client Public Key with Symphony:
+    1. Generate client cert.(Your can use demo cert in templates\clientCA.pem)
+    2. Create Secret:
+    ```
+    cd docs/samples/retail/templates
+    kubectl create secret generic <secret-name> --from-file=mycert.pem=<path-to-pem-file> -n <namespace>
+    eg: kubectl create secret generic client-secret --from-file=client-key=clientCA.pem
+    ```
+    Check Secret
+    ```
+    kubectl get secret
+    ```
+    Your should find the secret ：
+    ```
+    NAME                               TYPE                 DATA   AGE
+    client-secret                      Opaque               1      9s
+```
+    3. Set secretName and secretKey in symphony\test\localenv\symphony-ghcr-values.yaml
+    Example: 
+    ```
+    clientCAs:
+      secretName:client-secret
+      secretKey:client-key
+    ```
 
+2. Update parameter
+    1. Set secretName and secretKey in symphony\test\localenv\symphony-ghcr-values.yaml
+    Example: 
+    ```
+    clientCAs:
+      secretName:client-secret
+      secretKey:client-key
+    ```
+    2. Set `installServiceExt` as true in symphony\test\localenv\symphony-ghcr-values.yaml
+3. Refer to the [instruction](../../../test/localenv/README.md) to set up minikube to run symphony. Here are some command that can be useful:
   ```bash
   cd ~/symphony/test/localenv
   mage build:all
@@ -107,7 +143,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 ### Trust Server Cert(For windows)
   Copy /usr/local/share/ca-certificates/localCA.crt to windows path
   ```
-  cp /usr/local/share/ca-certificates/localCA.crt /mnt/d/code
+  cp /usr/local/share/ca-certificates/localCA.crt <Your Windows Path>
   ```
   Find the cert and Double click the crt -> install as Local Machine Root
 ### Modify host file(For windows): 
@@ -119,11 +155,19 @@ Add this line:
 ## Remote Agent Bootstrap
   Apply remote agent target
   ```bash
+  cd ../../docs/samples/retail/templates/
   kubectl apply -f remote-target-win10.yaml
   ```
+  For windows Client You need to generate a .pfx from client cert (templates\client-cert.pem and templates\client-key.pem)
+  ```
+  # You can use openssl command
+  openssl pkcs12 -export -out client.pfx -inkey client-key.pem -in client-cert.pem
+  ```
+  Then you need to set your pfx password.
   Run bootstrap ps1
   ```bash
-  .\bootstrap.ps1 https://symphony-service:8082/v1alpha2 ..\client.pfx windows-target default topologies.json ..\config.json
+  .\bootstrap.ps1 <Your Endpoint> <path/to/pfx/> <Your password> windows-target default topologies.json ..\config.json
+  .\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json ..\config.json
   ```
   wait for remote-target ready
   ```bash

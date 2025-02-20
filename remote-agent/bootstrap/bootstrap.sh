@@ -12,7 +12,7 @@ usage() {
 }
 
 # Check if the correct number of parameters are provided
-if [ "$#" -ne 9 ]; then
+if [ "$#" -ne 8 ]; then
     echo "Error: Invalid number of parameters."
     usage
 fi
@@ -24,9 +24,8 @@ key_path=$3
 target_name=$4
 namespace=$5
 topology=$6
-config=$7
-user=$8
-group=$9
+user=$7
+group=$8
 # Validate the endpoint (basic URL validation)
 if ! [[ $endpoint =~ ^https?:// ]]; then
     echo "Error: Invalid endpoint. Must be a valid URL starting with http:// or https://"
@@ -63,12 +62,6 @@ if [ -z "$topology" ]; then
     usage
 fi
 
-# Validate the config file (non-empty string)
-if [ -z "$config" ]; then
-    echo "Error: Config file must be a non-empty string."
-    usage
-fi
-
 # Validate the user (non-empty string)
 if [ -z "$user" ]; then
     echo "Error: User must be a non-empty string."
@@ -80,11 +73,27 @@ if [ -z "$group" ]; then
     echo "Error: Group must be a non-empty string."
     usage
 fi
+
+# Create the JSON configuration
+config_json=$(cat <<EOF
+{
+    "requestEndpoint": "$endpoint/v1alpha2/solution/tasks",
+    "responseEndpoint": "$endpoint/v1alpha2/solution/task/getResult",
+    "baseUrl": "$endpoint/v1alpha2/"
+}
+EOF
+)
+
+# Save the JSON configuration to a file
+config_file="config.json"
+echo "$config_json" > "$config_file"
+
+
 # cert_path, key_path, topology_path, config to abosolute path
 cert_path=$(realpath $cert_path)
 key_path=$(realpath $key_path)
 topology=$(realpath $topology)
-config=$(realpath $config)
+config=$(realpath $config_file)
 
 
 # call the endpoint with targetName and cert
