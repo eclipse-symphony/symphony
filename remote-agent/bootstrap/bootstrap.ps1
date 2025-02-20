@@ -5,8 +5,7 @@ param (
     [string]$cert_password,
     [string]$target_name,
     [string]$namespace = "default",
-    [string]$topology,
-    [string]$config
+    [string]$topology
 )
 
 function usage {
@@ -16,7 +15,7 @@ function usage {
 
 # Check if the correct number of parameters are provided
 Write-Host "Debug: Number of parameters provided: $($PSCmdlet.MyInvocation.BoundParameters.Count)"
-if ($PSCmdlet.MyInvocation.BoundParameters.Count -ne 7) {
+if ($PSCmdlet.MyInvocation.BoundParameters.Count -ne 6) {
     Write-Host "Error: Invalid number of parameters."
     usage
 }
@@ -62,19 +61,28 @@ if ([string]::IsNullOrEmpty($topology)) {
     usage
 }
 
-# Validate the config file (non-empty string)
-Write-Host "Debug: Config: $config"
-if ([string]::IsNullOrEmpty($config)) {
-    Write-Host "Error: Config file must be a non-empty string."
-    usage
-}
+# # Validate the config file (non-empty string)
+# Write-Host "Debug: Config: $config"
+# if ([string]::IsNullOrEmpty($config)) {
+#     Write-Host "Error: Config file must be a non-empty string."
+#     usage
+# }
 Import-Module PKI
+# Create the JSON configuration
+$configJson = @{
+    requestEndpoint = "$endpoint/v1alpha2/solution/tasks"
+    responseEndpoint = "$endpoint/v1alpha2/solution/task/getResult"
+    baseUrl = "$endpoint/v1alpha2/"
+} | ConvertTo-Json
 
+# Save the JSON configuration to a file
+$configFile = "config2.json"
+$configJson | Set-Content -Path $configFile
 # Convert cert_path, key_path, topology_path, config to absolute paths
 $cert_path = Resolve-Path $cert_path
 $topology = Resolve-Path $topology
-$config = Resolve-Path $config
-
+$config = Resolve-Path $configFile
+Write-Host $config
 # for pfx
 try{
     $password = ConvertTo-SecureString -String $cert_password  -Force -AsPlainText
