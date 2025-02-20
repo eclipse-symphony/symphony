@@ -79,10 +79,9 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
     minikube start
     ```
 2. Sign Your Client Public Key with Symphony:
-    1. Generate client cert.(Your can use demo cert in templates\clientCA.pem)
+    1. Generate client cert.(Your can use demo cert in docs/samples/retail/templates/clientCA.pem)
     2. Create Secret:
     ```
-    cd docs/samples/retail/templates
     kubectl create secret generic <secret-name> --from-file=mycert.pem=<path-to-pem-file> -n <namespace>
     eg: kubectl create secret generic client-secret --from-file=client-key=clientCA.pem
     ```
@@ -155,8 +154,7 @@ Add this line:
 ## Remote Agent Bootstrap
   Apply remote agent target
   ```bash
-  cd docs/samples/retail/templates/
-  kubectl apply -f remote-target-win10.yaml
+  kubectl apply -f docs/samples/retail/templates/remote-target-win10.yaml
   ```
   For windows Client You need to generate a .pfx from client cert (templates\client-cert.pem and templates\client-key.pem)
   ```
@@ -167,8 +165,8 @@ Add this line:
   Run bootstrap ps1
   ```bash
   cd remote-agent\bootstrap
-  .\bootstrap.ps1 <Your Endpoint> <path/to/pfx> <Your password> windows-target default topologies.json 
-  .\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
+  remote-agent\bootstrap\bootstrap.ps1 <Your Endpoint> <path/to/pfx> <Your password> windows-target default topologies.json 
+  remote-agent\bootstrap\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
   ```
   wait for remote-target ready
   ```bash
@@ -176,7 +174,7 @@ Add this line:
   ```
   apply k8s target
   ```bash
-  kubectl apply -f k8s-target.yaml
+  kubectl apply -f docs/samples/retail/templates/k8s-target.yaml
   ```
   wait for k8s-target ready
   ```bash
@@ -184,8 +182,8 @@ Add this line:
   ```
   Apply solution and instance
   ```bash
-  kubectl apply -f solution.yaml
-  kubectl apply -f instance.yaml
+  kubectl apply -f docs/samples/retail/templates/solution.yaml
+  kubectl apply -f docs/samples/retail/templates/instance.yaml
   ```
   Check result:
   search ContosoCafeteriaKiosk -> app installed
