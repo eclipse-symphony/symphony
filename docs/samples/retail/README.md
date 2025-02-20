@@ -53,7 +53,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
     constraints: ${{$equal($property(location), 'windows')}}
     type: win10.sideload
     properties:
-      app.package.path:(ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle full path)
+      app.package.path:<ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle full path> (eg: "C:\\demo\\ContosoCafeteriaKiosk_1.0.3.0_Debug_Test\\ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.)appxbundle"
 ```
 2. Change `remote-agent\bootstrap\topologies.json`:
    1. Find `winAppDeployCmdPath` by opening "C:\\Program Files (x86)\\Windows Kits\\10\\bin", find a kit version and click x64, -> get the `WinAppDeployCmd.exe` location
@@ -182,7 +182,6 @@ Add this line:
   kubectl get target
   ```
   Apply solution and instance
-
   ```bash
   kubectl apply -f solution.yaml
   kubectl apply -f instance.yaml
