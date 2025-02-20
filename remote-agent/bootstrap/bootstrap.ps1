@@ -176,5 +176,5 @@ $agent_path = Resolve-Path "./remote-agent.exe"
 $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
 # Create remote agent process
-$serviceArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
-Start-Process -FilePath $agent_path -ArgumentList $serviceArgs
+$processArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
+Start-Process -FilePath $agent_path -ArgumentList $processArgs
