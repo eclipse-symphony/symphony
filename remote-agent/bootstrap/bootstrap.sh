@@ -77,9 +77,9 @@ fi
 # Create the JSON configuration
 config_json=$(cat <<EOF
 {
-    "requestEndpoint": "$endpoint/v1alpha2/solution/tasks",
-    "responseEndpoint": "$endpoint/v1alpha2/solution/task/getResult",
-    "baseUrl": "$endpoint/v1alpha2/"
+    "requestEndpoint": "$endpoint/solution/tasks",
+    "responseEndpoint": "$endpoint/solution/task/getResult",
+    "baseUrl": "$endpoint"
 }
 EOF
 )
@@ -172,7 +172,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable remote-agent.service
 
 # Start the service
-sudo systemctl start remote-agent.service
+sudo systemctl stop remote-agent.service
 
 # Check the status of the service
 sudo systemctl status remote-agent.service

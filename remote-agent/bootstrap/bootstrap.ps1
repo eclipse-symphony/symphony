@@ -2,7 +2,7 @@
 param (
     [string]$endpoint,
     [string]$cert_path,
-    [string]$cert_password,
+    [SecureString]$cert_password,
     [string]$target_name,
     [string]$namespace = "default",
     [string]$topology
@@ -70,9 +70,9 @@ if ([string]::IsNullOrEmpty($topology)) {
 Import-Module PKI
 # Create the JSON configuration
 $configJson = @{
-    requestEndpoint = "$endpoint/v1alpha2/solution/tasks"
-    responseEndpoint = "$endpoint/v1alpha2/solution/task/getResult"
-    baseUrl = "$endpoint/v1alpha2/"
+    requestEndpoint = "$endpoint/solution/tasks"
+    responseEndpoint = "$endpoint/solution/task/getResult"
+    baseUrl = "$endpoint/"
 } | ConvertTo-Json
 
 # Save the JSON configuration to a file
@@ -85,7 +85,7 @@ $config = Resolve-Path $configFile
 Write-Host $config
 # for pfx
 try{
-    $password = ConvertTo-SecureString -String $cert_password  -Force -AsPlainText
+    # $password = ConvertTo-SecureString -String $cert_password  -Force -AsPlainText
     $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
     $cert.Import($cert_path, $cert_password, "Exportable, PersistKeySet")
 }
@@ -173,5 +173,6 @@ $agent_path = Resolve-Path "./remote-agent.exe"
 $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
 # Create remote agent process
-$processArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
-Start-Process -FilePath $agent_path -ArgumentList $processArgs
+$serviceArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
+Write-Host "Service Args: $serviceArgs"
+Start-Process -FilePath $agent_path -ArgumentList $serviceArgs
