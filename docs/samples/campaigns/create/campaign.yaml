@@ -15,7 +15,8 @@ spec:
   stages:
     create:
       name: "create"
-      provider: "providers.stage.create"      
+      provider: "providers.stage.create"   
+      stageSelector: ${{$if($equal($output(create, failedDeploymentCount), 0),'succeeded','failed')}}
       config:
         wait.count: 10
         wait.interval: 20
@@ -30,3 +31,13 @@ spec:
             solution: site-app:v1
             target:
               name: site-k8s-target
+    succeeded:
+      name: "succeeded"
+      provider: "providers.stage.mock"
+      inputs:
+        foo: 0
+    failed:
+      name: "failed"
+      provider: "providers.stage.mock"
+      inputs:
+        foo: 1

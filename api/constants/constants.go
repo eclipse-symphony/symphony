@@ -1,6 +1,3 @@
-//go:build !azure
-// +build !azure
-
 /*
  * Copyright (c) Microsoft Corporation.
  * Licensed under the MIT license.
