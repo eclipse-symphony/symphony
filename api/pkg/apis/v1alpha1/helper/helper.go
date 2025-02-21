@@ -31,3 +31,7 @@ func GetInstanceOwnerReferences(apiClient api_utils.ApiClient, ctx context.Conte
 func GetSolutionContainerOwnerReferences(apiClient api_utils.ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	return nil, nil
 }
+
+func AddAzureSystemDataAnnotations(annotations map[string]string) map[string]string {
+	return annotations
+}

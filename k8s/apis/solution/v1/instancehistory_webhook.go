@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/helper"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -79,14 +80,11 @@ func (r *InstanceHistory) Default() {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
+	annotations = helper.AddAzureSystemDataAnnotations(annotations)
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 	if annotation_name != "" {
 		parts := strings.Split(r.Name, constants.ResourceSeperator)
 		annotations[annotation_name] = parts[len(parts)-1]
-	} else {
-		parts := strings.Split(r.Name, constants.ResourceSeperator)
-		annotations["management.azure.com/azureName"] = parts[len(parts)-1]
 	}
 	r.ObjectMeta.SetAnnotations(annotations)
 }
