@@ -172,7 +172,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable remote-agent.service
 
 # Start the service
-sudo systemctl stop remote-agent.service
+sudo systemctl start remote-agent.service
 
 # Check the status of the service
 sudo systemctl status remote-agent.service

@@ -85,7 +85,6 @@ $config = Resolve-Path $configFile
 Write-Host $config
 # for pfx
 try{
-    # $password = ConvertTo-SecureString -String $cert_password  -Force -AsPlainText
     $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
     $cert.Import($cert_path, $cert_password, "Exportable, PersistKeySet")
 }
