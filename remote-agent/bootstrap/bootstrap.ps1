@@ -80,70 +80,60 @@ $configJson | Set-Content -Path $configFile
 $cert_path = Resolve-Path $cert_path
 $topology = Resolve-Path $topology
 $config = Resolve-Path $configFile
-Write-Host $config
+Write-Host "Successfully create config file" -ForegroundColor Yellow
 # for pfx verify
+Write-Host "Start to import pfx certificate" -ForegroundColor Blue
 try{
     $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
     $cert.Import($cert_path, $cert_password, "Exportable, PersistKeySet")
+    Write-Host "Successfully import pfx certificate" -ForegroundColor Blue
 }
 catch {
     Write-Host "Error: The certificate file is not a valid PFX file or the password is incorrect."
     exit 1
 }
-
+Write-Host "Start to get working cert from symphony server" -ForegroundColor Blue
 try {
     $WebRequestParams = @{
         Uri = "$($endpoint)/targets/bootstrap/$($target_name)?namespace=$($namespace)&osPlatform=windows"
         Method = 'Post'
         Certificate = $cert
     }
-    Write-Host "Request: uri    : $($WebRequestParams.Uri)"
     $response = Invoke-WebRequest @WebRequestParams -ErrorAction Stop
-    Write-Host "Response: $($response.Content | ConvertTo-Json -Depth 5)"
-    Write-Host "Response code: $($response.StatusCode)"
-    Write-Host $response.Content
+    Write-Host "Successfully get working cert from symphony server" -ForegroundColor Yellow
 } catch {
     Write-Host "Error: Failed to send request to endpoint."
     exit 1
 }
-
-write-host "Response: $($response.Content | ConvertTo-Json -Depth 5)"
 $jsonResponse = $response.Content | ConvertFrom-Json
-
 # Parse JSON response and extract public field
 $public = $jsonResponse.public
-Write-Host "Public Key: $public"
 # Extract header and footer of the public field
 $header = ($public -split ' ')[0..1] -join ' '
-Write-Host "Header: $header"
 $footer = ($public -split ' ')[-3..-1] -join ' '
-Write-Host "Footer: $footer"
 # Extract Base64 encoded content and replace spaces with newlines
 $base64_content = ($public -split ' ')[2..(($public -split ' ').Length - 4)] -join "`n"
-Write-Host "Base64 Contentpublic: $base64_content"
 # Combine header, Base64 content, and footer
 $corrected_public_content = "$header`n$base64_content`n$footer"
-Write-Host "Corrected Public Content: $corrected_public_content"
 # Write corrected_public_content to public.pem
-$corrected_public_content | Out-File -FilePath "public.pem" -Encoding ascii
+$corrected_public_content | Set-Content -Path "public.pem" -Encoding ascii
+Write-Host "Successfully create public.pem file" -ForegroundColor Yellow
 # Extract private field
 $private = $response.Content | ConvertFrom-Json | Select-Object -ExpandProperty private
 # Extract header and footer of the private field
 $header = ($private -split ' ')[0..3] -join ' '
-Write-Host "Header: $header"
 $footer = ($private -split ' ')[-5..-1] -join ' '
-Write-Host "Footer: $footer"
 # Extract Base64 content and replace spaces with newlines
-Write-Host length ($private -split ' ').Length
 $base64_content = ($private -split ' ')[4..(($private -split ' ').Length - 6)] -join "`n"
-Write-Host "Base64 Content: $base64_content"
 # Combine header, Base64 content, and footer
 $corrected_private_content = "$header`n$base64_content`n$footer"
 
 # Write corrected_private_content to private.pem
-$corrected_private_content | Out-File -FilePath "private.pem" -Encoding ascii
+$corrected_private_content |  Set-Content -Path "private.pem" -Encoding ascii
+Write-Host "Successfully create private.pem file" -ForegroundColor Yellow
 # Download remote-agent binary file
-# Invoke-WebRequest -Uri "$endpoint/files/remote-agent" -OutFile remote-agent -Certificate (Get-PfxCertificate $cert_path) -Key (Get-PfxCertificate $key_path)
+Write-Host "Begin to download remote-agent binary file" -ForegroundColor Blue
+
 try {
     $WebRequestParams = @{
         Uri = "$($endpoint)/files/remote-agent.exe"
@@ -161,7 +151,7 @@ try {
     exit 1
 }
 
-Write-Host "Begin to start remote agent process"
+Write-Host "Begin to start remote agent process" -ForegroundColor Blue
 
 # Convert public.pem, private.pem, remote-agent to absolute paths
 $public_path = Resolve-Path "./public.pem"
@@ -171,5 +161,6 @@ $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
 # Create remote agent process
 $processArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
-Write-Host "Service Args: $processArgs"
+Write-Host "Process Args: $processArgs"
 Start-Process -FilePath $agent_path -ArgumentList $processArgs
+Write-Host "Successfully start remote agent process" -ForegroundColor Yellow
