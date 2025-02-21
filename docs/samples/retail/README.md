@@ -126,7 +126,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
   ```
 ### Trust Server Cert(For windows)
   Find the localCA.crt -> Double click the crt -> Install Certificate -> Store Location: Local Machine -> following following image instruction -> finished
-  ![alt text](image-2.png)
+  ![alt text](image-12.png)
 ### Modify host file(For windows): 
   edit this file with notepad:C:\Windows\System32\drivers\etc\hosts
   Add this line:
