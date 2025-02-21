@@ -46,32 +46,35 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 ## Set Up YAML Configuration
 
 1. Update `docs\samples\retail\templates\solution.yaml` 
-  Find component `kiosk` -> update `properties.app.package.path` 
-  ![alt text](image-14.png)
-```
-- name: kiosk
-    constraints: ${{$equal($property(location), 'windows')}}
-    type: win10.sideload
-    properties:
-      app.package.path:<ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle full path> (eg: "C:\\demo\\ContosoCafeteriaKiosk_1.0.3.0_Debug_Test\\ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.)appxbundle"
-```
+    Find component `kiosk` -> update `properties.app.package.path` 
+    ![alt text](image-14.png)
+    ```
+    - name: kiosk
+        constraints: ${{$equal($property(location), 'windows')}}
+        type: win10.sideload
+        properties:
+          app.package.path:<ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle full path>
+        <!-- Please note that you need to change the path format from single backslashes to double backslashes in the `solution.yaml` file. 
+        For example, change the path from:"C:\demo3\ContosoCafeteriaKiosk_1.0.3.0_Debug_Test\ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle" to "C:\demo3\ContosoCafeteriaKiosk_1.0.3.0_Debug_Test\ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle" -->
+    ```
 2. Change `remote-agent\bootstrap\topologies.json`:
-   1. Find `winAppDeployCmdPath` by opening "C:\\Program Files (x86)\\Windows Kits\\10\\bin", find a kit version and click x64, -> get the `WinAppDeployCmd.exe` location
-      ![alt text](image-10.png)
-   2. Change `ipAddress` to your IP and `pin` to your PIN
-      ```
-      {
-        "provider": "providers.target.win10.sideload",
-        "role": "win10.sideload",
-        "config": 
+    1. Find `winAppDeployCmdPath` by opening "C:\\Program Files (x86)\\Windows Kits\\10\\bin", find a kit version and click x64, -> get the `WinAppDeployCmd.exe` location
+        ![alt text](image-10.png)
+    2. Change `ipAddress` to your IP and `pin` to your PIN
+        ```
         {
-          "name": "sideload",
-          "winAppDeployCmdPath": (Your WinAppDeployCmd.exe location),
-          "ipAddress": (Your IP),
-          "pin": （Your PIN)
-        }
-      },
-      ```
+          "provider": "providers.target.win10.sideload",
+          "role": "win10.sideload",
+          "config": 
+          {
+            "name": "sideload",
+            "winAppDeployCmdPath": (Your WinAppDeployCmd.exe location),
+            "ipAddress": (Your IP),
+            "pin": (Your PIN)
+          }
+        },
+        <!-- Please note that you need to change the path format from single backslashes to double backslashes in the `topologies.json` file. >
+        ```
 ## Start Symphony (in WSL)
 
 1. Start minikube cluster
@@ -93,51 +96,43 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
     ```
     NAME                               TYPE                 DATA   AGE
     client-secret                      Opaque               1      9s
-```
-    3. Set secretName and secretKey in symphony\test\localenv\symphony-ghcr-values.yaml
-    Example: 
-    ```
-    clientCAs:
-      secretName:client-secret
-      secretKey:client-key
     ```
 
 2. Update parameter
-    1. Set secretName and secretKey in symphony\test\localenv\symphony-ghcr-values.yaml
+    1. Set secretName and secretKey in test\localenv\symphony-ghcr-values.yaml
     Example: 
     ```
     clientCAs:
-      secretName:client-secret
-      secretKey:client-key
+      secretName:<Your Secret Name> (eg: client-secret)
+      secretKey:<Your Secret Key> (eg:client-key)
     ```
-    2. Set `installServiceExt` as true in symphony\test\localenv\symphony-ghcr-values.yaml
+    2. Set `installServiceExt` as true in test\localenv\symphony-ghcr-values.yaml
 3. Refer to the [instruction](../../../test/localenv/README.md) to set up minikube to run symphony. Here are some command that can be useful:
-  ```bash
-  cd ~/symphony/test/localenv
-  mage build:all
-  mage cluster:up
-  ```
-  If you are using MiniKube, please run `minikube tunnel` in a single terminal windows and keep it open for the rest steps.
-  You need to run minikube tunnel after minikube start and before mage cluster:up done
-  ```bash
-  minikube tunnel
-  ```
+    ```bash
+    cd ~/symphony/test/localenv
+    mage build:all
+    mage cluster:up
+    ```
+    If you are using MiniKube, please run `minikube tunnel` in a single terminal windows and keep it open for the rest steps.
+    You need to run minikube tunnel after minikube start and before mage cluster:up done
+    ```bash
+    minikube tunnel
+    ```
 ## Get Server cert From Symphony
   Get localCA.crt from symphony server
   ```bash
-  # Get the server CA certificate
+  # Get the server CA certificate and store in docs/samples/retail/templates
   kubectl get secret -n default symphony-api-serving-cert  -o jsonpath="{['data']['ca\.crt']}" | base64 --decode > localCA.crt
   ```
-
 ### Trust Server Cert(For windows)
-  Put the localCA.crt to windows computer
-  Find the cert and Double click the crt -> Trust it in your windows computer
+  Find the localCA.crt -> Double click the crt -> Install Certificate -> Store Location: Local Machine -> following following image instruction -> finished
+  ![alt text](image-12.png)
 ### Modify host file(For windows): 
-edit this file with notepad:C:\Windows\System32\drivers\etc\hosts
-Add this line:
-```
-127.0.0.1       symphony-service
-```
+  edit this file with notepad:C:\Windows\System32\drivers\etc\hosts
+  Add this line:
+  ```
+  127.0.0.1       symphony-service
+  ```
 ## Remote Agent Bootstrap
   Apply remote agent target
   ```bash
@@ -148,12 +143,13 @@ Add this line:
   # You can use openssl command
   openssl pkcs12 -export -out client.pfx -inkey client-key.pem -in client-cert.pem
   ```
-  Then you need to set your pfx password.
+
   Run bootstrap ps1
   ```bash
-  cd remote-agent\bootstrap
-  remote-agent\bootstrap\bootstrap.ps1 <Your Endpoint> <path/to/pfx> <Your password> windows-target default topologies.json 
-  remote-agent\bootstrap\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
+  # Set your pfx password as security password
+  $secure_cert_password = Read-Host -Prompt "Enter certificate password" -AsSecureString
+  remote-agent\bootstrap\bootstrap.ps1 <Your Endpoint> <path/to/pfx> secure_cert_password  <Target Name> default topologies.json 
+  #  eg: remote-agent\bootstrap\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
   ```
   wait for remote-target ready
   ```bash
