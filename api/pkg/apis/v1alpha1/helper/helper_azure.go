@@ -11,6 +11,7 @@ package helper
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -71,4 +72,17 @@ func GetSolutionContainerOwnerReferences(apiClient api_utils.ApiClient, ctx cont
 			UID:        target.ObjectMeta.UID,
 		},
 	}, nil
+}
+
+func AddAzureSystemDataAnnotations(annotations map[string]string) map[string]string {
+	if isPrivateResourceProvider(annotations[constants.AzureResourceIdKey]) {
+		annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
+	}
+	return annotations
+}
+
+func isPrivateResourceProvider(resourceId string) bool {
+	pattern := `^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/private.edge/targets/([^/]+)/solutions/([^/]+)/instances/([^/]+)$`
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(strings.ToLower(resourceId))
 }

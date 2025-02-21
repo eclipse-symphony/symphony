@@ -13,8 +13,10 @@ import (
 	"gopls-workspace/constants"
 	"gopls-workspace/utils/diagnostic"
 	"os"
+	"strings"
 
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/helper"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,15 +76,17 @@ func (r *InstanceHistory) Default() {
 	}
 
 	// Set annotation for the instance history
+	annotations := r.ObjectMeta.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations = helper.AddAzureSystemDataAnnotations(annotations)
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 	if annotation_name != "" {
-		annotations := r.ObjectMeta.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string)
-		}
-		annotations[annotation_name] = r.Name
-		r.ObjectMeta.SetAnnotations(annotations)
+		parts := strings.Split(r.Name, constants.ResourceSeperator)
+		annotations[annotation_name] = parts[len(parts)-1]
 	}
+	r.ObjectMeta.SetAnnotations(annotations)
 }
 
 //+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
