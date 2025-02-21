@@ -7,10 +7,12 @@
 package verify
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,7 +53,18 @@ var (
 	diagnostic_04_WithCorrectEdgeLocation2              = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
 	diagnostic_05_UpdateEdgeLocationConflict            = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
 	diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2 = "test/integration/scenarios/08.webhook/manifest/diagnostic_06.UpdateOtherAnnotationsOnEdgeLocation2.yaml"
+
+	historyTarget         = "test/integration/scenarios/08.webhook/manifest/history-target.yaml"
+	historySolution       = "test/integration/scenarios/08.webhook/manifest/history-solution.yaml"
+	historyInstance       = "test/integration/scenarios/08.webhook/manifest/history-instance.yaml"
+	historySolutionUpdate = "test/integration/scenarios/08.webhook/manifest/history-solution-update.yaml"
+	historyInstanceUpdate = "test/integration/scenarios/08.webhook/manifest/history-instance-update.yaml"
 )
+
+// Define a struct to parse the JSON output
+type HistoryList struct {
+	Items []map[string]interface{} `json:"items"`
+}
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution)).CombinedOutput()
@@ -334,6 +347,55 @@ func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2)).CombinedOutput()
 	assert.Contains(t, string(output), "configured")
 	assert.Nil(t, err)
+}
+
+func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyTarget))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolution))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstance))).Run()
+	assert.Nil(t, err)
+
+	// wait until instance deployed
+	for {
+		output, err := exec.Command("kubectl", "get", "instance", "history-instance", "-o", "jsonpath={.status.properties.status}").CombinedOutput()
+		if err != nil {
+			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+		}
+		status := string(output)
+		if status == "Succeeded" {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolutionUpdate))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstanceUpdate))).Run()
+	assert.Nil(t, err)
+
+	// check instance history result
+	output, err := exec.Command("kubectl", "get", "instancehistory", "-o", "json").CombinedOutput()
+	if err != nil {
+		assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+	}
+
+	var historyList HistoryList
+	err = json.Unmarshal(output, &historyList)
+	if err != nil {
+		assert.Fail(t, "failed to parse instance history", err.Error())
+	}
+
+	assert.Equal(t, 1, len(historyList.Items))
+	history := historyList.Items[0]
+	metadata := history["metadata"].(map[string]interface{})
+	spec := history["spec"].(map[string]interface{})
+	status := history["status"].(map[string]interface{})
+	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
+	assert.Equal(t, "history-instance", spec["rootResource"].(string))
+	assert.Equal(t, "history-solution:v1", spec["solutionId"].(string))
+	assert.Equal(t, "Succeeded", status["properties"].(map[string]interface{})["status"])
 }
 
 func getRepoPath() string {

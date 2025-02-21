@@ -153,11 +153,16 @@ func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
 		return false
 	}
 
-	if !c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy) {
+	// check reconciliation policy
+	if c.ReconciliationPolicy == nil {
+		return other.ReconciliationPolicy == nil
+	}
+
+	if other.ReconciliationPolicy == nil {
 		return false
 	}
 
-	return true
+	return c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy)
 }
 
 // +kubebuilder:object:generate=true
