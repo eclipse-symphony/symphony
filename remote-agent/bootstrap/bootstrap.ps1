@@ -32,7 +32,11 @@ Write-Host "Debug: Cert Path: $cert_path"
 if (-not (Test-Path $cert_path)) {
     Write-Host "Error: Certificate file not found at path: $cert_path"
     usage
-}
+} elseif ($cert_path -notlike "*.pfx") {
+        Write-Host "Error: The certificate file must be a .pfx file."
+        usage
+}    
+
 # Validate the certificate password (check if the file exists)
 Write-Host "Debug: Cert Path: $cert_password"
 if ([string]::IsNullOrEmpty($cert_password)) {
