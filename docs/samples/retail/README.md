@@ -146,8 +146,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 
   Run bootstrap ps1
   ```bash
-  cd remote-agent\bootstrap
-  Set your pfx password as security password
+  # Set your pfx password as security password
   $secure_cert_password = Read-Host -Prompt "Enter certificate password" -AsSecureString
   remote-agent\bootstrap\bootstrap.ps1 <Your Endpoint> <path/to/pfx> secure_cert_password  <Target Name> default topologies.json 
   #  eg: remote-agent\bootstrap\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
