@@ -14,8 +14,10 @@ function usage {
 }
 
 # Check if the correct number of parameters are provided
-Write-Verbose "Debug: Number of parameters provided: $($PSCmdlet.MyInvocation.BoundParameters.Count)"
-if ($PSCmdlet.MyInvocation.BoundParameters.Count -ne 6) {
+$requiredParams = @('endpoint', 'cert_path', 'cert_password', 'target_name', 'namespace', 'topology')
+$providedParams = $PSBoundParameters.Keys | Where-Object { $_ -in $requiredParams }
+Write-Verbose "Debug: Number of required parameters provided: $($providedParams.Count)"
+if ($providedParams.Count -ne 6) {
     Write-Host "Error: Invalid number of parameters." -ForegroundColor Red
     usage
 }
@@ -60,10 +62,13 @@ if ([string]::IsNullOrEmpty($namespace)) {
 
 # Validate the topology file (non-empty string)
 Write-Verbose "Debug: Topology: $topology"
-if ([string]::IsNullOrEmpty($topology)) {
-    Write-Host "Error: Topology file must be a non-empty string." -ForegroundColor Red
+if (-not (Test-Path $topology)) {
+    Write-Host "Error: topology file not found at path: $topology" -ForegroundColor Red
     usage
-}
+} elseif ($topology -notlike "*.json") {
+        Write-Host "Error: The topology file must be a .json file." -ForegroundColor Red
+        usage
+}    
 
 Import-Module PKI
 # Create the JSON configuration
@@ -74,7 +79,7 @@ $configJson = @{
 } | ConvertTo-Json
 
 # Save the JSON configuration to a file
-$configFile = "config2.json"
+$configFile = "config.json"
 $configJson | Set-Content -Path $configFile
 # Convert cert_path, topology_path, config to absolute paths
 $cert_path = Resolve-Path $cert_path
@@ -141,8 +146,6 @@ try {
         Certificate = $cert
     }
     $result = Invoke-WebRequest @WebRequestParams -OutFile "remote-agent.exe" -ErrorAction Stop
-    Write-Verbose "Response: $($result.Content | ConvertTo-Json -Depth 5)"
-    Write-Verbose "Response code: $($result.StatusCode)"
     Write-Host $result.Content
 } catch {
     Write-Host "Error: Failed to download." -ForegroundColor Red
