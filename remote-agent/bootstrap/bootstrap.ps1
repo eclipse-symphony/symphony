@@ -14,54 +14,54 @@ function usage {
 }
 
 # Check if the correct number of parameters are provided
-Write-Host "Debug: Number of parameters provided: $($PSCmdlet.MyInvocation.BoundParameters.Count)"
+Write-Verbose "Debug: Number of parameters provided: $($PSCmdlet.MyInvocation.BoundParameters.Count)"
 if ($PSCmdlet.MyInvocation.BoundParameters.Count -ne 6) {
-    Write-Host "Error: Invalid number of parameters."
+    Write-Host "Error: Invalid number of parameters." -ForegroundColor Red
     usage
 }
 
 # Validate the endpoint (basic URL validation)
-Write-Host "Debug: Endpoint: $endpoint"
+Write-Verbose "Debug: Endpoint: $endpoint"
 if ($endpoint -notmatch "^https?://") {
-    Write-Host "Error: Invalid endpoint. Must be a valid URL starting with http:// or https://"
+    Write-Host "Error: Invalid endpoint. Must be a valid URL starting with http:// or https://" -ForegroundColor Red
     usage
 }
 
 # Validate the certificate path (check if the file exists)
-Write-Host "Debug: Cert Path: $cert_path"
+Write-Verbose "Debug: Cert Path: $cert_path"
 if (-not (Test-Path $cert_path)) {
-    Write-Host "Error: Certificate file not found at path: $cert_path"
+    Write-Host "Error: Certificate file not found at path: $cert_path" -ForegroundColor Red
     usage
 } elseif ($cert_path -notlike "*.pfx") {
-        Write-Host "Error: The certificate file must be a .pfx file."
+        Write-Host "Error: The certificate file must be a .pfx file." -ForegroundColor Red
         usage
 }    
 
 # Validate the certificate password (check if the file exists)
-Write-Host "Debug: Cert Path: $cert_password"
+Write-Verbose "Debug: Cert Path: $cert_password"
 if ([string]::IsNullOrEmpty($cert_password)) {
-    Write-Host "Error: Certificate password must be a non-empty string."
+    Write-Host "Error: Certificate password must be a non-empty string." -ForegroundColor Red
     usage
 }
 
 # Validate the target name (non-empty string)
-Write-Host "Debug: Target Name: $target_name"
+Write-Verbose "Debug: Target Name: $target_name"
 if ([string]::IsNullOrEmpty($target_name)) {
-    Write-Host "Error: Target name must be a non-empty string."
+    Write-Host "Error: Target name must be a non-empty string." -ForegroundColor Red
     usage
 }
 
 # Validate the namespace (non-empty string)
-Write-Host "Debug: Namespace: $namespace"
+Write-Verbose "Debug: Namespace: $namespace"
 if ([string]::IsNullOrEmpty($namespace)) {
-    Write-Host "Error: Namespace must be a non-empty string."
+    Write-Host "Error: Namespace must be a non-empty string." -ForegroundColor Red
     $namespace = "default"
 }
 
 # Validate the topology file (non-empty string)
-Write-Host "Debug: Topology: $topology"
+Write-Verbose "Debug: Topology: $topology"
 if ([string]::IsNullOrEmpty($topology)) {
-    Write-Host "Error: Topology file must be a non-empty string."
+    Write-Host "Error: Topology file must be a non-empty string." -ForegroundColor Red
     usage
 }
 
@@ -89,7 +89,7 @@ try{
     Write-Host "Successfully import pfx certificate" -ForegroundColor Blue
 }
 catch {
-    Write-Host "Error: The certificate file is not a valid PFX file or the password is incorrect."
+    Write-Host "Error: The certificate file is not a valid PFX file or the password is incorrect."  -ForegroundColor Red
     exit 1
 }
 Write-Host "Start to get working cert from symphony server" -ForegroundColor Blue
@@ -102,7 +102,7 @@ try {
     $response = Invoke-WebRequest @WebRequestParams -ErrorAction Stop
     Write-Host "Successfully get working cert from symphony server" -ForegroundColor Yellow
 } catch {
-    Write-Host "Error: Failed to send request to endpoint."
+    Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
     exit 1
 }
 $jsonResponse = $response.Content | ConvertFrom-Json
@@ -145,9 +145,9 @@ try {
     Write-Verbose "Response code: $($result.StatusCode)"
     Write-Host $result.Content
 } catch {
-    Write-Host "Error: Failed to download."
-    Write-Host "Error Message: $($_.Exception.Message)"
-    Write-Host "Error Details: $($_ | Out-String)"
+    Write-Host "Error: Failed to download." -ForegroundColor Red
+    Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error Details: $($_ | Out-String)" -ForegroundColor Red
     exit 1
 }
 
