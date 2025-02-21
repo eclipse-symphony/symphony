@@ -61,12 +61,6 @@ if ([string]::IsNullOrEmpty($topology)) {
     usage
 }
 
-# # Validate the config file (non-empty string)
-# Write-Host "Debug: Config: $config"
-# if ([string]::IsNullOrEmpty($config)) {
-#     Write-Host "Error: Config file must be a non-empty string."
-#     usage
-# }
 Import-Module PKI
 # Create the JSON configuration
 $configJson = @{
@@ -78,18 +72,18 @@ $configJson = @{
 # Save the JSON configuration to a file
 $configFile = "config2.json"
 $configJson | Set-Content -Path $configFile
-# Convert cert_path, key_path, topology_path, config to absolute paths
+# Convert cert_path, topology_path, config to absolute paths
 $cert_path = Resolve-Path $cert_path
 $topology = Resolve-Path $topology
 $config = Resolve-Path $configFile
 Write-Host $config
-# for pfx
+# for pfx verify
 try{
     $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
     $cert.Import($cert_path, $cert_password, "Exportable, PersistKeySet")
 }
 catch {
-    Write-Host "Error: Failed to load certificate or key file."
+    Write-Host "Error: The certificate file is not a valid PFX file or the password is incorrect."
     exit 1
 }
 
@@ -172,6 +166,6 @@ $agent_path = Resolve-Path "./remote-agent.exe"
 $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
 # Create remote agent process
-$serviceArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
-Write-Host "Service Args: $serviceArgs"
-Start-Process -FilePath $agent_path -ArgumentList $serviceArgs
+$processArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
+Write-Host "Service Args: $processArgs"
+Start-Process -FilePath $agent_path -ArgumentList $processArgs
