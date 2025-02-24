@@ -106,7 +106,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 			if err != nil {
 				log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get config %s, error: %v", id, err)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -122,7 +122,7 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 				if val == nil {
 					log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get object %s, error: %v", id, err)
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-						State: v1alpha2.InternalError,
+						State: v1alpha2.GetErrorState(err),
 						Body:  []byte(err.Error()),
 					})
 				} else {

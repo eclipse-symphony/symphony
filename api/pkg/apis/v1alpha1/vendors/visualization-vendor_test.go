@@ -104,7 +104,7 @@ func TestHandleVisPacket(t *testing.T) {
 }
 
 func TestConvertVisualizationPacketToCatalog(t *testing.T) {
-	catalog, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -124,7 +124,7 @@ func TestConvertVisualizationPacketToCatalog(t *testing.T) {
 	assert.Equal(t, "bytes", v["to-1"].DataType)
 }
 func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
-	catalog, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -140,7 +140,7 @@ func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
 	assert.Equal(t, "to-1", v["to-1"].To)
 }
 func TestMergeCatalogsSameKey(t *testing.T) {
-	catalog1, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog1, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -151,7 +151,7 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
-	catalog2, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog2, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -178,7 +178,7 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 }
 
 func TestMergeCatalogsDifferentKey(t *testing.T) {
-	catalog1, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog1, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",
@@ -189,7 +189,7 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
-	catalog2, err := convertVisualizationPacketToCatalog("fake-site", model.Packet{
+	catalog2, err := convertVisualizationPacketToCatalog(model.Packet{
 		Solution: "solution-1",
 		Target:   "target-1",
 		Instance: "instance-1",

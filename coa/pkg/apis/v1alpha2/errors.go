@@ -8,6 +8,10 @@ package v1alpha2
 
 import "fmt"
 
+type IRetriableError interface {
+	IsRetriableErr() bool
+}
+
 type COAError struct {
 	InnerError error
 	Message    string
@@ -24,6 +28,48 @@ func (e COAError) Error() string {
 	} else {
 		return ""
 	}
+}
+
+func (e COAError) IsUserErr() bool {
+	// case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
+	return e.State < 500 && e.State >= 400
+}
+
+func containsError(states []State, state State) bool {
+	for _, s := range states {
+		if s == state {
+			return true
+		}
+	}
+	return false
+}
+
+func getNonRetriableManagerConfigErrors() []State {
+	return []State{
+		InitFailed, ValidateFailed, GetComponentPropsFailed,
+	}
+}
+
+func getNonRetriableProviderConfigErrors() []State {
+	return []State{
+		CreateProjectorFailed,                           // k8s
+		CreateActionConfigFailed, GetHelmPropertyFailed, // helm provider
+	}
+}
+
+func (e COAError) IsRetriableErr() bool {
+	if e.IsUserErr() {
+		return false
+	}
+	if containsError(getNonRetriableManagerConfigErrors(), e.State) {
+		return false
+	}
+	if containsError(getNonRetriableProviderConfigErrors(), e.State) {
+		return false
+	}
+
+	// default:
+	return true
 }
 
 func FromError(err error) COAError {
@@ -53,6 +99,13 @@ func FromHTTPResponseCode(code int, body []byte) COAError {
 		Message: string(body),
 		State:   state,
 	}
+}
+
+func GetErrorState(err error) State {
+	if coaErr, ok := err.(COAError); ok {
+		return coaErr.State
+	}
+	return InternalError
 }
 
 func NewCOAError(err error, msg string, state State) COAError {
@@ -94,16 +147,9 @@ func IsBadConfig(err error) bool {
 }
 
 func IsRetriableErr(err error) bool {
-	coaE, ok := err.(COAError)
+	ret, ok := err.(IRetriableError)
 	if !ok {
 		return true
 	}
-	switch coaE.State {
-	case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
-		return false
-	case ValidateFailed: // catalog manager
-		return false
-	default:
-		return true
-	}
+	return ret.IsRetriableErr()
 }

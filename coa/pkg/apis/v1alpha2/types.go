@@ -125,6 +125,14 @@ const (
 	DeploymentNotReached            State = 10056
 	InvalidObjectType               State = 10057
 	UnsupportedAction               State = 10058
+	InstanceGetFailed               State = 10059
+	TargetGetFailed                 State = 10060
+	DeleteSolutionFailed            State = 10061
+	CreateSolutionFailed            State = 10062
+	GetARMDeploymentPropertyFailed  State = 10071
+	EnsureARMResourceGroupFailed    State = 10072
+	CreateARMDeploymentFailed       State = 10073
+	CleanUpARMDeploymentFailed      State = 10074
 
 	// instance controller errors
 	SolutionGetFailed             State = 11000
@@ -135,6 +143,11 @@ const (
 
 	//target controller errors
 	TargetPropertyNotFound State = 12000
+
+	// transient or retriable errors 4000 - 49999
+
+	// non-transient errors 50000 - 59999
+	GetComponentPropsFailed State = 50000
 )
 
 func GetHttpStatus(code int) State {
@@ -342,6 +355,10 @@ func (s State) String() string {
 		return "Invalid Object Type"
 	case UnsupportedAction:
 		return "Unsupported Action"
+	case InstanceGetFailed:
+		return "Get instance failed"
+	case TargetGetFailed:
+		return "Get target failed"
 	case SolutionGetFailed:
 		return "Solution does not exist"
 	case TargetCandidatesNotFound:
@@ -354,6 +371,8 @@ func (s State) String() string {
 		return "Timed Out"
 	case TargetPropertyNotFound:
 		return "Target Property Not Found"
+	case GetComponentPropsFailed:
+		return "Get component property failed"
 	default:
 		return fmt.Sprintf("Unknown State: %d", s)
 	}

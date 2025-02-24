@@ -13,10 +13,10 @@ import (
 )
 
 type SiteState struct {
-	Id       string                 `json:"id"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-	Spec     *SiteSpec              `json:"spec,omitempty"`
-	Status   *SiteStatus            `json:"status,omitempty"`
+	Id         string      `json:"id"`
+	ObjectMeta ObjectMeta  `json:"metadata,omitempty"`
+	Spec       *SiteSpec   `json:"spec,omitempty"`
+	Status     *SiteStatus `json:"status,omitempty"`
 }
 type SiteTargetStatus struct {
 	State  v1alpha2.State `json:"state,omitempty"`

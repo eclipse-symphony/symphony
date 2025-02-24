@@ -8,6 +8,7 @@ package vendors
 
 import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -19,6 +20,7 @@ type BackgroundJobVendor struct {
 	vendors.Vendor
 	// Add a new manager if you want to add another background job
 	ActivationsCleanerManager *activations.ActivationsCleanupManager
+	SummaryCleanupManager     *solution.SummaryCleanupManager
 }
 
 func (s *BackgroundJobVendor) GetInfo() vendors.VendorInfo {
@@ -41,6 +43,8 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 	for _, m := range s.Managers {
 		if c, ok := m.(*activations.ActivationsCleanupManager); ok {
 			s.ActivationsCleanerManager = c
+		} else if c, ok := m.(*solution.SummaryCleanupManager); ok {
+			s.SummaryCleanupManager = c
 		}
 		// Load a new manager if you want to add another background job
 	}
@@ -48,6 +52,11 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 		log.Info("ActivationsCleanupManager is enabled")
 	} else {
 		log.Info("ActivationsCleanupManager is disabled")
+	}
+	if s.SummaryCleanupManager != nil {
+		log.Info("SummaryCleanupManager is enabled")
+	} else {
+		log.Info("SummaryCleanupManager is disabled")
 	}
 	return nil
 }

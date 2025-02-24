@@ -105,6 +105,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		ctx, span := observability.StartSpan("onQueue-GET", rContext, nil)
 		defer span.End()
 		instance := request.Parameters["instance"]
+		instanceName := request.Parameters["name"]
 
 		if instance == "" {
 			sLog.ErrorCtx(ctx, "V (Solution): onQueue failed - 400 instance parameter is not found")
@@ -114,7 +115,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				ContentType: "application/json",
 			})
 		}
-		summary, err := c.SolutionManager.GetSummary(ctx, instance, namespace)
+		summary, err := c.SolutionManager.GetSummary(ctx, instance, instanceName, namespace)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - %s", err.Error())
@@ -126,7 +127,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  data,
 				})
 			}
@@ -220,7 +221,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue DeleteSummary failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -273,7 +274,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  data,
 			})
 		}

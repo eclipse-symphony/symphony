@@ -313,8 +313,12 @@ func TestSortByDepedenciesAllSelfReferences(t *testing.T) {
 }
 func TestMockGet(t *testing.T) {
 	id := uuid.New().String()
+	name := "testInstance"
 	deployment := model.DeploymentSpec{
 		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: name,
+			},
 			Spec: &model.InstanceSpec{},
 		},
 		Solution: model.SolutionState{
@@ -354,6 +358,8 @@ func TestMockGet(t *testing.T) {
 			},
 		},
 	}
+	guid := uuid.New().String()
+	deployment.Instance.ObjectMeta.SetGuid(guid)
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -364,7 +370,9 @@ func TestMockGet(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
@@ -372,7 +380,8 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, 0, len(components))
 	assert.Equal(t, 0, len(state.TargetComponent))
 
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	summaryKey := deployment.Instance.ObjectMeta.GetSummaryId()
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.NotNil(t, err)
 
 	_, err = manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -387,7 +396,7 @@ func TestMockGet(t *testing.T) {
 	assert.Equal(t, "mock", state.TargetComponent["a::T1"])
 	assert.Equal(t, "mock", state.TargetComponent["b::T1"])
 
-	_, err = manager.GetSummary(context.Background(), "", "default")
+	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
 	assert.Nil(t, err)
 
 	// Test reconcile idempotency
@@ -395,10 +404,11 @@ func TestMockGet(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Test summary deletion
-	err = manager.DeleteSummary(context.Background(), "", "default")
+	err = manager.DeleteSummary(context.Background(), summaryKey, "default")
 	assert.Nil(t, err)
-	_, err = manager.GetSummary(context.Background(), "", "default")
-	assert.NotNil(t, err)
+	result, err := manager.GetSummary(context.Background(), summaryKey, name, "default")
+	assert.Nil(t, err)
+	assert.True(t, result.Summary.Removed, "Summary should have set the removed flag")
 }
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
@@ -464,6 +474,7 @@ func TestMockGetTwoTargets(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -474,7 +485,9 @@ func TestMockGetTwoTargets(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
@@ -560,6 +573,7 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -571,7 +585,9 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 			"mock1": targetProvider,
 			"mock2": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
@@ -636,6 +652,7 @@ func TestMockApply(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -646,7 +663,9 @@ func TestMockApply(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -698,6 +717,7 @@ func TestMockApplyMultiRoles(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider2 := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id1})
@@ -711,7 +731,9 @@ func TestMockApplyMultiRoles(t *testing.T) {
 			"mock":  targetProvider,
 			"mock2": targetProvider2,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -759,6 +781,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -769,7 +792,9 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -812,6 +837,7 @@ func TestMockApplyWithError(t *testing.T) {
 			},
 		},
 	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
 	targetProvider := &mock.MockTargetProvider{}
 	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
 	stateProvider := &memorystate.MemoryStateProvider{}
@@ -822,7 +848,9 @@ func TestMockApplyWithError(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
