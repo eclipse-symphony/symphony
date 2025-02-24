@@ -7,4 +7,3 @@ spec:
   solution: sample-prometheus-server:v1
   target: 
     name: sample-k8s-target
-  activeState: "inactive"
