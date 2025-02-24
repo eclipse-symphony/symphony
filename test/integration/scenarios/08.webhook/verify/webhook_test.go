@@ -359,7 +359,7 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 
 	// wait until instance deployed
 	for {
-		output, err := exec.Command("kubectl", "get", "instance", "history-instance", "-o", "jsonpath={.status.properties.status}").CombinedOutput()
+		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", "history-instance", "-o", "jsonpath={.status.properties.status}").CombinedOutput()
 		if err != nil {
 			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
 		}
