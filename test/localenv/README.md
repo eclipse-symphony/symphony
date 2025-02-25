@@ -5,15 +5,13 @@ SPDX-License-Identifier: MIT
 -->
 # Local environment
 
-The local environment is a minikube cluster that deploys symphony for testing purposes.
+Symphony is primarily developed using the Go programming language, with additional Rust bindings that enable Rust-based Target providers. It natively supports Kubernetes, and its components are packaged as a Helm chart consisting of several microservices.
 
-## Prerequisites
+For local development and testing, you’ll need Docker, Kubernetes, Go, and Rust-related tools. While Symphony can be used on Windows or macOS, we recommend using an Azure Ubuntu VM or the WSL Ubuntu distribution for a more streamlined experience. Symphony leverages Mage for scripting tasks and uses Minikube as the local test environment, which is provisioned through Mage.
 
-Linux environment such as Azure Ubuntu VM or WSL Ubuntu Distribution.
+## Docker installation
 
-### Docker installation
-
-https://docs.docker.com/engine/install/ubuntu/
+Official instructions: https://docs.docker.com/engine/install/ubuntu/
 
 Example:
 ```shell
@@ -37,8 +35,8 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-### go installation
-https://go.dev/doc/install
+## Go installation
+Official instructions:  https://go.dev/doc/install
 
 Example:
 
@@ -61,9 +59,9 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 ```
 run `source ~/.bash_profile` to finish the environment variable setting.
 
-### helm installation
+## Helm installation
 
-https://helm.sh/docs/intro/install/#from-the-binary-releases
+Official instructions: https://helm.sh/docs/intro/install/#from-the-binary-releases
 
 Example:
 
@@ -76,8 +74,8 @@ rm -rf linux-amd64
 helm version
 ```
 
-### kubectl installation
-https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-binary-with-curl-on-linux
+## Kubectl installation
+Official instructions: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-binary-with-curl-on-linux
 
 Example:
 
@@ -91,18 +89,27 @@ kubectl version --client
 rm -rf kubectl kubectl.sha256
 ```
 
-### mage installation
+## Mage installation
+
+Official instructions: https://github.com/magefile/mage#installation
 
 Example:
-
-https://github.com/magefile/mage#installation
-
 (Please make sure you set go environment variable correctly in previous steps.)
 
 ```shell
 git clone https://github.com/magefile/mage
 cd mage
 go run bootstrap.go
+```
+## Rust installation
+
+Official instructions: https://www.rust-lang.org/tools/install
+
+Example:
+```shell
+# Use the recommended script, then follow the on-screen instructions to install Rust.
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
 ```
 
 ## Usage of mage
