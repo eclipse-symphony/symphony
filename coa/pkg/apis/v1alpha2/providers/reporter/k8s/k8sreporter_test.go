@@ -95,6 +95,7 @@ func TestReportTargetProperty(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	err = provider.Report(id, "default", "fabric.symphony", "targets", "v1", map[string]string{
 		"testkey": "testval",
+		"status":  "Succeeded",
 	}, true)
 	assert.Nil(t, err)
 
@@ -113,6 +114,7 @@ func TestReportTargetProperty(t *testing.T) {
 	var rStatus model.TargetStatus
 	err = json.Unmarshal(j, &rStatus)
 	assert.Nil(t, err)
+	assert.Equal(t, "Succeeded", rStatus.Status)
 	assert.Equal(t, "testval", rStatus.Properties["testkey"])
 }
 
