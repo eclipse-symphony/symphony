@@ -119,17 +119,16 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		if err != nil {
 			err := fmt.Errorf("failed to get target, instance: %s, error: %v", instance.Name, err)
 			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
-		} else if res.Object != nil {
-			jsonData, _ := json.Marshal(res.Object["spec"])
-			err = utils.UnmarshalJson(jsonData, &targetSpec)
-			if err != nil {
-				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
-			}
+		}
+		jsonData, _ := json.Marshal(res.Object["spec"])
+		err = utils.UnmarshalJson(jsonData, &targetSpec)
+		if err != nil {
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
 		}
 
 		var history InstanceHistory
 		history.ObjectMeta = metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-v-%s", instance.Name, currentTime.Format("20060102150405")),
+			Name:      instance.Name + constants.ResourceSeperator + currentTime.Format("20060102150405"),
 			Namespace: instance.Namespace,
 		}
 
@@ -161,10 +160,13 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			}
 			// If the instance has a status, save it in the history
 			if !instance.Status.LastModified.IsZero() {
-				history.Status = instance.Status
+				history.Status = k8smodel.InstanceHistoryStatus{
+					Properties:   instance.Status.Properties,
+					LastModified: instance.Status.LastModified,
+				}
 				err = upsertHistoryClient.Status().Update(ctx, &history)
 				if err != nil {
-					err := fmt.Errorf("upsert instance history status failed, instance: %s, error: %v", instance.Name, err)
+					err := fmt.Errorf("upsert instance history status failed, instance: %s, history: %s, error: %v", instance.Name, history.GetName(), err)
 					diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
 					return err
 				}
@@ -274,7 +276,10 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 	// Save the old object
 	if !r.Spec.DeepEquals(oldInstance.Spec) {
 		diagnostic.InfoWithCtx(instancelog, ctx, "saving instance history", "oldInstance", oldInstance)
-		instanceHistory.SaveInstanceHistoryFunc(ctx, oldInstance.Name, oldInstance)
+		err := instanceHistory.SaveInstanceHistoryFunc(ctx, oldInstance.Name, oldInstance)
+		if err != nil {
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save Instance history", "name", r.Name, "namespace", r.Namespace)
+		}
 	}
 
 	validationError := r.validateUpdateInstance(ctx, oldInstance)

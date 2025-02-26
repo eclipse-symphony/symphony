@@ -308,6 +308,7 @@ webhooks:
     - v1
     operations:
     - CREATE
+    - UPDATE
     resources:
     - instancehistories
   sideEffects: None

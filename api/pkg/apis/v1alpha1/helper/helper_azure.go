@@ -82,7 +82,7 @@ func AddAzureSystemDataAnnotations(annotations map[string]string) map[string]str
 }
 
 func isPrivateResourceProvider(resourceId string) bool {
-	pattern := `^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/private.edge/targets/([^/]+)/solutions/([^/]+)/instances/([^/]+)$`
+	pattern := `^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/private.edge/.*`
 	re := regexp.MustCompile(pattern)
 	return re.MatchString(strings.ToLower(resourceId))
 }

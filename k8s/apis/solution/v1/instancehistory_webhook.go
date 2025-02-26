@@ -89,7 +89,7 @@ func (r *InstanceHistory) Default() {
 	r.ObjectMeta.SetAnnotations(annotations)
 }
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create;update,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &InstanceHistory{}
 
@@ -107,8 +107,14 @@ func (r *InstanceHistory) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *InstanceHistory) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	// TODO: instance history is readonly and should not be updated
-	return nil, nil
+	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
+	operationName := fmt.Sprintf("%s/%s", constants.InstanceHistoryOperationNamePrefix, constants.ActivityOperation_Write)
+	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, historyReaderClient, context.TODO(), historyLog)
+
+	// instance history is readonly and should not be updated
+	err := fmt.Errorf("Cannot update instance history because it is readonly")
+	diagnostic.ErrorWithCtx(historyLog, ctx, err, "Instance history is readonly", "name", r.Name, "namespace", r.Namespace)
+	return nil, err
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
