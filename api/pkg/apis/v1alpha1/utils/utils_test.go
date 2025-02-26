@@ -777,7 +777,7 @@ func TestConvertObjectNameToReference_SolutionVersion(t *testing.T) {
 	var covertedObjName = ConvertReferenceToObjectName(ossRef)
 	assert.Equal(t, objName, covertedObjName)
 
-	var azureTargetRef = "/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/xingdlitest/providers/Private.Edge/targets/target3/solutions/sol3/versions/ver1"
+	var azureTargetRef = "/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/xingdlitest/providers/Private.Edge/targets/target3/solutions/sol3/versions/ver1"
 	objName = "target3-v-sol3-v-ver1"
 	covertedObjName = ConvertReferenceToObjectName(azureTargetRef)
 	assert.Equal(t, objName, covertedObjName)
@@ -789,7 +789,7 @@ func TestConvertObjectNameToReference_Target(t *testing.T) {
 	var covertedObjName = ConvertReferenceToObjectName(ossRef)
 	assert.Equal(t, objName, covertedObjName)
 
-	var azureTargetRef = "/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/xingdlitest/providers/Private.Edge/targets/target3"
+	var azureTargetRef = "/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/xingdlitest/providers/Private.Edge/targets/target3"
 	objName = "target3"
 	covertedObjName = ConvertReferenceToObjectName(azureTargetRef)
 	assert.Equal(t, objName, covertedObjName)
