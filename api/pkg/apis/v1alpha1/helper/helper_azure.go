@@ -74,7 +74,7 @@ func GetSolutionContainerOwnerReferences(apiClient api_utils.ApiClient, ctx cont
 	}, nil
 }
 
-func AddAzureSystemDataAnnotations(annotations map[string]string) map[string]string {
+func GenerateSystemDataAnnotations(annotations map[string]string) map[string]string {
 	if isPrivateResourceProvider(annotations[constants.AzureResourceIdKey]) {
 		annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
 	}

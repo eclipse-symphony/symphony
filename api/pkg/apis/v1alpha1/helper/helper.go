@@ -32,6 +32,6 @@ func GetSolutionContainerOwnerReferences(apiClient api_utils.ApiClient, ctx cont
 	return nil, nil
 }
 
-func AddAzureSystemDataAnnotations(annotations map[string]string) map[string]string {
+func GenerateSystemDataAnnotations(annotations map[string]string) map[string]string {
 	return annotations
 }

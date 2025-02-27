@@ -54,6 +54,8 @@ var (
 	diagnostic_05_UpdateEdgeLocationConflict            = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
 	diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2 = "test/integration/scenarios/08.webhook/manifest/diagnostic_06.UpdateOtherAnnotationsOnEdgeLocation2.yaml"
 
+	historyCreate         = "test/integration/scenarios/08.webhook/manifest/history.yaml"
+	historyUpdate         = "test/integration/scenarios/08.webhook/manifest/history-update.yaml"
 	historyTarget         = "test/integration/scenarios/08.webhook/manifest/history-target.yaml"
 	historySolution       = "test/integration/scenarios/08.webhook/manifest/history-solution.yaml"
 	historyInstance       = "test/integration/scenarios/08.webhook/manifest/history-instance.yaml"
@@ -396,6 +398,14 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	assert.Equal(t, "history-instance", spec["rootResource"].(string))
 	assert.Equal(t, "history-solution:v1", spec["solutionId"].(string))
 	assert.Equal(t, "Succeeded", status["properties"].(map[string]interface{})["status"])
+}
+
+func TestUpdateInstanceHistory(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyCreate))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), historyUpdate)).CombinedOutput()
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(string(output), "Cannot update instance history because it is readonly"))
 }
 
 func getRepoPath() string {

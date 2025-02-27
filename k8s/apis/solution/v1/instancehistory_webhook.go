@@ -80,7 +80,7 @@ func (r *InstanceHistory) Default() {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations = helper.AddAzureSystemDataAnnotations(annotations)
+	annotations = helper.GenerateSystemDataAnnotations(annotations)
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 	if annotation_name != "" {
 		parts := strings.Split(r.Name, constants.ResourceSeperator)
@@ -89,7 +89,7 @@ func (r *InstanceHistory) Default() {
 	r.ObjectMeta.SetAnnotations(annotations)
 }
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create;update,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create;update;delete,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &InstanceHistory{}
 

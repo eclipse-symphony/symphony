@@ -115,15 +115,17 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 		// get target spec
 		var targetSpec k8smodel.TargetSpec
-		res, err = dynamicclient.Get(ctx, validation.Target, validation.ConvertReferenceToObjectName(instance.Spec.Target.Name), instance.Namespace)
-		if err != nil {
-			err := fmt.Errorf("failed to get target, instance: %s, error: %v", instance.Name, err)
-			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
-		}
-		jsonData, _ := json.Marshal(res.Object["spec"])
-		err = utils.UnmarshalJson(jsonData, &targetSpec)
-		if err != nil {
-			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
+		if instance.Spec.Target.Name != "" {
+			res, err = dynamicclient.Get(ctx, validation.Target, validation.ConvertReferenceToObjectName(instance.Spec.Target.Name), instance.Namespace)
+			if err != nil {
+				err := fmt.Errorf("failed to get target, instance: %s, error: %v", instance.Name, err)
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
+			}
+			jsonData, _ := json.Marshal(res.Object["spec"])
+			err = utils.UnmarshalJson(jsonData, &targetSpec)
+			if err != nil {
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
+			}
 		}
 
 		var history InstanceHistory
@@ -140,6 +142,7 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			Solution:             solutionSpec,
 			SolutionId:           instance.Spec.Solution,
 			Target:               targetSpec,
+			TargetSelector:       instance.Spec.Target.Selector,
 			TargetId:             instance.Spec.Target.Name,
 			Topologies:           instance.Spec.Topologies,
 			Pipelines:            instance.Spec.Pipelines,

@@ -176,6 +176,7 @@ type InstanceHistorySpec struct {
 	SolutionId           string                    `json:"solutionId"`
 	Target               TargetSpec                `json:"target,omitempty"`
 	TargetId             string                    `json:"targetId,omitempty"`
+	TargetSelector       map[string]string         `json:"targetSelector,omitempty"`
 	Topologies           []model.TopologySpec      `json:"topologies,omitempty"`
 	Pipelines            []model.PipelineSpec      `json:"pipelines,omitempty"`
 	IsDryRun             bool                      `json:"isDryRun,omitempty"`
