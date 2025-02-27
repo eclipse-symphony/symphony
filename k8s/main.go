@@ -427,6 +427,10 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Instance")
 			os.Exit(1)
 		}
+		if err = (&solutionv1.InstanceHistory{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "InstanceHistory")
+			os.Exit(1)
+		}
 		if err = (&aiv1.Model{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Model")
 			os.Exit(1)
@@ -498,6 +502,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Diagnostic")
+		os.Exit(1)
+	}
+	if err = (&solutioncontrollers.InstanceHistoryReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "InstanceHistory")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
