@@ -43,6 +43,15 @@ func TestInstanceSpecDeepEquals(t *testing.T) {
 	assert.False(t, spec.DeepEquals(spec_update))
 	spec_update.Scope = spec.Scope
 
+	// Test Parameters
+	spec_update.Parameters = nil
+	assert.False(t, spec.DeepEquals(spec_update))
+	spec_update.Parameters = spec.Parameters
+
+	// Test Metadata
+	spec_update.Metadata = nil
+	assert.True(t, spec.DeepEquals(spec_update))
+
 	// Test Solution
 	spec_update.Solution = "solution:v2"
 	assert.False(t, spec.DeepEquals(spec_update))
@@ -78,7 +87,11 @@ func createDummyInstanceSpec(name string, interval string) InstanceSpec {
 	return InstanceSpec{
 		DisplayName: name,
 		Scope:       "default",
-		Solution:    "solution:v1",
+		Parameters: map[string]string{
+			"foo": "bar",
+		},
+		Metadata: map[string]string{},
+		Solution: "solution:v1",
 		Target: model.TargetSelector{
 			Name: "target-1",
 			Selector: map[string]string{

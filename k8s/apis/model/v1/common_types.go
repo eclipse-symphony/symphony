@@ -120,13 +120,12 @@ func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
 		return false
 	}
 
-	// TODO: copied from api InstanceSpec.DeepEquals
-	// if !utils.StringMapsEqual(c.Parameters, other.Parameters, nil) {
-	// 	return false
-	// }
-	// if !utils.StringMapsEqual(c.Metadata, other.Metadata, nil) {
-	// 	return false
-	// }
+	if !model.StringMapsEqual(c.Parameters, other.Parameters, nil) {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
 
 	if c.Solution != other.Solution {
 		return false
