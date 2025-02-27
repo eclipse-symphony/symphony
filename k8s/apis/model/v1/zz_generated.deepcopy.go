@@ -233,6 +233,13 @@ func (in *InstanceHistorySpec) DeepCopyInto(out *InstanceHistorySpec) {
 	}
 	in.Solution.DeepCopyInto(&out.Solution)
 	in.Target.DeepCopyInto(&out.Target)
+	if in.TargetSelector != nil {
+		in, out := &in.TargetSelector, &out.TargetSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Topologies != nil {
 		in, out := &in.Topologies, &out.Topologies
 		*out = make([]model.TopologySpec, len(*in))

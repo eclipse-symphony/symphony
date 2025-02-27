@@ -317,6 +317,10 @@ spec:
                 type: object
               targetId:
                 type: string
+              targetSelector:
+                additionalProperties:
+                  type: string
+                type: object
               topologies:
                 items:
                   description: TopologySpec defines the desired device topology the
