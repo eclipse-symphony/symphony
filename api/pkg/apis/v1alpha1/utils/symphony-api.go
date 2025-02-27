@@ -770,6 +770,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState,
 		ret.Assignments[k] = v
 	}
 	ret.IsDryRun = instance.Spec.IsDryRun
+	ret.IsInActive = instance.Spec.ActiveState == model.ActiveState_Inactive
 
 	return ret, nil
 }

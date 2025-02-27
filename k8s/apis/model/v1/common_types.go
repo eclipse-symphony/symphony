@@ -104,6 +104,7 @@ type InstanceSpec struct {
 	Topologies  []model.TopologySpec `json:"topologies,omitempty"`
 	Pipelines   []model.PipelineSpec `json:"pipelines,omitempty"`
 	IsDryRun    bool                 `json:"isDryRun,omitempty"`
+	ActiveState model.ActiveState    `json:"activeState,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile

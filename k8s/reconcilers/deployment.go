@@ -385,11 +385,10 @@ func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilabl
 		return false
 	}
 	generationMatch := r.generationMatch(object, summary)
-	operationTypeMatch := r.operationTypeMatch(object, summary)
 	deploymentHashMatch := r.deploymentHashMatch(ctx, object, summary)
 	jobIDMatch := r.jobIDMatch(object, summary)
-	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch, "jobIDMatch", jobIDMatch)
-	return generationMatch && operationTypeMatch && deploymentHashMatch && jobIDMatch
+	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "deploymentHashMatch", deploymentHashMatch, "jobIDMatch", jobIDMatch)
+	return generationMatch && deploymentHashMatch && jobIDMatch
 }
 
 func (r *DeploymentReconciler) jobIDMatch(object Reconcilable, summary *model.SummaryResult) bool {

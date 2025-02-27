@@ -1198,6 +1198,8 @@ spec:
             type: object
           spec:
             properties:
+              activeState:
+                type: string
               displayName:
                 type: string
               isDryRun:
