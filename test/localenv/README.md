@@ -91,6 +91,18 @@ kubectl version --client
 rm -rf kubectl kubectl.sha256
 ```
 
+### cargo installation
+
+If you haven't already installed Cargo, you can do so by installing Rust, as Cargo is the Rust package manager.
+
+```shell
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo --version
+
+export PATH="$HOME/.cargo/bin:$PATH"
+source ~/.bashrc
+```
+
 ### mage installation
 
 Example:
