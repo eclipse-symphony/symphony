@@ -365,6 +365,8 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 		if err != nil {
 			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
 		}
+		err = shellcmd.Command("kubectl get instances.solution.symphony history-instance").Run()
+		assert.Nil(t, err)
 		status := string(output)
 		if status == "Succeeded" {
 			break
