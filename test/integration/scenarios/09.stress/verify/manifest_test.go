@@ -154,7 +154,7 @@ func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 			obj := event.Object.(*unstructured.Unstructured)
 			// ss, _ := json.Marshal(obj)
 			// log.Infof("custom resource modified " + string(ss))
-			status, found, err := unstructured.NestedString(obj.Object, "status", "properties", "status")
+			status, _, err := unstructured.NestedString(obj.Object, "status", "status")
 			if err != nil {
 				log.Errorf(err.Error())
 			}
