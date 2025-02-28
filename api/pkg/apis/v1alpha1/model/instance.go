@@ -131,6 +131,10 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
+	if c.ActiveState != otherC.ActiveState {
+		return false, nil
+	}
+
 	// TODO: These are not compared in current version. Metadata is usually not considred part of the state so
 	// it's reasonable not to compare. The parameters (same arguments apply to arguments below) are dynamic so
 	// comparision is unpredictable. Should we not compare the arguments as well? Or, should we get rid of the
