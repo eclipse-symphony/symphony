@@ -586,6 +586,8 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 		objectStatus.Properties["deployed"] = "pending"
 		objectStatus.Properties["targets"] = "pending"
 		objectStatus.Properties["status-details"] = ""
+		// reset removed status if reconciliation is needed
+		objectStatus.Properties["removed"] = ""
 		return
 	}
 
@@ -607,6 +609,7 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 		objectStatus.Properties["status-details"] = summary.SummaryMessage
 	}
 	objectStatus.Properties["runningJobId"] = summary.JobID
+	objectStatus.Properties["removed"] = strconv.FormatBool(summary.Removed)
 }
 
 func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {
