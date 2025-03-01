@@ -411,7 +411,7 @@ type InstanceStatus = DeployableStatusV2
 type TargetStatus = DeployableStatusV2
 
 // InstanceHistoryStatus defines the observed state of Solution
-type InstanceHistoryStatus = DeployableStatus
+type InstanceHistoryStatus = DeployableStatusV2
 
 // +kubebuilder:object:generate=true
 type ReconciliationPolicySpec struct {
