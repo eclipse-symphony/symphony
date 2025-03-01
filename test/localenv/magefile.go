@@ -962,7 +962,7 @@ func ensureCertAndTrustManager() error {
 		return err
 	}
 
-	trustNS := getChartNamespace()
+	trustNS := "cert-manager"
 	installTrustManager := fmt.Sprintf("helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-manager --wait --set app.trust.namespace=%s", trustNS)
 	err = shellcmd.Command(installTrustManager).Run()
 	if err != nil {

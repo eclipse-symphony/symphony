@@ -10,3 +10,5 @@ use ./k8s
 
 use ./cli
 use ./test/integration
+
+use ./remote-agent

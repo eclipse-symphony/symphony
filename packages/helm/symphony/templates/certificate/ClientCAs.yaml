@@ -2,12 +2,9 @@ apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
 metadata:
   name: {{ include "symphony.apiClientCATrustBundle" . }}
-  namespace: {{ .Release.Namespace }}
+  namespace: cert-manager
 spec:
   sources:
-  - secret:
-      name: {{ include "symphony.apiServingCertName" . }}
-      key: "tls.crt"
   {{- if .Values.Cert.ClientCAs.SecretName}}
   - secret: 
       name: {{ .Values.Cert.ClientCAs.SecretName }}
@@ -15,26 +12,27 @@ spec:
   {{- else }}
   - inLine: |
       -----BEGIN CERTIFICATE-----
-      MIIDdjCCAl6gAwIBAgIRALWXzT6inC8HPqguhQvGmQEwDQYJKoZIhvcNAQELBQAw
-      EzERMA8GA1UEChMIU3ltcGhvbnkwHhcNMjQxMjIwMDg0MDAzWhcNMjUwNjE4MDg0
-      MDAzWjATMREwDwYDVQQKEwhTeW1waG9ueTCCASIwDQYJKoZIhvcNAQEBBQADggEP
-      ADCCAQoCggEBAMbKUmlORZMmuZrrOv+l6Yj1gh5fDyXVQImf5wQDxhtPMHO5nDQR
-      dSQezJ2Ari1fkH2PFd5m4q/M/wPLv8tKiEhB9FRV+wq55KWnwHHVTjAwGJXQGVAg
-      QDAKfmPB44CEpGuCR9I4mj9+gMRplZ2G6jrGi0hpPznSMWSw2XkP1PGFLCYFnRZ/
-      QREsdI1jrrrLxL0q32yWF6yKWIqv7tRPC6vjBaVr8p+eW5dLoHNIw0X52+qlLgmS
-      golpWCx2AjFqptaxx/6mIuyvB5shsnX5Lu0n9eG+a/M+GhFIqpk7/8Z91SsZ/6fE
-      EWU/lFuzK7HnNlmFZlHO0Ql23xMNF7UQvkUCAwEAAaOBxDCBwTAOBgNVHQ8BAf8E
-      BAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUoea+SgmBiAkokNKZ/82b
-      E9sgYAQwfwYDVR0RBHgwdoIQc3ltcGhvbnktc2VydmljZYIYc3ltcGhvbnktc2Vy
+      MIIDdjCCAl6gAwIBAgIRANM/Nv1Qzc7WFVPVZH4RVPgwDQYJKoZIhvcNAQELBQAw
+      EzERMA8GA1UEChMIc3ltcGhvbnkwHhcNMjUwMzMxMDg0MTAwWhcNMjUwOTI3MDg0
+      MTAwWjATMREwDwYDVQQKEwhzeW1waG9ueTCCASIwDQYJKoZIhvcNAQEBBQADggEP
+      ADCCAQoCggEBAL65XE8+vozMagWvE1hL+Qt5KSLNi3AUSHYVMiYy8jYULNNUom5x
+      aosP4K9IWNtyHh9bCyLoHwm9VPTi/oVKNWi0qZueHypUO76hjO3o4ZFwoWjuvMFK
+      /RNDqADQUOEtC1kmPBiWKruGhdOkZtf6shcWf7o4IP9yuwQChojT/eje1gqftkhB
+      S8y9bqjBjKntfgRC2xTbc+yjK1b0R+GrDcyXdzIC3q6NNNS1GpFHQ0CFp7KN/gCw
+      vrv/8qUZhu4zz+wjLFkETvLgbA+OP2TcleQJeP893FMxwD8t0lZZRfGhKIjWE9w+
+      sMA/MrGH8PXBjyY55LWZtyQC/jWwGzbhWG0CAwEAAaOBxDCBwTAOBgNVHQ8BAf8E
+      BAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUV4rdnx9IlbxOAfDV92Rg
+      cSM3HB8wfwYDVR0RBHgwdoIQc3ltcGhvbnktc2VydmljZYIYc3ltcGhvbnktc2Vy
       dmljZS5kZWZhdWx0ghxzeW1waG9ueS1zZXJ2aWNlLmRlZmF1bHQuc3ZjgipzeW1w
       aG9ueS1zZXJ2aWNlLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwwDQYJKoZIhvcN
-      AQELBQADggEBADkGV7M02cToUUjXqO0omYVFB9s/13YIXB89/MbvZdlMtD7883Ab
-      vb+ox9F2MbDjPMLrB+4YrRYHYRvXFiADvHujMJVkqbwerQ8zzHRM6jbPDfBt7o4B
-      XeYYI2Czt5+4ZxRD2CKAdNM1y1hrd9JYqGpYTZ0jw0o87RvnbZangJD9ZpeMtBbU
-      OjpPpr636ePd4gy/w2GdEButrzEJitYG+pg9PIZ1DgEU9itcdLCUjum51hamFnH2
-      nkuAe92/MIKxgun+tKb5WXdMI1ZHumMY/LLjPC0C+rxZOmozAOus8qMrG0pNP1RA
-      uAo2KyDAktR6qkOSVG3TTwMw0scEdTk/EaA=
+      AQELBQADggEBAEToqnsx37em32bhPVPZcEsfULULXhs7rhOgKFIkRG07uJ1NdCiu
+      YYh5LYI2iw9C6CBumTzcO303Ig/yjN4jrt1ZxTQ82l8Yc9PXFYNolb4qS5uUkNH2
+      svKaL+G0h8BqrCtE5WEWOyuW97x+HVeFbSsCBHPX8pPALA68aSLqSUWi+iojNU7/
+      +IyhoVruvwmsmg76LkG1zU22CGaJ9y/0ZhsywkLhpC+pjFcVwhGjZtYvb83EtRvE
+      E9EF/N02J8ISvtaBsMf33FRc9aHDyu6Fx5RMKiK3orWkR55O33apZDfMdgms9KcT
+      svQbm5jr6YqDRMFFMlJGojLG1O+BHl61ezk=
       -----END CERTIFICATE-----
+
   {{- end }}
   target:
     configMap:
