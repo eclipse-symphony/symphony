@@ -387,14 +387,30 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			target := stage.ReadInputString(inputs, "__target")
 			if target != "" {
 				instanceState.Spec.Target = model.TargetSelector{
-					Name: helper.GetInstanceTargetName(target),
+					Name: target,
 				}
 			}
 
+			// Get the solution and container name
+			solutionContainer, solutionVersion := api_utils.GetSolutionAndContainerName(instanceState.Spec.Solution)
+			if solutionContainer == "" || solutionVersion == "" {
+				mLog.ErrorfCtx(ctx, "Invalid solution name: instance - %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
+			}
+			// Get instanceName
+			instanceName := api_utils.GetInstanceName(solutionContainer, objectName)
+
 			// Set the owner reference
-			ownerReference, err := helper.GetInstanceOwnerReferences(i.ApiClient, ctx, objectName, objectNamespace, instanceState, i.Config.User, i.Config.Password)
+			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, solutionContainer, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", objectName, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", instanceName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -422,11 +438,26 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			if annotation_name != "" {
 				instanceState.ObjectMeta.UpdateAnnotation(annotation_name, objectName)
 			}
+
+			// Add annotation for Private.Edge provider resources
+			anno := api_utils.GenerateSystemDataAnnotations(instanceState.ObjectMeta.Annotations, target)
+			instanceState.ObjectMeta.Annotations = anno
+
+			// TODO: azure build flag
+			// TODO: also update in materialize stage provider
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				if instanceState.ObjectMeta.Annotations == nil {
+					instanceState.ObjectMeta.Annotations = make(map[string]string)
+				}
+				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfofCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", instanceName, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
 			instanceState.ObjectMeta.Namespace = objectNamespace
-			instanceState.ObjectMeta.Name = objectName
+			instanceState.ObjectMeta.Name = instanceName
 
 			if instanceState.ObjectMeta.Name == "" {
-				mLog.ErrorfCtx(ctx, "Instance name is empty: - %s", objectName)
+				mLog.ErrorfCtx(ctx, "Instance name is empty: - %s", instanceName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -434,12 +465,13 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", instanceName), v1alpha2.BadRequest)
 			}
 
 			objectData, _ := json.Marshal(instanceState)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", objectName, objectNamespace)
-			err = i.ApiClient.CreateInstance(ctx, objectName, objectData, objectNamespace, i.Config.User, i.Config.Password)
+			mLog.InfofCtx(ctx, "  P (Create Stage): creating instance %s with state: %s", instanceName, objectData)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", instanceName, objectNamespace)
+			err = i.ApiClient.CreateInstance(ctx, instanceName, objectData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
@@ -466,8 +498,9 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, err
 			}
 			summaryId := ret.ObjectMeta.GetSummaryId()
+			jobId := ret.ObjectMeta.GetSummaryJobId()
 			if summaryId == "" {
-				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", objectName)
+				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", instanceName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -475,18 +508,19 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
 			}
 
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
-					Name:      objectName,
-					SummaryId: summaryId,
+					Name:         instanceName,
+					SummaryId:    summaryId,
+					SummaryJobId: jobId,
 				}
 				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
-					outputs["objectName"] = objectName
+					outputs["objectName"] = instanceName
 					mLog.InfofCtx(ctx, "  P (Create Stage) process completed with fail count is %d", len(failed))
 					outputs["failedDeployment"] = failed
 					outputs["failedDeploymentCount"] = len(failed)
