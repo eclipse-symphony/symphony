@@ -1,15 +1,17 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: test-app  
+  name: site-app  
+  namespace: jessewftestc
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: test-app-v-v1
+  name: site-app-v-v1
+  namespace: jessewftestc
 spec:
-  rootResource: test-app
+  rootResource: site-app
   components:
   - name: nginx-ingress  
     properties:

@@ -1,0 +1,53 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"workflow.symphony/v1","kind":"Campaign","metadata":{"annotations":{"management.azure.com/apiVersion":"2025-01-01-preview","management.azure.com/bridgeLocation":"EastUS2","management.azure.com/cloudEnvironment":"AzureCloud","management.azure.com/correlationId":"98614d1c-1060-4d77-bcdb-c1b79892bc53","management.azure.com/customLocation":"/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Microsoft.ExtendedLocation/customLocations/jessewftestc","management.azure.com/location":"eastus","management.azure.com/operationId":"0d4f9195-6897-4737-9b9b-dd828f21087f*688F8429DD51C0B3E7DD339EC17A09BAE77901C4055A266BCC2718A506582BD5","management.azure.com/parentResourceId":"/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfc2/workflows/cwf2","management.azure.com/resourceId":"/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfc2/workflows/cwf2/versions/version19","management.azure.com/systemData":"{\"createdBy\":\"29dabdb7-dac7-46c8-a985-d57bd2dd0a0c\",\"createdByType\":\"User\",\"createdAt\":\"2025-03-01T04:16:04.4054336Z\",\"resourceUID\":\"e5c722a2-a9c0-404f-8bd4-8b389a63a03d\",\"clientLocation\":\"eastus2euap\"}","management.azure.com/tenantId":"72f988bf-86f1-41af-91ab-2d7cd011db47","traceparent":"00-6037bf431e305834c5b62769cad2790f-7178a27c76505e49-01"},"creationTimestamp":"2025-03-01T04:16:11Z","generation":2,"labels":{"rootResource":"wfc2-v-cwf2"},"name":"wfc2-v-cwf2-v-version19","namespace":"jessewftestc","ownerReferences":[{"apiVersion":"workflow.symphony/v1","kind":"CampaignContainer","name":"wfc2-v-cwf2","uid":"5b423099-0167-4734-ae52-ddd413dbfd78"}],"resourceVersion":"18541188","uid":"8eff97a3-792a-495f-add3-dd8ab87452a4"},"spec":{"firstStage":"stage-name-placeholder1","rootResource":"wfc2-v-cwf2","stages":{"stage-name-placeholder1":{"config":{"wait.count":10,"wait.interval":20},"inputs":{"action":"create","object":{"metadata":{"name":"site-instance"},"spec":{"solution":"site-app:v1","target":{"name":"site-k8s-target"}}},"objectName":"site-instance","objectType":"instance"},"name":"stage-name-placeholder1","provider":"providers.stage.create"}},"version":"version19"}}
+    management.azure.com/apiVersion: 2025-01-01-preview
+    management.azure.com/bridgeLocation: EastUS2
+    management.azure.com/cloudEnvironment: AzureCloud
+    management.azure.com/correlationId: bae2760d-3497-4d82-a4ae-647c8022052b
+    management.azure.com/customLocation: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Microsoft.ExtendedLocation/customLocations/jessewftestc
+    management.azure.com/location: eastus
+    management.azure.com/operationId: 5427f5b0-6e09-4218-9836-068ae6b07f78*688F8429DD51C0B3E7DD339EC17A09BAE77901C4055A266BCC2718A506582BD5
+    management.azure.com/parentResourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfc2/workflows/cwf2
+    management.azure.com/resourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfc2/workflows/cwf2/versions/version19
+    management.azure.com/systemData: '{"createdBy":"29dabdb7-dac7-46c8-a985-d57bd2dd0a0c","createdByType":"User","createdAt":"2025-03-01T04:16:04.4054336Z","resourceUID":"e5c722a2-a9c0-404f-8bd4-8b389a63a03d","clientLocation":"eastus2euap"}'
+    management.azure.com/tenantId: 72f988bf-86f1-41af-91ab-2d7cd011db47
+    traceparent: 00-9f548a49ac972ac9261356e8e6b9d70e-a88e729797b27649-01
+  creationTimestamp: "2025-03-01T04:16:11Z"
+  generation: 4
+  labels:
+    rootResource: wfc2-v-cwf2
+  name: wfc2-v-cwf2-v-version19
+  namespace: jessewftestc
+  ownerReferences:
+  - apiVersion: workflow.symphony/v1
+    kind: CampaignContainer
+    name: wfc2-v-cwf2
+    uid: 5b423099-0167-4734-ae52-ddd413dbfd78
+  resourceVersion: "18561147"
+  uid: 8eff97a3-792a-495f-add3-dd8ab87452a4
+spec:
+  firstStage: stage-name-placeholder1
+  rootResource: wfc2-v-cwf2
+  stages:
+    stage-name-placeholder1:
+      name: stage-name-placeholder1
+      provider: "providers.stage.create"   
+      config:
+        wait.count: 10
+        wait.interval: 20
+      inputs:
+        action: "create"
+        objectName: "site-instance"
+        objectType: "instance"
+        object:
+          metadata: 
+            name: site-instance
+          spec: 
+            solution: site-app:v1
+            target:
+              name: site-k8s-target
+  version: version19

@@ -1,0 +1,9 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: wftestact
+  namespace: jessewftestc
+spec:
+  campaign: "wfc2-v-cwf2:version19"
+  inputs:
+    namesOnly: true

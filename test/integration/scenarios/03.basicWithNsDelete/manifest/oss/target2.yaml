@@ -1,7 +1,8 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: helm-target 
+  name: site-k8s-target
+  namespace: jessewftestc
 spec:  
   topologies:
   - bindings:
