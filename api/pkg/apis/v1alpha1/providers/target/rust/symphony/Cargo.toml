@@ -1,8 +1,11 @@
 [package]
-name = "rust_binding"
+name = "symphony"
 version = "0.1.0"
 edition = "2021"
-
+license = "MIT"
+description = "Eclipse Symphony Target Provider Rust binding"
+repository = "https://github.com/eclipse-symphony/symphony.git"
+keywords = ["orchestration"]
 [lib]
 crate-type = ["staticlib", "rlib"]
 

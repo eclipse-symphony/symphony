@@ -46,6 +46,45 @@
      pub hash: Option<String>,
  }
  
+ impl DeploymentSpec {
+    /// Creates an empty `DeploymentSpec` with default values.
+    pub fn empty() -> Self {
+        DeploymentSpec {
+            solution_name: String::new(),
+            solution: SolutionState {
+                metadata: ObjectMeta {
+                    namespace: None,
+                    name: None,
+                    generation: None,
+                    labels: None,
+                    annotations: None,
+                },
+                spec: None,
+            },
+            instance: InstanceState {
+                metadata: ObjectMeta {
+                    namespace: None,
+                    name: None,
+                    generation: None,
+                    labels: None,
+                    annotations: None,
+                },
+                spec: None,
+                status: InstanceStatus {}, // Assuming `InstanceStatus` has a default implementation
+            },
+            targets: HashMap::new(),
+            devices: None,
+            assignments: None,
+            component_start_index: None,
+            component_end_index: None,
+            active_target: None,
+            generation: None,
+            object_namespace: None,
+            hash: None,
+        }
+    }
+}
+
  #[derive(Serialize, Deserialize, Debug, Clone)]
  #[serde(rename_all = "camelCase")]
  pub struct ComponentSpec {

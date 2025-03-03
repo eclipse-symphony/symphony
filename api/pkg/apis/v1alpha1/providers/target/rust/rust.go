@@ -7,7 +7,7 @@
 package rust
 
 /*
- #cgo CFLAGS: -I./rust_binding/include
+ #cgo CFLAGS: -I./symphony/include
 
  #include <stdlib.h>
  #include "rust_target_provider.h"

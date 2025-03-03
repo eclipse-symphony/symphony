@@ -1,5 +1,7 @@
 [workspace]
 members = [
-    "rust_binding",
-    "rust_providers/mock"
+    "symphony",
+    "rust_providers/mock",
+    "rust_providers/ankaios"
 ]
+resolver = "2"

@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: MIT
  */
 
- extern crate rust_binding;
+ extern crate symphony;
 
- use rust_binding::models::{
+ use symphony::models::{
      ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep, ComponentSpec,
      DeploymentStep, ComponentResultSpec,
      ComponentValidationRule, RouteSpec, SidecarSpec, State
  };
- use rust_binding::ITargetProvider;
- use rust_binding::ProviderWrapper;
+ use symphony::ITargetProvider;
+ use symphony::ProviderWrapper;
  use std::collections::HashMap;
  
  pub struct MockProvider;
