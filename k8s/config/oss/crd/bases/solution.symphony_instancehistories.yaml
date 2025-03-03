@@ -356,6 +356,12 @@ spec:
             type: object
           status:
             properties:
+              deployed:
+                type: integer
+              expectedRunningJobId:
+                type: integer
+              generation:
+                type: integer
               lastModified:
                 format: date-time
                 type: string
@@ -422,6 +428,32 @@ spec:
                 - operationId
                 - status
                 type: object
+              runningJobId:
+                type: integer
+              status:
+                type: string
+              statusDetails:
+                type: string
+              targetStatuses:
+                items:
+                  properties:
+                    componentStatuses:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              targets:
+                type: integer
             required:
             - provisioningStatus
             type: object

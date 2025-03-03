@@ -14,9 +14,9 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
-// +kubebuilder:printcolumn:name="Targets",type=string,JSONPath=`.status.properties.targets`
-// +kubebuilder:printcolumn:name="Deployed",type=string,JSONPath=`.status.properties.deployed`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
+// +kubebuilder:printcolumn:name="Targets",type=string,JSONPath=`.status.targets`
+// +kubebuilder:printcolumn:name="Deployed",type=string,JSONPath=`.status.deployed`
 
 // Instance is the Schema for the instances API
 type Instance struct {
