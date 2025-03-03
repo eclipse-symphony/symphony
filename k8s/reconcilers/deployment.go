@@ -609,7 +609,7 @@ func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object
 		objectStatus.Properties["status-details"] = summary.SummaryMessage
 	}
 	objectStatus.Properties["runningJobId"] = summary.JobID
-	objectStatus.Properties["removed"] = strconv.FormatBool(summary.Removed)
+	objectStatus.Properties["removed"] = strconv.FormatBool(summary.IsRemoval)
 }
 
 func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {

@@ -21,6 +21,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,7 +69,7 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	deploymentOperationType := metrics.DeploymentQueued
 	var err error
 
-	if checkSkipReconcile(instance) {
+	if checkSkipReconcile(log, instance) {
 		log.Info("Skipping this reconcile, since this instance is inactive and already removed")
 		return ctrl.Result{}, nil
 	}
@@ -145,20 +146,24 @@ func (r *InstanceQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // What if the instance changes from inactive -> active (not summary reported) -> inactive
 // "removed" property will be removed before making queuedeployment calls to symphony API server
 // so that later inactive instance can be reconciled again.
-func checkSkipReconcile(instance *solution_v1.Instance) bool {
+func checkSkipReconcile(log logr.Logger, instance *solution_v1.Instance) bool {
 	if instance.Spec.ActiveState != model.ActiveState_Inactive {
 		return false
 	}
 	if instance.Status.Properties != nil {
 		status, ok := instance.Status.Properties["status"]
 		if !ok || status != string(utilsmodel.ProvisioningStatusSucceeded) {
+			log.Info("Instance has not reach succeeded status, do not skip reconcile")
 			return false
 		}
 		removed, ok := instance.Status.Properties["removed"]
 		if !ok || removed != "true" {
+			log.Info("Instance has not been removed, do not skip reconcile")
 			return false
 		}
+		log.Info("Instance is inactive and already removed, skip reconcile")
 		return true
 	}
-	return true
+	log.Info("Instance status is nil, do not skip reconcile")
+	return false
 }

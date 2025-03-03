@@ -132,6 +132,10 @@ func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
 		return false
 	}
 
+	if c.ActiveState != other.ActiveState {
+		return false
+	}
+
 	equal, err := c.Target.DeepEquals(other.Target)
 	if err != nil {
 		return false
