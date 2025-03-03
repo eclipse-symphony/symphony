@@ -405,16 +405,6 @@ func (r *DeploymentReconciler) generationMatch(object Reconcilable, summary *mod
 	return summary.Generation == strconv.FormatInt(object.GetGeneration(), 10)
 }
 
-func (r *DeploymentReconciler) operationTypeMatch(object Reconcilable, summary *model.SummaryResult) bool {
-	if object == nil || summary == nil { // we don't expect any of these to be nil
-		return false
-	}
-	if summary.Summary.IsRemoval {
-		return object.GetDeletionTimestamp() != nil
-	}
-	return object.GetDeletionTimestamp() == nil
-}
-
 func (r *DeploymentReconciler) deploymentHashMatch(ctx context.Context, object Reconcilable, summary *model.SummaryResult) bool {
 	if object == nil || summary == nil { // we don't expect any of these to be nil
 		return false
@@ -555,6 +545,9 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 }
 
 func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatusV2, opts patchStatusOptions, log logr.Logger) {
+	if objectStatus.Properties == nil {
+		objectStatus.Properties = make(map[string]string)
+	}
 	annotations := object.GetAnnotations()
 	if annotations != nil {
 		objectStatus.ExpectedRunningJobId, _ = strconv.Atoi(annotations[constants.SummaryJobIdKey])
