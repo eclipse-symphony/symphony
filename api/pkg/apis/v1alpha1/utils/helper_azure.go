@@ -16,7 +16,11 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+<<<<<<< HEAD
 	"github.com/google/uuid"
+=======
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+>>>>>>> de434e2d (allow ARMResourceId in the solution/target field (#662))
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,6 +47,7 @@ func ConvertAzureTargetReferenceToObjectName(name string) (string, bool) {
 	return r.ReplaceAllString(name, "$4"), true
 }
 
+<<<<<<< HEAD
 func GetInstanceName(solutionContainerName, objectName string) string {
 
 	return fmt.Sprintf("%s-v-%s", solutionContainerName, objectName)
@@ -65,6 +70,16 @@ func GetSolutionAndContainerName(name string) (string, string) {
 	}
 	container := fmt.Sprintf("%s-v-%s", parts[len(parts)-5], parts[len(parts)-3])
 	return container, parts[len(parts)-1]
+=======
+func GetInstanceTargetName(name string) string {
+	parts := strings.Split(name, "/")
+	if len(parts) < 3 {
+		return ""
+	}
+	version := parts[len(parts)-1]
+	solution := parts[len(parts)-3]
+	return fmt.Sprintf("%s:%s", solution, version)
+>>>>>>> de434e2d (allow ARMResourceId in the solution/target field (#662))
 }
 
 func GetInstanceRootResource(name string) string {
