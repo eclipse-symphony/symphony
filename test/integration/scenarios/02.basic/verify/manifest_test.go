@@ -37,38 +37,48 @@ var (
 	}
 )
 
-func TestDryRun(t *testing.T) {
+func TestDryRunAndActiveState(t *testing.T) {
 	namespace := os.Getenv("NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
 	}
 	for _, manifest := range testManifests {
-		_, err := DeployManifests(manifest, namespace, "true")
+		_, err := DeployManifests(manifest, namespace, "true", "active")
 		require.NoError(t, err)
 	}
 	testBasic_InstanceStatus(t, "0")
 	testBasic_TargetStatus(t, "0")
 	testBasic_VerifyPodsExist(t, []string{}, []string{"nginx", "testapp", namespace + "instance"})
 
-	_, err := DeployManifests("../manifest/oss/target.yaml", namespace, "false")
+	_, err := DeployManifests("../manifest/oss/target.yaml", namespace, "false", "active")
 	require.NoError(t, err)
 	testBasic_InstanceStatus(t, "0")
 	testBasic_TargetStatus(t, "1")
 	testBasic_VerifyPodsExist(t, []string{"nginx"}, []string{"testapp", namespace + "instance"})
 
-	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false")
+	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false", "active")
 	require.NoError(t, err)
 	testBasic_InstanceStatus(t, "1")
 	testBasic_TargetStatus(t, "1")
 	testBasic_VerifyPodsExist(t, []string{"nginx", "testapp", namespace + "instance"}, []string{})
 
-	output, err := DeployManifests("../manifest/oss/instance.yaml", namespace, "true")
+	output, err := DeployManifests("../manifest/oss/instance.yaml", namespace, "true", "active")
 	require.Error(t, err)
 	require.Contains(t, string(output), "The instance is already deployed. Cannot change isDryRun from false to true.")
 
-	output, err = DeployManifests("../manifest/oss/target.yaml", namespace, "true")
+	output, err = DeployManifests("../manifest/oss/target.yaml", namespace, "true", "active")
 	require.Error(t, err)
 	require.Contains(t, string(output), "The target is already deployed. Cannot change isDryRun from false to true.")
+
+	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false", "inactive")
+	require.NoError(t, err)
+	testBasic_InstanceStatus(t, "0")
+	testBasic_VerifyPodsExist(t, []string{"nginx"}, []string{"testapp", namespace + "instance"})
+
+	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false", "active")
+	require.NoError(t, err)
+	testBasic_InstanceStatus(t, "1")
+	testBasic_VerifyPodsExist(t, []string{"nginx", "testapp", namespace + "instance"}, []string{})
 
 	err = CleanUpSymphonyObjects(namespace)
 	if err != nil {
@@ -173,7 +183,7 @@ func testBasic_VerifyPodsExist(t *testing.T, toFind []string, NotFound []string)
 		notFound := make(map[string]bool)
 		for _, s := range NotFound {
 			for _, pod := range pods.Items {
-				if strings.Contains(pod.Name, s) {
+				if strings.Contains(pod.Name, s) && pod.DeletionTimestamp == nil {
 					require.Fail(t, "Pod found that should not be created", "Pod: %v", pod.Name)
 				}
 			}
@@ -234,7 +244,7 @@ func getInstanceState(resource unstructured.Unstructured) model.InstanceState {
 	return instance
 }
 
-func DeployManifests(fileName string, namespace string, dryrun string) ([]byte, error) {
+func DeployManifests(fileName string, namespace string, dryrun string, activestate string) ([]byte, error) {
 	if namespace != "default" {
 		// Create non-default namespace if not exist
 		output, err := exec.Command("kubectl", "get", "namespace", namespace).CombinedOutput()
@@ -269,6 +279,7 @@ func DeployManifests(fileName string, namespace string, dryrun string) ([]byte, 
 	stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target")
 	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:v1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
+	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 
 	err = writeYamlStringsToFile(stringYaml, "./test.yaml")
 	if err != nil {
