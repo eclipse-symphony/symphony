@@ -50,6 +50,25 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-solution-symphony-v1-instancehistory
+  failurePolicy: Fail
+  name: minstancehistory.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - instancehistories
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
@@ -279,6 +298,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-solution-symphony-v1-instancehistory
+  failurePolicy: Fail
+  name: vinstancehistory.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - instancehistories
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
@@ -323,7 +363,7 @@ webhooks:
       namespace: system
       path: /validate-workflow-symphony-v1-activation
   failurePolicy: Fail
-  name: mactivation.kb.io
+  name: vactivation.kb.io
   rules:
   - apiGroups:
     - workflow.symphony

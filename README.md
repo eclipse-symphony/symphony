@@ -98,6 +98,55 @@ Symphony is an extensible system with the concept of providers. For each provide
 * [The Symphony Book](./docs/README.md)
 * [Set up a local environment](./test/localenv/README.md)
 
+## Community
+
+### Communication and Discord
+
+All your contributions and suggestions are greatly appreciated! One of the easiest ways to contribute is to participate in Discord discussions, report issues, or join the monthly community calls.
+
+### Questions and issues
+
+Reach out with any questions you may have and we'll make sure to answer them as soon as possible. Community members, please feel free to jump in to join discussions or answer questions!
+
+| Platform  | Link        |
+|:----------|:------------|
+| Discord | Join the [Discord server](https://discord.gg/JvY8qBkWbw)
+
+### Email announcements
+
+Want to stay up to date with Symphony releases, community calls, and other announcements? Join the Google Group to stay up to date on the latest Symphony news.
+
+| Group | Link |
+|:------|:-----|
+| symphonyoss | Join the [symphonyoss Group](https://groups.google.com/g/symphonyoss)
+
+### Community meetings
+
+Every month we host a community call to showcase new features, review upcoming milestones, and engage in a Q&A. For community calls, anyone from the Symphony community can participate or present a topic. All are welcome!
+
+
+You can always catch up offline by watching the recordings below.
+
+| Asset | Link        |
+|:-----------|:------------|
+| Meeting Link | [Teams Link](https://teams.microsoft.com/meet/267721771421?p=hyAHXrqsyVdDA0VAZQ)
+| Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
+
+### Upcoming calls
+
+| Date & time |
+|-------------|
+| Wednesday March 26 <sup>th</sup>, 2025 8:00am Pacific Time (PST) |
+
+### Previous calls
+
+| Date & time | Link |
+|-------------|:-------------|
+| 12/11/2024 | [Recording Link](https://www.youtube.com/watch?v=0WEDia5JD-Y)|
+| 01/15/2025 | [Recording Link](https://youtu.be/8b4wc21eOjM)|
+| 02/26/2025 | [Recording Link](https://youtu.be/VAwGlObx0mQ)|
+
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  

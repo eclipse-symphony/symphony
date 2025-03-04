@@ -202,7 +202,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	id := uuid.New().String()
 	input := id + ".json"
 	input_ref := id + "-ref.json"
-	output := id + "-output.json"
+	output := id + "-get-output.json"
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
 	file, _ := json.MarshalIndent(deployment, "", " ")
@@ -392,6 +392,14 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		}
 		for k, v := range retU {
 			ret[k] = v
+		}
+	}
+
+	for _, v := range ret {
+		switch v.Status {
+		case v1alpha2.DeleteFailed, v1alpha2.ValidateFailed, v1alpha2.UpdateFailed:
+			err := v1alpha2.NewCOAError(errors.New(v.Message), "executing script returned error output", v.Status)
+			return ret, err
 		}
 	}
 	return ret, nil

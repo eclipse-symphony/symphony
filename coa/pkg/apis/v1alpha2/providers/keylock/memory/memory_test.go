@@ -56,12 +56,12 @@ func TestToMemoryKeyLockProviderConfig(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-	mockConfig := MockProviderConfig{
+	config := MemoryKeyLockProviderConfig{
 		CleanInterval: 45,
 		PurgeDuration: 3600,
 	}
-	provider := MemoryKeyLockProvider{}
-	err := provider.Init(mockConfig)
+	provider := MemoryKeyLock{}
+	err := provider.Init(config)
 	if err != nil {
 		t.Fatalf("Initialization failed: %v", err)
 	}
@@ -78,9 +78,9 @@ func TestInit(t *testing.T) {
 }
 
 func TestInitDefaultValues(t *testing.T) {
-	mockConfig := MockProviderConfig{}
-	provider := MemoryKeyLockProvider{}
-	err := provider.Init(mockConfig)
+	config := MemoryKeyLockProviderConfig{}
+	provider := MemoryKeyLock{}
+	err := provider.Init(config)
 	if err != nil {
 		t.Fatalf("Initialization failed: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestInitDefaultValues(t *testing.T) {
 }
 
 func TestLockAndUnlock(t *testing.T) {
-	provider := MemoryKeyLockProvider{}
+	provider := MemoryKeyLock{}
 	provider.lm = NewLockMap()
 
 	provider.Lock("testKey")
@@ -159,7 +159,7 @@ func TestLockManagerClean(t *testing.T) {
 }
 
 func TestConcurrentLockUnlock(t *testing.T) {
-	provider := MemoryKeyLockProvider{}
+	provider := MemoryKeyLock{}
 	provider.lm = NewLockMap()
 
 	var wg sync.WaitGroup
@@ -190,7 +190,7 @@ func TestConcurrentLockUnlock(t *testing.T) {
 }
 
 func TestConcurrentAccessDifferentKeys(t *testing.T) {
-	provider := MemoryKeyLockProvider{}
+	provider := MemoryKeyLock{}
 	provider.lm = NewLockMap()
 
 	var wg sync.WaitGroup

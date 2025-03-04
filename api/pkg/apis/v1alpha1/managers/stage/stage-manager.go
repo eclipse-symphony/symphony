@@ -506,6 +506,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		if triggerData.Schedule != "" {
 			inputs["__schedule"] = triggerData.Schedule
 		}
+		inputs["__target"] = currentStage.Target
 
 		for k, v := range inputs {
 			var val interface{}
@@ -631,6 +632,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 		waitGroup.Wait()
 		close(results)
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var afterProvider string
 
 		outputs := make(map[string]interface{})
 		delayedExit := false

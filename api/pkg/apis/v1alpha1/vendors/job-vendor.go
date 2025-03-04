@@ -72,7 +72,7 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 			}
 			err := e.JobsManager.HandleJobEvent(ctx, event)
 			if err != nil && v1alpha2.IsDelayed(err) {
-				go e.Vendor.Context.Publish(topic, event)
+				return err
 			}
 			// job reconciler already has a retry mechanism, return nil to avoid retrying
 			return nil

@@ -315,16 +315,24 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 		for _, res := range results {
 			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == component.Component.Name {
 				repo := ""
-				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM:") { //we use this special metadata tag to remember the chart URL
-					repo = res.Chart.Metadata.Tags[4:]
+				name := ""
+				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM-REPO:") { //we use this special metadata tag to remember the chart URL
+					parts := strings.Split(res.Chart.Metadata.Tags, ";")
+					if len(parts) != 2 {
+						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to parse chart metadata tags: %+v", res.Chart.Metadata.Tags)
+						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to parse chart metadata tags", providerName), v1alpha2.HelmActionFailed)
+						return nil, err
+					}
+					repo = parts[0][9:]
+					name = parts[1][9:]
 				}
-
 				ret = append(ret, model.ComponentSpec{
 					Name: res.Name,
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
 						"chart": map[string]string{
 							"repo":    repo,
+							"name":    name,
 							"version": res.Chart.Metadata.Version,
 						},
 						"values": res.Config,
@@ -523,7 +531,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return ret, err
 			}
 
-			chart.Metadata.Tags = "SYM:" + helmProp.Chart.Repo //this is not used by Helm SDK, we use this to carry repo info
+			chart.Metadata.Tags = "SYM-REPO:" + helmProp.Chart.Repo + ";SYM-NAME:" + helmProp.Chart.Name //this is not used by Helm SDK, we use this to carry repo info
 
 			postRender := &PostRenderer{
 				instance:  deployment.Instance,
@@ -776,11 +784,12 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil
 }
+
 func checkReleaseExists(ctx context.Context, config *action.Configuration, releaseName string) (bool, error) {
 	sLog.InfofCtx(ctx, "  P (Helm Target): begin to check release exists %s", releaseName)
 
 	if releaseName == "" {
-		return false, fmt.Errorf("Release name is required")
+		return false, v1alpha2.NewCOAError(nil, "Release name is required", v1alpha2.BadConfig)
 	}
 
 	client := action.NewHistory(config)
@@ -790,7 +799,7 @@ func checkReleaseExists(ctx context.Context, config *action.Configuration, relea
 		if errors.Is(err, driver.ErrReleaseNotFound) {
 			return false, nil
 		}
-		return false, err
+		return false, v1alpha2.NewCOAError(err, fmt.Sprintf("check release %s failed", releaseName), v1alpha2.HelmActionFailed)
 	}
 
 	if len(releases) > 0 {
@@ -842,11 +851,13 @@ func convertTimeout(ctx context.Context, timeout string) (time.Duration, error) 
 	duration, err := time.ParseDuration(timeout)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to parse timeout duration: %v", err)
+		err = v1alpha2.NewCOAError(err, "failed to parse timeout duration", v1alpha2.GetComponentPropsFailed)
 		return 0, err
 	}
 	if duration < 0 {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): Timeout is negative: %s", timeout)
-		return 0, errors.New("timeout can not be negative")
+		err = v1alpha2.NewCOAError(err, "target provider timeout can not be negative", v1alpha2.GetComponentPropsFailed)
+		return 0, err
 	}
 	return duration, nil
 }

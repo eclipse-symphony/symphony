@@ -86,7 +86,7 @@ var _ = Describe("Reconcile Policies", func() {
 				By("mocking the summary response with a successful deployment")
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 				jobID = uuid.New().String()
-				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
 			})
 
 			It("should make the expected api calls", func() {
@@ -117,7 +117,7 @@ var _ = Describe("Reconcile Policies", func() {
 			BeforeEach(func() {
 				By("mocking the summary response with a successful deployment")
 				apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
+				apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 			})
 
 			It("should fall back to default reconciliation interval", func() {
@@ -142,7 +142,7 @@ var _ = Describe("Reconcile Policies", func() {
 		BeforeEach(func() {
 			By("mocking the summary response with a successful deployment")
 			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 		})
 
 		It("should make the expected api calls", func() {
@@ -191,7 +191,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment is not queued to the api due to terminal error", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a terminal error")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
@@ -215,7 +215,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment job queued successfully", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a successful deployment")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -238,7 +238,7 @@ var _ = Describe("Reconcile Policies", func() {
 					By("mocking the summary response with a successful deployment")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					jobID = uuid.New().String()
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
 				})
 
 				It("should make the expected api calls", func() {
@@ -265,7 +265,7 @@ var _ = Describe("Reconcile Policies", func() {
 					summary.Summary.AllAssignedDeployed = false
 					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should make the expected api calls", func() {
@@ -296,7 +296,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment is not queued to the api due to non-terminal error", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a non-terminal error")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
@@ -318,7 +318,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a terminal error")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
@@ -341,7 +341,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment job queued successfully", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a successful deployment")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -368,7 +368,7 @@ var _ = Describe("Reconcile Policies", func() {
 					By("mocking the summary response with a successful deployment")
 					jobID = uuid.New().String()
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
 				})
 
 				It("should make the expected api calls", func() {
@@ -394,7 +394,7 @@ var _ = Describe("Reconcile Policies", func() {
 					jobID = uuid.New().String()
 					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should make the expected api calls", func() {
@@ -423,7 +423,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment is not queued to the api due to non-terminal error", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a non-terminal error")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error"))
@@ -445,7 +445,7 @@ var _ = Describe("Reconcile Policies", func() {
 
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a terminal error")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(TerminalError)
@@ -468,7 +468,7 @@ var _ = Describe("Reconcile Policies", func() {
 			Context("deployment job queued successfully", func() {
 				BeforeEach(func() {
 					By("mocking the summary response with not found error")
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, NotFoundError)
 
 					By("mocking the queue deployment response with a successful deployment")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -495,7 +495,7 @@ var _ = Describe("Reconcile Policies", func() {
 					By("mocking the summary response with a successful deployment")
 					jobID = uuid.New().String()
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(object, "test-hash", jobID), nil)
 				})
 
 				It("should make the expected api calls", func() {
@@ -521,7 +521,7 @@ var _ = Describe("Reconcile Policies", func() {
 					jobID = uuid.New().String()
 					summary.Summary.JobID = jobID
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
+					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
 				})
 
 				It("should make the expected api calls", func() {
@@ -544,7 +544,7 @@ var _ = Describe("Reconcile Policies", func() {
 		BeforeEach(func(ctx context.Context) {
 			By("mocking a summary response with in progress deployment")
 			apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
+			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 		})
 
 		JustBeforeEach(func(ctx context.Context) {

@@ -7,10 +7,12 @@
 package verify
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,6 +45,7 @@ var (
 	testCircularParentUpdate    = "test/integration/scenarios/08.webhook/manifest/parent-update.yaml"
 	testCircularChildContainer  = "test/integration/scenarios/08.webhook/manifest/child-container.yaml"
 	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child-config.yaml"
+	testNoParentChild           = "test/integration/scenarios/08.webhook/manifest/child-noparent.yaml"
 
 	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
 	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
@@ -50,7 +53,20 @@ var (
 	diagnostic_04_WithCorrectEdgeLocation2              = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
 	diagnostic_05_UpdateEdgeLocationConflict            = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
 	diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2 = "test/integration/scenarios/08.webhook/manifest/diagnostic_06.UpdateOtherAnnotationsOnEdgeLocation2.yaml"
+
+	historyCreate         = "test/integration/scenarios/08.webhook/manifest/history.yaml"
+	historyUpdate         = "test/integration/scenarios/08.webhook/manifest/history-update.yaml"
+	historyTarget         = "test/integration/scenarios/08.webhook/manifest/history-target.yaml"
+	historySolution       = "test/integration/scenarios/08.webhook/manifest/history-solution.yaml"
+	historyInstance       = "test/integration/scenarios/08.webhook/manifest/history-instance.yaml"
+	historySolutionUpdate = "test/integration/scenarios/08.webhook/manifest/history-solution-update.yaml"
+	historyInstanceUpdate = "test/integration/scenarios/08.webhook/manifest/history-instance-update.yaml"
 )
+
+// Define a struct to parse the JSON output
+type HistoryList struct {
+	Items []map[string]interface{} `json:"items"`
+}
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution)).CombinedOutput()
@@ -286,6 +302,22 @@ func TestUpdateCatalogWithCircularParentDependency(t *testing.T) {
 	assert.NotNil(t, err, "catalog upsert with circular parent dependency should fail")
 }
 
+func TestUpdateCatalogRemoveParentLabel(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testNoParentChild))).Run()
+	assert.Nil(t, err)
+
+	// Should be able to delete parent catalog, because child catalog has updated without parent catalog
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony parent-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony parent").Run()
+	assert.Nil(t, err)
+
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony child-v-v1").Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony child").Run()
+	assert.Nil(t, err)
+}
+
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_01_WithoutEdgeLocation)).CombinedOutput()
 	assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
@@ -317,6 +349,63 @@ func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2)).CombinedOutput()
 	assert.Contains(t, string(output), "configured")
 	assert.Nil(t, err)
+}
+
+func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyTarget))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolution))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstance))).Run()
+	assert.Nil(t, err)
+
+	// wait until instance deployed
+	for {
+		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", "history-instance", "-o", "jsonpath={.status.properties.status}").CombinedOutput()
+		if err != nil {
+			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+		}
+		status := string(output)
+		if status == "Succeeded" {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolutionUpdate))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstanceUpdate))).Run()
+	assert.Nil(t, err)
+
+	// check instance history result
+	output, err := exec.Command("kubectl", "get", "instancehistory", "-o", "json").CombinedOutput()
+	if err != nil {
+		assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+	}
+
+	var historyList HistoryList
+	err = json.Unmarshal(output, &historyList)
+	if err != nil {
+		assert.Fail(t, "failed to parse instance history", err.Error())
+	}
+
+	assert.Equal(t, 1, len(historyList.Items))
+	history := historyList.Items[0]
+	metadata := history["metadata"].(map[string]interface{})
+	spec := history["spec"].(map[string]interface{})
+	status := history["status"].(map[string]interface{})
+	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
+	assert.Equal(t, "history-instance", spec["rootResource"].(string))
+	assert.Equal(t, "history-solution:v1", spec["solutionId"].(string))
+	assert.Equal(t, "Succeeded", status["properties"].(map[string]interface{})["status"])
+}
+
+func TestUpdateInstanceHistory(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyCreate))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), historyUpdate)).CombinedOutput()
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(string(output), "Cannot update instance history because it is readonly"))
 }
 
 func getRepoPath() string {

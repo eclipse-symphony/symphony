@@ -36,6 +36,10 @@ const (
 	ConfigMapOperation                string = "ConfigMap"
 	IngressOperation                  string = "Ingress"
 	IngressPropertiesOperation        string = "IngressProperties"
+	ARMResourceGroupOperation         string = "ARMResourceGroup"
+	ARMDeploymentPropertyOperation    string = "ARMDeploymentProperty"
+	ARMCreateDeploymentOperation      string = "ARMCreateDeployment"
+	ARMCleanUpDeploymentOperation     string = "ARMCleanUpDeploymentOperation"
 
 	ProcessOperation string = "Process"
 	ApplyOperation   string = "Apply"
@@ -83,6 +87,7 @@ func (m *Metrics) Close() {
 		return
 	}
 
+	m.providerOperationLatency.Close()
 	m.providerOperationErrors.Close()
 }
 

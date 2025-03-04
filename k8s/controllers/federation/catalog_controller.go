@@ -9,6 +9,7 @@ package federation
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -16,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	federationv1 "gopls-workspace/apis/federation/v1"
+	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 	"gopls-workspace/utils/diagnostic"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -47,6 +50,14 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	diagnostic.InfoWithCtx(ctrlLog, ctx, "Reconciling Catalog", "Name", req.Name, "Namespace", req.Namespace)
 	catalog := &federationv1.Catalog{}
+	resourceK8SId := catalog.GetNamespace() + "/" + catalog.GetName()
+	operationName := constants.CatalogOperationNamePrefix
+	if catalog.ObjectMeta.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(catalog.GetNamespace(), resourceK8SId, catalog.GetAnnotations(), operationName, r, ctx, ctrlLog)
 	if err := r.Client.Get(ctx, req.NamespacedName, catalog); err != nil {
 		diagnostic.ErrorWithCtx(ctrlLog, ctx, err, "unable to fetch Catalog")
 		return ctrl.Result{}, client.IgnoreNotFound(err)

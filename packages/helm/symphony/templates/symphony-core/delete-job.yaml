@@ -18,7 +18,10 @@ spec:
         - /bin/bash
         - -c
         - |-     
-          {{- .Files.Get "files/oss/delete-objects.sh" | nindent 12 }}         
+          {{- .Files.Get "files/oss/delete-objects.sh" | nindent 12 }}   
+        envFrom:
+        - configMapRef:
+            name: {{ include "symphony.envConfigName" . }}      
       restartPolicy: Never
       serviceAccountName: {{ include "symphony.fullname" . }}-hook-sa
   backoffLimit: 1

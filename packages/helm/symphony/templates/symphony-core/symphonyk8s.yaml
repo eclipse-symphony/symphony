@@ -700,6 +700,450 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
+  name: instancehistories.solution.symphony
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: '{{ include "symphony.fullname" . }}-webhook-service'
+          namespace: '{{ .Release.Namespace }}'
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: solution.symphony
+  names:
+    kind: InstanceHistory
+    listKind: InstanceHistoryList
+    plural: instancehistories
+    singular: instancehistory
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: InstanceHistory is the Schema for the instancehistories API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              displayName:
+                description: Snapshot of the instance
+                type: string
+              isDryRun:
+                type: boolean
+              metadata:
+                additionalProperties:
+                  type: string
+                type: object
+              parameters:
+                additionalProperties:
+                  type: string
+                type: object
+              pipelines:
+                items:
+                  description: PipelineSpec defines the desired pipeline of the instance
+                  properties:
+                    name:
+                      type: string
+                    parameters:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    skill:
+                      type: string
+                  required:
+                  - name
+                  - skill
+                  type: object
+                type: array
+              reconciliationPolicy:
+                properties:
+                  interval:
+                    minLength: 1
+                    type: string
+                  state:
+                    enum:
+                    - active
+                    - inactive
+                    type: string
+                required:
+                - state
+                type: object
+              rootResource:
+                description: Add rootresoure to the instance history spec
+                type: string
+              scope:
+                type: string
+              solution:
+                properties:
+                  components:
+                    items:
+                      description: Defines a desired runtime component
+                      properties:
+                        constraints:
+                          type: string
+                        dependencies:
+                          items:
+                            type: string
+                          type: array
+                        metadata:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        properties:
+                          x-kubernetes-preserve-unknown-fields: true
+                        routes:
+                          items:
+                            properties:
+                              filters:
+                                items:
+                                  properties:
+                                    direction:
+                                      type: string
+                                    parameters:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    type:
+                                      type: string
+                                  required:
+                                  - direction
+                                  - type
+                                  type: object
+                                type: array
+                              properties:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              route:
+                                type: string
+                              type:
+                                type: string
+                            required:
+                            - route
+                            - type
+                            type: object
+                          type: array
+                        sidecars:
+                          items:
+                            properties:
+                              name:
+                                type: string
+                              properties:
+                                x-kubernetes-preserve-unknown-fields: true
+                              type:
+                                type: string
+                            type: object
+                          type: array
+                        skills:
+                          items:
+                            type: string
+                          type: array
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  displayName:
+                    type: string
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  rootResource:
+                    type: string
+                  version:
+                    type: string
+                type: object
+              solutionId:
+                type: string
+              target:
+                description: Defines the desired state of Target
+                properties:
+                  components:
+                    items:
+                      description: Defines a desired runtime component
+                      properties:
+                        constraints:
+                          type: string
+                        dependencies:
+                          items:
+                            type: string
+                          type: array
+                        metadata:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                        properties:
+                          x-kubernetes-preserve-unknown-fields: true
+                        routes:
+                          items:
+                            properties:
+                              filters:
+                                items:
+                                  properties:
+                                    direction:
+                                      type: string
+                                    parameters:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    type:
+                                      type: string
+                                  required:
+                                  - direction
+                                  - type
+                                  type: object
+                                type: array
+                              properties:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              route:
+                                type: string
+                              type:
+                                type: string
+                            required:
+                            - route
+                            - type
+                            type: object
+                          type: array
+                        sidecars:
+                          items:
+                            properties:
+                              name:
+                                type: string
+                              properties:
+                                x-kubernetes-preserve-unknown-fields: true
+                              type:
+                                type: string
+                            type: object
+                          type: array
+                        skills:
+                          items:
+                            type: string
+                          type: array
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  constraints:
+                    type: string
+                  displayName:
+                    type: string
+                  forceRedeploy:
+                    type: boolean
+                  isDryRun:
+                    type: boolean
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  properties:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  reconciliationPolicy:
+                    description: |-
+                      Optional ReconcilicationPolicy to specify how target controller should reconcile.
+                      Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+                      when the instance is created or updated.
+                    properties:
+                      interval:
+                        minLength: 1
+                        type: string
+                      state:
+                        enum:
+                        - active
+                        - inactive
+                        type: string
+                    required:
+                    - state
+                    type: object
+                  scope:
+                    type: string
+                  solutionScope:
+                    type: string
+                  topologies:
+                    items:
+                      description: TopologySpec defines the desired device topology
+                        the instance
+                      properties:
+                        bindings:
+                          items:
+                            properties:
+                              config:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              provider:
+                                type: string
+                              role:
+                                type: string
+                            required:
+                            - provider
+                            - role
+                            type: object
+                          type: array
+                        device:
+                          type: string
+                        selector:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      type: object
+                    type: array
+                type: object
+              targetId:
+                type: string
+              targetSelector:
+                additionalProperties:
+                  type: string
+                type: object
+              topologies:
+                items:
+                  description: TopologySpec defines the desired device topology the
+                    instance
+                  properties:
+                    bindings:
+                      items:
+                        properties:
+                          config:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          provider:
+                            type: string
+                          role:
+                            type: string
+                        required:
+                        - provider
+                        - role
+                        type: object
+                      type: array
+                    device:
+                      type: string
+                    selector:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+                type: array
+            required:
+            - solution
+            - solutionId
+            type: object
+          status:
+            properties:
+              lastModified:
+                format: date-time
+                type: string
+              properties:
+                additionalProperties:
+                  type: string
+                type: object
+              provisioningStatus:
+                description: Defines the state of the ARM resource for long running
+                  operations
+                properties:
+                  error:
+                    description: Defines an error in the ARM resource for long running
+                      operations
+                    properties:
+                      code:
+                        type: string
+                      details:
+                        items:
+                          description: Defines an error for symphony target
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              items:
+                                description: Defines an error for components defined
+                                  in symphony
+                                properties:
+                                  code:
+                                    type: string
+                                  message:
+                                    type: string
+                                  target:
+                                    type: string
+                                type: object
+                              type: array
+                            message:
+                              type: string
+                            target:
+                              type: string
+                          type: object
+                        type: array
+                      message:
+                        type: string
+                      target:
+                        type: string
+                    type: object
+                  failureCause:
+                    type: string
+                  logErrors:
+                    type: boolean
+                  operationId:
+                    type: string
+                  output:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
+                  status:
+                    type: string
+                required:
+                - operationId
+                - status
+                type: object
+            required:
+            - provisioningStatus
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
+      . }}-serving-cert'
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: instances.solution.symphony
 spec:
   conversion:
@@ -1791,6 +2235,8 @@ spec:
                 type: object
               scope:
                 type: string
+              solutionScope:
+                type: string
               topologies:
                 items:
                   description: TopologySpec defines the desired device topology the
@@ -2168,6 +2614,32 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instancehistories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instancehistories/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - instancehistories/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - solution.symphony
   resources:
@@ -2653,6 +3125,25 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /mutate-solution-symphony-v1-instancehistory
+  failurePolicy: Fail
+  name: minstancehistory.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - instancehistories
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
@@ -2885,6 +3376,27 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /validate-solution-symphony-v1-instancehistory
+  failurePolicy: Fail
+  name: vinstancehistory.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - instancehistories
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /validate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
@@ -2929,7 +3441,7 @@ webhooks:
       namespace: '{{ .Release.Namespace }}'
       path: /validate-workflow-symphony-v1-activation
   failurePolicy: Fail
-  name: mactivation.kb.io
+  name: vactivation.kb.io
   rules:
   - apiGroups:
     - workflow.symphony

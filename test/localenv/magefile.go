@@ -395,6 +395,11 @@ func Destroy(flags string) error {
 		if err := waitForServiceCleanup(); err != nil {
 			return err
 		}
+	} else {
+		// Wait for all pods to go away
+		if err := waitForSymphonyPodsCleanup(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -408,6 +413,12 @@ func (Build) All() error {
 	if err != nil {
 		return err
 	}
+
+	err = buildRustBinding()
+	if err != nil {
+		return err
+	}
+
 	err = buildAPI()
 	if err != nil {
 		return err
@@ -451,6 +462,13 @@ func saveDockerImageToTarFile(tarFilePath string, imageTag string) error {
 	return shellcmd.Command(fmt.Sprintf("docker image save -o %s %s", tarFilePath, imageTag)).Run()
 }
 
+func (Build) RustBinding() error {
+	return buildRustBinding()
+}
+func buildRustBinding() error {
+	return shellcmd.Command("cargo build --release --manifest-path ../../api/pkg/apis/v1alpha1/providers/target/rust/Cargo.toml").Run()
+}
+
 // Build api container
 func (Build) Api() error {
 	return buildAPI()
@@ -458,6 +476,15 @@ func (Build) Api() error {
 func buildAPI() error {
 	imageName := "ghcr.io/eclipse-symphony/symphony-api"
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
+}
+
+func (Build) ApiFault() error {
+	return buildAPIFault()
+}
+
+func buildAPIFault() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-api"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s --build-arg FAULT_INJECTION_ENABLED=true \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 func buildAgent() error {
@@ -476,6 +503,15 @@ func (Build) K8s() error {
 func buildK8s() error {
 	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
+}
+
+func (Build) K8sFault() error {
+	return buildK8sFault()
+}
+func buildK8sFault() error {
+	// Pass fault arguments if required
+	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s  --build-arg FAULT_INJECTION_ENABLED=true \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 /******************** Minikube ********************/
@@ -754,6 +790,61 @@ func dumpShellOutput(cmd string) error {
 	}
 
 	return nil
+}
+
+// Wait for symphony pods to be cleaned up
+func waitForSymphonyPodsCleanup() error {
+	var startTime = time.Now()
+	c := &Cluster{}
+
+	fmt.Println("Waiting for all pods to go away...")
+
+	loopCount := 0
+
+	for {
+		loopCount++
+		if loopCount == 600 {
+			return fmt.Errorf("Failed to clean up all the resources!")
+		}
+
+		o, err := shellcmd.Command.Output(`kubectl get pods -A --output=jsonpath='{range .items[*]}{@.metadata.namespace}{"|"}{@.metadata.name}{"\n"}{end}'`)
+		if err != nil {
+			return err
+		}
+
+		pods := strings.Split(strings.TrimSpace(string(o)), "\n")
+		notReady := make([]string, 0)
+
+		for _, pod := range pods {
+			parts := strings.Split(pod, "|")
+			pod = parts[1]
+			namespace := parts[0]
+			if namespace != "kube-system" && namespace != "cert-manager" {
+				if strings.Contains(pod, "symphony") {
+					notReady = append(notReady, pod)
+				}
+			}
+		}
+
+		if len(notReady) > 0 {
+			// Show pods that aren't ready
+			if loopCount%30 == 0 {
+				fmt.Printf("waiting for pod removal. Try: %d Not ready: %s\n", loopCount, strings.Join(notReady, ", "))
+			}
+
+			// Show complete status every 5 minutes to help debug
+			if loopCount%300 == 0 {
+				c.Status()
+			}
+
+			time.Sleep(time.Second)
+		} else {
+			fmt.Println("All pods are cleaned up: ", time.Since(startTime).String())
+			return nil
+		}
+
+		time.Sleep(time.Second)
+	}
 }
 
 // Wait for cleanup to finish
