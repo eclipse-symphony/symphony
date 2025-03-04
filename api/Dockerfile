@@ -14,6 +14,7 @@ ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 ARG FAULT_INJECTION_ENABLED=false
+ARG BUILDFLAG=""
 
 ENV CGO_ENABLED=1
 ENV GO_VERSION=1.22.4
@@ -84,12 +85,12 @@ fi
 RUN if [ "$TARGETARCH" = "arm" ]; then \
     CC=arm-linux-gnueabihf-gcc \
     RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc" \
-    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api; \
+    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -tags "$BUILDFLAG" -o /dist/symphony-api; \
 elif [ "$TARGETARCH" = "arm64" ]; then \
     CC=aarch64-linux-gnu-gcc \
-    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api; \
+    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -tags "$BUILDFLAG" -o /dist/symphony-api; \
 else \
-    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -o /dist/symphony-api; \
+    CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} GODEBUG=netdns=cgo go build -tags "$BUILDFLAG" -o /dist/symphony-api; \
 fi
 
 FROM ${TARGET_BASE_IMAGE}
