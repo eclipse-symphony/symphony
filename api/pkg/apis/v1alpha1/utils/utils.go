@@ -36,8 +36,9 @@ const (
 
 // Define the struct
 type ObjectInfo struct {
-	Name      string
-	SummaryId string
+	Name         string
+	SummaryId    string
+	SummaryJobId string
 }
 
 func IsNotFound(err error) bool {
@@ -522,10 +523,12 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			key = GetTargetRuntimeKey(object.SummaryId)
 			nameKey = GetTargetRuntimeKey(object.Name)
 		}
+		jobId := object.SummaryJobId
 		var summary *model.SummaryResult
 		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
-		if err == nil && summary.State == model.SummaryStateDone {
-			log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
+		log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
+		// TODO: summary.Summary.JobID may be empty in standalone
+		if err == nil && summary.State == model.SummaryStateDone && summary.Summary.JobID == jobId {
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
 				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})

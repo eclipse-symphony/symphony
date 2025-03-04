@@ -181,3 +181,7 @@ func (c *ObjectMeta) SetGuid(guid string) {
 	}
 	c.Annotations[constants.GuidKey] = guid
 }
+
+func (c *ObjectMeta) GetSummaryJobId() string {
+	return c.Annotations[constants.SummaryJobIdKey]
+}

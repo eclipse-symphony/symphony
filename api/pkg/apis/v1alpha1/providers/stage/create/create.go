@@ -28,6 +28,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	"github.com/google/uuid"
 )
 
 const (
@@ -420,6 +421,10 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			if annotation_name != "" {
 				instanceState.ObjectMeta.UpdateAnnotation(annotation_name, objectName)
 			}
+			// TODO: azure build flag
+			// TODO: also update in materialize stage provider
+			instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = uuid.New().String()
+			mLog.InfoCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", objectName, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			instanceState.ObjectMeta.Namespace = objectNamespace
 			instanceState.ObjectMeta.Name = objectName
 
@@ -464,6 +469,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, err
 			}
 			summaryId := ret.ObjectMeta.GetSummaryId()
+			jobId := ret.ObjectMeta.GetSummaryJobId()
 			if summaryId == "" {
 				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", objectName)
 				providerOperationMetrics.ProviderOperationErrors(
@@ -478,8 +484,9 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
-					Name:      objectName,
-					SummaryId: summaryId,
+					Name:         objectName,
+					SummaryId:    summaryId,
+					SummaryJobId: jobId,
 				}
 				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {

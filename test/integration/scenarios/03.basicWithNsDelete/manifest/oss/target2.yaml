@@ -2,7 +2,7 @@ apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
   name: site-k8s-target
-  namespace: jessewftestc
+  namespace: jessewftesti
 spec:  
   topologies:
   - bindings:

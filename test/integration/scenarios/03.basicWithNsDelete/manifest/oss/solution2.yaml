@@ -2,14 +2,14 @@ apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
   name: site-app  
-  namespace: jessewftestc
+  namespace: jessewftesti
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
   name: site-app-v-v1
-  namespace: jessewftestc
+  namespace: jessewftesti
 spec:
   rootResource: site-app
   components:
@@ -34,3 +34,27 @@ spec:
           nodeSelector:
             kubernetes.io/os: linux  
     type: helm.v3
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: site-app-v-v2
+  namespace: jessewftesti
+spec:
+  rootResource: site-app
+  metadata:
+    deployment.replicas: "#1"
+    service.ports: "[{\"name\":\"port6379\",\"port\": 6379}]"
+    service.type: "ClusterIP"
+  components:
+  - name: redis-server
+    type: container
+    properties:
+      container.ports: "[{\"containerPort\":6379,\"protocol\":\"TCP\"}]"
+      container.imagePullPolicy: "Always"
+      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
+      container.image: "docker.io/redis:6.0.5"
+    dependencies:
+    - deployment-gate
+  - name: deployment-gate
+    type: http
