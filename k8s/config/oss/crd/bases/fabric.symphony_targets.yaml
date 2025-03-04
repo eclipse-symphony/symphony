@@ -43,8 +43,6 @@ spec:
           spec:
             description: Defines the desired state of Target
             properties:
-              solutionScope:
-                type: string
               components:
                 items:
                   description: Defines a desired runtime component
@@ -151,6 +149,8 @@ spec:
                 - state
                 type: object
               scope:
+                type: string
+              solutionScope:
                 type: string
               topologies:
                 items:
