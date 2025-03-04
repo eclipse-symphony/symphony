@@ -391,7 +391,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			provider = override
 		}
 		var stepError error
-		var componentResults map[string]model.ComponentResultSpec
+		var componentResults = make(map[string]model.ComponentResultSpec)
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
 			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
