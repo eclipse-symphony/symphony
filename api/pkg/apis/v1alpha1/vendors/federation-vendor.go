@@ -25,6 +25,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -126,7 +127,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			fLog.DebugfCtx(ctx, "V (Federation): received report event: %v", event)
 			jData, _ := json.Marshal(event.Body)
 			var status model.StageStatus
-			err := json.Unmarshal(jData, &status)
+			err := utils2.UnmarshalJson(jData, &status)
 			if err == nil {
 				ctx := context.TODO()
 				if event.Context != nil {
@@ -152,7 +153,7 @@ func (f *FederationVendor) Init(config vendors.VendorConfig, factories []manager
 			if f.TrailsManager != nil {
 				jData, _ := json.Marshal(event.Body)
 				var trails []v1alpha2.Trail
-				err := json.Unmarshal(jData, &trails)
+				err := utils2.UnmarshalJson(jData, &trails)
 				if err == nil {
 					return f.TrailsManager.Append(ctx, trails)
 				}
@@ -232,7 +233,7 @@ func (c *FederationVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARes
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var state model.SiteState
-		json.Unmarshal(request.Body, &state)
+		utils2.UnmarshalJson(request.Body, &state)
 
 		err := c.SitesManager.ReportState(pCtx, state)
 
@@ -304,7 +305,7 @@ func (f *FederationVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAR
 		id := request.Parameters["__name"]
 
 		var site model.SiteState
-		err := json.Unmarshal(request.Body, &site)
+		err := utils2.UnmarshalJson(request.Body, &site)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
@@ -354,7 +355,7 @@ func (f *FederationVendor) onSync(request v1alpha2.COARequest) v1alpha2.COARespo
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var status model.StageStatus
-		err := json.Unmarshal(request.Body, &status)
+		err := utils2.UnmarshalJson(request.Body, &status)
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Federation): failed to unmarshal stage status: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -469,7 +470,7 @@ func (f *FederationVendor) onK8sHook(request v1alpha2.COARequest) v1alpha2.COARe
 		objectType := request.Parameters["objectType"]
 		if objectType == "catalog" {
 			var catalog model.CatalogState
-			err := json.Unmarshal(request.Body, &catalog)
+			err := utils2.UnmarshalJson(request.Body, &catalog)
 			if err != nil {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.BadRequest,

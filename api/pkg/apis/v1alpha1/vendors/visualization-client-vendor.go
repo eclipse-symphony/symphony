@@ -11,6 +11,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -76,7 +77,7 @@ func (c *VisualizationClientVendor) onVisClient(request v1alpha2.COARequest) v1a
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onVisClient-POST", pCtx, nil)
 		var packet model.Packet
-		err := json.Unmarshal(request.Body, &packet)
+		err := utils2.UnmarshalJson(request.Body, &packet)
 		if err != nil {
 			cvLog.ErrorfCtx(pCtx, "V (VisualizationClient): onVisClient failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
