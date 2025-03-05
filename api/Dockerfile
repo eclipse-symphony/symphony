@@ -47,11 +47,9 @@ RUN if [ "$BUILDFLAG" != "azure" ]; then \
     && rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu; \
     fi
 # Set up Rust environment
-RUN if [ "$BUILDFLAG" != "azure" ]; then \
-    echo 'export CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc' >> ~/.bashrc \
-    && echo 'export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc' >> ~/.bashrc \
-    && echo 'export PATH=/root/.cargo/bin:$PATH' >> ~/.bashrc; \
-    fi
+ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+ENV PATH=/root/.cargo/bin:$PATH
 
 # Build the Rust component
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
