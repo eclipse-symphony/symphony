@@ -442,6 +442,9 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			// TODO: also update in materialize stage provider
 			operationIdKey := api_utils.GenerateOperationId()
 			if operationIdKey != "" {
+				if instanceState.ObjectMeta.Annotations == nil {
+					instanceState.ObjectMeta.Annotations = make(map[string]string)
+				}
 				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
 				mLog.InfofCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", instanceName, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}

@@ -1,8 +1,6 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  labels:
-    rootResource: wfi-v-cwi
   name: wfi-v-cwi-v-version2
   namespace: jessewftesti
 spec:
