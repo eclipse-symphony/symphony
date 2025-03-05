@@ -7,8 +7,6 @@
 package vendors
 
 import (
-	"encoding/json"
-
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogcontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -19,6 +17,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -121,7 +120,7 @@ func (c *CatalogContainersVendor) onCatalogContainers(request v1alpha2.COAReques
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCatalogContainers-POST", pCtx, nil)
 		var catalogContainer model.CatalogContainerState
-		err := json.Unmarshal(request.Body, &catalogContainer)
+		err := utils2.UnmarshalJson(request.Body, &catalogContainer)
 		if err != nil {
 			ctLog.ErrorfCtx(ctx, "V (CatalogContainers): onCatalogContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
