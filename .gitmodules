@@ -1,7 +1,3 @@
-[submodule "landing/public"]
-	path = landing/public
-	url = https://github.com/eclipse-symphony/symphony-website.git
-	branch = main
 [submodule "docs-site/public"]
 	path = docs-site/public
 	url = https://github.com/eclipse-symphony/docs.git
