@@ -1,0 +1,28 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/apiVersion":"2025-01-01-preview","management.azure.com/bridgeLocation":"EastUS2","management.azure.com/cloudEnvironment":"AzureCloud","management.azure.com/correlationId":"749f9175-33e8-4a29-a20d-0139cf9f739f","management.azure.com/customLocation":"/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Microsoft.ExtendedLocation/customLocations/jessewftesti","management.azure.com/location":"eastus","management.azure.com/operationId":"2ef3dfd9-5d09-43bd-9fd3-fdf07fef17f8*0CE58D7E08F505FD19B6FA0D824A0C208CE4281B65363F7A2FE51BD4428B318E","management.azure.com/parentResourceId":"/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfi/workflows/cwi/versions/version2","management.azure.com/resourceId":"/subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfi/workflows/cwi/versions/version2/executions/cwi2","management.azure.com/systemData":"{\"createdBy\":\"29dabdb7-dac7-46c8-a985-d57bd2dd0a0c\",\"createdByType\":\"User\",\"createdAt\":\"2025-03-05T02:31:12.8063993Z\",\"resourceUID\":\"f0a3a25d-be12-4ae7-9a78-3e193b10e0b8\",\"clientLocation\":\"eastus2euap\"}","management.azure.com/tenantId":"72f988bf-86f1-41af-91ab-2d7cd011db47","traceparent":"00-f335fe37e7f668f35d6eb81ee281dfc4-22596df1f8fd42e2-01"},"creationTimestamp":"2025-03-05T02:31:22Z","generation":5,"labels":{"campaign":"wfi-v-cwi-v-version2","statusMessage":"Done"},"name":"wfi-v-cwi-v-version2-v-cwi2","namespace":"jessewftesti","resourceVersion":"19002793","uid":"74871d71-e3f8-4c7e-9e9c-3b6b5f2c8093"},"spec":{"campaign":"wfi-v-cwi-v-version2"}}
+    management.azure.com/apiVersion: 2025-01-01-preview
+    management.azure.com/bridgeLocation: EastUS2
+    management.azure.com/cloudEnvironment: AzureCloud
+    management.azure.com/correlationId: 749f9175-33e8-4a29-a20d-0139cf9f739f
+    management.azure.com/customLocation: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Microsoft.ExtendedLocation/customLocations/jessewftesti
+    management.azure.com/location: eastus
+    management.azure.com/operationId: 2ef3dfd9-5d09-43bd-9fd3-fdf07fef17f8*0CE58D7E08F505FD19B6FA0D824A0C208CE4281B65363F7A2FE51BD4428B318E
+    management.azure.com/parentResourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfi/workflows/cwi/versions/version2
+    management.azure.com/resourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfi/workflows/cwi/versions/version2/executions/cwi2
+    management.azure.com/systemData: '{"createdBy":"29dabdb7-dac7-46c8-a985-d57bd2dd0a0c","createdByType":"User","createdAt":"2025-03-05T02:31:12.8063993Z","resourceUID":"f0a3a25d-be12-4ae7-9a78-3e193b10e0b8","clientLocation":"eastus2euap"}'
+    management.azure.com/tenantId: 72f988bf-86f1-41af-91ab-2d7cd011db47
+    traceparent: 00-f335fe37e7f668f35d6eb81ee281dfc4-22596df1f8fd42e2-01
+  creationTimestamp: "2025-03-05T04:59:56Z"
+  generation: 1
+  labels:
+    campaign: wfi-v-cwi-v-version2
+  name: wfi-v-cwi-v-version2-v-cwi2
+  namespace: jessewftesti
+  resourceVersion: "3042"
+  uid: da0b2cd6-82ab-4448-9e7f-666691d1e248
+spec:
+  campaign: wfi-v-cwi-v-version2

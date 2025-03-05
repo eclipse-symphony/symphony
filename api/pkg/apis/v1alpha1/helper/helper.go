@@ -40,7 +40,7 @@ func GetInstanceRootResource(name string) string {
 	return ""
 }
 
-func GetInstanceOwnerReferences(apiClient api_utils.ApiClient, ctx context.Context, solutionContainer string, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GetInstanceOwnerReferences(apiClient api_utils.ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	return nil, nil
 }
 
