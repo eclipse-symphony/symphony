@@ -28,7 +28,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	"github.com/google/uuid"
 )
 
 const (
@@ -390,8 +389,21 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				}
 			}
 
+			// Get the solution and container name
+			solutionContainer, solutionVersion := api_utils.GetSolutionAndContainerName(instanceState.Spec.Solution)
+			if solutionContainer == "" || solutionVersion == "" {
+				mLog.ErrorfCtx(ctx, "Invalid solution name: instance - %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
+			}
 			// Set the owner reference
-			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, objectName, objectNamespace, instanceState, i.Config.User, i.Config.Password)
+			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, solutionContainer, objectName, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -423,10 +435,14 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 			// TODO: azure build flag
 			// TODO: also update in materialize stage provider
-			instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = uuid.New().String()
-			mLog.InfoCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", objectName, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfoCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", objectName, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
+			instanceName := api_utils.GetInstanceName(api_utils.GetInstanceTargetName(target), solutionContainer, objectName)
 			instanceState.ObjectMeta.Namespace = objectNamespace
-			instanceState.ObjectMeta.Name = objectName
+			instanceState.ObjectMeta.Name = instanceName
 
 			if instanceState.ObjectMeta.Name == "" {
 				mLog.ErrorfCtx(ctx, "Instance name is empty: - %s", objectName)

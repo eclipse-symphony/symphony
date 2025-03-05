@@ -1,4 +1,4 @@
-//go:build azure
+//go:build !azure
 
 /*
  * Copyright (c) Microsoft Corporation.
@@ -16,7 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,14 +43,28 @@ func ConvertAzureTargetReferenceToObjectName(name string) (string, bool) {
 	return r.ReplaceAllString(name, "$4"), true
 }
 
+func GetInstanceName(solutionContainerName, objectName string) string {
+
+	return fmt.Sprintf("%s-v-%s", solutionContainerName, objectName)
+}
+
 func GetInstanceTargetName(name string) string {
 	parts := strings.Split(name, "/")
-	if len(parts) < 3 {
-		return ""
+	if len(parts) < 2 {
+		return name
 	}
-	version := parts[len(parts)-1]
-	solution := parts[len(parts)-3]
-	return fmt.Sprintf("%s:%s", solution, version)
+	return parts[len(parts)-1]
+}
+
+func GetSolutionAndContainerName(name string) (string, string) {
+	parts := strings.Split(name, "/")
+	if len(parts) < 5 {
+
+		return "", ""
+
+	}
+	container := fmt.Sprintf("%s-v-%s", parts[len(parts)-5], parts[len(parts)-3])
+	return container, parts[len(parts)-1]
 }
 
 func GetInstanceRootResource(name string) string {
@@ -61,12 +75,11 @@ func GetInstanceRootResource(name string) string {
 	return parts[len(parts)-3]
 }
 
-func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, instanceState model.InstanceState, user string, pwd string) ([]metav1.OwnerReference, error) {
-	parts := strings.Split(instanceState.Spec.Solution, constants.ReferenceSeparator)
-	if len(parts) != 2 {
-		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
-	}
-	sc, err := apiClient.GetSolutionContainer(ctx, parts[0], objectNamespace, user, pwd)
+func GenerateOperationId() string {
+	return uuid.New().String()
+}
+func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+	sc, err := apiClient.GetSolutionContainer(ctx, solutionContainer, objectNamespace, user, pwd)
 	if err != nil {
 		return nil, err
 	}
