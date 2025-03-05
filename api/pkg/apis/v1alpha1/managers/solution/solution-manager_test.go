@@ -370,7 +370,9 @@ func TestMockGet(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
@@ -404,8 +406,9 @@ func TestMockGet(t *testing.T) {
 	// Test summary deletion
 	err = manager.DeleteSummary(context.Background(), summaryKey, "default")
 	assert.Nil(t, err)
-	_, err = manager.GetSummary(context.Background(), summaryKey, name, "default")
-	assert.NotNil(t, err)
+	result, err := manager.GetSummary(context.Background(), summaryKey, name, "default")
+	assert.Nil(t, err)
+	assert.True(t, result.Summary.Removed, "Summary should have set the removed flag")
 }
 func TestMockGetTwoTargets(t *testing.T) {
 	id := uuid.New().String()
@@ -482,7 +485,9 @@ func TestMockGetTwoTargets(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
@@ -580,7 +585,9 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 			"mock1": targetProvider,
 			"mock2": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	state, components, err := manager.Get(context.Background(), deployment, "")
@@ -656,7 +663,9 @@ func TestMockApply(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -722,7 +731,9 @@ func TestMockApplyMultiRoles(t *testing.T) {
 			"mock":  targetProvider,
 			"mock2": targetProvider2,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -781,7 +792,9 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
@@ -835,7 +848,9 @@ func TestMockApplyWithError(t *testing.T) {
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
 		},
-		StateProvider:   stateProvider,
+		SummaryManager: SummaryManager{
+			StateProvider: stateProvider,
+		},
 		KeyLockProvider: keyLockProvider,
 	}
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")

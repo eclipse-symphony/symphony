@@ -150,6 +150,8 @@ spec:
                 type: object
               scope:
                 type: string
+              solutionScope:
+                type: string
               topologies:
                 items:
                   description: TopologySpec defines the desired device topology the

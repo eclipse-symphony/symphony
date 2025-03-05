@@ -702,7 +702,6 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{
 				Solution: "",
-				Scope:    "default", // CreateSymphonyDeployment will give default if instance.Spec.Scope is empty
 				Target: model.TargetSelector{
 					Name: "someTargetName",
 					Selector: map[string]string{

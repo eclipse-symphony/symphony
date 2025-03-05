@@ -415,6 +415,86 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 	}
 }
 
+func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
+	// Manifests to deploy
+	var testManifests = []string{
+		"../manifest/oss/solution-configmap.yaml",
+		"../manifest/oss/target-configmap-default.yaml",
+		"../manifest/oss/instance-configmap-default.yaml",
+	}
+
+	// Deploy the manifests in default namespace
+	for _, manifest := range testManifests {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+		require.NoError(t, err)
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+	clientset, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	// Verify configmap in default scope
+	for {
+		namespace := "default"
+		configMapName := "configmap"
+		configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err == nil {
+			require.Equal(t, "test-tag", configMap.Data["tags"], "configmap data should match the input")
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("5s")
+		time.Sleep(sleepDuration)
+	}
+
+	// update target with solutionScope
+	targetFile := "../manifest/oss/target-configmap.yaml"
+	fullPath, err := filepath.Abs(targetFile)
+	require.NoError(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+	require.NoError(t, err)
+
+	// Verify configmp in target solutionScope
+	for {
+		namespace := "target-scope"
+		configMapName := "configmap"
+		configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err == nil {
+			require.Equal(t, "test-tag", configMap.Data["tags"], "configmap data should match the input")
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("5s")
+		time.Sleep(sleepDuration)
+	}
+
+	// Update instance scope with nondefault namespace
+	instanceFile := "../manifest/oss/instance-configmap-with-scope.yaml"
+	fullPath, err = filepath.Abs(instanceFile)
+	require.NoError(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+	require.NoError(t, err)
+
+	// Verify configmap in nondefault instance scope
+	for {
+		namespace := "nondefault"
+		configMapName := "configmap"
+		configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err == nil {
+			require.Equal(t, "test-tag", configMap.Data["tags"], "configmap data should match the input")
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("5s")
+		time.Sleep(sleepDuration)
+	}
+
+}
+
 // Helper for read catalog
 func readCatalog(catalogName string, namespace string, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
 	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
