@@ -392,10 +392,12 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		} else {
 			provider = override
 		}
-
+		var stepError error
+		var componentResults = make(map[string]model.ComponentResultSpec)
 		if previousDesiredState != nil {
 			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
 			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
 				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
 				targetResult[step.Target] = 1
 				planSuccessCount++
@@ -408,8 +410,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		retryCount := 1
 		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
 		// an error condition can't be resolved quickly.
-		var stepError error
-		var componentResults map[string]model.ComponentResultSpec
 
 		// for _, component := range step.Components {
 		// 	for k, v := range component.Component.Properties {
