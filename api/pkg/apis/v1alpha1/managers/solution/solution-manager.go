@@ -219,6 +219,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		targetName,
 		deployment.Generation,
 		deployment.JobID)
+
+	if deployment.IsInActive {
+		log.InfofCtx(ctx, " M (Solution): deployment is not active, remove the deployment")
+		remove = true
+	}
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
 		TargetCount:         len(deployment.Targets),
@@ -246,9 +251,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	defer func() {
 		if r := recover(); r == nil {
 			log.DebugfCtx(ctx, " M (Solution): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
-			if deployment.IsDryRun {
-				summary.SuccessCount = 0
-			}
 			s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, summaryId, deployment.Generation, deployment.Hash, summary, namespace)
 		} else {
 			log.ErrorfCtx(ctx, " M (Solution): panic happens: %v", debug.Stack())
@@ -472,7 +474,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 				}
 			}
 			summary.CurrentDeployed += deployedCount
-			summary.SuccessCount = successCount
+			if deployment.IsDryRun || deployment.IsInActive {
+				summary.SuccessCount = 0
+			} else {
+				summary.SuccessCount = successCount
+			}
 			summary.AllAssignedDeployed = plannedCount == planSuccessCount
 			err = stepError
 			return summary, err
@@ -511,12 +517,10 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	summary.SuccessCount = successCount
 	summary.AllAssignedDeployed = plannedCount == planSuccessCount
 
-	// if solutions.components are empty,
-	// we need to set summary.Skipped = true
-	// and summary.SuccessCount = summary.TargetCount (instance_controller and target_controller will check whether targetCount == successCount in deletion case)
 	summary.Skipped = !someStepsRan
-	if summary.Skipped {
-		summary.SuccessCount = summary.TargetCount
+
+	if deployment.IsDryRun || deployment.IsInActive {
+		summary.SuccessCount = 0
 	}
 
 	return summary, nil
