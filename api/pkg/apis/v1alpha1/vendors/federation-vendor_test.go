@@ -304,7 +304,10 @@ func TestFederationOnSyncGet(t *testing.T) {
 	vendor := federationVendorInit()
 	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	SiteSpec.Name = "test1"
-	b, err := json.Marshal(SiteSpec)
+	SiteState := model.SiteState{
+		Spec: &SiteSpec,
+	}
+	b, err := json.Marshal(SiteState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
