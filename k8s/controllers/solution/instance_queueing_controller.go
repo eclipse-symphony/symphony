@@ -17,8 +17,11 @@ import (
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
+	utilsmodel "gopls-workspace/utils/model"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -65,6 +68,11 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	reconcileResult := ctrl.Result{}
 	deploymentOperationType := metrics.DeploymentQueued
 	var err error
+
+	if checkSkipReconcile(log, instance) {
+		log.Info("Skipping this reconcile, since this instance " + req.Name + " in namespace " + req.Namespace + " is inactive and already removed")
+		return ctrl.Result{}, nil
+	}
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
@@ -129,4 +137,33 @@ func (r *InstanceQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
 			r.handleTarget)).
 		Complete(r)
+}
+
+// We can only skip reconcile if
+// 1. the deployment of instance is already removed when instance is inactive
+// 2. the new instance spec is still inactive
+// If the instance is deleted, we can directly remove the CR.
+// What if the instance changes from inactive -> active (not summary reported) -> inactive
+// "removed" property will be removed before making queuedeployment calls to symphony API server
+// so that later inactive instance can be reconciled again.
+func checkSkipReconcile(log logr.Logger, instance *solution_v1.Instance) bool {
+	if instance.Spec.ActiveState != model.ActiveState_Inactive {
+		return false
+	}
+	if instance.Status.Properties != nil {
+		status, ok := instance.Status.Properties["status"]
+		if !ok || status != string(utilsmodel.ProvisioningStatusSucceeded) {
+			log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " has not reach succeeded status, do not skip reconcile")
+			return false
+		}
+		removed, ok := instance.Status.Properties["removed"]
+		if !ok || removed != "true" {
+			log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " has not been removed, do not skip reconcile")
+			return false
+		}
+		log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " is inactive and already removed, skip reconcile")
+		return true
+	}
+	log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " status is nil, do not skip reconcile")
+	return false
 }
