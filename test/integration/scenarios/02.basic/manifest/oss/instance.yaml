@@ -13,6 +13,7 @@ spec:
   scope: SCOPENAME
   solution: SOLUTIONREFNAME
   isDryRun: DRYRUN
+  activeState: ACTIVESTATE
   target:
     name: TARGETREFNAME
   reconciliationPolicy:
