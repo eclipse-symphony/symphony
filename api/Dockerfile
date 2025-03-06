@@ -30,19 +30,22 @@ WORKDIR /workspace/api
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 
 # Install necessary build tools, cross-compilers, and Go
-RUN apt-get update && apt-get install -y \
+RUN if [ "$BUILDFLAG" != "azure" ]; then \
+    apt-get update && apt-get install -y \
     gcc g++ make curl wget git cargo \
     gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
     libssl-dev pkg-config \
     && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
-    && rm go${GO_VERSION}.linux-amd64.tar.gz
+    && rm go${GO_VERSION}.linux-amd64.tar.gz; \
+    fi
 
 # Install Rust and rustup, overriding any existing Rust installation
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path \
+RUN if [ "$BUILDFLAG" != "azure" ]; then \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path \
     && . "$HOME/.cargo/env" \
-    && rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu
-
+    && rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu; \
+    fi
 # Set up Rust environment
 ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
@@ -52,10 +55,13 @@ ENV PATH=/root/.cargo/bin:$PATH
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
 
 # Clean build artifacts from any previous build attempts
-RUN cargo clean
+RUN if [ "$BUILDFLAG" != "azure" ]; then \
+    cargo clean; \
+    fi
 
 # Clean previous build artifacts and build in one step
-RUN cargo clean && \
+RUN if [ "$BUILDFLAG" != "azure" ]; then \
+    cargo clean && \
     if [ "$TARGETARCH" = "arm" ]; then \
         CC=arm-linux-gnueabihf-gcc \
         CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf \
@@ -70,6 +76,7 @@ RUN cargo clean && \
     else \
         cargo build --release && \
         cp target/release/*.so /extensions/; \
+    fi; \
     fi
 
 WORKDIR /workspace/api
