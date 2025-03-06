@@ -1,17 +1,17 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: site-app  
+  name: site-k8s-target-v-site-app  
   namespace: jessewftesti
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: site-app-v-v1
+  name: site-k8s-target-v-site-app-v-v1
   namespace: jessewftesti
 spec:
-  rootResource: site-app
+  rootResource: site-k8s-target-v-site-app
   components:
   - name: nginx-ingress  
     properties:
@@ -38,10 +38,10 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: site-app-v-v2
+  name: site-k8s-target-v-site-app-v-v2
   namespace: jessewftesti
 spec:
-  rootResource: site-app
+  rootResource: site-k8s-target-v-site-app
   metadata:
     deployment.replicas: "#1"
     service.ports: "[{\"name\":\"port6379\",\"port\": 6379}]"

@@ -20,7 +20,7 @@ func GetInstanceTargetName(name string) string {
 	return name
 }
 
-func GetInstanceName(targetName, solutionContainerName, objectName string) string {
+func GetInstanceName(solutionContainerName, objectName string) string {
 	return objectName
 }
 

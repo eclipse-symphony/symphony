@@ -386,7 +386,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			target := stage.ReadInputString(inputs, "__target")
 			if target != "" {
 				instanceState.Spec.Target = model.TargetSelector{
-					Name: api_utils.GetInstanceTargetName(target),
+					Name: target,
 				}
 			}
 
@@ -403,9 +403,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
 			}
-			instanceState.Spec.Solution = solutionContainer + ":" + solutionVersion
 			// Get instanceName
-			instanceName := api_utils.GetInstanceName(api_utils.GetInstanceTargetName(target), solutionContainer, objectName)
+			instanceName := api_utils.GetInstanceName(solutionContainer, objectName)
 
 			// Set the owner reference
 			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, solutionContainer, objectNamespace, i.Config.User, i.Config.Password)

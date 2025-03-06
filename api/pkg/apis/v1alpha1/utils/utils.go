@@ -523,16 +523,24 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			key = GetTargetRuntimeKey(object.SummaryId)
 			nameKey = GetTargetRuntimeKey(object.Name)
 		}
-		jobId := object.SummaryJobId
+		// TODO
+		// jobId := object.SummaryJobId
 		var summary *model.SummaryResult
 		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
-		log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
 		// TODO: summary.Summary.JobID may be empty in standalone
-		if err == nil && summary.State == model.SummaryStateDone && summary.Summary.JobID == jobId {
+		if err != nil {
+			remainingObjects = append(remainingObjects, object)
+			continue
+		}
+		log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
+		log.DebugfCtx(ctx, "Object for %s is %v", object.Name, object)
+
+		if err == nil && summary.State == model.SummaryStateDone {
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
 				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
 			}
+			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", len(remainingObjects), len(failedDeployments))
 			continue
 		}
 		remainingObjects = append(remainingObjects, object)

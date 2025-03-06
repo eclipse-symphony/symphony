@@ -1,6 +1,15 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
+  annotations:
+    Guid: 4f3aad66-15ab-4edc-a34a-7db7edc221a0
+    SummaryJobIdKey: "2"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"fabric.symphony/v1","kind":"Target","metadata":{"annotations":{},"name":"site-k8s-target","namespace":"jessewftesti"},"spec":{"topologies":[{"bindings":[{"config":{"inCluster":"true"},"provider":"providers.target.helm","role":"helm.v3"}]}]}}
+    management.azure.com/correlationId: 25bf8a44-ac97-41c2-9102-834d8e242432
+    management.azure.com/runningCorrelationId: 25bf8a44-ac97-41c2-9102-834d8e242432
+    target.fabric.symphony/started-at: "2025-03-06T04:34:05Z"
+    management.azure.com/resourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/jesse-cluster-test/providers/private.edge/targets/site-k8s-target
   name: site-k8s-target
   namespace: jessewftesti
 spec:  

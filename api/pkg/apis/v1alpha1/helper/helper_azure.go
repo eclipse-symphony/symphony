@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetInstanceName(targetName, solutionContainerName, objectName string) string {
-	return fmt.Sprintf("%s-v-%s-v-%s", targetName, solutionContainerName, objectName)
+func GetInstanceName(solutionContainerName, objectName string) string {
+	return fmt.Sprintf("%s-v-%s", solutionContainerName, objectName)
 }
 
 func GetInstanceTargetName(name string) string {
@@ -35,10 +35,11 @@ func GetInstanceTargetName(name string) string {
 
 func GetSolutionAndContainerName(name string) (string, string) {
 	parts := strings.Split(name, "/")
-	if len(parts) < 3 {
+	if len(parts) < 5 {
 		return "", ""
 	}
-	return parts[len(parts)-3], parts[len(parts)-1]
+	container := fmt.Sprintf("%s-v-%s", parts[len(parts)-5], parts[len(parts)-3])
+	return container, parts[len(parts)-1]
 }
 
 func GetInstanceRootResource(name string) string {
