@@ -132,7 +132,11 @@ func TestFederationOnRegister(t *testing.T) {
 	vendor := federationVendorInit()
 
 	SiteSpec.Name = "test1"
-	b, err := json.Marshal(SiteSpec)
+	siteState := model.SiteState{
+		Id:   SiteSpec.Name,
+		Spec: &SiteSpec,
+	}
+	b, err := json.Marshal(siteState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
