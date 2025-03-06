@@ -71,7 +71,7 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	var err error
 
 	if checkSkipReconcile(log, instance) {
-		log.Info("Skipping this reconcile, since this instance is inactive and already removed")
+		log.Info("Skipping this reconcile, since this instance " + req.Name + " in namespace " + req.Namespace + " is inactive and already removed")
 		return ctrl.Result{}, nil
 	}
 
@@ -158,17 +158,17 @@ func checkSkipReconcile(log logr.Logger, instance *solution_v1.Instance) bool {
 	if instance.Status.Properties != nil {
 		status, ok := instance.Status.Properties["status"]
 		if !ok || status != string(utilsmodel.ProvisioningStatusSucceeded) {
-			log.Info("Instance has not reach succeeded status, do not skip reconcile")
+			log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " has not reach succeeded status, do not skip reconcile")
 			return false
 		}
 		removed, ok := instance.Status.Properties["removed"]
 		if !ok || removed != "true" {
-			log.Info("Instance has not been removed, do not skip reconcile")
+			log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " has not been removed, do not skip reconcile")
 			return false
 		}
-		log.Info("Instance is inactive and already removed, skip reconcile")
+		log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " is inactive and already removed, skip reconcile")
 		return true
 	}
-	log.Info("Instance status is nil, do not skip reconcile")
+	log.Info("Instance " + instance.Name + " in namespace " + instance.Namespace + " status is nil, do not skip reconcile")
 	return false
 }
