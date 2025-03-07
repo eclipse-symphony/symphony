@@ -9,7 +9,7 @@ spec:
     metadata: 
       name: webappconfig2:v1
     spec: 
-      type: config
+      catalogType: config
       properties:
         test.dot.serviceType: "NodePort"
         testA:
