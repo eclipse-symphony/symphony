@@ -49,7 +49,7 @@ This is an example template that utilizes that variable.  This block is included
 
     ```yml
     spec:
-    type: config
+    catalogType: config
     properties:
         EXTRA-LINE: # Added due to config behavior described in bug: https://github.com/eclipse-symphony/symphony/issues/202
             line1: ${{$if($config('line1', 'IS_PREMIUM_LINE'), $config('premium',''), '')}}
