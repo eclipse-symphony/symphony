@@ -114,6 +114,7 @@ func (h *APIHost) Launch(config HostConfig,
 	config.SiteInfo.ParentSite.Username = overrideWithEnvVariable(config.SiteInfo.ParentSite.Username, "PARENT_SYMPHONY_API_USER")
 	config.SiteInfo.ParentSite.Password = overrideWithEnvVariable(config.SiteInfo.ParentSite.Password, "PARENT_SYMPHONY_API_PASSWORD")
 
+	var pubsubProvider pv.IProvider
 	for _, v := range config.API.Vendors {
 		v.SiteInfo = config.SiteInfo
 		created := false
@@ -123,7 +124,6 @@ func (h *APIHost) Launch(config HostConfig,
 				return err
 			}
 			if vendor != nil {
-				var pubsubProvider pv.IProvider
 				// make pub/sub provider
 				if config.API.PubSub.Provider.Type != "" {
 					if config.API.PubSub.Shared && h.SharedPubSubProvider != nil {
@@ -218,6 +218,11 @@ func (h *APIHost) Launch(config HostConfig,
 			v.Vendor.SetEvaluationContext(evaluationContext)
 		}
 	}
+	if pubsubProvider != nil {
+		// Send flag to pubsub provider to inform that host setup is ready
+		pubsubProvider.(pubsub.IPubSubProvider).SendSetupReadyFlag()
+	}
+
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

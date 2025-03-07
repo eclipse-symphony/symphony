@@ -9,6 +9,7 @@ package memory
 import (
 	"encoding/json"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -29,6 +30,8 @@ type InMemoryPubSubProvider struct {
 	Config      InMemoryPubSubConfig               `json:"config"`
 	Subscribers map[string][]v1alpha2.EventHandler `json:"subscribers"`
 	Context     *contexts.ManagerContext
+	rwLock      sync.RWMutex
+	readyFlag   bool
 }
 
 type InMemoryPubSubConfig struct {
@@ -120,13 +123,29 @@ func (i *InMemoryPubSubProvider) Publish(topic string, event v1alpha2.Event) err
 	return nil
 }
 func (i *InMemoryPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHandler) error {
-	arr, ok := i.Subscribers[topic]
-	if !ok || arr == nil {
-		i.Subscribers[topic] = make([]v1alpha2.EventHandler, 0)
-	}
-	i.Subscribers[topic] = append(i.Subscribers[topic], handler)
-
+	go func() {
+		for {
+			i.rwLock.RLock()
+			readyFlag := i.readyFlag
+			i.rwLock.RUnlock()
+			if readyFlag {
+				arr, ok := i.Subscribers[topic]
+				if !ok || arr == nil {
+					i.Subscribers[topic] = make([]v1alpha2.EventHandler, 0)
+				}
+				i.Subscribers[topic] = append(i.Subscribers[topic], handler)
+				return
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	return nil
+}
+
+func (i *InMemoryPubSubProvider) SendSetupReadyFlag() {
+	i.rwLock.Lock()
+	defer i.rwLock.Unlock()
+	i.readyFlag = true
 }
 
 func toInMemoryPubSubConfig(config providers.IProviderConfig) (InMemoryPubSubConfig, error) {
