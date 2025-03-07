@@ -129,6 +129,8 @@ func (i *InMemoryPubSubProvider) Subscribe(topic string, handler v1alpha2.EventH
 	return nil
 }
 
+func (i *InMemoryPubSubProvider) SendSetupReadyFlag() {}
+
 func toInMemoryPubSubConfig(config providers.IProviderConfig) (InMemoryPubSubConfig, error) {
 	ret := InMemoryPubSubConfig{}
 	data, err := json.Marshal(config)
