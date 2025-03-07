@@ -138,6 +138,7 @@ func TestBasicPubSub(t *testing.T) {
 			return nil
 		},
 	})
+	provider.SendSetupReadyFlag()
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
 	assert.Equal(t, "TEST", msg)
@@ -174,6 +175,7 @@ func TestBasicPubSubTwoProviders(t *testing.T) {
 			return nil
 		},
 	})
+	provider2.SendSetupReadyFlag()
 	provider1.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
 	assert.Equal(t, "TEST", msg)
@@ -210,6 +212,7 @@ func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
 			return nil
 		},
 	})
+	provider2.SendSetupReadyFlag()
 	provider1.Publish("testjob", v1alpha2.Event{
 		Metadata: map[string]string{
 			"objectType": "mock",
