@@ -17,8 +17,8 @@ type DeployableStatus struct {
 type DeployableStatusV2 struct {
 	ProvisioningStatus   ProvisioningStatus       `json:"provisioningStatus"`
 	LastModified         time.Time                `json:"lastModified,omitempty"`
-	Deployed             int                      `json:"deployed,omitempty"`
-	Targets              int                      `json:"targets,omitempty"`
+	Deployed             int                      `json:"deployed"`
+	Targets              int                      `json:"targets"`
 	Status               string                   `json:"status,omitempty"`
 	StatusDetails        string                   `json:"statusDetails,omitempty"`
 	RunningJobId         int                      `json:"runningJobId,omitempty"`

@@ -403,6 +403,7 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 }
 
 func TestUpdateInstanceHistory(t *testing.T) {
+	t.Skip("Skipping this test since validateUpdate is disabled")
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyCreate))).Run()
 	assert.Nil(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), historyUpdate)).CombinedOutput()
