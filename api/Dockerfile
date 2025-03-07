@@ -74,7 +74,7 @@ RUN cargo clean && \
 WORKDIR /workspace/api
 
 # Install gofail
-RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
+RUN if [ "$FAULT_INJECTION_ENABLED" = "true" ]; then \
     go install go.etcd.io/gofail@latest && \
     find /workspace/api -type d | while read -r dir; do gofail enable $dir; done && \
     find /workspace/coa -type d | while read -r dir; do gofail enable $dir; done && \
