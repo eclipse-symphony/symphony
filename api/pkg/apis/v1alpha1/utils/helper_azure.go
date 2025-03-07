@@ -26,6 +26,7 @@ const (
 )
 
 func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool) {
+	log.Infof("Azure: convert solution version reference to object name: %s", name)
 	r := regexp.MustCompile(AzureSolutionVersionIdPattern)
 	if !r.MatchString(name) {
 		return "", false
@@ -34,6 +35,7 @@ func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool
 }
 
 func ConvertAzureTargetReferenceToObjectName(name string) (string, bool) {
+	log.Infof("Azure: convert target reference to object name: %s", name)
 	r := regexp.MustCompile(AzureTargetIdPattern)
 	if !r.MatchString(name) {
 		return "", false
@@ -94,8 +96,9 @@ func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Contex
 	}, nil
 }
 
-func GenerateSystemDataAnnotations(annotations map[string]string) map[string]string {
-	if isPrivateResourceProvider(annotations[constants.AzureResourceIdKey]) {
+func GenerateSystemDataAnnotationsForInstanceHistory(annotations map[string]string, solutionId string) map[string]string {
+	log.Infof("Azure: check if annotation need to be added: %v", annotations)
+	if isPrivateResourceProvider(solutionId) {
 		annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
 	}
 	return annotations

@@ -21,9 +21,9 @@ type DeployableStatusV2 struct {
 	Targets              int                      `json:"targets"`
 	Status               string                   `json:"status,omitempty"`
 	StatusDetails        string                   `json:"statusDetails,omitempty"`
-	RunningJobId         int                      `json:"runningJobId"`
-	ExpectedRunningJobId int                      `json:"expectedRunningJobId"`
-	Generation           int                      `json:"generation"`
+	RunningJobId         int                      `json:"runningJobId,omitempty"`
+	ExpectedRunningJobId int                      `json:"expectedRunningJobId,omitempty"`
+	Generation           int                      `json:"generation,omitempty"`
 	TargetStatuses       []TargetDeployableStatus `json:"targetStatuses,omitempty"`
 	Properties           map[string]string        `json:"properties,omitempty"`
 }
