@@ -1,4 +1,5 @@
 # Build and deploy
+_(last edit: 2/11/2025)_
 
 > **NOTE:**  As we optimize build and deployment process, this doc will be updated frequently to reflect latest changes. When you start fresh, we recommend you use the latest code and instructions.
 
@@ -8,9 +9,9 @@ To begin, follow the steps to [build Symphony containers](./build.md).
 
 If you don't want to build the containers yourself, you can use these prebuilt images:
 
-* ghcr.io/eclipse-symphony/symphony-agent:latest (or use a release tag. The latest is 0.38.2)
-* ghcr.io/eclipse-symphony/symphony-api:latest (or use a release tag. The latest is 0.38.2)
-* ghcr.io/eclipse-symphony/symphony-k8s:latest (or use a release tag. The latest is 0.38.2)
+* ghcr.io/eclipse-symphony/symphony-agent:latest (or use a release tag. The latest is 0.48.32)
+* ghcr.io/eclipse-symphony/symphony-api:latest (or use a release tag. The latest is 0.48.32)
+* ghcr.io/eclipse-symphony/symphony-k8s:latest (or use a release tag. The latest is 0.48.32)
 
 > **NOTE:** These images may get removed at any time without prior notice.
 
