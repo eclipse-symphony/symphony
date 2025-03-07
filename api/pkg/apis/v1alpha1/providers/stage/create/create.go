@@ -28,6 +28,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -211,7 +212,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			objectName := stage.ReadInputString(inputs, "objectName")
 			solutionName := api_utils.ConvertReferenceToObjectName(objectName)
 			var solutionState model.SolutionState
-			err = json.Unmarshal(objectData, &solutionState)
+			err = utils2.UnmarshalJson(objectData, &solutionState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for input %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(

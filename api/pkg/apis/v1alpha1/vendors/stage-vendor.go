@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
@@ -83,7 +84,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 
 			var actData v1alpha2.ActivationData
 			jData, _ := json.Marshal(event.Body)
-			err := json.Unmarshal(jData, &actData)
+			err := utils2.UnmarshalJson(jData, &actData)
 			if err != nil {
 				log.ErrorCtx(ctx, "V (Stage): event body of activation event is not ActivationData ")
 				return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
@@ -143,7 +144,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 			triggerData := v1alpha2.ActivationData{}
 			jData, _ := json.Marshal(event.Body)
-			err := json.Unmarshal(jData, &triggerData)
+			err := utils2.UnmarshalJson(jData, &triggerData)
 			if err != nil {
 				err = v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 				sLog.ErrorfCtx(ctx, "V (Stage): failed to deserialize activation data: %v", err)
@@ -223,7 +224,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			sLog.DebugfCtx(ctx, "V (Stage): handling job report event: %v", event)
 			jData, _ := json.Marshal(event.Body)
 			var status model.StageStatus
-			json.Unmarshal(jData, &status)
+			utils2.UnmarshalJson(jData, &status)
 			campaign, ok := status.Outputs["__campaign"].(string)
 			if !ok {
 				sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaign name from job report")
@@ -283,10 +284,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			// Unwrap data package from event body
 			jData, _ := json.Marshal(event.Body)
 			var job v1alpha2.JobData
-			json.Unmarshal(jData, &job)
+			utils2.UnmarshalJson(jData, &job)
 			jData, _ = json.Marshal(job.Body)
 			var dataPackage v1alpha2.InputOutputData
-			err := json.Unmarshal(jData, &dataPackage)
+			err := utils2.UnmarshalJson(jData, &dataPackage)
 			if err != nil {
 				return err
 			}

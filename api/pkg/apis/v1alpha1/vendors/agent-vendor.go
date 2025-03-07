@@ -8,7 +8,6 @@ package vendors
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -20,6 +19,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -226,7 +226,7 @@ func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]s
 	log.InfofCtx(ctx, "V (Agent): doApplyConfig with parameters %v", parameters)
 
 	var config managers.ProviderConfig
-	err := json.Unmarshal(data, &config)
+	err := utils2.UnmarshalJson(data, &config)
 	if err != nil {
 		return v1alpha2.COAResponse{
 			State: v1alpha2.BadRequest,
@@ -289,7 +289,7 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 		overwrite, _ = strconv.ParseBool(v)
 	}
 	properties := make(map[string]string)
-	err := json.Unmarshal(data, &properties)
+	err := utils2.UnmarshalJson(data, &properties)
 	if err != nil {
 		log.ErrorCtx(ctx, "V (Agent): failed to unmarshall data")
 		return v1alpha2.COAResponse{

@@ -10,7 +10,7 @@ metadata:
   name: line1-config-v-v1
 spec:
   rootResource: line1-config
-  type: config
+  catalogType: config
   properties:
     line1:
       name: "Line 1"

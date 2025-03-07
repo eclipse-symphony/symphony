@@ -159,7 +159,14 @@ func TestPostAndDelete(t *testing.T) {
 			"type": "sensor",
 		},
 	}
-	data, err := json.Marshal(deviceSpec)
+	deviceState := model.DeviceState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: &deviceSpec,
+	}
+	data, err := json.Marshal(deviceState)
 	request.Body = data
 	res := vendor.onDevices(*request)
 	assert.Equal(t, v1alpha2.OK, res.State)

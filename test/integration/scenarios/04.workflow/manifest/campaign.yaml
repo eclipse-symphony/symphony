@@ -11,7 +11,6 @@ spec:
       provider: providers.stage.wait
       stageSelector: list
       config:
-        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
       inputs:
@@ -27,7 +26,6 @@ spec:
       provider: providers.stage.list
       stageSelector: deploy
       config:
-        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
       inputs:
@@ -39,7 +37,6 @@ spec:
       stageSelector: ""
       schedule: "2020-10-31T12:00:00-07:00"
       config:
-        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
         waitForDeployment: true
