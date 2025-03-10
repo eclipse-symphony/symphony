@@ -9,6 +9,7 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -91,6 +92,50 @@ type TargetSpec struct {
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
 	// when the instance is created or updated.
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
+}
+
+func (c TargetSpec) DeepEquals(other TargetSpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+	if c.Scope != other.Scope {
+		return false
+	}
+	if c.SolutionScope != other.SolutionScope {
+		return false
+	}
+	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.Components, other.Components) {
+		return false
+	}
+	if c.Constraints != other.Constraints {
+		return false
+	}
+	if !model.SlicesEqual(c.Topologies, other.Topologies) {
+		return false
+	}
+	if c.ForceRedeploy != other.ForceRedeploy {
+		return false
+	}
+	if c.IsDryRun != other.IsDryRun {
+		return false
+	}
+
+	// check reconciliation policy
+	if c.ReconciliationPolicy == nil {
+		return other.ReconciliationPolicy == nil
+	}
+
+	if other.ReconciliationPolicy == nil {
+		return false
+	}
+
+	return c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy)
 }
 
 // +kubebuilder:object:generate=true
@@ -190,6 +235,56 @@ type InstanceHistorySpec struct {
 	RootResource string `json:"rootResource,omitempty"`
 }
 
+func (c InstanceHistorySpec) DeepEquals(other InstanceHistorySpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+	if c.Scope != other.Scope {
+		return false
+	}
+	if !model.StringMapsEqual(c.Parameters, other.Parameters, nil) {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+	if !c.Solution.DeepEquals(other.Solution) {
+		return false
+	}
+	if c.SolutionId != other.SolutionId {
+		return false
+	}
+	if !c.Target.DeepEquals(other.Target) {
+		return false
+	}
+	if c.TargetId != other.TargetId {
+		return false
+	}
+	if !model.StringMapsEqual(c.TargetSelector, other.TargetSelector, nil) {
+		return false
+	}
+	if !model.SlicesEqual(c.Topologies, other.Topologies) {
+		return false
+	}
+	if !model.SlicesEqual(c.Pipelines, other.Pipelines) {
+		return false
+	}
+	if c.IsDryRun != other.IsDryRun {
+		return false
+	}
+	if c.RootResource != other.RootResource {
+		return false
+	}
+	// check reconciliation policy
+	if c.ReconciliationPolicy == nil {
+		return other.ReconciliationPolicy == nil
+	}
+	if other.ReconciliationPolicy == nil {
+		return false
+	}
+	return c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy)
+}
+
 // +kubebuilder:object:generate=true
 type SolutionSpec struct {
 	DisplayName  string            `json:"displayName,omitempty"`
@@ -197,6 +292,22 @@ type SolutionSpec struct {
 	Components   []ComponentSpec   `json:"components,omitempty"`
 	Version      string            `json:"version,omitempty"`
 	RootResource string            `json:"rootResource,omitempty"`
+}
+
+func (c SolutionSpec) DeepEquals(other SolutionSpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.Components, other.Components) {
+		return false
+	}
+	if c.Version != other.Version {
+		return false
+	}
+	return c.RootResource == other.RootResource
 }
 
 // +kubebuilder:object:generate=true
