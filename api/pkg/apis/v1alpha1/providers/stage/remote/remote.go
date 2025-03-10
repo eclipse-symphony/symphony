@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -51,7 +52,7 @@ func toRemoteStageProviderConfig(config providers.IProviderConfig) (RemoteStageP
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *RemoteStageProvider) InitWithMap(properties map[string]string) error {
