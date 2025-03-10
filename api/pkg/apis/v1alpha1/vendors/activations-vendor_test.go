@@ -69,7 +69,7 @@ func TestActivationsOnStatus(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "unexpected end of JSON input", string(resp.Body))
+	assert.Equal(t, "empty data when unmarshalling JSON", string(resp.Body))
 }
 func TestActivationsOnActivations(t *testing.T) {
 	vendor := createActivationsVendor()
