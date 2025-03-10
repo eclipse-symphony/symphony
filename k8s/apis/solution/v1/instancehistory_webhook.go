@@ -80,7 +80,7 @@ func (r *InstanceHistory) Default() {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations = utils.GenerateSystemDataAnnotationsForInstanceHistory(annotations, r.Spec.SolutionId)
+	annotations = utils.GenerateSystemDataAnnotations(annotations, r.Spec.SolutionId)
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 	if annotation_name != "" {
 		parts := strings.Split(r.Name, constants.ResourceSeperator)

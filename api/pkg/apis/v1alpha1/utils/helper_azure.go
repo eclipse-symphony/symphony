@@ -78,7 +78,8 @@ func GetInstanceRootResource(name string) string {
 func GenerateOperationId() string {
 	return uuid.New().String()
 }
-func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+
+func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	sc, err := apiClient.GetSolutionContainer(ctx, solutionContainer, objectNamespace, user, pwd)
 	if err != nil {
 		return nil, err
@@ -109,9 +110,9 @@ func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Contex
 	}, nil
 }
 
-func GenerateSystemDataAnnotationsForInstanceHistory(annotations map[string]string, solutionId string) map[string]string {
+func GenerateSystemDataAnnotations(annotations map[string]string, resourceId string) map[string]string {
 	log.Infof("Azure: check if annotation need to be added: %v", annotations)
-	if isPrivateResourceProvider(solutionId) {
+	if isPrivateResourceProvider(resourceId) {
 		annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
 	}
 	return annotations

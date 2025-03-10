@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/api_utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
@@ -437,6 +436,11 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			if annotation_name != "" {
 				instanceState.ObjectMeta.UpdateAnnotation(annotation_name, objectName)
 			}
+
+			// Add annotation for Private.Edge provider resources
+			anno := api_utils.GenerateSystemDataAnnotations(instanceState.ObjectMeta.Annotations, target)
+			instanceState.ObjectMeta.Annotations = anno
+
 			// TODO: azure build flag
 			// TODO: also update in materialize stage provider
 			operationIdKey := api_utils.GenerateOperationId()
