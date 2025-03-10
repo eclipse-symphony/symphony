@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -96,7 +97,7 @@ func toMaterializeStageProviderConfig(config providers.IProviderConfig) (Materia
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	if err != nil {
 		return ret, err
 	}
@@ -274,7 +275,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		switch catalog.Spec.CatalogType {
 		case "instance":
 			var instanceState model.InstanceState
-			err = json.Unmarshal(objectData, &instanceState)
+			err = utils2.UnmarshalJson(objectData, &instanceState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -332,7 +333,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
-			err = json.Unmarshal(objectData, &solutionState)
+			err = utils2.UnmarshalJson(objectData, &solutionState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -427,7 +428,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "target":
 			var targetState model.TargetState
-			err = json.Unmarshal(objectData, &targetState)
+			err = utils2.UnmarshalJson(objectData, &targetState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal target state for catalog %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -486,7 +487,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
 			var catalogState model.CatalogState
-			err = json.Unmarshal(objectData, &catalogState)
+			err = utils2.UnmarshalJson(objectData, &catalogState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
