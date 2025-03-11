@@ -1,17 +1,15 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: site-k8s-target-v-site-app  
-  namespace: jessewftesti
+  name: test-app  
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: site-k8s-target-v-site-app-v-v1
-  namespace: jessewftesti
+  name: test-app-v-v1
 spec:
-  rootResource: site-k8s-target-v-site-app
+  rootResource: test-app
   components:
   - name: nginx-ingress  
     properties:
@@ -34,27 +32,3 @@ spec:
           nodeSelector:
             kubernetes.io/os: linux  
     type: helm.v3
----
-apiVersion: solution.symphony/v1
-kind: Solution
-metadata: 
-  name: site-k8s-target-v-site-app-v-v2
-  namespace: jessewftesti
-spec:
-  rootResource: site-k8s-target-v-site-app
-  metadata:
-    deployment.replicas: "#1"
-    service.ports: "[{\"name\":\"port6379\",\"port\": 6379}]"
-    service.type: "ClusterIP"
-  components:
-  - name: redis-server
-    type: container
-    properties:
-      container.ports: "[{\"containerPort\":6379,\"protocol\":\"TCP\"}]"
-      container.imagePullPolicy: "Always"
-      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
-      container.image: "docker.io/redis:6.0.5"
-    dependencies:
-    - deployment-gate
-  - name: deployment-gate
-    type: http
