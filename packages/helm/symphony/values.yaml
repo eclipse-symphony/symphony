@@ -66,9 +66,9 @@ siteId: hq
 api:
   apiContainerPortHttp: 8080
   apiContainerPortHttps: 8081
-  labelKey: "management.azure.com/provider-name"
-  labelValue: "Private.Edge"
-  annotationKey: "management.azure.com/azureName"
+  labelKey:
+  labelValue:
+  annotationKey:
 symphony:
   uniqueDisplayNameForSolution: false
   incluster:

@@ -11,6 +11,6 @@ paiImage:
   repository: ghcr.io/eclipse-symphony/symphony-api
 installServiceExt: false
 api:
-  labelKey: "management.azure.com/provider-name"
-  labelValue: "Private.Edge"
-  annotationKey: "management.azure.com/azureName"
+  labelKey:
+  labelValue:
+  annotationKey:

@@ -1,4 +1,4 @@
-//go:build azure
+//go:build !azure
 
 /*
  * Copyright (c) Microsoft Corporation.
@@ -40,15 +40,15 @@ func GetInstanceRootResource(name string) string {
 	return ""
 }
 
-func GetInstanceOwnerReferences(apiClient api_utils.ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	return nil, nil
 }
 
-func GetSolutionContainerOwnerReferences(apiClient api_utils.ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	return nil, nil
 }
 
-func GenerateSystemDataAnnotationsForInstanceHistory(annotations map[string]string, solutionId string) map[string]string {
+func GenerateSystemDataAnnotations(annotations map[string]string, solutionId string) map[string]string {
 	return annotations
 }
 
