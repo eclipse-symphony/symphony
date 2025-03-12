@@ -412,6 +412,19 @@ type DeployableStatus struct {
 	LastModified       metav1.Time              `json:"lastModified,omitempty"`
 }
 
+func (c DeployableStatus) DeepEquals(other DeployableStatus) bool {
+	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.ProvisioningStatus, other.ProvisioningStatus) {
+		return false
+	}
+	if !reflect.DeepEqual(c.LastModified, other.LastModified) {
+		return false
+	}
+	return true
+}
+
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus = DeployableStatus
 

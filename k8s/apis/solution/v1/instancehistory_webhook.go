@@ -123,6 +123,11 @@ func (r *InstanceHistory) ValidateUpdate(old runtime.Object) (admission.Warnings
 		diagnostic.ErrorWithCtx(historyLog, ctx, err, "Instance history is readonly", "name", r.Name, "namespace", r.Namespace)
 		return nil, err
 	}
+	if !r.Status.DeepEquals(oldInstanceHistory.Status) {
+		err := fmt.Errorf("Cannot update instance history status because it is readonly")
+		diagnostic.ErrorWithCtx(historyLog, ctx, err, "Instance history is readonly", "name", r.Name, "namespace", r.Namespace)
+		return nil, err
+	}
 	return nil, nil
 }
 
