@@ -18,6 +18,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/host"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -194,10 +195,7 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 	go func() {
 		mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : check host initialization, status topic %s with Group %s", topic, handler.Group)
 		for {
-			i.rwLock.RLock()
-			readyFlag := i.readyFlag
-			i.rwLock.RUnlock()
-			if readyFlag {
+			if host.IsHostReady() {
 				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : start poll message, topic %s with Group %s", topic, handler.Group)
 				go i.pollNewMessagesLoop(topic, handler)
 				go i.ClaimMessageLoop(topic, handler)
@@ -208,12 +206,6 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 		}
 	}()
 	return nil
-}
-
-func (i *RedisPubSubProvider) SendSetupReadyFlag() {
-	i.rwLock.Lock()
-	defer i.rwLock.Unlock()
-	i.readyFlag = true
 }
 
 func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2.EventHandler) {

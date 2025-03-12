@@ -15,5 +15,4 @@ type IPubSubProvider interface {
 	Init(config providers.IProviderConfig) error
 	Publish(topic string, message v1alpha2.Event) error
 	Subscribe(topic string, handler v1alpha2.EventHandler) error
-	SendSetupReadyFlag()
 }

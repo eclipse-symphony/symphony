@@ -45,8 +45,6 @@ func (t *TestPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHandl
 	return nil
 }
 
-func (t *TestPubSubProvider) SendSetupReadyFlag() {}
-
 func TestVendorContextInit(t *testing.T) {
 	v := VendorContext{}
 	err := v.Init(nil)

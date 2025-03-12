@@ -34,6 +34,21 @@ import (
 var log = logger.NewLogger("coa.runtime")
 var defaultShutdownGracePeriod = "30s"
 
+var hostIsReadyFlag bool = false
+var rwLock sync.RWMutex
+
+func IsHostReady() bool {
+	rwLock.RLock()
+	defer rwLock.RUnlock()
+	return hostIsReadyFlag
+}
+
+func SetHostReadyFlag(ready bool) {
+	rwLock.Lock()
+	defer rwLock.Unlock()
+	hostIsReadyFlag = ready
+}
+
 type HostConfig struct {
 	SiteInfo            v1alpha2.SiteInfo `json:"siteInfo"`
 	API                 APIConfig         `json:"api"`
@@ -218,10 +233,7 @@ func (h *APIHost) Launch(config HostConfig,
 			v.Vendor.SetEvaluationContext(evaluationContext)
 		}
 	}
-	if pubsubProvider != nil {
-		// Send flag to pubsub provider to inform that host setup is ready
-		pubsubProvider.(pubsub.IPubSubProvider).SendSetupReadyFlag()
-	}
+	SetHostReadyFlag(true)
 
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
