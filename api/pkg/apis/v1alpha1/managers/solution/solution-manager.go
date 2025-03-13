@@ -434,8 +434,6 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 			retryCount := 1
 			//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
 			// an error condition can't be resolved quickly.
-			var stepError error
-			var componentResults map[string]model.ComponentResultSpec
 
 			// for _, component := range step.Components {
 			// 	for k, v := range component.Component.Properties {
