@@ -163,6 +163,7 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // SetupWithManager sets up the controller with the Manager.
 func (r *CatalogEvalReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("CatalogEval").
 		For(&federationv1.CatalogEvalExpression{}).
 		Complete(r)
 }

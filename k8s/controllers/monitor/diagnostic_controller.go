@@ -48,6 +48,7 @@ func (r *DiagnosticReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DiagnosticReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Diagnostic").
 		For(&monitorv1.Diagnostic{}).
 		Complete(r)
 }

@@ -78,6 +78,7 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // CatalogReconciler sets up the controller with the Manager.
 func (r *CatalogReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Catalog").
 		For(&federationv1.Catalog{}).
 		Complete(r)
 }
