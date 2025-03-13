@@ -38,6 +38,13 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 			errorFields = append(errorFields, *err)
 		}
 	}
+	if oldRef != nil && (old.Spec.SolutionScope != new.Spec.SolutionScope) {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.SolutionScope",
+			Value:           new.Spec.SolutionScope,
+			DetailedMessage: "The target is already deployed. Cannot change SolutionScope of the target.",
+		})
+	}
 	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
 		errorFields = append(errorFields, ErrorField{
 			FieldPath:       "spec.isDryRun",
