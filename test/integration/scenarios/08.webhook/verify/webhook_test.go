@@ -408,7 +408,7 @@ func TestUpdateInstanceHistory(t *testing.T) {
 	assert.Nil(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), historyUpdate)).CombinedOutput()
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(string(output), "Cannot update instance history because it is readonly"))
+	assert.True(t, strings.Contains(string(output), "Cannot update instance history spec because it is readonly"))
 }
 
 func getRepoPath() string {

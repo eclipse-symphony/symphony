@@ -112,6 +112,18 @@ func (r *InstanceHistory) ValidateUpdate(old runtime.Object) (admission.Warnings
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, historyReaderClient, context.TODO(), historyLog)
 
 	diagnostic.InfoWithCtx(historyLog, ctx, "Instance history is readonly", "name", r.Name, "namespace", r.Namespace)
+	// instance history spec is readonly and should not be updated
+	oldInstanceHistory, ok := old.(*InstanceHistory)
+	if !ok {
+		err := fmt.Errorf("expected an Instance History object")
+		diagnostic.ErrorWithCtx(historyLog, ctx, err, "failed to convert old object to Instance History", "name", r.Name, "namespace", r.Namespace)
+		return nil, err
+	}
+	if !r.Spec.DeepEquals(oldInstanceHistory.Spec) {
+		err := fmt.Errorf("Cannot update instance history spec because it is readonly")
+		diagnostic.ErrorWithCtx(historyLog, ctx, err, "Instance history is readonly", "name", r.Name, "namespace", r.Namespace)
+		return nil, err
+	}
 	return nil, nil
 }
 
