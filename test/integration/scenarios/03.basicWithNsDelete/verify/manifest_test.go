@@ -451,15 +451,31 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 		time.Sleep(sleepDuration)
 	}
 
-	// deploy new target with solutionScope
-	targetFile := "../manifest/oss/target-configmap-update.yaml"
+	// test update target solutionScope, expect error
+	targetFile := "../manifest/oss/target-configmap-error.yaml"
 	fullPath, err := filepath.Abs(targetFile)
+	require.NoError(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "The target is already deployed. Cannot change SolutionScope of the target.")
+
+	// deploy new target with solutionScope
+	targetFile = "../manifest/oss/target-configmap-update.yaml"
+	fullPath, err = filepath.Abs(targetFile)
 	require.NoError(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
 	require.NoError(t, err)
 
+	// test update instance scope, expect error
+	instanceFile := "../manifest/oss/instance-configmap-error.yaml"
+	fullPath, err = filepath.Abs(instanceFile)
+	require.NoError(t, err)
+	output, err = exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "The instance is already deployed. Cannot change Scope of the instance.")
+
 	// update the instance with new target
-	instanceFile := "../manifest/oss/instance-configmap-update.yaml"
+	instanceFile = "../manifest/oss/instance-configmap-update.yaml"
 	fullPath, err = filepath.Abs(instanceFile)
 	require.NoError(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
