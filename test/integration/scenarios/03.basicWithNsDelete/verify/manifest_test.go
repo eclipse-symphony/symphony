@@ -451,9 +451,16 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 		time.Sleep(sleepDuration)
 	}
 
-	// update target with solutionScope
-	targetFile := "../manifest/oss/target-configmap.yaml"
+	// deploy new target with solutionScope
+	targetFile := "../manifest/oss/target-configmap-update.yaml"
 	fullPath, err := filepath.Abs(targetFile)
+	require.NoError(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+	require.NoError(t, err)
+
+	// update the instance with new target
+	instanceFile := "../manifest/oss/instance-configmap-update.yaml"
+	fullPath, err = filepath.Abs(instanceFile)
 	require.NoError(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
 	require.NoError(t, err)
@@ -472,8 +479,8 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 		time.Sleep(sleepDuration)
 	}
 
-	// Update instance scope with nondefault namespace
-	instanceFile := "../manifest/oss/instance-configmap-with-scope.yaml"
+	// Create instance with scope with nondefault namespace
+	instanceFile = "../manifest/oss/instance-configmap-with-scope.yaml"
 	fullPath, err = filepath.Abs(instanceFile)
 	require.NoError(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
