@@ -47,6 +47,7 @@ func (r *SiteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 // SetupWithManager sets up the controller with the Manager.
 func (r *SiteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Site").
 		For(&federationv1.Site{}).
 		Complete(r)
 }

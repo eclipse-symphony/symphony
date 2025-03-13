@@ -104,6 +104,7 @@ func (r *TargetPollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("TargetPolling").
 		WithEventFilter(jobIDPredicate).
 		For(&symphonyv1.Target{}).
 		Complete(r)

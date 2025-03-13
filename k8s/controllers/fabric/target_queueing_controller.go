@@ -122,6 +122,7 @@ func (r *TargetQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("TargetQueueing").
 		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
 		For(&symphonyv1.Target{}).
 		Complete(r)
