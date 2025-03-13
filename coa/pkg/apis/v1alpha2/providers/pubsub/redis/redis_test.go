@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/host"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
@@ -138,6 +139,7 @@ func TestBasicPubSub(t *testing.T) {
 			return nil
 		},
 	})
+	host.SetHostReadyFlag(true)
 	provider.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
 	assert.Equal(t, "TEST", msg)
@@ -174,6 +176,7 @@ func TestBasicPubSubTwoProviders(t *testing.T) {
 			return nil
 		},
 	})
+	host.SetHostReadyFlag(true)
 	provider1.Publish("test", v1alpha2.Event{Body: "TEST"})
 	<-sig
 	assert.Equal(t, "TEST", msg)
@@ -210,6 +213,7 @@ func TestBasicPubSubTwoProvidersComplexEvent(t *testing.T) {
 			return nil
 		},
 	})
+	host.SetHostReadyFlag(true)
 	provider1.Publish("testjob", v1alpha2.Event{
 		Metadata: map[string]string{
 			"objectType": "mock",
