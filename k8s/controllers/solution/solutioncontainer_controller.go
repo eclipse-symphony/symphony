@@ -47,6 +47,7 @@ func (r *SolutionContainerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 // SetupWithManager sets up the controller with the Manager.
 func (r *SolutionContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("SolutionContainer").
 		For(&solutionv1.SolutionContainer{}).
 		Complete(r)
 }
