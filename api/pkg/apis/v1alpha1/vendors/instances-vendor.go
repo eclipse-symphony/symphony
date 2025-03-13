@@ -7,7 +7,6 @@
 package vendors
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -20,6 +19,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -158,7 +158,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				}
 			}
 		} else {
-			err := json.Unmarshal(request.Body, &instance)
+			err := utils2.UnmarshalJson(request.Body, &instance)
 			if err != nil {
 				iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

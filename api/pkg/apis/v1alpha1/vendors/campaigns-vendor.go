@@ -7,8 +7,6 @@
 package vendors
 
 import (
-	"encoding/json"
-
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -18,6 +16,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -119,7 +118,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onCampaigns-POST", pCtx, nil)
 		var campaign model.CampaignState
 
-		err := json.Unmarshal(request.Body, &campaign)
+		err := utils2.UnmarshalJson(request.Body, &campaign)
 		if err != nil {
 			cLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
