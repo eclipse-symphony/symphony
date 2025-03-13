@@ -29,6 +29,7 @@ const (
 	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
 	TargetOperationNamePrefix            = "targets.fabric." + FullGroupName
 	InstanceOperationNamePrefix          = "instances.solution." + FullGroupName
+	InstanceHistoryOperationNamePrefix   = "instancehistories.solution." + FullGroupName
 	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
 	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
 	CatalogEvalOperationNamePrefix       = "catalogevalexpression.federation." + FullGroupName

@@ -9,6 +9,7 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -93,6 +94,50 @@ type TargetSpec struct {
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
 }
 
+func (c TargetSpec) DeepEquals(other TargetSpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+	if c.Scope != other.Scope {
+		return false
+	}
+	if c.SolutionScope != other.SolutionScope {
+		return false
+	}
+	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.Components, other.Components) {
+		return false
+	}
+	if c.Constraints != other.Constraints {
+		return false
+	}
+	if !model.SlicesEqual(c.Topologies, other.Topologies) {
+		return false
+	}
+	if c.ForceRedeploy != other.ForceRedeploy {
+		return false
+	}
+	if c.IsDryRun != other.IsDryRun {
+		return false
+	}
+
+	// check reconciliation policy
+	if c.ReconciliationPolicy == nil {
+		return other.ReconciliationPolicy == nil
+	}
+
+	if other.ReconciliationPolicy == nil {
+		return false
+	}
+
+	return c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy)
+}
+
 // +kubebuilder:object:generate=true
 type InstanceSpec struct {
 	DisplayName string               `json:"displayName,omitempty"`
@@ -104,11 +149,140 @@ type InstanceSpec struct {
 	Topologies  []model.TopologySpec `json:"topologies,omitempty"`
 	Pipelines   []model.PipelineSpec `json:"pipelines,omitempty"`
 	IsDryRun    bool                 `json:"isDryRun,omitempty"`
+	ActiveState model.ActiveState    `json:"activeState,omitempty"`
 
 	// Optional ReconcilicationPolicy to specify how target controller should reconcile.
 	// Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
 	// when the instance is created or updated.
 	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
+}
+
+func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+
+	if c.Scope != other.Scope {
+		return false
+	}
+
+	if !model.StringMapsEqual(c.Parameters, other.Parameters, nil) {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+
+	if c.Solution != other.Solution {
+		return false
+	}
+
+	if c.ActiveState != other.ActiveState {
+		return false
+	}
+
+	equal, err := c.Target.DeepEquals(other.Target)
+	if err != nil {
+		return false
+	}
+
+	if !equal {
+		return false
+	}
+
+	if !model.SlicesEqual(c.Topologies, other.Topologies) {
+		return false
+	}
+
+	if !model.SlicesEqual(c.Pipelines, other.Pipelines) {
+		return false
+	}
+
+	if c.IsDryRun != other.IsDryRun {
+		return false
+	}
+
+	// check reconciliation policy
+	if c.ReconciliationPolicy == nil {
+		return other.ReconciliationPolicy == nil
+	}
+
+	if other.ReconciliationPolicy == nil {
+		return false
+	}
+
+	return c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy)
+}
+
+// +kubebuilder:object:generate=true
+type InstanceHistorySpec struct {
+	// Snapshot of the instance
+	DisplayName          string                    `json:"displayName,omitempty"`
+	Scope                string                    `json:"scope,omitempty"`
+	Parameters           map[string]string         `json:"parameters,omitempty"` //TODO: Do we still need this?
+	Metadata             map[string]string         `json:"metadata,omitempty"`
+	Solution             SolutionSpec              `json:"solution"`
+	SolutionId           string                    `json:"solutionId"`
+	Target               TargetSpec                `json:"target,omitempty"`
+	TargetId             string                    `json:"targetId,omitempty"`
+	TargetSelector       map[string]string         `json:"targetSelector,omitempty"`
+	Topologies           []model.TopologySpec      `json:"topologies,omitempty"`
+	Pipelines            []model.PipelineSpec      `json:"pipelines,omitempty"`
+	IsDryRun             bool                      `json:"isDryRun,omitempty"`
+	ReconciliationPolicy *ReconciliationPolicySpec `json:"reconciliationPolicy,omitempty"`
+
+	// Add rootresoure to the instance history spec
+	RootResource string `json:"rootResource,omitempty"`
+}
+
+func (c InstanceHistorySpec) DeepEquals(other InstanceHistorySpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+	if c.Scope != other.Scope {
+		return false
+	}
+	if !model.StringMapsEqual(c.Parameters, other.Parameters, nil) {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+	if !c.Solution.DeepEquals(other.Solution) {
+		return false
+	}
+	if c.SolutionId != other.SolutionId {
+		return false
+	}
+	if !c.Target.DeepEquals(other.Target) {
+		return false
+	}
+	if c.TargetId != other.TargetId {
+		return false
+	}
+	if !model.StringMapsEqual(c.TargetSelector, other.TargetSelector, nil) {
+		return false
+	}
+	if !model.SlicesEqual(c.Topologies, other.Topologies) {
+		return false
+	}
+	if !model.SlicesEqual(c.Pipelines, other.Pipelines) {
+		return false
+	}
+	if c.IsDryRun != other.IsDryRun {
+		return false
+	}
+	if c.RootResource != other.RootResource {
+		return false
+	}
+	// check reconciliation policy
+	if c.ReconciliationPolicy == nil {
+		return other.ReconciliationPolicy == nil
+	}
+	if other.ReconciliationPolicy == nil {
+		return false
+	}
+	return c.ReconciliationPolicy.DeepEquals(*other.ReconciliationPolicy)
 }
 
 // +kubebuilder:object:generate=true
@@ -118,6 +292,22 @@ type SolutionSpec struct {
 	Components   []ComponentSpec   `json:"components,omitempty"`
 	Version      string            `json:"version,omitempty"`
 	RootResource string            `json:"rootResource,omitempty"`
+}
+
+func (c SolutionSpec) DeepEquals(other SolutionSpec) bool {
+	if c.DisplayName != other.DisplayName {
+		return false
+	}
+	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.Components, other.Components) {
+		return false
+	}
+	if c.Version != other.Version {
+		return false
+	}
+	return c.RootResource == other.RootResource
 }
 
 // +kubebuilder:object:generate=true
@@ -222,15 +412,41 @@ type DeployableStatus struct {
 	LastModified       metav1.Time              `json:"lastModified,omitempty"`
 }
 
+func (c DeployableStatus) DeepEquals(other DeployableStatus) bool {
+	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.ProvisioningStatus, other.ProvisioningStatus) {
+		return false
+	}
+	if !reflect.DeepEqual(c.LastModified, other.LastModified) {
+		return false
+	}
+	return true
+}
+
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus = DeployableStatus
 
 // TargetStatus defines the observed state of Target
 type TargetStatus = DeployableStatus
 
+// InstanceHistoryStatus defines the observed state of Solution
+type InstanceHistoryStatus = DeployableStatus
+
 // +kubebuilder:object:generate=true
 type ReconciliationPolicySpec struct {
 	State ReconciliationPolicyState `json:"state"`
 	// +kubebuilder:validation:MinLength=1
 	Interval *string `json:"interval,omitempty"`
+}
+
+func (c ReconciliationPolicySpec) DeepEquals(other ReconciliationPolicySpec) bool {
+	if c.State != other.State {
+		return false
+	}
+	if *c.Interval != *other.Interval {
+		return false
+	}
+	return true
 }

@@ -9,7 +9,7 @@ spec:
     metadata: 
       name: webappconfig:v1
     spec: 
-      type: config
+      catalogType: config
       properties:
         testA:
           testB:

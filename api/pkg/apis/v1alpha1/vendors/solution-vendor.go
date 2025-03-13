@@ -21,6 +21,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/valyala/fasthttp"
 )
@@ -253,7 +254,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - unmarshal request %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -334,7 +335,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Apply Deployment", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -348,7 +349,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Get Components", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -362,7 +363,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Delete Components", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
