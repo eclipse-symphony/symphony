@@ -859,15 +859,17 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		return nil, v1alpha2.NewCOAError(nil, "no stage found", v1alpha2.BadRequest)
 	}
 	if stageSpec, ok := campaign.Stages[stage]; ok {
-		if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
-			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage != "" &&
-			activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage != stage {
-			log.ErrorfCtx(ctx, " M (Stage): current stage is %s, expected next stage is %s, actual next stage is %s",
-				activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage,
-				activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage,
-				stage)
-			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
-		}
+		// There could be rare case where a stage is triggered twice and the history may contain two entries.
+		// Skip the following check until we have stage dedup
+		// if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
+		// 	activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage != "" &&
+		// 	activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage != stage {
+		// 	log.ErrorfCtx(ctx, " M (Stage): current stage is %s, expected next stage is %s, actual next stage is %s",
+		// 		activation.Status.StageHistory[len(activation.Status.StageHistory)-1].Stage,
+		// 		activation.Status.StageHistory[len(activation.Status.StageHistory)-1].NextStage,
+		// 		stage)
+		// 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
+		// }
 		return &v1alpha2.ActivationData{
 			Campaign:             actData.Campaign,
 			Activation:           actData.Activation,
