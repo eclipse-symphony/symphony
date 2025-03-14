@@ -307,6 +307,12 @@ func (c *MockApiClient) QueueDeploymentJob(ctx context.Context, namespace string
 	return args.Error(0)
 }
 
+// CancelDeploymentJob implements utils.ApiClient.
+func (c *MockApiClient) CancelDeploymentJob(ctx context.Context, id string, jobId string, namespace string, user string, password string) error {
+	args := c.Called(ctx, namespace, id, jobId, namespace)
+	return args.Error(0)
+}
+
 // QueueJob implements ApiClient.
 // Deprecated and not used.
 func (c *MockApiClient) QueueJob(ctx context.Context, id string, scope string, isDelete bool, isTarget bool, user string, password string) error {
