@@ -28,11 +28,12 @@ def topology():
 @app.route('/file/<path:file_path>')
 def show_file(file_path):
     try:
-        with open(file_path, 'r') as f:
+        safe_file_path = escape(file_path)
+        with open(safe_file_path, 'r') as f:
             file_contents = f.read()
-        return render_template('file.html', file_path=file_path, file_contents=file_contents)
+        return render_template('file.html', file_path=safe_file_path, file_contents=file_contents)
     except FileNotFoundError:
-        return f'File not found: {file_path}', 404
+        return f'File not found: {safe_file_path}', 404
     
 @app.route('/env/<env_var>')
 def show_env_var(env_var):

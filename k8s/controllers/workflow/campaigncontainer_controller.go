@@ -47,6 +47,7 @@ func (r *CampaignContainerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 // SetupWithManager sets up the controller with the Manager.
 func (r *CampaignContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("CampaignContainer").
 		For(&workflowv1.CampaignContainer{}).
 		Complete(r)
 }

@@ -47,6 +47,7 @@ func (r *CatalogContainerReconciler) Reconcile(ctx context.Context, req ctrl.Req
 // SetupWithManager sets up the controller with the Manager.
 func (r *CatalogContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("CatalogContainer").
 		For(&federationv1.CatalogContainer{}).
 		Complete(r)
 }
