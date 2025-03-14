@@ -457,7 +457,7 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 	require.NoError(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
 	require.Error(t, err)
-	require.Contains(t, string(output), "The target is already deployed. Cannot change SolutionScope of the target.")
+	require.Contains(t, string(output), "Target has one or more associated instances. Cannot change SolutionScope of the target.")
 
 	// deploy new target with solutionScope
 	targetFile = "../manifest/oss/target-configmap-update.yaml"
