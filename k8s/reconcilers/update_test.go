@@ -278,8 +278,23 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 					Expect(reconcileResultPolling.RequeueAfter).To(BeWithin("1s").Of(TestPollInterval))
 				})
 				It("should updpate the compoent status with progress", func() {
-					Expect(object.Status.Properties["targets.default-target.comp1"]).To(ContainSubstring("updated"))
-					Expect(object.Status.Properties["targets.default-target.comp2"]).To(ContainSubstring("pending"))
+					comp1Status := ""
+					comp2Status := ""
+					for _, targetStatus := range object.Status.TargetStatuses {
+						if targetStatus.Name == "default-target" {
+							for _, compStatus := range targetStatus.ComponentStatuses {
+								if compStatus.Name == "comp1" {
+									comp1Status = compStatus.Status
+								}
+								if compStatus.Name == "comp2" {
+									comp2Status = compStatus.Status
+								}
+							}
+						}
+					}
+
+					Expect(comp1Status).To(ContainSubstring("updated"))
+					Expect(comp2Status).To(ContainSubstring("pending"))
 				})
 			})
 

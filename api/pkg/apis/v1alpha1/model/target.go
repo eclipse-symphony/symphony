@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	TargetStatus = DeployableStatus
+	TargetStatus = DeployableStatusV2
 
 	// TargetState defines the current state of the target
 	TargetState struct {

@@ -272,6 +272,7 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	var targetState model.TargetState
 	json.Unmarshal(resp.Body, &targetState)
 	assert.Equal(t, v1alpha2.OK, resp.State)
+	// TODO: missing properties
 	assert.NotNil(t, targetState.Status.Properties["ping"])
 }
 func TestTargetWrongMethod(t *testing.T) {

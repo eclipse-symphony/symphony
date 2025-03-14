@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -121,7 +122,7 @@ func testBasic_TargetStatus(t *testing.T, successCount string) {
 		fmt.Printf("Current target status: %v\n", targetState)
 		require.NotEqual(t, "Failed", targetState.Status.ProvisioningStatus.Status, "target should not be in failed state")
 
-		if success, ok := targetState.Status.Properties["deployed"]; ok && targetState.Status.ProvisioningStatus.Status == "Succeeded" && success == successCount {
+		if success := targetState.Status.Deployed; targetState.Status.ProvisioningStatus.Status == "Succeeded" && strconv.FormatInt(int64(success), 10) == successCount {
 			break
 		}
 	}
@@ -155,7 +156,7 @@ func testBasic_InstanceStatus(t *testing.T, successCount string) {
 		fmt.Printf("Current instance status: %v\n", instance)
 		require.NotEqual(t, "Failed", instance.Status.ProvisioningStatus.Status, "instance should not be in failed state")
 		// TODO: check success count
-		if success, ok := instance.Status.Properties["deployed"]; ok && instance.Status.ProvisioningStatus.Status == "Succeeded" && success == successCount {
+		if success := instance.Status.Deployed; instance.Status.ProvisioningStatus.Status == "Succeeded" && strconv.FormatInt(int64(success), 10) == successCount {
 			break
 		}
 	}

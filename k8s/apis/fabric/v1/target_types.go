@@ -18,7 +18,7 @@ type ComponentProperties = runtime.RawExtension
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.properties.status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
 // Target is the Schema for the targets API
 type Target struct {
 	metav1.TypeMeta   `json:",inline"`

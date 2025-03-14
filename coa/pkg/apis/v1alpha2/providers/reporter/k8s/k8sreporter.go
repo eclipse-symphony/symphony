@@ -124,7 +124,7 @@ func toK8sReporterConfig(config providers.IProviderConfig) (K8sReporterConfig, e
 	return ret, err
 }
 
-func (m *K8sReporter) Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrtie bool) error {
+func (m *K8sReporter) Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrite bool) error {
 
 	obj, err := m.DynamicClient.Resource(schema.GroupVersionResource{
 		Group:    group,
@@ -142,7 +142,8 @@ func (m *K8sReporter) Report(id string, namespace string, group string, kind str
 
 	if existingStatus, ok := obj.Object["status"]; ok {
 		dict := existingStatus.(map[string]interface{})
-		if !overwrtie {
+		if !overwrite {
+			// TODO: properties should not hold the deployable status
 			if propsElement, ok := dict["properties"]; ok {
 				props := propsElement.(map[string]interface{})
 				for k, v := range props {
