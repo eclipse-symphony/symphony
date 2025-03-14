@@ -1,0 +1,7 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: wfi-v-cwi-v-version2-v-cwi3
+  namespace: jessewftesti
+spec:
+  campaign: wfi-v-cwi-v-version2

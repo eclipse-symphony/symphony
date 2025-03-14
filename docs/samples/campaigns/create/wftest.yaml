@@ -1,0 +1,50 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: wfi-v-cwi-v-version2
+  namespace: jessewftesti
+spec:
+  firstStage: stage-name-placeholder1
+  rootResource: wfi-v-cwi
+  selfDriving: true
+  stages:
+    failed:
+      inputs:
+        foo: "1"
+      name: failed
+      provider: providers.stage.mock
+      target: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/jesse-cluster-test/providers/private.edge/targets/site-k8s-target
+    stage-name-placeholder1:
+      config:
+        wait.count: 10
+        wait.interval: 20
+      inputs:
+        action: create
+        object:
+          metadata:
+            name: site-instance
+          spec:
+            solution: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/jesse-cluster-test/providers/private.edge/targets/site-k8s-target/solutions/site-app/versions/v1
+        objectName: site-instance
+        objectType: instance
+      name: stage-name-placeholder1
+      stageSelector: ${{$if($equal($output(stage-name-placeholder1, failedDeploymentCount), 0), stage-name-placeholder2, failed)}}
+      provider: providers.stage.create
+      target: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/jesse-cluster-test/providers/private.edge/targets/site-k8s-target
+    stage-name-placeholder2:
+      config:
+        wait.count: 10
+        wait.interval: 20
+      inputs:
+        action: create
+        object:
+          metadata:
+            name: site-instance2
+          spec:
+            solution: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/jesse-cluster-test/providers/private.edge/targets/site-k8s-target/solutions/site-app/versions/v2
+        objectName: site-instance2
+        objectType: instance
+      name: stage-name-placeholder2
+      provider: providers.stage.create
+      target: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourcegroups/jesse-cluster-test/providers/private.edge/targets/site-k8s-target
+  version: version2

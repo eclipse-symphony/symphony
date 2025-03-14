@@ -1,0 +1,23 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  annotations:
+    management.azure.com/apiVersion: 2025-01-01-preview
+    management.azure.com/bridgeLocation: EastUS2
+    management.azure.com/cloudEnvironment: AzureCloud
+    management.azure.com/correlationId: 2036c4b5-c603-4089-bcca-3e49cb09379d
+    management.azure.com/customLocation: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Microsoft.ExtendedLocation/customLocations/jessewftesti
+    management.azure.com/location: eastus
+    management.azure.com/operationId: ca20cff0-ebad-4e1c-abfe-9296f3aaaa8e*A75BC89C7A71E54D1EA3F5FFF17CF6C583DB55D23CCC2C15005BC65C8962F136
+    management.azure.com/parentResourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfi
+    management.azure.com/resourceId: /subscriptions/973d15c6-6c57-447e-b9c6-6d79b5b784ab/resourceGroups/jesse-cluster-test/providers/Private.Edge/contexts/wfi/workflows/cwi
+    management.azure.com/systemData: '{"createdBy":"29dabdb7-dac7-46c8-a985-d57bd2dd0a0c","createdByType":"User","createdAt":"2025-03-04T04:56:25.2373203Z","resourceUID":"dbf48970-ccef-4017-b69c-468974409287","clientLocation":"eastus2euap"}'
+    management.azure.com/tenantId: 72f988bf-86f1-41af-91ab-2d7cd011db47
+    traceparent: 00-70308e3484ac6a1e4c1ebefaa720585c-c4752605658e07fe-01
+  creationTimestamp: "2025-03-04T04:56:34Z"
+  generation: 1
+  name: wfi-v-cwi
+  namespace: jessewftesti
+  resourceVersion: "18837765"
+  uid: 10c1346b-1545-41ee-88b5-5c8b0a3a4f9f
+spec: {}
