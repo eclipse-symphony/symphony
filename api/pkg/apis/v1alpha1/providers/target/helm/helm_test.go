@@ -278,7 +278,7 @@ func TestHelmTargetProvider_NonOciChart(t *testing.T) {
 				"version": "",
 			},
 			Action:        model.ComponentUpdate,
-			ExpectedError: false,
+			ExpectedError: true,
 		},
 		{
 			Name: "update valid configuration with version",
