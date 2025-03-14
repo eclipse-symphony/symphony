@@ -48,7 +48,7 @@ func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Contex
 	return nil, nil
 }
 
-func GenerateSystemDataAnnotations(annotations map[string]string, solutionId string) map[string]string {
+func GenerateSystemDataAnnotations(ctx context.Context, annotations map[string]string, solutionId string) map[string]string {
 	return annotations
 }
 

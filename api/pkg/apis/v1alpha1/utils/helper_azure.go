@@ -110,8 +110,8 @@ func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Contex
 	}, nil
 }
 
-func GenerateSystemDataAnnotations(annotations map[string]string, resourceId string) map[string]string {
-	log.Infof("Azure: check if annotation need to be added: %v", annotations)
+func GenerateSystemDataAnnotations(ctx context.Context, annotations map[string]string, resourceId string) map[string]string {
+	log.InfofCtx(ctx, "Azure: check if annotation need to be added: %v", annotations)
 	if isPrivateResourceProvider(resourceId) {
 		annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
 	}
