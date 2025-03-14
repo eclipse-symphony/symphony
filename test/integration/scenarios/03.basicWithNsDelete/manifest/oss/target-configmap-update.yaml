@@ -1,7 +1,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: target-configmap 
+  name: target-configmap-update
 spec:
   solutionScope: target-scope
   topologies:
