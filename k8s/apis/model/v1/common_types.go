@@ -8,6 +8,7 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -440,6 +441,43 @@ type DeployableStatusV2 struct {
 	Properties           map[string]string        `json:"properties,omitempty"`
 }
 
+func (c DeployableStatusV2) DeepEquals(other DeployableStatusV2) bool {
+	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.ProvisioningStatus, other.ProvisioningStatus) {
+		return false
+	}
+	if c.LastModified != other.LastModified {
+		return false
+	}
+	if c.Deployed != other.Deployed {
+		return false
+	}
+	if c.Targets != other.Targets {
+		return false
+	}
+	if c.Status != other.Status {
+		return false
+	}
+	if c.StatusDetails != other.StatusDetails {
+		return false
+	}
+	if c.RunningJobId != other.RunningJobId {
+		return false
+	}
+	if c.ExpectedRunningJobId != other.ExpectedRunningJobId {
+		return false
+	}
+	if c.Generation != other.Generation {
+		return false
+	}
+	if !model.SlicesEqual(c.TargetStatuses, other.TargetStatuses) {
+		return false
+	}
+	return true
+}
+
 // +kubebuilder:object:generate=true
 type TargetDeployableStatus struct {
 	Name              string                      `json:"name,omitempty"`
@@ -447,10 +485,41 @@ type TargetDeployableStatus struct {
 	ComponentStatuses []ComponentDeployableStatus `json:"componentStatuses,omitempty"`
 }
 
+func (c TargetDeployableStatus) DeepEquals(other model.IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetDeployableStatus)
+	if !ok {
+		return false, errors.New("parameter is not a TargetDeployableStatus type")
+	}
+	if c.Name != otherC.Name {
+		return false, nil
+	}
+	if c.Status != otherC.Status {
+		return false, nil
+	}
+	if !model.SlicesEqual(c.ComponentStatuses, otherC.ComponentStatuses) {
+		return false, nil
+	}
+	return true, nil
+}
+
 // +kubebuilder:object:generate=true
 type ComponentDeployableStatus struct {
 	Name   string `json:"name,omitempty"`
 	Status string `json:"status,omitempty"`
+}
+
+func (c ComponentDeployableStatus) DeepEquals(other model.IDeepEquals) (bool, error) {
+	otherC, ok := other.(ComponentDeployableStatus)
+	if !ok {
+		return false, errors.New("parameter is not a ComponentDeployableStatus type")
+	}
+	if c.Name != otherC.Name {
+		return false, nil
+	}
+	if c.Status != otherC.Status {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (c *DeployableStatusV2) GetComponentStatus(targetName string, componentName string) string {
