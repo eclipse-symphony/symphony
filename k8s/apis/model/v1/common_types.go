@@ -58,6 +58,35 @@ type SidecarSpec struct {
 	Properties runtime.RawExtension `json:"properties,omitempty"`
 }
 
+// UnmarshalJSON customizes the JSON unmarshalling for SidecarSpec
+func (s *SidecarSpec) UnmarshalJSON(data []byte) error {
+	type Alias SidecarSpec
+	aux := &struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	s.Properties = runtime.RawExtension{Raw: aux.Properties}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for SidecarSpec
+func (s SidecarSpec) MarshalJSON() ([]byte, error) {
+	type Alias SidecarSpec
+	return json.Marshal(&struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Properties: json.RawMessage(s.Properties.Raw),
+		Alias:      (*Alias)(&s),
+	})
+}
+
 // Defines a desired runtime component
 // +kubebuilder:object:generate=true
 type ComponentSpec struct {
@@ -72,6 +101,35 @@ type ComponentSpec struct {
 	Dependencies []string             `json:"dependencies,omitempty"`
 	Skills       []string             `json:"skills,omitempty"`
 	Sidecars     []SidecarSpec        `json:"sidecars,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for ComponentSpec
+func (c *ComponentSpec) UnmarshalJSON(data []byte) error {
+	type Alias ComponentSpec
+	aux := &struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	c.Properties = runtime.RawExtension{Raw: aux.Properties}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for ComponentSpec
+func (c ComponentSpec) MarshalJSON() ([]byte, error) {
+	type Alias ComponentSpec
+	return json.Marshal(&struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Properties: json.RawMessage(c.Properties.Raw),
+		Alias:      (*Alias)(&c),
+	})
 }
 
 // Defines the desired state of Target
@@ -335,6 +393,8 @@ type StageSpec struct {
 func (s *StageSpec) UnmarshalJSON(data []byte) error {
 	type Alias StageSpec
 	aux := &struct {
+		Config json.RawMessage `json:"config,omitempty"`
+		Inputs json.RawMessage `json:"inputs,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(s),
@@ -342,6 +402,9 @@ func (s *StageSpec) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+	s.Config = runtime.RawExtension{Raw: aux.Config}
+	s.Inputs = runtime.RawExtension{Raw: aux.Inputs}
+
 	// validate if Schedule meet RFC 3339
 	if s.Schedule != "" {
 		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
@@ -360,9 +423,13 @@ func (s StageSpec) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(&struct {
+		Config json.RawMessage `json:"config,omitempty"`
+		Inputs json.RawMessage `json:"inputs,omitempty"`
 		*Alias
 	}{
-		Alias: (*Alias)(&s),
+		Config: json.RawMessage(s.Config.Raw),
+		Inputs: json.RawMessage(s.Inputs.Raw),
+		Alias:  (*Alias)(&s),
 	})
 }
 
@@ -373,6 +440,35 @@ type ActivationSpec struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for ActivationSpec
+func (a *ActivationSpec) UnmarshalJSON(data []byte) error {
+	type Alias ActivationSpec
+	aux := &struct {
+		Inputs json.RawMessage `json:"inputs,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(a),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	a.Inputs = runtime.RawExtension{Raw: aux.Inputs}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for ActivationSpec
+func (a ActivationSpec) MarshalJSON() ([]byte, error) {
+	type Alias ActivationSpec
+	return json.Marshal(&struct {
+		Inputs json.RawMessage `json:"inputs,omitempty"`
+		*Alias
+	}{
+		Inputs: json.RawMessage(a.Inputs.Raw),
+		Alias:  (*Alias)(&a),
+	})
 }
 
 // +kubebuilder:object:generate=true
@@ -400,6 +496,35 @@ type CatalogSpec struct {
 	ObjectRef    model.ObjectRef      `json:"objectRef,omitempty"`
 	Version      string               `json:"version,omitempty"`
 	RootResource string               `json:"rootResource,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for CatalogSpec
+func (c *CatalogSpec) UnmarshalJSON(data []byte) error {
+	type Alias CatalogSpec
+	aux := &struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	c.Properties = runtime.RawExtension{Raw: aux.Properties}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for CatalogSpec
+func (c CatalogSpec) MarshalJSON() ([]byte, error) {
+	type Alias CatalogSpec
+	return json.Marshal(&struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Properties: json.RawMessage(c.Properties.Raw),
+		Alias:      (*Alias)(&c),
+	})
 }
 
 // +kubebuilder:object:generate=true
