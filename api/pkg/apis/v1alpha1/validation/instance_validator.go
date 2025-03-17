@@ -56,7 +56,7 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 		errorFields = append(errorFields, ErrorField{
 			FieldPath:       "spec.Scope",
 			Value:           new.Spec.Scope,
-			DetailedMessage: "The instance is already deployed. Cannot change Scope of the instance.",
+			DetailedMessage: "The instance is already created. Cannot change Scope of the instance.",
 		})
 	}
 	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {

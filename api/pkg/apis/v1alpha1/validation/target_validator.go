@@ -42,7 +42,7 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 		errorFields = append(errorFields, ErrorField{
 			FieldPath:       "spec.Scope",
 			Value:           new.Spec.Scope,
-			DetailedMessage: "The target is already deployed. Cannot change Scope of the target.",
+			DetailedMessage: "The target is already created. Cannot change Scope of the target.",
 		})
 	}
 	if oldRef != nil && (old.Spec.SolutionScope != new.Spec.SolutionScope) && t.TargetInstanceLookupFunc != nil {
