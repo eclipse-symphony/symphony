@@ -11,38 +11,41 @@ import (
 )
 
 const (
-	Activity_HttpHeaderPrefix          string = "X-Activity-"
-	Activity_DiagnosticResourceCloudId string = "resourceId"
-	Activity_ResourceCloudId           string = "operatingResourceId"
-	Activity_OperationName             string = "operationName"
-	Activity_Location                  string = "location"
-	Activity_CorrelationId             string = "correlationId"
-	Activity_Properties                string = "properties"
-	Activity_EdgeLocation              string = "edgeLocation"
+	Activity_HttpHeaderPrefix           string = "X-Activity-"
+	Activity_DiagnosticResourceCloudId  string = "resourceId"
+	Activity_DiagnosticResourceLocation string = "location"
+	Activity_ResourceCloudId            string = "operatingResourceId"
+	Activity_OperationName              string = "operationName"
+	Activity_ResourceCloudLocation      string = "operatingResourceLocation"
+	Activity_CorrelationId              string = "correlationId"
+	Activity_Properties                 string = "properties"
+	Activity_EdgeLocation               string = "edgeLocation"
 
 	Activity_Props_CallerId      string = "callerId"
 	Activity_Props_ResourceK8SId string = "operatingResourceK8SId"
 
-	OTEL_Activity_DiagnosticResourceCloudId string = "resourceId"
-	OTEL_Activity_ResourceCloudId           string = "operatingResourceId"
-	OTEL_Activity_OperationName             string = "operationName"
-	OTEL_Activity_Location                  string = "location"
-	OTEL_Activity_CorrelationId             string = "correlationId"
-	OTEL_Activity_Properties                string = "properties"
-	OTEL_Activity_Props_CallerId            string = "callerId"
-	OTEL_Activity_Props_ResourceK8SId       string = "operatingResourceK8SId"
-	OTEL_Activity_Props_EdgeLocation        string = "edgeLocation"
+	OTEL_Activity_DiagnosticResourceCloudId  string = "resourceId"
+	OTEL_Activity_DiagnosticResourceLocation string = "location"
+	OTEL_Activity_ResourceCloudId            string = "operatingResourceId"
+	OTEL_Activity_OperationName              string = "operationName"
+	OTEL_Activity_ResourceCloudLocation      string = "operatingResourceLocation"
+	OTEL_Activity_CorrelationId              string = "correlationId"
+	OTEL_Activity_Properties                 string = "properties"
+	OTEL_Activity_Props_CallerId             string = "callerId"
+	OTEL_Activity_Props_ResourceK8SId        string = "operatingResourceK8SId"
+	OTEL_Activity_Props_EdgeLocation         string = "edgeLocation"
 )
 
 // ActivityLogContext is a context that holds activity information.
 type ActivityLogContext struct {
-	diagnosticResourceCloudId string
-	resourceCloudId           string
-	operationName             string
-	cloudLocation             string
-	correlationId             string
-	edgeLocation              string
-	properties                map[string]interface{}
+	diagnosticResourceCloudId       string
+	resourceCloudId                 string
+	operationName                   string
+	diagnosticResourceCloudLocation string
+	resourceCloudLocation           string
+	correlationId                   string
+	edgeLocation                    string
+	properties                      map[string]interface{}
 }
 
 func ActivityLogContextEquals(a, b *ActivityLogContext) bool {
@@ -62,7 +65,10 @@ func ActivityLogContextEquals(a, b *ActivityLogContext) bool {
 	if a.operationName != b.operationName {
 		return false
 	}
-	if a.cloudLocation != b.cloudLocation {
+	if a.diagnosticResourceCloudLocation != b.diagnosticResourceCloudLocation {
+		return false
+	}
+	if a.resourceCloudLocation != b.resourceCloudLocation {
 		return false
 	}
 	if a.correlationId != b.correlationId {
@@ -100,13 +106,14 @@ func (ctx *ActivityLogContext) DeepCopy() *ActivityLogContext {
 	}
 
 	newCtx := &ActivityLogContext{
-		diagnosticResourceCloudId: ctx.diagnosticResourceCloudId,
-		resourceCloudId:           ctx.resourceCloudId,
-		operationName:             ctx.operationName,
-		cloudLocation:             ctx.cloudLocation,
-		correlationId:             ctx.correlationId,
-		edgeLocation:              ctx.edgeLocation,
-		properties:                make(map[string]interface{}),
+		diagnosticResourceCloudId:       ctx.diagnosticResourceCloudId,
+		resourceCloudId:                 ctx.resourceCloudId,
+		operationName:                   ctx.operationName,
+		diagnosticResourceCloudLocation: ctx.diagnosticResourceCloudLocation,
+		resourceCloudLocation:           ctx.resourceCloudLocation,
+		correlationId:                   ctx.correlationId,
+		edgeLocation:                    ctx.edgeLocation,
+		properties:                      make(map[string]interface{}),
 	}
 	for k := range ctx.properties {
 		newCtx.properties[k] = ctx.properties[k]
@@ -114,14 +121,15 @@ func (ctx *ActivityLogContext) DeepCopy() *ActivityLogContext {
 	return newCtx
 }
 
-func NewActivityLogContext(diagnosticResourceCloudId, resourceCloudId, cloudLocation, edgeLocation, operationName, correlationId, callerId, resourceK8SId string) *ActivityLogContext {
+func NewActivityLogContext(diagnosticResourceCloudId, diagnosticResourceCloudLocation, resourceCloudId, resourceCloudLocation, edgeLocation, operationName, correlationId, callerId, resourceK8SId string) *ActivityLogContext {
 	return &ActivityLogContext{
-		diagnosticResourceCloudId: diagnosticResourceCloudId,
-		resourceCloudId:           resourceCloudId,
-		operationName:             operationName,
-		cloudLocation:             cloudLocation,
-		edgeLocation:              edgeLocation,
-		correlationId:             correlationId,
+		diagnosticResourceCloudId:       diagnosticResourceCloudId,
+		diagnosticResourceCloudLocation: diagnosticResourceCloudLocation,
+		resourceCloudId:                 resourceCloudId,
+		operationName:                   operationName,
+		resourceCloudLocation:           resourceCloudLocation,
+		edgeLocation:                    edgeLocation,
+		correlationId:                   correlationId,
 		properties: map[string]interface{}{
 			Activity_Props_CallerId:      callerId,
 			Activity_Props_ResourceK8SId: resourceK8SId,
@@ -131,13 +139,14 @@ func NewActivityLogContext(diagnosticResourceCloudId, resourceCloudId, cloudLoca
 
 func (ctx *ActivityLogContext) ToMap() map[string]interface{} {
 	return map[string]interface{}{
-		Activity_DiagnosticResourceCloudId: ctx.diagnosticResourceCloudId,
-		Activity_ResourceCloudId:           ctx.resourceCloudId,
-		Activity_OperationName:             ctx.operationName,
-		Activity_Location:                  ctx.cloudLocation,
-		Activity_EdgeLocation:              ctx.edgeLocation,
-		Activity_CorrelationId:             ctx.correlationId,
-		Activity_Properties:                ctx.properties,
+		Activity_DiagnosticResourceCloudId:  ctx.diagnosticResourceCloudId,
+		Activity_DiagnosticResourceLocation: ctx.diagnosticResourceCloudLocation,
+		Activity_ResourceCloudId:            ctx.resourceCloudId,
+		Activity_ResourceCloudLocation:      ctx.resourceCloudLocation,
+		Activity_OperationName:              ctx.operationName,
+		Activity_EdgeLocation:               ctx.edgeLocation,
+		Activity_CorrelationId:              ctx.correlationId,
+		Activity_Properties:                 ctx.properties,
 	}
 }
 
@@ -148,14 +157,18 @@ func (ctx *ActivityLogContext) FromMap(m map[string]interface{}) {
 	if m[Activity_DiagnosticResourceCloudId] != nil {
 		ctx.diagnosticResourceCloudId = m[Activity_DiagnosticResourceCloudId].(string)
 	}
+
+	if m[Activity_DiagnosticResourceLocation] != nil {
+		ctx.diagnosticResourceCloudLocation = m[Activity_DiagnosticResourceLocation].(string)
+	}
 	if m[Activity_ResourceCloudId] != nil {
 		ctx.resourceCloudId = m[Activity_ResourceCloudId].(string)
 	}
+	if m[Activity_ResourceCloudLocation] != nil {
+		ctx.resourceCloudLocation = m[Activity_ResourceCloudLocation].(string)
+	}
 	if m[Activity_OperationName] != nil {
 		ctx.operationName = m[Activity_OperationName].(string)
-	}
-	if m[Activity_Location] != nil {
-		ctx.cloudLocation = m[Activity_Location].(string)
 	}
 	if m[Activity_EdgeLocation] != nil {
 		ctx.edgeLocation = m[Activity_EdgeLocation].(string)
@@ -203,12 +216,14 @@ func (ctx *ActivityLogContext) Value(key interface{}) interface{} {
 	switch key {
 	case Activity_DiagnosticResourceCloudId:
 		return ctx.diagnosticResourceCloudId
+	case Activity_DiagnosticResourceLocation:
+		return ctx.diagnosticResourceCloudLocation
 	case Activity_ResourceCloudId:
 		return ctx.resourceCloudId
+	case Activity_ResourceCloudLocation:
+		return ctx.resourceCloudLocation
 	case Activity_OperationName:
 		return ctx.operationName
-	case Activity_Location:
-		return ctx.cloudLocation
 	case Activity_EdgeLocation:
 		return ctx.edgeLocation
 	case Activity_CorrelationId:
@@ -269,8 +284,12 @@ func (ctx *ActivityLogContext) GetOperationName() string {
 	return ctx.operationName
 }
 
-func (ctx *ActivityLogContext) GetCloudLocation() string {
-	return ctx.cloudLocation
+func (ctx *ActivityLogContext) GetDiagnosticResourceCloudLocation() string {
+	return ctx.diagnosticResourceCloudLocation
+}
+
+func (ctx *ActivityLogContext) GetResourceCloudLocation() string {
+	return ctx.resourceCloudLocation
 }
 
 func (ctx *ActivityLogContext) GetEdgeLocation() string {
@@ -307,12 +326,16 @@ func (ctx *ActivityLogContext) SetOperationName(operationName string) {
 	ctx.operationName = operationName
 }
 
-func (ctx *ActivityLogContext) SetCloudLocation(cloudLocation string) {
-	ctx.cloudLocation = cloudLocation
+func (ctx *ActivityLogContext) SetDiagnosticResourceCloudLocation(cloudLocation string) {
+	ctx.diagnosticResourceCloudLocation = cloudLocation
 }
 
 func (ctx *ActivityLogContext) SetEdgeLocation(edgeLocation string) {
 	ctx.edgeLocation = edgeLocation
+}
+
+func (ctx *ActivityLogContext) SetResourceCloudLocation(resourceCloudLocation string) {
+	ctx.resourceCloudLocation = resourceCloudLocation
 }
 
 func (ctx *ActivityLogContext) SetProperties(properties map[string]interface{}) {
@@ -359,8 +382,11 @@ func PatchActivityLogContextToCurrentContext(newActCtx *ActivityLogContext, pare
 		if newActCtx.operationName != "" {
 			actCtx.SetOperationName(actCtx.operationName)
 		}
-		if newActCtx.cloudLocation != "" {
-			actCtx.SetCloudLocation(actCtx.cloudLocation)
+		if newActCtx.diagnosticResourceCloudLocation != "" {
+			actCtx.SetDiagnosticResourceCloudLocation(actCtx.diagnosticResourceCloudLocation)
+		}
+		if newActCtx.resourceCloudLocation != "" {
+			actCtx.SetResourceCloudLocation(actCtx.resourceCloudLocation)
 		}
 		if newActCtx.edgeLocation != "" {
 			actCtx.SetEdgeLocation(actCtx.edgeLocation)
@@ -392,9 +418,10 @@ func PropagateActivityLogContextToHttpRequestHeader(req *http.Request) {
 
 	if actCtx, ok := req.Context().Value(ActivityLogContextKey).(*ActivityLogContext); ok {
 		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceCloudId), actCtx.GetDiagnosticResourceCloudId())
+		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceLocation), actCtx.GetDiagnosticResourceCloudLocation())
 		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId), actCtx.GetResourceCloudId())
+		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudLocation), actCtx.GetResourceCloudLocation())
 		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName), actCtx.GetOperationName())
-		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_Location), actCtx.GetCloudLocation())
 		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_EdgeLocation), actCtx.GetEdgeLocation())
 		req.Header.Set(ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId), actCtx.GetCorrelationId())
 
@@ -420,9 +447,10 @@ func ParseActivityLogContextFromHttpRequestHeader(ctx *fasthttp.RequestCtx) *Act
 
 	actCtx := ActivityLogContext{}
 	actCtx.SetDiagnosticResourceCloudId(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceCloudId))))
+	actCtx.SetDiagnosticResourceCloudLocation(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceLocation))))
 	actCtx.SetResourceCloudId(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId))))
 	actCtx.SetOperationName(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName))))
-	actCtx.SetCloudLocation(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_Location))))
+	actCtx.SetResourceCloudLocation(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudLocation))))
 	actCtx.SetEdgeLocation(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_EdgeLocation))))
 	actCtx.SetCorrelationId(string(ctx.Request.Header.Peek(ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId))))
 
@@ -462,9 +490,10 @@ func PropagateActivityLogContextToMetadata(ctx context.Context, metadata map[str
 
 	if actCtx, ok := ctx.Value(ActivityLogContextKey).(*ActivityLogContext); ok {
 		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceCloudId)] = actCtx.GetDiagnosticResourceCloudId()
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceLocation)] = actCtx.GetDiagnosticResourceCloudLocation()
 		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId)] = actCtx.GetResourceCloudId()
+		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudLocation)] = actCtx.GetResourceCloudLocation()
 		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName)] = actCtx.GetOperationName()
-		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Location)] = actCtx.GetCloudLocation()
 		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_EdgeLocation)] = actCtx.GetEdgeLocation()
 		metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId)] = actCtx.GetCorrelationId()
 
@@ -485,9 +514,10 @@ func ParseActivityLogContextFromMetadata(metadata map[string]string) *ActivityLo
 
 	actCtx := ActivityLogContext{}
 	actCtx.SetDiagnosticResourceCloudId(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceCloudId)])
+	actCtx.SetDiagnosticResourceCloudLocation(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceLocation)])
 	actCtx.SetResourceCloudId(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId)])
+	actCtx.SetResourceCloudLocation(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudLocation)])
 	actCtx.SetOperationName(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName)])
-	actCtx.SetCloudLocation(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_Location)])
 	actCtx.SetEdgeLocation(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_EdgeLocation)])
 	actCtx.SetCorrelationId(metadata[ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId)])
 
@@ -510,9 +540,10 @@ func ClearActivityLogContextFromMetadata(metadata map[string]string) {
 	}
 
 	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceCloudId))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_DiagnosticResourceLocation))
 	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudId))
+	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_ResourceCloudLocation))
 	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_OperationName))
-	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_Location))
 	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_EdgeLocation))
 	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_CorrelationId))
 	delete(metadata, ConstructHttpHeaderKeyForActivityLogContext(Activity_Properties))
