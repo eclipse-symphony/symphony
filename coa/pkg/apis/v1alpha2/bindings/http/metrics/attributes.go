@@ -26,3 +26,13 @@ func Status(
 		"formatedStatusCode": formatedStatusCode,
 	}
 }
+
+func mergeAttrs(attrs ...map[string]any) map[string]any {
+	merged := make(map[string]any)
+	for _, attr := range attrs {
+		for k, v := range attr {
+			merged[k] = v
+		}
+	}
+	return merged
+}
