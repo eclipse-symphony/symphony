@@ -336,8 +336,13 @@ func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 		assert.Nil(t, err, "diagnostic creation without edge location should pass")
 	}
 
-	err = shellcmd.Command("kubectl create ns default2").Run()
-	assert.Nil(t, err)
+	output, err = exec.Command("kubectl", "create", "ns", "default2").CombinedOutput()
+	// ignore error if ns already exists
+	if err != nil {
+		assert.Contains(t, string(output), "already exists")
+	} else {
+		assert.Nil(t, err)
+	}
 
 	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithAnotherNS)).CombinedOutput()
 	assert.Contains(t, string(output), "resource already exists in this cluster")
