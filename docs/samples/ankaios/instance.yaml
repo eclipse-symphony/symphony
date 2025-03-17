@@ -1,0 +1,10 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: ankaios-app-instance
+spec:
+  solution: ankaios-app:v1
+  target: 
+    name: ankaios-target
+  reconciliationPolicy:
+    interval: 1m

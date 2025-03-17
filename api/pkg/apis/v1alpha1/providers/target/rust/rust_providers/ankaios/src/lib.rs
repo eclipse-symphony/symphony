@@ -9,7 +9,7 @@
  use symphony::models::{
      ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep, ComponentSpec,
      DeploymentStep, ComponentResultSpec,
-     ComponentValidationRule
+     ComponentValidationRule, State, ComponentAction,
  };
  use symphony::ITargetProvider;
  use symphony::ProviderWrapper;
@@ -83,10 +83,10 @@
     fn apply(
         &self,
         _deployment: DeploymentSpec,
-        _step: DeploymentStep,
-        _is_dry_run: bool,
+        step: DeploymentStep,
+        is_dry_run: bool,
     ) -> Result<HashMap<String, ComponentResultSpec>, String> {
-        Ok(HashMap::new())
+        self.runtime.block_on(self.async_apply(_deployment, step, is_dry_run))
     }
 }
 
@@ -95,9 +95,10 @@ impl AnkaiosProvider {
     async fn async_get(
         &self,
         _deployment: DeploymentSpec,
-        _references: Vec<ComponentStep>,
+        references: Vec<ComponentStep>,
     ) -> Result<Vec<ComponentSpec>, String> {
         let mut ank_guard = self.ank.lock().unwrap(); // Acquire a mutable lock
+        let mut result_componentspecs: Vec<ComponentSpec> = vec![];
 
         if let Some(ank) = &mut *ank_guard { // Get a mutable reference
             if let Ok(complete_state) = ank
@@ -111,45 +112,60 @@ impl AnkaiosProvider {
                 let workload_states_dict = complete_state.get_workload_states().get_as_dict();
     
                 // Print the states of the workloads
-                for (agent_name, workload_states) in workload_states_dict.iter() {
+                for (_agent_name, workload_states) in workload_states_dict.iter() {
                     for (workload_name, workload_states) in workload_states.as_mapping().unwrap().iter() {
                         for (_workload_id, workload_state) in workload_states.as_mapping().unwrap().iter() {
-                            println!(
-                                "Workload {} on agent {} has the state {:?}",
-                                workload_name.as_str().unwrap(),
-                                agent_name.as_str().unwrap(),
-                                workload_state.get("state").unwrap().as_str().unwrap().to_string()
-                            );
+                            let state = workload_state.get("state").unwrap().as_str().unwrap();
+                            if state == "running" {
+                                for component in references.iter() {
+                                    if component.component.name == workload_name.as_str().unwrap() {
+                                        result_componentspecs.push(component.component.clone());
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         } else {
-            return Err("Ankaios is not initialized".to_string());
+            return Err("Failed to acquire lock".to_string());
         }
-        Ok(vec![]) // Simulated async operation
+        Ok(result_componentspecs) // Simulated async operation
     }
-}
+    async fn async_apply(
+        &self,
+        _deployment: DeploymentSpec,
+        step: DeploymentStep,
+        is_dry_run: bool,
+    ) -> Result<HashMap<String, ComponentResultSpec>, String> {
+        let mut ank_guard = self.ank.lock().unwrap(); 
+        let mut result: HashMap<String, ComponentResultSpec> = HashMap::new();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use symphony::models::{DeploymentSpec};
+        if let Some(_ank) = &mut *ank_guard {
+            if is_dry_run {
+                println!("Dry run is enabled, skipping actual apply");
+                return Ok(result);
+            }
 
-    #[test]
-    fn test_get() {
-        let provider = AnkaiosProvider {
-            runtime: tokio::runtime::Runtime::new().unwrap(),
-            ank: std::sync::Arc::new(std::sync::Mutex::new(None)),
-        };
-
-        // Initialize provider
-        provider.init(Default::default()).expect("Failed to initialize provider");
-
-        let deployment = DeploymentSpec::empty();
-        let references = vec![];
-
-        let result = provider.get(deployment, references);
-        assert!(result.is_ok(), "Expected Ok result, but got {:?}", result);
+            for component in step.components.iter() {
+                if component.action == ComponentAction::Delete {
+                    // Simulate deletion
+                    println!("Deleting component: {}", component.component.name);
+                } else if component.action == ComponentAction::Update {
+                    // Simulate update
+                    println!("Updating component: {}", component.component.name);
+                } 
+                let component_name = &component.component.name;
+                let component_result = ComponentResultSpec {
+                    status: State::OK,
+                    message: "Component applied successfully".to_string(),
+                };
+                result.insert(component_name.clone(), component_result);
+            }
+        }  else {
+            return Err("Failed to acquire lock".to_string());
+        }
+        Ok(result) // Simulated async operation
     }
 }

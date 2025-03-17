@@ -5,7 +5,7 @@ In this walkthrough, we’ll use implementing a Rust provider for [Eclipse Ankai
 
 Ankaios aims to bring cloud-native practices to automated HPCs while meeting the safety and real-time requirements of the automotive industry. It consists of an Ankaios server that manages multiple Ankaios agents. As a toolchain orchestrator, Symphony does not interfere with the internal workings of Ankaios components. Instead, Symphony treats the entire Ankaios system as a Target that provides in-vehicle orchestration. The Ankaios Target can be annotated with feature flags, enabling Symphony—acting as a fleet management layer in this case—to make fleet-level decisions based on these flags. For example, a Solution component can request installation on an Ankaios-enabled Target.
 
-## 2. Setting up Ankaios test environment
+## 2. Setting up local test environment
 
 When you develop a provider, it's important to have a high-fidelity test environment so that you can test your provider functionalities locally in isolation before conduting more complex integration tests. 
 
@@ -33,6 +33,7 @@ members = [
     "rust_providers/ankaios"
 ]
 ```
+
 1. Create a new Rust project using Cargo:
     ```bash
     cargo new ankaios --lib
@@ -42,11 +43,22 @@ members = [
 2. Modify your `Cargo.toml` file to add a reference to Symphony crate.
     ```toml
     [dependencies]
-    symphony = "0.1.0"
+    symphony = "0.1.1"
     ```
-3. Replace the content of your `lib.rs` with this code:
+    If your project is under the Symphony source code structure, you can also opt to refer to the local Symphony Rust binding src:
+    ```toml
+    [dependencies]
+    symphony = { path = "../../symphony" }
+    ```
+3. Change your crate type to C dynamic library:
+    ```toml
+    [lib]
+    crate-type = ["cdylib"]
+    ```
+
+4. Replace the content of your `lib.rs` with this code:
     ```rust
-     extern crate symphony;
+    extern crate symphony;
 
     use symphony::models::{
         ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep, ComponentSpec,
@@ -111,7 +123,7 @@ members = [
         }
     }
     ```
-4. Build your project to make sure everything is in place:
+5. Build your project to make sure everything is in place:
     ```bash
     cargo build
     ```
@@ -149,6 +161,197 @@ At the time of writing, Ankaios Rust SDK crate hasn't been published. You'll nee
 Modify your `Cargo.toml` file to include a reference to `ankaios-sdk`:
 ```bash
 [dependencies]
-symphony = "0.1.0"
+symphony = "0.1.1"
 ankaios-sdk = { version = "0.5.0-rc1", git = "https://github.com/GabyUnalaq/ank-sdk-rust.git", branch = "first-version" }
 ```
+### 4.4 Implement the `get()` method
+In the current version, Symphony’s `ITargetProvider` is a synchronous interface. To access asynchronous APIs, you’ll need to create a asynchronous wrapper. For example:
+```rust
+fn get(
+    &self,
+    _deployment: DeploymentSpec,
+    _references: Vec<ComponentStep>,
+) -> Result<Vec<ComponentSpec>, String> {
+    self.runtime.block_on(self.async_get(_deployment, _references))
+}
+```
+Then, you can implement your asynchronous `get()` method. For more detailed example, please see the `aync_get()` method in `api/pkg/apis/v1alpha1/providers/target/rust/rust_providers/ankaios/src/lib.rs`.
+
+## 5. Testing the `get()` method
+Before we move forward, let's make sure the `get()` method is working as expected. If your system is directly testable from your local environment, we recommend you writing a test case in your `lib.src` file to test the `get()` method:
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use symphony::models::{DeploymentSpec};
+
+    #[test]
+    fn test_get() {
+        let provider = AnkaiosProvider {
+            runtime: tokio::runtime::Runtime::new().unwrap(),
+            ank: std::sync::Arc::new(std::sync::Mutex::new(None)),
+        };
+
+        // Initialize provider
+        provider.init(Default::default()).expect("Failed to initialize provider");
+
+        let deployment = DeploymentSpec::empty();
+        let references = vec![];
+
+        let result = provider.get(deployment, references);
+        assert!(result.is_ok(), "Expected Ok result, but got {:?}", result);
+    }
+}
+```
+> **NOTE:** For Ankaios' case, though, we can't directly test the code like this, becasue Ankaios SDK only works inside an Ankaios workload. To test our code, we'll need to package a Docker container and load it as a workload to Ankaios. Please see [Appendix](#appendix-packaging-and-deploying-to-ankaios) for more details.
+
+## 6. Implementing the `apply()` method
+## 7. Integrated test
+1. Build all Symphony containers
+    ```bash
+    # under Symphony repo test/localenv folder
+    mage build:all
+    ```
+2. Deploy Symphony API as a Ankaios payload. See [Appendix](#appendix-packaging-and-deploying-to-ankaios) for more details.
+3. Get a Symphony security token:
+    ```bash
+    TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":""}' http://localhost:8082/v1alpha2/users/auth | jq -r '.accessToken')
+    echo $TOKEN
+    ```    
+4. Define the `Target` object (REST API request `JSON` format):
+    ```json
+    {
+        "metadata": {
+            "name": "rust-test-target"
+        },
+        "spec": {
+            "forceRedeploy": true,             
+            "topologies": [
+                {
+                    "bindings": [
+                        {
+                            "role": "instance",
+                            "provider": "providers.target.rust",
+                            "config": {
+                                "name": "rust-lib",
+                                "libFile": "/extensions/libankaios.so",
+                                "libHash": "74cb85fe45ee8a979d3f5845df8dbb9dbc879ec15346bd6f5a26d2af1aaf853c"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    ```
+    Note that when you use the default Symphony Dockerfile, the Ankaios library is automatically built and copied to the `/extensions` folder of the Symphony API container. You can also opt to manually deploy your libraries manually by copying the libraries to the `symphony-api` pod.
+    Symphony also verifies the library's hash code before it loads the library. To get the SHA-256 hash of the library file, you can use the `sha256sum` command, for example:
+    ```bash
+    sha256sum api/pkg/apis/v1alpha1/providers/target/rust/target/release/libankaios.so
+    ```
+    Apply the `Target` definition:
+    ```bash
+    # sample available under the docs/samples/ankaios folder
+    # Note the last segment of path needs to match with the metadata.name field in your JSON file, in this case ankaios-target
+    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @target.json http://localhost:8082/v1alpha2/targets/registry/ankaios-target
+    ```
+5. Define the `SolutionContainer` object and the `Solution` object.
+
+    SolutionContainer:
+    ```json
+    {
+        "metadata": {
+            "name": "ankaios-app"
+        }
+    }
+    ```
+
+    Solution:
+    ```json
+    {
+        "metadata": {
+            "name": "ankaios-app-v-v1"
+        },
+        "spec": {
+            "rootResource": "ankaios-app",
+            "components": [
+                {
+                    "name": "ankaios-app",
+                    "type": "ankaios-worload",
+                    "properties": {
+                        "hello_ankaios": {
+                            "runtime": "podman",
+                            "agent": "agent_A",
+                            "controlInterfaceAccess": {
+                                "allowRules": [
+                                    {
+                                        "type": "StateRule",
+                                        "operation": "ReadWrite",
+                                        "filterNask": [ "*" ]
+                                    }
+                                ]
+                            },
+                            "runtimeConfig": "image: localhost/app:0.1"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+    ```
+6. Apply the `SolutionContainer` and `Solution` object:
+    ```bash
+    # SolutionContainer
+    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @solution_container.json http://localhost:8082/v1alpha2/solutioncontainers/ankaios-app
+    # Solution
+    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @solution.json http://localhost:8082/v1alpha2/solutions/ankaios-app-v-v1
+    ```
+7. Define the `Instance` object:
+    ```json
+    {
+        "metadata": {
+            "name": "ankaios-app-instance"    
+        },
+        "spec": {
+            "solution": "ankaios-app:v1",
+            "target": {
+                "name": "ankaios-target"
+            },
+            "reconciliationPolicy": {
+                "interval": "1m"
+            }
+        }
+    }
+    ```
+8. Apply the `Instance` object:
+    ```bash
+    
+    ```
+## Appendix: Packaging and deploying to Ankaios
+In a production deployment, Symphony acts as cloud-based fleet manager that manages a fleet of cars. A Symphony agent is deployed as an Ankaios workload and interact with Ankaios system to manage workloads, as shown in the following diagram:
+![Ankaios-prod](../images/ankaios-prod.png)
+For local testing purposes, we can directly deploy Symphony as an Ankaios workload, and then submit test workloads through the Symphony API, as shown in the following diagram:
+![Ankaios-test](../images/ankaios-test.png)
+To deploy Symphony API as an Ankaios payload, we'll need to deploy Symphony API container in the `no-k8s` mode, which indicates Symphony running outside of Kubernetes. You can use the `ank -k run workload` command above to deploy Symphony API container, or you can modify `/etc/ankaios/state.yaml` to make Symphony API part of the Ankaios system state, as shown in the following sample `state.yaml` file:
+```yaml
+apiVersion: v0.1
+workloads:
+  symphony:
+    runtime: podman
+    agent: agent_A
+    restartPolicy: ALWAYS
+    tags:
+      - key: owner
+        value: Symphony
+    runtimeConfig: |
+      image: ghcr.io/eclipse-symphony/symphony-api:latest
+      commandOptions: ["-p", "8082:8082","-e","CONFIG=/symphony-api-no-k8s.json"]
+```
+Once Ankaios picks up the new state, you should see your Symphony API running on `podman` via command:
+```bash
+sudo podman ps
+
+CONTAINER ID  IMAGE                                         COMMAND               ...
+6e2229084f20  ghcr.io/eclipse-symphony/symphony-api:latest  /bin/sh -c sh -c ...  ...
+```
+Now you should be able to access Symphony REST API through `http://localhost:8082`.

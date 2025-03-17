@@ -1,0 +1,30 @@
+{
+    "metadata": {
+        "name": "ankaios-app-v-v1"
+    },
+    "spec": {
+        "rootResource": "ankaios-app",
+        "components": [
+            {
+                "name": "ankaios-app",
+                "type": "ankaios-worload",
+                "properties": {
+                    "hello_ankaios": {
+                        "runtime": "podman",
+                        "agent": "agent_A",
+                        "controlInterfaceAccess": {
+                            "allowRules": [
+                                {
+                                    "type": "StateRule",
+                                    "operation": "ReadWrite",
+                                    "filterNask": [ "*" ]
+                                }
+                            ]
+                        },
+                        "runtimeConfig": "image: localhost/app:0.1"
+                    }
+                }
+            }
+        ]
+    }
+}

@@ -167,8 +167,19 @@
      pub role: String,
      pub is_first: bool,
  }
+
+//  impl DeploymentStep {
+//     // The get_components method that returns a Vec<ComponentSpec>
+//     pub fn get_components(&self) -> Vec<ComponentSpec> {
+//         let mut ret = Vec::new();
+//         for component_step in &self.components {
+//             ret.push(component_step.component.clone());
+//         }
+//         ret
+//     }
+// }
  
- #[derive(Serialize, Deserialize, Debug, Clone)]
+ #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
  #[serde(rename_all = "camelCase")]
  pub enum ComponentAction {
      Update,
