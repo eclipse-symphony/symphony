@@ -5,3 +5,4 @@ metadata:
 spec: 
   rootResource: child
   catalogType: config
+  properties: null
