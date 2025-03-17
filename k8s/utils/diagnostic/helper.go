@@ -33,6 +33,7 @@ func ConstructDiagnosticContextFromAnnotations(annotations map[string]string, ct
 func ConstructActivityContextFromAnnotations(namespace string, objectId string, diagnosticResourceId string, diagnosticResourceLocation string, annotations map[string]string, operationName string, k8sClient client.Reader, ctx context.Context, logger logr.Logger) context.Context {
 	correlationId := annotations[constants.AzureCorrelationIdKey]
 	resourceId := annotations[constants.AzureResourceIdKey]
+	resourceCloudLocation := annotations[constants.AzureLocationKey]
 	systemData := annotations[constants.AzureSystemDataKey]
 	edgeLocation := annotations[constants.AzureEdgeLocationKey]
 
@@ -47,7 +48,7 @@ func ConstructActivityContextFromAnnotations(namespace string, objectId string, 
 		}
 	}
 
-	retCtx := coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(diagnosticResourceId, resourceId, diagnosticResourceLocation, edgeLocation, operationName, correlationId, callerId, resourceK8SId), ctx)
+	retCtx := coacontexts.PatchActivityLogContextToCurrentContext(coacontexts.NewActivityLogContext(diagnosticResourceId, diagnosticResourceLocation, resourceId, resourceCloudLocation, edgeLocation, operationName, correlationId, callerId, resourceK8SId), ctx)
 	return retCtx
 }
 

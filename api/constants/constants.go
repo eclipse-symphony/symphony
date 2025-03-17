@@ -21,6 +21,7 @@ const (
 	// system annotations, reserved and should not be modified by client.
 	AzureCorrelationIdKey        = "management.azure.com/correlationId"
 	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	AzureCloudLocationKey        = "management.azure.com/location"
 	AzureOperationIdKey          = "management.azure.com/operationId"
 	AzureNameIdKey               = "management.azure.com/azureName"
 	AzureResourceIdKey           = "management.azure.com/resourceId"
@@ -37,6 +38,7 @@ const (
 func SystemReservedAnnotations() []string {
 	return []string{
 		AzureCorrelationIdKey,
+		AzureCloudLocationKey,
 		AzureEdgeLocationKey,
 		AzureOperationIdKey,
 		AzureNameIdKey,

@@ -3467,6 +3467,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - instances
   sideEffects: None
