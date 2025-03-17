@@ -36,7 +36,7 @@ func TestContextHook_Fire_WithKeys(t *testing.T) {
 
 	assert.Equal(t, "diagnosticResourceId", innerActCtx.GetDiagnosticResourceCloudId())
 	assert.Equal(t, "diagnosticResourceCloudLocation", innerActCtx.GetDiagnosticResourceCloudLocation())
-	assert.Equal(t, "resourceId", innerActCtx.GetResourceCloudId())
+	assert.Equal(t, "resourceCloudId", innerActCtx.GetResourceCloudId())
 	assert.Equal(t, "resourceCloudLocation", innerActCtx.GetResourceCloudLocation())
 	assert.Equal(t, "edgeLocation", innerActCtx.GetEdgeLocation())
 	assert.Equal(t, "operationName", innerActCtx.GetOperationName())

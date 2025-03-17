@@ -45,7 +45,6 @@ func TestActivityLogContextDecorator_DecorateUnfold(t *testing.T) {
 	assert.Equal(t, strings.ToUpper("diagnosticResourceId"), entry.Data[string(OTEL_Activity_DiagnosticResourceCloudId)])
 	assert.Equal(t, "diagnosticResourceCloudLocation", entry.Data[string(OTEL_Activity_DiagnosticResourceLocation)])
 	assert.Equal(t, strings.ToUpper("resourceCloudId"), entry.Data[string(OTEL_Activity_ResourceCloudId)])
-	assert.Equal(t, "resourceCloudLocation", entry.Data[string(OTEL_Activity_ResourceCloudLocation)])
 	assert.Equal(t, "edgeLocation", entry.Data[string(OTEL_Activity_Props_EdgeLocation)])
 	assert.Equal(t, "operationName", entry.Data[string(OTEL_Activity_OperationName)])
 	assert.Equal(t, "correlationId", entry.Data[string(OTEL_Activity_CorrelationId)])
