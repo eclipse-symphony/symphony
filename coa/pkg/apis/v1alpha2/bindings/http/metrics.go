@@ -13,6 +13,7 @@ import (
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 )
@@ -28,6 +29,7 @@ func (m Metrics) Metrics(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		next(ctx)
 
 		endpoint := ctx.UserValue(router.MatchedRoutePathParam)
+		actCtx := contexts.ParseActivityLogContextFromHttpRequestHeader(ctx)
 
 		var endpointString string
 		if endpoint != nil {
@@ -36,6 +38,7 @@ func (m Metrics) Metrics(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 			endpointString = string(ctx.Path())
 		}
 		ApiOperationMetrics.ApiOperationStatus(
+			*actCtx,
 			endpointString,
 			string(ctx.Method()),
 			ctx.Response.StatusCode(),

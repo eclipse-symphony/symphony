@@ -15,7 +15,7 @@ import (
 )
 
 func TestEvents_MarshalAndUnmarshalJSON(t *testing.T) {
-	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "resourceCloudId", "cloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
 	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
 	ctx := contexts.PatchActivityLogContextToCurrentContext(actCtx, diagCtx)
 	ctx = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, ctx)
