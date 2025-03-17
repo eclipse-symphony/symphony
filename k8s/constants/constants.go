@@ -14,11 +14,10 @@ import (
 
 const (
 	FullGroupName            = api_constants.FullGroupName
-	AzureLocationKey         = "management.azure.com/location" // diagnostic
-	AzureCreatedByKey        = "createdBy"                     // systemDataMap
-	DefaultScope             = "default"                       // Namespace
-	K8S                      = "symphony-k8s"                  // observable
-	FinalizerPostfix         = FullGroupName + "/finalizer"    // finalizerName, instance/target
+	AzureCreatedByKey        = "createdBy"                  // systemDataMap
+	DefaultScope             = "default"                    // Namespace
+	K8S                      = "symphony-k8s"               // observable
+	FinalizerPostfix         = FullGroupName + "/finalizer" // finalizerName, instance/target
 	ResourceSeperator        = "-v-"
 	ReferenceSeparator       = ":"
 	ActivityOperation_Write  = "Write"
@@ -41,6 +40,7 @@ const (
 // system annotations, reserved and should not be modified by client.
 const (
 	AzureCorrelationIdKey        = api_constants.AzureCorrelationIdKey
+	AzureLocationKey             = api_constants.AzureCloudLocationKey
 	AzureEdgeLocationKey         = api_constants.AzureEdgeLocationKey
 	AzureOperationIdKey          = api_constants.AzureOperationIdKey
 	AzureResourceIdKey           = api_constants.AzureResourceIdKey

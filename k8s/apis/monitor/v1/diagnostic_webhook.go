@@ -8,9 +8,7 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"gopls-workspace/apis/metrics/v1"
-	"gopls-workspace/constants"
 	"gopls-workspace/utils/diagnostic"
 	"time"
 
@@ -124,6 +122,9 @@ func (r *Diagnostic) ValidateDelete() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(diagnosticlog, ctx, "validate delete", "name", r.Name, "namespace", r.Namespace)
 
 	// insert validation logic here
+
+	// clear global diagnostic resource cache
+	ClearDiagnosticResourceCache()
 	return nil, nil
 }
 
@@ -144,18 +145,18 @@ func (r *Diagnostic) validateCreateOrUpdateImpl(ctx context.Context) error {
 func (r *Diagnostic) validateUniqueInEdgeLocations(ctx context.Context) *field.Error {
 	diagnostic.InfoWithCtx(diagnosticlog, ctx, "validate unique in edge locations", "name", r.Name, "namespace", r.Namespace)
 
-	edgeLocation := r.Annotations[constants.AzureEdgeLocationKey]
-	if edgeLocation == "" {
-		return field.Required(field.NewPath("metadata.annotations").Child(constants.AzureEdgeLocationKey), "Azure Edge Location is required")
+	filedErr := ValidateDiagnosticResourceAnnoations(r.Annotations)
+	if filedErr != nil {
+		return filedErr
 	}
 
-	existingResource, err := GetDiagnosticCustomResource(r.Namespace, edgeLocation, myDiagnosticClient, ctx, diagnosticlog)
+	existingResource, err := GetGlobalDiagnosticResourceInCluster(r.Annotations, myDiagnosticClient, ctx, diagnosticlog)
 	if err != nil {
-		return field.InternalError(nil, v1alpha2.NewCOAError(err, fmt.Sprintf("Failed to check uniqueness of diagnostic resource on edge location: %s", edgeLocation), v1alpha2.InternalError))
+		return field.InternalError(nil, v1alpha2.NewCOAError(err, "Failed to check uniqueness of diagnostic resource in cluster", v1alpha2.InternalError))
 	}
 	// if existing resource is not nil and the name is different, then it's a conflict
-	if existingResource != nil && existingResource.Name != r.Name {
-		return field.Invalid(field.NewPath("metadata.annotations").Child(constants.AzureEdgeLocationKey), edgeLocation, fmt.Sprintf("Diagnostic resource already exists for edge location: %s", edgeLocation))
+	if existingResource != nil && (existingResource.Name != r.Name || existingResource.Namespace != r.Namespace) {
+		return GenerateDiagnosticResourceUniquenessFieldError(r.Name, r.Namespace, existingResource)
 	}
 	return nil
 }
