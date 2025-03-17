@@ -529,6 +529,9 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 		}
 		// TODO
 		// jobId := object.SummaryJobId
+		// In order to make sure the current instance reconcile is completed not the previous.
+		// We should check the SummaryJobId equal to summary.JobID. However, object.SummaryJobId may be null and summary.JobID may also be null.
+		// Issue id: 689. We need to get this done before shared app integrating with workflow.
 		var summary *model.SummaryResult
 		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
 		// TODO: summary.Summary.JobID may be empty in standalone
@@ -536,15 +539,13 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			remainingObjects = append(remainingObjects, object)
 			continue
 		}
-		log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
-		log.DebugfCtx(ctx, "Object for %s is %v", object.Name, object)
 
 		if err == nil && summary.State == model.SummaryStateDone {
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
 				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
 			}
-			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", len(remainingObjects), len(failedDeployments))
+			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", object.Name, len(remainingObjects), len(failedDeployments))
 			continue
 		}
 		remainingObjects = append(remainingObjects, object)
