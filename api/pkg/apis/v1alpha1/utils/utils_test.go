@@ -23,6 +23,7 @@ func TestReadStringWithOverrides(t *testing.T) {
 	}, "ABC", "")
 	assert.Equal(t, "HIJ", val)
 }
+
 func TestReadStringWithNoOverrides(t *testing.T) {
 	val := ReadStringWithOverrides(map[string]string{
 		"ABC": "DEF",

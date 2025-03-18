@@ -107,7 +107,7 @@ func (i *InstanceValidator) ValidateTargetExist(ctx context.Context, c model.Ins
 	if i.TargetLookupFunc == nil {
 		return nil
 	}
-	_, err := i.TargetLookupFunc(ctx, c.Spec.Target.Name, c.ObjectMeta.Namespace)
+	_, err := i.TargetLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Target.Name), c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.target.name",
