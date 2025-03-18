@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: instance-configmap-update
+  name: instance-configmap
 spec:
   scope: nondefault
   solution: solution-configmap:v1
