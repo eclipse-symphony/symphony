@@ -20,6 +20,7 @@ import (
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
+	federation_v1 "gopls-workspace/apis/federation/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
 )
@@ -123,6 +124,35 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 			Topologies:  instance.Spec.Topologies,
 			Pipelines:   instance.Spec.Pipelines,
 		},
+	}
+
+	return ret, nil
+}
+
+func K8SCatalogToAPICatalogState(catalog federation_v1.Catalog) (apimodel.CatalogState, error) {
+	ret := apimodel.CatalogState{
+		ObjectMeta: apimodel.ObjectMeta{
+			Name:        catalog.ObjectMeta.Name,
+			Namespace:   catalog.ObjectMeta.Namespace,
+			Labels:      catalog.ObjectMeta.Labels,
+			Annotations: catalog.ObjectMeta.Annotations,
+		},
+		Spec: &apimodel.CatalogSpec{
+			CatalogType:  catalog.Spec.CatalogType,
+			Metadata:     catalog.Spec.Metadata,
+			ParentName:   catalog.Spec.ParentName,
+			ObjectRef:    catalog.Spec.ObjectRef,
+			Version:      catalog.Spec.Version,
+			RootResource: catalog.Spec.RootResource,
+		},
+	}
+
+	if catalog.Spec.Properties.Raw != nil {
+		ret.Spec.Properties = make(map[string]interface{})
+		err := json.Unmarshal(catalog.Spec.Properties.Raw, &catalog.Spec.Properties)
+		if err != nil {
+			return apimodel.CatalogState{}, err
+		}
 	}
 
 	return ret, nil
