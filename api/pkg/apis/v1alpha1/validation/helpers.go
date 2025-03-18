@@ -119,19 +119,12 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 
 // e.g. example:v1 -> example-v-v1
 func ConvertReferenceToObjectName(name string) string {
-	if strings.Contains(name, constants.ReferenceSeparator) {
-		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
-	}
-	return name
+	return api_utils.ConvertReferenceToObjectName(name)
 }
 
 // e.g. example-v-v1 -> example:v1
 func ConvertObjectNameToReference(name string) string {
-	index := strings.LastIndex(name, constants.ResourceSeperator)
-	if index == -1 {
-		return name
-	}
-	return name[:index] + constants.ReferenceSeparator + name[index+len(constants.ResourceSeperator):]
+	return api_utils.ConvertObjectNameToReference(name)
 }
 
 // e.g. example-v-v1 -> example

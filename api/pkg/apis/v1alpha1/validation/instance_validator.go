@@ -52,6 +52,13 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 			errorFields = append(errorFields, *err)
 		}
 	}
+	if oldRef != nil && (old.Spec.Scope != new.Spec.Scope) {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.Scope",
+			Value:           new.Spec.Scope,
+			DetailedMessage: "The instance is already created. Cannot change Scope of the instance.",
+		})
+	}
 	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
 		errorFields = append(errorFields, ErrorField{
 			FieldPath:       "spec.isDryRun",
@@ -107,7 +114,7 @@ func (i *InstanceValidator) ValidateTargetExist(ctx context.Context, c model.Ins
 	if i.TargetLookupFunc == nil {
 		return nil
 	}
-	_, err := i.TargetLookupFunc(ctx, c.Spec.Target.Name, c.ObjectMeta.Namespace)
+	_, err := i.TargetLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Target.Name), c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.target.name",
