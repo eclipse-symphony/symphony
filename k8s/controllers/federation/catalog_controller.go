@@ -21,6 +21,8 @@ import (
 	"gopls-workspace/constants"
 	"gopls-workspace/utils/diagnostic"
 
+	k8s_utils "gopls-workspace/utils"
+
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
@@ -64,8 +66,13 @@ func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if catalog.ObjectMeta.DeletionTimestamp.IsZero() { // update
-		jData, _ := json.Marshal(catalog)
-		err := r.ApiClient.CatalogHook(ctx, jData, "", "")
+		catalogState, err := k8s_utils.K8SCatalogToAPICatalogState(*catalog)
+		if err != nil {
+			diagnostic.ErrorWithCtx(ctrlLog, ctx, err, "unable to convert Catalog to API CatalogState")
+			return ctrl.Result{}, err
+		}
+		jData, _ := json.Marshal(catalogState)
+		err = r.ApiClient.CatalogHook(ctx, jData, "", "")
 		if err != nil {
 			diagnostic.ErrorWithCtx(ctrlLog, ctx, err, "unable to update Catalog when calling catalogHook")
 			return ctrl.Result{}, err

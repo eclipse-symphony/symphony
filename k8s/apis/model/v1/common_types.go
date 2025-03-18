@@ -502,7 +502,7 @@ type CatalogSpec struct {
 func (c *CatalogSpec) UnmarshalJSON(data []byte) error {
 	type Alias CatalogSpec
 	aux := &struct {
-		Properties json.RawMessage `json:"properties,omitempty"`
+		Properties json.RawMessage `json:"properties"`
 		*Alias
 	}{
 		Alias: (*Alias)(c),
@@ -519,7 +519,7 @@ func (c *CatalogSpec) UnmarshalJSON(data []byte) error {
 func (c CatalogSpec) MarshalJSON() ([]byte, error) {
 	type Alias CatalogSpec
 	return json.Marshal(&struct {
-		Properties json.RawMessage `json:"properties,omitempty"`
+		Properties json.RawMessage `json:"properties"`
 		*Alias
 	}{
 		Properties: json.RawMessage(c.Properties.Raw),

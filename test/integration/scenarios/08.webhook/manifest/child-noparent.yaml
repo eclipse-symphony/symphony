@@ -5,4 +5,5 @@ metadata:
 spec: 
   rootResource: child
   catalogType: config
-  properties: null
+  properties:
+    dummyField: dummyValue
