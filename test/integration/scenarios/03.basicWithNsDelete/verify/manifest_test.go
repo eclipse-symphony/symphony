@@ -468,7 +468,7 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 	require.Contains(t, string(output), "The instance is already created. Cannot change Scope of the instance.")
 
 	// delete instance and associated deployments
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete instance %s", "instance-configmap")).Run()
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete instance.solution.symphony %s", "instance-configmap")).Run()
 	require.NoError(t, err)
 
 	// test update target solutionScope with no associated instance, expect no error
