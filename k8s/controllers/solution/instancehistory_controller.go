@@ -47,6 +47,7 @@ func (r *InstanceHistoryReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 // SetupWithManager sets up the controller with the Manager.
 func (r *InstanceHistoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("InstanceHistory").
 		For(&solutionv1.InstanceHistory{}).
 		Complete(r)
 }

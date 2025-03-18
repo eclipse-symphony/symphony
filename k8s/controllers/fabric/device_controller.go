@@ -47,6 +47,7 @@ func (r *DeviceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager sets up the controller with the Manager.
 func (r *DeviceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Device").
 		For(&fabricv1.Device{}).
 		Complete(r)
 }

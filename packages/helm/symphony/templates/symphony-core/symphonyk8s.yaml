@@ -228,6 +228,8 @@ spec:
                       type: string
                     stageSelector:
                       type: string
+                    target:
+                      type: string
                     triggeringStage:
                       type: string
                   type: object
@@ -3369,6 +3371,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - instances
   sideEffects: None
