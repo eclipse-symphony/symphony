@@ -17,7 +17,7 @@ import (
 
 // Test config
 const (
-	TEST_NAME    = "webhook test"
+	TEST_NAME    = "marshal test"
 	TEST_TIMEOUT = "4m"
 )
 

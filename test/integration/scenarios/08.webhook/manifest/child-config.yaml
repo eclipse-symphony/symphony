@@ -6,3 +6,5 @@ spec:
   rootResource: child
   catalogType: config
   parentName: parent:v1
+  properties: 
+    dummyField: dummyValue
