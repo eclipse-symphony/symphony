@@ -1,0 +1,12 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target-configmap
+spec:
+  solutionScope: target-scope
+  topologies:
+  - bindings:
+    - role: config
+      provider: providers.target.configmap
+      config:
+        inCluster: "true"

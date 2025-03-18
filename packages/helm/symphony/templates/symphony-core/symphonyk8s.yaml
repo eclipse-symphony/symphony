@@ -1064,6 +1064,12 @@ spec:
             type: object
           status:
             properties:
+              deployed:
+                type: integer
+              expectedRunningJobId:
+                type: integer
+              generation:
+                type: integer
               lastModified:
                 format: date-time
                 type: string
@@ -1130,6 +1136,32 @@ spec:
                 - operationId
                 - status
                 type: object
+              runningJobId:
+                type: integer
+              status:
+                type: string
+              statusDetails:
+                type: string
+              targetStatuses:
+                items:
+                  properties:
+                    componentStatuses:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              targets:
+                type: integer
             required:
             - provisioningStatus
             type: object
@@ -1167,13 +1199,13 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.properties.status
+    - jsonPath: .status.status
       name: Status
       type: string
-    - jsonPath: .status.properties.targets
+    - jsonPath: .status.targets
       name: Targets
       type: string
-    - jsonPath: .status.properties.deployed
+    - jsonPath: .status.deployed
       name: Deployed
       type: string
     name: v1
@@ -1297,6 +1329,12 @@ spec:
             type: object
           status:
             properties:
+              deployed:
+                type: integer
+              expectedRunningJobId:
+                type: integer
+              generation:
+                type: integer
               lastModified:
                 format: date-time
                 type: string
@@ -1363,6 +1401,32 @@ spec:
                 - operationId
                 - status
                 type: object
+              runningJobId:
+                type: integer
+              status:
+                type: string
+              statusDetails:
+                type: string
+              targetStatuses:
+                items:
+                  properties:
+                    componentStatuses:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              targets:
+                type: integer
             required:
             - provisioningStatus
             type: object
@@ -2104,7 +2168,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.properties.status
+    - jsonPath: .status.status
       name: Status
       type: string
     name: v1
@@ -2273,6 +2337,12 @@ spec:
             type: object
           status:
             properties:
+              deployed:
+                type: integer
+              expectedRunningJobId:
+                type: integer
+              generation:
+                type: integer
               lastModified:
                 format: date-time
                 type: string
@@ -2339,6 +2409,32 @@ spec:
                 - operationId
                 - status
                 type: object
+              runningJobId:
+                type: integer
+              status:
+                type: string
+              statusDetails:
+                type: string
+              targetStatuses:
+                items:
+                  properties:
+                    componentStatuses:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              targets:
+                type: integer
             required:
             - provisioningStatus
             type: object

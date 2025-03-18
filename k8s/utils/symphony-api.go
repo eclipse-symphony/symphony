@@ -184,6 +184,18 @@ func K8SSolutionToAPISolutionState(solution solution_v1.Solution) (apimodel.Solu
 
 }
 
+func ContainsString(slice []string, target string) bool {
+	if slice == nil {
+		return false
+	}
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
 func matchString(src string, target string) bool {
 	if strings.Contains(src, "*") || strings.Contains(src, "%") {
 		p := strings.ReplaceAll(src, "*", ".*")
@@ -201,6 +213,11 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 		for _, t := range targets.Items {
 			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
+			} else {
+				// azure case
+				if t.Annotations[constants.AzureResourceIdKey] != "" && matchString(instance.Spec.Target.Name, strings.ToLower(t.Annotations[constants.AzureResourceIdKey])) {
+					ret[t.ObjectMeta.Name] = t
+				}
 			}
 		}
 	}
