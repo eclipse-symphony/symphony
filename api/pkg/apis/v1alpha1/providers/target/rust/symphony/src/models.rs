@@ -29,6 +29,43 @@
      pub instance_isolation: bool,
  }
  
+ impl ValidationRule {
+    pub fn new() -> Self {
+        ValidationRule {
+            required_component_type: "".to_string(),
+            component_validation_rule: ComponentValidationRule {
+                required_component_type: "".to_string(),
+                change_detection_properties: vec![
+                    PropertyDesc {
+                        ignore_case: true,
+                        is_component_name: false,
+                        name: "*".to_string(),
+                        skip_if_missing: true,
+                        prefix_match: false,
+                    },
+                ],
+                change_detection_metadata: vec![],
+                required_properties: vec![],
+                optional_properties: vec![],
+                required_metadata: vec![],
+                optional_metadata: vec![],
+            },
+            sidecar_validation_rule: ComponentValidationRule {
+                required_component_type: "".to_string(),
+                change_detection_properties: vec![],
+                change_detection_metadata: vec![],
+                required_properties: vec![],
+                optional_properties: vec![],
+                required_metadata: vec![],
+                optional_metadata: vec![],
+            },
+            allow_sidecar: true,
+            scope_isolation: true,
+            instance_isolation: true,
+        }
+    }
+}
+
  #[derive(Serialize, Deserialize, Debug, Clone)]
  #[serde(rename_all = "camelCase")]
  pub struct DeploymentSpec {

@@ -83,32 +83,7 @@ members = [
             Ok(())
         }
         fn get_validation_rule(&self) -> Result<ValidationRule, String> {
-            let validation_rule = ValidationRule {
-                required_component_type: "".to_string(),
-                component_validation_rule: ComponentValidationRule {
-                    required_component_type: "".to_string(),
-                    change_detection_properties: vec![],
-                    change_detection_metadata: vec![],
-                    required_properties: vec![],
-                    optional_properties: vec![],
-                    required_metadata: vec![],
-                    optional_metadata: vec![],
-                },
-                sidecar_validation_rule: ComponentValidationRule {
-                    required_component_type: "".to_string(),
-                    change_detection_properties: vec![],
-                    change_detection_metadata: vec![],
-                    required_properties: vec![],
-                    optional_properties: vec![],
-                    required_metadata: vec![],
-                    optional_metadata: vec![],
-                },
-                allow_sidecar: true,
-                scope_isolation: true,
-                instance_isolation: true,
-            };
-        
-            Ok(validation_rule)
+            Ok(ValidationRule::new())
         }
         fn get(&self, _deployment: DeploymentSpec, _references: Vec<ComponentStep>) -> Result<Vec<ComponentSpec>, String> {
             Ok(vec![])

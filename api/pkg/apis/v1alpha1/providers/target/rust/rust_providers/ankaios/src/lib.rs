@@ -9,7 +9,7 @@
  use symphony::models::{
      ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep, ComponentSpec,
      DeploymentStep, ComponentResultSpec,
-     ComponentValidationRule, State, ComponentAction,
+     ComponentValidationRule, State, ComponentAction, PropertyDesc,
  };
  use symphony::ITargetProvider;
  use symphony::ProviderWrapper;
@@ -20,7 +20,6 @@
  use tokio::time::Duration;
  use std::sync::{Arc};
  use tokio::sync::Mutex;
- use serde_json::Value;
  
  pub struct AnkaiosProvider {
     runtime: Runtime,            // Tokio runtime for async execution
@@ -40,7 +39,7 @@
  impl ITargetProvider for AnkaiosProvider {
     fn init(&self, _config: ProviderConfig) -> Result<(), String> {        
         let ank_clone = Arc::clone(&self.ank);
-        self.runtime.block_on(async {
+        let _  = self.runtime.block_on(async {
             let needs_init = {
                 let ank_guard = ank_clone.lock().await;
                 ank_guard.is_none() // Check if initialization is needed
@@ -63,32 +62,7 @@
         Ok(())
     }
     fn get_validation_rule(&self) -> Result<ValidationRule, String> {
-        let validation_rule = ValidationRule {
-            required_component_type: "".to_string(),
-            component_validation_rule: ComponentValidationRule {
-                required_component_type: "".to_string(),
-                change_detection_properties: vec![],
-                change_detection_metadata: vec![],
-                required_properties: vec![],
-                optional_properties: vec![],
-                required_metadata: vec![],
-                optional_metadata: vec![],
-            },
-            sidecar_validation_rule: ComponentValidationRule {
-                required_component_type: "".to_string(),
-                change_detection_properties: vec![],
-                change_detection_metadata: vec![],
-                required_properties: vec![],
-                optional_properties: vec![],
-                required_metadata: vec![],
-                optional_metadata: vec![],
-            },
-            allow_sidecar: true,
-            scope_isolation: true,
-            instance_isolation: true,
-        };
-    
-        Ok(validation_rule)
+        Ok(ValidationRule::new())
     }
 
     fn get(
