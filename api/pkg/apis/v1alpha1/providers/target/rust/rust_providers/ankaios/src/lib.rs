@@ -8,8 +8,7 @@
 
  use symphony::models::{
      ProviderConfig, ValidationRule, DeploymentSpec, ComponentStep, ComponentSpec,
-     DeploymentStep, ComponentResultSpec,
-     ComponentValidationRule, State, ComponentAction, PropertyDesc,
+     DeploymentStep, ComponentResultSpec, State, ComponentAction,
  };
  use symphony::ITargetProvider;
  use symphony::ProviderWrapper;
@@ -133,16 +132,17 @@ impl AnkaiosProvider {
                                         let agent_json_value: serde_json::Value = serde_json::to_value(agent_name).unwrap_or(serde_json::Value::Null);
                                         properties.insert("ankaios.agent".to_string(), agent_json_value);
                                         
-                                        if let Ok(workload) = ank.get_workload(workload_name.as_str().expect("REASON").to_string(), Some(Duration::from_secs(5))).await {                                            
-                                            let workload_properties = workload.to_dict();            
-                                            // Ankaios runtime
-                                            properties.insert("ankaios.runtime".to_string(), serde_json::Value::String(workload_properties["runtime"].as_str().unwrap().to_string()));
-                                            // Ankasios restart policy
-                                            properties.insert("ankaios.restartPolicy".to_string(), serde_json::Value::String(workload_properties["restartPolicy"].as_str().unwrap().to_string()));
-                                            // runtimeConfig
-                                            properties.insert("ankaios.runtimeConfig".to_string(), serde_json::Value::String(workload_properties["runtimeConfig"].as_str().unwrap().to_string()));
-                                        }
-                                        
+                                        if let Some(workload_name_str) = workload_name.as_str() {                                         
+                                            if let Ok(workload) = ank.get_workload(workload_name_str.to_owned(), Some(Duration::from_secs(5))).await {                                            
+                                                let workload_properties = workload.to_dict();            
+                                                // Ankaios runtime
+                                                properties.insert("ankaios.runtime".to_string(), serde_json::Value::String(workload_properties["runtime"].as_str().unwrap().to_string()));
+                                                // Ankasios restart policy
+                                                properties.insert("ankaios.restartPolicy".to_string(), serde_json::Value::String(workload_properties["restartPolicy"].as_str().unwrap().to_string()));
+                                                // runtimeConfig
+                                                properties.insert("ankaios.runtimeConfig".to_string(), serde_json::Value::String(workload_properties["runtimeConfig"].as_str().unwrap().to_string()));
+                                            }
+                                        }                                         
                                         ret_component.properties = Some(properties);
                                         result_componentspecs.push(ret_component);
                                         break;
