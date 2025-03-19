@@ -177,7 +177,7 @@ fn get(
 ```
 Then, you can implement your asynchronous `get()` method. For more detailed example, please see the `aync_get()` method in `api/pkg/apis/v1alpha1/providers/target/rust/rust_providers/ankaios/src/lib.rs`.
 
-## 5. Testing the `get()` method
+### 4.5. Testing the `get()` method
 Before we move forward, let's make sure the `get()` method is working as expected. If your system is directly testable from your local environment, we recommend you writing a test case in your `lib.src` file to test the `get()` method:
 ```rust
 #[cfg(test)]
@@ -205,8 +205,32 @@ mod tests {
 ```
 > **NOTE:** For Ankaios' case, though, we can't directly test the code like this, becasue Ankaios SDK only works inside an Ankaios workload. To test our code, we'll need to package a Docker container and load it as a workload to Ankaios. Please see [Appendix](#appendix-packaging-and-deploying-to-ankaios) for more details.
 
-## 6. Implementing the `apply()` method
-## 7. Integrated test
+## 5. Implementing the `apply()` method
+The `apply()` method applies the new desired state to the system. Symphony sends the current deployment (`DeploymentSpec`) that contains all information about the current `Solution` and `Targets`. It also sends the current deployment step (`DeploymentStep`) that contains the current operations the provider needs to do, i.e. updating components or deleting components. Most provider only need to access the deployment step parameter, while some providers may need to consult the whole deployment object for additional context.
+When handling the deployment step, your provider should loop through the step components and perform corresponding actions, such as:
+```rust
+for component in step.components.iter() {
+    if component.action == ComponentAction::Delete {
+        // delete the component
+    } else if component.action == ComponentAction::Update {
+        // create or update the component
+    }
+}
+```
+For each operated component, you should return a `ComponentResultSpec` indicating the operation result:
+```rust
+let component_result = ComponentResultSpec {
+    status: State::OK,
+    message: "Component applied successfully".to_string(),
+};
+result.insert(component.component.name.clone(), component_result);
+// failure
+let component_result = ComponentResultSpec {
+    status: State::InternalError,
+    message: format!("Failed to apply workload: {:?}", e),
+};
+```
+## 6. Integrated test
 1. Build all Symphony containers
     ```bash
     # under Symphony repo test/localenv folder
