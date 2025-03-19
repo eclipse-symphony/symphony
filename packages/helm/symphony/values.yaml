@@ -66,6 +66,7 @@ siteId: hq
 api:
   apiContainerPortHttp: 8080
   apiContainerPortHttps: 8081
+  enableUserCreds: true
   labelKey:
   labelValue:
   annotationKey: 

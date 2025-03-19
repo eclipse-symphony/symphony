@@ -721,6 +721,7 @@
     ]
   },
   "bindings": [
+    {{- if .Values.api.enableUserCreds }}
     {
       "type": "bindings.http",
       "config": {
@@ -745,6 +746,7 @@
               "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings", "/v1alpha2/agent/config"],
               "verifyKey": "SymphonyKey",              
               "enableRBAC": true,
+              "enableUserCreds": true,
               "roles": [
                 {
                   "role": "administrator",
@@ -813,6 +815,7 @@
         ]
       }
     },
+    {{- end }}  
     {
       "type": "bindings.http",
       "config": {
@@ -843,16 +846,11 @@
             {
               "type": "middleware.http.jwt",
               "properties": {
-                "ignorePaths": [
-                  "/v1alpha2/users/auth",
-                  "/v1alpha2/solution/instances",
-                  "/v1alpha2/agent/references",
-                  "/v1alpha2/greetings",
-                  "/v1alpha2/agent/config"
-                ],
+                "ignorePaths": [],
                 "verifyKey": "SymphonyKey",
                 "authServer": "kubernetes",
-                "enableRBAC": false
+                "enableRBAC": false,
+                "enableUserCreds": false
               }
             },
             {
