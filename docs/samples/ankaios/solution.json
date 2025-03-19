@@ -6,23 +6,13 @@
         "rootResource": "ankaios-app",
         "components": [
             {
-                "name": "ankaios-app",
-                "type": "ankaios-worload",
+                "name": "ankaios-app",   
+                "type": "ankaios-workload",             
                 "properties": {
-                    "hello_ankaios": {
-                        "runtime": "podman",
-                        "agent": "agent_A",
-                        "controlInterfaceAccess": {
-                            "allowRules": [
-                                {
-                                    "type": "StateRule",
-                                    "operation": "ReadWrite",
-                                    "filterNask": [ "*" ]
-                                }
-                            ]
-                        },
-                        "runtimeConfig": "image: localhost/app:0.1"
-                    }
+                    "ankaios.runtime": "podman",
+                    "ankaios.agent": "agent_A",
+                    "ankaios.restartPolicy": "ALWAYS",
+                    "ankaios.runtimeConfig": "image: docker.io/library/nginx\ncommandOptions: [\"-p\", \"8080:80\"]"                   
                 }
             }
         ]

@@ -215,8 +215,7 @@ mod tests {
 2. Deploy Symphony API as a Ankaios payload. See [Appendix](#appendix-packaging-and-deploying-to-ankaios) for more details.
 3. Get a Symphony security token:
     ```bash
-    TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":""}' http://localhost:8082/v1alpha2/users/auth | jq -r '.accessToken')
-    echo $TOKEN
+    TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":""}' http://localhost:8082/v1alpha2/users/auth | jq -r '.accessToken')    
     ```    
 4. Define the `Target` object (REST API request `JSON` format):
     ```json
@@ -235,7 +234,7 @@ mod tests {
                             "config": {
                                 "name": "rust-lib",
                                 "libFile": "/extensions/libankaios.so",
-                                "libHash": "74cb85fe45ee8a979d3f5845df8dbb9dbc879ec15346bd6f5a26d2af1aaf853c"
+                                "libHash": "e003229777175945d212470ad1c145d593fcad695a31b9c8898efcdd3d408207"
                             }
                         }
                     ]
@@ -325,7 +324,7 @@ mod tests {
     ```
 8. Apply the `Instance` object:
     ```bash
-    
+    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @instance.json http://localhost:8082/v1alpha2/instances/ankaios-app-instance
     ```
 ## Appendix: Packaging and deploying to Ankaios
 In a production deployment, Symphony acts as cloud-based fleet manager that manages a fleet of cars. A Symphony agent is deployed as an Ankaios workload and interact with Ankaios system to manage workloads, as shown in the following diagram:
@@ -355,3 +354,10 @@ CONTAINER ID  IMAGE                                         COMMAND             
 6e2229084f20  ghcr.io/eclipse-symphony/symphony-api:latest  /bin/sh -c sh -c ...  ...
 ```
 Now you should be able to access Symphony REST API through `http://localhost:8082`.
+
+If you want to use a local Docker container image that hasn't been pushed to a container registry, you need to first import that container image into podman:
+```bash
+docker tag ghcr.io/eclipse-symphony/symphony-api:latest symphony:latest
+docker save -o symphony.tar symphony:latest
+sudo podman load -i symphony.tar
+```
