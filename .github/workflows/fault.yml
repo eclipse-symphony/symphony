@@ -7,10 +7,12 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-     - main
+  # pull_request:
+  #   branches:
+  #    - main
   workflow_dispatch:
+  schedule:
+    - cron: "0 16 * * *" # Runs daily at midnight UTC+8
 env:
     ContainerRegistry: "ghcr.io"
     ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
