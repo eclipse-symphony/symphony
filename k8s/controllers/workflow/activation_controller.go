@@ -114,6 +114,7 @@ func convertRawExtensionToMap(raw *runtime.RawExtension) map[string]interface{} 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ActivationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Activation").
 		For(&workflowv1.Activation{}).
 		Complete(r)
 }

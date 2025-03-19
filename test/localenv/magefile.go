@@ -478,6 +478,14 @@ func buildAPI() error {
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
 }
 
+func (Build) ApiAzure() error {
+	return buildAPIAzure()
+}
+func buildAPIAzure() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-api"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s --build-arg BUILDFLAG=azure \"../..\" --load", platform, imageName)).Run() //oss
+}
+
 func (Build) ApiFault() error {
 	return buildAPIFault()
 }
@@ -503,6 +511,14 @@ func (Build) K8s() error {
 func buildK8s() error {
 	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
+}
+
+func (Build) K8sAzure() error {
+	return buildK8sAzure()
+}
+func buildK8sAzure() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s --build-arg BUILDFLAG=azure \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 func (Build) K8sFault() error {

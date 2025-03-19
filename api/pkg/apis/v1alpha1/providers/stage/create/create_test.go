@@ -134,6 +134,7 @@ func TestCreateProcessCreate(t *testing.T) {
 	instance := model.InstanceState{
 		Spec: &model.InstanceSpec{
 			DisplayName: "instance1",
+			Solution:    "sample:v1",
 		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -161,6 +162,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 	instance := model.InstanceState{
 		Spec: &model.InstanceSpec{
 			DisplayName: "instance1",
+			Solution:    "sample:v1",
 		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{

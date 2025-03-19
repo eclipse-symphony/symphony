@@ -38,6 +38,22 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 			errorFields = append(errorFields, *err)
 		}
 	}
+	if oldRef != nil && (old.Spec.Scope != new.Spec.Scope) {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.Scope",
+			Value:           new.Spec.Scope,
+			DetailedMessage: "The target is already created. Cannot change Scope of the target.",
+		})
+	}
+	if oldRef != nil && (old.Spec.SolutionScope != new.Spec.SolutionScope) && t.TargetInstanceLookupFunc != nil {
+		if found, err := t.TargetInstanceLookupFunc(ctx, new.ObjectMeta.Name, new.ObjectMeta.Namespace); err != nil || found {
+			errorFields = append(errorFields, ErrorField{
+				FieldPath:       "spec.SolutionScope",
+				Value:           new.Spec.SolutionScope,
+				DetailedMessage: "Target has one or more associated instances. Cannot change SolutionScope of the target.",
+			})
+		}
+	}
 	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
 		errorFields = append(errorFields, ErrorField{
 			FieldPath:       "spec.isDryRun",

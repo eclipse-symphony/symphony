@@ -13,9 +13,11 @@ import (
 	configv1 "gopls-workspace/apis/config/v1"
 	"gopls-workspace/apis/dynamicclient"
 	"gopls-workspace/apis/metrics/v1"
+	k8smodel "gopls-workspace/apis/model/v1"
 	v1 "gopls-workspace/apis/model/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
+	"gopls-workspace/history"
 	"gopls-workspace/utils/diagnostic"
 	"time"
 
@@ -28,7 +30,9 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -42,12 +46,15 @@ import (
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
 var myInstanceClient client.Reader
+var upsertHistoryClient client.Client
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
 var instanceValidator validation.InstanceValidator
+var instanceHistory history.InstanceHistory
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
+	upsertHistoryClient = mgr.GetClient()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
@@ -81,6 +88,99 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	} else {
 		instanceValidator = validation.NewInstanceValidator(nil, solutionLookupFunc, targetLookupFunc)
 	}
+
+	saveInstanceHistoryFunc := func(ctx context.Context, objectName string, object interface{}) error {
+		instance, ok := object.(*Instance)
+		if !ok {
+			err := fmt.Errorf("expected an Instance object")
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to convert old object to Instance", "name", r.Name, "namespace", r.Namespace)
+			return err
+		}
+		currentTime := time.Now()
+		diagnostic.InfoWithCtx(instancelog, ctx, "Saving old instance history", "Current time", currentTime, "name", instance.Name, "instance", instance)
+
+		// get solution spec
+		var solutionSpec k8smodel.SolutionSpec
+		res, err := dynamicclient.Get(ctx, validation.Solution, validation.ConvertReferenceToObjectName(instance.Spec.Solution), instance.Namespace)
+		if err != nil {
+			err := fmt.Errorf("failed to get solution, instance: %s, error: %v", instance.Name, err)
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solution spec for instance", "name", r.Name, "namespace", r.Namespace)
+		} else if res.Object != nil {
+			jsonData, _ := json.Marshal(res.Object["spec"])
+			err = utils.UnmarshalJson(jsonData, &solutionSpec)
+			if err != nil {
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solution spec for instance", "name", r.Name, "namespace", r.Namespace)
+			}
+		}
+
+		// get target spec
+		var targetSpec k8smodel.TargetSpec
+		if instance.Spec.Target.Name != "" {
+			res, err = dynamicclient.Get(ctx, validation.Target, validation.ConvertReferenceToObjectName(instance.Spec.Target.Name), instance.Namespace)
+			if err != nil {
+				err := fmt.Errorf("failed to get target, instance: %s, error: %v", instance.Name, err)
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
+			}
+			jsonData, _ := json.Marshal(res.Object["spec"])
+			err = utils.UnmarshalJson(jsonData, &targetSpec)
+			if err != nil {
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target spec for instance", "name", r.Name, "namespace", r.Namespace)
+			}
+		}
+
+		var history InstanceHistory
+		history.ObjectMeta = metav1.ObjectMeta{
+			Name:      instance.Name + constants.ResourceSeperator + currentTime.Format("20060102150405"),
+			Namespace: instance.Namespace,
+		}
+
+		history.Spec = k8smodel.InstanceHistorySpec{
+			DisplayName:          instance.Spec.DisplayName,
+			Scope:                instance.Spec.Scope,
+			Parameters:           instance.Spec.Parameters,
+			Metadata:             instance.Spec.Metadata,
+			Solution:             solutionSpec,
+			SolutionId:           instance.Spec.Solution,
+			Target:               targetSpec,
+			TargetSelector:       instance.Spec.Target.Selector,
+			TargetId:             instance.Spec.Target.Name,
+			Topologies:           instance.Spec.Topologies,
+			Pipelines:            instance.Spec.Pipelines,
+			IsDryRun:             instance.Spec.IsDryRun,
+			ReconciliationPolicy: instance.Spec.ReconciliationPolicy,
+			RootResource:         instance.Name,
+		}
+
+		var result InstanceHistory
+		err = upsertHistoryClient.Get(ctx, client.ObjectKey{Name: history.GetName(), Namespace: history.GetNamespace()}, &result)
+		if err != nil && errors.IsNotFound(err) {
+			// Resource does not exist, create it
+			err = upsertHistoryClient.Create(ctx, &history)
+			if err != nil {
+				err := fmt.Errorf("upsert instance history failed, instance: %s, error: %v", instance.Name, err)
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
+				return err
+			}
+			// If the instance has a status, save it in the history
+			if !instance.Status.LastModified.IsZero() {
+				history.Status = instance.Status
+				// Reset ProvisioningStatus to avoid saving it in the history
+				history.Status.ProvisioningStatus = model.ProvisioningStatus{}
+				err = upsertHistoryClient.Status().Update(ctx, &history)
+				if err != nil {
+					err := fmt.Errorf("upsert instance history status failed, instance: %s, history: %s, error: %v", instance.Name, history.GetName(), err)
+					diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
+					return err
+				}
+			}
+			diagnostic.InfoWithCtx(instancelog, ctx, "Saved instance history", "name", history.ObjectMeta.Name, "namespace", instance.Namespace)
+		} else if err != nil {
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "Unexpected error saving instance history", "name", r.Name, "namespace", r.Namespace)
+		}
+
+		return nil
+	}
+	instanceHistory = history.NewInstanceHistory(saveInstanceHistoryFunc)
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -119,12 +219,12 @@ func (r *Instance) Default() {
 		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
 	r.Labels[api_constants.Solution] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
-	r.Labels[api_constants.Target] = r.Spec.Target.Name
+	r.Labels[api_constants.Target] = validation.ConvertReferenceToObjectName(r.Spec.Target.Name)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update;delete,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Instance{}
 
@@ -174,6 +274,16 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to convert old object to Instance", "name", r.Name, "namespace", r.Namespace)
 		return nil, err
 	}
+
+	// Save the old object
+	if !r.Spec.DeepEquals(oldInstance.Spec) {
+		diagnostic.InfoWithCtx(instancelog, ctx, "saving instance history", "oldInstance", oldInstance)
+		err := instanceHistory.SaveInstanceHistoryFunc(ctx, oldInstance.Name, oldInstance)
+		if err != nil {
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save Instance history", "name", r.Name, "namespace", r.Namespace)
+		}
+	}
+
 	validationError := r.validateUpdateInstance(ctx, oldInstance)
 	if validationError != nil {
 		instanceWebhookValidationMetrics.ControllerValidationLatency(

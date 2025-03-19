@@ -36,8 +36,9 @@ const (
 
 // Define the struct
 type ObjectInfo struct {
-	Name      string
-	SummaryId string
+	Name         string
+	SummaryId    string
+	SummaryJobId string
 }
 
 func IsNotFound(err error) bool {
@@ -413,10 +414,7 @@ func formatPathForNestedJsonField(s string) string {
 }
 
 func ConvertReferenceToObjectName(name string) string {
-	if strings.Contains(name, constants.ReferenceSeparator) {
-		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
-	}
-	return name
+	return ConvertReferenceToObjectNameHelper(name)
 }
 
 func ConvertObjectNameToReference(name string) string {
@@ -474,9 +472,8 @@ type FailedDeployment struct {
 	Message string `json:"FailedMessage"`
 }
 
-func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatus) bool {
-	return status.Properties != nil && status.Properties[constants.Generation] == strconv.FormatInt(objectMeta.ObjGeneration, 10) &&
-		(status.Properties[constants.Status] == "Succeeded" || status.Properties[constants.Status] == "Failed")
+func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatusV2) bool {
+	return status.Generation == int(objectMeta.ObjGeneration) && (status.Status == "Succeeded" || status.Status == "Failed")
 }
 
 // Once status report is enabled in standalone mode, we need to use object status rather than summary to check the deployment status
@@ -485,7 +482,7 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
 	var objectMeta model.ObjectMeta
-	var status model.DeployableStatus
+	var status model.DeployableStatusV2
 	for _, objectName := range objectNames {
 		if isInstance {
 			var state model.InstanceState
@@ -505,8 +502,8 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 		}
 		if !DetermineObjectTerminalStatus(objectMeta, status) {
 			remainingObjects = append(remainingObjects, objectName)
-		} else if status.Properties[constants.Status] == "Failed" {
-			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.Properties["status-details"]})
+		} else if status.Status == "Failed" {
+			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.StatusDetails})
 		}
 	}
 	return remainingObjects, failedDeployments
@@ -526,14 +523,25 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			key = GetTargetRuntimeKey(object.SummaryId)
 			nameKey = GetTargetRuntimeKey(object.Name)
 		}
+		// TODO
+		// jobId := object.SummaryJobId
+		// In order to make sure the current instance reconcile is completed not the previous.
+		// We should check the SummaryJobId equal to summary.JobID. However, object.SummaryJobId may be null and summary.JobID may also be null.
+		// Issue id: 689. We need to get this done before shared app integrating with workflow.
 		var summary *model.SummaryResult
 		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
+		// TODO: summary.Summary.JobID may be empty in standalone
+		if err != nil {
+			remainingObjects = append(remainingObjects, object)
+			continue
+		}
+
 		if err == nil && summary.State == model.SummaryStateDone {
-			log.DebugfCtx(ctx, "Summary for %s is %v", object.Name, summary.Summary)
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
 				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
 			}
+			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", object.Name, len(remainingObjects), len(failedDeployments))
 			continue
 		}
 		remainingObjects = append(remainingObjects, object)

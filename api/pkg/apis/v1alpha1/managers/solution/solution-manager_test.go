@@ -13,7 +13,11 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -671,6 +675,80 @@ func TestMockApply(t *testing.T) {
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
+}
+func TestMockApply_InActive(t *testing.T) {
+	id := uuid.New().String()
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				ActiveState: model.ActiveState_Inactive,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock",
+					},
+					{
+						Name: "b",
+						Type: "mock",
+					},
+				},
+			},
+		},
+		Assignments: map[string]string{
+			"T1": "{a}{b}",
+		},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock",
+									Provider: "providers.target.mock",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		IsInActive: true,
+	}
+	deployment.Instance.ObjectMeta.SetGuid(uuid.New().String())
+	targetProvider := &mock.MockTargetProvider{}
+	targetProvider.Init(mock.MockTargetProviderConfig{ID: id})
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
+	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
+
+	manager2 := SolutionManager{}
+	manager2.Init(vendorContext,
+		managers.ManagerConfig{
+			Name: "solution-manager",
+			Type: "managers.symphony.solution",
+			Properties: map[string]string{
+				"providers.persistentstate": "mem-state",
+				"providers.keylock":         "mem-keylock",
+			},
+		},
+		map[string]providers.IProvider{
+			"mem-state":   stateProvider,
+			"mem-keylock": keyLockProvider,
+			"targets":     targetProvider,
+		})
+	summary, err := manager2.Reconcile(context.Background(), deployment, false, "default", "")
+	assert.Nil(t, err)
+	assert.Equal(t, 0, summary.SuccessCount)
 }
 func TestMockApplyMultiRoles(t *testing.T) {
 	id1 := uuid.New().String()

@@ -18,6 +18,7 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
+ARG BUILDFLAG=""
 
 ENV CGO_ENABLED=0
 
@@ -53,14 +54,14 @@ RUN if echo "${BUILD_BASE_IMAGE}" | grep "mariner"; then \
     fi
 
 # Install gofail
-RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
+RUN if [ "$FAULT_INJECTION_ENABLED" = "true" ]; then \
     go install go.etcd.io/gofail@latest && \
     find /k8s -type d | while read -r dir; do gofail enable $dir; done && \
     cd /k8s && go get go.etcd.io/gofail/runtime; \
 fi
 
 # Build
-RUN CGO_ENABLED=0 mage build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags "$BUILDFLAG" -o bin/manager
 FROM ${TARGET_BASE_IMAGE} AS manager
 
 WORKDIR /

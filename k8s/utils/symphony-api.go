@@ -20,6 +20,7 @@ import (
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
+	federation_v1 "gopls-workspace/apis/federation/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
 )
@@ -128,6 +129,35 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 	return ret, nil
 }
 
+func K8SCatalogToAPICatalogState(catalog federation_v1.Catalog) (apimodel.CatalogState, error) {
+	ret := apimodel.CatalogState{
+		ObjectMeta: apimodel.ObjectMeta{
+			Name:        catalog.ObjectMeta.Name,
+			Namespace:   catalog.ObjectMeta.Namespace,
+			Labels:      catalog.ObjectMeta.Labels,
+			Annotations: catalog.ObjectMeta.Annotations,
+		},
+		Spec: &apimodel.CatalogSpec{
+			CatalogType:  catalog.Spec.CatalogType,
+			Metadata:     catalog.Spec.Metadata,
+			ParentName:   catalog.Spec.ParentName,
+			ObjectRef:    catalog.Spec.ObjectRef,
+			Version:      catalog.Spec.Version,
+			RootResource: catalog.Spec.RootResource,
+		},
+	}
+
+	if catalog.Spec.Properties.Raw != nil {
+		ret.Spec.Properties = make(map[string]interface{})
+		err := json.Unmarshal(catalog.Spec.Properties.Raw, &catalog.Spec.Properties)
+		if err != nil {
+			return apimodel.CatalogState{}, err
+		}
+	}
+
+	return ret, nil
+}
+
 func K8SSolutionToAPISolutionState(solution solution_v1.Solution) (apimodel.SolutionState, error) {
 	ret := apimodel.SolutionState{
 		ObjectMeta: apimodel.ObjectMeta{
@@ -154,6 +184,18 @@ func K8SSolutionToAPISolutionState(solution solution_v1.Solution) (apimodel.Solu
 
 }
 
+func ContainsString(slice []string, target string) bool {
+	if slice == nil {
+		return false
+	}
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
 func matchString(src string, target string) bool {
 	if strings.Contains(src, "*") || strings.Contains(src, "%") {
 		p := strings.ReplaceAll(src, "*", ".*")
@@ -171,6 +213,11 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 		for _, t := range targets.Items {
 			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
+			} else {
+				// azure case
+				if t.Annotations[constants.AzureResourceIdKey] != "" && matchString(instance.Spec.Target.Name, strings.ToLower(t.Annotations[constants.AzureResourceIdKey])) {
+					ret[t.ObjectMeta.Name] = t
+				}
 			}
 		}
 	}
@@ -241,6 +288,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 
 	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
 	ret.IsDryRun = instance.Spec.IsDryRun
+	ret.IsInActive = instance.Spec.ActiveState == apimodel.ActiveState_Inactive
 
 	return ret, err
 }

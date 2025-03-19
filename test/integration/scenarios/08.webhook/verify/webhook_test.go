@@ -7,10 +7,12 @@
 package verify
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -45,13 +47,25 @@ var (
 	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child-config.yaml"
 	testNoParentChild           = "test/integration/scenarios/08.webhook/manifest/child-noparent.yaml"
 
-	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
-	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
-	diagnostic_03_WithConflictEdgeLocation              = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithConflictEdgeLocation.yaml"
-	diagnostic_04_WithCorrectEdgeLocation2              = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
-	diagnostic_05_UpdateEdgeLocationConflict            = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
-	diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2 = "test/integration/scenarios/08.webhook/manifest/diagnostic_06.UpdateOtherAnnotationsOnEdgeLocation2.yaml"
+	diagnostic_01_WithoutEdgeLocation     = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
+	diagnostic_02_WithCorrectEdgeLocation = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
+	diagnostic_03_WithAnotherNS           = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithAnotherNS.yaml"
+	diagnostic_04_WithAnotherName         = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithAnotherName.yaml"
+	diagnostic_05_UpdateOtherAnnotations  = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateOtherAnnotations.yaml"
+
+	historyCreate         = "test/integration/scenarios/08.webhook/manifest/history.yaml"
+	historyUpdate         = "test/integration/scenarios/08.webhook/manifest/history-update.yaml"
+	historyTarget         = "test/integration/scenarios/08.webhook/manifest/history-target.yaml"
+	historySolution       = "test/integration/scenarios/08.webhook/manifest/history-solution.yaml"
+	historyInstance       = "test/integration/scenarios/08.webhook/manifest/history-instance.yaml"
+	historySolutionUpdate = "test/integration/scenarios/08.webhook/manifest/history-solution-update.yaml"
+	historyInstanceUpdate = "test/integration/scenarios/08.webhook/manifest/history-instance-update.yaml"
 )
+
+// Define a struct to parse the JSON output
+type HistoryList struct {
+	Items []map[string]interface{} `json:"items"`
+}
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution)).CombinedOutput()
@@ -303,37 +317,117 @@ func TestUpdateCatalogRemoveParentLabel(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func IsTestInAzure() bool {
+	// Check if the environment variable is set to "true" (case-insensitive)
+	return strings.EqualFold(os.Getenv("AZURE_TEST"), "true")
+}
+
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_01_WithoutEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
-	assert.NotNil(t, err, "diagnostic creation without edge location should fail")
+	if IsTestInAzure() {
+		assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
+		assert.NotNil(t, err, "diagnostic creation without edge location should fail")
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_02_WithCorrectEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "created")
-	assert.Nil(t, err, "diagnostic creation with correct edge location should pass")
+		output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_02_WithCorrectEdgeLocation)).CombinedOutput()
+		assert.Contains(t, string(output), "created")
+		assert.Nil(t, err, "diagnostic creation with correct edge location should pass")
+	} else {
+		assert.Contains(t, string(output), "created")
+		assert.Nil(t, err, "diagnostic creation without edge location should pass")
+	}
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithConflictEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
-	assert.NotNil(t, err, "diagnostic creation with conflict edge location should fail")
+	output, err = exec.Command("kubectl", "create", "ns", "default2").CombinedOutput()
+	// ignore error if ns already exists
+	if err != nil {
+		assert.Contains(t, string(output), "already exists")
+	} else {
+		assert.Nil(t, err)
+	}
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithAnotherNS)).CombinedOutput()
+	assert.Contains(t, string(output), "resource already exists in this cluster")
+	assert.NotNil(t, err, "diagnostic creation with another namespace should fail")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithAnotherName)).CombinedOutput()
+	assert.Contains(t, string(output), "resource already exists in this cluster")
+	assert.NotNil(t, err, "diagnostic creation with name should fail")
 
 	err = shellcmd.Command("kubectl delete diagnostics.monitor.symphony default").Run()
 	assert.Nil(t, err)
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithConflictEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "created")
-	assert.Nil(t, err, "diagnostic creation with conflict edge location should pass after deletion")
-
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithCorrectEdgeLocation2)).CombinedOutput()
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithAnotherName)).CombinedOutput()
 	assert.Contains(t, string(output), "created")
 	assert.Nil(t, err)
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_05_UpdateEdgeLocationConflict)).CombinedOutput()
-	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
-	assert.NotNil(t, err, "diagnostic update with conflict edge location should fail")
+	err = shellcmd.Command("kubectl delete diagnostics.monitor.symphony default2").Run()
+	assert.Nil(t, err)
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2)).CombinedOutput()
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithAnotherNS)).CombinedOutput()
+	assert.Contains(t, string(output), "created")
+	assert.Nil(t, err)
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_05_UpdateOtherAnnotations)).CombinedOutput()
 	assert.Contains(t, string(output), "configured")
 	assert.Nil(t, err)
+}
+
+func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyTarget))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolution))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstance))).Run()
+	assert.Nil(t, err)
+
+	// wait until instance deployed
+	for {
+		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", "history-instance", "-o", "jsonpath={.status.status}").CombinedOutput()
+		if err != nil {
+			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+		}
+		err = shellcmd.Command("kubectl get instances.solution.symphony history-instance").Run()
+		assert.Nil(t, err)
+		status := string(output)
+		if status == "Succeeded" {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolutionUpdate))).Run()
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstanceUpdate))).Run()
+	assert.Nil(t, err)
+
+	// check instance history result
+	output, err := exec.Command("kubectl", "get", "instancehistory", "-o", "json").CombinedOutput()
+	if err != nil {
+		assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+	}
+
+	var historyList HistoryList
+	err = json.Unmarshal(output, &historyList)
+	if err != nil {
+		assert.Fail(t, "failed to parse instance history", err.Error())
+	}
+
+	assert.Equal(t, 1, len(historyList.Items))
+	history := historyList.Items[0]
+	metadata := history["metadata"].(map[string]interface{})
+	spec := history["spec"].(map[string]interface{})
+	status := history["status"].(map[string]interface{})
+	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
+	assert.Equal(t, "history-instance", spec["rootResource"].(string))
+	assert.Equal(t, "history-solution:v1", spec["solutionId"].(string))
+	assert.Equal(t, "Succeeded", status["status"])
+}
+
+func TestUpdateInstanceHistory(t *testing.T) {
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyCreate))).Run()
+	assert.Nil(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), historyUpdate)).CombinedOutput()
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(string(output), "Cannot update instance history spec because it is readonly"))
 }
 
 func getRepoPath() string {
