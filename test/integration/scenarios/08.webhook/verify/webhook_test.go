@@ -381,10 +381,12 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 
 	// wait until instance deployed
 	for {
-		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", "history-instance", "-o", "jsonpath={.status.properties.status}").CombinedOutput()
+		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", "history-instance", "-o", "jsonpath={.status.status}").CombinedOutput()
 		if err != nil {
 			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
 		}
+		err = shellcmd.Command("kubectl get instances.solution.symphony history-instance").Run()
+		assert.Nil(t, err)
 		status := string(output)
 		if status == "Succeeded" {
 			break
@@ -417,7 +419,7 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
 	assert.Equal(t, "history-instance", spec["rootResource"].(string))
 	assert.Equal(t, "history-solution:v1", spec["solutionId"].(string))
-	assert.Equal(t, "Succeeded", status["properties"].(map[string]interface{})["status"])
+	assert.Equal(t, "Succeeded", status["status"])
 }
 
 func TestUpdateInstanceHistory(t *testing.T) {

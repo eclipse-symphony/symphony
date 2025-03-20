@@ -163,10 +163,9 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			}
 			// If the instance has a status, save it in the history
 			if !instance.Status.LastModified.IsZero() {
-				history.Status = k8smodel.InstanceHistoryStatus{
-					Properties:   instance.Status.Properties,
-					LastModified: instance.Status.LastModified,
-				}
+				history.Status = instance.Status
+				// Reset ProvisioningStatus to avoid saving it in the history
+				history.Status.ProvisioningStatus = model.ProvisioningStatus{}
 				err = upsertHistoryClient.Status().Update(ctx, &history)
 				if err != nil {
 					err := fmt.Errorf("upsert instance history status failed, instance: %s, history: %s, error: %v", instance.Name, history.GetName(), err)

@@ -23,8 +23,8 @@ type (
 	}
 	Reconcilable interface {
 		client.Object
-		GetStatus() apiV1.DeployableStatus
-		SetStatus(apiV1.DeployableStatus)
+		GetStatus() apiV1.DeployableStatusV2
+		SetStatus(apiV1.DeployableStatusV2)
 		GetReconciliationPolicy() *apiV1.ReconciliationPolicySpec
 	}
 )
