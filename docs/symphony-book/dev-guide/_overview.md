@@ -33,10 +33,12 @@ A common task of extending Symphony is to write or modify a [provider](../provid
 
 A target provider implements the [target provider interface](../providers/target-providers/provider_interface.md).
 
-To create a new provider:
+To create a new provider in Go:
 
 1. Create a new folder under the `api/pkg/apis/v1alpha1/providers/target` folder (such as `myprovider`).
 2. Create two files under the new provider folder. One file contains the provider implementation (such as `myprovider.go`). And the other file contains unit tests for the provider (`myprovider_test.go`).
     > **NOTE**: An easy way to get started with a provider is to copy an existing provider implementation and make modifications.
 3. Implement the target provider interface in your provider source code. Generally, a provider defines an associated configuration type, which will be injected to the provider instance during initialization.
 4. Implement relevant unit test cases.
+
+Symphony supports writing target providers using Rust through its Rust binding. Please see this [detailed walkthrough](./rust-provider.md).
