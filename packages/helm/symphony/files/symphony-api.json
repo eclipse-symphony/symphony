@@ -721,6 +721,7 @@
     ]
   },
   "bindings": [
+    {{- if ne .Values.api.openHTTP false }}
     {
       "type": "bindings.http",
       "config": {
@@ -813,6 +814,7 @@
         ]
       }
     },
+    {{- end }}  
     {
       "type": "bindings.http",
       "config": {
@@ -843,15 +845,12 @@
             {
               "type": "middleware.http.jwt",
               "properties": {
-                "ignorePaths": [
-                  "/v1alpha2/users/auth",
-                  "/v1alpha2/solution/instances",
-                  "/v1alpha2/agent/references",
-                  "/v1alpha2/greetings",
-                  "/v1alpha2/agent/config"
-                ],
+                "ignorePaths": [],
                 "verifyKey": "SymphonyKey",
                 "authServer": "kubernetes",
+                {{- if .Values.api.disableUserCreds }}
+                "disableUserCreds": {{ .Values.api.disableUserCreds }},
+                {{- end }}
                 "enableRBAC": false
               }
             },
