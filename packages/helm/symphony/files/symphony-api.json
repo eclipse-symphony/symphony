@@ -721,7 +721,7 @@
     ]
   },
   "bindings": [
-    {{- if .Values.api.disableUserCreds }}
+    {{- if ne .Values.api.openHTTP false }}
     {
       "type": "bindings.http",
       "config": {
@@ -848,8 +848,10 @@
                 "ignorePaths": [],
                 "verifyKey": "SymphonyKey",
                 "authServer": "kubernetes",
-                "enableRBAC": false,
-                "disableUserCreds": true
+                {{- if .Values.api.disableUserCreds }}
+                "disableUserCreds": {{ .Values.api.disableUserCreds }},
+                {{- end }}
+                "enableRBAC": false
               }
             },
             {
