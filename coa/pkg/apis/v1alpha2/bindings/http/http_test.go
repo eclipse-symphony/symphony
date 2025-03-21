@@ -268,10 +268,9 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 			{
 				Type: "middleware.http.jwt",
 				Properties: map[string]interface{}{
-					"ignorePaths":     []string{"/v1/auth"},
-					"verifyKey":       signingKey,
-					"enableRBAC":      true,
-					"enableUserCreds": true,
+					"ignorePaths": []string{"/v1/auth"},
+					"verifyKey":   signingKey,
+					"enableRBAC":  true,
 					"roles": []map[string]string{
 						{
 							"role":  "administrator",
