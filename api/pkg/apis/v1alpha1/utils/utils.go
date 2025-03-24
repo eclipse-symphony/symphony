@@ -467,6 +467,84 @@ func AreSlicesEqual(slice1, slice2 []string) bool {
 	return true
 }
 
+func GetSolutionState(body interface{}) (model.SolutionState, error) {
+	var solutionState model.SolutionState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &solutionState)
+	if err != nil {
+		return model.SolutionState{}, err
+	}
+	if solutionState.Spec == nil {
+		solutionState.Spec = &model.SolutionSpec{}
+	}
+	return solutionState, nil
+}
+
+func GetTargetState(body interface{}) (model.TargetState, error) {
+	var targetState model.TargetState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &targetState)
+	if err != nil {
+		return model.TargetState{}, err
+	}
+	if targetState.Spec == nil {
+		targetState.Spec = &model.TargetSpec{}
+	}
+	return targetState, nil
+}
+
+func GetCampaignState(body interface{}) (model.CampaignState, error) {
+	var campaignState model.CampaignState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &campaignState)
+	if err != nil {
+		return model.CampaignState{}, err
+	}
+	if campaignState.Spec == nil {
+		campaignState.Spec = &model.CampaignSpec{}
+	}
+	return campaignState, nil
+}
+
+func GetCampaignContainerState(body interface{}) (model.CampaignContainerState, error) {
+	var CampaignContainerState model.CampaignContainerState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &CampaignContainerState)
+	if err != nil {
+		return model.CampaignContainerState{}, err
+	}
+	if CampaignContainerState.Spec == nil {
+		CampaignContainerState.Spec = &model.CampaignContainerSpec{}
+	}
+	return CampaignContainerState, nil
+}
+
+func GetCatalogContainerState(body interface{}) (model.CatalogContainerState, error) {
+	var CatalogContainerState model.CatalogContainerState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &CatalogContainerState)
+	if err != nil {
+		return model.CatalogContainerState{}, err
+	}
+	if CatalogContainerState.Spec == nil {
+		CatalogContainerState.Spec = &model.CatalogContainerSpec{}
+	}
+	return CatalogContainerState, nil
+}
+
+func GetSolutionContainerState(body interface{}) (model.SolutionContainerState, error) {
+	var SolutionContainerState model.SolutionContainerState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &SolutionContainerState)
+	if err != nil {
+		return model.SolutionContainerState{}, err
+	}
+	if SolutionContainerState.Spec == nil {
+		SolutionContainerState.Spec = &model.SolutionContainerSpec{}
+	}
+	return SolutionContainerState, nil
+}
+
 type FailedDeployment struct {
 	Name    string `json:"name"`
 	Message string `json:"FailedMessage"`

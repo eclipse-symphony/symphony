@@ -71,7 +71,13 @@ func (r *InstanceHistory) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels[api_constants.RootResource] = r.Spec.RootResource
+			r.Labels[api_constants.RootResource] = ""
+			var instance Instance
+			err := mySolutionReaderClient.Get(ctx, client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instance)
+			if err != nil {
+				diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to get instance", "name", r.Name, "namespace", r.Namespace)
+			}
+			r.Labels[api_constants.RootResourceUid] = string(instance.UID)
 		}
 	}
 

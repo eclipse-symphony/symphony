@@ -107,7 +107,14 @@ func (r *Campaign) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels[api_constants.RootResource] = r.Spec.RootResource
+
+			r.Labels[api_constants.RootResource] = ""
+			var campaignContainer CampaignContainer
+			err := myCampaignReaderClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.RootResource), Namespace: r.Namespace}, &campaignContainer)
+			if err != nil {
+				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to get campaigncontainer", "name", r.Name, "namespace", r.Namespace)
+			}
+			r.Labels[api_constants.RootResourceUid] = string(campaignContainer.UID)
 		}
 	}
 }
@@ -307,11 +314,20 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 
 	getSubResourceNums := func() (int, error) {
 		var campaignList CampaignList
-		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
-			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
-			return 0, err
+			err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+			if err != nil {
+				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
+				return 0, err
+			} else {
+				diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using NAME ", r.Name, r.Namespace)
+				return len(campaignList.Items), nil
+			}
 		} else {
+			diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using UID", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using UID ", r.Name, r.Namespace)
 			return len(campaignList.Items), nil
 		}
 	}

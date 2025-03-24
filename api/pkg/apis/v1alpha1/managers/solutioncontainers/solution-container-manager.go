@@ -8,7 +8,6 @@ package solutioncontainers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -19,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
@@ -136,7 +136,7 @@ func (t *SolutionContainersManager) ListState(ctx context.Context, namespace str
 	ret := make([]model.SolutionContainerState, 0)
 	for _, t := range solutioncontainers {
 		var rt model.SolutionContainerState
-		rt, err = getSolutionContainerState(t.Body)
+		rt, err = api_utils.GetSolutionContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -144,19 +144,6 @@ func (t *SolutionContainersManager) ListState(ctx context.Context, namespace str
 		ret = append(ret, rt)
 	}
 	return ret, nil
-}
-
-func getSolutionContainerState(body interface{}) (model.SolutionContainerState, error) {
-	var SolutionContainerState model.SolutionContainerState
-	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &SolutionContainerState)
-	if err != nil {
-		return model.SolutionContainerState{}, err
-	}
-	if SolutionContainerState.Spec == nil {
-		SolutionContainerState.Spec = &model.SolutionContainerSpec{}
-	}
-	return SolutionContainerState, nil
 }
 
 func (t *SolutionContainersManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionContainerState, error) {
@@ -183,7 +170,7 @@ func (t *SolutionContainersManager) GetState(ctx context.Context, id string, nam
 		return model.SolutionContainerState{}, err
 	}
 	var ret model.SolutionContainerState
-	ret, err = getSolutionContainerState(Solution.Body)
+	ret, err = api_utils.GetSolutionContainerState(Solution.Body)
 	if err != nil {
 		return model.SolutionContainerState{}, err
 	}
