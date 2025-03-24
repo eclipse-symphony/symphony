@@ -8,7 +8,6 @@ package catalogcontainers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -19,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
@@ -136,7 +136,7 @@ func (t *CatalogContainersManager) ListState(ctx context.Context, namespace stri
 	ret := make([]model.CatalogContainerState, 0)
 	for _, t := range catalogcontainers {
 		var rt model.CatalogContainerState
-		rt, err = getCatalogContainerState(t.Body)
+		rt, err = api_utils.GetCatalogContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -144,19 +144,6 @@ func (t *CatalogContainersManager) ListState(ctx context.Context, namespace stri
 		ret = append(ret, rt)
 	}
 	return ret, nil
-}
-
-func getCatalogContainerState(body interface{}) (model.CatalogContainerState, error) {
-	var CatalogContainerState model.CatalogContainerState
-	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &CatalogContainerState)
-	if err != nil {
-		return model.CatalogContainerState{}, err
-	}
-	if CatalogContainerState.Spec == nil {
-		CatalogContainerState.Spec = &model.CatalogContainerSpec{}
-	}
-	return CatalogContainerState, nil
 }
 
 func (t *CatalogContainersManager) GetState(ctx context.Context, id string, namespace string) (model.CatalogContainerState, error) {
@@ -183,7 +170,7 @@ func (t *CatalogContainersManager) GetState(ctx context.Context, id string, name
 		return model.CatalogContainerState{}, err
 	}
 	var ret model.CatalogContainerState
-	ret, err = getCatalogContainerState(entry.Body)
+	ret, err = api_utils.GetCatalogContainerState(entry.Body)
 	if err != nil {
 		return model.CatalogContainerState{}, err
 	}

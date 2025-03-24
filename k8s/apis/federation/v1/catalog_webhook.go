@@ -113,7 +113,15 @@ func (r *Catalog) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels[api_constants.RootResource] = utils.ConvertStringToValidLabel(r.Spec.RootResource)
+
+			r.Labels[api_constants.RootResource] = ""
+			var catalogContainer CatalogContainer
+			err := myCatalogReaderClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.RootResource), Namespace: r.Namespace}, &catalogContainer)
+			if err != nil {
+				diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to get catalogcontainer", "name", r.Name, "namespace", r.Namespace)
+			}
+			r.Labels[api_constants.RootResourceUid] = string(catalogContainer.UID)
+
 			if r.Spec.ParentName != "" {
 				r.Labels[api_constants.ParentName] = utils.ConvertStringToValidLabel(validation.ConvertReferenceToObjectName(r.Spec.ParentName))
 			} else if r.Labels[api_constants.ParentName] != "" {
@@ -314,11 +322,20 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 
 	getSubResourceNums := func() (int, error) {
 		var catalogList CatalogList
-		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
-			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "namespace", r.Namespace, "rootResource", r.Name)
-			return 0, err
+			err = myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+			if err != nil {
+				diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
+				return 0, err
+			} else {
+				diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using NAME ", r.Name, r.Namespace)
+				return len(catalogList.Items), nil
+			}
 		} else {
+			diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using UID", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using UID ", r.Name, r.Namespace)
 			return len(catalogList.Items), nil
 		}
 	}

@@ -8,11 +8,11 @@ package campaigns
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -80,26 +80,13 @@ func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace 
 		return model.CampaignState{}, err
 	}
 	var ret model.CampaignState
-	ret, err = getCampaignState(entry.Body)
+	ret, err = api_utils.GetCampaignState(entry.Body)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
 	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
-}
-
-func getCampaignState(body interface{}) (model.CampaignState, error) {
-	var campaignState model.CampaignState
-	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &campaignState)
-	if err != nil {
-		return model.CampaignState{}, err
-	}
-	if campaignState.Spec == nil {
-		campaignState.Spec = &model.CampaignSpec{}
-	}
-	return campaignState, nil
 }
 
 func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state model.CampaignState) error {
@@ -126,7 +113,32 @@ func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state m
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
 		if state.Spec != nil {
-			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+			state.ObjectMeta.Labels[constants.RootResource] = ""
+			if state.Spec.RootResource == "" {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("RootResource in spec cannot be empty"), v1alpha2.BadRequest)
+			}
+
+			getRequest := states.GetRequest{
+				ID: state.Spec.RootResource,
+				Metadata: map[string]interface{}{
+					"version":   "v1",
+					"group":     model.WorkflowGroup,
+					"resource":  "campaigncontainers",
+					"namespace": state.ObjectMeta.Namespace,
+					"kind":      "CampaignContainer",
+				},
+			}
+			var entry states.StateEntry
+			entry, err = m.StateProvider.Get(ctx, getRequest)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Campaign (%s) in namespace (%s) cannot find parent resource (%s)", state.ObjectMeta.Name, state.ObjectMeta.Namespace, state.Spec.RootResource), v1alpha2.BadRequest)
+			}
+			var ret model.CampaignContainerState
+			ret, err = api_utils.GetCampaignContainerState(entry.Body)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Can not parse campaign container"), v1alpha2.BadRequest)
+			}
+			state.ObjectMeta.Labels[constants.RootResourceUid] = string(ret.ObjectMeta.UID)
 		}
 		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CampaignValidator, state, oldState, getStateErr); err != nil {
 			return err
@@ -210,7 +222,7 @@ func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.CampaignState, 0)
 	for _, t := range campaigns {
 		var rt model.CampaignState
-		rt, err = getCampaignState(t.Body)
+		rt, err = api_utils.GetCampaignState(t.Body)
 		if err != nil {
 			return nil, err
 		}

@@ -8,11 +8,11 @@ package solutions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -106,7 +106,32 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		}
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
-			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+			state.ObjectMeta.Labels[constants.RootResource] = ""
+			if state.Spec.RootResource == "" {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("RootResource in spec cannot be empty"), v1alpha2.BadRequest)
+			}
+
+			getRequest := states.GetRequest{
+				ID: state.Spec.RootResource,
+				Metadata: map[string]interface{}{
+					"version":   "v1",
+					"group":     model.SolutionGroup,
+					"resource":  "solutioncontainers",
+					"namespace": state.ObjectMeta.Namespace,
+					"kind":      "SolutionContainer",
+				},
+			}
+			var entry states.StateEntry
+			entry, err = t.StateProvider.Get(ctx, getRequest)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Solution (%s) in namespace (%s) cannot find parent resource (%s)", state.ObjectMeta.Name, state.ObjectMeta.Namespace, state.Spec.RootResource), v1alpha2.BadRequest)
+			}
+			var ret model.SolutionContainerState
+			ret, err = api_utils.GetSolutionContainerState(entry.Body)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Can not parse solution container"), v1alpha2.BadRequest)
+			}
+			state.ObjectMeta.Labels[constants.RootResourceUid] = string(ret.ObjectMeta.UID)
 		}
 		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, oldState, getStateErr); err != nil {
 			return err
@@ -163,7 +188,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	ret := make([]model.SolutionState, 0)
 	for _, t := range solutions {
 		var rt model.SolutionState
-		rt, err = getSolutionState(t.Body)
+		rt, err = api_utils.GetSolutionState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -171,19 +196,6 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 		ret = append(ret, rt)
 	}
 	return ret, nil
-}
-
-func getSolutionState(body interface{}) (model.SolutionState, error) {
-	var solutionState model.SolutionState
-	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &solutionState)
-	if err != nil {
-		return model.SolutionState{}, err
-	}
-	if solutionState.Spec == nil {
-		solutionState.Spec = &model.SolutionSpec{}
-	}
-	return solutionState, nil
 }
 
 func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionState, error) {
@@ -210,7 +222,7 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 		return model.SolutionState{}, err
 	}
 	var ret model.SolutionState
-	ret, err = getSolutionState(entry.Body)
+	ret, err = api_utils.GetSolutionState(entry.Body)
 	if err != nil {
 		return model.SolutionState{}, err
 	}

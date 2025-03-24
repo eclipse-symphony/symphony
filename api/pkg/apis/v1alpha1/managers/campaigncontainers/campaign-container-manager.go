@@ -8,7 +8,6 @@ package campaigncontainers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -19,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
@@ -136,7 +136,7 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 	ret := make([]model.CampaignContainerState, 0)
 	for _, t := range campaigncontainers {
 		var rt model.CampaignContainerState
-		rt, err = getCampaignContainerState(t.Body)
+		rt, err = api_utils.GetCampaignContainerState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -144,19 +144,6 @@ func (t *CampaignContainersManager) ListState(ctx context.Context, namespace str
 		ret = append(ret, rt)
 	}
 	return ret, nil
-}
-
-func getCampaignContainerState(body interface{}) (model.CampaignContainerState, error) {
-	var CampaignContainerState model.CampaignContainerState
-	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &CampaignContainerState)
-	if err != nil {
-		return model.CampaignContainerState{}, err
-	}
-	if CampaignContainerState.Spec == nil {
-		CampaignContainerState.Spec = &model.CampaignContainerSpec{}
-	}
-	return CampaignContainerState, nil
 }
 
 func (t *CampaignContainersManager) GetState(ctx context.Context, id string, namespace string) (model.CampaignContainerState, error) {
@@ -183,7 +170,7 @@ func (t *CampaignContainersManager) GetState(ctx context.Context, id string, nam
 		return model.CampaignContainerState{}, err
 	}
 	var ret model.CampaignContainerState
-	ret, err = getCampaignContainerState(Campaign.Body)
+	ret, err = api_utils.GetCampaignContainerState(Campaign.Body)
 	if err != nil {
 		return model.CampaignContainerState{}, err
 	}

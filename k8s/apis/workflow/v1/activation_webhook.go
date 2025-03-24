@@ -80,7 +80,16 @@ func (r *Activation) Default() {
 	}
 	if r.Spec.Campaign != "" {
 		diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec.campaign", r.Spec.Campaign)
-		r.Labels[api_constants.Campaign] = validation.ConvertReferenceToObjectName(r.Spec.Campaign)
+		r.Labels[api_constants.Campaign] = ""
+
+		var campaignResult Campaign
+		err := myActivationClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Campaign), Namespace: r.Namespace}, &campaignResult)
+		if err != nil {
+			diagnostic.ErrorWithCtx(activationlog, ctx, err, "failed to get campaign", "name", r.Name, "namespace", r.Namespace)
+			return
+		}
+		r.Labels[api_constants.CampaignUid] = string(campaignResult.UID)
+
 	}
 }
 
