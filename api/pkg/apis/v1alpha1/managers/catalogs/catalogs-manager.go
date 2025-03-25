@@ -322,7 +322,7 @@ func (t *CatalogsManager) CatalogLookup(ctx context.Context, name string, namesp
 	return states.GetObjectState(ctx, t.StateProvider, validation.Catalog, name, namespace)
 }
 
-func (t *CatalogsManager) ChildCatalogLookup(ctx context.Context, name string, namespace string) (bool, error) {
+func (t *CatalogsManager) ChildCatalogLookup(ctx context.Context, name string, namespace string, uid string) (bool, error) {
 	catalogList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Catalog, namespace, map[string]string{constants.ParentName: name}, 1)
 	if err != nil {
 		return false, err

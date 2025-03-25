@@ -69,7 +69,7 @@ func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			return dynamicclient.Get(ctx, validation.CatalogContainer, name, namespace)
 		},
 		// Look up child catalog
-		func(ctx context.Context, name string, namespace string) (bool, error) {
+		func(ctx context.Context, name string, namespace string, uid string) (bool, error) {
 			catalogList, err := dynamicclient.ListWithLabels(ctx, validation.Catalog, namespace, map[string]string{api_constants.ParentName: name}, 1)
 			if err != nil {
 				return false, err
@@ -324,20 +324,27 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 		var catalogList CatalogList
 		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
-			err = myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
-			if err != nil {
-				diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
-				return 0, err
-			} else {
-				diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using NAME", "name", r.Name, "namespace", r.Namespace)
-				observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using NAME ", r.Name, r.Namespace)
-				return len(catalogList.Items), nil
-			}
-		} else {
+			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
+			return 0, err
+		}
+
+		if len(catalogList.Items) > 0 {
 			diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using UID", "name", r.Name, "namespace", r.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using UID ", r.Name, r.Namespace)
 			return len(catalogList.Items), nil
 		}
+
+		err = myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		if err != nil {
+			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
+			return 0, err
+		}
+		if len(catalogList.Items) > 0 {
+			diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using NAME", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using NAME ", r.Name, r.Namespace)
+			return len(catalogList.Items), nil
+		}
+		return 0, nil
 	}
 	return commoncontainer.ValidateDeleteImpl(cataloglog, ctx, r, getSubResourceNums)
 }

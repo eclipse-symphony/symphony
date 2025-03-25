@@ -63,12 +63,28 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			return dynamicclient.Get(ctx, validation.CampaignContainer, name, namespace)
 		},
 		// Look up running activation
-		func(ctx context.Context, campaign string, namespace string) (bool, error) {
-			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{"campaign": campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+		func(ctx context.Context, campaign string, namespace string, uid string) (bool, error) {
+			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.CampaignUid: uid, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
 			}
-			return len(activationList.Items) > 0, nil
+			// use name label first and then uid label
+			if len(activationList.Items) > 0 {
+				diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using UID", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using UID ", r.Name, r.Namespace)
+				return len(activationList.Items) > 0, nil
+			}
+
+			activationList, err = dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+			if err != nil {
+				return false, err
+			}
+			if len(activationList.Items) > 0 {
+				diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using NAME ", r.Name, r.Namespace)
+				return len(activationList.Items) > 0, nil
+			}
+			return false, nil
 		})
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -316,20 +332,27 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 		var campaignList CampaignList
 		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
-			err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
-			if err != nil {
-				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
-				return 0, err
-			} else {
-				diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using NAME", "name", r.Name, "namespace", r.Namespace)
-				observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using NAME ", r.Name, r.Namespace)
-				return len(campaignList.Items), nil
-			}
-		} else {
+			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
+			return 0, err
+		}
+
+		if len(campaignList.Items) > 0 {
 			diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using UID", "name", r.Name, "namespace", r.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using UID ", r.Name, r.Namespace)
 			return len(campaignList.Items), nil
 		}
+
+		err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		if err != nil {
+			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
+			return 0, err
+		}
+		if len(campaignList.Items) > 0 {
+			diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using NAME", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using NAME ", r.Name, r.Namespace)
+			return len(campaignList.Items), nil
+		}
+		return 0, nil
 	}
 	return commoncontainer.ValidateDeleteImpl(campaignlog, ctx, r, getSubResourceNums)
 }

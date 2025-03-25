@@ -36,7 +36,7 @@ type (
 	// Prototype for object lookup functions. Return value indicates if the object exists or not.
 	ObjectLookupFunc func(ctx context.Context, objectName string, namespace string) (interface{}, error)
 	// Prototype for linked objects lookup functions.
-	LinkedObjectLookupFunc func(ctx context.Context, objectName string, namespace string) (bool, error)
+	LinkedObjectLookupFunc func(ctx context.Context, objectName string, namespace string, uid string) (bool, error)
 )
 
 const (
