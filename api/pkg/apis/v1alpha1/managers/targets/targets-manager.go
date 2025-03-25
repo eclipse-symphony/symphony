@@ -24,7 +24,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
@@ -228,7 +227,7 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 	ret := make([]model.TargetState, 0)
 	for _, t := range targets {
 		var rt model.TargetState
-		rt, err = api_utils.GetTargetState(t.Body)
+		rt, err = getTargetState(t.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -236,6 +235,19 @@ func (t *TargetsManager) ListState(ctx context.Context, namespace string) ([]mod
 		ret = append(ret, rt)
 	}
 	return ret, nil
+}
+
+func getTargetState(body interface{}) (model.TargetState, error) {
+	var targetState model.TargetState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &targetState)
+	if err != nil {
+		return model.TargetState{}, err
+	}
+	if targetState.Spec == nil {
+		targetState.Spec = &model.TargetSpec{}
+	}
+	return targetState, nil
 }
 
 func (t *TargetsManager) GetState(ctx context.Context, id string, namespace string) (model.TargetState, error) {
@@ -263,7 +275,7 @@ func (t *TargetsManager) GetState(ctx context.Context, id string, namespace stri
 	}
 
 	var ret model.TargetState
-	ret, err = api_utils.GetTargetState(target.Body)
+	ret, err = getTargetState(target.Body)
 	if err != nil {
 		return model.TargetState{}, err
 	}

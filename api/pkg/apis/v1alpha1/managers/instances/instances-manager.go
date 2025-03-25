@@ -13,7 +13,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -101,50 +100,8 @@ func (t *InstancesManager) UpsertState(ctx context.Context, name string, state m
 		}
 		if state.Spec != nil {
 			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
-			state.ObjectMeta.Labels[constants.Solution] = ""
-			state.ObjectMeta.Labels[constants.Target] = ""
-
-			getRequest := states.GetRequest{
-				ID: state.Spec.Solution,
-				Metadata: map[string]interface{}{
-					"version":   "v1",
-					"group":     model.SolutionGroup,
-					"resource":  "solutions",
-					"namespace": state.ObjectMeta.Namespace,
-					"kind":      "Solution",
-				},
-			}
-			var solutionState states.StateEntry
-			solutionState, err = t.StateProvider.Get(ctx, getRequest)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Solution (%s) doesn't exist in namespace (%s)", state.Spec.Solution, state.ObjectMeta.Namespace), v1alpha2.BadRequest)
-			}
-			sState, err := api_utils.GetSolutionState(solutionState.Body)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Solution (%s) in namespace (%s) object can not be parsed", state.Spec.Solution, state.ObjectMeta.Namespace), v1alpha2.BadRequest)
-			}
-			state.ObjectMeta.Labels[constants.SolutionUid] = string(sState.ObjectMeta.UID)
-
-			getRequest = states.GetRequest{
-				ID: state.Spec.Target.Name,
-				Metadata: map[string]interface{}{
-					"version":   "v1",
-					"group":     model.FabricGroup,
-					"resource":  "targets",
-					"namespace": state.ObjectMeta.Namespace,
-					"kind":      "targets",
-				},
-			}
-			var targetState states.StateEntry
-			targetState, err = t.StateProvider.Get(ctx, getRequest)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Target (%s) doesn't exist in namespace (%s)", state.Spec.Solution, state.ObjectMeta.Namespace), v1alpha2.BadRequest)
-			}
-			tState, err := api_utils.GetTargetState(targetState.Body)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Target (%s) in namespace (%s) object can not be parsed", state.Spec.Solution, state.ObjectMeta.Namespace), v1alpha2.BadRequest)
-			}
-			state.ObjectMeta.Labels[constants.TargetUid] = string(tState.ObjectMeta.UID)
+			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
+			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
 		}
 		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, oldState, getStateErr); err != nil {
 			return err

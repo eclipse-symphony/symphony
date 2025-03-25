@@ -22,7 +22,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
@@ -133,32 +132,7 @@ func (m *CatalogsManager) UpsertState(ctx context.Context, name string, state mo
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
 		if state.Spec != nil {
-			state.ObjectMeta.Labels[constants.RootResource] = ""
-			if state.Spec.RootResource == "" {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("RootResource in spec cannot be empty"), v1alpha2.BadRequest)
-			}
-
-			getRequest := states.GetRequest{
-				ID: state.Spec.RootResource,
-				Metadata: map[string]interface{}{
-					"version":   "v1",
-					"group":     model.FederationGroup,
-					"resource":  "catalogcontainers",
-					"namespace": state.ObjectMeta.Namespace,
-					"kind":      "CatalogContainer",
-				},
-			}
-			var entry states.StateEntry
-			entry, err = m.StateProvider.Get(ctx, getRequest)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Campaign (%s) in namespace (%s) cannot find parent resource (%s)", state.ObjectMeta.Name, state.ObjectMeta.Namespace, state.Spec.RootResource), v1alpha2.BadRequest)
-			}
-			var ret model.CatalogContainerState
-			ret, err = api_utils.GetCatalogContainerState(entry.Body)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Can not parse catalog container"), v1alpha2.BadRequest)
-			}
-			state.ObjectMeta.Labels[constants.RootResourceUid] = string(ret.ObjectMeta.UID)
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
 			if state.Spec.ParentName != "" {
 				state.ObjectMeta.Labels[constants.ParentName] = validation.ConvertReferenceToObjectName(state.Spec.ParentName)
 			}
