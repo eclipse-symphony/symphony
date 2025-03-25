@@ -16,7 +16,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -24,7 +23,6 @@ import (
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -146,27 +144,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
 		if state.Spec != nil {
-			state.ObjectMeta.Labels[constants.Campaign] = ""
-			getRequest := states.GetRequest{
-				ID: state.Spec.Campaign,
-				Metadata: map[string]interface{}{
-					"version":   "v1",
-					"group":     model.WorkflowGroup,
-					"resource":  "campaigns",
-					"namespace": state.ObjectMeta.Namespace,
-					"kind":      "Campaign",
-				},
-			}
-			var campaignState states.StateEntry
-			campaignState, err = m.StateProvider.Get(ctx, getRequest)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Campaign (%s) doesn't exist in namespace (%s)", state.Spec.Campaign, state.ObjectMeta.Namespace), v1alpha2.BadRequest)
-			}
-			cState, err := api_utils.GetCampaignState(campaignState.Body)
-			if err != nil {
-				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Campaign (%s) in namespace (%s) object can not be parsed", state.Spec.Campaign, state.ObjectMeta.Namespace), v1alpha2.BadRequest)
-			}
-			state.ObjectMeta.Labels[constants.CampaignUid] = string(cState.ObjectMeta.UID)
+			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
 		}
 		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.Validator, state, oldState, getStateErr); err != nil {
 			return err
