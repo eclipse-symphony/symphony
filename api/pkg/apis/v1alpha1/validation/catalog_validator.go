@@ -206,7 +206,7 @@ func (c *CatalogValidator) ValidateChildCatalog(ctx context.Context, catalog mod
 	if c.ChildCatalogLookupFunc == nil {
 		return nil
 	}
-	if found, err := c.ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace); err != nil || found {
+	if found, err := c.ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace, string(catalog.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           catalog.ObjectMeta.Name,

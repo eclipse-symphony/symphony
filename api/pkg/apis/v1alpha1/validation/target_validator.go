@@ -46,7 +46,7 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 		})
 	}
 	if oldRef != nil && (old.Spec.SolutionScope != new.Spec.SolutionScope) && t.TargetInstanceLookupFunc != nil {
-		if found, err := t.TargetInstanceLookupFunc(ctx, new.ObjectMeta.Name, new.ObjectMeta.Namespace); err != nil || found {
+		if found, err := t.TargetInstanceLookupFunc(ctx, new.ObjectMeta.Name, new.ObjectMeta.Namespace, string(new.ObjectMeta.UID)); err != nil || found {
 			errorFields = append(errorFields, ErrorField{
 				FieldPath:       "spec.SolutionScope",
 				Value:           new.Spec.SolutionScope,
@@ -98,7 +98,7 @@ func (t *TargetValidator) ValidateNoInstanceForTarget(ctx context.Context, targe
 	if t.TargetInstanceLookupFunc == nil {
 		return nil
 	}
-	if found, err := t.TargetInstanceLookupFunc(ctx, target.ObjectMeta.Name, target.ObjectMeta.Namespace); err != nil || found {
+	if found, err := t.TargetInstanceLookupFunc(ctx, target.ObjectMeta.Name, target.ObjectMeta.Namespace, string(target.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           target.ObjectMeta.Name,

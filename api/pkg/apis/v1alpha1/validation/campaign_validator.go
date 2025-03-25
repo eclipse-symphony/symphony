@@ -138,7 +138,7 @@ func (c *CampaignValidator) ValidateRunningActivation(ctx context.Context, campa
 	if c.CampaignActivationsLookupFunc == nil {
 		return nil
 	}
-	if found, err := c.CampaignActivationsLookupFunc(ctx, campaign.ObjectMeta.Name, campaign.ObjectMeta.Namespace); err != nil || found {
+	if found, err := c.CampaignActivationsLookupFunc(ctx, campaign.ObjectMeta.Name, campaign.ObjectMeta.Namespace, string(campaign.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           campaign.ObjectMeta.Name,

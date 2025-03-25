@@ -52,22 +52,28 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	projectConfig = myConfig
 
 	// Load validator functions
-	solutionInstanceLookupFunc := func(ctx context.Context, name string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.SolutionUid: string(r.UID)}, 1)
+	solutionInstanceLookupFunc := func(ctx context.Context, name string, namespace string, solutionUid string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.SolutionUid: solutionUid}, 1)
 		if err != nil {
-			instanceList, err = dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
-			if err != nil {
-				return false, err
-			}
-			// add log
-			diagnostic.InfoWithCtx(solutionlog, ctx, "solution look up instance using NAME", "name", r.Name, "namespace", r.Namespace)
-			observ_utils.EmitUserAuditsLogs(ctx, "Solution (%s) in namespace (%s) look up instance using NAME ", r.Name, r.Namespace)
-			return len(instanceList.Items) > 0, nil
+			return false, err
 		}
 		// use name label first and then uid label
-		diagnostic.InfoWithCtx(solutionlog, ctx, "solution look up instance using UID", "name", r.Name, "namespace", r.Namespace)
-		observ_utils.EmitUserAuditsLogs(ctx, "Solution (%s) in namespace (%s) look up instance using UID ", r.Name, r.Namespace)
-		return len(instanceList.Items) > 0, nil
+		if len(instanceList.Items) > 0 {
+			diagnostic.InfoWithCtx(solutionlog, ctx, "solution look up instance using UID", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "solution (%s) in namespace (%s) look up instance using UID ", r.Name, r.Namespace)
+			return len(instanceList.Items) > 0, nil
+		}
+
+		instanceList, err = dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
+		if err != nil {
+			return false, err
+		}
+		if len(instanceList.Items) > 0 {
+			diagnostic.InfoWithCtx(solutionlog, ctx, "solution look up instance using NAME", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "solution (%s) in namespace (%s) look up instance using NAME ", r.Name, r.Namespace)
+			return len(instanceList.Items) > 0, nil
+		}
+		return false, nil
 	}
 	solutionContainerLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(ctx, validation.SolutionContainer, name, namespace)
@@ -301,20 +307,27 @@ func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
 		var solutionList SolutionList
 		err := mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
-			err = mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
-			if err != nil {
-				diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to list solutions", "name", r.Name, "namespace", r.Namespace)
-				return 0, err
-			} else {
-				diagnostic.InfoWithCtx(solutionlog, ctx, "solutioncontainer look up solution using NAME", "name", r.Name, "namespace", r.Namespace)
-				observ_utils.EmitUserAuditsLogs(ctx, "solutioncontainer (%s) in namespace (%s) look up solution using NAME ", r.Name, r.Namespace)
-				return len(solutionList.Items), nil
-			}
-		} else {
+			diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to list solutions", "name", r.Name, "namespace", r.Namespace)
+			return 0, err
+		}
+
+		if len(solutionList.Items) > 0 {
 			diagnostic.InfoWithCtx(solutionlog, ctx, "solutioncontainer look up solution using UID", "name", r.Name, "namespace", r.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "solutioncontainer (%s) in namespace (%s) look up solution using UID ", r.Name, r.Namespace)
 			return len(solutionList.Items), nil
 		}
+
+		err = mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		if err != nil {
+			diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to list solutions", "name", r.Name, "namespace", r.Namespace)
+			return 0, err
+		}
+		if len(solutionList.Items) > 0 {
+			diagnostic.InfoWithCtx(solutionlog, ctx, "solutioncontainer look up solution using NAME", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "solutioncontainer (%s) in namespace (%s) look up solution using NAME ", r.Name, r.Namespace)
+			return len(solutionList.Items), nil
+		}
+		return 0, nil
 	}
 	return commoncontainer.ValidateDeleteImpl(solutionlog, ctx, r, getSubResourceNums)
 }
