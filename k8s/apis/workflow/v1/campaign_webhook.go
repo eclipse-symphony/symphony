@@ -64,7 +64,7 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		},
 		// Look up running activation
 		func(ctx context.Context, campaign string, namespace string, uid string) (bool, error) {
-			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.CampaignUid: uid, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.CampaignUid: uid, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
 			}
@@ -75,7 +75,7 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 				return len(activationList.Items) > 0, nil
 			}
 
-			activationList, err = dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+			activationList, err = dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
 			}
