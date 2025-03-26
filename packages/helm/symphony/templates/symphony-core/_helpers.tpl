@@ -232,7 +232,7 @@ Symphony full url Endpoint
 {{- $existingPVC := (lookup "v1" "PersistentVolumeClaim" .Release.Namespace $pvcName) -}}
 {{- if .Values.redis.persistentVolume.storageClass }}
 {{- $storageClass := .Values.redis.persistentVolume.storageClass }}
-{{- $sc := lookup "storage.k8s.io/v1" "StorageClass" .Release.Namespace $storageClass }}
+{{- $sc := lookup "storage.k8s.io/v1" "StorageClass" "" $storageClass }}
 {{- if not $sc }}
 {{- fail (printf "Error: StorageClass '%s' not found. Please create it before installing." $storageClass)}}
 {{- end  }}
