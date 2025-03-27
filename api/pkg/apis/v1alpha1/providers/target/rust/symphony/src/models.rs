@@ -29,6 +29,43 @@
      pub instance_isolation: bool,
  }
  
+ impl ValidationRule {
+    pub fn new() -> Self {
+        ValidationRule {
+            required_component_type: "".to_string(),
+            component_validation_rule: ComponentValidationRule {
+                required_component_type: "".to_string(),
+                change_detection_properties: vec![
+                    PropertyDesc {
+                        ignore_case: true,
+                        is_component_name: false,
+                        name: "*".to_string(),
+                        skip_if_missing: true,
+                        prefix_match: false,
+                    },
+                ],
+                change_detection_metadata: vec![],
+                required_properties: vec![],
+                optional_properties: vec![],
+                required_metadata: vec![],
+                optional_metadata: vec![],
+            },
+            sidecar_validation_rule: ComponentValidationRule {
+                required_component_type: "".to_string(),
+                change_detection_properties: vec![],
+                change_detection_metadata: vec![],
+                required_properties: vec![],
+                optional_properties: vec![],
+                required_metadata: vec![],
+                optional_metadata: vec![],
+            },
+            allow_sidecar: true,
+            scope_isolation: true,
+            instance_isolation: true,
+        }
+    }
+}
+
  #[derive(Serialize, Deserialize, Debug, Clone)]
  #[serde(rename_all = "camelCase")]
  pub struct DeploymentSpec {
@@ -46,6 +83,45 @@
      pub hash: Option<String>,
  }
  
+ impl DeploymentSpec {
+    /// Creates an empty `DeploymentSpec` with default values.
+    pub fn empty() -> Self {
+        DeploymentSpec {
+            solution_name: String::new(),
+            solution: SolutionState {
+                metadata: ObjectMeta {
+                    namespace: None,
+                    name: None,
+                    generation: None,
+                    labels: None,
+                    annotations: None,
+                },
+                spec: None,
+            },
+            instance: InstanceState {
+                metadata: ObjectMeta {
+                    namespace: None,
+                    name: None,
+                    generation: None,
+                    labels: None,
+                    annotations: None,
+                },
+                spec: None,
+                status: InstanceStatus {}, // Assuming `InstanceStatus` has a default implementation
+            },
+            targets: HashMap::new(),
+            devices: None,
+            assignments: None,
+            component_start_index: None,
+            component_end_index: None,
+            active_target: None,
+            generation: None,
+            object_namespace: None,
+            hash: None,
+        }
+    }
+}
+
  #[derive(Serialize, Deserialize, Debug, Clone)]
  #[serde(rename_all = "camelCase")]
  pub struct ComponentSpec {
@@ -128,8 +204,19 @@
      pub role: String,
      pub is_first: bool,
  }
+
+//  impl DeploymentStep {
+//     // The get_components method that returns a Vec<ComponentSpec>
+//     pub fn get_components(&self) -> Vec<ComponentSpec> {
+//         let mut ret = Vec::new();
+//         for component_step in &self.components {
+//             ret.push(component_step.component.clone());
+//         }
+//         ret
+//     }
+// }
  
- #[derive(Serialize, Deserialize, Debug, Clone)]
+ #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
  #[serde(rename_all = "camelCase")]
  pub enum ComponentAction {
      Update,

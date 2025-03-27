@@ -17,7 +17,7 @@
             {
                 "bindings": [
                     {
-                        "role": "instance",
+                        "role": "example_type",
                         "provider": "providers.target.rust",
                         "config": {
                             "name": "rust-lib",
