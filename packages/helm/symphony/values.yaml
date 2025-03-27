@@ -52,7 +52,7 @@ redis:
     # whether to enable presistent volume for redis
     enabled: true
     # the storage class where the redis PV is provisioned. Default Sc is used if not specified
-    storageClass:
+    storageClass: ""
     accessMode: ReadWriteOnce
     size: 1Gi
 
