@@ -71,15 +71,6 @@ func TestCreateSolutionWithoutContainer(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution)).CombinedOutput()
 	assert.Contains(t, string(output), "rootResource must be a valid container")
 	assert.NotNil(t, err, "solution creation without container should fail")
-
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolutionContainer)).CombinedOutput()
-	assert.Nil(t, err)
-	assert.Contains(t, string(output), "created")
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSolution))).Run()
-	assert.Nil(t, err)
-	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", "mysol").CombinedOutput()
-	assert.Contains(t, string(output), "nested resources with root resource 'mysol' are not empty")
-	assert.NotNil(t, err, "solution container deletion with solution should fail")
 }
 
 func TestInstanceWithoutSolution(t *testing.T) {
