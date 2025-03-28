@@ -64,17 +64,18 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		},
 		// Look up running activation
 		func(ctx context.Context, campaign string, namespace string, uid string) (bool, error) {
+			// check if the campaign has running activations using the UID first
 			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.CampaignUid: uid, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
 			}
-			// use name label first and then uid label
 			if len(activationList.Items) > 0 {
 				diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using UID", "name", r.Name, "namespace", r.Namespace)
 				observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using UID ", r.Name, r.Namespace)
-				return len(activationList.Items) > 0, nil
+				return true, nil
 			}
 
+			// if couldn't find any, then use the campaign name
 			activationList, err = dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
@@ -82,8 +83,10 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			if len(activationList.Items) > 0 {
 				diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using NAME", "name", r.Name, "namespace", r.Namespace)
 				observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using NAME ", r.Name, r.Namespace)
-				return len(activationList.Items) > 0, nil
+				return true, nil
 			}
+
+			// if still finds nothing, we think there's no running activations
 			return false, nil
 		})
 
