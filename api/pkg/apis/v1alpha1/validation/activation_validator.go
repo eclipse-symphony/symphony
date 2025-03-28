@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
@@ -84,6 +85,13 @@ func (a *ActivationValidator) ValidateCampaignAndStage(ctx context.Context, new 
 	err = json.Unmarshal(marshalResult, &campaign)
 	if err != nil {
 		return nil
+	}
+	if new.ObjectMeta.Labels[api_constants.CampaignUid] != string(campaign.ObjectMeta.UID) {
+		return &ErrorField{
+			FieldPath:       "metadata.labels.campaignUid",
+			Value:           string(campaign.ObjectMeta.UID),
+			DetailedMessage: "metadata.labels.campaignUid is empty or doesn't match with the campaign.",
+		}
 	}
 	for _, stage := range campaign.Spec.Stages {
 		if stage.Name == new.Spec.Stage {
