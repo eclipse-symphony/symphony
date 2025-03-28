@@ -76,14 +76,16 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			}
 
 			// if couldn't find any, then use the campaign name
-			activationList, err = dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
-			if err != nil {
-				return false, err
-			}
-			if len(activationList.Items) > 0 {
-				diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using NAME", "name", r.Name, "namespace", r.Namespace)
-				observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using NAME ", r.Name, r.Namespace)
-				return true, nil
+			if len(campaign) < 64 {
+				activationList, err = dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+				if err != nil {
+					return false, err
+				}
+				if len(activationList.Items) > 0 {
+					diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using NAME", "name", r.Name, "namespace", r.Namespace)
+					observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using NAME ", r.Name, r.Namespace)
+					return true, nil
+				}
 			}
 
 			// if still finds nothing, we think there's no running activations
@@ -345,15 +347,17 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(campaignList.Items), nil
 		}
 
-		err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
-		if err != nil {
-			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
-			return 0, err
-		}
-		if len(campaignList.Items) > 0 {
-			diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using NAME", "name", r.Name, "namespace", r.Namespace)
-			observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using NAME ", r.Name, r.Namespace)
-			return len(campaignList.Items), nil
+		if len(r.Name) < 64 {
+			err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+			if err != nil {
+				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
+				return 0, err
+			}
+			if len(campaignList.Items) > 0 {
+				diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using NAME ", r.Name, r.Namespace)
+				return len(campaignList.Items), nil
+			}
 		}
 		return 0, nil
 	}
