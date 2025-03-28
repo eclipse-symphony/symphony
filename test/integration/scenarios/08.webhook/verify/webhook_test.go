@@ -71,6 +71,15 @@ func TestCreateSolutionWithoutContainer(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution)).CombinedOutput()
 	assert.Contains(t, string(output), "rootResource must be a valid container")
 	assert.NotNil(t, err, "solution creation without container should fail")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolutionContainer)).CombinedOutput()
+	assert.Nil(t, err)
+	assert.Contains(t, string(output), "created")
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSolution))).Run()
+	assert.Nil(t, err)
+	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", "mysol").CombinedOutput()
+	assert.Contains(t, string(output), "nested resources with root resource 'mysol' are not empty")
+	assert.NotNil(t, err, "solution container deletion with solution should fail")
 }
 
 func TestInstanceWithoutSolution(t *testing.T) {
@@ -183,6 +192,10 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 	assert.NotNil(t, err, "campaign deletion with running activation should fail")
 	time.Sleep(15 * time.Second)
 	// Campaign can be deleted once the activation is DONE
+	output, err = exec.Command("kubectl", "delete", "campaigncontainers.workflow.symphony", "04campaign").CombinedOutput()
+	assert.NotNil(t, err, "campaign container deletion with campaign should fail")
+	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
+
 	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v3").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
