@@ -67,7 +67,8 @@ func getSubjectList() []string {
 
 func isSubjectValid(subject string) bool {
 	for _, s := range subjectList {
-		if s == subject {
+		if strings.Contains(subject, s) {
+			// The subject contains one of the valid subjects
 			return true
 		}
 	}
@@ -143,7 +144,7 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 
 			// Get the client certificate
 			clientCert := state.PeerCertificates[0]
-			subjectName := clientCert.Subject.CommonName
+			subjectName := clientCert.Subject.String()
 			log.Errorf("JWT: Token is empty.\n")
 			// Verify the client certificate
 			caCertPool, err := loadCACertPool(caFileName)
@@ -156,10 +157,10 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				Roots: caCertPool,
 			}
 			if _, err := clientCert.Verify(opts); err != nil {
-				log.Infof("JWT: The cert is not a symphony working cert. It is a bootstrap cert.\n")
+				log.Infof("JWT: The cert is not a symphony working cert. It is a bootstrap cert.")
 				subjectValid := isSubjectValid(subjectName)
 				if !subjectValid {
-					log.Errorf("JWT: The cert is not a symphony working cert. %s\n")
+					log.ErrorfCtx(ctx, fmt.Sprintf("JWT: The cert has no valid subject name, %s.", subjectName))
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				} else {
@@ -167,7 +168,7 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 					if strings.Contains(uri, "/targets/bootstrap") || strings.Contains(uri, "/files") {
 						next(ctx)
 					} else {
-						log.Errorf("JWT: The cert is not a symphony working cert. \n")
+						log.Errorf("JWT: Bootstrap cert can only access bootstrap and files endpoints. \n")
 						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 						return
 					}

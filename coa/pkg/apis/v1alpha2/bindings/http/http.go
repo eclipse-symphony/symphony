@@ -68,12 +68,42 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		return err
 	}
 
+	caCertPool := x509.NewCertPool()
+
 	if config.TLS {
 		switch config.CertProvider.Type {
 		case "certs.autogen":
 			h.CertProvider = &autogen.AutoGenCertProvider{}
 		case "certs.localfile":
 			h.CertProvider = &localfile.LocalCertFileProvider{}
+			localConfig := &localfile.LocalCertFileProviderConfig{}
+			data, err := json.Marshal(config.CertProvider.Config)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to marshall config %+v", err)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to marshall config"), v1alpha2.BadConfig)
+			}
+			err = json.Unmarshal(data, &localConfig)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to unmarshall config %+v", err)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to unmarshall config"), v1alpha2.BadConfig)
+			}
+			certFile, err := os.Open(localConfig.CertFile)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to open certificate file %+v", err)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to open certificate file %+v", err), v1alpha2.BadConfig)
+			}
+			certData, err := ioutil.ReadAll(certFile)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to read certificate file %+v", err)
+				return v1alpha2.NewCOAError(err, "B (HTTP): failed to read certificate file", v1alpha2.InternalError)
+			}
+			certs, err := h.parseCertificates(certData)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the symphony CA file, %s", localConfig.CertFile), v1alpha2.BadConfig)
+			}
+			for _, cert := range certs {
+				caCertPool.AddCert(cert)
+			}
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("cert provider type '%s' is not recognized", config.CertProvider.Type), v1alpha2.BadConfig)
 		}
@@ -83,7 +113,6 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}
 
-	caCertPool := x509.NewCertPool()
 	// Load the PEM file
 	if ClientCAFile != "" {
 		pemData, err := ioutil.ReadFile(ClientCAFile)

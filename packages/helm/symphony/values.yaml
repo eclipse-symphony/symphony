@@ -102,6 +102,6 @@ Cert:
   ClientCAs: 
     SecretName: 
     SecretKey: 
-  Subjects: system:serviceaccount:default:symphony-api-sp;thisisatest.symphony.microsoft.com
+  Subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
 remoteAgent:
   version: "0.0.0.1"
