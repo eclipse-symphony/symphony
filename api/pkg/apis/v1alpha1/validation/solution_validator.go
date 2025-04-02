@@ -98,7 +98,7 @@ func (s *SolutionValidator) ValidateNoInstanceForSolution(ctx context.Context, s
 	if s.SolutionInstanceLookupFunc == nil {
 		return nil
 	}
-	if found, err := s.SolutionInstanceLookupFunc(ctx, solution.ObjectMeta.Name, solution.ObjectMeta.Namespace); err != nil || found {
+	if found, err := s.SolutionInstanceLookupFunc(ctx, solution.ObjectMeta.Name, solution.ObjectMeta.Namespace, string(solution.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           solution.ObjectMeta.Name,

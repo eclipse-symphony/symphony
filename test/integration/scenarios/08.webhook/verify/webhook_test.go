@@ -183,6 +183,10 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 	assert.NotNil(t, err, "campaign deletion with running activation should fail")
 	time.Sleep(15 * time.Second)
 	// Campaign can be deleted once the activation is DONE
+	output, err = exec.Command("kubectl", "delete", "campaigncontainers.workflow.symphony", "04campaign").CombinedOutput()
+	assert.NotNil(t, err, "campaign container deletion with campaign should fail")
+	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
+
 	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v3").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
