@@ -129,7 +129,10 @@ func (r *Campaign) Default() {
 				r.Labels = make(map[string]string)
 			}
 
-			r.Labels[api_constants.RootResource] = ""
+			// Remove api_constants.RootResource from r.Labels if it exists
+			if _, exists := r.Labels[api_constants.RootResource]; exists {
+				delete(r.Labels, api_constants.RootResource)
+			}
 			var campaignContainer CampaignContainer
 			err := myCampaignReaderClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.RootResource), Namespace: r.Namespace}, &campaignContainer)
 			if err != nil {

@@ -95,357 +95,181 @@ func applyManifest(manifest []byte) ([]byte, error) {
 	return output, nil
 }
 
-func TestLongResourceName(t *testing.T) {
-	// first apply - generation 1
-	// read the solution manifest
-	targetManifest, err := os.ReadFile(path.Join(getRepoPath(), target))
+func createNonLinkedResource(file string, nameLength int, special bool) (string, []byte, error) {
+	// read the manifest
+	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
 	if err != nil {
-		t.Fatalf("Failed to read target manifest: %v", err)
+		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
 	}
-	// randomly generate a target name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	targetName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	targetManifest = []byte(strings.ReplaceAll(string(targetManifest), "${PLACEHOLDER_NAME}", targetName))
+	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
+	resourceName := generateRandomName(nameLength, special) // Generate a random name with length characters
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
 
-	output, err := applyManifest(targetManifest)
+	output, err := applyManifest(manifest)
+	return resourceName, output, err
+}
+
+func createRootLinkedResource(file string, nameLength int, special bool, rootResource string) (string, []byte, error) {
+	// read the manifest
+	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
+	if err != nil {
+		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
+	}
+	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
+	resourceName := generateRandomName(nameLength, special) // Generate a random name with length characters
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", rootResource, resourceName)))
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_ROOT_RESOURCE}", rootResource))
+
+	output, err := applyManifest(manifest)
+	return resourceName, output, err
+}
+
+func createActivationResource(file string, nameLength int, special bool, campaignResource string) (string, []byte, error) {
+	// read the manifest
+	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
+	if err != nil {
+		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
+	}
+	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
+	resourceName := generateRandomName(nameLength, special) // Generate a random name with length characters
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_CAMPAIGN_NAME}", campaignResource))
+
+	output, err := applyManifest(manifest)
+	return resourceName, output, err
+}
+
+func createInstanceResource(file string, nameLength int, special bool, solutionName string, targetName string) (string, []byte, error) {
+	// read the manifest
+	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
+	if err != nil {
+		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
+	}
+	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
+	resourceName := generateRandomName(nameLength, special) // Generate a random name with length character
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_TARGET}", targetName))
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_SOLUTION}", solutionName))
+
+	output, err := applyManifest(manifest)
+	return resourceName, output, err
+}
+
+func TestLongResourceName(t *testing.T) {
+	// create target
+	targetName, output, err := createNonLinkedResource(target, longLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), solutionContainer))
-	if err != nil {
-		t.Fatalf("Failed to read solution container manifest: %v", err)
-	}
-	// randomly generate a solution container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	solutionContainerName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	solutionContainerManifest = []byte(strings.ReplaceAll(string(solutionContainerManifest), "${PLACEHOLDER_NAME}", solutionContainerName))
-	output, err = applyManifest(solutionContainerManifest)
+	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, longLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the solution manifest
-	solutionManifest, err := os.ReadFile(path.Join(getRepoPath(), solution))
-	if err != nil {
-		t.Fatalf("Failed to read solution manifest: %v", err)
-	}
-	// randomly generate a solution name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	solutionName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	solutionManifest = []byte(strings.ReplaceAll(string(solutionManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", solutionContainerName, solutionName)))
-	solutionManifest = []byte(strings.ReplaceAll(string(solutionManifest), "${PLACEHOLDER_ROOT_RESOURCE}", solutionContainerName))
-	output, err = applyManifest(solutionManifest)
+	solutionName, output, err := createRootLinkedResource(solution, longLength, false, solutionContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the instance manifest
-	instanceManifest, err := os.ReadFile(path.Join(getRepoPath(), instance))
-	if err != nil {
-		t.Fatalf("Failed to read instance manifest: %v", err)
-	}
-	// randomly generate a instance name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	instanceName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_NAME}", instanceName))
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_TARGET}", targetName))
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_SOLUTION}", fmt.Sprintf("%s:%s", solutionContainerName, solutionName)))
-	output, err = applyManifest(instanceManifest)
+	instanceName, output, err := createInstanceResource(instance, longLength, false, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the instance history manifest
-	instanceHistoryManifest, err := os.ReadFile(path.Join(getRepoPath(), instanceHistory))
-	if err != nil {
-		t.Fatalf("Failed to read instance history manifest: %v", err)
-	}
-	// randomly generate a instance history name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	instanceHistoryName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	instanceHistoryManifest = []byte(strings.ReplaceAll(string(instanceHistoryManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", instanceName, instanceHistoryName)))
-	instanceHistoryManifest = []byte(strings.ReplaceAll(string(instanceHistoryManifest), "${PLACEHOLDER_ROOT_RESOURCE}", instanceName))
-	output, err = applyManifest(instanceHistoryManifest)
+	_, output, err = createRootLinkedResource(instanceHistory, longLength, false, instanceName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the catalog container manifest
-	catalogContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), catalogcontainer))
-	if err != nil {
-		t.Fatalf("Failed to read catalog container manifest: %v", err)
-	}
-	// randomly generate a catalog container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	catalogContainerName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	catalogContainerManifest = []byte(strings.ReplaceAll(string(catalogContainerManifest), "${PLACEHOLDER_NAME}", catalogContainerName))
-	output, err = applyManifest(catalogContainerManifest)
+	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, longLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the catalog manifest
-	catalogManifest, err := os.ReadFile(path.Join(getRepoPath(), catalog))
-	if err != nil {
-		t.Fatalf("Failed to read catalog manifest: %v", err)
-	}
-	// randomly generate a catalog name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	catalogName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	catalogManifest = []byte(strings.ReplaceAll(string(catalogManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", catalogContainerName, catalogName)))
-	catalogManifest = []byte(strings.ReplaceAll(string(catalogManifest), "${PLACEHOLDER_ROOT_RESOURCE}", catalogContainerName))
-	output, err = applyManifest(catalogManifest)
+	_, output, err = createRootLinkedResource(catalog, longLength, false, catalogContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the campaign container manifest
-	campaignContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), campaigncontainer))
-	if err != nil {
-		t.Fatalf("Failed to read campaign container manifest: %v", err)
-	}
-	// randomly generate a campaign container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	campaignContainerName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	campaignContainerManifest = []byte(strings.ReplaceAll(string(campaignContainerManifest), "${PLACEHOLDER_NAME}", campaignContainerName))
-	output, err = applyManifest(campaignContainerManifest)
+	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, longLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the campaign manifest
-	campaignManifest, err := os.ReadFile(path.Join(getRepoPath(), campaign))
-	if err != nil {
-		t.Fatalf("Failed to read campaign manifest: %v", err)
-	}
-	// randomly generate a campaign name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	campaignName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	campaignManifest = []byte(strings.ReplaceAll(string(campaignManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", campaignContainerName, campaignName)))
-	campaignManifest = []byte(strings.ReplaceAll(string(campaignManifest), "${PLACEHOLDER_ROOT_RESOURCE}", campaignContainerName))
-	output, err = applyManifest(campaignManifest)
+	campaignName, output, err := createRootLinkedResource(campaign, longLength, false, campaignContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the activation manifest
-	activationManifest, err := os.ReadFile(path.Join(getRepoPath(), activation))
-	if err != nil {
-		t.Fatalf("Failed to read activation manifest: %v", err)
-	}
-	// randomly generate a activation name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	activationName := generateRandomName(longLength, false) // Generate a random name with longLength characters
-	activationManifest = []byte(strings.ReplaceAll(string(activationManifest), "${PLACEHOLDER_NAME}", activationName))
-	activationManifest = []byte(strings.ReplaceAll(string(activationManifest), "${PLACEHOLDER_CAMPAIGN_NAME}", fmt.Sprintf("%s:%s", campaignContainerName, campaignName)))
-	output, err = applyManifest(activationManifest)
+	_, output, err = createActivationResource(activation, longLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 }
 
 func TestForShortResourceName(t *testing.T) {
-	// first apply - generation 1
-	// read the solution manifest
-	targetManifest, err := os.ReadFile(path.Join(getRepoPath(), target))
-	if err != nil {
-		t.Fatalf("Failed to read target manifest: %v", err)
-	}
-	// randomly generate a target name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	targetName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	targetManifest = []byte(strings.ReplaceAll(string(targetManifest), "${PLACEHOLDER_NAME}", targetName))
-
-	output, err := applyManifest(targetManifest)
+	// create target
+	targetName, output, err := createNonLinkedResource(target, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), solutionContainer))
-	if err != nil {
-		t.Fatalf("Failed to read solution container manifest: %v", err)
-	}
-	// randomly generate a solution container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	solutionContainerName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	solutionContainerManifest = []byte(strings.ReplaceAll(string(solutionContainerManifest), "${PLACEHOLDER_NAME}", solutionContainerName))
-	output, err = applyManifest(solutionContainerManifest)
+	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the solution manifest
-	solutionManifest, err := os.ReadFile(path.Join(getRepoPath(), solution))
-	if err != nil {
-		t.Fatalf("Failed to read solution manifest: %v", err)
-	}
-	// randomly generate a solution name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	solutionName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	solutionManifest = []byte(strings.ReplaceAll(string(solutionManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", solutionContainerName, solutionName)))
-	solutionManifest = []byte(strings.ReplaceAll(string(solutionManifest), "${PLACEHOLDER_ROOT_RESOURCE}", solutionContainerName))
-	output, err = applyManifest(solutionManifest)
+	solutionName, output, err := createRootLinkedResource(solution, shortLength, false, solutionContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the instance manifest
-	instanceManifest, err := os.ReadFile(path.Join(getRepoPath(), instance))
-	if err != nil {
-		t.Fatalf("Failed to read instance manifest: %v", err)
-	}
-	// randomly generate a instance name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	instanceName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_NAME}", instanceName))
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_TARGET}", targetName))
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_SOLUTION}", fmt.Sprintf("%s:%s", solutionContainerName, solutionName)))
-	output, err = applyManifest(instanceManifest)
+	instanceName, output, err := createInstanceResource(instance, shortLength, false, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the instance history manifest
-	instanceHistoryManifest, err := os.ReadFile(path.Join(getRepoPath(), instanceHistory))
-	if err != nil {
-		t.Fatalf("Failed to read instance history manifest: %v", err)
-	}
-	// randomly generate a instance history name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	instanceHistoryName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	instanceHistoryManifest = []byte(strings.ReplaceAll(string(instanceHistoryManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", instanceName, instanceHistoryName)))
-	instanceHistoryManifest = []byte(strings.ReplaceAll(string(instanceHistoryManifest), "${PLACEHOLDER_ROOT_RESOURCE}", instanceName))
-	output, err = applyManifest(instanceHistoryManifest)
+	_, output, err = createRootLinkedResource(instanceHistory, shortLength, false, instanceName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the catalog container manifest
-	catalogContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), catalogcontainer))
-	if err != nil {
-		t.Fatalf("Failed to read catalog container manifest: %v", err)
-	}
-	// randomly generate a catalog container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	catalogContainerName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	catalogContainerManifest = []byte(strings.ReplaceAll(string(catalogContainerManifest), "${PLACEHOLDER_NAME}", catalogContainerName))
-	output, err = applyManifest(catalogContainerManifest)
+	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the catalog manifest
-	catalogManifest, err := os.ReadFile(path.Join(getRepoPath(), catalog))
-	if err != nil {
-		t.Fatalf("Failed to read catalog manifest: %v", err)
-	}
-	// randomly generate a catalog name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	catalogName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	catalogManifest = []byte(strings.ReplaceAll(string(catalogManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", catalogContainerName, catalogName)))
-	catalogManifest = []byte(strings.ReplaceAll(string(catalogManifest), "${PLACEHOLDER_ROOT_RESOURCE}", catalogContainerName))
-	output, err = applyManifest(catalogManifest)
+	_, output, err = createRootLinkedResource(catalog, shortLength, false, catalogContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the campaign container manifest
-	campaignContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), campaigncontainer))
-	if err != nil {
-		t.Fatalf("Failed to read campaign container manifest: %v", err)
-	}
-	// randomly generate a campaign container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	campaignContainerName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	campaignContainerManifest = []byte(strings.ReplaceAll(string(campaignContainerManifest), "${PLACEHOLDER_NAME}", campaignContainerName))
-	output, err = applyManifest(campaignContainerManifest)
+	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the campaign manifest
-	campaignManifest, err := os.ReadFile(path.Join(getRepoPath(), campaign))
-	if err != nil {
-		t.Fatalf("Failed to read campaign manifest: %v", err)
-	}
-	// randomly generate a campaign name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	campaignName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	campaignManifest = []byte(strings.ReplaceAll(string(campaignManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", campaignContainerName, campaignName)))
-	campaignManifest = []byte(strings.ReplaceAll(string(campaignManifest), "${PLACEHOLDER_ROOT_RESOURCE}", campaignContainerName))
-	output, err = applyManifest(campaignManifest)
+	campaignName, output, err := createRootLinkedResource(campaign, shortLength, false, campaignContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the activation manifest
-	activationManifest, err := os.ReadFile(path.Join(getRepoPath(), activation))
-	if err != nil {
-		t.Fatalf("Failed to read activation manifest: %v", err)
-	}
-	// randomly generate a activation name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	activationName := generateRandomName(shortLength, false) // Generate a random name with shortLength characters
-	activationManifest = []byte(strings.ReplaceAll(string(activationManifest), "${PLACEHOLDER_NAME}", activationName))
-	activationManifest = []byte(strings.ReplaceAll(string(activationManifest), "${PLACEHOLDER_CAMPAIGN_NAME}", fmt.Sprintf("%s:%s", campaignContainerName, campaignName)))
-	output, err = applyManifest(activationManifest)
+	_, output, err = createActivationResource(activation, shortLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 }
 
 func TestForSpecialResourceName(t *testing.T) {
-	// first apply - generation 1
-	// read the solution manifest
-	targetManifest, err := os.ReadFile(path.Join(getRepoPath(), target))
-	if err != nil {
-		t.Fatalf("Failed to read target manifest: %v", err)
-	}
-	// randomly generate a target name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	targetName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	targetManifest = []byte(strings.ReplaceAll(string(targetManifest), "${PLACEHOLDER_NAME}", targetName))
-
-	output, err := applyManifest(targetManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// create target
+	targetName, output, err := createNonLinkedResource(target, specialLength, true)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), solutionContainer))
-	if err != nil {
-		t.Fatalf("Failed to read solution container manifest: %v", err)
-	}
-	// randomly generate a solution container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	solutionContainerName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	solutionContainerManifest = []byte(strings.ReplaceAll(string(solutionContainerManifest), "${PLACEHOLDER_NAME}", solutionContainerName))
-	output, err = applyManifest(solutionContainerManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, specialLength, true)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the solution manifest
-	solutionManifest, err := os.ReadFile(path.Join(getRepoPath(), solution))
-	if err != nil {
-		t.Fatalf("Failed to read solution manifest: %v", err)
-	}
-	// randomly generate a solution name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	solutionName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	solutionManifest = []byte(strings.ReplaceAll(string(solutionManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", solutionContainerName, solutionName)))
-	solutionManifest = []byte(strings.ReplaceAll(string(solutionManifest), "${PLACEHOLDER_ROOT_RESOURCE}", solutionContainerName))
-	output, err = applyManifest(solutionManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	solutionName, output, err := createRootLinkedResource(solution, specialLength, true, solutionContainerName)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the instance manifest
-	instanceManifest, err := os.ReadFile(path.Join(getRepoPath(), instance))
-	if err != nil {
-		t.Fatalf("Failed to read instance manifest: %v", err)
-	}
-	// randomly generate a instance name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	instanceName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_NAME}", instanceName))
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_TARGET}", targetName))
-	instanceManifest = []byte(strings.ReplaceAll(string(instanceManifest), "${PLACEHOLDER_SOLUTION}", fmt.Sprintf("%s:%s", solutionContainerName, solutionName)))
-	output, err = applyManifest(instanceManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	instanceName, output, err := createInstanceResource(instance, specialLength, true, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
 	// do the same for the instance history manifest
-	instanceHistoryManifest, err := os.ReadFile(path.Join(getRepoPath(), instanceHistory))
-	if err != nil {
-		t.Fatalf("Failed to read instance history manifest: %v", err)
-	}
-	// randomly generate a instance history name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	instanceHistoryName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	instanceHistoryManifest = []byte(strings.ReplaceAll(string(instanceHistoryManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", instanceName, instanceHistoryName)))
-	instanceHistoryManifest = []byte(strings.ReplaceAll(string(instanceHistoryManifest), "${PLACEHOLDER_ROOT_RESOURCE}", instanceName))
-	output, err = applyManifest(instanceHistoryManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	_, output, err = createRootLinkedResource(instanceHistory, specialLength, true, instanceName)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
 	// do the same for the catalog container manifest
-	catalogContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), catalogcontainer))
-	if err != nil {
-		t.Fatalf("Failed to read catalog container manifest: %v", err)
-	}
-	// randomly generate a catalog container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	catalogContainerName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	catalogContainerManifest = []byte(strings.ReplaceAll(string(catalogContainerManifest), "${PLACEHOLDER_NAME}", catalogContainerName))
-	output, err = applyManifest(catalogContainerManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, specialLength, true)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the catalog manifest
-	catalogManifest, err := os.ReadFile(path.Join(getRepoPath(), catalog))
-	if err != nil {
-		t.Fatalf("Failed to read catalog manifest: %v", err)
-	}
-	// randomly generate a catalog name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	catalogName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	catalogManifest = []byte(strings.ReplaceAll(string(catalogManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", catalogContainerName, catalogName)))
-	catalogManifest = []byte(strings.ReplaceAll(string(catalogManifest), "${PLACEHOLDER_ROOT_RESOURCE}", catalogContainerName))
-	output, err = applyManifest(catalogManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
+	_, output, err = createRootLinkedResource(catalog, specialLength, true, catalogContainerName)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the campaign container manifest
-	campaignContainerManifest, err := os.ReadFile(path.Join(getRepoPath(), campaigncontainer))
-	if err != nil {
-		t.Fatalf("Failed to read campaign container manifest: %v", err)
-	}
-	// randomly generate a campaign container name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	campaignContainerName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	campaignContainerManifest = []byte(strings.ReplaceAll(string(campaignContainerManifest), "${PLACEHOLDER_NAME}", campaignContainerName))
-	output, err = applyManifest(campaignContainerManifest)
+	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, specialLength, true)
 	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the campaign manifest
-	campaignManifest, err := os.ReadFile(path.Join(getRepoPath(), campaign))
-	if err != nil {
-		t.Fatalf("Failed to read campaign manifest: %v", err)
-	}
-	// randomly generate a campaign name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	campaignName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	campaignManifest = []byte(strings.ReplaceAll(string(campaignManifest), "${PLACEHOLDER_NAME}", fmt.Sprintf("%s-v-%s", campaignContainerName, campaignName)))
-	campaignManifest = []byte(strings.ReplaceAll(string(campaignManifest), "${PLACEHOLDER_ROOT_RESOURCE}", campaignContainerName))
-	output, err = applyManifest(campaignManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	campaignName, output, err := createRootLinkedResource(campaign, specialLength, true, campaignContainerName)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the activation manifest
-	activationManifest, err := os.ReadFile(path.Join(getRepoPath(), activation))
-	if err != nil {
-		t.Fatalf("Failed to read activation manifest: %v", err)
-	}
-	// randomly generate a activation name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	activationName := generateRandomName(specialLength, true) // Generate a random name with specialLength characters
-	activationManifest = []byte(strings.ReplaceAll(string(activationManifest), "${PLACEHOLDER_NAME}", activationName))
-	activationManifest = []byte(strings.ReplaceAll(string(activationManifest), "${PLACEHOLDER_CAMPAIGN_NAME}", fmt.Sprintf("%s:%s", campaignContainerName, campaignName)))
-	output, err = applyManifest(activationManifest)
-	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	_, output, err = createActivationResource(activation, specialLength, true, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 }

@@ -114,7 +114,10 @@ func (r *Catalog) Default() {
 				r.Labels = make(map[string]string)
 			}
 
-			r.Labels[api_constants.RootResource] = ""
+			// Remove api_constants.RootResource from r.Labels if it exists
+			if _, exists := r.Labels[api_constants.RootResource]; exists {
+				delete(r.Labels, api_constants.RootResource)
+			}
 			var catalogContainer CatalogContainer
 			err := myCatalogReaderClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.RootResource), Namespace: r.Namespace}, &catalogContainer)
 			if err != nil {
