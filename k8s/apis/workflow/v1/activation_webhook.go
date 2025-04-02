@@ -80,8 +80,10 @@ func (r *Activation) Default() {
 	}
 	if r.Spec.Campaign != "" {
 		diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec.campaign", r.Spec.Campaign)
-		r.Labels[api_constants.Campaign] = ""
-
+		// Remove api_constants.Campaign from r.Labels if it exists
+		if _, exists := r.Labels[api_constants.Campaign]; exists {
+			delete(r.Labels, api_constants.Campaign)
+		}
 		var campaignResult Campaign
 		err := myActivationClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Campaign), Namespace: r.Namespace}, &campaignResult)
 		if err != nil {

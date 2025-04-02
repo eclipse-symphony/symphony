@@ -221,8 +221,13 @@ func (r *Instance) Default() {
 		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
 
-	r.Labels[api_constants.Solution] = ""
-	r.Labels[api_constants.Target] = ""
+	// Remove api_constants.Solution and api_constants.Targetfrom r.Labels if it exists
+	if _, exists := r.Labels[api_constants.Solution]; exists {
+		delete(r.Labels, api_constants.Solution)
+	}
+	if _, exists := r.Labels[api_constants.Target]; exists {
+		delete(r.Labels, api_constants.Target)
+	}
 
 	var solutionResult Solution
 	err := k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Solution), Namespace: r.Namespace}, &solutionResult)
