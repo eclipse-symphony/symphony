@@ -1,16 +1,18 @@
 [package]
 name = "ankaios"
 version = "0.1.0"
-edition = "2021"
+edition = { workspace = true }
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-symphony = { path = "../../symphony" }
 ankaios_sdk = { version = "0.5.0-rc1", git = "https://github.com/GabyUnalaq/ank-sdk-rust.git", branch = "first-version" }
-tokio = { version = "1", features = ["full"] }
 futures = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
 serde_yaml = "0.9"
+symphony = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
