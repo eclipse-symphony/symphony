@@ -32,7 +32,6 @@ spec:
       E9EF/N02J8ISvtaBsMf33FRc9aHDyu6Fx5RMKiK3orWkR55O33apZDfMdgms9KcT
       svQbm5jr6YqDRMFFMlJGojLG1O+BHl61ezk=
       -----END CERTIFICATE-----
-
   {{- end }}
   target:
     configMap:

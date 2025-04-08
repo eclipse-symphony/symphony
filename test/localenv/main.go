@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -28,7 +29,7 @@ func (i *RemoteAgentProvider) getCertificateExpirationOrThumbPrintOrSubject(cert
 		return "", err
 	}
 
-	switch kind {
+	switch strings.ToLower(kind) {
 	case "thumbprint":
 		thumbprint := sha1.Sum(cert.Raw)
 		return hex.EncodeToString(thumbprint[:]), nil
