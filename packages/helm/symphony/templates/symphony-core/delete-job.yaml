@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: pre-delete
-        image: mcr.microsoft.com/oss/kubernetes/kubectl:v1.32.3-linux-arm
+        image: mcr.microsoft.com/oss/kubernetes/kubectl:v1.25.10
         command:
         - /bin/bash
         - -c
