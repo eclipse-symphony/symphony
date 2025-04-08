@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: solution-configmap-v-v1
+  name: solution-configmap-v-version1
 spec:
   rootResource: solution-configmap
   components:

@@ -275,9 +275,9 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 	stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
 	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v-v1")
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v-version1")
 	stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:v1")
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:version1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
 	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 
@@ -311,7 +311,7 @@ func writeYamlStringsToFile(yamlString string, filePath string) error {
 func CleanUpSymphonyObjects(namespace string) error {
 	instanceName := namespace + "instance"
 	targetName := namespace + "target"
-	solutionName := namespace + "solution-v-v1"
+	solutionName := namespace + "solution-v-version1"
 	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
 	if err != nil {
 		return err

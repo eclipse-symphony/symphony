@@ -3,7 +3,7 @@ kind: Activation
 metadata:
   name: counter-activation
 spec:
-  campaign: "counter-campaign:v1"
+  campaign: "counter-campaign:version1"
   stage: ""
   inputs:
     val.init: 10

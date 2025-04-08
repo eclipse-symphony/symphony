@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: ebpf-approval-v-v1
+  name: ebpf-approval-v-version1
 spec:
   rootResource: ebpf-approval
   firstStage: "approval"
@@ -30,7 +30,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: tiny-app:v1
+        objectName: tiny-app:version1
         patchSource: inline
         patchContent:
           name: ebpf-module

@@ -4,6 +4,6 @@ metadata:
   name: instanceforconfigmap
 spec:
   scope: default
-  solution: solution03:v3
+  solution: solution03:version3
   target: 
     name: configmap-target 

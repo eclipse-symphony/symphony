@@ -117,17 +117,17 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 	return group, version, resource, kind
 }
 
-// e.g. example:v1 -> example-v-v1
+// e.g. example:version1 -> example-v-version1
 func ConvertReferenceToObjectName(name string) string {
 	return api_utils.ConvertReferenceToObjectName(name)
 }
 
-// e.g. example-v-v1 -> example:v1
+// e.g. example-v-version1 -> example:version1
 func ConvertObjectNameToReference(name string) string {
 	return api_utils.ConvertObjectNameToReference(name)
 }
 
-// e.g. example-v-v1 -> example
+// e.g. example-v-version1 -> example
 func GetRootResourceFromName(name string) string {
 	index := strings.LastIndex(name, constants.ResourceSeperator)
 	if index == -1 {

@@ -313,7 +313,7 @@ func TestGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target-v-v1":
+		case "/catalogs/registry/test-target-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "abc",
@@ -398,7 +398,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target-v-v1":
+		case "/catalogs/registry/test-target-v-version1":
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:

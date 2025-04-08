@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: factory-floor-1
 spec:
-  solution: factory-ai-vision:v1
+  solution: factory-ai-vision:version1
   target:
     name: iot-edge-target
   topologies:

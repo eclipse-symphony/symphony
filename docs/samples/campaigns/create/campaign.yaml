@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: create-campaign-v-v1
+  name: create-campaign-v-version1
 spec:
   rootResource: create-campaign
   firstStage: "create"
@@ -28,7 +28,7 @@ spec:
           metadata: 
             name: site-instance
           spec: 
-            solution: site-app:v1
+            solution: site-app:version1
             target:
               name: site-k8s-target
     succeeded:

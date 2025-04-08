@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: history-solution-v-v2
+  name: history-solution-v-version2
 spec:
   rootResource: history-solution
   components:

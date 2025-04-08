@@ -109,7 +109,7 @@ func TestBasic_DetectCircularReference(t *testing.T) {
 		fmt.Printf("Current instance status: %s\n", status)
 		if status == "Failed" {
 			message := getErrorMessage(resources.Items[0])
-			require.Equal(t, "Deployment failed. failed to evaluate deployment spec: Bad Config: Detect circular dependency, object: config1-v-v1, field: image", message)
+			require.Equal(t, "Deployment failed. failed to evaluate deployment spec: Bad Config: Detect circular dependency, object: config1-v-version1, field: image", message)
 			break
 		}
 
@@ -127,7 +127,7 @@ func TestBasic_DetectCircularReference(t *testing.T) {
 
 	namespace := "default"
 	// read catalog
-	catalog, err := readCatalog("config1-v-v1", namespace, dyn)
+	catalog, err := readCatalog("config1-v-version1", namespace, dyn)
 	require.NoError(t, err)
 
 	// Update catalog

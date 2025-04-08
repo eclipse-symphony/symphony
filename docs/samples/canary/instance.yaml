@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: test-app-instance
 spec:
-  solution: test-app:v1
+  solution: test-app:version1
   target: 
     name: sample-k8s-target
   reconciliationPolicy:

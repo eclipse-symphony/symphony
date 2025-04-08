@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: history-instance
 spec:
-  solution: history-solution:v1
+  solution: history-solution:version1
   target: 
     name: history-target
   reconciliationPolicy:

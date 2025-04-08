@@ -3,4 +3,4 @@ kind: Activation
 metadata:
   name: ebpf-approval
 spec:
-  campaign: ebpf-approval:v1
+  campaign: ebpf-approval:version1

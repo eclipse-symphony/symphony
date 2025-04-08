@@ -86,7 +86,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 			RootResource: "solutions1",
 		},
 		ObjectMeta: model.ObjectMeta{
-			Name:      "solutions1-v-v1",
+			Name:      "solutions1-v-version1",
 			Namespace: "scope1",
 		},
 	}
@@ -95,7 +95,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":    "solutions1-v-v1",
+			"__name":    "solutions1-v-version1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),
@@ -105,7 +105,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name":    "solutions1-v-v1",
+			"__name":    "solutions1-v-version1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),
@@ -114,7 +114,7 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	err := json.Unmarshal(resp.Body, &solutions)
 	assert.Nil(t, err)
-	assert.Equal(t, "solutions1-v-v1", solutions.ObjectMeta.Name)
+	assert.Equal(t, "solutions1-v-version1", solutions.ObjectMeta.Name)
 	assert.Equal(t, "scope1", solutions.ObjectMeta.Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
@@ -129,13 +129,13 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &solutionsList)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(solutionsList))
-	assert.Equal(t, "solutions1-v-v1", solutionsList[0].ObjectMeta.Name)
+	assert.Equal(t, "solutions1-v-version1", solutionsList[0].ObjectMeta.Name)
 	assert.Equal(t, "scope1", solutionsList[0].ObjectMeta.Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name":    "solutions1-v-v1",
+			"__name":    "solutions1-v-version1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),

@@ -157,7 +157,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 }
 
 func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogState) error {
-	catalog.ObjectMeta.Name = name + "-v-v1"
+	catalog.ObjectMeta.Name = name + "-v-version1"
 	catalog.Spec.RootResource = validation.GetRootResourceFromName(catalog.ObjectMeta.Name)
 	existingCatalog, err := c.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
 	if err != nil {
