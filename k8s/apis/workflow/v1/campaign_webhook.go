@@ -36,10 +36,14 @@ import (
 )
 
 // log is for logging in this package.
-var campaignlog = logf.Log.WithName("campaign-resource")
-var myCampaignReaderClient client.Reader
-var catalogWebhookValidationMetrics *metrics.Metrics
-var campaignValidator validation.CampaignValidator
+var (
+	campaignContainerMaxNameLength  = 63
+	campaignContainerMinNameLength  = 3
+	campaignlog                     = logf.Log.WithName("campaign-resource")
+	myCampaignReaderClient          client.Reader
+	catalogWebhookValidationMetrics *metrics.Metrics
+	campaignValidator               validation.CampaignValidator
+)
 
 func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCampaignReaderClient = mgr.GetAPIReader()
@@ -314,7 +318,7 @@ func (r *CampaignContainer) ValidateCreate() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(campaignlog, ctx, "validate create campaign container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(campaignlog, ctx, r)
+	return commoncontainer.ValidateCreateImpl(campaignlog, ctx, r, campaignContainerMinNameLength, campaignContainerMaxNameLength)
 }
 func (r *CampaignContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 

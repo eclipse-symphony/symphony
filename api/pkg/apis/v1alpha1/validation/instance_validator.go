@@ -21,6 +21,11 @@ type InstanceValidator struct {
 	TargetLookupFunc             ObjectLookupFunc
 }
 
+var (
+	instanceMaxNameLength = 63
+	instanceMinNameLength = 3
+)
+
 func NewInstanceValidator(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) InstanceValidator {
 	return InstanceValidator{
 		UniqueNameInstanceLookupFunc: uniqueNameInstanceLookupFunc,
@@ -39,6 +44,13 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 	old := i.ConvertInterfaceToInstance(oldRef)
 
 	errorFields := []ErrorField{}
+
+	if oldRef == nil {
+		if err := ValidateRootObjectName(new.ObjectMeta.Name, instanceMinNameLength, instanceMaxNameLength); err != nil {
+			errorFields = append(errorFields, *err)
+		}
+	}
+
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
 		if err := i.ValidateUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)

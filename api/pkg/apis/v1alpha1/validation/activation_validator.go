@@ -20,6 +20,11 @@ type ActivationValidator struct {
 	CampaignLookupFunc ObjectLookupFunc
 }
 
+var (
+	activationMaxNameLength = 63
+	activationMinNameLength = 3
+)
+
 func NewActivationValidator(campaignLookupFunc ObjectLookupFunc) ActivationValidator {
 	return ActivationValidator{
 		CampaignLookupFunc: campaignLookupFunc,
@@ -39,6 +44,11 @@ func (a *ActivationValidator) ValidateCreateOrUpdate(ctx context.Context, newRef
 		if err := a.ValidateCampaignAndStage(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
+
+		if err := ValidateRootObjectName(new.ObjectMeta.Name, activationMinNameLength, activationMaxNameLength); err != nil {
+			errorFields = append(errorFields, *err)
+		}
+
 	} else {
 		// validate spec is immutable
 		if equal, err := new.Spec.DeepEquals(*old.Spec); !equal {

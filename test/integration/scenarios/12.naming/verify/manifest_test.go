@@ -34,9 +34,10 @@ var (
 	campaigncontainer = "test/integration/scenarios/12.naming/manifest/campaign-container.yaml"
 	activation        = "test/integration/scenarios/12.naming/manifest/activation.yaml"
 
-	longLength    = 65
-	shortLength   = 3
-	specialLength = 10
+	longLength     = 65
+	shortLength    = 3
+	solutionLength = 7
+	specialLength  = 10
 )
 
 // generateRFC1123Subdomain generates a random string of the specified length
@@ -158,37 +159,54 @@ func createInstanceResource(file string, nameLength int, special bool, solutionN
 func TestLongResourceName(t *testing.T) {
 	// create target
 	targetName, output, err := createNonLinkedResource(target, longLength, false)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
 	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, longLength, false)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
+	outputString := strings.ToLower(string(output))
+	assert.True(t, strings.Contains(outputString, "name length"))
 	// do the same for the solution manifest
 	solutionName, output, err := createRootLinkedResource(solution, longLength, false, solutionContainerName)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
+
 	// do the same for the instance manifest
 	instanceName, output, err := createInstanceResource(instance, longLength, false, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the instance history manifest
 	_, output, err = createRootLinkedResource(instanceHistory, longLength, false, instanceName)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the catalog container manifest
 	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, longLength, false)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	outputString = strings.ToLower(string(output))
+	assert.True(t, strings.Contains(outputString, "name length"))
+
 	// do the same for the catalog manifest
 	_, output, err = createRootLinkedResource(catalog, longLength, false, catalogContainerName)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
+
 	// do the same for the campaign container manifest
 	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, longLength, false)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	outputString = strings.ToLower(string(output))
+	assert.True(t, strings.Contains(outputString, "name length"))
+
 	// do the same for the campaign manifest
 	campaignName, output, err := createRootLinkedResource(campaign, longLength, false, campaignContainerName)
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
+
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, longLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
 }
 
 func TestForShortResourceName(t *testing.T) {
@@ -200,7 +218,7 @@ func TestForShortResourceName(t *testing.T) {
 	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the solution manifest
-	solutionName, output, err := createRootLinkedResource(solution, shortLength, false, solutionContainerName)
+	solutionName, output, err := createRootLinkedResource(solution, solutionLength, false, solutionContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the instance manifest
 	instanceName, output, err := createInstanceResource(instance, shortLength, false, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)

@@ -37,10 +37,15 @@ import (
 )
 
 // log is for logging in this package.
-var solutionlog = logf.Log.WithName("solution-resource")
-var mySolutionReaderClient client.Reader
-var projectConfig *configv1.ProjectConfig
-var solutionValidator validation.SolutionValidator
+
+var (
+	solutionContainerMaxNameLength = 63
+	solutionContainerMinNameLength = 3
+	solutionlog                    = logf.Log.WithName("solution-resource")
+	mySolutionReaderClient         client.Reader
+	projectConfig                  *configv1.ProjectConfig
+	solutionValidator              validation.SolutionValidator
+)
 
 func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySolutionReaderClient = mgr.GetAPIReader()
@@ -284,7 +289,7 @@ func (r *SolutionContainer) ValidateCreate() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(solutionlog, ctx, "validate create solution container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "SolutionContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(solutionlog, ctx, r)
+	return commoncontainer.ValidateCreateImpl(solutionlog, ctx, r, solutionContainerMinNameLength, solutionContainerMaxNameLength)
 }
 func (r *SolutionContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 

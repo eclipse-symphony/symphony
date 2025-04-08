@@ -38,10 +38,14 @@ import (
 )
 
 // log is for logging in this package.
-var cataloglog = logf.Log.WithName("catalog-resource")
-var myCatalogReaderClient client.Reader
-var catalogWebhookValidationMetrics *metrics.Metrics
-var catalogValidator validation.CatalogValidator
+var (
+	catalogContainerMaxNameLength   = 63
+	catalogContainerMinNameLength   = 3
+	cataloglog                      = logf.Log.WithName("catalog-resource")
+	myCatalogReaderClient           client.Reader
+	catalogWebhookValidationMetrics *metrics.Metrics
+	catalogValidator                validation.CatalogValidator
+)
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogReaderClient = mgr.GetAPIReader()
@@ -303,7 +307,7 @@ func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(cataloglog, ctx, "validate create catalog container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(cataloglog, ctx, r)
+	return commoncontainer.ValidateCreateImpl(cataloglog, ctx, r, catalogContainerMinNameLength, catalogContainerMaxNameLength)
 }
 func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
