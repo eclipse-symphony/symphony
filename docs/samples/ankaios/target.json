@@ -1,0 +1,23 @@
+{
+  "metadata": {
+      "name": "ankaios-target"
+  },
+  "spec": {
+      "forceRedeploy": true,             
+      "topologies": [
+          {
+              "bindings": [
+                  {
+                      "role": "ankaios-workload",
+                      "provider": "providers.target.rust",
+                      "config": {
+                          "name": "rust-lib",
+                          "libFile": "/extensions/libankaios.so",
+                          "libHash": "e003229777175945d212470ad1c145d593fcad695a31b9c8898efcdd3d408207"
+                      }
+                  }
+              ]
+          }
+      ]
+  }
+}

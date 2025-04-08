@@ -1,7 +1,7 @@
 //go:build !azure
 
 /*
- * Copyright (c) Microsoft Corporation.
+ * Copyright (c) Microsoft Corporation and others.
  * Licensed under the MIT license.
  * SPDX-License-Identifier: MIT
  */
@@ -9,7 +9,7 @@
 package rust
 
 /*
- #cgo CFLAGS: -I./rust_binding/include
+ #cgo CFLAGS: -I./symphony/include
 
  #include <stdlib.h>
  #include "rust_target_provider.h"
@@ -49,7 +49,7 @@ type RustTargetProvider struct {
 	Context  *contexts.ManagerContext
 }
 
-func RustTargetProviderConfiggFromMap(properties map[string]string) (RustTargetProviderConfig, error) {
+func RustTargetProviderConfigFromMap(properties map[string]string) (RustTargetProviderConfig, error) {
 	ret := RustTargetProviderConfig{}
 	if v, ok := properties["name"]; ok {
 		ret.Name = v
@@ -67,27 +67,12 @@ func RustTargetProviderConfiggFromMap(properties map[string]string) (RustTargetP
 	return ret, nil
 }
 
-func toRustTargetProviderConfig(config providers.IProviderConfig) (RustTargetProviderConfig, error) {
-	ret := RustTargetProviderConfig{}
-	data, err := json.Marshal(config)
-	if err != nil {
-		return ret, err
-	}
-
-	err = json.Unmarshal(data, &ret)
-	return ret, err
+func (s *RustTargetProvider) SetContext(ctx *contexts.ManagerContext) {
+	s.Context = ctx
 }
 
 func (i *RustTargetProvider) InitWithMap(properties map[string]string) error {
-	config, err := RustTargetProviderConfiggFromMap(properties)
-	if err != nil {
-		return err
-	}
-	return i.Init(config)
-}
-
-func (s *RustTargetProvider) SetContext(ctx *contexts.ManagerContext) {
-	s.Context = ctx
+	return i.Init(properties)
 }
 
 func (r *RustTargetProvider) Init(config providers.IProviderConfig) error {
@@ -103,40 +88,39 @@ func (r *RustTargetProvider) Init(config providers.IProviderConfig) error {
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfoCtx(ctx, "  P (Rust Target): Init()")
 
-	rustConfig, err := toRustTargetProviderConfig(config)
-	if err != nil {
-		log.ErrorfCtx(ctx, "  P (Rust Target): expected RustTargetProviderConfig - %+v", err)
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: expected RustTargetProviderConfig", providerName), v1alpha2.InitFailed)
+	if rustConfig, ok := config.(map[string]string); ok {
+		rustProviderConfig, err := RustTargetProviderConfigFromMap(rustConfig)
+		if err != nil {
+			return err
+		}
+		// Create Rust provider from shared library file
+		cProviderPath := C.CString(rustProviderConfig.LibFile)
+		cExpectedHash := C.CString(rustProviderConfig.LibHash)
+		defer C.free(unsafe.Pointer(cProviderPath))
+		defer C.free(unsafe.Pointer(cExpectedHash))
+
+		configJSON, err := json.Marshal(config)
+		if err != nil {
+			log.ErrorfCtx(ctx, "  P (Rust Target): failed to serialize Rust provider configuration to JSON  - %+v", err)
+			return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to serialize Rust provider configuration to JSON", providerName), v1alpha2.InitFailed)
+		}
+
+		cConfigJSON := C.CString(string(configJSON))
+		defer C.free(unsafe.Pointer(cConfigJSON))
+
+		r.provider = C.create_provider_instance(cProviderPath, cExpectedHash, cConfigJSON)
+		if r.provider == nil {
+			log.ErrorfCtx(ctx, "  P (Rust Target): failed to create Rust provider from library file - %+v", err)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to create Rust provider from library file", providerName), v1alpha2.InitFailed)
+		}
+
+		return nil
+
+	} else {
+		log.ErrorfCtx(ctx, "  P (Rust Target): expected config properties map")
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: expected config properties map", providerName), v1alpha2.InitFailed)
 	}
 
-	// Create Rust provider from file
-	cProviderPath := C.CString(rustConfig.LibFile)
-	cExpectedHash := C.CString(rustConfig.LibHash)
-	defer C.free(unsafe.Pointer(cProviderPath))
-	defer C.free(unsafe.Pointer(cExpectedHash))
-
-	r.provider = C.create_provider_instance(cProviderPath, cExpectedHash)
-	if r.provider == nil {
-		log.ErrorfCtx(ctx, "  P (Rust Target): failed to create Rust provider from library file - %+v", err)
-		return v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to create Rust provider from library file", providerName), v1alpha2.InitFailed)
-	}
-
-	configJSON, err := json.Marshal(config)
-	if err != nil {
-		log.ErrorfCtx(ctx, "  P (Rust Target): failed to serialize Rust provider configuration - %+v", err)
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to serialize Rust provider configuration", providerName), v1alpha2.InitFailed)
-	}
-
-	cConfigJSON := C.CString(string(configJSON))
-	defer C.free(unsafe.Pointer(cConfigJSON))
-
-	res := C.init_provider(r.provider, cConfigJSON)
-	if res != 0 {
-		log.ErrorfCtx(ctx, "  P (Rust Target): ailed to initialize provider - %+v", err)
-		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: ailed to initialize provider", providerName), v1alpha2.InitFailed)
-	}
-
-	return nil
 }
 
 func (r *RustTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

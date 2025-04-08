@@ -1,0 +1,12 @@
+apiVersion: v0.1
+workloads:
+  symphony:
+    runtime: docker
+    agent: agent_A
+    restartPolicy: ALWAYS
+    tags:
+      - key: owner
+        value: Symphony
+    runtimeConfig: |
+      image: ghcr.io/eclipse-symphony/symphony-api:latest
+      commandOptions: ["-p", "8080:8080,8081:8081", "-e", "CONFIG=/symphony-api-no-k8s.json"]
