@@ -352,6 +352,11 @@ func (i *RedisPubSubProvider) processMessage(topic string, handler v1alpha2.Even
 		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to acknowledge message %s for topic %s, group %s: %v", msg.ID, topic, handler.Group, err)
 	}
 	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processing succeeded for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+	// TODO: This only works when we have only one consumer group for each topic
+	_, err = i.Client.XDel(i.Ctx, topic, msg.ID).Result()
+	if err != nil {
+		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to delete message %s for topic %s, group %s: %v", msg.ID, topic, handler.Group, err)
+	}
 	return nil
 }
 
