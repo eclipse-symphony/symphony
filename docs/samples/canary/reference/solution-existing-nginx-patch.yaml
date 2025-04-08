@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: test-app-v-v1
+  name: test-app-v-version1
 spec:
   rootResource: test-app
   components:

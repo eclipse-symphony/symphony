@@ -121,24 +121,24 @@ func TestCreateTargetWithSameDisplayName(t *testing.T) {
 		TargetValidator: validation.TargetValidator{},
 	}
 	manager.TargetValidator = validation.NewTargetValidator(nil, manager.targetUniqueNameLookup)
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.TargetState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.TargetState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.TargetSpec{
-			DisplayName: "test-v-v1",
+			DisplayName: "test-v-version1",
 		},
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertState(context.Background(), "test-v-v2", model.TargetState{
+	err = manager.UpsertState(context.Background(), "test-v-version2", model.TargetState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v2",
+			Name:      "test-v-version2",
 			Namespace: "default",
 		},
 		Spec: &model.TargetSpec{
-			DisplayName: "test-v-v1",
+			DisplayName: "test-v-version1",
 		},
 	})
 	assert.NotNil(t, err)
