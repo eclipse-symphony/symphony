@@ -215,7 +215,7 @@ func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource 
 }
 
 // Validate the name of versioned objects
-func ValidateObjectName(name string, rootResource string) *ErrorField {
+func ValidateObjectName(name string, rootResource string, minLength int, maxLength int) *ErrorField {
 	if rootResource == "" {
 		return &ErrorField{
 			FieldPath:       "spec.rootResource",
@@ -249,6 +249,30 @@ func ValidateObjectName(name string, rootResource string) *ErrorField {
 			FieldPath:       "metadata.name",
 			Value:           name,
 			DetailedMessage: "name should be in the format <rootResource>-v-<version> where <version> does not contain '-v-' or starts with 'v-'",
+		}
+	}
+
+	if len(remaining) < minLength || len(remaining) > maxLength {
+		return &ErrorField{
+			FieldPath:       "metadata.name",
+			Value:           name,
+			DetailedMessage: fmt.Sprintf("Name length without root resource and seperator should be between %d and %d characters", minLength, maxLength),
+		}
+	}
+
+	return nil
+}
+
+// Validate the name of versioned objects
+func ValidateRootObjectName(name string, minLength int, maxLength int) *ErrorField {
+	// resources like instance may contain -v- so split by -v- and pick up the last part
+	parts := strings.Split(name, constants.ResourceSeperator)
+	actualName := parts[len(parts)-1]
+	if len(actualName) < minLength || len(actualName) > maxLength {
+		return &ErrorField{
+			FieldPath:       "metadata.name",
+			Value:           actualName,
+			DetailedMessage: fmt.Sprintf("Name length should be between %d and %d characters", minLength, maxLength),
 		}
 	}
 

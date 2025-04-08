@@ -19,6 +19,11 @@ type TargetValidator struct {
 	UniqueNameTargetLookupFunc ObjectLookupFunc
 }
 
+var (
+	targetMaxNameLength = 63
+	targetMinNameLength = 3
+)
+
 func NewTargetValidator(targetInstanceLookupFunc LinkedObjectLookupFunc, uniqueNameTargetLookupFunc ObjectLookupFunc) TargetValidator {
 	return TargetValidator{
 		TargetInstanceLookupFunc:   targetInstanceLookupFunc,
@@ -33,6 +38,13 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 	old := t.ConvertInterfaceToTarget(oldRef)
 
 	errorFields := []ErrorField{}
+
+	if oldRef == nil {
+		if err := ValidateRootObjectName(new.ObjectMeta.Name, targetMinNameLength, targetMaxNameLength); err != nil {
+			errorFields = append(errorFields, *err)
+		}
+	}
+
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
 		if err := t.ValidateTargetUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)

@@ -14,6 +14,11 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
+var (
+	campaignMaxNameLength = 63
+	campaignMinNameLength = 3
+)
+
 type CampaignValidator struct {
 	// Check Campaign Container existence
 	CampaignContainerLookupFunc ObjectLookupFunc
@@ -51,7 +56,7 @@ func (c *CampaignValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 	}
 	if oldRef == nil {
 		// validate create specific fields
-		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource); err != nil {
+		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource, campaignMinNameLength, campaignMaxNameLength); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource

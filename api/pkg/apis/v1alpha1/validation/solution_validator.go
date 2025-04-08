@@ -13,6 +13,11 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
+var (
+	solutionMaxNameLength = 63
+	solutionMinNameLength = 7
+)
+
 type SolutionValidator struct {
 	// Check Instances associated with the Solution
 	SolutionInstanceLookupFunc   LinkedObjectLookupFunc
@@ -43,7 +48,7 @@ func (s *SolutionValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 	}
 	if oldRef == nil {
 		// validate naming convension
-		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource); err != nil {
+		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource, solutionMinNameLength, solutionMaxNameLength); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
