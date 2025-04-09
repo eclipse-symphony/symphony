@@ -60,7 +60,7 @@ func ValidateCreateImpl(log logr.Logger, ctx context.Context, r client.Object, m
 	actualName := parts[len(parts)-1]
 	if len(actualName) < minLength || len(actualName) > maxLength {
 		diagnostic.ErrorWithCtx(log, ctx, nil, "name length is invalid", "name", actualName, "kind", r.GetObjectKind())
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("%s Name length, %s is invalid", r.GetObjectKind(), actualName))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("%s Name length, %s is invalid, it should be between %d and %d.", r.GetObjectKind(), actualName, minLength, maxLength))
 	}
 	return nil, nil
 }
