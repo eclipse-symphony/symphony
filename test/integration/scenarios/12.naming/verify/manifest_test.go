@@ -34,10 +34,14 @@ var (
 	campaigncontainer = "test/integration/scenarios/12.naming/manifest/campaign-container.yaml"
 	activation        = "test/integration/scenarios/12.naming/manifest/activation.yaml"
 
+	diagnostic = "test/integration/scenarios/12.naming/manifest/diagnostic.yaml"
+
 	longLength     = 65
 	shortLength    = 3
 	solutionLength = 7
 	specialLength  = 10
+	diaShortLength = 2
+	diaLongLength  = 95
 )
 
 // generateRFC1123Subdomain generates a random string of the specified length
@@ -207,6 +211,11 @@ func TestLongResourceName(t *testing.T) {
 	_, output, err = createActivationResource(activation, longLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
+
+	// do the same for the diagnostic manifest
+	_, output, err = createNonLinkedResource(diagnostic, diaLongLength, false)
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
 }
 
 func TestForShortResourceName(t *testing.T) {
@@ -243,6 +252,10 @@ func TestForShortResourceName(t *testing.T) {
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, shortLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
+	// do the same for the diagnostic manifest
+	_, output, err = createNonLinkedResource(diagnostic, diaShortLength, false)
+	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
 }
 
 func TestForSpecialResourceName(t *testing.T) {
@@ -288,6 +301,11 @@ func TestForSpecialResourceName(t *testing.T) {
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, specialLength, true, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "invalid"))
+
+	// do the same for the diagnostic manifest
+	_, output, err = createNonLinkedResource(diagnostic, specialLength, false)
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 }

@@ -8,6 +8,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"gopls-workspace/apis/metrics/v1"
 	"gopls-workspace/utils/diagnostic"
 	"time"
@@ -25,9 +26,13 @@ import (
 )
 
 // log is for logging in this package.
-var diagnosticlog = logf.Log.WithName("diagnostic-resource")
-var myDiagnosticClient client.Reader
-var diagnosticWebhookValidationMetrics *metrics.Metrics
+var (
+	diagnosticMaxLength                = 90
+	diagnosticMinLength                = 1
+	diagnosticlog                      = logf.Log.WithName("diagnostic-resource")
+	myDiagnosticClient                 client.Reader
+	diagnosticWebhookValidationMetrics *metrics.Metrics
+)
 
 func (r *Diagnostic) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myDiagnosticClient = mgr.GetAPIReader()
@@ -131,6 +136,12 @@ func (r *Diagnostic) ValidateDelete() (admission.Warnings, error) {
 func (r *Diagnostic) validateCreateOrUpdateImpl(ctx context.Context) error {
 	var allErrs field.ErrorList
 	if err := r.validateUniqueInEdgeLocations(ctx); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	actualName := r.Name
+	if len(actualName) < diagnosticMinLength || len(actualName) > diagnosticMaxLength {
+		diagnostic.ErrorWithCtx(diagnosticlog, ctx, nil, "name length is invalid", "name", actualName, "kind", r.GetObjectKind())
+		err := field.Invalid(nil, v1alpha2.NewCOAError(fmt.Errorf("%s Name length, %s is invalid", r.GetObjectKind(), actualName), fmt.Sprintf("Name length should be between %d and %d", diagnosticMinLength, diagnosticMaxLength), v1alpha2.BadRequest), "Name length is invalid")
 		allErrs = append(allErrs, err)
 	}
 	if len(allErrs) == 0 {
