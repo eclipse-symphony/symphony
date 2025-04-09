@@ -1,2 +1,0 @@
-cargo:rerun-if-changed=proto/control_api.proto
-cargo:rerun-if-changed=proto

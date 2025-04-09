@@ -1,1 +1,0 @@
-{"rustc":8277423686421874925,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[9267442275249337509,"build_script_build",false,1883768183866907492]],"local":[{"RerunIfChanged":{"output":"debug/build/ankaios_sdk-6df89a0121f43d58/output","paths":["proto/control_api.proto","proto"]}}],"rustflags":[],"config":0,"compile_kind":0}

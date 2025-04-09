@@ -1,7 +1,0 @@
-{
-  "git": {
-    "sha1": "d3b9dcde1e14a6699cc205cc21433d6bafec75b5",
-    "dirty": true
-  },
-  "path_in_vcs": "api/pkg/apis/v1alpha1/providers/target/rust/symphony"
-}
