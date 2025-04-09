@@ -1,0 +1,10 @@
+/home/hbai/projects/go/src/github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust/target/package/symphony-0.1.2/target/debug/deps/libversion_check-306a5e03aed22658.rmeta: /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs
+
+/home/hbai/projects/go/src/github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust/target/package/symphony-0.1.2/target/debug/deps/libversion_check-306a5e03aed22658.rlib: /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs
+
+/home/hbai/projects/go/src/github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust/target/package/symphony-0.1.2/target/debug/deps/version_check-306a5e03aed22658.d: /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs /home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs
+
+/home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/lib.rs:
+/home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/version.rs:
+/home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/channel.rs:
+/home/hbai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/version_check-0.9.5/src/date.rs:

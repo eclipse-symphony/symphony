@@ -132,7 +132,7 @@ const (
 	EnsureARMResourceGroupFailed    State = 10072
 	CreateARMDeploymentFailed       State = 10073
 	CleanUpARMDeploymentFailed      State = 10074
-
+	GroupActionFailed               State = 10059
 	// instance controller errors
 	SolutionGetFailed             State = 11000
 	TargetCandidatesNotFound      State = 11001

@@ -30,6 +30,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/configmap"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/group"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/ingress"
@@ -168,6 +169,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.stage.counter":
 		mProvider := &counterstage.CounterStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.group":
+		mProvider := &group.GroupTargetProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -391,6 +398,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 				switch binding.Provider {
 				case "providers.target.azure.iotedge":
 					provider := &iotedge.IoTEdgeTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.group":
+					provider := &group.GroupTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
