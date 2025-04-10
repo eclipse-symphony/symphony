@@ -3,7 +3,7 @@ kind: Activation
 metadata:
   name: 04workflow
 spec:
-  campaign: "04campaign:v1"
+  campaign: "04campaign:version1"
   stage: "deploy"
   inputs:
     namesOnly: true

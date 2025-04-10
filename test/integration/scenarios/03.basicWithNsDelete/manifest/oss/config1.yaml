@@ -1,9 +1,9 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: config1-v-v1
+  name: config1-v-version1
 spec: 
   rootResource: config1
   catalogType: config
   properties:
-    image: "${{$config('config2:v1','image')}}"
+    image: "${{$config('config2:version1','image')}}"

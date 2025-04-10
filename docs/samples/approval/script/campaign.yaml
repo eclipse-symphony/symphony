@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: approval-campaign-v-v1
+  name: approval-campaign-v-version1
 spec:
   rootResource: approval-campaign
   firstStage: "approval"

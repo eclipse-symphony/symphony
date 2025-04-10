@@ -141,7 +141,7 @@ func Verify() error {
 			return errors.New("Catalogs not created")
 		}
 		// read catalog
-		err, catalog := readCatalog("asset-v-v1", namespace, dynamicClient)
+		err, catalog := readCatalog("asset-v-version1", namespace, dynamicClient)
 		if err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func Verify() error {
 		}
 		// Update catalog
 		catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] = "大阪"
-		err, catalog = updateCatalog("asset-v-v1", namespace, catalog, dynamicClient)
+		err, catalog = updateCatalog("asset-v-version1", namespace, catalog, dynamicClient)
 		if err != nil {
 			return err
 		}
@@ -158,7 +158,7 @@ func Verify() error {
 			return errors.New("Catalog not updated.")
 		}
 		// Delete catalog
-		err = shellcmd.Command(fmt.Sprintf("kubectl delete catalog asset-v-v1 -n %s", namespace)).Run()
+		err = shellcmd.Command(fmt.Sprintf("kubectl delete catalog asset-v-version1 -n %s", namespace)).Run()
 		if err != nil {
 			return err
 		}

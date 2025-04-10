@@ -11,6 +11,6 @@ metadata:
 spec:
   displayName: instance
   scope: test-scope
-  solution: mysol:v1
+  solution: mysol:version1
   target:
     name: self

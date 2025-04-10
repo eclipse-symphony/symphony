@@ -501,22 +501,22 @@ func TestObjectReference(t *testing.T) {
 		"key3": true,
 	}
 	// Get field
-	manager.SetObject(ctx, "memory1::obj:v1", object)
-	val, err := manager.Get(ctx, "obj:v1", "key1", nil, nil)
+	manager.SetObject(ctx, "memory1::obj:version1", object)
+	val, err := manager.Get(ctx, "obj:version1", "key1", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "value1", val)
 
 	// Delete field
-	err = manager.Delete(ctx, "memory1::obj:v1", "key1")
+	err = manager.Delete(ctx, "memory1::obj:version1", "key1")
 	assert.Nil(t, err)
-	val, err = manager.Get(ctx, "memory1::obj:v1", "key1", nil, nil)
+	val, err = manager.Get(ctx, "memory1::obj:version1", "key1", nil, nil)
 	assert.NotNil(t, err)
 	assert.Empty(t, val)
 
 	// Delete object
-	err2 := manager.DeleteObject(ctx, "memory1::obj:v1")
+	err2 := manager.DeleteObject(ctx, "memory1::obj:version1")
 	assert.Nil(t, err2)
-	val2, err2 := manager.GetObject(ctx, "memory1::obj:v1", nil, nil)
+	val2, err2 := manager.GetObject(ctx, "memory1::obj:version1", nil, nil)
 	assert.NotNil(t, err2)
 	assert.Empty(t, val2)
 }
@@ -525,21 +525,21 @@ func TestArrayMergeConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/config-v-v1":
+		case "/catalogs/registry/config-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "config-v-v1",
+					Name: "config-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
-						"attribute": "${{$config('region1:v1', 'tags') $$config('region2:v1', 'tags')}}",
+						"attribute": "${{$config('region1:version1', 'tags') $$config('region2:version1', 'tags')}}",
 					},
 				},
 			}
-		case "/catalogs/registry/region1-v-v1":
+		case "/catalogs/registry/region1-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "region1-v-v1",
+					Name: "region1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -547,10 +547,10 @@ func TestArrayMergeConfig(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/region2-v-v1":
+		case "/catalogs/registry/region2-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "region2-v-v1",
+					Name: "region2-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -576,7 +576,7 @@ func TestArrayMergeConfig(t *testing.T) {
 	evalContext, err := getMockEvalContext()
 	assert.Nil(t, err)
 
-	val, err := evalContext.ConfigProvider.Get(ctx, "config:v1", "attribute", nil, evalContext)
+	val, err := evalContext.ConfigProvider.Get(ctx, "config:version1", "attribute", nil, evalContext)
 	expected := []interface{}([]interface{}{"Tag1", "Tag2", "Tag3", "Tag4", "Tag5", "Tag6"})
 	assert.Equal(t, expected, val)
 	assert.Nil(t, err)
@@ -586,39 +586,39 @@ func TestCircularCatalogReferences(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/config1-v-v1":
+		case "/catalogs/registry/config1-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "config1-v-v1",
+					Name: "config1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent:v1",
+					ParentName: "parent:version1",
 					Properties: map[string]interface{}{
-						"image":     "${{$config('config2:v1','image')}}",
+						"image":     "${{$config('config2:version1','image')}}",
 						"attribute": "value",
 					},
 				},
 			}
-		case "/catalogs/registry/config2-v-v1":
+		case "/catalogs/registry/config2-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "config2-v-v1",
+					Name: "config2-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
-						"attribute": "${{$config('config1:v1','attribute')}}",
+						"attribute": "${{$config('config1:version1','attribute')}}",
 						"foo":       "bar",
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v-v1":
+		case "/catalogs/registry/parent-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent-v-v1",
+					Name: "parent-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
-						"parentConfig": "${{$config('config1:v1','parentAttribute')}}",
+						"parentConfig": "${{$config('config1:version1','parentAttribute')}}",
 					},
 				},
 			}
@@ -640,13 +640,13 @@ func TestCircularCatalogReferences(t *testing.T) {
 	evalContext, err := getMockEvalContext()
 	assert.Nil(t, err)
 
-	_, err = evalContext.ConfigProvider.Get(ctx, "config1:v1", "image", nil, evalContext)
-	assert.Error(t, err, "Detect circular dependency, object: config1-v-v1, field: image")
+	_, err = evalContext.ConfigProvider.Get(ctx, "config1:version1", "image", nil, evalContext)
+	assert.Error(t, err, "Detect circular dependency, object: config1-v-version1, field: image")
 
-	_, err = evalContext.ConfigProvider.Get(ctx, "config1:v1", "attribute", nil, evalContext)
+	_, err = evalContext.ConfigProvider.Get(ctx, "config1:version1", "attribute", nil, evalContext)
 	assert.Nil(t, err, "Detect correct attribute, expect no error")
 
-	_, err = evalContext.ConfigProvider.Get(ctx, "config2:v1", "attribute", nil, evalContext)
+	_, err = evalContext.ConfigProvider.Get(ctx, "config2:version1", "attribute", nil, evalContext)
 	assert.Nil(t, err, "Detect correct attribute, expect no error")
 }
 
@@ -654,27 +654,27 @@ func TestParentConfigEvaluation(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/config-v-v1":
+		case "/catalogs/registry/config-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "config-v-v1",
+					Name: "config-v-version1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent:v1",
+					ParentName: "parent:version1",
 					Properties: map[string]interface{}{
 						"attribute": "value",
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v-v1":
+		case "/catalogs/registry/parent-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent-v-v1",
+					Name: "parent-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
-						"parentAttribute": "${{$config('config:v1','attribute')}}",
-						"parentCircular":  "${{$config('config:v1','parentCircular')}}",
+						"parentAttribute": "${{$config('config:version1','attribute')}}",
+						"parentCircular":  "${{$config('config:version1','parentCircular')}}",
 					},
 				},
 			}
@@ -696,10 +696,10 @@ func TestParentConfigEvaluation(t *testing.T) {
 	evalContext, err := getMockEvalContext()
 	assert.Nil(t, err)
 
-	val, err := evalContext.ConfigProvider.Get(ctx, "config:v1", "parentAttribute", nil, evalContext)
+	val, err := evalContext.ConfigProvider.Get(ctx, "config:version1", "parentAttribute", nil, evalContext)
 	assert.Equal(t, "value", val)
 	assert.Nil(t, err)
 
-	_, err = evalContext.ConfigProvider.Get(ctx, "config:v1", "parentCircular", nil, evalContext)
+	_, err = evalContext.ConfigProvider.Get(ctx, "config:version1", "parentCircular", nil, evalContext)
 	assert.Error(t, err, "Circular dependency in config should throw error")
 }

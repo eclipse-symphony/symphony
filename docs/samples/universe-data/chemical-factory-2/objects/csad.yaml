@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: csad-v-v1
+  name: csad-v-version1
 spec:
   rootResource: csad
   components:

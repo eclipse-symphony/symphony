@@ -78,11 +78,15 @@ const (
 	ReferenceSeparator = ":"
 	DisplayName        = "displayName"
 	RootResource       = "rootResource"
+	RootResourceUid    = "rootResourceUid"
 	ParentName         = "parentName"
 	StatusMessage      = "statusMessage"
 	Solution           = "solution"
+	SolutionUid        = "solutionUid"
 	Target             = "target"
+	TargetUid          = "targetUid"
 	Campaign           = "campaign"
+	CampaignUid        = "campaignUid"
 	StagedTarget       = "staged_target"
 )
 

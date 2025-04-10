@@ -155,7 +155,7 @@ func TestBasic_ActivationStatus(t *testing.T) {
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
 			require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
-			require.Equal(t, []interface{}{"sitecatalog:v1", "sitecatalog2:v1", "siteapp:v1", "sitek8starget:v1", "siteinstance:v1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			require.Equal(t, []interface{}{"sitecatalog:version1", "sitecatalog2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
 			require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
 			require.Equal(t, "list", state.Status.StageHistory[1].Stage)
 			require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
@@ -163,13 +163,13 @@ func TestBasic_ActivationStatus(t *testing.T) {
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
 			require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
 			require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
-			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "sitecatalog2-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
 			require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
 			require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
 			require.Equal(t, "", state.Status.StageHistory[2].NextStage)
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
-			require.Equal(t, []interface{}{"siteapp-v-v1", "sitecatalog-v-v1", "sitecatalog2-v-v1", "siteinstance-v-v1", "sitek8starget-v-v1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
+			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 
@@ -339,7 +339,7 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "solutions",
-	}).Namespace(namespace).Get(context.Background(), "siteapp-v-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "siteapp-v-version1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)
@@ -385,7 +385,7 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 		Group:    "federation.symphony",
 		Version:  "v1",
 		Resource: "catalogs",
-	}).Namespace(namespace).Get(context.Background(), "webappconfig-v-v1", metav1.GetOptions{})
+	}).Namespace(namespace).Get(context.Background(), "webappconfig-v-version1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource)

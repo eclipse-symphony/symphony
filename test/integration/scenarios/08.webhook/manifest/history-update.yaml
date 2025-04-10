@@ -14,9 +14,9 @@ spec:
       properties:
         tags: test-history
       type: config
-    displayName: history-solution-v-v1
+    displayName: history-solution-v-version1
     rootResource: history-solution
-  solutionId: history-solution:v1
+  solutionId: history-solution:version1
   target:
     displayName: history-target
     scope: default

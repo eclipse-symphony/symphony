@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: retail-solution-v-v1
+  name: retail-solution-v-version1
 spec:
   rootResource: retail-solution
   components:

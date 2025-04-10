@@ -1,7 +1,7 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: 05campaign-v-v1
+  name: 05campaign-v-version1
 spec:  
   rootResource: 05campaign
   firstStage: mock1
@@ -14,8 +14,8 @@ spec:
       name: "mock2"
       provider: "providers.stage.mock"
       inputs:
-        name: "${{$config(config1:v1, name)}}"
-        age: "${{$config(config2:v1, age, config1:v1)}}"
-        job: "${{$config(config3:v1, job, config1:v1, config2:v1)}}"
+        name: "${{$config(config1:version1, name)}}"
+        age: "${{$config(config2:version1, age, config1:version1)}}"
+        job: "${{$config(config3:version1, job, config1:version1, config2:version1)}}"
       stageSelector: ""
   selfDriving: true

@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: sample-visualization-instance
 spec:
-  solution: sample-visualization-solution:v1
+  solution: sample-visualization-solution:version1
   target: 
     name: sample-k8s-target

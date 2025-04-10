@@ -18,6 +18,6 @@ spec:
     person-detection-skill.rtsp: rtsp://:@20.163.55.24:554/media/peoplewaiting.mkv
     person-detection-skill.skill_displayname: person-detection
   scope: poss
-  solution: persondetection:v1
+  solution: persondetection:version1
   target:
     name: my-aks

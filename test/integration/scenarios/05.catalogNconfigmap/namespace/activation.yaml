@@ -3,5 +3,5 @@ kind: Activation
 metadata:
   name: 05activation
 spec:
-  campaign: "05campaign:v1"
+  campaign: "05campaign:version1"
   

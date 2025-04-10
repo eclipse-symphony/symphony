@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: factory-ai-vision-v-v1
+  name: factory-ai-vision-v-version1
 spec:
   rootResource: factory-ai-vision
   components:
