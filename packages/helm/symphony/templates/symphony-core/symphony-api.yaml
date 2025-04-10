@@ -10,6 +10,8 @@ spec:
   selector:
     matchLabels:
       app: {{ include "symphony.appSelector" . }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
