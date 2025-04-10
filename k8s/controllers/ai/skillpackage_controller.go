@@ -47,6 +47,7 @@ func (r *SkillPackageReconciler) Reconcile(ctx context.Context, req ctrl.Request
 // SetupWithManager sets up the controller with the Manager.
 func (r *SkillPackageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("SkillPackage").
 		For(&aiv1.SkillPackage{}).
 		Complete(r)
 }

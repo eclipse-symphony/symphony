@@ -130,6 +130,7 @@ func (r *InstanceQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	generationChange := predicate.GenerationChangedPredicate{}
 	operationIdPredicate := predicates.OperationIdPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("InstanceQueueing").
 		For(&solution_v1.Instance{}).
 		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
 		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(

@@ -106,6 +106,7 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	jobIDPredicate := predicates.JobIDPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("InstancePolling").
 		For(&solution_v1.Instance{}).
 		WithEventFilter(jobIDPredicate).
 		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
