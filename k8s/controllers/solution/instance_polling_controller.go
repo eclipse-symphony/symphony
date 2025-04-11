@@ -19,6 +19,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -105,8 +106,11 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	jobIDPredicate := predicates.JobIDPredicate{}
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstancePolling").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&solution_v1.Instance{}).
 		WithEventFilter(jobIDPredicate).
 		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(

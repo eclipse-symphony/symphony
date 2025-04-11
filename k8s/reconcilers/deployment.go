@@ -231,6 +231,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
+	diagnostic.InfoWithCtx(log, ctx, "Populated diagnostics and activities from annotations")
 	// Get reconciliation interval
 	reconciliationInterval, timeout := r.deriveReconcileInterval(log, ctx, object)
 
@@ -251,6 +252,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		}
 	} else {
 		if object.GetAnnotations()[operationStartTimeKey] == "" {
+			diagnostic.InfoWithCtx(log, ctx, "failed to get operation start time")
 			return metrics.DeploymentPolling, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 		// If the object hasn't reached a terminal state and the time since the operation started is greater than the

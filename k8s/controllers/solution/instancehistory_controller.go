@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	solutionv1 "gopls-workspace/apis/solution/v1"
@@ -46,8 +47,11 @@ func (r *InstanceHistoryReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *InstanceHistoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstanceHistory").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&solutionv1.InstanceHistory{}).
 		Complete(r)
 }
