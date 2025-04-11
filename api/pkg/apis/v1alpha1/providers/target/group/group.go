@@ -81,7 +81,7 @@ func getTargetGroupPropertyFromComponent(component model.ComponentSpec) (*Target
 	return &ret, nil
 }
 
-func GroupProviderFromMap(properties map[string]string) (GroupTargetProviderConfig, error) {
+func GroupTargetProviderConfigFromMap(properties map[string]string) (GroupTargetProviderConfig, error) {
 	ret := GroupTargetProviderConfig{}
 	if api_utils.ShouldUseUserCreds() {
 		user, err := api_utils.GetString(properties, "user")
@@ -101,7 +101,7 @@ func GroupProviderFromMap(properties map[string]string) (GroupTargetProviderConf
 	return ret, nil
 }
 func (i *GroupTargetProvider) InitWithMap(properties map[string]string) error {
-	config, err := GroupProviderFromMap(properties)
+	config, err := GroupTargetProviderConfigFromMap(properties)
 	if err != nil {
 		log.Errorf("  P (Group Target): expected GroupProviderConfig: %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("expected GroupProviderConfig: %+v", err), v1alpha2.InitFailed)
