@@ -2,6 +2,8 @@ apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
   name: redis-server
+  annotations: 
+    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/targetName/solutions/solutionName/versions/version1
 spec:  
   rootResource: solutioncontainer0
   components:

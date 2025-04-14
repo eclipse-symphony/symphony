@@ -271,58 +271,91 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 		return data, err
 	}
 	stringYaml := string(data)
+	if testhelpers.IsTestInAzure() {
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME",
+			"/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME/solutions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-INSTANCENAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME")
+	} else {
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:version1")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "TARGETNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "INSTANCENAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "SOLUTIONCONTAINERNAME")
+	}
 	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", namespace+"solution")
 	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 	stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
 	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v-version1")
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:version1")
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"version1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
 	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 
-	err = writeYamlStringsToFile(stringYaml, "./test.yaml")
+	err = testhelpers.WriteYamlStringsToFile(stringYaml, "./test.yaml")
 	if err != nil {
 		return []byte{}, err
 	}
 	output, err := exec.Command("kubectl", "apply", "-f", "./test.yaml", "-n", namespace).CombinedOutput()
-	os.Remove("./test.yaml")
+	// os.Remove("./test.yaml")
 	if err != nil {
 		return output, err
 	}
 	return []byte{}, nil
 }
 
-func writeYamlStringsToFile(yamlString string, filePath string) error {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write([]byte(yamlString))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func CleanUpSymphonyObjects(namespace string) error {
-	instanceName := namespace + "instance"
-	targetName := namespace + "target"
-	solutionName := namespace + "solution-v-version1"
-	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
+	// Get all instances in the namespace
+	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solution.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list instances: %v", err)
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
-	if err != nil {
-		return err
+
+	// Split the output into individual instance names
+	instances := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, instance := range instances {
+		if instance == "" {
+			continue
+		}
+		// Delete each instance
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", instance, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete instance %s: %v", instance, err)
+		}
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete solutions.solution.symphony %s -n %s", solutionName, namespace)).Run()
+
+	// Repeat similar logic for targets and solutions if needed
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get targets.fabric.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list targets: %v", err)
+	}
+
+	targets := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, target := range targets {
+		if target == "" {
+			continue
+		}
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", target, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete target %s: %v", target, err)
+		}
+	}
+
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutions.solution.symphony -n %s -o name", namespace)).Output()
+	if err != nil {
+		return fmt.Errorf("failed to list solutions: %v", err)
+	}
+
+	solutions := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, solution := range solutions {
+		if solution == "" {
+			continue
+		}
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", solution, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete solution %s: %v", solution, err)
+		}
 	}
 	return nil
 }

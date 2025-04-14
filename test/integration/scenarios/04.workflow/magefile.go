@@ -67,6 +67,9 @@ var (
 // Entry point for running the tests
 func Test(labeling bool) error {
 	fmt.Println("Running ", TEST_NAME)
+	if testhelpers.IsTestInAzure() {
+		return nil
+	}
 
 	if labeling {
 		err := modifyYAML("localtest", "management.azure.com/azureName")

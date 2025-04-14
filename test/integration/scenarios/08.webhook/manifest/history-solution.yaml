@@ -1,15 +1,17 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: history-solution
+  name: history-target-v-history-solution
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: history-solution-v-version1
+  name: history-target-v-history-solution-v-version1
+  annotations: 
+    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/history-target/solutions/history-solution/versions/version1
 spec:
-  rootResource: history-solution
+  rootResource: history-target-v-history-solution
   components:
     - name: configmap
       type: config

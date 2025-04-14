@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -123,4 +125,58 @@ func isProcessRunning(pid int) bool {
 	// Send signal 0 to the process
 	err = process.Signal(syscall.Signal(0))
 	return err == nil
+}
+
+func IsTestInAzure() bool {
+	// Check if the environment variable is set to "true" (case-insensitive)
+	//return strings.EqualFold(os.Getenv("AZURE_TEST"), "true")
+	return true
+}
+
+func WriteYamlStringsToFile(yamlString string, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write([]byte(yamlString))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReplacePlaceHolderInManifest(manifest string, suffix string) error {
+	fullPath, err := filepath.Abs(manifest)
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(fullPath)
+	if err != nil {
+		return err
+	}
+	stringYaml := string(data)
+	if IsTestInAzure() {
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME",
+			"/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME/solutions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-INSTANCENAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME")
+	} else {
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", "solution"+suffix+":version1")
+		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "TARGETNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "INSTANCENAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "SOLUTIONCONTAINERNAME")
+	}
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", "solution"+suffix)
+	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", "instance"+suffix)
+	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", "target"+suffix)
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", "version1")
+
+	err = WriteYamlStringsToFile(stringYaml, fullPath)
+	return err
 }
