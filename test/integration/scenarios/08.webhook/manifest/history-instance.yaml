@@ -3,9 +3,9 @@ kind: Instance
 metadata:
   name: history-instance
 spec:
-  solution: history-solution:version1
+  solution: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1
   target: 
-    name: history-target
+    name: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target
   reconciliationPolicy:
     interval: 60m
     state: active

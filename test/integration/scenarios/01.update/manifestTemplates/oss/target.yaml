@@ -6,10 +6,11 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: self
-  annotations: {}
+  name: TARGETNAME
+  annotations: 
+    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/TARGETNAME
 spec:
-  displayName: int-virtual-02-v1
+  displayName: TARGETNAME
   scope: test-scope
   topologies:
   - bindings:

@@ -53,12 +53,8 @@ var (
 )
 
 var (
-	// Manifest templates
-	containerManifestTemplates = []string{
-		fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
-	}
-
 	manifestTemplates = []string{
+		fmt.Sprintf("%s/%s/solution-container.yaml", manifestTemplateFolder, "oss"),
 		fmt.Sprintf("%s/%s/target.yaml", manifestTemplateFolder, "oss"),
 		fmt.Sprintf("%s/%s/solution.yaml", manifestTemplateFolder, "oss"),
 		fmt.Sprintf("%s/%s/instance.yaml", manifestTemplateFolder, "oss"),
@@ -126,14 +122,10 @@ func TestScenario_Update_AllNamespaces(t *testing.T) {
 
 func Scenario_Update(t *testing.T, namespace string) {
 	// Deploy base manifests
-	for _, manifest := range containerManifestTemplates {
-		fullPath, err := filepath.Abs(manifest)
-		require.NoError(t, err)
-		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
-		require.NoError(t, err)
-	}
 	for _, manifest := range manifestTemplates {
 		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+		err = testhelpers.ReplacePlaceHolderInManifest(fullPath, "01")
 		require.NoError(t, err)
 		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
 		require.NoError(t, err)

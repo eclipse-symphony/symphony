@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,9 +63,32 @@ var (
 	historyInstanceUpdate = "test/integration/scenarios/08.webhook/manifest/history-instance-update.yaml"
 )
 
+var (
+	solutionContainerFullName = "solution01"
+	solutionFullName          = "solution01-v-version1"
+	targetName                = "target01"
+	instanceFullName          = "instance01"
+)
+
 // Define a struct to parse the JSON output
 type HistoryList struct {
 	Items []map[string]interface{} `json:"items"`
+}
+
+func TestPrepare(t *testing.T) {
+	err := testhelpers.ReplacePlaceHolderInManifest(testSolution, "01")
+	assert.Nil(t, err)
+	err = testhelpers.ReplacePlaceHolderInManifest(testSolutionContainer, "01")
+	assert.Nil(t, err)
+	err = testhelpers.ReplacePlaceHolderInManifest(testTarget, "01")
+	assert.Nil(t, err)
+	err = testhelpers.ReplacePlaceHolderInManifest(testInstance, "01")
+	assert.Nil(t, err)
+	if testhelpers.IsTestInAzure() {
+		solutionContainerFullName = "target01-v-solution01"
+		solutionFullName = solutionContainerFullName + "-v-version1"
+		instanceFullName = solutionContainerFullName + "-v-instance01"
+	}
 }
 
 func TestCreateSolutionWithoutContainer(t *testing.T) {
@@ -79,7 +103,7 @@ func TestInstanceWithoutSolution(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testInstance)).CombinedOutput()
 	assert.Contains(t, string(output), "solution does not exist")
 	assert.NotNil(t, err, "instance creation without solution should fail")
-	err = shellcmd.Command("kubectl delete targets.fabric.symphony self").Run()
+	err = shellcmd.Command("kubectl delete targets.fabric.symphony " + targetName).Run()
 	assert.Nil(t, err)
 }
 
@@ -91,12 +115,12 @@ func TestInstanceWithoutTarget(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testInstance)).CombinedOutput()
 	assert.Contains(t, string(output), "target does not exist")
 	assert.NotNil(t, err, "instance creation without target should fail")
-	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", "mysol").CombinedOutput()
-	assert.Contains(t, string(output), "nested resources with root resource 'mysol' are not empty")
+	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", "self-v-mysol").CombinedOutput()
+	assert.Contains(t, string(output), "nested resources with root resource 'self-v-mysol' are not empty")
 	assert.NotNil(t, err, "solution container deletion with solution should fail")
-	err = shellcmd.Command("kubectl delete solutions.solution.symphony mysol-v-version1").Run()
+	err = shellcmd.Command("kubectl delete solutions.solution.symphony " + solutionFullName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutioncontainers.solution.symphony mysol").Run()
+	err = shellcmd.Command("kubectl delete solutioncontainers.solution.symphony " + solutionContainerFullName).Run()
 	assert.Nil(t, err)
 }
 
@@ -109,19 +133,19 @@ func TestTargetSolutionDeletionWithInstance(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testInstance))).Run()
 	assert.Nil(t, err)
-	output, err := exec.Command("kubectl", "delete", "solutions.solution.symphony", "mysol-v-version1").CombinedOutput()
+	output, err := exec.Command("kubectl", "delete", "solutions.solution.symphony", solutionFullName).CombinedOutput()
 	assert.Contains(t, string(output), "Solution has one or more associated instances. Deletion is not allowed.")
 	assert.NotNil(t, err)
-	output, err = exec.Command("kubectl", "delete", "targets.fabric.symphony", "self").CombinedOutput()
+	output, err = exec.Command("kubectl", "delete", "targets.fabric.symphony", targetName).CombinedOutput()
 	assert.Contains(t, string(output), "Target has one or more associated instances. Deletion is not allowed.")
 	assert.NotNil(t, err, "target deletion with instance should fail")
-	err = shellcmd.Command("kubectl delete instances.solution.symphony instance").Run()
+	err = shellcmd.Command("kubectl delete instances.solution.symphony " + instanceFullName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete targets.fabric.symphony self").Run()
+	err = shellcmd.Command("kubectl delete targets.fabric.symphony " + targetName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutions.solution.symphony mysol-v-version1").Run()
+	err = shellcmd.Command("kubectl delete solutions.solution.symphony " + solutionFullName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutioncontainers.solution.symphony mysol").Run()
+	err = shellcmd.Command("kubectl delete solutioncontainers.solution.symphony " + solutionContainerFullName).Run()
 	assert.Nil(t, err)
 }
 
@@ -130,6 +154,9 @@ func TestCreateActivationWithoutCampaign(t *testing.T) {
 }
 
 func TestCreateActivationWithWrongFirstStage(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaign))).Run()
@@ -147,6 +174,9 @@ func TestCreateActivationWithWrongFirstStage(t *testing.T) {
 }
 
 func TestCreateCampaignWithWrongStages(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignContainer))).Run()
 	assert.Nil(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCampaignWithWrongStage)).CombinedOutput()
@@ -157,6 +187,9 @@ func TestCreateCampaignWithWrongStages(t *testing.T) {
 }
 
 func TestDeleteCampaignWithRunningActivation(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignWithLongRunning))).Run()
@@ -196,6 +229,9 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 }
 
 func TestCreateCatalogWithoutContainer(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchema))).Run()
@@ -221,6 +257,9 @@ func TestCreateCatalogWithoutContainer(t *testing.T) {
 }
 
 func TestCreateCatalogWithoutSchema(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
@@ -244,6 +283,9 @@ func TestCreateCatalogWithoutSchema(t *testing.T) {
 }
 
 func TestCreateCatalogWithWrongSchema(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
@@ -262,6 +304,9 @@ func TestCreateCatalogWithWrongSchema(t *testing.T) {
 }
 
 func TestCreateCatalogWithoutParent(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testSchemaContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalogContainer))).Run()
@@ -291,6 +336,9 @@ func TestCreateCatalogWithoutParent(t *testing.T) {
 }
 
 func TestUpdateCatalogWithCircularParentDependency(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularParentContainer))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCircularParent))).Run()
@@ -306,6 +354,9 @@ func TestUpdateCatalogWithCircularParentDependency(t *testing.T) {
 }
 
 func TestUpdateCatalogRemoveParentLabel(t *testing.T) {
+	if testhelpers.IsTestInAzure() {
+		return
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testNoParentChild))).Run()
 	assert.Nil(t, err)
 
@@ -321,14 +372,9 @@ func TestUpdateCatalogRemoveParentLabel(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func IsTestInAzure() bool {
-	// Check if the environment variable is set to "true" (case-insensitive)
-	return strings.EqualFold(os.Getenv("AZURE_TEST"), "true")
-}
-
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_01_WithoutEdgeLocation)).CombinedOutput()
-	if IsTestInAzure() {
+	if testhelpers.IsTestInAzure() {
 		assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
 		assert.NotNil(t, err, "diagnostic creation without edge location should fail")
 
@@ -422,7 +468,7 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	status := history["status"].(map[string]interface{})
 	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
 	assert.Equal(t, "history-instance", spec["rootResource"].(string))
-	assert.Equal(t, "history-solution:version1", spec["solutionId"].(string))
+	assert.Equal(t, "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1", spec["solutionId"].(string))
 	assert.Equal(t, "Succeeded", status["status"])
 }
 

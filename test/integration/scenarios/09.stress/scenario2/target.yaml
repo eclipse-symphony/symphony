@@ -2,6 +2,8 @@ apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
   name: k8s-target
+  annotations: 
+    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/targetName
 spec:   
   topologies:
   - bindings:

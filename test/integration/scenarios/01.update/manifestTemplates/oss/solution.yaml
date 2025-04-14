@@ -6,8 +6,9 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  annotations: {}
-  name: mysol-v-version1
+  annotations: 
+    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/TARGETNAME/solutions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME
+  name: SOLUTIONFULLNAME
 spec:
-  rootResource: mysol
-  displayName: My solution
+  rootResource: SOLUTIONCONTAINERFULLNAME
+  displayName: SOLUTIONFULLNAME
