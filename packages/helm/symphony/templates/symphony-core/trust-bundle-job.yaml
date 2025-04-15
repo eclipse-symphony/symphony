@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: namespace-label
-        image: mcr.microsoft.com/oss/kubernetes/kubectl:version1.25.10
+        image: mcr.microsoft.com/oss/kubernetes/kubectl:1.25.10
         command:
         - /bin/bash
         - -c

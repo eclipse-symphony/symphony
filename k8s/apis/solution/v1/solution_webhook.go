@@ -62,13 +62,13 @@ func (r *Solution) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		if err != nil {
 			return false, err
 		}
-		// use name label first and then uid label
+		// use uid label first and then name label
 		if len(instanceList.Items) > 0 {
 			diagnostic.InfoWithCtx(solutionlog, ctx, "solution look up instance using UID", "name", r.Name, "namespace", r.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "solution (%s) in namespace (%s) look up instance using UID ", r.Name, r.Namespace)
 			return len(instanceList.Items) > 0, nil
 		}
-		if len(name) < 64 {
+		if len(name) < api_constants.LabelLengthUpperLimit {
 			instanceList, err = dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Solution: name}, 1)
 			if err != nil {
 				return false, err
@@ -326,7 +326,7 @@ func (r *SolutionContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(solutionList.Items), nil
 		}
 
-		if len(r.Name) < 64 {
+		if len(r.Name) < api_constants.LabelLengthUpperLimit {
 			err = mySolutionReaderClient.List(context.Background(), &solutionList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 			if err != nil {
 				diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to list solutions", "name", r.Name, "namespace", r.Namespace)

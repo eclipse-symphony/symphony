@@ -78,7 +78,7 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		if err != nil {
 			return false, err
 		}
-		// use name label first and then uid label
+		// use uid label first and then name label
 		if len(instanceList.Items) > 0 {
 			diagnostic.InfoWithCtx(targetlog, ctx, "target look up instance using UID", "name", r.Name, "namespace", r.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "target (%s) in namespace (%s) look up instance using UID ", r.Name, r.Namespace)

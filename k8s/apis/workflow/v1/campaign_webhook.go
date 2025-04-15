@@ -80,7 +80,7 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			}
 
 			// if couldn't find any, then use the campaign name
-			if len(campaign) < 64 {
+			if len(campaign) < api_constants.LabelLengthUpperLimit {
 				activationList, err = dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 				if err != nil {
 					return false, err
@@ -354,7 +354,7 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 			return len(campaignList.Items), nil
 		}
 
-		if len(r.Name) < 64 {
+		if len(r.Name) < api_constants.LabelLengthUpperLimit {
 			err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 			if err != nil {
 				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)

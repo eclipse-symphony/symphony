@@ -340,7 +340,7 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 			observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using UID ", r.Name, r.Namespace)
 			return len(catalogList.Items), nil
 		}
-		if len(r.Name) < 64 {
+		if len(r.Name) < api_constants.LabelLengthUpperLimit {
 			err = myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
 			if err != nil {
 				diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
