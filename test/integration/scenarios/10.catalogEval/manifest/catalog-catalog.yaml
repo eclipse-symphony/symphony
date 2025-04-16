@@ -1,15 +1,15 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: evalcatalog-v-v1
+  name: evalcatalog-v-version1
 spec:
   rootResource: evalcatalog
   catalogType: catalog
   properties:
     address: 1st Avenue
-    city: "${{$config('evalcatalog:v2','city')}}"
-    zipcode: "${{$config('evalcatalog:v2','zipcode')}}"
-    county: "${{$config('evalcatalog:v22','county')}}"
-    country: "${{$wrongexpression('evalcatalog:v2','country')}}"
+    city: "${{$config('evalcatalog:version2','city')}}"
+    zipcode: "${{$config('evalcatalog:version2','zipcode')}}"
+    county: "${{$config('evalcatalog:version22','county')}}"
+    country: "${{$wrongexpression('evalcatalog:version2','country')}}"
     from: 
-      country: "${{$config('evalcatalog:v2','country')}}"
+      country: "${{$config('evalcatalog:version2','country')}}"

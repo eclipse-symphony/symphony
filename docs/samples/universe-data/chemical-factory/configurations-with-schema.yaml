@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: sample-config-v-v1
+  name: sample-config-v-version1
 spec:
   rootResource: sample-config
   catalogType: config

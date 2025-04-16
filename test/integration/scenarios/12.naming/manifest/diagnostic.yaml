@@ -1,0 +1,8 @@
+apiVersion: monitor.symphony/v1
+kind: Diagnostic
+metadata:
+  name: ${PLACEHOLDER_NAME}
+  annotations:
+    management.azure.com/customLocation: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fakeRG/providers/Microsoft.ExtendedLocation/customLocations/fakeedgelocation
+spec:
+  # TODO(user): Add fields here

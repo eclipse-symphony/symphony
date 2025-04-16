@@ -73,12 +73,30 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	uniqueNameTargetLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
 		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Target, displayName, namespace)
 	}
-	targetInstanceLookupFunc := func(ctx context.Context, targetName string, namespace string) (bool, error) {
-		instanceList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Target: targetName}, 1)
+	targetInstanceLookupFunc := func(ctx context.Context, targetName string, namespace string, targetUid string) (bool, error) {
+		instanceList, err := dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.TargetUid: targetUid}, 1)
 		if err != nil {
 			return false, err
 		}
-		return len(instanceList.Items) > 0, nil
+		// use uid label first and then name label
+		if len(instanceList.Items) > 0 {
+			diagnostic.InfoWithCtx(targetlog, ctx, "target look up instance using UID", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "target (%s) in namespace (%s) look up instance using UID ", r.Name, r.Namespace)
+			return len(instanceList.Items) > 0, nil
+		}
+
+		if len(targetName) < 64 {
+			instanceList, err = dynamicclient.ListWithLabels(ctx, validation.Instance, namespace, map[string]string{api_constants.Target: targetName}, 1)
+			if err != nil {
+				return false, err
+			}
+			if len(instanceList.Items) > 0 {
+				diagnostic.InfoWithCtx(targetlog, ctx, "target look up instance using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "target (%s) in namespace (%s) look up instance using NAME ", r.Name, r.Namespace)
+				return len(instanceList.Items) > 0, nil
+			}
+		}
+		return false, nil
 	}
 	if projectConfig.UniqueDisplayNameForSolution {
 		targetValidator = validation.NewTargetValidator(targetInstanceLookupFunc, uniqueNameTargetLookupFunc)

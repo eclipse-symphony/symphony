@@ -6,7 +6,11 @@
 
 package constants
 
-import _ "embed"
+import (
+	_ "embed"
+	"os"
+	"strconv"
+)
 
 // Eula Message
 var (
@@ -34,6 +38,17 @@ const (
 
 	ProviderName = "management.azure.com/provider-name"
 )
+
+var LabelLengthUpperLimit = 64 // Default value if environment variable is not set
+
+func init() {
+	// Convert LABEL_LENGTH_UPPER_LIMIT environment variable to int if provided
+	if envLimit := os.Getenv("LABEL_LENGTH_UPPER_LIMIT"); envLimit != "" {
+		if val, err := strconv.Atoi(envLimit); err == nil {
+			LabelLengthUpperLimit = val
+		}
+	}
+}
 
 func SystemReservedAnnotations() []string {
 	return []string{
@@ -78,11 +93,15 @@ const (
 	ReferenceSeparator = ":"
 	DisplayName        = "displayName"
 	RootResource       = "rootResource"
+	RootResourceUid    = "rootResourceUid"
 	ParentName         = "parentName"
 	StatusMessage      = "statusMessage"
 	Solution           = "solution"
+	SolutionUid        = "solutionUid"
 	Target             = "target"
+	TargetUid          = "targetUid"
 	Campaign           = "campaign"
+	CampaignUid        = "campaignUid"
 	StagedTarget       = "staged_target"
 )
 

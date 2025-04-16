@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: redis-app
 spec:
-  solution: redis:v1
+  solution: redis:version1
   target: 
     name: my-k8s

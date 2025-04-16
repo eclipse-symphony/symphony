@@ -4,6 +4,6 @@ metadata:
   name: sample-prometheus-instance
 spec:
   scope: sample-k8s-scope  
-  solution: sample-prometheus-server:v1
+  solution: sample-prometheus-server:version1
   target: 
     name: sample-k8s-target

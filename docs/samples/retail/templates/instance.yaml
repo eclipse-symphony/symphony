@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: retail-instance
 spec:
-  solution: retail-solution:v1
+  solution: retail-solution:version1
   target: 
     selector: 
       scenario: retail-app
