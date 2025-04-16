@@ -28,6 +28,10 @@ import (
 )
 
 // log is for logging in this package.
+var (
+	iHistoryNameMin = 3
+	iHistoryNameMax = 63
+)
 var historyLog = logf.Log.WithName("instance-history-resource")
 
 var historyReaderClient client.Reader
@@ -71,7 +75,16 @@ func (r *InstanceHistory) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels[api_constants.RootResource] = r.Spec.RootResource
+			// Remove api_constants.RootResource from r.Labels if it exists
+			if _, exists := r.Labels[api_constants.RootResource]; exists {
+				delete(r.Labels, api_constants.RootResource)
+			}
+			var instance Instance
+			err := mySolutionReaderClient.Get(ctx, client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instance)
+			if err != nil {
+				diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to get instance", "name", r.Name, "namespace", r.Namespace)
+			}
+			r.Labels[api_constants.RootResourceUid] = string(instance.UID)
 		}
 	}
 
@@ -102,6 +115,13 @@ func (r *InstanceHistory) ValidateCreate() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(historyLog, ctx, "validate create", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "Instance history %s is being created on namespace %s", r.Name, r.Namespace)
 
+	// resources like instance may contain -v- so split by -v- and pick up the last part
+	parts := strings.Split(r.GetName(), constants.ResourceSeperator)
+	actualName := parts[len(parts)-1]
+	if len(actualName) < iHistoryNameMin || len(actualName) > iHistoryNameMax {
+		diagnostic.ErrorWithCtx(historyLog, ctx, nil, "name length is invalid", "name", actualName, "kind", r.GetObjectKind())
+		return nil, fmt.Errorf("%s Name length, %s is invalid", r.GetObjectKind(), actualName)
+	}
 	return nil, nil
 }
 

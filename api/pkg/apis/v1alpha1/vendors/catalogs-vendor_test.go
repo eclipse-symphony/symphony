@@ -26,7 +26,7 @@ import (
 
 var catalogState = model.CatalogState{
 	ObjectMeta: model.ObjectMeta{
-		Name: "name1-v-v1",
+		Name: "name1-v-version1",
 	},
 	Spec: &model.CatalogSpec{
 		CatalogType: "catalog",
@@ -202,13 +202,13 @@ func TestCatalogOnCheck(t *testing.T) {
 
 	catalogState = model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test1-v-v1",
+			Name:      "test1-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
 			CatalogType: "config",
 			Metadata: map[string]string{
-				"schema": "emailcheckschema:v1",
+				"schema": "emailcheckschema:version1",
 			},
 			RootResource: "test1",
 		},
@@ -229,7 +229,7 @@ func TestCatalogOnCheck(t *testing.T) {
 	}
 	schemaCatalog := model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "emailcheckschema-v-v1",
+			Name:      "emailcheckschema-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
@@ -278,14 +278,14 @@ func TestCatalogOnCatalogsGet(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "name1-v-v1",
+			"__name": "name1-v-version1",
 		},
 	}
 
 	response := vendor.onCatalogs(*requestGet)
 	assert.Equal(t, v1alpha2.NotFound, response.State)
 
-	catalogState.ObjectMeta.Name = "name1-v-v1"
+	catalogState.ObjectMeta.Name = "name1-v-version1"
 	b, err := json.Marshal(catalogState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
@@ -351,7 +351,7 @@ func TestCatalogOnCatalogsPost(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "name1-v-v1",
+			"__name": "name1-v-version1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -366,7 +366,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 	vendor := CatalogVendorInit()
 	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 
-	catalogState.ObjectMeta.Name = "name1-v-v1"
+	catalogState.ObjectMeta.Name = "name1-v-version1"
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
@@ -391,7 +391,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodDelete,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "name1-v-v1",
+			"__name": "name1-v-version1",
 		},
 	}
 	response = vendor.onCatalogs(*requestDelete)
@@ -401,7 +401,7 @@ func TestCatalogOnCatalogsDelete(t *testing.T) {
 		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"__name": "name1-v-v1",
+			"__name": "name1-v-version1",
 		},
 	}
 	response = vendor.onCatalogs(*requestGet)
@@ -436,14 +436,14 @@ func TestCatalogOnCatalogsGraphGetChains(t *testing.T) {
 	}
 
 	catalogState.Spec.CatalogType = "config"
-	err := CreateSimpleChain("root-v-v1", 4, *vendor.CatalogsManager, catalogState)
+	err := CreateSimpleChain("root-v-version1", 4, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
 	response := vendor.onCatalogsGraph(*requestGet)
 	var summarys map[string][]model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, 4, len(summarys["root-v-v1"]))
+	assert.Equal(t, 4, len(summarys["root-v-version1"]))
 }
 
 func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
@@ -459,14 +459,14 @@ func TestCatalogOnCatalogsGraphGetTrees(t *testing.T) {
 	}
 
 	catalogState.Spec.CatalogType = "asset"
-	err := CreateSimpleBinaryTree("root-v-v1", 3, *vendor.CatalogsManager, catalogState)
+	err := CreateSimpleBinaryTree("root-v-version1", 3, *vendor.CatalogsManager, catalogState)
 	assert.Nil(t, err)
 
 	response := vendor.onCatalogsGraph(*requestGet)
 	var summarys map[string][]model.CatalogState
 	err = json.Unmarshal(response.Body, &summarys)
 	assert.Nil(t, err)
-	assert.Equal(t, 7, len(summarys["root-v-v1-0"]))
+	assert.Equal(t, 7, len(summarys["root-v-version1-0"]))
 }
 
 func TestCatalogOnCatalogsGraphGetUnknownTemplate(t *testing.T) {

@@ -47,13 +47,13 @@ func TestRead(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/catalog1-v-v1":
+		case "/catalogs/registry/catalog1-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1-v-v1",
+					Name: "catalog1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent:v1",
+					ParentName: "parent:version1",
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
 							{
@@ -70,10 +70,10 @@ func TestRead(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v-v1":
+		case "/catalogs/registry/parent-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent-v-v1",
+					Name: "parent-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -104,7 +104,7 @@ func TestRead(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.Read(ctx, "catalog1:v1", "components", nil)
+	res, err := provider.Read(ctx, "catalog1:version1", "components", nil)
 	assert.Nil(t, err)
 	data, err := json.Marshal(res)
 	assert.Nil(t, err)
@@ -113,7 +113,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "name", summary[0].Name)
 
-	res, err = provider.Read(ctx, "catalog1:v1", "`.a.b.c`", nil)
+	res, err = provider.Read(ctx, "catalog1:version1", "`.a.b.c`", nil)
 	assert.Nil(t, err)
 	data, err = json.Marshal(res)
 	assert.Nil(t, err)
@@ -122,7 +122,7 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "nested", val)
 
-	res, err = provider.Read(ctx, "catalog1:v1", "`.\"a.b.d\"`", nil)
+	res, err = provider.Read(ctx, "catalog1:version1", "`.\"a.b.d\"`", nil)
 	assert.Nil(t, err)
 	data, err = json.Marshal(res)
 	assert.Nil(t, err)
@@ -130,13 +130,13 @@ func TestRead(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "dot", val)
 
-	res, err = provider.Read(ctx, "catalog1:v1", "`.parentAttribute`", nil)
+	res, err = provider.Read(ctx, "catalog1:version1", "`.parentAttribute`", nil)
 	assert.Nil(t, err)
 	v, ok := res.(string)
 	assert.True(t, ok)
 	assert.Equal(t, "This is father", v)
 
-	res, err = provider.Read(ctx, "catalog1:v1", "notExist", nil)
+	res, err = provider.Read(ctx, "catalog1:version1", "notExist", nil)
 	coaErr := err.(v1alpha2.COAError)
 	assert.Equal(t, v1alpha2.NotFound, coaErr.State)
 	assert.Empty(t, res)
@@ -146,13 +146,13 @@ func TestReadObject(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/catalog1-v-v1":
+		case "/catalogs/registry/catalog1-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1-v-v1",
+					Name: "catalog1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
-					ParentName: "parent:v1",
+					ParentName: "parent:version1",
 					Properties: map[string]interface{}{
 						"components": map[string]interface{}{
 							"Name": "name",
@@ -161,10 +161,10 @@ func TestReadObject(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v-v1":
+		case "/catalogs/registry/parent-v-version1":
 			response = model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "parent-v-v1",
+					Name: "parent-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
@@ -198,7 +198,7 @@ func TestReadObject(t *testing.T) {
 	}
 	assert.Nil(t, err)
 
-	res, err := provider.ReadObject(ctx, "catalog1:v1", nil)
+	res, err := provider.ReadObject(ctx, "catalog1:version1", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, "name", res["components"].(map[string]interface{})["Name"])
 }

@@ -1,0 +1,29 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: ${PLACEHOLDER_NAME}
+  annotations: {}
+spec:
+  displayName: target
+  scope: test-scope
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+        noWait: "false"
+        timeout: "5m"
+      provider: providers.target.k8s
+      role: instance
+    - config:
+        inCluster: "true"
+      provider: providers.target.helm
+      role: helm.v3
+    - config:
+        inCluster: "true"
+      provider: providers.target.kubectl
+      role: yaml.k8s

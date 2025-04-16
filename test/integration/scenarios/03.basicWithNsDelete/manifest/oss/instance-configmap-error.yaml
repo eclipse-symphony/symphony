@@ -4,6 +4,6 @@ metadata:
   name: instance-configmap
 spec:
   scope: nondefault
-  solution: solution-configmap:v1
+  solution: solution-configmap:version1
   target: 
     name: target-configmap-update

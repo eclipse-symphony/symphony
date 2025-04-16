@@ -2,7 +2,7 @@
 
 > **NOTE:** Planned feature (P0). Versioning experience can be emulated with the current API. The versioned API provides native versioning supports.
 
-Symphony follows the immutable infrastructure paradigm, where any manipulation of the desired state warrants a new version. And because in Kubernetes and ARM, objects are uniquely keyed, Symphony uses a naming convention to indicate different versions of an object, such as “`app-v-v1`” and “`app-v-v2`” under "`app`" container object.
+Symphony follows the immutable infrastructure paradigm, where any manipulation of the desired state warrants a new version. And because in Kubernetes and ARM, objects are uniquely keyed, Symphony uses a naming convention to indicate different versions of an object, such as “`app-v-version1`” and “`app-v-version2`” under "`app`" container object.
 
 Because some customers have expressed desire to use a versioned API instead of naming conventions, Symphony is adding versioned APIs to create such experiences on top of the above mechanism. With the versioned API, a user can operate on multiple versions of the same object, though underneath Symphony still uses the naming conventions to satisfy the unique key requirements of the platforms.
 
@@ -43,7 +43,7 @@ When creating container and version objects, version resource creation should fo
 When referencing a specific version of a versioned object, you can use a “:<version>” postfix in you Symphony expressions, such as:
 
 ```yaml
-${{$config('my-config:v3', 'my-field')}}
+${{$config('my-config:version3', 'my-field')}}
 ```
 
 > **NOTE:** This syntax is to be expanded in the future to include cross-cluster and cross-namespace references, such as `<cluster>/<namespace>/<object>:<version tag>`.
