@@ -44,9 +44,9 @@ func TestCreateCampaignWithMissingContainer(t *testing.T) {
 		needValidate:  true,
 	}
 	manager.CampaignValidator.CampaignContainerLookupFunc = manager.CampaignContainerLookup
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -88,9 +88,9 @@ func TestCreateCampaignWithContainer(t *testing.T) {
 		},
 	})
 
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -107,9 +107,9 @@ func TestCreateCampaignWithRunningActivation(t *testing.T) {
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -128,7 +128,7 @@ func TestCreateCampaignWithRunningActivation(t *testing.T) {
 					Name:      "testactivation",
 					Namespace: "default",
 					Labels: map[string]string{
-						"campaign":      "test-v-v1",
+						"campaign":      "test-v-version1",
 						"statusMessage": "Running",
 					},
 				},
@@ -145,9 +145,9 @@ func TestCreateCampaignWithRunningActivation(t *testing.T) {
 		},
 	})
 
-	err = manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
+	err = manager.UpsertState(context.Background(), "test-v-version1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -162,7 +162,7 @@ func TestCreateCampaignWithRunningActivation(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Campaign has one or more running activations. Update or Deletion is not allowed")
 
-	err = manager.DeleteState(context.Background(), "test-v-v1", "default")
+	err = manager.DeleteState(context.Background(), "test-v-version1", "default")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Campaign has one or more running activations. Update or Deletion is not allowed")
 }
@@ -174,9 +174,9 @@ func TestCreateCampaignWithWrongStages(t *testing.T) {
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -200,9 +200,9 @@ func TestCreateCampaignWithWrongFirstStage(t *testing.T) {
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.CampaignState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{

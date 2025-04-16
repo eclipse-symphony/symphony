@@ -12,7 +12,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: person-detection-v-v1
+  name: person-detection-v-version1
 spec:
   rootResource: person-detection
   components:

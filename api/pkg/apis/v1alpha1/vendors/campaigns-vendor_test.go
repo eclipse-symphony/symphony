@@ -73,7 +73,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	vendor := createCampaignsVendor()
 	campaignState := model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "campaign1-v-v1",
+			Name:      "campaign1-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -85,7 +85,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": "campaign1-v-v1",
+			"__name": "campaign1-v-version1",
 		},
 		Context: context.Background(),
 	})
@@ -94,7 +94,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "campaign1-v-v1",
+			"__name": "campaign1-v-version1",
 		},
 		Context: context.Background(),
 	})
@@ -102,7 +102,7 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	var campaign model.CampaignState
 	err := json.Unmarshal(resp.Body, &campaign)
 	assert.Nil(t, err)
-	assert.Equal(t, "campaign1-v-v1", campaign.ObjectMeta.Name)
+	assert.Equal(t, "campaign1-v-version1", campaign.ObjectMeta.Name)
 
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -113,12 +113,12 @@ func TestCampaignsOnCampaigns(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &campaigns)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(campaigns))
-	assert.Equal(t, "campaign1-v-v1", campaigns[0].ObjectMeta.Name)
+	assert.Equal(t, "campaign1-v-version1", campaigns[0].ObjectMeta.Name)
 
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "campaign1-v-v1",
+			"__name": "campaign1-v-version1",
 		},
 		Context: context.Background(),
 	})
@@ -128,7 +128,7 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 	vendor := createCampaignsVendor()
 	campaignState := model.CampaignState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "campaign1-v-v1",
+			Name:      "campaign1-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CampaignSpec{
@@ -140,18 +140,18 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 		Method: fasthttp.MethodGet,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": "campaign1-v-v1",
+			"__name": "campaign1-v-version1",
 		},
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.NotFound, resp.State)
-	assert.Equal(t, "Not Found: entry 'campaign1-v-v1' is not found in namespace default", string(resp.Body))
+	assert.Equal(t, "Not Found: entry 'campaign1-v-version1' is not found in namespace default", string(resp.Body))
 
 	resp = vendor.onCampaigns(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Body:   []byte("bad data"),
 		Parameters: map[string]string{
-			"__name": "campaign1-v-v1",
+			"__name": "campaign1-v-version1",
 		},
 		Context: context.Background(),
 	})
@@ -162,12 +162,12 @@ func TestCampaignsOnCampaignsFailure(t *testing.T) {
 		Method: fasthttp.MethodDelete,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": "campaign1-v-v1",
+			"__name": "campaign1-v-version1",
 		},
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.NotFound, resp.State)
-	assert.Equal(t, "Not Found: entry 'campaign1-v-v1' is not found in namespace default", string(resp.Body))
+	assert.Equal(t, "Not Found: entry 'campaign1-v-version1' is not found in namespace default", string(resp.Body))
 }
 
 func TestCampaignsWrongMethod(t *testing.T) {
