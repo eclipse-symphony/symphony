@@ -233,7 +233,6 @@ func (h *APIHost) Launch(config HostConfig,
 			v.Vendor.SetEvaluationContext(evaluationContext)
 		}
 	}
-	SetHostReadyFlag(true)
 
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
@@ -295,6 +294,7 @@ func (h *APIHost) Launch(config HostConfig,
 			}
 		}
 	}
+	SetHostReadyFlag(true)
 	return h.WaitForShutdown(&wg, cancel)
 }
 

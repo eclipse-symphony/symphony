@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: redis-instance
 spec:
-  solution: redis-server:v1
+  solution: redis-server:version1
   target: 
     name: script-target 

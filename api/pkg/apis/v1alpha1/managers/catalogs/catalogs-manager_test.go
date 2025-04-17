@@ -30,7 +30,7 @@ import (
 var manager CatalogsManager
 var catalogState = model.CatalogState{
 	ObjectMeta: model.ObjectMeta{
-		Name: "name1-v-v1",
+		Name: "name1-v-version1",
 	},
 	Spec: &model.CatalogSpec{
 		CatalogType: "catalog",
@@ -242,7 +242,7 @@ func TestGetChains(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 	manager.CatalogValidator.CatalogContainerLookupFunc = nil
-	err = CreateSimpleChain("root-v-v1", 4, manager, catalogState)
+	err = CreateSimpleChain("root-v-version1", 4, manager, catalogState)
 	assert.Nil(t, err)
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
@@ -255,21 +255,21 @@ func TestGetChains(t *testing.T) {
 
 	val, err := manager.GetChains(context.Background(), catalogState.Spec.CatalogType, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 4, len(val["root-v-v1"]))
+	assert.Equal(t, 4, len(val["root-v-version1"]))
 }
 
 func TestGetTrees(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
 	manager.CatalogValidator.CatalogContainerLookupFunc = nil
-	err = CreateSimpleBinaryTree("root-v-v1", 3, manager, catalogState)
+	err = CreateSimpleBinaryTree("root-v-version1", 3, manager, catalogState)
 	assert.Nil(t, err)
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
 
 	val, err := manager.GetTrees(context.Background(), catalogState.Spec.CatalogType, catalogState.ObjectMeta.Namespace)
 	assert.Nil(t, err)
-	assert.Equal(t, 7, len(val["root-v-v1-0"]))
+	assert.Equal(t, 7, len(val["root-v-version1-0"]))
 }
 
 func TestSchemaCheck(t *testing.T) {
@@ -285,7 +285,7 @@ func TestSchemaCheck(t *testing.T) {
 	}
 	schemaCatalog := model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "EmailCheckSchema-v-v1",
+			Name:      "EmailCheckSchema-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
@@ -302,14 +302,14 @@ func TestSchemaCheck(t *testing.T) {
 
 	catalog := model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "Email-v-v1",
+			Name:      "Email-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
 			RootResource: "Email",
 			CatalogType:  "catalog",
 			Metadata: map[string]string{
-				"schema": "EmailCheckSchema:v1",
+				"schema": "EmailCheckSchema:version1",
 			},
 			Properties: map[string]interface{}{
 				"email": "This is an invalid email",
@@ -328,13 +328,13 @@ func TestParentCatalog(t *testing.T) {
 	manager.CatalogValidator.CatalogContainerLookupFunc = nil
 	childCatalog := model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "EmailCheckSchema-v-v1",
+			Name:      "EmailCheckSchema-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
 			RootResource: "EmailCheckSchema",
 			CatalogType:  "schema",
-			ParentName:   "parent:v1",
+			ParentName:   "parent:version1",
 		},
 	}
 
@@ -344,7 +344,7 @@ func TestParentCatalog(t *testing.T) {
 
 	parentCatalog := model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "parent-v-v1",
+			Name:      "parent-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
@@ -361,13 +361,13 @@ func TestParentCatalog(t *testing.T) {
 
 	parentCatalog = model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "parent-v-v1",
+			Name:      "parent-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
 			RootResource: "parent",
 			CatalogType:  "catalog",
-			ParentName:   "EmailCheckSchema:v1",
+			ParentName:   "EmailCheckSchema:version1",
 		},
 	}
 	err = manager.UpsertState(context.Background(), parentCatalog.ObjectMeta.Name, parentCatalog)
@@ -382,9 +382,9 @@ func TestParentCatalog(t *testing.T) {
 func TestCatalogContainer(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	err = manager.UpsertState(context.Background(), "test-v-v1", model.CatalogState{
+	err = manager.UpsertState(context.Background(), "test-v-version1", model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{
@@ -416,9 +416,9 @@ func TestCatalogContainer(t *testing.T) {
 		},
 	})
 
-	err = manager.UpsertState(context.Background(), "test-v-v1", model.CatalogState{
+	err = manager.UpsertState(context.Background(), "test-v-version1", model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.CatalogSpec{

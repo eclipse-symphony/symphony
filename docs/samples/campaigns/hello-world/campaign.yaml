@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: hello-world-v-v1
+  name: hello-world-v-version1
 spec:
   rootResource: hello-world
   firstStage: "mock"

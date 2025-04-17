@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: dummy-instance
 spec:
-  solution: dummy-solution:v1
+  solution: dummy-solution:version1
   target: 
     name: voe-target
   pipelines:
