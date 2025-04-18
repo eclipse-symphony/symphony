@@ -1,12 +1,17 @@
+# Copyright (c) Microsoft Corporation and others.
+# Licensed under the MIT license.
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "mock"
 version = "0.1.0"
-edition = "2021"
+edition = { workspace = true }
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-rust_binding = { path = "../../rust_binding" }
-serde = "1.0"
-serde_json = "1.0"
+serde = { workspace = true }
+serde_json = { workspace = true }
+symphony = { workspace = true }

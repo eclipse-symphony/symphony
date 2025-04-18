@@ -10,6 +10,6 @@
 package rust
 
 /*
- #cgo LDFLAGS: -L./target/armv7-unknown-linux-gnueabihf/release -lrust_binding -lm -ldl -lpthread
+ #cgo LDFLAGS: -L./target/armv7-unknown-linux-gnueabihf/release -lsymphony -lm -ldl -lpthread
 */
 import "C"
