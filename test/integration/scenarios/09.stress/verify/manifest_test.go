@@ -154,7 +154,7 @@ func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 			obj := event.Object.(*unstructured.Unstructured)
 			// ss, _ := json.Marshal(obj)
 			// log.Infof("custom resource modified " + string(ss))
-			status, found, err := unstructured.NestedString(obj.Object, "status", "properties", "status")
+			status, _, err := unstructured.NestedString(obj.Object, "status", "status")
 			if err != nil {
 				log.Errorf(err.Error())
 			}
@@ -185,7 +185,7 @@ func createScenario2(dynamicClient dynamic.Interface, index int) {
 	createBasicContinerAndNested(dynamicClient, "scenario2/solution", index, nil)
 	createBasic(dynamicClient, "scenario2/target", index, nil)
 	adjust := func(spec map[interface{}]interface{}, index int) {
-		spec["solution"] = fmt.Sprintf("scenario2solutioncontainer%d-v-1", index)
+		spec["solution"] = fmt.Sprintf("scenario2solutioncontainer%d-v-version1", index)
 		spec["target"].(map[interface{}]interface{})["name"] = fmt.Sprintf("scenario2target%d", index)
 	}
 	createBasic(dynamicClient, "scenario2/instance", index, adjust)
@@ -296,7 +296,7 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 		return
 	}
 
-	cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d-v-1", containerName, index)
+	cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d-v-version1", containerName, index)
 	cr["spec"].(map[interface{}]interface{})["rootResource"] = fmt.Sprintf("%s%d", containerName, index)
 	if adjust != nil {
 		adjust(cr["spec"].(map[interface{}]interface{}), index)
@@ -306,9 +306,9 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 	_, err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Create(context.TODO(), convertedCR, metav1.CreateOptions{})
 
 	if err != nil {
-		log.Warnf("Error creating custom resource, %s: %v", fmt.Sprintf("%s%d-v-1", containerName, index), err)
+		log.Warnf("Error creating custom resource, %s: %v", fmt.Sprintf("%s%d-v-version1", containerName, index), err)
 	} else {
-		log.Debugf("Successfully created custom resource %s", fmt.Sprintf("%s%d-v-1", containerName, index))
+		log.Debugf("Successfully created custom resource %s", fmt.Sprintf("%s%d-v-version1", containerName, index))
 	}
 }
 
@@ -324,11 +324,11 @@ func deleteBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 	}
 	containerName := strings.Replace(createfile, "/", "", -1) + "container"
 
-	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), strings.Replace(cr["kind"].(string), "Container", "", -1))).Namespace(namespace).Delete(context.TODO(), fmt.Sprintf("%s%d-v-1", containerName, index), metav1.DeleteOptions{})
+	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), strings.Replace(cr["kind"].(string), "Container", "", -1))).Namespace(namespace).Delete(context.TODO(), fmt.Sprintf("%s%d-v-version1", containerName, index), metav1.DeleteOptions{})
 	if err != nil {
-		log.Warnf("Error deleting custom resource %s,  %v", fmt.Sprintf("%s%d-v-1", containerName, index), err)
+		log.Warnf("Error deleting custom resource %s,  %v", fmt.Sprintf("%s%d-v-version1", containerName, index), err)
 	} else {
-		log.Debugf("Successfully deleted custom resource %s", fmt.Sprintf("%s%d-v-1", containerName, index))
+		log.Debugf("Successfully deleted custom resource %s", fmt.Sprintf("%s%d-v-version1", containerName, index))
 	}
 	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Delete(context.TODO(), fmt.Sprintf("%s%d", containerName, index), metav1.DeleteOptions{})
 

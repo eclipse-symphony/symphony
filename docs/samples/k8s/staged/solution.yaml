@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: sample-staged-solution-v-v1
+  name: sample-staged-solution-v-version1
 spec:
   rootResource: sample-staged-solution
   components:

@@ -1,0 +1,6 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: ${PLACEHOLDER_NAME}
+spec:
+  

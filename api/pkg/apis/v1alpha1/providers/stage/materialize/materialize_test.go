@@ -85,7 +85,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":           []interface{}{"instance1:v1", "target1:v1", "solution1:v1", "catalog1:v1"},
+		"names":           []interface{}{"instance1:version1", "target1:version1", "solution1:version1", "catalog1:version1"},
 		"__origin":        "hq",
 		"objectNamespace": stageNs,
 	})
@@ -111,7 +111,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1:v1", "target1:v1", "solution1:v1", "catalog1:v1"},
+		"names":    []interface{}{"instance1:version1", "target1:version1", "solution1:version1", "catalog1:version1"},
 		"__origin": "hq",
 	})
 	assert.Nil(t, err)
@@ -131,7 +131,7 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1:v1", "target1:v1", "notexist"},
+		"names":    []interface{}{"instance1:version1", "target1:version1", "notexist"},
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
@@ -150,10 +150,10 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 		var response interface{}
 		body, _ := io.ReadAll(r.Body)
 		switch r.URL.Path {
-		case "/instances/instance1-v-v1":
+		case "/instances/instance1-v-version1":
 			instance := model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "instance1-v-v1",
+					Name: "instance1-v-version1",
 				},
 			}
 			if r.Method == "POST" {
@@ -166,10 +166,10 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				instance.ObjectMeta.SetGuid("test-guid")
 			}
 			response = instance
-		case "/targets/registry/target1-v-v1":
+		case "/targets/registry/target1-v-version1":
 			target := model.TargetState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "target1-v-v1",
+					Name: "target1-v-version1",
 				},
 			}
 			if r.Method == "POST" {
@@ -181,16 +181,16 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				target.ObjectMeta.SetGuid("test-guid")
 			}
 			response = target
-		case "/solutions/solution1-v-v1":
+		case "/solutions/solution1-v-version1":
 			var solution model.SolutionState
 			err := json.Unmarshal(body, &solution)
 			assert.Nil(t, err)
 			assert.Equal(t, expectNs, solution.ObjectMeta.Namespace)
 			response = solution
-		case "/catalogs/registry/hq-target1-v-v1":
+		case "/catalogs/registry/hq-target1-v-version1":
 			catalog := model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-target1-v-v1",
+					Name: "hq-target1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					CatalogType: "target",
@@ -199,17 +199,17 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 							DisplayName: "target1",
 						},
 						"metadata": &model.ObjectMeta{
-							Name:      "target1:v1",
+							Name:      "target1:version1",
 							Namespace: "objNS",
 						},
 					},
 				},
 			}
 			response = catalog
-		case "/catalogs/registry/hq-instance1-v-v1":
+		case "/catalogs/registry/hq-instance1-v-version1":
 			catalog := model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-instance1-v-v1",
+					Name: "hq-instance1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					CatalogType: "instance",
@@ -217,16 +217,16 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						"spec": model.InstanceSpec{},
 						"metadata": &model.ObjectMeta{
 							Namespace: "objNS",
-							Name:      "instance1:v1",
+							Name:      "instance1:version1",
 						},
 					},
 				},
 			}
 			response = catalog
-		case "/catalogs/registry/hq-solution1-v-v1":
+		case "/catalogs/registry/hq-solution1-v-version1":
 			catalog := model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-solution1-v-v1",
+					Name: "hq-solution1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					CatalogType: "solution",
@@ -236,16 +236,16 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						},
 						"metadata": &model.ObjectMeta{
 							Namespace: "objNS",
-							Name:      "instance1:v1",
+							Name:      "instance1:version1",
 						},
 					},
 				},
 			}
 			response = catalog
-		case "/catalogs/registry/hq-catalog1-v-v1":
+		case "/catalogs/registry/hq-catalog1-v-version1":
 			catalog := model.CatalogState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-catalog1-v-v1",
+					Name: "hq-catalog1-v-version1",
 				},
 				Spec: &model.CatalogSpec{
 					CatalogType: "catalog",
@@ -256,13 +256,13 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 						},
 						"metadata": &model.ObjectMeta{
 							Namespace: "objNS",
-							Name:      "catalog1:v1",
+							Name:      "catalog1:version1",
 						},
 					},
 				},
 			}
 			response = catalog
-		case "/catalogs/registry/catalog1-v-v1":
+		case "/catalogs/registry/catalog1-v-version1":
 			var catalog model.CatalogState
 			err := json.Unmarshal(body, &catalog)
 			assert.Nil(t, err)

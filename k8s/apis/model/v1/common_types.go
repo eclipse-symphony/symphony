@@ -8,6 +8,7 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -58,6 +59,35 @@ type SidecarSpec struct {
 	Properties runtime.RawExtension `json:"properties,omitempty"`
 }
 
+// UnmarshalJSON customizes the JSON unmarshalling for SidecarSpec
+func (s *SidecarSpec) UnmarshalJSON(data []byte) error {
+	type Alias SidecarSpec
+	aux := &struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	s.Properties = runtime.RawExtension{Raw: aux.Properties}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for SidecarSpec
+func (s SidecarSpec) MarshalJSON() ([]byte, error) {
+	type Alias SidecarSpec
+	return json.Marshal(&struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Properties: json.RawMessage(s.Properties.Raw),
+		Alias:      (*Alias)(&s),
+	})
+}
+
 // Defines a desired runtime component
 // +kubebuilder:object:generate=true
 type ComponentSpec struct {
@@ -72,6 +102,35 @@ type ComponentSpec struct {
 	Dependencies []string             `json:"dependencies,omitempty"`
 	Skills       []string             `json:"skills,omitempty"`
 	Sidecars     []SidecarSpec        `json:"sidecars,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for ComponentSpec
+func (c *ComponentSpec) UnmarshalJSON(data []byte) error {
+	type Alias ComponentSpec
+	aux := &struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	c.Properties = runtime.RawExtension{Raw: aux.Properties}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for ComponentSpec
+func (c ComponentSpec) MarshalJSON() ([]byte, error) {
+	type Alias ComponentSpec
+	return json.Marshal(&struct {
+		Properties json.RawMessage `json:"properties,omitempty"`
+		*Alias
+	}{
+		Properties: json.RawMessage(c.Properties.Raw),
+		Alias:      (*Alias)(&c),
+	})
 }
 
 // Defines the desired state of Target
@@ -335,6 +394,8 @@ type StageSpec struct {
 func (s *StageSpec) UnmarshalJSON(data []byte) error {
 	type Alias StageSpec
 	aux := &struct {
+		Config json.RawMessage `json:"config,omitempty"`
+		Inputs json.RawMessage `json:"inputs,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(s),
@@ -342,6 +403,9 @@ func (s *StageSpec) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+	s.Config = runtime.RawExtension{Raw: aux.Config}
+	s.Inputs = runtime.RawExtension{Raw: aux.Inputs}
+
 	// validate if Schedule meet RFC 3339
 	if s.Schedule != "" {
 		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
@@ -360,9 +424,13 @@ func (s StageSpec) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(&struct {
+		Config json.RawMessage `json:"config,omitempty"`
+		Inputs json.RawMessage `json:"inputs,omitempty"`
 		*Alias
 	}{
-		Alias: (*Alias)(&s),
+		Config: json.RawMessage(s.Config.Raw),
+		Inputs: json.RawMessage(s.Inputs.Raw),
+		Alias:  (*Alias)(&s),
 	})
 }
 
@@ -373,6 +441,35 @@ type ActivationSpec struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for ActivationSpec
+func (a *ActivationSpec) UnmarshalJSON(data []byte) error {
+	type Alias ActivationSpec
+	aux := &struct {
+		Inputs json.RawMessage `json:"inputs,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(a),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	a.Inputs = runtime.RawExtension{Raw: aux.Inputs}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for ActivationSpec
+func (a ActivationSpec) MarshalJSON() ([]byte, error) {
+	type Alias ActivationSpec
+	return json.Marshal(&struct {
+		Inputs json.RawMessage `json:"inputs,omitempty"`
+		*Alias
+	}{
+		Inputs: json.RawMessage(a.Inputs.Raw),
+		Alias:  (*Alias)(&a),
+	})
 }
 
 // +kubebuilder:object:generate=true
@@ -402,6 +499,35 @@ type CatalogSpec struct {
 	RootResource string               `json:"rootResource,omitempty"`
 }
 
+// UnmarshalJSON customizes the JSON unmarshalling for CatalogSpec
+func (c *CatalogSpec) UnmarshalJSON(data []byte) error {
+	type Alias CatalogSpec
+	aux := &struct {
+		Properties json.RawMessage `json:"properties"`
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	c.Properties = runtime.RawExtension{Raw: aux.Properties}
+
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for CatalogSpec
+func (c CatalogSpec) MarshalJSON() ([]byte, error) {
+	type Alias CatalogSpec
+	return json.Marshal(&struct {
+		Properties json.RawMessage `json:"properties"`
+		*Alias
+	}{
+		Properties: json.RawMessage(c.Properties.Raw),
+		Alias:      (*Alias)(&c),
+	})
+}
+
 // +kubebuilder:object:generate=true
 type CatalogContainerSpec struct {
 }
@@ -426,14 +552,190 @@ func (c DeployableStatus) DeepEquals(other DeployableStatus) bool {
 	return true
 }
 
+// +kubebuilder:object:generate=true
+type DeployableStatusV2 struct {
+	ProvisioningStatus   model.ProvisioningStatus `json:"provisioningStatus"`
+	LastModified         metav1.Time              `json:"lastModified,omitempty"`
+	Deployed             int                      `json:"deployed,omitempty"`
+	Targets              int                      `json:"targets,omitempty"` // missing in typespec
+	Status               string                   `json:"status,omitempty"`
+	StatusDetails        string                   `json:"statusDetails,omitempty"`
+	RunningJobId         int                      `json:"runningJobId,omitempty"`
+	ExpectedRunningJobId int                      `json:"expectedRunningJobId,omitempty"`
+	Generation           int                      `json:"generation,omitempty"`
+	TargetStatuses       []TargetDeployableStatus `json:"targetStatuses,omitempty"`
+	Properties           map[string]string        `json:"properties,omitempty"`
+}
+
+func (c DeployableStatusV2) DeepEquals(other DeployableStatusV2) bool {
+	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
+		return false
+	}
+	if !reflect.DeepEqual(c.ProvisioningStatus, other.ProvisioningStatus) {
+		return false
+	}
+	if c.LastModified != other.LastModified {
+		return false
+	}
+	if c.Deployed != other.Deployed {
+		return false
+	}
+	if c.Targets != other.Targets {
+		return false
+	}
+	if c.Status != other.Status {
+		return false
+	}
+	if c.StatusDetails != other.StatusDetails {
+		return false
+	}
+	if c.RunningJobId != other.RunningJobId {
+		return false
+	}
+	if c.ExpectedRunningJobId != other.ExpectedRunningJobId {
+		return false
+	}
+	if c.Generation != other.Generation {
+		return false
+	}
+	if !model.SlicesEqual(c.TargetStatuses, other.TargetStatuses) {
+		return false
+	}
+	return true
+}
+
+// +kubebuilder:object:generate=true
+type TargetDeployableStatus struct {
+	Name              string                      `json:"name,omitempty"`
+	Status            string                      `json:"status,omitempty"`
+	ComponentStatuses []ComponentDeployableStatus `json:"componentStatuses,omitempty"`
+}
+
+func (c TargetDeployableStatus) DeepEquals(other model.IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetDeployableStatus)
+	if !ok {
+		return false, errors.New("parameter is not a TargetDeployableStatus type")
+	}
+	if c.Name != otherC.Name {
+		return false, nil
+	}
+	if c.Status != otherC.Status {
+		return false, nil
+	}
+	if !model.SlicesEqual(c.ComponentStatuses, otherC.ComponentStatuses) {
+		return false, nil
+	}
+	return true, nil
+}
+
+// +kubebuilder:object:generate=true
+type ComponentDeployableStatus struct {
+	Name   string `json:"name,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+func (c ComponentDeployableStatus) DeepEquals(other model.IDeepEquals) (bool, error) {
+	otherC, ok := other.(ComponentDeployableStatus)
+	if !ok {
+		return false, errors.New("parameter is not a ComponentDeployableStatus type")
+	}
+	if c.Name != otherC.Name {
+		return false, nil
+	}
+	if c.Status != otherC.Status {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (c *DeployableStatusV2) GetComponentStatus(targetName string, componentName string) string {
+	if c == nil {
+		return ""
+	}
+	for _, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			for _, componentStatus := range targetStatus.ComponentStatuses {
+				if componentStatus.Name == componentName {
+					return componentStatus.Status
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func (c *DeployableStatusV2) SetTargetStatus(targetName string, status string) {
+	if c == nil {
+		return
+	}
+	for i, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			c.TargetStatuses[i].Status = status
+			return
+		}
+	}
+	c.TargetStatuses = append(c.TargetStatuses, TargetDeployableStatus{
+		Name:   targetName,
+		Status: status,
+	})
+}
+
+func (c *DeployableStatusV2) GetTargetStatus(targetName string) string {
+	if c == nil {
+		return ""
+	}
+	for _, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			return targetStatus.Status
+		}
+	}
+	return ""
+}
+
+func (c *DeployableStatusV2) SetComponentStatus(targetName string, componentName string, status string) {
+	if c == nil {
+		return
+	}
+	foundTarget := false
+	foundComponent := false
+	for i, targetStatus := range c.TargetStatuses {
+		if targetStatus.Name == targetName {
+			for j, componentStatus := range targetStatus.ComponentStatuses {
+				if componentStatus.Name == componentName {
+					c.TargetStatuses[i].ComponentStatuses[j].Status = status
+					return
+				}
+			}
+			if !foundComponent {
+				c.TargetStatuses[i].ComponentStatuses = append(c.TargetStatuses[i].ComponentStatuses, ComponentDeployableStatus{
+					Name:   componentName,
+					Status: status,
+				})
+				return
+			}
+		}
+	}
+	if !foundTarget {
+		c.TargetStatuses = append(c.TargetStatuses, TargetDeployableStatus{
+			Name: targetName,
+			ComponentStatuses: []ComponentDeployableStatus{
+				{
+					Name:   componentName,
+					Status: status,
+				},
+			},
+		})
+	}
+}
+
 // InstanceStatus defines the observed state of Instance
-type InstanceStatus = DeployableStatus
+type InstanceStatus = DeployableStatusV2
 
 // TargetStatus defines the observed state of Target
-type TargetStatus = DeployableStatus
+type TargetStatus = DeployableStatusV2
 
 // InstanceHistoryStatus defines the observed state of Solution
-type InstanceHistoryStatus = DeployableStatus
+type InstanceHistoryStatus = DeployableStatusV2
 
 // +kubebuilder:object:generate=true
 type ReconciliationPolicySpec struct {

@@ -36,7 +36,7 @@ type (
 	// Prototype for object lookup functions. Return value indicates if the object exists or not.
 	ObjectLookupFunc func(ctx context.Context, objectName string, namespace string) (interface{}, error)
 	// Prototype for linked objects lookup functions.
-	LinkedObjectLookupFunc func(ctx context.Context, objectName string, namespace string) (bool, error)
+	LinkedObjectLookupFunc func(ctx context.Context, objectName string, namespace string, uid string) (bool, error)
 )
 
 const (
@@ -117,24 +117,17 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 	return group, version, resource, kind
 }
 
-// e.g. example:v1 -> example-v-v1
+// e.g. example:version1 -> example-v-version1
 func ConvertReferenceToObjectName(name string) string {
-	if strings.Contains(name, constants.ReferenceSeparator) {
-		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
-	}
-	return name
+	return api_utils.ConvertReferenceToObjectName(name)
 }
 
-// e.g. example-v-v1 -> example:v1
+// e.g. example-v-version1 -> example:version1
 func ConvertObjectNameToReference(name string) string {
-	index := strings.LastIndex(name, constants.ResourceSeperator)
-	if index == -1 {
-		return name
-	}
-	return name[:index] + constants.ReferenceSeparator + name[index+len(constants.ResourceSeperator):]
+	return api_utils.ConvertObjectNameToReference(name)
 }
 
-// e.g. example-v-v1 -> example
+// e.g. example-v-version1 -> example
 func GetRootResourceFromName(name string) string {
 	index := strings.LastIndex(name, constants.ResourceSeperator)
 	if index == -1 {
@@ -222,7 +215,7 @@ func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource 
 }
 
 // Validate the name of versioned objects
-func ValidateObjectName(name string, rootResource string) *ErrorField {
+func ValidateObjectName(name string, rootResource string, minLength int, maxLength int) *ErrorField {
 	if rootResource == "" {
 		return &ErrorField{
 			FieldPath:       "spec.rootResource",
@@ -256,6 +249,30 @@ func ValidateObjectName(name string, rootResource string) *ErrorField {
 			FieldPath:       "metadata.name",
 			Value:           name,
 			DetailedMessage: "name should be in the format <rootResource>-v-<version> where <version> does not contain '-v-' or starts with 'v-'",
+		}
+	}
+
+	if len(remaining) < minLength || len(remaining) > maxLength {
+		return &ErrorField{
+			FieldPath:       "metadata.name",
+			Value:           name,
+			DetailedMessage: fmt.Sprintf("Name length without root resource and seperator should be between %d and %d characters", minLength, maxLength),
+		}
+	}
+
+	return nil
+}
+
+// Validate the name of versioned objects
+func ValidateRootObjectName(name string, minLength int, maxLength int) *ErrorField {
+	// resources like instance may contain -v- so split by -v- and pick up the last part
+	parts := strings.Split(name, constants.ResourceSeperator)
+	actualName := parts[len(parts)-1]
+	if len(actualName) < minLength || len(actualName) > maxLength {
+		return &ErrorField{
+			FieldPath:       "metadata.name",
+			Value:           actualName,
+			DetailedMessage: fmt.Sprintf("Name length should be between %d and %d characters", minLength, maxLength),
 		}
 	}
 

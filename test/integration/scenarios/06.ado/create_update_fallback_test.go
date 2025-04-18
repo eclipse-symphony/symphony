@@ -99,7 +99,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		By("setting the components for Solution V2, an invalid solution")
 		solutionBytesV2, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
 			ComponentNames: testcase.SolutionComponentsV2,
-			SolutionName:   "solution-v-v2",
+			SolutionName:   "solution-v-version2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -109,7 +109,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("preparing the instance bytes with a new operation id for Solution V2")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution:v2",
+			Solution: "solution:version2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -123,7 +123,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("reverting the Instance to use Solution V1")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution:v1",
+			Solution: "solution:version1",
 		})
 		Expect(err).ToNot(HaveOccurred())
 

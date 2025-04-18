@@ -149,6 +149,10 @@ jobs:
     - name: Run integration tests 10
       run: |
         cd test/integration/scenarios/10.catalogEval/ && mage test
+    
+    - name: Run integration tests 12
+      run: |
+        cd test/integration/scenarios/12.naming/ && mage test
 
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v4

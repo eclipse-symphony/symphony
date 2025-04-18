@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	InstanceStatus = DeployableStatus
+	InstanceStatus = DeployableStatusV2
 
 	ActiveState string
 
