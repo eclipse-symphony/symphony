@@ -120,7 +120,7 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstancePolling").
-		WithOptions((controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: 10})).
+		WithOptions(controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: 10}).
 		For(&solution_v1.Instance{}).
 		WithEventFilter(jobIDPredicate).
 		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(

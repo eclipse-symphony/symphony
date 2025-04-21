@@ -117,7 +117,7 @@ func (r *TargetPollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("TargetPolling").
-		WithOptions((controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: 10})).
+		WithOptions(controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: 10}).
 		WithEventFilter(jobIDPredicate).
 		For(&symphonyv1.Target{}).
 		Complete(r)
