@@ -50,6 +50,7 @@ RUN if [ "$BUILDFLAG" != "azure" ]; then \
 ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 ENV PATH=/root/.cargo/bin:$PATH
+ENV PROTOC=/usr/bin/protoc
 
 # Build the Rust component
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
