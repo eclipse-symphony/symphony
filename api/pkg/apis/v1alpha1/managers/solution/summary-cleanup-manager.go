@@ -20,8 +20,7 @@ import (
 
 const (
 	// DefaultSummaryRetentionDuration is the default time to cleanup deprecated summaries
-	// DefaultSummaryRetentionDuration = 180 * time.Hour * 24
-	DefaultSummaryRetentionDuration = 60 * time.Second * 5
+	DefaultSummaryRetentionDuration = 180 * time.Hour * 24
 )
 
 type SummaryCleanupManager struct {
