@@ -17,7 +17,7 @@ import (
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
 const (
