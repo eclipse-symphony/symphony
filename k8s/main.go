@@ -319,14 +319,14 @@ func main() {
 
 	if err = (&solutioncontrollers.InstancePollingReconciler{
 		InstanceReconciler: solutioncontrollers.InstanceReconciler{
-			Client:                 mgr.GetClient(),
-			Scheme:                 mgr.GetScheme(),
-			ReconciliationInterval: reconcileInterval,
-			DeleteTimeOut:          deleteTimeOut,
-			PollInterval:           pollInterval,
-			ConcurrentReconciles:   pollingConcurrentReconciles,
-			DeleteSyncDelay:        deleteSyncDelay,
-			ApiClient:              apiClient,
+			Client:                      mgr.GetClient(),
+			Scheme:                      mgr.GetScheme(),
+			ReconciliationInterval:      reconcileInterval,
+			DeleteTimeOut:               deleteTimeOut,
+			PollInterval:                pollInterval,
+			PollingConcurrentReconciles: pollingConcurrentReconciles,
+			DeleteSyncDelay:             deleteSyncDelay,
+			ApiClient:                   apiClient,
 		},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create instance polling controller", "controller", "Instance")
@@ -335,14 +335,14 @@ func main() {
 
 	if err = (&fabriccontrollers.TargetPollingReconciler{
 		TargetReconciler: fabriccontrollers.TargetReconciler{
-			Client:                 mgr.GetClient(),
-			Scheme:                 mgr.GetScheme(),
-			ReconciliationInterval: reconcileInterval,
-			DeleteTimeOut:          deleteTimeOut,
-			PollInterval:           pollInterval,
-			ConcurrentReconciles:   pollingConcurrentReconciles,
-			DeleteSyncDelay:        deleteSyncDelay,
-			ApiClient:              apiClient,
+			Client:                      mgr.GetClient(),
+			Scheme:                      mgr.GetScheme(),
+			ReconciliationInterval:      reconcileInterval,
+			DeleteTimeOut:               deleteTimeOut,
+			PollInterval:                pollInterval,
+			PollingConcurrentReconciles: pollingConcurrentReconciles,
+			DeleteSyncDelay:             deleteSyncDelay,
+			ApiClient:                   apiClient,
 		},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create target polling controller", "controller", "Target")
