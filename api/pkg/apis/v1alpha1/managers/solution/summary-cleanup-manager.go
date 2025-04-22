@@ -17,10 +17,7 @@ import (
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/states"
 )
 
 const (
@@ -70,20 +67,8 @@ func (s *SummaryCleanupManager) Poll() []error {
 
 	log.InfoCtx(ctx, "M (Summary Cleanup): Polling summaries")
 
-	// Initialize Kubernetes dynamic client
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.ErrorCtx(ctx, "Failed to create Kubernetes config: %v", err)
-		return []error{err}
-	}
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.ErrorCtx(ctx, "Failed to create dynamic client: %v", err)
-		return []error{err}
-	}
-
 	// Get resource counts
-	resourceCounts, err := s.getResourceCounts(ctx, dynamicClient)
+	resourceCounts, err := s.getResourceCounts(ctx)
 	if err != nil {
 		log.ErrorCtx(ctx, "Failed to get resource counts: %v", err)
 		return []error{err}
@@ -91,7 +76,7 @@ func (s *SummaryCleanupManager) Poll() []error {
 
 	// Log the counts as a single string
 	log.InfofCtx(ctx, fmt.Sprintf(
-		"Summary: Found %d instances, %d targets, %d solutions, and %d solution containers across all namespaces",
+		"M (Summary Cleanup): Summary: Found %d instances, %d targets, %d solutions, and %d solution containers across all namespaces",
 		resourceCounts["instances"], resourceCounts["targets"], resourceCounts["solutions"], resourceCounts["solutioncontainers"],
 	))
 
@@ -120,52 +105,44 @@ func (s *SummaryCleanupManager) Poll() []error {
 }
 
 // getResourceCounts is a helper function to get resource counts across all namespaces
-func (s *SummaryCleanupManager) getResourceCounts(ctx context.Context, client dynamic.Interface) (map[string]int, error) {
-	// Define the GVRs (GroupVersionResource) for the resources
-	resourceGVRs := map[string]schema.GroupVersionResource{
-		"instances":          {Group: "solution.symphony", Version: "v1", Resource: "instances"},
-		"targets":            {Group: "fabric.symphony", Version: "v1", Resource: "targets"},
-		"solutions":          {Group: "solution.symphony", Version: "v1", Resource: "solutions"},
-		"solutioncontainers": {Group: "solution.symphony", Version: "v1", Resource: "solutioncontainers"},
+func (s *SummaryCleanupManager) getResourceCounts(ctx context.Context) (map[string]int, error) {
+	// Define the resource types and their metadata
+	resourceMetadata := []struct {
+		Resource string
+		Group    string
+		Version  string
+	}{
+		{"instances", "solution.symphony", "v1"},
+		{"targets", "fabric.symphony", "v1"},
+		{"solutions", "solution.symphony", "v1"},
+		{"solutioncontainers", "solution.symphony", "v1"},
 	}
 
-	// Get all namespaces
-	namespaces, err := client.Resource(schema.GroupVersionResource{
-		Group:    "",
-		Version:  "v1",
-		Resource: "namespaces",
-	}).List(ctx, v1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	log.InfofCtx(ctx, fmt.Sprintf("Found %d namespaces", len(namespaces.Items)))
-
-	// Initialize counters
+	// Initialize a map to store resource counts
 	resourceCounts := make(map[string]int)
 
-	// Iterate through namespaces and count resources
-	for _, ns := range namespaces.Items {
-		namespace := ns.GetName()
-		log.InfofCtx(ctx, fmt.Sprintf("Checking namespace: %s", namespace))
-
-		for resourceName, gvr := range resourceGVRs {
-			resourceCounts[resourceName] += countResources(ctx, client, gvr, namespace, resourceName)
+	// Iterate over each resource type and call the StateProvider's List method
+	for _, metadata := range resourceMetadata {
+		listRequest := states.ListRequest{
+			Metadata: map[string]interface{}{
+				"group":    metadata.Group,
+				"version":  metadata.Version,
+				"resource": metadata.Resource,
+			},
 		}
+
+		// Use the provider's List method to fetch resources
+		entities, _, err := s.StateProvider.List(ctx, listRequest)
+		if err != nil {
+			log.ErrorfCtx(ctx, "Failed to list %s: %v", metadata.Resource, err)
+			return nil, fmt.Errorf("failed to list %s: %w", metadata.Resource, err)
+		}
+
+		// Store the count of resources in the map
+		resourceCounts[metadata.Resource] = len(entities)
 	}
 
 	return resourceCounts, nil
-}
-
-// countResources is a helper function to count resources in a namespace
-func countResources(ctx context.Context, client dynamic.Interface, gvr schema.GroupVersionResource, namespace, resourceName string) int {
-	resources, err := client.Resource(gvr).Namespace(namespace).List(ctx, v1.ListOptions{})
-	if err != nil {
-		log.InfofCtx(ctx, fmt.Sprintf("Failed to list %s in namespace %s: %v", resourceName, namespace, err))
-		return 0
-	}
-	log.InfofCtx(ctx, fmt.Sprintf("Namespace: %s, Found %d %s", namespace, len(resources.Items), resourceName))
-	return len(resources.Items)
 }
 
 func (s *SummaryCleanupManager) Reconcil() []error {
