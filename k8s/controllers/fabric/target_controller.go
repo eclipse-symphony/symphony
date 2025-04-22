@@ -43,6 +43,9 @@ type TargetReconciler struct {
 	// PollInterval defines the poll interval
 	PollInterval time.Duration
 
+	// PollingConcurrentReconciles defines the number of concurrent reconciles
+	PollingConcurrentReconciles int
+
 	// Controller Metrics
 	m *metrics.Metrics
 
