@@ -127,6 +127,7 @@ func main() {
 	var probeAddr string
 	var pollIntervalString string
 	var reconcileIntervalString string
+	var pollingConcurrentReconciles int
 	var deleteTimeOutString string
 	var metricsConfigFile string
 	var logsConfigFile string
@@ -142,8 +143,9 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&disableWebhooksServer, "disable-webhooks-server", false, "Whether to disable webhooks server endpoints. ")
-	flag.StringVar(&pollIntervalString, "poll-interval", "10s", "The interval in seconds to poll the target and instance status during reconciliation.")
+	flag.StringVar(&pollIntervalString, "poll-interval", "2s", "The interval in seconds to poll the target and instance status during reconciliation.")
 	flag.StringVar(&reconcileIntervalString, "reconcile-interval", "30m", "The interval in seconds to reconcile the target and instance status.")
+	flag.IntVar(&pollingConcurrentReconciles, "polling-concurrent-reconciles", 5, "The number of concurrent reconciles.")
 	// Honor OSS changes: use 1m instead of 5m for delete-timeout
 	flag.StringVar(&deleteTimeOutString, "delete-timeout", "30m", "The timeout in seconds to wait for the target and instance deletion.")
 	// Add new settings for delete sync delay
@@ -322,6 +324,7 @@ func main() {
 			ReconciliationInterval: reconcileInterval,
 			DeleteTimeOut:          deleteTimeOut,
 			PollInterval:           pollInterval,
+			ConcurrentReconciles:   pollingConcurrentReconciles,
 			DeleteSyncDelay:        deleteSyncDelay,
 			ApiClient:              apiClient,
 		},
@@ -337,6 +340,7 @@ func main() {
 			ReconciliationInterval: reconcileInterval,
 			DeleteTimeOut:          deleteTimeOut,
 			PollInterval:           pollInterval,
+			ConcurrentReconciles:   pollingConcurrentReconciles,
 			DeleteSyncDelay:        deleteSyncDelay,
 			ApiClient:              apiClient,
 		},

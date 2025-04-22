@@ -67,7 +67,7 @@ type (
 const (
 	defaultTimeout                = 15 * time.Minute
 	defaultReconciliationInterval = 30 * time.Minute
-	defaultPollInterval           = 2 * time.Second
+	defaultPollInterval           = 10 * time.Second
 )
 
 var (
