@@ -220,7 +220,7 @@ let component_result = ComponentResultSpec {
     ```json
     {
         "metadata": {
-            "name": "rust-test-target"
+            "name": "ankaios-target"
         },
         "spec": {
             "forceRedeploy": true,             
@@ -228,7 +228,7 @@ let component_result = ComponentResultSpec {
                 {
                     "bindings": [
                         {
-                            "role": "instance",
+                            "role": "ankaios-workload",
                             "provider": "providers.target.rust",
                             "config": {
                                 "name": "rust-lib",
@@ -277,20 +277,9 @@ let component_result = ComponentResultSpec {
                     "name": "ankaios-app",
                     "type": "ankaios-worload",
                     "properties": {
-                        "hello_ankaios": {
-                            "runtime": "podman",
-                            "agent": "agent_A",
-                            "controlInterfaceAccess": {
-                                "allowRules": [
-                                    {
-                                        "type": "StateRule",
-                                        "operation": "ReadWrite",
-                                        "filterNask": [ "*" ]
-                                    }
-                                ]
-                            },
-                            "runtimeConfig": "image: localhost/app:0.1"
-                        }
+                        "ankaios.runtime": "podman",
+                        "ankaios.agent": "agent_A",
+                        "ankaios.runtimeConfig": "image: localhost/app:0.1"
                     }
                 }
             ]
@@ -356,7 +345,7 @@ Now you should be able to access Symphony REST API through `http://localhost:808
 
 If you want to use a local Docker container image that hasn't been pushed to a container registry, you need to first import that container image into podman:
 ```bash
-docker tag ghcr.io/eclipse-symphony/symphony-api:latest symphony:latest
-docker save -o symphony.tar symphony:latest
+docker tag ghcr.io/eclipse-symphony/symphony-api:latest localhost/symphony:latest
+docker save -o symphony.tar localhost/symphony:latest
 sudo podman load -i symphony.tar
 ```
