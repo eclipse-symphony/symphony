@@ -520,12 +520,13 @@ func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, is
 		"delete":     []string{fmt.Sprintf("%t", isDelete)},
 		"objectType": []string{"deployment"},
 	}
+	log.InfofCtx(ctx, "apiClient.QueueDeploymentJob: Deployment payload: %s", model.GetDeploymentSpecForLog(&deployment))
+
 	var payload []byte
 	if err != nil {
 		return err
 	}
 	payload, err = json.Marshal(deployment)
-	log.DebugfCtx(ctx, "apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
 	if err != nil {
 		return err
 	}
