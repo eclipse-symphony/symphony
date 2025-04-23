@@ -20,7 +20,7 @@ type TargetValidator struct {
 }
 
 var (
-	targetMaxNameLength = 63
+	targetMaxNameLength = 61
 	targetMinNameLength = 3
 )
 

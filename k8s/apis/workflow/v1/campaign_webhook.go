@@ -37,7 +37,7 @@ import (
 
 // log is for logging in this package.
 var (
-	campaignContainerMaxNameLength  = 63
+	campaignContainerMaxNameLength  = 61
 	campaignContainerMinNameLength  = 3
 	campaignlog                     = logf.Log.WithName("campaign-resource")
 	myCampaignReaderClient          client.Reader
