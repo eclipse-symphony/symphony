@@ -505,19 +505,19 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 
 	// Check if the operation is in a final status
 	if status == utilsmodel.ProvisioningStatusSucceeded || status == utilsmodel.ProvisioningStatusFailed {
-		var timeout time.Duration
+		var latency time.Duration
 		if isRemoval { // For delete operations
-			timeout = time.Since(object.GetDeletionTimestamp().Time)
+			latency = time.Since(object.GetDeletionTimestamp().Time)
 		} else { // For create or update operations
 			startTimeStr := object.GetAnnotations()[operationStartTimeKey]
 			startTime, parseErr := time.Parse(time.RFC3339, startTimeStr)
 			if parseErr != nil {
 				diagnostic.ErrorWithCtx(log, ctx, parseErr, "Failed to parse operation start time")
 			} else {
-				timeout = time.Since(startTime)
+				latency = time.Since(startTime)
 			}
 		}
-		diagnostic.InfoWithCtx(log, ctx, fmt.Sprintf("Operation reached final status: status=%s, timeout=%s", status, timeout))
+		diagnostic.InfoWithCtx(log, ctx, fmt.Sprintf("Operation reached final status: status=%s, latency=%s", status, latency))
 	}
 
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)

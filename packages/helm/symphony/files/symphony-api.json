@@ -203,22 +203,15 @@
             "name": "summary-cleanup-manager",
             "type": "managers.symphony.summarycleanup",
             "properties": {
-              "providers.persistentstate": "redis-state",
+              "providers.persistentstate": "k8s-state",
               "RetentionDuration": "{{ .Values.SummaryCleanup.retentionDuration }}"                      
             },
             "providers": {
-              "redis-state": {
-                {{- if .Values.redis.enabled }}
-                "type": "providers.state.redis",
+              "k8s-state": {
+                "type": "providers.state.k8s",
                 "config": {
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
+                  "inCluster": true
                 }
-                {{- else }}
-                "type": "providers.state.memory",
-                "config": {}
-                {{- end }}
               }
             }
           }
