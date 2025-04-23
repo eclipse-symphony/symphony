@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/helper"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
@@ -264,8 +263,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 				// Set the owner reference
 				target := stage.ReadInputString(inputs, "__target")
-				target = helper.GetInstanceTargetName(target)
-				ownerReference, err := helper.GetSolutionContainerOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
+				target = api_utils.GetInstanceTargetName(target)
+				ownerReference, err := api_utils.GetSolutionContainerOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
 				if err != nil {
 					mLog.ErrorfCtx(ctx, "Failed to get owner reference for solution %s: %s", objectName, err.Error())
 					providerOperationMetrics.ProviderOperationErrors(
@@ -387,12 +386,12 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			target := stage.ReadInputString(inputs, "__target")
 			if target != "" {
 				instanceState.Spec.Target = model.TargetSelector{
-					Name: helper.GetInstanceTargetName(target),
+					Name: api_utils.GetInstanceTargetName(target),
 				}
 			}
 
 			// Set the owner reference
-			ownerReference, err := helper.GetInstanceOwnerReferences(i.ApiClient, ctx, objectName, objectNamespace, instanceState, i.Config.User, i.Config.Password)
+			ownerReference, err := api_utils.GetInstanceOwnerReferencesV1(i.ApiClient, ctx, objectName, objectNamespace, instanceState, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
