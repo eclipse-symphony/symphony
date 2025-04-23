@@ -228,8 +228,6 @@ spec:
                       type: string
                     stageSelector:
                       type: string
-                    target:
-                      type: string
                     triggeringStage:
                       type: string
                   type: object

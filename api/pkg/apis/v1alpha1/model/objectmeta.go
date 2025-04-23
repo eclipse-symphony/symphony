@@ -33,9 +33,9 @@ type ObjectMeta struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	UID types.UID `json:"uid,omitempty"`
+	UID types.UID `json:"uid,omitempty" protobuf:"bytes,5,opt,name=uid,casttype=k8s.io/kubernetes/pkg/types.UID"`
 
-	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty"`
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
 }
 
 // UnmarshalJSON custom unmarshaller to handle Generation field(accept both of number and string)
@@ -180,8 +180,4 @@ func (c *ObjectMeta) SetGuid(guid string) {
 		c.Annotations = make(map[string]string)
 	}
 	c.Annotations[constants.GuidKey] = guid
-}
-
-func (c *ObjectMeta) GetSummaryJobId() string {
-	return c.Annotations[constants.SummaryJobIdKey]
 }

@@ -227,7 +227,6 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		unc.SetNamespace(metadata.Namespace)
 		unc.SetLabels(metadata.Labels)
 		unc.SetAnnotations(metadata.Annotations)
-		unc.SetOwnerReferences(metadata.OwnerReferences)
 
 		_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Create(ctx, unc, metav1.CreateOptions{})
 		if err != nil {
@@ -519,14 +518,12 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	}
 
 	metadata := model.ObjectMeta{
-		Name:            item.GetName(),
-		Namespace:       item.GetNamespace(),
-		Labels:          item.GetLabels(),
-		ETag:            item.GetResourceVersion(),
-		Annotations:     item.GetAnnotations(),
-		ObjGeneration:   item.GetGeneration(),
-		UID:             item.GetUID(),
-		OwnerReferences: item.GetOwnerReferences(),
+		Name:          item.GetName(),
+		Namespace:     item.GetNamespace(),
+		Labels:        item.GetLabels(),
+		ETag:          item.GetResourceVersion(),
+		Annotations:   item.GetAnnotations(),
+		ObjGeneration: item.GetGeneration(),
 	}
 
 	ret := states.StateEntry{

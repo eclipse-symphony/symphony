@@ -387,7 +387,6 @@ type StageSpec struct {
 	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
 	Schedule        string               `json:"schedule,omitempty"`
-	Target          string               `json:"target,omitempty"`
 }
 
 // UnmarshalJSON customizes the JSON unmarshalling for StageSpec

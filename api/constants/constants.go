@@ -65,7 +65,6 @@ func SystemReservedAnnotations() []string {
 		RunningAzureCorrelationIdKey,
 		SummaryJobIdKey,
 		OperationStartTimeKeyPostfix,
-		GuidKey,
 	}
 }
 
