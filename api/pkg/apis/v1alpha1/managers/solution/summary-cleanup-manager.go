@@ -17,7 +17,6 @@ import (
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
 const (
@@ -67,19 +66,6 @@ func (s *SummaryCleanupManager) Poll() []error {
 
 	log.InfoCtx(ctx, "M (Summary Cleanup): Polling summaries")
 
-	// Get resource counts
-	resourceCounts, err := s.getResourceCounts(ctx)
-	if err != nil {
-		log.ErrorCtx(ctx, "Failed to get resource counts: %v", err)
-		return []error{err}
-	}
-
-	// Log the counts as a single string
-	log.InfofCtx(ctx, fmt.Sprintf(
-		"M (Summary Cleanup): Summary: Found %d instances, %d targets, %d solutions, and %d solution containers across all namespaces",
-		resourceCounts["instances"], resourceCounts["targets"], resourceCounts["solutions"], resourceCounts["solutioncontainers"],
-	))
-
 	// Proceed with summary cleanup logic
 	summaries, err := s.ListSummary(ctx, "")
 	if err != nil {
@@ -102,47 +88,6 @@ func (s *SummaryCleanupManager) Poll() []error {
 		}
 	}
 	return ret
-}
-
-// getResourceCounts is a helper function to get resource counts across all namespaces
-func (s *SummaryCleanupManager) getResourceCounts(ctx context.Context) (map[string]int, error) {
-	// Define the resource types and their metadata
-	resourceMetadata := []struct {
-		Resource string
-		Group    string
-		Version  string
-	}{
-		{"instances", "solution.symphony", "v1"},
-		{"targets", "fabric.symphony", "v1"},
-		{"solutions", "solution.symphony", "v1"},
-		{"solutioncontainers", "solution.symphony", "v1"},
-	}
-
-	// Initialize a map to store resource counts
-	resourceCounts := make(map[string]int)
-
-	// Iterate over each resource type and call the StateProvider's List method
-	for _, metadata := range resourceMetadata {
-		listRequest := states.ListRequest{
-			Metadata: map[string]interface{}{
-				"group":    metadata.Group,
-				"version":  metadata.Version,
-				"resource": metadata.Resource,
-			},
-		}
-
-		// Use the provider's List method to fetch resources
-		entities, _, err := s.StateProvider.List(ctx, listRequest)
-		if err != nil {
-			log.ErrorfCtx(ctx, "Failed to list %s: %v", metadata.Resource, err)
-			return nil, fmt.Errorf("failed to list %s: %w", metadata.Resource, err)
-		}
-
-		// Store the count of resources in the map
-		resourceCounts[metadata.Resource] = len(entities)
-	}
-
-	return resourceCounts, nil
 }
 
 func (s *SummaryCleanupManager) Reconcil() []error {
