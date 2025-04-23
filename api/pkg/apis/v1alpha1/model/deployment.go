@@ -7,8 +7,8 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 
 	go_slices "golang.org/x/exp/slices"
 )
@@ -175,8 +175,11 @@ func GetDeploymentSpecForLog(d *DeploymentSpec) string {
 		IsDryRun:            d.IsDryRun,
 		IsInActive:          d.IsInActive,
 	}
-
-	return fmt.Sprintf("%+v", deployment)
+	payload, err := json.Marshal(deployment)
+	if err != nil {
+		return "{}"
+	}
+	return string(payload)
 }
 
 func getAnnotationsForLog(annotations map[string]string) map[string]string {
