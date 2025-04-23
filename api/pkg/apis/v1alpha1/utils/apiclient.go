@@ -868,6 +868,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	var resp *http.Response
+	var userError error
 	var bodyBytes []byte
 
 	b := backoff.NewExponentialBackOff()
@@ -887,14 +888,20 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 			return err
 		}
 
-		if resp.StatusCode >= 300 {
+		if resp.StatusCode >= 500 {
 			object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 			return object
+		} else if resp.StatusCode >= 300 {
+			userError = NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 		}
 		return nil
 	}, b)
 
 	if retryErr == nil {
+		if userError != nil {
+			log.DebugfCtx(ctx, "apiClient.callRestAPI: failed to call rest API: %s", userError)
+			return nil, userError
+		}
 		return bodyBytes, nil
 	} else {
 		log.DebugfCtx(ctx, "apiClient.callRestAPI: failed to call rest API after retries: %s", retryErr)
