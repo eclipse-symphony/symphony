@@ -21,7 +21,7 @@ type ActivationValidator struct {
 }
 
 var (
-	activationMaxNameLength = 63
+	activationMaxNameLength = 61
 	activationMinNameLength = 3
 )
 

@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	solutionMaxNameLength = 63
+	solutionMaxNameLength = 61
 	solutionMinNameLength = 7
 )
 
