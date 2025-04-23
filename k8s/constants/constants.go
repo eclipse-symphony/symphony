@@ -23,6 +23,7 @@ const (
 	ActivityOperation_Write  = "Write"
 	ActivityOperation_Read   = "Read"
 	ActivityOperation_Delete = "Delete"
+	OperationId              = "operationId"
 
 	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
 	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
@@ -43,6 +44,7 @@ const (
 	AzureLocationKey             = api_constants.AzureCloudLocationKey
 	AzureEdgeLocationKey         = api_constants.AzureEdgeLocationKey
 	AzureOperationIdKey          = api_constants.AzureOperationIdKey
+	AzureDeleteOperationKey      = api_constants.AzureDeleteOperationKey
 	AzureResourceIdKey           = api_constants.AzureResourceIdKey
 	AzureSystemDataKey           = api_constants.AzureSystemDataKey
 	AzureTenantIdKey             = api_constants.AzureTenantIdKey

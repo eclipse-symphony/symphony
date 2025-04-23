@@ -8,6 +8,7 @@ package reconcilers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -492,9 +493,23 @@ func (r *DeploymentReconciler) getCurJobIdInt64(object Reconcilable) int64 {
 	return intValue
 }
 
-func (r *DeploymentReconciler) ensureOperationState(annotations map[string]string, objectStatus *k8smodel.DeployableStatusV2, provisioningState string) {
+func (r *DeploymentReconciler) ensureOperationState(ctx context.Context, annotations map[string]string, objectStatus *k8smodel.DeployableStatusV2, provisioningState string, log logr.Logger) {
 	objectStatus.ProvisioningStatus.Status = provisioningState
-	objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
+	// Respect DeleteOperation if it exists, otherwise use OperationId
+	if val, ok := annotations[constants.AzureDeleteOperationKey]; ok {
+		var deleteOperation map[string]string
+		err := json.Unmarshal([]byte(val), &deleteOperation)
+		if err != nil || deleteOperation[constants.OperationId] == "" {
+			diagnostic.ErrorWithCtx(log, ctx, err, "Failed to get deleteOperationId")
+			objectStatus.ProvisioningStatus.OperationID = ""
+		}
+		objectStatus.ProvisioningStatus.OperationID = deleteOperation[constants.OperationId]
+	} else {
+		if annotations[constants.AzureOperationIdKey] == "" {
+			diagnostic.ErrorWithCtx(log, ctx, errors.New("operation ID is empty"), "Failed to get operationID")
+		}
+		objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
+	}
 }
 
 func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) (provisioningState string, err error) {
@@ -648,7 +663,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 	if opts.nonTerminalErr != nil {
 		statusText = fmt.Sprintf("%s: due to %s", provisioningStatus, opts.nonTerminalErr.Error())
 	}
-	r.ensureOperationState(object.GetAnnotations(), objectStatus, statusText)
+	r.ensureOperationState(ctx, object.GetAnnotations(), objectStatus, statusText, log)
 
 	// Start with a clean Error object and update all the fields
 	objectStatus.ProvisioningStatus.Error = apimodel.ErrorType{}
