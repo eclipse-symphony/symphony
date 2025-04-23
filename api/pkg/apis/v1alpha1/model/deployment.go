@@ -8,6 +8,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 
 	go_slices "golang.org/x/exp/slices"
 )
@@ -130,4 +131,64 @@ func mapsEqual(a map[string]TargetState, b map[string]TargetState, ignoredMissin
 	}
 
 	return true
+}
+
+func GetDeploymentSpecForLog(d *DeploymentSpec) string {
+	targets := make(map[string]TargetState, len(d.Targets))
+	for k, v := range d.Targets {
+		targets[k] = TargetState{
+			ObjectMeta: ObjectMeta{
+				Name:        v.ObjectMeta.Name,
+				Namespace:   v.ObjectMeta.Namespace,
+				Annotations: getAnnotationsForLog(v.ObjectMeta.Annotations),
+			},
+		}
+	}
+	solution := SolutionState{
+		ObjectMeta: ObjectMeta{
+			Name:        d.Solution.ObjectMeta.Name,
+			Namespace:   d.Solution.ObjectMeta.Namespace,
+			Annotations: getAnnotationsForLog(d.Solution.ObjectMeta.Annotations),
+		},
+	}
+	instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Name:        d.Instance.ObjectMeta.Name,
+			Namespace:   d.Instance.ObjectMeta.Namespace,
+			Annotations: getAnnotationsForLog(d.Instance.ObjectMeta.Annotations),
+		},
+	}
+	deployment := DeploymentSpec{
+		SolutionName:        d.SolutionName,
+		Solution:            solution,
+		Instance:            instance,
+		Targets:             targets,
+		Devices:             d.Devices,
+		Assignments:         d.Assignments,
+		ComponentStartIndex: d.ComponentStartIndex,
+		ComponentEndIndex:   d.ComponentEndIndex,
+		ActiveTarget:        d.ActiveTarget,
+		Generation:          d.Generation,
+		JobID:               d.JobID,
+		ObjectNamespace:     d.ObjectNamespace,
+		Hash:                d.Hash,
+		IsDryRun:            d.IsDryRun,
+		IsInActive:          d.IsInActive,
+	}
+
+	return fmt.Sprintf("%+v", deployment)
+}
+
+func getAnnotationsForLog(annotations map[string]string) map[string]string {
+	filterdAnnotations := map[string]string{}
+	if annotations == nil {
+		return filterdAnnotations
+	}
+	if _, ok := annotations["Guid"]; ok {
+		filterdAnnotations["Guid"] = annotations["Guid"]
+	}
+	if _, ok := annotations["SummaryJobIdKey"]; ok {
+		filterdAnnotations["SummaryJobIdKey"] = annotations["SummaryJobIdKey"]
+	}
+	return filterdAnnotations
 }
