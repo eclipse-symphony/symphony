@@ -22,7 +22,7 @@ type InstanceValidator struct {
 }
 
 var (
-	instanceMaxNameLength = 63
+	instanceMaxNameLength = 61
 	instanceMinNameLength = 3
 )
 
