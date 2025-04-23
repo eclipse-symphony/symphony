@@ -377,7 +377,6 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 				Namespace: namespace,
 			},
 			Status: model.TargetStatus{
-				// TODO: missing properties
 				Properties:   properties,
 				LastModified: time.Now().UTC(),
 			},
