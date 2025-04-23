@@ -39,7 +39,7 @@ import (
 
 // log is for logging in this package.
 var (
-	catalogContainerMaxNameLength   = 63
+	catalogContainerMaxNameLength   = 61
 	catalogContainerMinNameLength   = 3
 	cataloglog                      = logf.Log.WithName("catalog-resource")
 	myCatalogReaderClient           client.Reader
