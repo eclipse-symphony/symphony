@@ -31,6 +31,9 @@ type SummaryCleanupManager struct {
 }
 
 func (s *SummaryCleanupManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	fmt.Printf("SummarycleanupManager urceCountManager Init: %v\n", config)
+	fmt.Printf("SummarycleanupManager Providers: %v\n", providers)
+	fmt.Printf("SummarycleanupManager SummaryManager: %v\n", ctx)
 	err := s.SummaryManager.Init(ctx, config, providers)
 	if err != nil {
 		return err

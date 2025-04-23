@@ -116,6 +116,8 @@ func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy,
 				return v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to create manager '%s'", m.Name), v1alpha2.InternalError)
 			}
 			if manager != nil {
+				fmt.Printf("m.Name: %s\n", m.Name)
+				fmt.Printf("Provider: %+v\n", providers)
 				mp, ok := providers[m.Name]
 				if !ok {
 					err = manager.Init(v.Context, m, nil)

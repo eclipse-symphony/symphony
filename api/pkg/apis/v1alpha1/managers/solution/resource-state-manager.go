@@ -24,14 +24,12 @@ import (
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
-type SummaryManager struct {
+type ResourceManager struct {
 	managers.Manager
 	StateProvider states.IStateProvider
 }
 
-func (s *SummaryManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	fmt.Printf("SummaryManager urceCountManager Init: %v\n", config)
-	fmt.Printf("SummaryManager Providers: %v\n", providers)
+func (s *ResourceManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
 	err := s.Manager.Init(ctx, config, providers)
 	if err != nil {
 		return err
@@ -46,7 +44,7 @@ func (s *SummaryManager) Init(ctx *vendorCtx.VendorContext, config managers.Mana
 	return nil
 }
 
-func (s *SummaryManager) GetDeploymentState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
+func (s *ResourceManager) GetDeploymentState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
 		Metadata: map[string]interface{}{
@@ -68,7 +66,7 @@ func (s *SummaryManager) GetDeploymentState(ctx context.Context, instance string
 	return nil
 }
 
-func (s *SummaryManager) UpsertDeploymentState(ctx context.Context, instance string, namespace string, deployment model.DeploymentSpec, mergedState model.DeploymentState) error {
+func (s *ResourceManager) UpsertDeploymentState(ctx context.Context, instance string, namespace string, deployment model.DeploymentSpec, mergedState model.DeploymentState) error {
 	_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: instance,
@@ -87,7 +85,7 @@ func (s *SummaryManager) UpsertDeploymentState(ctx context.Context, instance str
 	return err
 }
 
-func (s *SummaryManager) DeleteDeploymentState(ctx context.Context, instance string, namespace string) error {
+func (s *ResourceManager) DeleteDeploymentState(ctx context.Context, instance string, namespace string) error {
 	err := s.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: instance,
 		Metadata: map[string]interface{}{
@@ -100,7 +98,7 @@ func (s *SummaryManager) DeleteDeploymentState(ctx context.Context, instance str
 	return err
 }
 
-func (s *SummaryManager) GetSummary(ctx context.Context, summaryId string, name string, namespace string) (model.SummaryResult, error) {
+func (s *ResourceManager) GetSummary(ctx context.Context, summaryId string, name string, namespace string) (model.SummaryResult, error) {
 	ctx, span := observability.StartSpan("Summary Manager", ctx, &map[string]string{
 		"method": "GetSummary",
 	})
@@ -150,7 +148,7 @@ func (s *SummaryManager) GetSummary(ctx context.Context, summaryId string, name 
 	return result, nil
 }
 
-func (s *SummaryManager) ListSummary(ctx context.Context, namespace string) ([]model.SummaryResult, error) {
+func (s *ResourceManager) ListSummary(ctx context.Context, namespace string) ([]model.SummaryResult, error) {
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
@@ -177,7 +175,7 @@ func (s *SummaryManager) ListSummary(ctx context.Context, namespace string) ([]m
 	return summaries, nil
 }
 
-func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
+func (s *ResourceManager) UpsertSummary(ctx context.Context, summaryId string, generation string, hash string, summary model.SummarySpec, state model.SummaryState, namespace string) error {
 	oldSummary, err := s.GetSummary(ctx, summaryId, "", namespace)
 	if err != nil && !v1alpha2.IsNotFound(err) {
 		log.ErrorfCtx(ctx, " M (Summary): failed to get previous summary: %+v", err)
@@ -221,7 +219,7 @@ func (s *SummaryManager) UpsertSummary(ctx context.Context, summaryId string, ge
 	return err
 }
 
-func (s *SummaryManager) DeleteSummary(ctx context.Context, summaryId string, namespace string, softDelete bool) error {
+func (s *ResourceManager) DeleteSummary(ctx context.Context, summaryId string, namespace string, softDelete bool) error {
 	ctx, span := observability.StartSpan("Summary Manager", ctx, &map[string]string{
 		"method": "DeleteSummary",
 	})

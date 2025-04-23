@@ -38,6 +38,9 @@ type ResourceCountManager struct {
 }
 
 func (s *ResourceCountManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	fmt.Printf("ResourceCountManager Init: %v\n", config)
+	fmt.Printf("ResourceCountManager Providers: %v\n", providers)
+	fmt.Printf("ResourceCountManager Context: %v\n", ctx)
 	err := s.SolutionsManager.Init(ctx, config, providers)
 	if err != nil {
 		return err

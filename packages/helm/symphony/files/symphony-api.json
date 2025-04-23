@@ -178,7 +178,7 @@
       {
         "type": "vendors.backgroundjob",
         "route": "backgroundjob",
-        "loopInterval": 3600,
+        "loopInterval": 60,
         "managers": [
           {{- if .Values.ActivationCleanup.enabled }}
           {
@@ -226,7 +226,7 @@
             "name": "resource-count-manager",
             "type": "managers.symphony.resourcecount",
             "properties": {
-              "providers.persistentstate": "k8s-state",                   
+              "providers.persistentstate": "k8s-state"               
             },
             "providers": {
               "k8s-state": {
