@@ -27,6 +27,7 @@ const (
 	AzureEdgeLocationKey         = "management.azure.com/customLocation"
 	AzureCloudLocationKey        = "management.azure.com/location"
 	AzureOperationIdKey          = "management.azure.com/operationId"
+	AzureDeleteOperationKey      = "management.azure.com/deleteOperation"
 	AzureNameIdKey               = "management.azure.com/azureName"
 	AzureResourceIdKey           = "management.azure.com/resourceId"
 	AzureSystemDataKey           = "management.azure.com/systemData"
@@ -56,6 +57,7 @@ func SystemReservedAnnotations() []string {
 		AzureCloudLocationKey,
 		AzureEdgeLocationKey,
 		AzureOperationIdKey,
+		AzureDeleteOperationKey,
 		AzureNameIdKey,
 		AzureResourceIdKey,
 		AzureSystemDataKey,
