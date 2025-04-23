@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	campaignMaxNameLength = 63
+	campaignMaxNameLength = 61
 	campaignMinNameLength = 3
 )
 

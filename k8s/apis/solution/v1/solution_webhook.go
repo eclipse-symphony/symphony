@@ -39,7 +39,7 @@ import (
 // log is for logging in this package.
 
 var (
-	solutionContainerMaxNameLength = 63
+	solutionContainerMaxNameLength = 61
 	solutionContainerMinNameLength = 3
 	solutionlog                    = logf.Log.WithName("solution-resource")
 	mySolutionReaderClient         client.Reader
