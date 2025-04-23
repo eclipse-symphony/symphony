@@ -178,7 +178,7 @@
       {
         "type": "vendors.backgroundjob",
         "route": "backgroundjob",
-        "loopInterval": 60,
+        "loopInterval": 3600,
         "managers": [
           {{- if .Values.ActivationCleanup.enabled }}
           {

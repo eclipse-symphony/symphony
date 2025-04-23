@@ -9,7 +9,6 @@ package solution
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutioncontainers"
@@ -23,38 +22,25 @@ import (
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
-const (
-	// DefaultSummaryRetentionDuration is the default time to cleanup deprecated summaries
-	// DefaultSummaryRetentionDuration = 180 * time.Hour * 24
-	DefaultResourceCountRetentionDuration = 60 * time.Second * 5
-)
-
 type ResourceCountManager struct {
-	SolutionsManager          *solutions.SolutionsManager
-	TargetsManager            *targets.TargetsManager
-	InstancesManager          *instances.InstancesManager
-	SolutionContainersManager *solutioncontainers.SolutionContainersManager
-	StateProvider             states.IStateProvider
+	solutions.SolutionsManager
+	targets.TargetsManager
+	instances.InstancesManager
+	solutioncontainers.SolutionContainersManager
+	StateProvider states.IStateProvider
 }
 
 func (s *ResourceCountManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	fmt.Printf("ResourceCountManager Init: %v\n", config)
-	fmt.Printf("ResourceCountManager Providers: %v\n", providers)
-	fmt.Printf("ResourceCountManager Context: %v\n", ctx)
-	err := s.SolutionsManager.Init(ctx, config, providers)
-	if err != nil {
+	if err := s.SolutionsManager.Init(ctx, config, providers); err != nil {
 		return err
 	}
-	err = s.TargetsManager.Init(ctx, config, providers)
-	if err != nil {
+	if err := s.TargetsManager.Init(ctx, config, providers); err != nil {
 		return err
 	}
-	err = s.InstancesManager.Init(ctx, config, providers)
-	if err != nil {
+	if err := s.InstancesManager.Init(ctx, config, providers); err != nil {
 		return err
 	}
-	err = s.SolutionContainersManager.Init(ctx, config, providers)
-	if err != nil {
+	if err := s.SolutionContainersManager.Init(ctx, config, providers); err != nil {
 		return err
 	}
 	return nil
@@ -114,57 +100,26 @@ func (s *ResourceCountManager) Poll() []error {
 	return nil
 }
 
-func (s *ResourceCountManager) Shutdown(ctx context.Context) error {
-	log.InfoCtx(ctx, "Shutting down ResourceCountManager")
-	// 如果有需要清理的资源，可以在这里处理
+func (s *ResourceCountManager) Enabled() bool {
+	return true
+}
+func (s *ResourceCountManager) Reconcil() []error {
 	return nil
 }
 
-// func (s *ResourceCountManager) Reconcil() []error {
-// 	return nil
-// }
-
-// // getResourceCounts is a helper function to get resource counts across all namespaces
-// func (s *ResourceCountManager) getResourceCounts(ctx context.Context) (map[string]int, error) {
-// 	// Define the resource types and their metadata
-// 	resourceMetadata := []struct {
-// 		Resource string
-// 		Group    string
-// 		Version  string
-// 	}{
-// 		{"instances", "solution.symphony", "v1"},
-// 		{"targets", "fabric.symphony", "v1"},
-// 		{"solutions", "solution.symphony", "v1"},
-// 		{"solutioncontainers", "solution.symphony", "v1"},
-// 	}
-
-// 	// Initialize a map to store resource counts
-// 	resourceCounts := make(map[string]int)
-
-// 	// Iterate over each resource type and call the StateProvider's List method
-// 	for _, metadata := range resourceMetadata {
-// 		listRequest := states.ListRequest{
-// 			Metadata: map[string]interface{}{
-// 				"group":    metadata.Group,
-// 				"version":  metadata.Version,
-// 				"resource": metadata.Resource,
-// 			},
-// 		}
-
-// 		// Use the provider's List method to fetch resources
-// 		entities, _, err := s.StateProvider.List(ctx, listRequest)
-// 		if err != nil {
-// 			log.ErrorfCtx(ctx, "Failed to list %s: %v", metadata.Resource, err)
-// 			return nil, fmt.Errorf("failed to list %s: %w", metadata.Resource, err)
-// 		}
-
-// 		// Store the count of resources in the map
-// 		resourceCounts[metadata.Resource] = len(entities)
-// 	}
-
-// 	return resourceCounts, nil
-// }
-
-// func (s *SummaryCleanupManager) Reconcil() []error {
-// 	return nil
-// }
+func (s *ResourceCountManager) Shutdown(ctx context.Context) error {
+	// Explicitly call the Shutdown method of the desired embedded struct(s)
+	if err := s.SolutionsManager.Shutdown(ctx); err != nil {
+		return err
+	}
+	if err := s.TargetsManager.Shutdown(ctx); err != nil {
+		return err
+	}
+	if err := s.InstancesManager.Shutdown(ctx); err != nil {
+		return err
+	}
+	if err := s.SolutionContainersManager.Shutdown(ctx); err != nil {
+		return err
+	}
+	return nil
+}

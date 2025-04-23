@@ -8,7 +8,6 @@ package solution
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -21,8 +20,7 @@ import (
 
 const (
 	// DefaultSummaryRetentionDuration is the default time to cleanup deprecated summaries
-	// DefaultSummaryRetentionDuration = 180 * time.Hour * 24
-	DefaultSummaryRetentionDuration = 60 * time.Second * 5
+	DefaultSummaryRetentionDuration = 180 * time.Hour * 24
 )
 
 type SummaryCleanupManager struct {
@@ -31,16 +29,13 @@ type SummaryCleanupManager struct {
 }
 
 func (s *SummaryCleanupManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	fmt.Printf("SummarycleanupManager urceCountManager Init: %v\n", config)
-	fmt.Printf("SummarycleanupManager Providers: %v\n", providers)
-	fmt.Printf("SummarycleanupManager SummaryManager: %v\n", ctx)
 	err := s.SummaryManager.Init(ctx, config, providers)
 	if err != nil {
 		return err
 	}
 
 	// Set activation cleanup interval after they are done. If not set, use default 180 days.
-	if val, ok := config.Properties["SummaryRetentionDuration"]; ok {
+	if val, ok := config.Properties["RetentionDuration"]; ok {
 		s.SummaryRetentionDuration, err = time.ParseDuration(val)
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, "SummaryRetentionDuration cannot be parsed, please enter a valid duration", v1alpha2.BadConfig)
@@ -68,8 +63,6 @@ func (s *SummaryCleanupManager) Poll() []error {
 	defer observ_utils.CloseSpanWithError(span, &err)
 
 	log.InfoCtx(ctx, "M (Summary Cleanup): Polling summaries")
-
-	// Proceed with summary cleanup logic
 	summaries, err := s.ListSummary(ctx, "")
 	if err != nil {
 		return []error{err}
@@ -79,11 +72,7 @@ func (s *SummaryCleanupManager) Poll() []error {
 		// Check the upsert time of summary.
 		duration := time.Since(summary.Time)
 		if duration > s.SummaryRetentionDuration {
-			log.InfofCtx(ctx, fmt.Sprintf(
-				"M (Summary Cleanup): Deleting summary %s since it has deprecated for %s",
-				summary.SummaryId, duration.String(),
-			))
-
+			log.InfofCtx(ctx, "M (Summary Cleanup): Deleting summary %s since it has deprecated for %s", summary.SummaryId, duration.String())
 			err = s.DeleteSummary(ctx, summary.SummaryId, "", false)
 			if err != nil {
 				ret = append(ret, err)

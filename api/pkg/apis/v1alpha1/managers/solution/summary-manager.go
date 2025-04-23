@@ -30,8 +30,6 @@ type SummaryManager struct {
 }
 
 func (s *SummaryManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	fmt.Printf("SummaryManager urceCountManager Init: %v\n", config)
-	fmt.Printf("SummaryManager Providers: %v\n", providers)
 	err := s.Manager.Init(ctx, config, providers)
 	if err != nil {
 		return err
