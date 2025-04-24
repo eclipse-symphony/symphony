@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	catalogMaxNameLength = 63
+	catalogMaxNameLength = 61
 	catalogMinNameLength = 3
 )
 
