@@ -131,7 +131,6 @@ func (r *InstanceHistory) ValidateUpdate(old runtime.Object) (admission.Warnings
 	operationName := fmt.Sprintf("%s/%s", constants.InstanceHistoryOperationNamePrefix, constants.ActivityOperation_Write)
 	ctx := configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(r.GetNamespace(), resourceK8SId, r.Annotations, operationName, historyReaderClient, context.TODO(), historyLog)
 
-	diagnostic.InfoWithCtx(historyLog, ctx, "Instance history is readonly", "name", r.Name, "namespace", r.Namespace)
 	// instance history spec is readonly and should not be updated
 	oldInstanceHistory, ok := old.(*InstanceHistory)
 	if !ok {
