@@ -8,7 +8,9 @@ package validation
 
 import (
 	"context"
+	"encoding/json"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
@@ -18,6 +20,11 @@ type InstanceValidator struct {
 	SolutionLookupFunc           ObjectLookupFunc
 	TargetLookupFunc             ObjectLookupFunc
 }
+
+var (
+	instanceMaxNameLength = 61
+	instanceMinNameLength = 3
+)
 
 func NewInstanceValidator(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) InstanceValidator {
 	return InstanceValidator{
@@ -37,6 +44,13 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 	old := i.ConvertInterfaceToInstance(oldRef)
 
 	errorFields := []ErrorField{}
+
+	if oldRef == nil {
+		if err := ValidateRootObjectName(new.ObjectMeta.Name, instanceMinNameLength, instanceMaxNameLength); err != nil {
+			errorFields = append(errorFields, *err)
+		}
+	}
+
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
 		if err := i.ValidateUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
@@ -51,6 +65,13 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 		if err := i.ValidateTargetExist(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
+	}
+	if oldRef != nil && (old.Spec.Scope != new.Spec.Scope) {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.Scope",
+			Value:           new.Spec.Scope,
+			DetailedMessage: "The instance is already created. Cannot change Scope of the instance.",
+		})
 	}
 	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
 		errorFields = append(errorFields, ErrorField{
@@ -91,7 +112,7 @@ func (i *InstanceValidator) ValidateSolutionExist(ctx context.Context, c model.I
 	if i.SolutionLookupFunc == nil {
 		return nil
 	}
-	_, err := i.SolutionLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Solution), c.ObjectMeta.Namespace)
+	solution, err := i.SolutionLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Solution), c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.solution",
@@ -99,6 +120,32 @@ func (i *InstanceValidator) ValidateSolutionExist(ctx context.Context, c model.I
 			DetailedMessage: "solution does not exist",
 		}
 	}
+	marshalResult, err := json.Marshal(solution)
+	if err != nil {
+		return &ErrorField{
+			FieldPath:       "spec.solution",
+			Value:           c.Spec.Solution,
+			DetailedMessage: "solution can not be parsed.",
+		}
+	}
+	var solutionState model.SolutionState
+	err = json.Unmarshal(marshalResult, &solutionState)
+	if err != nil {
+		return &ErrorField{
+			FieldPath:       "spec.solution",
+			Value:           c.Spec.Solution,
+			DetailedMessage: "solution can not be parsed.",
+		}
+	}
+
+	if c.ObjectMeta.Labels[api_constants.SolutionUid] != string(solutionState.ObjectMeta.UID) {
+		return &ErrorField{
+			FieldPath:       "metadata.labels.solutionUid",
+			Value:           string(solutionState.ObjectMeta.UID),
+			DetailedMessage: "metadata.labels.solutionUid is empty or doesn't match with the solution.",
+		}
+	}
+
 	return nil
 }
 
@@ -107,7 +154,7 @@ func (i *InstanceValidator) ValidateTargetExist(ctx context.Context, c model.Ins
 	if i.TargetLookupFunc == nil {
 		return nil
 	}
-	_, err := i.TargetLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Target.Name), c.ObjectMeta.Namespace)
+	target, err := i.TargetLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Target.Name), c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.target.name",
@@ -115,6 +162,32 @@ func (i *InstanceValidator) ValidateTargetExist(ctx context.Context, c model.Ins
 			DetailedMessage: "target does not exist",
 		}
 
+	}
+
+	marshalResult, err := json.Marshal(target)
+	if err != nil {
+		return &ErrorField{
+			FieldPath:       "spec.target",
+			Value:           c.Spec.Target.Name,
+			DetailedMessage: "target can not be parsed.",
+		}
+	}
+	var targetState model.TargetState
+	err = json.Unmarshal(marshalResult, &targetState)
+	if err != nil {
+		return &ErrorField{
+			FieldPath:       "spec.target",
+			Value:           c.Spec.Target.Name,
+			DetailedMessage: "target can not be parsed.",
+		}
+	}
+
+	if c.ObjectMeta.Labels[api_constants.TargetUid] != string(targetState.ObjectMeta.UID) {
+		return &ErrorField{
+			FieldPath:       "metadata.labels.targetUid",
+			Value:           string(targetState.ObjectMeta.UID),
+			DetailedMessage: "metadata.labels.targetUid is empty or doesn't match with the target.",
+		}
 	}
 	return nil
 }

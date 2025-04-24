@@ -14,9 +14,11 @@ import (
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
+	"gopls-workspace/utils/diagnostic"
 	utilsmodel "gopls-workspace/utils/model"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -47,7 +49,7 @@ type InstanceQueueingReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Queueing Instance " + req.Name + " in namespace " + req.Namespace)
+	diagnostic.InfoWithCtx(log, ctx, "Reconcile Queueing Instance "+req.Name+" in namespace "+req.Namespace)
 
 	// Initialize reconcileTime for latency metrics
 	reconcileTime := time.Now()
@@ -56,13 +58,23 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	instance := &solution_v1.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Skipping this reconcile, since this CR has been deleted")
+			diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since this CR has been deleted")
 			return ctrl.Result{}, nil
 		} else {
-			log.Error(err, "unable to fetch Instance object")
+			diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Instance object")
 			return ctrl.Result{}, err
 		}
 	}
+
+	// reform context with annotations
+	resourceK8SId := instance.GetNamespace() + "/" + instance.GetName()
+	operationName := constants.InstanceOperationNamePrefix
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(instance.GetNamespace(), resourceK8SId, instance.Annotations, operationName, r, ctx, log)
 
 	reconciliationType := metrics.CreateOperationType
 	resultType := metrics.ReconcileSuccessResult
@@ -70,35 +82,33 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	deploymentOperationType := metrics.DeploymentQueued
 	var err error
 
-	if checkSkipReconcile(log, instance) {
-		log.Info("Skipping this reconcile, since this instance is inactive and already removed")
+	if checkSkipReconcile(log, ctx, instance) {
+		diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since this instance "+req.Name+" in namespace "+req.Namespace+" is inactive and already removed")
 		return ctrl.Result{}, nil
 	}
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, false, log, instanceOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		log.Info("Reconcile removing instance: " + req.Name + " in namespace " + req.Namespace)
+		diagnostic.InfoWithCtx(log, ctx, "Reconcile removing instance: "+req.Name+" in namespace "+req.Namespace)
 		// check the finalizer - uninstall finalizer if exists, set finalizer to nil
 		if utils.ContainsString(instance.GetFinalizers(), os.Getenv(constants.DeploymentFinalizer)) {
 			// set finalizer to nil
-			log.Info("Reconcile removing instance finalizer: " + req.Name + " in namespace " + req.Namespace)
+			diagnostic.InfoWithCtx(log, ctx, "Reconcile removing instance finalizer: "+req.Name+" in namespace "+req.Namespace)
 			patch := client.MergeFrom(instance.DeepCopy())
 			instance.SetFinalizers([]string{})
 			if err := r.Patch(ctx, instance, patch); err != nil {
-				log.Error(err, "Failed to patch instance finalizers")
+				diagnostic.ErrorWithCtx(log, ctx, err, "Failed to patch instance finalizers")
 				resultType = metrics.ReconcileFailedResult
 			} else {
 				resultType = metrics.ReconcileSuccessResult
 			}
 		} else {
-			operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
 			deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, instance, true, log, instanceOperationStartTimeKey, operationName)
 			if err != nil {
 				resultType = metrics.ReconcileFailedResult
@@ -151,24 +161,24 @@ func (r *InstanceQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // What if the instance changes from inactive -> active (not summary reported) -> inactive
 // "removed" property will be removed before making queuedeployment calls to symphony API server
 // so that later inactive instance can be reconciled again.
-func checkSkipReconcile(log logr.Logger, instance *solution_v1.Instance) bool {
+func checkSkipReconcile(log logr.Logger, ctx context.Context, instance *solution_v1.Instance) bool {
 	if instance.Spec.ActiveState != model.ActiveState_Inactive {
 		return false
 	}
 	if instance.Status.Properties != nil {
 		status, ok := instance.Status.Properties["status"]
 		if !ok || status != string(utilsmodel.ProvisioningStatusSucceeded) {
-			log.Info("Instance has not reach succeeded status, do not skip reconcile")
+			diagnostic.InfoWithCtx(log, ctx, "Instance "+instance.Name+" in namespace "+instance.Namespace+" has not reach succeeded status, do not skip reconcile")
 			return false
 		}
 		removed, ok := instance.Status.Properties["removed"]
 		if !ok || removed != "true" {
-			log.Info("Instance has not been removed, do not skip reconcile")
+			diagnostic.InfoWithCtx(log, ctx, "Instance "+instance.Name+" in namespace "+instance.Namespace+" has not been removed, do not skip reconcile")
 			return false
 		}
-		log.Info("Instance is inactive and already removed, skip reconcile")
+		diagnostic.InfoWithCtx(log, ctx, "Instance "+instance.Name+" in namespace "+instance.Namespace+" is inactive and already removed, skip reconcile")
 		return true
 	}
-	log.Info("Instance status is nil, do not skip reconcile")
+	diagnostic.InfoWithCtx(log, ctx, "Instance "+instance.Name+" in namespace "+instance.Namespace+" status is nil, do not skip reconcile")
 	return false
 }

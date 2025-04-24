@@ -32,44 +32,42 @@ var (
 		"k8s": "control-plane=symphony-controller-manager",
 	}
 	Faults = []FaultTestCase{
-		// Symphony API fault tests are disabled since job events cannot be retried now.
-		// Tracked in issue 558
-		// {
-		// 	TestCase:  TestCases["solutionUpdate"],
-		// 	PodLabel:  PodLabels["api"],
-		// 	Fault:     "onQueueError",
-		// 	FaultType: DefaultFaultType,
-		// },
-		// {
-		// 	TestCase:  TestCases["solutionUpdate"],
-		// 	PodLabel:  PodLabels["api"],
-		// 	Fault:     "beforeProviders",
-		// 	FaultType: DefaultFaultType,
-		// },
-		// {
-		// 	TestCase:  TestCases["solutionUpdate"],
-		// 	PodLabel:  PodLabels["api"],
-		// 	Fault:     "beforeDeploymentError",
-		// 	FaultType: DefaultFaultType,
-		// },
-		// {
-		// 	TestCase:  TestCases["solutionUpdate"],
-		// 	PodLabel:  PodLabels["api"],
-		// 	Fault:     "afterDeploymentError",
-		// 	FaultType: DefaultFaultType,
-		// },
-		// {
-		// 	TestCase:  TestCases["solutionUpdate"],
-		// 	PodLabel:  PodLabels["api"],
-		// 	Fault:     "beforeConcludeSummary",
-		// 	FaultType: DefaultFaultType,
-		// },
-		// {
-		// 	TestCase:  TestCases["solutionUpdate"],
-		// 	PodLabel:  PodLabels["api"],
-		// 	Fault:     "beforeConcludeSummary",
-		// 	FaultType: DefaultFaultType,
-		// },
+		{
+			TestCase:  TestCases["solutionUpdate"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "onQueueError",
+			FaultType: DefaultFaultType,
+		},
+		{
+			TestCase:  TestCases["solutionUpdate"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "beforeProviders",
+			FaultType: DefaultFaultType,
+		},
+		{
+			TestCase:  TestCases["solutionUpdate"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "beforeDeploymentError",
+			FaultType: DefaultFaultType,
+		},
+		{
+			TestCase:  TestCases["solutionUpdate"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "afterDeploymentError",
+			FaultType: DefaultFaultType,
+		},
+		{
+			TestCase:  TestCases["solutionUpdate"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "beforeConcludeSummary",
+			FaultType: DefaultFaultType,
+		},
+		{
+			TestCase:  TestCases["solutionUpdate"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "beforeConcludeSummary",
+			FaultType: DefaultFaultType,
+		},
 		{
 			TestCase:  TestCases["solutionUpdate"],
 			PodLabel:  PodLabels["k8s"],
@@ -106,13 +104,12 @@ var (
 			Fault:     "afterProvider",
 			FaultType: DefaultFaultType,
 		},
-		// afterPublishTrigger fault test cannot pass now because of dedup issue in activation
-		// {
-		// 	testCase:  TestCases["workflowMaterialize"],
-		// 	podLabel:  PodLabels["api"],
-		// 	fault:     "afterPublishTrigger",
-		// 	faultType: DefaultFaultType,
-		// },
+		{
+			TestCase:  TestCases["workflowMaterialize"],
+			PodLabel:  PodLabels["api"],
+			Fault:     "afterPublishTrigger",
+			FaultType: DefaultFaultType,
+		},
 		{
 			TestCase:  TestCases["workflowMaterialize"],
 			PodLabel:  PodLabels["api"],

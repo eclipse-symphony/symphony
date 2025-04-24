@@ -19,6 +19,11 @@ type TargetValidator struct {
 	UniqueNameTargetLookupFunc ObjectLookupFunc
 }
 
+var (
+	targetMaxNameLength = 61
+	targetMinNameLength = 3
+)
+
 func NewTargetValidator(targetInstanceLookupFunc LinkedObjectLookupFunc, uniqueNameTargetLookupFunc ObjectLookupFunc) TargetValidator {
 	return TargetValidator{
 		TargetInstanceLookupFunc:   targetInstanceLookupFunc,
@@ -33,9 +38,32 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 	old := t.ConvertInterfaceToTarget(oldRef)
 
 	errorFields := []ErrorField{}
+
+	if oldRef == nil {
+		if err := ValidateRootObjectName(new.ObjectMeta.Name, targetMinNameLength, targetMaxNameLength); err != nil {
+			errorFields = append(errorFields, *err)
+		}
+	}
+
 	if oldRef == nil || new.Spec.DisplayName != old.Spec.DisplayName {
 		if err := t.ValidateTargetUniqueName(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
+		}
+	}
+	if oldRef != nil && (old.Spec.Scope != new.Spec.Scope) {
+		errorFields = append(errorFields, ErrorField{
+			FieldPath:       "spec.Scope",
+			Value:           new.Spec.Scope,
+			DetailedMessage: "The target is already created. Cannot change Scope of the target.",
+		})
+	}
+	if oldRef != nil && (old.Spec.SolutionScope != new.Spec.SolutionScope) && t.TargetInstanceLookupFunc != nil {
+		if found, err := t.TargetInstanceLookupFunc(ctx, new.ObjectMeta.Name, new.ObjectMeta.Namespace, string(new.ObjectMeta.UID)); err != nil || found {
+			errorFields = append(errorFields, ErrorField{
+				FieldPath:       "spec.SolutionScope",
+				Value:           new.Spec.SolutionScope,
+				DetailedMessage: "Target has one or more associated instances. Cannot change SolutionScope of the target.",
+			})
 		}
 	}
 	if oldRef != nil && !old.Spec.IsDryRun && new.Spec.IsDryRun {
@@ -82,7 +110,7 @@ func (t *TargetValidator) ValidateNoInstanceForTarget(ctx context.Context, targe
 	if t.TargetInstanceLookupFunc == nil {
 		return nil
 	}
-	if found, err := t.TargetInstanceLookupFunc(ctx, target.ObjectMeta.Name, target.ObjectMeta.Namespace); err != nil || found {
+	if found, err := t.TargetInstanceLookupFunc(ctx, target.ObjectMeta.Name, target.ObjectMeta.Namespace, string(target.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           target.ObjectMeta.Name,

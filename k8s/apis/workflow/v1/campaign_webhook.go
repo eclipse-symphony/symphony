@@ -36,10 +36,14 @@ import (
 )
 
 // log is for logging in this package.
-var campaignlog = logf.Log.WithName("campaign-resource")
-var myCampaignReaderClient client.Reader
-var catalogWebhookValidationMetrics *metrics.Metrics
-var campaignValidator validation.CampaignValidator
+var (
+	campaignContainerMaxNameLength  = 61
+	campaignContainerMinNameLength  = 3
+	campaignlog                     = logf.Log.WithName("campaign-resource")
+	myCampaignReaderClient          client.Reader
+	catalogWebhookValidationMetrics *metrics.Metrics
+	campaignValidator               validation.CampaignValidator
+)
 
 func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCampaignReaderClient = mgr.GetAPIReader()
@@ -63,12 +67,33 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			return dynamicclient.Get(ctx, validation.CampaignContainer, name, namespace)
 		},
 		// Look up running activation
-		func(ctx context.Context, campaign string, namespace string) (bool, error) {
-			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{"campaign": campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+		func(ctx context.Context, campaign string, namespace string, uid string) (bool, error) {
+			// check if the campaign has running activations using the UID first
+			activationList, err := dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.CampaignUid: uid, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
 			if err != nil {
 				return false, err
 			}
-			return len(activationList.Items) > 0, nil
+			if len(activationList.Items) > 0 {
+				diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using UID", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using UID ", r.Name, r.Namespace)
+				return true, nil
+			}
+
+			// if couldn't find any, then use the campaign name
+			if len(campaign) < api_constants.LabelLengthUpperLimit {
+				activationList, err = dynamicclient.ListWithLabels(ctx, validation.Activation, namespace, map[string]string{api_constants.Campaign: campaign, api_constants.StatusMessage: v1alpha2.Running.String()}, 1)
+				if err != nil {
+					return false, err
+				}
+				if len(activationList.Items) > 0 {
+					diagnostic.InfoWithCtx(campaignlog, ctx, "campaign look up activation using NAME", "name", r.Name, "namespace", r.Namespace)
+					observ_utils.EmitUserAuditsLogs(ctx, "campaign (%s) in namespace (%s) look up activation using NAME ", r.Name, r.Namespace)
+					return true, nil
+				}
+			}
+
+			// if still finds nothing, we think there's no running activations
+			return false, nil
 		})
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -107,7 +132,17 @@ func (r *Campaign) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels[api_constants.RootResource] = r.Spec.RootResource
+
+			// Remove api_constants.RootResource from r.Labels if it exists
+			if _, exists := r.Labels[api_constants.RootResource]; exists {
+				delete(r.Labels, api_constants.RootResource)
+			}
+			var campaignContainer CampaignContainer
+			err := myCampaignReaderClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.RootResource), Namespace: r.Namespace}, &campaignContainer)
+			if err != nil {
+				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to get campaigncontainer", "name", r.Name, "namespace", r.Namespace)
+			}
+			r.Labels[api_constants.RootResourceUid] = string(campaignContainer.UID)
 		}
 	}
 }
@@ -283,7 +318,7 @@ func (r *CampaignContainer) ValidateCreate() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(campaignlog, ctx, "validate create campaign container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CampaignContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(campaignlog, ctx, r)
+	return commoncontainer.ValidateCreateImpl(campaignlog, ctx, r, campaignContainerMinNameLength, campaignContainerMaxNameLength)
 }
 func (r *CampaignContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 
@@ -307,13 +342,31 @@ func (r *CampaignContainer) ValidateDelete() (admission.Warnings, error) {
 
 	getSubResourceNums := func() (int, error) {
 		var campaignList CampaignList
-		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		err := myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
 			diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
 			return 0, err
-		} else {
+		}
+
+		if len(campaignList.Items) > 0 {
+			diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using UID", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using UID ", r.Name, r.Namespace)
 			return len(campaignList.Items), nil
 		}
+
+		if len(r.Name) < api_constants.LabelLengthUpperLimit {
+			err = myCampaignReaderClient.List(context.Background(), &campaignList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+			if err != nil {
+				diagnostic.ErrorWithCtx(campaignlog, ctx, err, "failed to list campaigns", "name", r.Name, "namespace", r.Namespace)
+				return 0, err
+			}
+			if len(campaignList.Items) > 0 {
+				diagnostic.InfoWithCtx(campaignlog, ctx, "campaigncontainer look up campaign using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "campaigncontainer (%s) in namespace (%s) look up campaign using NAME ", r.Name, r.Namespace)
+				return len(campaignList.Items), nil
+			}
+		}
+		return 0, nil
 	}
 	return commoncontainer.ValidateDeleteImpl(campaignlog, ctx, r, getSubResourceNums)
 }

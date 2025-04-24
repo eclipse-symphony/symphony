@@ -3,7 +3,9 @@ package v1
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/constants"
 	"gopls-workspace/utils/diagnostic"
+	"strings"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -50,8 +52,16 @@ func DefaultImpl(log logr.Logger, ctx context.Context, r client.Object) {
 	diagnostic.InfoWithCtx(log, ctx, "default", "name", r.GetName(), "kind", r.GetObjectKind())
 }
 
-func ValidateCreateImpl(log logr.Logger, ctx context.Context, r client.Object) (admission.Warnings, error) {
+func ValidateCreateImpl(log logr.Logger, ctx context.Context, r client.Object, minLength int, maxLength int) (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(log, ctx, "validate create", "name", r.GetName(), "kind", r.GetObjectKind())
+	name := r.GetName()
+	// resources like instance may contain -v- so split by -v- and pick up the last part
+	parts := strings.Split(name, constants.ResourceSeperator)
+	actualName := parts[len(parts)-1]
+	if len(actualName) < minLength || len(actualName) > maxLength {
+		diagnostic.ErrorWithCtx(log, ctx, nil, "name length is invalid", "name", actualName, "kind", r.GetObjectKind())
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("%s Name length, %s is invalid, it should be between %d and %d.", r.GetObjectKind(), actualName, minLength, maxLength))
+	}
 	return nil, nil
 }
 func ValidateUpdateImpl(log logr.Logger, ctx context.Context, r client.Object, old runtime.Object) (admission.Warnings, error) {

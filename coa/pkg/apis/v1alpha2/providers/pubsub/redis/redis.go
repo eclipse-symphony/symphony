@@ -18,6 +18,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/host"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -35,6 +36,8 @@ type RedisPubSubProvider struct {
 	Context     *contexts.ManagerContext
 	WorkerLock  *sync.Mutex
 	IdleWorkers int
+	rwLock      sync.RWMutex
+	readyFlag   bool
 }
 
 type RedisMessageWrapper struct {
@@ -188,8 +191,20 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 		mLog.Errorf("  P (Redis PubSub) : failed to subscribe %v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subscribe to topic %s and group %s", topic, handler.Group), v1alpha2.InternalError)
 	}
-	go i.pollNewMessagesLoop(topic, handler)
-	go i.ClaimMessageLoop(topic, handler)
+
+	go func() {
+		mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : check host initialization, status topic %s with Group %s", topic, handler.Group)
+		for {
+			if host.IsHostReady() {
+				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : start poll message, topic %s with Group %s", topic, handler.Group)
+				go i.pollNewMessagesLoop(topic, handler)
+				go i.ClaimMessageLoop(topic, handler)
+				return
+			}
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : host status not ready, topic %s with Group %s", topic, handler.Group)
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	return nil
 }
 
@@ -337,6 +352,11 @@ func (i *RedisPubSubProvider) processMessage(topic string, handler v1alpha2.Even
 		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to acknowledge message %s for topic %s, group %s: %v", msg.ID, topic, handler.Group, err)
 	}
 	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processing succeeded for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+	// TODO: This only works when we have only one consumer group for each topic
+	_, err = i.Client.XDel(i.Ctx, topic, msg.ID).Result()
+	if err != nil {
+		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to delete message %s for topic %s, group %s: %v", msg.ID, topic, handler.Group, err)
+	}
 	return nil
 }
 

@@ -38,10 +38,14 @@ import (
 )
 
 // log is for logging in this package.
-var cataloglog = logf.Log.WithName("catalog-resource")
-var myCatalogReaderClient client.Reader
-var catalogWebhookValidationMetrics *metrics.Metrics
-var catalogValidator validation.CatalogValidator
+var (
+	catalogContainerMaxNameLength   = 61
+	catalogContainerMinNameLength   = 3
+	cataloglog                      = logf.Log.WithName("catalog-resource")
+	myCatalogReaderClient           client.Reader
+	catalogWebhookValidationMetrics *metrics.Metrics
+	catalogValidator                validation.CatalogValidator
+)
 
 func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myCatalogReaderClient = mgr.GetAPIReader()
@@ -69,7 +73,7 @@ func (r *Catalog) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			return dynamicclient.Get(ctx, validation.CatalogContainer, name, namespace)
 		},
 		// Look up child catalog
-		func(ctx context.Context, name string, namespace string) (bool, error) {
+		func(ctx context.Context, name string, namespace string, uid string) (bool, error) {
 			catalogList, err := dynamicclient.ListWithLabels(ctx, validation.Catalog, namespace, map[string]string{api_constants.ParentName: name}, 1)
 			if err != nil {
 				return false, err
@@ -113,7 +117,18 @@ func (r *Catalog) Default() {
 			if r.Labels == nil {
 				r.Labels = make(map[string]string)
 			}
-			r.Labels[api_constants.RootResource] = utils.ConvertStringToValidLabel(r.Spec.RootResource)
+
+			// Remove api_constants.RootResource from r.Labels if it exists
+			if _, exists := r.Labels[api_constants.RootResource]; exists {
+				delete(r.Labels, api_constants.RootResource)
+			}
+			var catalogContainer CatalogContainer
+			err := myCatalogReaderClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.RootResource), Namespace: r.Namespace}, &catalogContainer)
+			if err != nil {
+				diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to get catalogcontainer", "name", r.Name, "namespace", r.Namespace)
+			}
+			r.Labels[api_constants.RootResourceUid] = string(catalogContainer.UID)
+
 			if r.Spec.ParentName != "" {
 				r.Labels[api_constants.ParentName] = utils.ConvertStringToValidLabel(validation.ConvertReferenceToObjectName(r.Spec.ParentName))
 			} else if r.Labels[api_constants.ParentName] != "" {
@@ -292,7 +307,7 @@ func (r *CatalogContainer) ValidateCreate() (admission.Warnings, error) {
 	diagnostic.InfoWithCtx(cataloglog, ctx, "validate create catalog container", "name", r.Name, "namespace", r.Namespace)
 	observ_utils.EmitUserAuditsLogs(ctx, "CatalogContainer %s is being created on namespace %s", r.Name, r.Namespace)
 
-	return commoncontainer.ValidateCreateImpl(cataloglog, ctx, r)
+	return commoncontainer.ValidateCreateImpl(cataloglog, ctx, r, catalogContainerMinNameLength, catalogContainerMaxNameLength)
 }
 func (r *CatalogContainer) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	resourceK8SId := r.GetNamespace() + "/" + r.GetName()
@@ -314,13 +329,30 @@ func (r *CatalogContainer) ValidateDelete() (admission.Warnings, error) {
 
 	getSubResourceNums := func() (int, error) {
 		var catalogList CatalogList
-		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+		err := myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResourceUid: string(r.UID)}, client.Limit(1))
 		if err != nil {
-			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "namespace", r.Namespace, "rootResource", r.Name)
+			diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
 			return 0, err
-		} else {
+		}
+
+		if len(catalogList.Items) > 0 {
+			diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using UID", "name", r.Name, "namespace", r.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using UID ", r.Name, r.Namespace)
 			return len(catalogList.Items), nil
 		}
+		if len(r.Name) < api_constants.LabelLengthUpperLimit {
+			err = myCatalogReaderClient.List(context.Background(), &catalogList, client.InNamespace(r.Namespace), client.MatchingLabels{api_constants.RootResource: r.Name}, client.Limit(1))
+			if err != nil {
+				diagnostic.ErrorWithCtx(cataloglog, ctx, err, "failed to list catalogs", "name", r.Name, "namespace", r.Namespace)
+				return 0, err
+			}
+			if len(catalogList.Items) > 0 {
+				diagnostic.InfoWithCtx(cataloglog, ctx, "catalogcontainer look up catalog using NAME", "name", r.Name, "namespace", r.Namespace)
+				observ_utils.EmitUserAuditsLogs(ctx, "catalogcontainer (%s) in namespace (%s) look up catalog using NAME ", r.Name, r.Namespace)
+				return len(catalogList.Items), nil
+			}
+		}
+		return 0, nil
 	}
 	return commoncontainer.ValidateDeleteImpl(cataloglog, ctx, r, getSubResourceNums)
 }

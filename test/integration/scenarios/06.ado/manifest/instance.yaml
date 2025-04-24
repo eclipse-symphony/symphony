@@ -5,5 +5,5 @@ metadata:
 spec:
   target:
     name: target
-  solution: solution:v1
+  solution: solution:version1
   scope: azure-iot-operations

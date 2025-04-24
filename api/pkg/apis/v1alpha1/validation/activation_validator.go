@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 )
 
@@ -18,6 +19,11 @@ type ActivationValidator struct {
 	// Check Campaign existence
 	CampaignLookupFunc ObjectLookupFunc
 }
+
+var (
+	activationMaxNameLength = 61
+	activationMinNameLength = 3
+)
 
 func NewActivationValidator(campaignLookupFunc ObjectLookupFunc) ActivationValidator {
 	return ActivationValidator{
@@ -38,6 +44,11 @@ func (a *ActivationValidator) ValidateCreateOrUpdate(ctx context.Context, newRef
 		if err := a.ValidateCampaignAndStage(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
+
+		if err := ValidateRootObjectName(new.ObjectMeta.Name, activationMinNameLength, activationMaxNameLength); err != nil {
+			errorFields = append(errorFields, *err)
+		}
+
 	} else {
 		// validate spec is immutable
 		if equal, err := new.Spec.DeepEquals(*old.Spec); !equal {
@@ -84,6 +95,13 @@ func (a *ActivationValidator) ValidateCampaignAndStage(ctx context.Context, new 
 	err = json.Unmarshal(marshalResult, &campaign)
 	if err != nil {
 		return nil
+	}
+	if new.ObjectMeta.Labels[api_constants.CampaignUid] != string(campaign.ObjectMeta.UID) {
+		return &ErrorField{
+			FieldPath:       "metadata.labels.campaignUid",
+			Value:           string(campaign.ObjectMeta.UID),
+			DetailedMessage: "metadata.labels.campaignUid is empty or doesn't match with the campaign.",
+		}
 	}
 	for _, stage := range campaign.Spec.Stages {
 		if stage.Name == new.Spec.Stage {

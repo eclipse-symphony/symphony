@@ -6,6 +6,6 @@ metadata:
 spec:
   displayName: test-instance
   scope: default
-  solution: test-app:v1
+  solution: test-app:version1
   target:
     name: test-target

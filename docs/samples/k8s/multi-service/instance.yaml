@@ -4,7 +4,7 @@ metadata:
   name: redis-instance
 spec:
   scope: basic-k8s
-  solution: redis-server:v1
+  solution: redis-server:version1
   target: 
     name: k8s-target    
   parameters:

@@ -21,6 +21,8 @@ import (
 	"gopls-workspace/utils/diagnostic"
 	"time"
 
+	fabric "gopls-workspace/apis/fabric/v1"
+
 	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -46,7 +48,7 @@ import (
 // log is for logging in this package.
 var instancelog = logf.Log.WithName("instance-resource")
 var myInstanceClient client.Reader
-var upsertHistoryClient client.Client
+var k8sClient client.Client
 var instanceWebhookValidationMetrics *metrics.Metrics
 var instanceProjectConfig *configv1.ProjectConfig
 var instanceValidator validation.InstanceValidator
@@ -54,7 +56,7 @@ var instanceHistory history.InstanceHistory
 
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
-	upsertHistoryClient = mgr.GetClient()
+	k8sClient = mgr.GetClient()
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
@@ -152,10 +154,10 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		}
 
 		var result InstanceHistory
-		err = upsertHistoryClient.Get(ctx, client.ObjectKey{Name: history.GetName(), Namespace: history.GetNamespace()}, &result)
+		err = k8sClient.Get(ctx, client.ObjectKey{Name: history.GetName(), Namespace: history.GetNamespace()}, &result)
 		if err != nil && errors.IsNotFound(err) {
 			// Resource does not exist, create it
-			err = upsertHistoryClient.Create(ctx, &history)
+			err = k8sClient.Create(ctx, &history)
 			if err != nil {
 				err := fmt.Errorf("upsert instance history failed, instance: %s, error: %v", instance.Name, err)
 				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
@@ -166,7 +168,7 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 				history.Status = instance.Status
 				// Reset ProvisioningStatus to avoid saving it in the history
 				history.Status.ProvisioningStatus = model.ProvisioningStatus{}
-				err = upsertHistoryClient.Status().Update(ctx, &history)
+				err = k8sClient.Status().Update(ctx, &history)
 				if err != nil {
 					err := fmt.Errorf("upsert instance history status failed, instance: %s, history: %s, error: %v", instance.Name, history.GetName(), err)
 					diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save instance history for instance", "name", r.Name, "namespace", r.Namespace)
@@ -218,13 +220,33 @@ func (r *Instance) Default() {
 	if instanceProjectConfig.UniqueDisplayNameForSolution {
 		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
-	r.Labels[api_constants.Solution] = validation.ConvertReferenceToObjectName(r.Spec.Solution)
-	r.Labels[api_constants.Target] = validation.ConvertReferenceToObjectName(r.Spec.Target.Name)
+
+	// Remove api_constants.Solution and api_constants.Targetfrom r.Labels if it exists
+	if _, exists := r.Labels[api_constants.Solution]; exists {
+		delete(r.Labels, api_constants.Solution)
+	}
+	if _, exists := r.Labels[api_constants.Target]; exists {
+		delete(r.Labels, api_constants.Target)
+	}
+
+	var solutionResult Solution
+	err := k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Solution), Namespace: r.Namespace}, &solutionResult)
+	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solution", "name", r.Name, "namespace", r.Namespace)
+	}
+	r.Labels[api_constants.SolutionUid] = string(solutionResult.UID)
+
+	var targetResult fabric.Target
+	err = k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Target.Name), Namespace: r.Namespace}, &targetResult)
+	if err != nil {
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target", "name", r.Name, "namespace", r.Namespace)
+	}
+	r.Labels[api_constants.TargetUid] = string(targetResult.UID)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update;delete,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Instance{}
 

@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: site-apps-v-v1
+  name: site-apps-v-version1
 spec:  
   rootResource: site-apps
   firstStage: list
@@ -32,10 +32,10 @@ spec:
         operation: wait
         objectType: catalogs
         names:
-        - site-catalog:v1
-        - site-app:v1
-        - site-k8s-target:v1
-        - site-instance:v1
+        - site-catalog:version1
+        - site-app:version1
+        - site-k8s-target:version1
+        - site-instance:version1
     deploy:
       name: deploy
       provider: providers.stage.remote
@@ -44,8 +44,8 @@ spec:
       inputs:
         operation: materialize
         names:
-        - site-catalog:v1
-        - site-app:v1
-        - site-k8s-target:v1
-        - site-instance:v1
+        - site-catalog:version1
+        - site-app:version1
+        - site-k8s-target:version1
+        - site-instance:version1
   selfDriving: true

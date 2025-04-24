@@ -1,7 +1,7 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: evalcatalog-v-v2
+  name: evalcatalog-v-version2
 spec:
   rootResource: evalcatalog
   catalogType: catalog

@@ -47,12 +47,11 @@ var (
 	testCircularChild           = "test/integration/scenarios/08.webhook/manifest/child-config.yaml"
 	testNoParentChild           = "test/integration/scenarios/08.webhook/manifest/child-noparent.yaml"
 
-	diagnostic_01_WithoutEdgeLocation                   = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
-	diagnostic_02_WithCorrectEdgeLocation               = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
-	diagnostic_03_WithConflictEdgeLocation              = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithConflictEdgeLocation.yaml"
-	diagnostic_04_WithCorrectEdgeLocation2              = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithCorrectEdgeLocation2.yaml"
-	diagnostic_05_UpdateEdgeLocationConflict            = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateEdgeLocationConflict.yaml"
-	diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2 = "test/integration/scenarios/08.webhook/manifest/diagnostic_06.UpdateOtherAnnotationsOnEdgeLocation2.yaml"
+	diagnostic_01_WithoutEdgeLocation     = "test/integration/scenarios/08.webhook/manifest/diagnostic_01.WithoutEdgeLocation.yaml"
+	diagnostic_02_WithCorrectEdgeLocation = "test/integration/scenarios/08.webhook/manifest/diagnostic_02.WithCorrectEdgeLocation.yaml"
+	diagnostic_03_WithAnotherNS           = "test/integration/scenarios/08.webhook/manifest/diagnostic_03.WithAnotherNS.yaml"
+	diagnostic_04_WithAnotherName         = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithAnotherName.yaml"
+	diagnostic_05_UpdateOtherAnnotations  = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateOtherAnnotations.yaml"
 
 	historyCreate         = "test/integration/scenarios/08.webhook/manifest/history.yaml"
 	historyUpdate         = "test/integration/scenarios/08.webhook/manifest/history-update.yaml"
@@ -95,7 +94,7 @@ func TestInstanceWithoutTarget(t *testing.T) {
 	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", "mysol").CombinedOutput()
 	assert.Contains(t, string(output), "nested resources with root resource 'mysol' are not empty")
 	assert.NotNil(t, err, "solution container deletion with solution should fail")
-	err = shellcmd.Command("kubectl delete solutions.solution.symphony mysol-v-v1").Run()
+	err = shellcmd.Command("kubectl delete solutions.solution.symphony mysol-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete solutioncontainers.solution.symphony mysol").Run()
 	assert.Nil(t, err)
@@ -110,7 +109,7 @@ func TestTargetSolutionDeletionWithInstance(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testInstance))).Run()
 	assert.Nil(t, err)
-	output, err := exec.Command("kubectl", "delete", "solutions.solution.symphony", "mysol-v-v1").CombinedOutput()
+	output, err := exec.Command("kubectl", "delete", "solutions.solution.symphony", "mysol-v-version1").CombinedOutput()
 	assert.Contains(t, string(output), "Solution has one or more associated instances. Deletion is not allowed.")
 	assert.NotNil(t, err)
 	output, err = exec.Command("kubectl", "delete", "targets.fabric.symphony", "self").CombinedOutput()
@@ -120,7 +119,7 @@ func TestTargetSolutionDeletionWithInstance(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete targets.fabric.symphony self").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutions.solution.symphony mysol-v-v1").Run()
+	err = shellcmd.Command("kubectl delete solutions.solution.symphony mysol-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete solutioncontainers.solution.symphony mysol").Run()
 	assert.Nil(t, err)
@@ -141,7 +140,7 @@ func TestCreateActivationWithWrongFirstStage(t *testing.T) {
 	output, err = exec.Command("kubectl", "delete", "campaigncontainers.workflow.symphony", "04campaign").CombinedOutput()
 	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
 	assert.NotNil(t, err, "campaign container deletion with campaign should fail")
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v1").Run()
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
 	assert.Nil(t, err)
@@ -179,12 +178,16 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 		}
 		time.Sleep(5 * time.Second)
 	}
-	output, err := exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign-v-v3").CombinedOutput()
+	output, err := exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign-v-version3").CombinedOutput()
 	assert.Contains(t, string(output), "Campaign has one or more running activations. Update or Deletion is not allowed")
 	assert.NotNil(t, err, "campaign deletion with running activation should fail")
 	time.Sleep(15 * time.Second)
 	// Campaign can be deleted once the activation is DONE
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-v3").Run()
+	output, err = exec.Command("kubectl", "delete", "campaigncontainers.workflow.symphony", "04campaign").CombinedOutput()
+	assert.NotNil(t, err, "campaign container deletion with campaign should fail")
+	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
+
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-version3").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
 	assert.Nil(t, err)
@@ -207,11 +210,11 @@ func TestCreateCatalogWithoutContainer(t *testing.T) {
 	output, err = exec.Command("kubectl", "delete", "catalogcontainer.federation.symphony", "config").CombinedOutput()
 	assert.NotNil(t, err, "catalog container deletion with catalog should fail")
 	assert.Contains(t, string(output), "nested resources with root resource 'config' are not empty")
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
@@ -230,11 +233,11 @@ func TestCreateCatalogWithoutSchema(t *testing.T) {
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCatalog))).Run()
 	assert.Nil(t, err)
 
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
@@ -252,7 +255,7 @@ func TestCreateCatalogWithWrongSchema(t *testing.T) {
 	assert.Contains(t, string(output), "property does not match pattern: <email>")
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
@@ -272,16 +275,16 @@ func TestCreateCatalogWithoutParent(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testChildCatalog))).Run()
 	assert.Nil(t, err)
-	output, err = exec.Command("kubectl", "delete", "catalog.federation.symphony", "config-v-v1").CombinedOutput()
+	output, err = exec.Command("kubectl", "delete", "catalog.federation.symphony", "config-v-version1").CombinedOutput()
 	assert.Contains(t, string(output), "Catalog has one or more child catalogs. Update or Deletion is not allowed")
 	assert.NotNil(t, err, "catalog deletion with child catalog should fail")
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v3").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-version3").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony config-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony config").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony schema-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony schema").Run()
 	assert.Nil(t, err)
@@ -307,46 +310,67 @@ func TestUpdateCatalogRemoveParentLabel(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Should be able to delete parent catalog, because child catalog has updated without parent catalog
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony parent-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony parent-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony parent").Run()
 	assert.Nil(t, err)
 
-	err = shellcmd.Command("kubectl delete catalogs.federation.symphony child-v-v1").Run()
+	err = shellcmd.Command("kubectl delete catalogs.federation.symphony child-v-version1").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete catalogcontainers.federation.symphony child").Run()
 	assert.Nil(t, err)
 }
 
+func IsTestInAzure() bool {
+	// Check if the environment variable is set to "true" (case-insensitive)
+	return strings.EqualFold(os.Getenv("AZURE_TEST"), "true")
+}
+
 func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_01_WithoutEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
-	assert.NotNil(t, err, "diagnostic creation without edge location should fail")
+	if IsTestInAzure() {
+		assert.Contains(t, string(output), "metadata.annotations.management.azure.com/customLocation: Required value: Azure Edge Location is required")
+		assert.NotNil(t, err, "diagnostic creation without edge location should fail")
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_02_WithCorrectEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "created")
-	assert.Nil(t, err, "diagnostic creation with correct edge location should pass")
+		output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_02_WithCorrectEdgeLocation)).CombinedOutput()
+		assert.Contains(t, string(output), "created")
+		assert.Nil(t, err, "diagnostic creation with correct edge location should pass")
+	} else {
+		assert.Contains(t, string(output), "created")
+		assert.Nil(t, err, "diagnostic creation without edge location should pass")
+	}
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithConflictEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
-	assert.NotNil(t, err, "diagnostic creation with conflict edge location should fail")
+	output, err = exec.Command("kubectl", "create", "ns", "default2").CombinedOutput()
+	// ignore error if ns already exists
+	if err != nil {
+		assert.Contains(t, string(output), "already exists")
+	} else {
+		assert.Nil(t, err)
+	}
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithAnotherNS)).CombinedOutput()
+	assert.Contains(t, string(output), "resource already exists in this cluster")
+	assert.NotNil(t, err, "diagnostic creation with another namespace should fail")
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithAnotherName)).CombinedOutput()
+	assert.Contains(t, string(output), "resource already exists in this cluster")
+	assert.NotNil(t, err, "diagnostic creation with name should fail")
 
 	err = shellcmd.Command("kubectl delete diagnostics.monitor.symphony default").Run()
 	assert.Nil(t, err)
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithConflictEdgeLocation)).CombinedOutput()
-	assert.Contains(t, string(output), "created")
-	assert.Nil(t, err, "diagnostic creation with conflict edge location should pass after deletion")
-
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithCorrectEdgeLocation2)).CombinedOutput()
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_04_WithAnotherName)).CombinedOutput()
 	assert.Contains(t, string(output), "created")
 	assert.Nil(t, err)
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_05_UpdateEdgeLocationConflict)).CombinedOutput()
-	assert.Contains(t, string(output), "Diagnostic resource already exists for edge location")
-	assert.NotNil(t, err, "diagnostic update with conflict edge location should fail")
+	err = shellcmd.Command("kubectl delete diagnostics.monitor.symphony default2").Run()
+	assert.Nil(t, err)
 
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_06_UpdateOtherAnnotationsOnEdgeLocation2)).CombinedOutput()
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_03_WithAnotherNS)).CombinedOutput()
+	assert.Contains(t, string(output), "created")
+	assert.Nil(t, err)
+
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), diagnostic_05_UpdateOtherAnnotations)).CombinedOutput()
 	assert.Contains(t, string(output), "configured")
 	assert.Nil(t, err)
 }
@@ -398,17 +422,16 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	status := history["status"].(map[string]interface{})
 	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
 	assert.Equal(t, "history-instance", spec["rootResource"].(string))
-	assert.Equal(t, "history-solution:v1", spec["solutionId"].(string))
+	assert.Equal(t, "history-solution:version1", spec["solutionId"].(string))
 	assert.Equal(t, "Succeeded", status["status"])
 }
 
 func TestUpdateInstanceHistory(t *testing.T) {
-	t.Skip("Skipping this test since validateUpdate is disabled")
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyCreate))).Run()
 	assert.Nil(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), historyUpdate)).CombinedOutput()
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(string(output), "Cannot update instance history because it is readonly"))
+	assert.True(t, strings.Contains(string(output), "Cannot update instance history spec because it is readonly"))
 }
 
 func getRepoPath() string {

@@ -134,6 +134,7 @@ func TestCreateProcessCreate(t *testing.T) {
 	instance := model.InstanceState{
 		Spec: &model.InstanceSpec{
 			DisplayName: "instance1",
+			Solution:    "sample:version1",
 		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -161,6 +162,7 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 	instance := model.InstanceState{
 		Spec: &model.InstanceSpec{
 			DisplayName: "instance1",
+			Solution:    "sample:version1",
 		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -248,12 +250,12 @@ func TestCreateSolutionCreate(t *testing.T) {
 	}
 	outpts, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "solution",
-		"objectName": "sample:v1",
+		"objectName": "sample:version1",
 		"action":     "create",
 		"object":     solution,
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "sample-v-v1", outpts["objectName"])
+	assert.Equal(t, "sample-v-version1", outpts["objectName"])
 	assert.Equal(t, "solution", outpts["objectType"])
 }
 
@@ -318,7 +320,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				},
 				State: model.SummaryStateDone,
 			}
-		case "/solutions/sample-v-v1":
+		case "/solutions/sample-v-version1":
 			response = nil
 		case "/solutioncontainers/sample":
 			if r.Method == http.MethodGet {

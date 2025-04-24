@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: sample-app
 spec:
-  solution: sample-app:v1
+  solution: sample-app:version1
   target: 
     selector:
       group: group-1

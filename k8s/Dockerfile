@@ -54,7 +54,7 @@ RUN if echo "${BUILD_BASE_IMAGE}" | grep "mariner"; then \
     fi
 
 # Install gofail
-RUN if [ "$FAULT_INJECTION_ENABLED" == "true" ]; then \
+RUN if [ "$FAULT_INJECTION_ENABLED" = "true" ]; then \
     go install go.etcd.io/gofail@latest && \
     find /k8s -type d | while read -r dir; do gofail enable $dir; done && \
     cd /k8s && go get go.etcd.io/gofail/runtime; \

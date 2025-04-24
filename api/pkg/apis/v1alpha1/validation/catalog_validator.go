@@ -14,6 +14,11 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
+var (
+	catalogMaxNameLength = 61
+	catalogMinNameLength = 3
+)
+
 type CatalogValidator struct {
 	// Check Catalog existence
 	CatalogLookupFunc          ObjectLookupFunc
@@ -50,7 +55,7 @@ func (c *CatalogValidator) ValidateCreateOrUpdate(ctx context.Context, newRef in
 
 	if oldRef == nil {
 		// validate create specific fields
-		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource); err != nil {
+		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource, catalogMinNameLength, catalogMaxNameLength); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
@@ -206,7 +211,7 @@ func (c *CatalogValidator) ValidateChildCatalog(ctx context.Context, catalog mod
 	if c.ChildCatalogLookupFunc == nil {
 		return nil
 	}
-	if found, err := c.ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace); err != nil || found {
+	if found, err := c.ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace, string(catalog.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
 			Value:           catalog.ObjectMeta.Name,

@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,14 +44,28 @@ func ConvertAzureTargetReferenceToObjectName(name string) (string, bool) {
 	return r.ReplaceAllString(name, "$4"), true
 }
 
+func GetInstanceName(solutionContainerName, objectName string) string {
+
+	return fmt.Sprintf("%s-v-%s", solutionContainerName, objectName)
+}
+
 func GetInstanceTargetName(name string) string {
 	parts := strings.Split(name, "/")
-	if len(parts) < 3 {
-		return ""
+	if len(parts) < 2 {
+		return name
 	}
-	version := parts[len(parts)-1]
-	solution := parts[len(parts)-3]
-	return fmt.Sprintf("%s:%s", solution, version)
+	return parts[len(parts)-1]
+}
+
+func GetSolutionAndContainerName(name string) (string, string) {
+	parts := strings.Split(name, "/")
+	if len(parts) < 5 {
+
+		return "", ""
+
+	}
+	container := fmt.Sprintf("%s-v-%s", parts[len(parts)-5], parts[len(parts)-3])
+	return container, parts[len(parts)-1]
 }
 
 func GetInstanceRootResource(name string) string {
@@ -61,7 +76,26 @@ func GetInstanceRootResource(name string) string {
 	return parts[len(parts)-3]
 }
 
-func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, instanceState model.InstanceState, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GenerateOperationId() string {
+	return uuid.New().String()
+}
+
+func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+	sc, err := apiClient.GetSolutionContainer(ctx, solutionContainer, objectNamespace, user, pwd)
+	if err != nil {
+		return nil, err
+	}
+	return []metav1.OwnerReference{
+		{
+			APIVersion: fmt.Sprintf("%s/%s", model.SolutionGroup, "v1"),
+			Kind:       "SolutionContainer",
+			Name:       sc.ObjectMeta.Name,
+			UID:        sc.ObjectMeta.UID,
+		},
+	}, nil
+}
+
+func GetInstanceOwnerReferencesV1(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, instanceState model.InstanceState, user string, pwd string) ([]metav1.OwnerReference, error) {
 	parts := strings.Split(instanceState.Spec.Solution, constants.ReferenceSeparator)
 	if len(parts) != 2 {
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
@@ -96,9 +130,9 @@ func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Contex
 	}, nil
 }
 
-func GenerateSystemDataAnnotationsForInstanceHistory(annotations map[string]string, solutionId string) map[string]string {
-	log.Infof("Azure: check if annotation need to be added: %v", annotations)
-	if isPrivateResourceProvider(solutionId) {
+func GenerateSystemDataAnnotations(ctx context.Context, annotations map[string]string, resourceId string) map[string]string {
+	log.InfofCtx(ctx, "Azure: check if annotation need to be added: %v", annotations)
+	if isPrivateResourceProvider(resourceId) {
 		annotations[constants.AzureSystemDataKey] = `{"clientLocation":"eastus2euap"}`
 	}
 	return annotations
@@ -111,11 +145,11 @@ func isPrivateResourceProvider(resourceId string) bool {
 }
 
 func ConvertReferenceToObjectNameHelper(name string) string {
+	// deal with Azure pattern
 	if strings.Contains(name, constants.ReferenceSeparator) {
 		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
 		return name
 	}
-	// deal with Azure pattern
 	if n, ok := ConvertAzureSolutionVersionReferenceToObjectName(name); ok {
 		return n
 	}
