@@ -17,6 +17,25 @@ spec:
       labels:
         control-plane: '{{ include "symphony.name" . }}-controller-manager'
     spec:
+      initContainers:
+      - name: wait-api
+        image: mcr.microsoft.com/oss/kubernetes/kubectl:v1.25.10
+        command:
+        - /bin/bash
+        - -c
+        - |-       
+          {{- .Files.Get "files/oss/wait-api.sh" | nindent 12 }}
+        env:
+        - name: TIMEOUT
+          value: "300"
+        - name: SYMPHONY_API_IMAGE
+          value: {{ .Values.paiImage.repository }}:{{ .Values.paiImage.tag }}
+        - name: SYMPHONY_API_NAMESPACE
+          value: {{ .Release.Namespace }}
+        securityContext:
+          runAsUser: 1000 # Explicitly set a non-root user ID
+          runAsGroup: 1000 # Explicitly set a non-root group ID
+          allowPrivilegeEscalation: false
       containers:
       - args:
         - --health-probe-bind-address=:8081

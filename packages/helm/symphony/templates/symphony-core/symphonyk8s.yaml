@@ -2492,6 +2492,12 @@ metadata:
   creationTimestamp: null
   name: '{{ include "symphony.fullname" . }}-manager-role'
 rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "watch", "list"]
 - apiGroups:
   - ai.symphony
   resources:
