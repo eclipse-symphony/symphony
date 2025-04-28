@@ -10,19 +10,21 @@ echo "Waiting for Symphony API deployment to be ready, image name: $SYMPHONY_API
 end=$((SECONDS + TIMEOUT))
 
 while [ $SECONDS -lt $end ]; do
-    if kubectl get deployment symphony-api -n $SYMPHONY_API_NAMESPACE -o jsonpath='{.spec.template.spec.containers[?(@.name=="symphony-api")].image}' | grep -q "$SYMPHONY_API_IMAGE"; then
+    # Tolerate non-zero exit code for kubectl get command
+    if kubectl get deployment symphony-api -n $SYMPHONY_API_NAMESPACE -o jsonpath='{.spec.template.spec.containers[?(@.name=="symphony-api")].image}' 2>/dev/null | grep -q "$SYMPHONY_API_IMAGE"; then
         echo "Fetching image name $SYMPHONY_API_IMAGE found."
-        # check if the deployment is in a ready state
-        if kubectl rollout status deployment/symphony-api -n $SYMPHONY_API_NAMESPACE -w --timeout=5s | grep -q "successfully rolled out"; then
+        # Check if the deployment is in a ready state
+        if kubectl rollout status deployment/symphony-api -n $SYMPHONY_API_NAMESPACE -w --timeout=5s 2>/dev/null | grep -q "successfully rolled out"; then
             echo "Deployment symphony-api is ready."
             exit 0
         else
             echo "Deployment symphony-api is not ready yet, retrying..."
             sleep 5
         fi
+    else
+        echo "symphony-api deployment with container image name $SYMPHONY_API_IMAGE not found, retrying..."
+        sleep 5
     fi
-  echo "symphony-api deployment with container image name $SYMPHONY_API_IMAGE not found, retrying..."
-  sleep 5
 done
 
 echo "Cannot wait for Symphony API deployment to be ready, image name: $SYMPHONY_API_IMAGE. Still exit with 0 and not interrupt the normal deployment."
