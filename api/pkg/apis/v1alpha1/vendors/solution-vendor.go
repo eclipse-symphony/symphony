@@ -175,7 +175,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		if delete == "true" {
 			action = v1alpha2.JobDelete
 		}
-		c.Vendor.Context.Publish("job", v1alpha2.Event{
+		err := c.Vendor.Context.Publish("job", v1alpha2.Event{
 			Metadata: map[string]string{
 				"objectType": objectType,
 				"namespace":  namespace,
@@ -188,11 +188,20 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 			},
 			Context: ctx,
 		})
-		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-			State:       v1alpha2.OK,
-			Body:        []byte("{\"result\":\"200 - instance reconcilation job accepted\"}"),
-			ContentType: "application/json",
-		})
+		if err != nil {
+			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - 500 publish job event failed with %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte("{\"result\":\"500 - publish job event failed\"}"),
+				ContentType: "application/json",
+			})
+		} else {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.OK,
+				Body:        []byte("{\"result\":\"200 - instance reconcilation job accepted\"}"),
+				ContentType: "application/json",
+			})
+		}
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onQueue-DELETE", rContext, nil)
 		defer span.End()
