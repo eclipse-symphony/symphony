@@ -191,16 +191,12 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				return
 			}
 			if issuer == SymphonyIssuer {
-<<<<<<< HEAD
 				if j.DisableUserCreds == true {
 					log.Infof("JWT: Token with username plus pwd is not allowed.")
 					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 					return
 				}
 				log.Debugf("JWT: Validating token with username plus pwd.")
-=======
-				log.DebugfCtx(ctx, "JWT: Validating token with username plus pwd.")
->>>>>>> 37d0dd07 (CA change; also update the bootstrap sample certs (#706))
 				_, roles, err := j.validateToken(tokenStr)
 				if err != nil {
 					log.ErrorCtx(ctx, "JWT: Validate token with user creds failed. %s", err.Error())

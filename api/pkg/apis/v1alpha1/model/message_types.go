@@ -35,6 +35,7 @@ type PlanEnvelope struct {
 	Remove               bool                           `json:"remove"`
 	Namespace            string                         `json:"namespace"`
 	PlanId               string                         `json:"planId"`
+	PlanName             string                         `json:"planName"`
 	Generation           string                         `json:"generation"` // deployment version
 	Hash                 string                         `json:"hash"`
 	Phase                JobPhase                       `json:"phase"`
@@ -45,6 +46,7 @@ type StepResult struct {
 	Step             DeploymentStep                 `json:"step"`
 	TargetResultSpec TargetResultSpec               `json:"targetResult"`
 	PlanId           string                         `json:"planId"`
+	PlanName         string                         `json:"planName"`
 	StepId           int                            `json:"stepId"`
 	Timestamp        time.Time                      `json:"timestamp"`
 	GetResult        []ComponentSpec                `json:"getResult"`  // for get result
@@ -63,6 +65,7 @@ type StepEnvelope struct {
 type OperationBody struct {
 	StepId    int      `json:"stepId"`
 	PlanId    string   `json:"planId"`
+	PlanName  string   `json:"planName"`
 	Target    string   `json:"Target"`
 	Action    JobPhase `json:"action"`
 	NameSpace string   `json:"Namespace"`
@@ -105,6 +108,7 @@ type ProviderApplyRequest struct {
 
 type PlanState struct {
 	PlanId               string `json:"planId"`
+	PlanName             string `json:"planName"`
 	Phase                JobPhase
 	CompletedSteps       int                            `json:"completedSteps"`
 	Status               string                         `json:"status"`
