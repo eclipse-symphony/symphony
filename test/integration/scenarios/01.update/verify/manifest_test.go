@@ -79,21 +79,21 @@ var (
 			Name:                "Update Symphony Target to add redis",
 			Target:              "target",
 			ComponentsToAdd:     []string{"nginx-ingress", "redis"},
-			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-target01"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
 			Name:                "Update Symphony Solution to add bitnami nginx",
 			Target:              "solution",
 			ComponentsToAdd:     []string{"bitnami-nginx"},
-			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "nginx"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-target01", "nginx"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
 			Name:                "Update Symphony Solution to remove bitnami nginx and add prometheus",
 			Target:              "solution",
 			ComponentsToAdd:     []string{"prometheus-server"},
-			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-self", "instance"},
+			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-target01", "instance"},
 			DeletedPodsToVerify: []string{"nginx"},
 		},
 		{
@@ -101,7 +101,7 @@ var (
 			Target:              "target",
 			ComponentsToAdd:     []string{},
 			PodsToVerify:        []string{},
-			DeletedPodsToVerify: []string{"proxy-nginx-ingress-controller", "target-runtime-self"},
+			DeletedPodsToVerify: []string{"proxy-nginx-ingress-controller", "target-runtime-target01"},
 		},
 	}
 )
