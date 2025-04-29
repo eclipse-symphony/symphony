@@ -21,6 +21,7 @@ type BackgroundJobVendor struct {
 	// Add a new manager if you want to add another background job
 	ActivationsCleanerManager *activations.ActivationsCleanupManager
 	SummaryCleanupManager     *solution.SummaryCleanupManager
+	ResourceCountManager      *solution.ResourceCountManager
 }
 
 func (s *BackgroundJobVendor) GetInfo() vendors.VendorInfo {
@@ -45,6 +46,8 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 			s.ActivationsCleanerManager = c
 		} else if c, ok := m.(*solution.SummaryCleanupManager); ok {
 			s.SummaryCleanupManager = c
+		} else if c, ok := m.(*solution.ResourceCountManager); ok {
+			s.ResourceCountManager = c
 		}
 		// Load a new manager if you want to add another background job
 	}
@@ -57,6 +60,11 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 		log.Info("SummaryCleanupManager is enabled")
 	} else {
 		log.Info("SummaryCleanupManager is disabled")
+	}
+	if s.ResourceCountManager != nil {
+		log.Info("ResourceCountManager is enabled")
+	} else {
+		log.Info("ResourceCountManager is disabled")
 	}
 	return nil
 }
