@@ -76,13 +76,13 @@ type HistoryList struct {
 }
 
 func TestPrepare(t *testing.T) {
-	err := testhelpers.ReplacePlaceHolderInManifest(testSolution, "01")
+	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "01")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(testSolutionContainer, "01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionContainer), "01")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(testTarget, "01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "01")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(testInstance, "01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "01")
 	assert.Nil(t, err)
 	if testhelpers.IsTestInAzure() {
 		solutionContainerFullName = "target01-v-solution01"
