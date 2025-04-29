@@ -129,8 +129,7 @@ func isProcessRunning(pid int) bool {
 
 func IsTestInAzure() bool {
 	// Check if the environment variable is set to "true" (case-insensitive)
-	//return strings.EqualFold(os.Getenv("AZURE_TEST"), "true")
-	return true
+	return strings.EqualFold(os.Getenv("AZURE_TEST"), "true")
 }
 
 func WriteYamlStringsToFile(yamlString string, filePath string) error {
