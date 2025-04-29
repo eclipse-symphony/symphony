@@ -279,7 +279,7 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME")
 	} else {
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:version1")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:SOLUTIONNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "TARGETNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "INSTANCENAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
@@ -289,7 +289,7 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 	stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
 	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"version1")
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", "version1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
 	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 
