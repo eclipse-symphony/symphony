@@ -19,7 +19,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 )
 
 type ResourceCountManager struct {
@@ -27,7 +26,6 @@ type ResourceCountManager struct {
 	targets.TargetsManager
 	instances.InstancesManager
 	solutioncontainers.SolutionContainersManager
-	StateProvider states.IStateProvider
 }
 
 func (s *ResourceCountManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {

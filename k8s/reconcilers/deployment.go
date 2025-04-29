@@ -539,8 +539,8 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 		}
 		latencySeconds := int(latency.Seconds())
 		diagnostic.InfoWithCtx(log, ctx, fmt.Sprintf(
-			"Operation reached final status: status=%s, latency=%d seconds, startTime=%d, endTime=%d",
-			status, latencySeconds, startTime.Unix(), endTime.Unix(),
+			"Operation reached final status: status=%s, latency=%d seconds, startTime=%s, endTime=%s",
+			status, latencySeconds, startTime, endTime,
 		))
 	}
 
