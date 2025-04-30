@@ -10,6 +10,6 @@
 package rust
 
 /*
-  #cgo LDFLAGS: -L./target/x86_64-pc-windows-gnu/release -lrust_binding -lm -lpthread -lws2_32 -ladvapi32 -lbcrypt -luserenv
+  #cgo LDFLAGS: -L./target/x86_64-pc-windows-gnu/release -lsymphony -lm -lpthread -lws2_32 -ladvapi32 -lbcrypt -luserenv
 */
 import "C"

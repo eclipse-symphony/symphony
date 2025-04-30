@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     gcc g++ make curl wget git \
     libssl-dev pkg-config \
     ca-certificates \
-    build-essential \
+    build-essential protobuf-compiler \
     binutils \
     libc6-dev \
     zlib1g-dev \

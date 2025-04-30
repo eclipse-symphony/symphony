@@ -34,7 +34,7 @@ RUN if [ "$BUILDFLAG" != "azure" ]; then \
     apt-get update && apt-get install -y \
     gcc g++ make curl wget git cargo \
     gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
-    libssl-dev pkg-config \
+    libssl-dev pkg-config protobuf-compiler \
     && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz; \
@@ -50,6 +50,7 @@ RUN if [ "$BUILDFLAG" != "azure" ]; then \
 ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 ENV PATH=/root/.cargo/bin:$PATH
+ENV PROTOC=/usr/bin/protoc
 
 # Build the Rust component
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
