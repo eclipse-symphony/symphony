@@ -4,6 +4,6 @@
 package rust
 
 /*
-#cgo LDFLAGS: -L./target/x86_64-apple-darwin/release -lrust_binding -lm -ldl -lpthread
+#cgo LDFLAGS: -L./target/x86_64-apple-darwin/release -lsymphony -lm -ldl -lpthread
 */
 import "C"

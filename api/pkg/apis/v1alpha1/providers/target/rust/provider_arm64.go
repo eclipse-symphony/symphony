@@ -10,6 +10,6 @@
 package rust
 
 /*
- #cgo LDFLAGS: -L./target/aarch64-unknown-linux-gnu/release -lrust_binding -lm -ldl -lpthread
+ #cgo LDFLAGS: -L./target/aarch64-unknown-linux-gnu/release -lsymphony -lm -ldl -lpthread
 */
 import "C"
