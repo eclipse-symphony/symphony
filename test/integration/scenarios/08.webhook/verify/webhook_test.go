@@ -76,13 +76,13 @@ type HistoryList struct {
 }
 
 func TestPrepare(t *testing.T) {
-	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "01")
+	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "target01", "solution01", "version1", "instance01")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionContainer), "01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionContainer), "target01", "solution01", "version1", "instance01")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "target01", "solution01", "version1", "instance01")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "target01", "solution01", "version1", "instance01")
 	assert.Nil(t, err)
 	if testhelpers.IsTestInAzure() {
 		solutionContainerFullName = "target01-v-solution01"
@@ -115,8 +115,8 @@ func TestInstanceWithoutTarget(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testInstance)).CombinedOutput()
 	assert.Contains(t, string(output), "target does not exist")
 	assert.NotNil(t, err, "instance creation without target should fail")
-	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", targetName).CombinedOutput()
-	assert.Contains(t, string(output), "nested resources with root resource '"+targetName+"' are not empty")
+	output, err = exec.Command("kubectl", "delete", "solutioncontainers.solution.symphony", solutionContainerFullName).CombinedOutput()
+	assert.Contains(t, string(output), "nested resources with root resource '"+solutionContainerFullName+"' are not empty")
 	assert.NotNil(t, err, "solution container deletion with solution should fail")
 	err = shellcmd.Command("kubectl delete solutions.solution.symphony " + solutionFullName).Run()
 	assert.Nil(t, err)
@@ -422,7 +422,13 @@ func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 }
 
 func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
-	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyTarget))).Run()
+	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyTarget), "history-target", "history-solution", "version1", "history-instance")
+	assert.Nil(t, err)
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historySolution), "history-target", "history-solution", "version1", "history-instance")
+	assert.Nil(t, err)
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyInstance), "history-target", "history-solution", "version1", "history-instance")
+	assert.Nil(t, err)
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyTarget))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolution))).Run()
 	assert.Nil(t, err)
@@ -444,6 +450,10 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 		time.Sleep(5 * time.Second)
 	}
 
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historySolutionUpdate), "history-target", "history-solution", "version2", "history-instance")
+	assert.Nil(t, err)
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyInstanceUpdate), "history-target", "history-solution", "version2", "history-instance")
+	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolutionUpdate))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstanceUpdate))).Run()

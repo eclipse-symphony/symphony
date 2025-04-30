@@ -147,7 +147,7 @@ func WriteYamlStringsToFile(yamlString string, filePath string) error {
 	return nil
 }
 
-func ReplacePlaceHolderInManifest(manifest string, suffix string) error {
+func ReplacePlaceHolderInManifest(manifest string, targetName string, solutionContainerName string, solutionName string, instanceName string) error {
 	fullPath, err := filepath.Abs(manifest)
 	if err != nil {
 		return err
@@ -165,16 +165,16 @@ func ReplacePlaceHolderInManifest(manifest string, suffix string) error {
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME")
 	} else {
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", "solution"+suffix+":version1")
+		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", "SOLUTIONCONTAINERNAME:SOLUTIONNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "TARGETNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "INSTANCENAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "SOLUTIONCONTAINERNAME")
 	}
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", "solution"+suffix)
-	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", "instance"+suffix)
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", "target"+suffix)
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", "version1")
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", solutionContainerName)
+	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", instanceName)
+	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", targetName)
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", solutionName)
 
 	err = WriteYamlStringsToFile(stringYaml, fullPath)
 	return err

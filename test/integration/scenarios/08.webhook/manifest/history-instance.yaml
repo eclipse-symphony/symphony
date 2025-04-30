@@ -1,11 +1,11 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: history-instance
+  name: INSTANCEFULLNAME
 spec:
-  solution: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1
+  solution: SOLUTIONREFNAME
   target: 
-    name: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target
+    name: TARGETREFNAME
   reconciliationPolicy:
     interval: 60m
     state: active
