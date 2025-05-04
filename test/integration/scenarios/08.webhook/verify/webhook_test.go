@@ -435,13 +435,17 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyInstance))).Run()
 	assert.Nil(t, err)
 
+	instanceName := "history-instance"
+	if testhelpers.IsTestInAzure() {
+		instanceName = "history-target-v-history-solution-v-history-instance"
+	}
 	// wait until instance deployed
 	for {
-		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", "history-instance", "-o", "jsonpath={.status.status}").CombinedOutput()
+		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", instanceName, "-o", "jsonpath={.status.status}").CombinedOutput()
 		if err != nil {
-			assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+			assert.Fail(t, "failed to get instance %s state: %s", instanceName, err.Error())
 		}
-		err = shellcmd.Command("kubectl get instances.solution.symphony history-instance").Run()
+		err = shellcmd.Command("kubectl get instances.solution.symphony " + instanceName).Run()
 		assert.Nil(t, err)
 		status := string(output)
 		if status == "Succeeded" {
@@ -462,7 +466,7 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	// check instance history result
 	output, err := exec.Command("kubectl", "get", "instancehistory", "-o", "json").CombinedOutput()
 	if err != nil {
-		assert.Fail(t, "failed to get instance %s state: %s", "history-instance", err.Error())
+		assert.Fail(t, "failed to get instance %s state: %s", instanceName, err.Error())
 	}
 
 	var historyList HistoryList
@@ -476,9 +480,13 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	metadata := history["metadata"].(map[string]interface{})
 	spec := history["spec"].(map[string]interface{})
 	status := history["status"].(map[string]interface{})
-	assert.True(t, strings.HasPrefix(metadata["name"].(string), "history-instance-v-"))
-	assert.Equal(t, "history-instance", spec["rootResource"].(string))
-	assert.Equal(t, "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1", spec["solutionId"].(string))
+	assert.True(t, strings.HasPrefix(metadata["name"].(string), instanceName+"-v-"))
+	assert.Equal(t, instanceName, spec["rootResource"].(string))
+	solutionRef := "history-solution:version1"
+	if testhelpers.IsTestInAzure() {
+		solutionRef = "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1"
+	}
+	assert.Equal(t, solutionRef, spec["solutionId"].(string))
 	assert.Equal(t, "Succeeded", status["status"])
 }
 
