@@ -76,13 +76,13 @@ type HistoryList struct {
 }
 
 func TestPrepare(t *testing.T) {
-	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "target01", "solution01", "version1", "instance01")
+	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionContainer), "target01", "solution01", "version1", "instance01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionContainer), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "target01", "solution01", "version1", "instance01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "target01", "solution01", "version1", "instance01")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
 	if testhelpers.IsTestInAzure() {
 		solutionContainerFullName = "target01-v-solution01"
@@ -422,11 +422,11 @@ func TestDiagnosticWithoutEdgeLocation(t *testing.T) {
 }
 
 func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
-	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyTarget), "history-target", "history-solution", "version1", "history-instance")
+	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyTarget), "history-target", "history-solution", "version1", "history-instance", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historySolution), "history-target", "history-solution", "version1", "history-instance")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historySolution), "history-target", "history-solution", "version1", "history-instance", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyInstance), "history-target", "history-solution", "version1", "history-instance")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyInstance), "history-target", "history-solution", "version1", "history-instance", "")
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historyTarget))).Run()
 	assert.Nil(t, err)
@@ -454,9 +454,9 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 		time.Sleep(5 * time.Second)
 	}
 
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historySolutionUpdate), "history-target", "history-solution", "version2", "history-instance")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historySolutionUpdate), "history-target", "history-solution", "version2", "history-instance", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyInstanceUpdate), "history-target", "history-solution", "version2", "history-instance")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), historyInstanceUpdate), "history-target", "history-solution", "version2", "history-instance", "")
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), historySolutionUpdate))).Run()
 	assert.Nil(t, err)

@@ -125,7 +125,7 @@ func Scenario_Update(t *testing.T, namespace string) {
 	for _, manifest := range manifestTemplates {
 		fullPath, err := filepath.Abs(manifest)
 		require.NoError(t, err)
-		err = testhelpers.ReplacePlaceHolderInManifest(fullPath, "target01", "solution01", "version1", "instance01")
+		err = testhelpers.ReplacePlaceHolderInManifest(fullPath, "target01", "solution01", "version1", "instance01", "")
 		require.NoError(t, err)
 		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
 		require.NoError(t, err)
