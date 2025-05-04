@@ -145,21 +145,23 @@ func createActivationResource(file string, nameLength int, special bool, campaig
 	return resourceName, output, err
 }
 
-func createInstanceResource(file string, nameLength int, special bool, solutionContainerName string, solutionName string, targetName string) (string, []byte, error) {
-	// read the manifest
-	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
-	if err != nil {
-		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
-	}
-	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	resourceName := generateRandomName(nameLength, special) // Generate a random name with length character
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_TARGET}", targetName))
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_SOLUTIONCONTAINER}", solutionName))
+// func createInstanceResource(file string, nameLength int, special bool, solutionContainerName string, solutionName string, targetName string) (string, []byte, error) {
+// 	// read the manifest
+// 	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
+// 	if err != nil {
+// 		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
+// 	}
+// 	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
+// 	resourceName := generateRandomName(nameLength, special) // Generate a random name with length character
+// 	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
+// 	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_TARGET}", targetName))
+// 	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_SOLUTIONCONTAINER}", solutionContainerName))
+// 	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_SOLUTION}", solutionName))
+// 	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_INSTANCE}", resourceName))
 
-	output, err := applyManifest(manifest)
-	return resourceName, output, err
-}
+// 	output, err := applyManifest(manifest)
+// 	return resourceName, output, err
+// }
 
 func TestLongResourceName(t *testing.T) {
 	targetName := generateRandomName(longLength, false) // Generate a random name with length characters
@@ -168,13 +170,13 @@ func TestLongResourceName(t *testing.T) {
 	instanceName := generateRandomName(longLength, false)
 	historyName := generateRandomName(longLength, false)
 	// create target
-	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(target, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), target), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err := applyManifest([]byte(targetManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
-	sollutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(solutionContainer, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	sollutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solutionContainer), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(sollutionContainerManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
@@ -182,21 +184,21 @@ func TestLongResourceName(t *testing.T) {
 	assert.True(t, strings.Contains(outputString, "name length"))
 
 	// do the same for the solution manifest
-	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(solution, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solution), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(solutionManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the instance manifest
-	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(instance, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instance), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(instanceManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the instance history manifest
-	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(instanceHistory, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instanceHistory), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(historyManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
@@ -242,29 +244,29 @@ func TestForShortResourceName(t *testing.T) {
 	instanceName := generateRandomName(shortLength, false)
 	historyName := generateRandomName(shortLength, false)
 	// create target
-	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(target, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), target), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err := applyManifest([]byte(targetManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(solutionContainer, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	solutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solutionContainerName), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(solutionContainerManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the solution manifest
-	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(solution, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solution), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(solutionManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the instance manifest
-	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(instance, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instance), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(instanceManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the instance history manifest
-	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(instanceHistory, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instanceHistory), targetName, solutionContainerName, solutionName, instanceName, historyName)
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(historyManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
