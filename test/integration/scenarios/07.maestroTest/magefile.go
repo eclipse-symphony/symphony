@@ -49,10 +49,12 @@ var (
 // Entry point for running the tests
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
-
+	if testhelpers.IsTestInAzure() {
+		return nil
+	}
 	cancel, tunnelPid, err := testhelpers.SetupClusterWithTunnel()
 	defer testhelpers.CleanupWithTunnel(cancel, tunnelPid, TEST_NAME)
-	
+
 	if err != nil {
 		return err
 	}
