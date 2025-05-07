@@ -30,7 +30,6 @@ WORKDIR /workspace/api
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 ARG BUILD_BASE_IMAGE
 
-RUN echo "BUILD_BASE_IMAGE is: $BUILD_BASE_IMAGE"
 # Install necessary build tools, cross-compilers, and Go
 RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     apt-get update && apt-get install -y \
@@ -41,8 +40,6 @@ RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz; \
 fi
-
-RUN ls -l /usr/local/go/bin && /usr/local/go/bin/go version
 
 # Install Rust and rustup, overriding any existing Rust installation
 RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
