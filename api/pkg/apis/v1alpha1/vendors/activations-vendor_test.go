@@ -30,6 +30,9 @@ func createActivationsVendor() ActivationsVendor {
 	vendor := ActivationsVendor{
 		ActivationsManager: &manager,
 	}
+	vendor.Config.Properties = map[string]string{
+		"useJobManager": "true",
+	}
 	return vendor
 }
 func TestActivationsEndpoints(t *testing.T) {
