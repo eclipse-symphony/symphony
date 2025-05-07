@@ -210,50 +210,32 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 
 func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2.EventHandler) {
 	for {
-		i.pollNewMessages(topic, handler)
-		time.Sleep(ClaimMessageInterval)
-	}
-}
-
-func (i *RedisPubSubProvider) pollNewMessages(topic string, handler v1alpha2.EventHandler) {
-	// If worker is claimed but not started, release it in defer function
-	claimWorker := false
-	workerStarted := false
-	defer func() {
-		if claimWorker && !workerStarted {
-			i.ReleaseWorker(topic)
-		}
-	}()
-
-	for {
 		// DO NOT REMOVE THIS COMMENT
 		// gofail: var PollNewMessagesLoop string
-		if i.Ctx.Err() != nil {
-			return
-		}
-		claimWorker = false
-		workerStarted = false
-
 		streams, err := i.Client.XReadGroup(i.Ctx, &redis.XReadGroupArgs{
 			Group:    handler.Group,
 			Consumer: i.Config.ConsumerID,
 			Streams:  []string{topic, ">"},
 			Count:    1,
-			Block:    20 * time.Second,
 		}).Result()
-		if err != nil {
+		if err != nil && !errors.Is(err, redis.Nil) {
+			// Something wrong with redis server
 			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to read message %v", err)
+			time.Sleep(ClaimMessageInterval)
+			continue
+		} else if errors.Is(err, redis.Nil) {
+			// No new messages. Since block parameter is not set, this branch is not expected.
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no new messages for topic %s", topic)
 			continue
 		}
 		if len(streams) == 1 && len(streams[0].Messages) == 1 {
-			if claimWorker = i.WaitForIdleWorkers(streams[0].Messages[0].ID, time.Second); !claimWorker {
+			if claimWorker := i.WaitForIdleWorkers(streams[0].Messages[0].ID, time.Second); !claimWorker {
 				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no idle workers, abort current pollNewMessages %s for topic %s and group %s", streams[0].Messages[0].ID, topic, handler.Group)
-				return
+				time.Sleep(ClaimMessageInterval)
+				continue
 			}
-			workerStarted = false
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : new message for topic %s, group %s, messages %s", topic, handler.Group, streams[0].Messages[0].ID)
 			go i.processMessage(topic, handler, &streams[0].Messages[0])
-			workerStarted = true
 		}
 		mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processed pollnewmessages for topic %s", topic)
 	}
