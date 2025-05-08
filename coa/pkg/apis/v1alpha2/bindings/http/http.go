@@ -48,6 +48,7 @@ type HttpBinding struct {
 	CertProvider certs.ICertProvider
 	server       *fasthttp.Server
 	pipeline     Pipeline
+	errChan      chan error
 }
 
 // Launch fasthttp server
@@ -59,6 +60,9 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	if err != nil {
 		return err
 	}
+
+	// Initialize error channel for the server goroutine
+	h.errChan = make(chan error, 1)
 
 	if config.TLS {
 		switch config.CertProvider.Type {
@@ -80,22 +84,59 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	}
 
 	go func() {
+		var serverErr error
 		if config.TLS {
-			cert, key, _ := h.CertProvider.GetCert("localhost") //TODO: user proper host/DNS name
-			h.server.ListenAndServeTLSEmbed(fmt.Sprintf(":%d", config.Port), cert, key)
+			cert, key, err := h.CertProvider.GetCert("localhost") //TODO: user proper host/DNS name
+			if err != nil {
+				h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("error getting TLS certificates: %w", err), v1alpha2.BadConfig)
+				return
+			}
+			serverErr = h.server.ListenAndServeTLSEmbed(fmt.Sprintf(":%d", config.Port), cert, key)
 		} else {
-			h.server.ListenAndServe(fmt.Sprintf(":%d", config.Port))
+			serverErr = h.server.ListenAndServe(fmt.Sprintf(":%d", config.Port))
+		}
+		// Send all server errors to the channel
+		// During normal shutdown, serverErr might be nil or a "server closed" type error
+		if serverErr != nil {
+			h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("server error: %w", serverErr), v1alpha2.InternalError)
 		}
 	}()
+
+	// Check for immediate failures (like port already in use)
+	select {
+	case err := <-h.errChan:
+		return err
+	default:
+		// No immediate error, continue
+	}
+
 	return nil
 }
 
 // Shutdown fasthttp server
 func (h *HttpBinding) Shutdown(ctx context.Context) error {
+	// First shutdown the pipeline
 	if err := h.pipeline.Shutdown(ctx); err != nil {
 		return err
 	}
-	return h.server.ShutdownWithContext(ctx)
+
+	// Then shutdown the server
+	err := h.server.ShutdownWithContext(ctx)
+
+	// Wait a moment for any pending errors from the server shutdown to be sent
+	// But use a non-blocking select to avoid deadlock if no errors are sent
+	select {
+	case serverErr := <-h.errChan:
+		// If we already have an error from ShutdownWithContext, prioritize that
+		if err != nil {
+			return err
+		}
+		return serverErr
+	default:
+		// No error in channel
+	}
+
+	return err
 }
 
 func (h *HttpBinding) useRouter(endpoints []v1alpha2.Endpoint) fasthttp.RequestHandler {
