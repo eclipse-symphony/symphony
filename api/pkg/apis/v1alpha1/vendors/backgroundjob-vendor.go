@@ -23,6 +23,8 @@ type BackgroundJobVendor struct {
 	ActivationsCleanerManager    *activations.ActivationsCleanupManager
 	SummaryCleanupManager        *solution.SummaryCleanupManager
 	RemoteTargetSchedulerManager *remoteAgent.RemoteTargetSchedulerManager
+	ResourceCountManager      *solution.ResourceCountManager
+
 }
 
 func (s *BackgroundJobVendor) GetInfo() vendors.VendorInfo {
@@ -47,6 +49,8 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 			s.ActivationsCleanerManager = c
 		} else if c, ok := m.(*solution.SummaryCleanupManager); ok {
 			s.SummaryCleanupManager = c
+		} else if c, ok := m.(*solution.ResourceCountManager); ok {
+			s.ResourceCountManager = c
 		}
 
 		if c, ok := m.(*remoteAgent.RemoteTargetSchedulerManager); ok {
@@ -63,6 +67,11 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 		log.Info("SummaryCleanupManager is enabled")
 	} else {
 		log.Info("SummaryCleanupManager is disabled")
+	}
+	if s.ResourceCountManager != nil {
+		log.Info("ResourceCountManager is enabled")
+	} else {
+		log.Info("ResourceCountManager is disabled")
 	}
 	return nil
 }

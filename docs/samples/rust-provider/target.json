@@ -1,28 +1,19 @@
 {
     "metadata": {
-        "name": "rust-test-target"
+        "name": "ankaios-target"
     },
     "spec": {
-        "forceRedeploy": true,
-        "components": [
-            {
-                "name": "mock",
-                "type": "example_type",
-                "properties": {
-                    "foo": "bar"
-                }
-            }
-        ],
+        "forceRedeploy": true,             
         "topologies": [
             {
                 "bindings": [
                     {
-                        "role": "instance",
+                        "role": "ankaios-worload",
                         "provider": "providers.target.rust",
                         "config": {
                             "name": "rust-lib",
-                            "libFile": "/extensions/libmock.so",
-                            "libHash": "f2342da73ca70aadaa8c0062cac5bbb728631e1f232ce2d76dd53961da62a58d"
+                            "libFile": "/extensions/libankaios.so",
+                            "libHash": "1f2823619bc486c9236b5b4600e521cd5cfe0087d063df66ede16dc3db592933"
                         }
                     }
                 ]
