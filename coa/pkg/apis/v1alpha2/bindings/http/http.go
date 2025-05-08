@@ -88,7 +88,7 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		if config.TLS {
 			cert, key, err := h.CertProvider.GetCert("localhost") //TODO: user proper host/DNS name
 			if err != nil {
-				h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("error getting TLS certificates: %w", err), v1alpha2.BadConfig)
+				h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("error getting TLS certificates: %s", err.Error()), v1alpha2.BadConfig)
 				return
 			}
 			serverErr = h.server.ListenAndServeTLSEmbed(fmt.Sprintf(":%d", config.Port), cert, key)
@@ -98,7 +98,7 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		// Send all server errors to the channel
 		// During normal shutdown, serverErr might be nil or a "server closed" type error
 		if serverErr != nil {
-			h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("server error: %w", serverErr), v1alpha2.InternalError)
+			h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("server error: %s", serverErr.Error()), v1alpha2.InternalError)
 		}
 	}()
 
