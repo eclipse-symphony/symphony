@@ -81,6 +81,10 @@ RUN if [ "$BUILDFLAG" != "azure" ]; then \
     fi; \
     fi
 
+WORKDIR /workspace/remote-agent
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build -o /remote-agent/remote-agent
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=windows GOARCH=amd64 go build -o /remote-agent/remote-agent.exe
+
 WORKDIR /workspace/api
 
 # Install gofail
@@ -90,10 +94,6 @@ RUN if [ "$FAULT_INJECTION_ENABLED" = "true" ]; then \
     find /workspace/coa -type d | while read -r dir; do gofail enable $dir; done && \
     cd /workspace/api && go get go.etcd.io/gofail/runtime; \
 fi
-
-WORKDIR /workspace/remote-agent
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOARCH=amd64 go build -o /remote-agent/remote-agent
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=windows GOARCH=amd64 go build -o /remote-agent/remote-agent.exe
 
 RUN if [ "$TARGETARCH" = "arm" ]; then \
     CC=arm-linux-gnueabihf-gcc \
