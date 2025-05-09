@@ -12,8 +12,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -146,6 +150,17 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 
 	i.Ctx, i.Cancel = context.WithCancel(context.Background())
 
+	// Set up a signal handler
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		// Wait for a termination signal
+		sig := <-signalChan
+		log.Printf("Received signal: %s. Shutting down redis pubsub...", sig)
+		i.Cancel() // Cancel the context
+	}()
+
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
 		Addr:            i.Config.Host,
@@ -212,6 +227,10 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 	for {
 		// DO NOT REMOVE THIS COMMENT
 		// gofail: var PollNewMessagesLoop string
+		if i.Ctx.Err() != nil {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is stopped", topic, handler.Group)
+			return
+		}
 		streams, err := i.Client.XReadGroup(i.Ctx, &redis.XReadGroupArgs{
 			Group:    handler.Group,
 			Consumer: i.Config.ConsumerID,
