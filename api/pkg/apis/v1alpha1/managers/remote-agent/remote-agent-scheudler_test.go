@@ -127,7 +127,7 @@ OMpY47SLwvc=
 				},
 			},
 		},
-		Status: model.DeployableStatus{
+		Status: model.DeployableStatusV2{
 			Properties: map[string]string{
 				"targets.test.test": "{\"version\":\"0.0.0.1\", \"certificateExpiration\":\"2021-09-01T00:00:00Z\"}",
 			},
@@ -173,7 +173,7 @@ OMpY47SLwvc=
 	assert.Equal(t, "secretrotation", action)
 	assert.Equal(t, "dff5df9b7bac5aa5e9a7ff5d78dd4b9ca4792ab6", thumbprint)
 
-	testTarget.Status = model.DeployableStatus{
+	testTarget.Status = model.DeployableStatusV2{
 		Properties: map[string]string{
 			"targets.test.test": "{\"version\":\"0.0.0.2\", \"certificateExpiration\":\"2100-09-01T00:00:00Z\"}",
 		},
