@@ -122,6 +122,7 @@
             "type": "managers.symphony.activations",
             "properties": {
               "providers.persistentstate": "k8s-state",
+              "useJobManager": "true",
               "singleton": "true"
             },
             "providers": {

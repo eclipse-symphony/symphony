@@ -66,9 +66,14 @@ You can also install Symphony using Docker with the bundled `symphony-api.json` 
 docker run -d --name symphony-api -p 8080:8080 -e CONFIG=/symphony-api.json ghcr.io/eclipse-symphony/symphony-api:0.48.28
 ```
 ### Using symphony-api binary
+
+> **NOTE:** When you install maestro, it copies the `symphony-api` binary to your `$HOME/.symphony` folder. Or, you can follow the instructions [here](./docs/symphony-book/build_deployment/build.md) to build the binary yourself.
+
 You can also run Symphony in standalone mode as a single process by running the following command:
 ```Bash
-./symphony-api -c ./symphony-api-dev.json -l Debug
+export USE_SERVICE_ACCOUNT_TOKENS=false
+export SYMPHONY_API_URL=http://localhost:8082/v1alpha2/
+./symphony-api -c ./symphony-api-no-k8s.json -l Debug
 ```
 ## Provider Conformance Test Results
 Symphony is an extensible system with the concept of providers. For each provider types, we define one or multiple conformance test suites that ensure provider implementations behaves consistently and predictably.
@@ -145,6 +150,7 @@ You can always catch up offline by watching the recordings below.
 | 12/11/2024 | [Recording Link](https://www.youtube.com/watch?v=0WEDia5JD-Y)|
 | 01/15/2025 | [Recording Link](https://youtu.be/8b4wc21eOjM)|
 | 02/26/2025 | [Recording Link](https://youtu.be/VAwGlObx0mQ)|
+| 04/23/2025 | [Recording Link](https://youtu.be/NMuvH6VxtNw)|
 
 
 ## Contributing
