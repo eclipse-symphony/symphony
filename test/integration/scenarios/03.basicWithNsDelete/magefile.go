@@ -66,9 +66,6 @@ var (
 // Entry point for running the tests
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
-	if testhelpers.IsTestInAzure() {
-		return nil
-	}
 	defer testhelpers.Cleanup(TEST_NAME)
 
 	err := Setup()

@@ -88,10 +88,6 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	if testhelpers.IsTestInAzure() {
-		return nil
-	}
-
 	defer testhelpers.Cleanup(TEST_NAME)
 
 	err := testhelpers.SetupCluster()
