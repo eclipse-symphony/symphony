@@ -1,0 +1,34 @@
+[
+    {
+        "operationID": "8509de2a-68bc-4dca-a940-26cba91f5cb5",
+        "provider": "remote-agent",
+        "action": "get",
+        "deployment": {
+            "solutionName": "",
+            "solution": {
+                "metadata": {}
+            },
+            "instance": {
+                "metadata": {},
+                "status": {
+                    "provisioningStatus": {
+                        "operationId": "",
+                        "status": "",
+                        "error": {}
+                    },
+                    "lastModified": "0001-01-01T00:00:00Z"
+                }
+            },
+            "targets": null
+        },
+        "references": [
+            {
+                "action": "update",
+                "component": {
+                    "name": "remote-agent",
+                    "type": "remote-agent"
+                }
+            }
+        ]
+    }
+]

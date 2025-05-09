@@ -6,9 +6,13 @@
 
 package queue
 
+import "context"
+
 type IQueueProvider interface {
-	Enqueue(queue string, element interface{}) error
-	Dequeue(queue string) (interface{}, error)
-	Peek(queue string) (interface{}, error)
-	Size(queue string) int
+	Enqueue(context context.Context, queue string, element interface{}) (string, error)
+	Dequeue(context context.Context, queue string) (interface{}, error)
+	Peek(context context.Context, queue string) (interface{}, error)
+	Size(context context.Context, queue string) int
+	RemoveFromQueue(context context.Context, queue string, messageID string) error
+	QueryByPaging(context context.Context, queueName string, start string, size int) ([][]byte, string, error)
 }

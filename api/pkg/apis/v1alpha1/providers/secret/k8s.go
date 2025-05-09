@@ -160,6 +160,8 @@ func (s *K8sSecretProvider) Read(ctx context.Context, name string, field string,
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	jsonData, err := json.Marshal(localContext)
+	sLog.DebugfCtx(ctx, "  P (K8s Secret): read secret %s field %s with context %s", name, field, string(jsonData))
 	namespace := utils.GetNamespaceFromContext(localContext)
 	secret, err := s.Clientset.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {

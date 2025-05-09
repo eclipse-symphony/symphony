@@ -15,7 +15,7 @@ spec:
     constraints: ${{$equal($property(location), 'windows')}}
     type: win.uwp
     properties:
-      app.package.path: "C:\\demo\\ContosoCafeteriaKiosk_1.0.0.0_Debug_Test\\ContosoCafeteriaKiosk_1.0.0.0_x86_x64_Debug.appxbundle"
+      app.package.path: <ContosoCafeteriaKiosk_1.0.3.0_x86_x64_Debug.appxbundle full path>
   - name: nginx-ingress
     constraints: ${{$equal($property(location), 'k8s')}}
     properties:

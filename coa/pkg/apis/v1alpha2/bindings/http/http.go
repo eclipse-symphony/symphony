@@ -8,8 +8,13 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -29,6 +34,10 @@ type MiddlewareConfig struct {
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
 }
+
+var (
+	ClientCAFile = os.Getenv("CLIENT_CA_FILE")
+)
 
 type CertProviderConfig struct {
 	Type   string                    `json:"type"`
@@ -52,7 +61,6 @@ type HttpBinding struct {
 
 // Launch fasthttp server
 func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endpoint, pubsubProvider pubsub.IPubSubProvider) error {
-	handler := h.useRouter(endpoints)
 	var err error
 	h.pipeline, err = BuildPipeline(config, pubsubProvider)
 
@@ -60,12 +68,42 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		return err
 	}
 
+	caCertPool := x509.NewCertPool()
+
 	if config.TLS {
 		switch config.CertProvider.Type {
 		case "certs.autogen":
 			h.CertProvider = &autogen.AutoGenCertProvider{}
 		case "certs.localfile":
 			h.CertProvider = &localfile.LocalCertFileProvider{}
+			localConfig := &localfile.LocalCertFileProviderConfig{}
+			data, err := json.Marshal(config.CertProvider.Config)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to marshall config %+v", err)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to marshall config"), v1alpha2.BadConfig)
+			}
+			err = json.Unmarshal(data, &localConfig)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to unmarshall config %+v", err)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to unmarshall config"), v1alpha2.BadConfig)
+			}
+			certFile, err := os.Open(localConfig.CertFile)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to open certificate file %+v", err)
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to open certificate file %+v", err), v1alpha2.BadConfig)
+			}
+			certData, err := ioutil.ReadAll(certFile)
+			if err != nil {
+				log.Errorf("B (HTTP): failed to read certificate file %+v", err)
+				return v1alpha2.NewCOAError(err, "B (HTTP): failed to read certificate file", v1alpha2.InternalError)
+			}
+			certs, err := h.parseCertificates(certData)
+			if err != nil {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the symphony CA file, %s", localConfig.CertFile), v1alpha2.BadConfig)
+			}
+			for _, cert := range certs {
+				caCertPool.AddCert(cert)
+			}
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("cert provider type '%s' is not recognized", config.CertProvider.Type), v1alpha2.BadConfig)
 		}
@@ -75,8 +113,38 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}
 
+	// Load the PEM file
+	if ClientCAFile != "" {
+		pemData, err := ioutil.ReadFile(ClientCAFile)
+		if err != nil {
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
+		}
+
+		// Parse the certificates
+		certs, err := h.parseCertificates(pemData)
+		if err != nil {
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file, %s", ClientCAFile), v1alpha2.BadConfig)
+		}
+		for _, cert := range certs {
+			caCertPool.AddCert(cert)
+		}
+	}
+	fs := &fasthttp.FS{
+		Root:               "/", // Directory to serve files from
+		IndexNames:         []string{"index.html"},
+		GenerateIndexPages: true, // Default file names to look for
+		Compress:           true, // Generate directory listing if index file is not found
+	}
+	fileServerHandler := fs.NewRequestHandler()
+
+	handler := h.useRouter(endpoints, fileServerHandler)
+
 	h.server = &fasthttp.Server{
 		Handler: h.pipeline.Apply(handler),
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.VerifyClientCertIfGiven,
+			ClientCAs:  caCertPool,
+		},
 	}
 
 	go func() {
@@ -90,6 +158,29 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	return nil
 }
 
+func (h *HttpBinding) parseCertificates(pemData []byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+	var block *pem.Block
+	var rest = pemData
+
+	for {
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, cert)
+	}
+
+	return certs, nil
+}
+
 // Shutdown fasthttp server
 func (h *HttpBinding) Shutdown(ctx context.Context) error {
 	if err := h.pipeline.Shutdown(ctx); err != nil {
@@ -98,11 +189,11 @@ func (h *HttpBinding) Shutdown(ctx context.Context) error {
 	return h.server.ShutdownWithContext(ctx)
 }
 
-func (h *HttpBinding) useRouter(endpoints []v1alpha2.Endpoint) fasthttp.RequestHandler {
-	router := h.getRouter(endpoints)
+func (h *HttpBinding) useRouter(endpoints []v1alpha2.Endpoint, fileHandler fasthttp.RequestHandler) fasthttp.RequestHandler {
+	router := h.getRouter(endpoints, fileHandler)
 	return router.Handler
 }
-func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint) *routing.Router {
+func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint, fileHandler fasthttp.RequestHandler) *routing.Router {
 	router := routing.New()
 	router.SaveMatchedRoutePath = true
 	for _, e := range endpoints {
@@ -114,6 +205,7 @@ func (h *HttpBinding) getRouter(endpoints []v1alpha2.Endpoint) *routing.Router {
 			router.Handle(m, path, wrapAsHTTPHandler(e, e.Handler))
 		}
 	}
+	router.Handle("GET", "/v1alpha2/files/{filepath:*}", fileHandler)
 	return router
 }
 

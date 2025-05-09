@@ -1,0 +1,22 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: remote-demo
+spec:
+  displayName: remote-demo
+  components:
+  - name: remote-agent
+    type: remote-agent
+    properties:
+      description: this is a demo remote agent
+  - name: http
+    type: http
+    properties:
+      http.url: "https://www.bing.com"
+      http.method:   "GET"     
+  topologies:
+  - bindings:
+    - provider: providers.target.script
+      role: script
+    - provider: providers.target.remote-agent
+      role: remote-agent

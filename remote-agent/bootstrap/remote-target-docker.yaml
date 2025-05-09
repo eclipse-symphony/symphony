@@ -1,0 +1,24 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: remote-demo4
+spec:
+  displayName: remote-demo4
+  components:
+  - name: remote-agent
+    type: remote-agent
+    properties:
+      description: this is a demo remote agent
+  - name: docker
+    type: docker
+    properties:
+      container.ports: "[{\"containerPort\":9090,\"protocol\":\"TCP\"}]"
+      container.imagePullPolicy: "Always"
+      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
+      container.image: "prom/prometheus"
+  topologies:
+  - bindings:
+    - provider: providers.target.docker
+      role: docker
+    - provider: providers.target.remote-agent
+      role: remote-agent
