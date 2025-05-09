@@ -121,6 +121,7 @@ type PlanState struct {
 	TotalSteps           int                            `json:"totalSteps"`
 	StepStates           []StepState                    `json:"stepStates"`
 	Steps                []DeploymentStep               `json:"steps"`
+	DefaultScope         string                         `json:"defaultScope,omitempty"`
 }
 
 type ProviderGetValidationRuleRequest struct {
