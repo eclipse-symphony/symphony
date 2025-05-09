@@ -166,6 +166,10 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		deployment.Generation,
 		deployment.JobID)
 	previousDesiredState := s.GetPreviousState(ctx, deployment.Instance.ObjectMeta.Name, namespace)
+	if deployment.IsInActive {
+		log.InfofCtx(ctx, " M (Solution): deployment is not active, remove the deployment")
+		remove = true
+	}
 	// save summary
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
@@ -449,7 +453,7 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 			})
 		}
 	}
-	if summary.PlanState.Deployment.IsDryRun {
+	if summary.PlanState.Deployment.IsDryRun || summary.PlanState.Deployment.IsInActive {
 		summary.SuccessCount = 0
 	}
 	if err := s.concludeSummary(ctx, summary.PlanState.Deployment.Instance.ObjectMeta.Name, summary.PlanState.Deployment.Instance.ObjectMeta.GetSummaryId(), summary.PlanState.Deployment.Generation, summary.PlanState.Deployment.Hash, summary, summary.PlanState.Namespace); err != nil {
@@ -852,7 +856,9 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 				}
 			} else {
 				// If no components are deployed, set success count to target count
-				if summary.CurrentDeployed == 0 && summary.AllAssignedDeployed {
+				if summary.PlanState.Deployment.IsInActive || summary.PlanState.Deployment.IsDryRun {
+					summary.SuccessCount = 0
+				} else if summary.CurrentDeployed == 0 && summary.AllAssignedDeployed {
 					summary.SuccessCount = summary.TargetCount
 				}
 				log.InfofCtx(ctx, "M(Solution): Plan state %s is completed %s", summary.PlanState.Phase, summary.PlanState.PlanId)
