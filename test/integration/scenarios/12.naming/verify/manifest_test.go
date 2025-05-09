@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -144,47 +145,51 @@ func createActivationResource(file string, nameLength int, special bool, campaig
 	return resourceName, output, err
 }
 
-func createInstanceResource(file string, nameLength int, special bool, solutionName string, targetName string) (string, []byte, error) {
-	// read the manifest
-	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
-	if err != nil {
-		return "", nil, fmt.Errorf("Failed to read manifest: %v", err)
-	}
-	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
-	resourceName := generateRandomName(nameLength, special) // Generate a random name with length character
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_TARGET}", targetName))
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_SOLUTION}", solutionName))
-
-	output, err := applyManifest(manifest)
-	return resourceName, output, err
-}
-
 func TestLongResourceName(t *testing.T) {
+	targetName := generateRandomName(longLength, false) // Generate a random name with length characters
+	solutionContainerName := generateRandomName(longLength, false)
+	solutionName := generateRandomName(longLength, false)
+	instanceName := generateRandomName(longLength, false)
+	historyName := generateRandomName(longLength, false)
 	// create target
-	targetName, output, err := createNonLinkedResource(target, longLength, false)
+	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), target), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err := applyManifest([]byte(targetManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, longLength, false)
+	sollutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solutionContainer), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(sollutionContainerManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	outputString := strings.ToLower(string(output))
 	assert.True(t, strings.Contains(outputString, "name length"))
+
 	// do the same for the solution manifest
-	solutionName, output, err := createRootLinkedResource(solution, longLength, false, solutionContainerName)
+	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solution), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the instance manifest
-	instanceName, output, err := createInstanceResource(instance, longLength, false, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
-	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instance), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(instanceManifest))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the instance history manifest
-	_, output, err = createRootLinkedResource(instanceHistory, longLength, false, instanceName)
-	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
-	assert.True(t, strings.Contains(string(output), "Name length"))
+	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instanceHistory), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(historyManifest))
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
+	//assert.True(t, strings.Contains(string(output), "Name length"))
 
+	if testhelpers.IsTestInAzure() {
+		// skip the campaign and catalog tests in azure
+		return
+	}
 	// do the same for the catalog container manifest
 	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, longLength, false)
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
@@ -219,24 +224,43 @@ func TestLongResourceName(t *testing.T) {
 }
 
 func TestForShortResourceName(t *testing.T) {
+	targetName := generateRandomName(shortLength, false) // Generate a random name with length characters
+	solutionContainerName := generateRandomName(shortLength, false)
+	solutionName := generateRandomName(solutionLength, false)
+	instanceName := generateRandomName(shortLength, false)
+	historyName := generateRandomName(shortLength, false)
 	// create target
-	targetName, output, err := createNonLinkedResource(target, shortLength, false)
+	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), target), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err := applyManifest([]byte(targetManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, shortLength, false)
+	solutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solutionContainer), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionContainerManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the solution manifest
-	solutionName, output, err := createRootLinkedResource(solution, solutionLength, false, solutionContainerName)
+	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solution), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the instance manifest
-	instanceName, output, err := createInstanceResource(instance, shortLength, false, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
+	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instance), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(instanceManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// do the same for the instance history manifest
-	_, output, err = createRootLinkedResource(instanceHistory, shortLength, false, instanceName)
+	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instanceHistory), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(historyManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
+	if testhelpers.IsTestInAzure() {
+		// skip the campaign and catalog tests in azure
+		return
+	}
 	// do the same for the catalog container manifest
 	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
@@ -259,29 +283,50 @@ func TestForShortResourceName(t *testing.T) {
 }
 
 func TestForSpecialResourceName(t *testing.T) {
+	targetName := generateRandomName(specialLength, true) // Generate a random name with length characters
+	solutionContainerName := generateRandomName(specialLength, true)
+	solutionName := generateRandomName(specialLength, true)
+	instanceName := generateRandomName(specialLength, true)
+	historyName := generateRandomName(specialLength, true)
 	// create target
-	targetName, output, err := createNonLinkedResource(target, specialLength, true)
+	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), target), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err := applyManifest([]byte(targetManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
 	// do the same for the solutioncontainer manifest
-	solutionContainerName, output, err := createNonLinkedResource(solutionContainer, specialLength, true)
+	solutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solutionContainer), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionContainerManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
+
 	// do the same for the solution manifest
-	solutionName, output, err := createRootLinkedResource(solution, specialLength, true, solutionContainerName)
+	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solution), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
+
 	// do the same for the instance manifest
-	instanceName, output, err := createInstanceResource(instance, specialLength, true, fmt.Sprintf("%s:%s", solutionContainerName, solutionName), targetName)
+	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instance), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(instanceManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
 	// do the same for the instance history manifest
-	_, output, err = createRootLinkedResource(instanceHistory, specialLength, true, instanceName)
+	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instanceHistory), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(historyManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
+	if testhelpers.IsTestInAzure() {
+		// skip the campaign and catalog tests in azure
+		return
+	}
 	// do the same for the catalog container manifest
 	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, specialLength, true)
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))

@@ -6,7 +6,7 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: ${PLACEHOLDER_NAME}
+  name: TARGETNAME
   annotations: {}
 spec:
   displayName: target

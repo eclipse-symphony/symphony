@@ -28,9 +28,10 @@ COPY ./api /workspace/api
 WORKDIR /workspace/api
 # File permissions are not preserved when copying files in ADO. 
 RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
+ARG BUILD_BASE_IMAGE
 
 # Install necessary build tools, cross-compilers, and Go
-RUN if [ "$BUILDFLAG" != "azure" ]; then \
+RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     apt-get update && apt-get install -y \
     gcc g++ make curl wget git cargo \
     gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
@@ -38,10 +39,10 @@ RUN if [ "$BUILDFLAG" != "azure" ]; then \
     && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz; \
-    fi
+fi
 
 # Install Rust and rustup, overriding any existing Rust installation
-RUN if [ "$BUILDFLAG" != "azure" ]; then \
+RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path \
     && . "$HOME/.cargo/env" \
     && rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu; \
@@ -56,12 +57,12 @@ ENV PROTOC=/usr/bin/protoc
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
 
 # Clean build artifacts from any previous build attempts
-RUN if [ "$BUILDFLAG" != "azure" ]; then \
+RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     cargo clean; \
     fi
 
 # Clean previous build artifacts and build in one step
-RUN if [ "$BUILDFLAG" != "azure" ]; then \
+RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     cargo clean && \
     if [ "$TARGETARCH" = "arm" ]; then \
         CC=arm-linux-gnueabihf-gcc \

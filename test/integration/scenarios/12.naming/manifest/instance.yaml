@@ -7,10 +7,10 @@ apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   annotations: {}
-  name: ${PLACEHOLDER_NAME}
+  name: INSTANCEFULLNAME
 spec:
   displayName: instance
   scope: test-scope
-  solution: ${PLACEHOLDER_SOLUTION}
+  solution: SOLUTIONREFNAME
   target:
-    name: ${PLACEHOLDER_TARGET}
+    name: TARGETREFNAME

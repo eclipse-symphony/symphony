@@ -1,15 +1,17 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: history-solution
+  name: SOLUTIONCONTAINERFULLNAME
 spec:
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: history-solution-v-version1
+  name: SOLUTIONFULLNAME
+  annotations: 
+    management.azure.com/resourceId: SOLUTIONREFNAME
 spec:
-  rootResource: history-solution
+  rootResource: SOLUTIONCONTAINERFULLNAME
   components:
     - name: configmap
       type: config

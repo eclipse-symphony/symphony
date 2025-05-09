@@ -7,9 +7,9 @@ apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   annotations: {}
-  name: INSTANCENAME
+  name: INSTANCEFULLNAME
 spec:
-  displayName: INSTANCENAME
+  displayName: INSTANCEFULLNAME
   scope: SCOPENAME
   solution: SOLUTIONREFNAME
   isDryRun: DRYRUN
