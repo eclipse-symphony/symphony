@@ -9,7 +9,7 @@ kind: Solution
 metadata:
   name: SOLUTIONFULLNAME
   annotations: 
-    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/TARGETNAME/solutions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME
+    management.azure.com/resourceId: SOLUTIONREFNAME
 spec:
   rootResource: SOLUTIONCONTAINERFULLNAME
   components:

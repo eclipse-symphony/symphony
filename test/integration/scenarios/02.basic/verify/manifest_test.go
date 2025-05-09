@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -260,36 +259,13 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 			}
 		}
 	}
+	stringYaml, err := testhelpers.ReplacePlaceHolderInManifestWithString(fileName, namespace+"target", namespace+"solution", "version1", namespace+"instance", "")
 
-	fullPath, err := filepath.Abs(fileName)
 	if err != nil {
-		return []byte(fullPath), err
+		return []byte(stringYaml), err
 	}
 
-	data, err := os.ReadFile(fullPath)
-	if err != nil {
-		return data, err
-	}
-	stringYaml := string(data)
-	if testhelpers.IsTestInAzure() {
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME",
-			"/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME/solutions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-INSTANCENAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME")
-	} else {
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:SOLUTIONNAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "TARGETNAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "INSTANCENAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
-		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "SOLUTIONCONTAINERNAME")
-	}
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", namespace+"solution")
-	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 	stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", "version1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
 	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 

@@ -8,7 +8,7 @@ kind: Target
 metadata:
   name: TARGETNAME
   annotations: 
-    management.azure.com/resourceId: /subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/TARGETNAME
+    management.azure.com/resourceId: TARGETREFNAME
 spec:
   displayName: TARGETNAME
   scope: test-scope
