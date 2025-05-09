@@ -229,7 +229,7 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		s.KeyLockProvider.UnLock(lockName)
 		return summary, err
 	}
-
+	initalPlan.DefaultScope = deployment.Instance.Spec.Scope
 	// remove no use steps
 	var stepList []model.DeploymentStep
 	for _, step := range initalPlan.Steps {
@@ -497,6 +497,7 @@ func (s *SolutionManager) threeStateMerge(ctx context.Context, summary model.Sum
 	log.InfofCtx(ctx, "M(Solution): Get Merged state %+v", mergedState)
 	summary.PlanState.MergedState = mergedState
 	Plan, err := PlanForDeployment(summary.PlanState.Deployment, mergedState)
+	Plan.DefaultScope = summary.PlanState.DefaultScope
 	if err != nil {
 		return model.DeploymentPlan{}, model.SummarySpec{}, err
 	}
@@ -551,6 +552,7 @@ func createSummary(planEnvelope model.PlanEnvelope) model.SummarySpec {
 		CurrentState:         planEnvelope.CurrentState,
 		StepStates:           make([]model.StepState, len(planEnvelope.Plan.Steps)),
 		Steps:                planEnvelope.Plan.Steps,
+		DefaultScope:         planEnvelope.Plan.DefaultScope,
 	}
 	summary := model.SummarySpec{
 		TargetResults:       make(map[string]model.TargetResultSpec),
@@ -605,6 +607,8 @@ func (s *SolutionManager) HandleDeploymentStep(ctx context.Context, event v1alph
 		return fmt.Errorf("Plan not found: %s", stepEnvelope.PlanState.PlanId)
 	}
 	stepEnvelope.PlanState = planState
+	stepEnvelope.PlanState.Deployment.Instance.Spec.Scope = planState.DefaultScope
+	stepEnvelope.PlanState.Deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, stepEnvelope.PlanState.Deployment.Instance, stepEnvelope.PlanState.Deployment.Targets[stepEnvelope.Step.Target])
 	switch stepEnvelope.PlanState.Phase {
 	case model.PhaseGet:
 		return s.handlePhaseGet(ctx, stepEnvelope)
