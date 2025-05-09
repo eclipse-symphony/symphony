@@ -484,7 +484,7 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	assert.Equal(t, instanceName, spec["rootResource"].(string))
 	solutionRef := "history-solution:version1"
 	if testhelpers.IsTestInAzure() {
-		solutionRef = "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1"
+		solutionRef = "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/microsoft.edge/targets/history-target/solutions/history-solution/versions/version1"
 	}
 	assert.Equal(t, solutionRef, spec["solutionId"].(string))
 	assert.Equal(t, "Succeeded", status["status"])

@@ -36,8 +36,8 @@ var (
 		"solutioncontainer": "scenario2/solution-container",
 	}
 	AzureIdFormat = map[string]string{
-		"target":   "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX",
-		"solution": "/subscriptions/af54d2ce-0dcb-48f8-9d2d-ff9c53e48c8d/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX/solutions/scenario2solutioncontainerINDEX/versions/version1",
+		"target":   "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX",
+		"solution": "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX/solutions/scenario2solutioncontainerINDEX/versions/version1",
 		"instance": "",
 	}
 	objectAzureName = map[string]string{
