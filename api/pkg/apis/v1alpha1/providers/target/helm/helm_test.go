@@ -18,6 +18,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/postrender"
@@ -679,13 +680,11 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 	component := model.ComponentSpec{
 		Name: "brigade",
 		Type: "helm.v3",
-		Properties: map[string]interface{}{
-			"chart": map[string]any{
-				"repo":    "https://brigadecore.github.io/charts",
-				"name":    "brigade",
-				"wait":    true,
-				"timeout": "0.01s",
-			},
+		Properties: map[string]any{
+			"repo":    "https://brigadecore.github.io/charts",
+			"name":    "brigade",
+			"wait":    true,
+			"timeout": "0.01s",
 		},
 	}
 	deployment := model.DeploymentSpec{
@@ -897,7 +896,6 @@ func TestConfigureInstallClient(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		componentName  string
 		releaseName    string
 		componentProps HelmChartProperty
 		deployment     model.DeploymentSpec
@@ -905,9 +903,8 @@ func TestConfigureInstallClient(t *testing.T) {
 		expectedError  bool
 	}{
 		{
-			name:          "Release name provided",
-			componentName: "test-component",
-			releaseName:   "custom-release",
+			name:        "Custom release name provided",
+			releaseName: "custom-release",
 			componentProps: HelmChartProperty{
 				Wait:    true,
 				Timeout: "30s",
@@ -923,27 +920,8 @@ func TestConfigureInstallClient(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name:          "Release name not provided",
-			componentName: "test-component",
-			releaseName:   "",
-			componentProps: HelmChartProperty{
-				Wait:    true,
-				Timeout: "30s",
-			},
-			deployment: model.DeploymentSpec{
-				Instance: model.InstanceState{
-					Spec: &model.InstanceSpec{
-						Scope: "test-namespace",
-					},
-				},
-			},
-			expectedName:  "test-component",
-			expectedError: false,
-		},
-		{
-			name:          "Invalid timeout",
-			componentName: "test-component",
-			releaseName:   "custom-release",
+			name:        "Invalid timeout format",
+			releaseName: "invalid-timeout-release",
 			componentProps: HelmChartProperty{
 				Wait:    true,
 				Timeout: "invalid-timeout",
@@ -962,8 +940,7 @@ func TestConfigureInstallClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			installClient, err := configureInstallClient(ctx, tt.componentName, &tt.componentProps, &tt.deployment, actionConfig, postRenderer, tt.releaseName)
-
+			installClient, err := configureInstallClient(ctx, &tt.componentProps, &tt.deployment, actionConfig, postRenderer, tt.releaseName)
 			if tt.expectedError {
 				assert.NotNil(t, err)
 			} else {
@@ -977,4 +954,102 @@ func TestConfigureInstallClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	customReleaseName := "custom-release-name"
+	component := model.ComponentSpec{
+		Name: "test-component",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "https://charts.bitnami.com/bitnami",
+				"name":    "nginx",
+				"version": "13.0.0",
+			},
+			"releaseName": customReleaseName,
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: defaultTestScope,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+
+	// Apply the Helm chart with the custom release name
+	results, err := provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+	assert.Equal(t, v1alpha2.Updated, results[component.Name].Status)
+	assert.Contains(t, results[component.Name].Message, customReleaseName)
+}
+
+func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	customReleaseName := "custom-release-name"
+	component := model.ComponentSpec{
+		Name: "test-component",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo":    "https://charts.bitnami.com/bitnami",
+				"name":    "nginx",
+				"version": "13.0.0",
+			},
+			"releaseName": customReleaseName,
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: defaultTestScope,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	references := []model.ComponentStep{
+		{
+			Action:    model.ComponentUpdate,
+			Component: component,
+		},
+	}
+
+	// Get the Helm release with the custom release name
+	components, err := provider.Get(context.Background(), deployment, references)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
+	assert.Equal(t, customReleaseName, components[0].Properties["releaseName"])
 }

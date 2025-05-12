@@ -154,7 +154,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfoCtx(ctx, "  P (Helm Target): Init()")
+	sLog.InfofCtx(ctx, "  P (Helm Target): Init()")
 
 	i.MetaPopulator, err = metahelper.NewMetaPopulator(metahelper.WithDefaultPopulators())
 	if err != nil {
@@ -320,7 +320,6 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 				releaseName = helmProp.ReleaseName
 			}
 		}
-		fmt.Printf("  P (Helm Target): releaseName is: %s\n", releaseName)
 		for _, res := range results {
 			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == releaseName {
 				repo := ""
@@ -351,8 +350,6 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			}
 		}
 	}
-	fmt.Printf("  P (Helm Target): found %d components\n", len(ret))
-	fmt.Printf("result is: %+v\n", ret)
 	return ret, nil
 }
 
@@ -488,8 +485,6 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				releaseName = helmProp.ReleaseName
 			}
 		}
-		fmt.Printf("conponent Action is: %+v\n", component.Action)
-		fmt.Printf("  P (Helm Target): releaseName is: %s\n", releaseName)
 		if component.Action == model.ComponentUpdate {
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get Helm properties: %+v", err)
@@ -573,9 +568,8 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				return nil, err
 			}
 			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", releaseName, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
-			fmt.Printf("  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s\n", releaseName, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if releaseExists {
-				sLog.Info(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", releaseName)
+				sLog.InfofCtx(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", releaseName)
 				if _, err = upgradeClient.Run(releaseName, chart, helmProp.Values); err != nil {
 					sLog.InfofCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
@@ -626,7 +620,6 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return nil, err
 				}
 				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", releaseName, deployment.Instance.Spec.Scope)
-				fmt.Printf("  P (Helm Target): Uninstalling chart name: %s, namespace: %s\n", releaseName, deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(releaseName)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to uninstall Helm chart: %+v", err)
@@ -669,7 +662,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 		if isDownloadableUri(chart.Repo) {
 			chartPath = chart.Repo
 		} else {
-			sLog.InfoCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
+			sLog.InfofCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
 			chartPath, err = repo.FindChartInRepoURL(chart.Repo, chart.Name, chart.Version, "", "", "", getter.All(&cli.EnvSettings{}))
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "   P (Helm Target): failed to find helm chart in repo: %+v", err)
@@ -700,7 +693,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 			}
 			if isUnauthorized(err) {
 				if chart.Username != "" && chart.Password != "" {
-					sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
+					sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
 					pullRes, err = pullOCIChartWithBasicAuth(ctx, chart.Repo, chart.Version, chart.Username, chart.Password)
 					if err != nil {
 						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo using basic auth: %+v", err)
@@ -708,13 +701,13 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 					}
 				} else {
 					if isAzureContainerRegistry(host) {
-						sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
+						sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
 						err = loginToACR(ctx, host)
 						if err != nil {
 							sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login to ACR: %+v", err)
 							return "", err
 						}
-						sLog.InfoCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
+						sLog.InfofCtx(ctx, "  P (Helm Target): successfully logged in to ACR. Now retrying to pull chart from repo")
 
 						pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
 						if err != nil {
