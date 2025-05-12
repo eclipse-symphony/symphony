@@ -274,7 +274,7 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 		return []byte{}, err
 	}
 	output, err := exec.Command("kubectl", "apply", "-f", "./test.yaml", "-n", namespace).CombinedOutput()
-	// os.Remove("./test.yaml")
+	os.Remove("./test.yaml")
 	if err != nil {
 		return output, err
 	}
