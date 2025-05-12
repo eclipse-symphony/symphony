@@ -80,7 +80,7 @@ type (
 	HelmProperty struct {
 		Chart       HelmChartProperty      `json:"chart"`
 		Values      map[string]interface{} `json:"values,omitempty"`
-		ReleaseName string                 `json:"releaseName,omitempty"` // 新增字段
+		ReleaseName string                 `json:"releaseName,omitempty"`
 	}
 	// HelmChartProperty is the property for the Helm Charts
 	HelmChartProperty struct {
@@ -313,8 +313,16 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
+		helmProp, err := getHelmPropertyFromComponent(component.Component)
+		releaseName := component.Component.Name
+		if helmProp != nil {
+			if helmProp.ReleaseName != "" {
+				releaseName = helmProp.ReleaseName
+			}
+		}
+		fmt.Printf("  P (Helm Target): releaseName is: %s\n", releaseName)
 		for _, res := range results {
-			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == component.Component.Name {
+			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == releaseName {
 				repo := ""
 				name := ""
 				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM-REPO:") { //we use this special metadata tag to remember the chart URL
@@ -328,7 +336,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 					name = parts[1][9:]
 				}
 				ret = append(ret, model.ComponentSpec{
-					Name: res.Name,
+					Name: component.Component.Name,
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
 						"releaseName": res.Name,
@@ -343,7 +351,8 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 			}
 		}
 	}
-
+	fmt.Printf("  P (Helm Target): found %d components\n", len(ret))
+	fmt.Printf("result is: %+v\n", ret)
 	return ret, nil
 }
 
@@ -473,6 +482,14 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	for _, component := range step.Components {
 		var helmProp *HelmProperty
 		helmProp, err = getHelmPropertyFromComponent(component.Component)
+		releaseName := component.Component.Name
+		if helmProp != nil {
+			if helmProp.ReleaseName != "" {
+				releaseName = helmProp.ReleaseName
+			}
+		}
+		fmt.Printf("conponent Action is: %+v\n", component.Action)
+		fmt.Printf("  P (Helm Target): releaseName is: %s\n", releaseName)
 		if component.Action == model.ComponentUpdate {
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get Helm properties: %+v", err)
@@ -539,7 +556,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient, err := configureInstallClient(ctx, component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender, helmProp.ReleaseName)
+			installClient, err := configureInstallClient(ctx, &helmProp.Chart, &deployment, actionConfig, postRender, releaseName)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm install client: %+v", err)
 				return nil, err
@@ -549,16 +566,17 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm upgrade client: %+v", err)
 				return nil, err
 			}
-			// Check if the release exists.
-			releaseExists, err := checkReleaseExists(ctx, actionConfig, component.Component.Name)
+
+			releaseExists, err := checkReleaseExists(ctx, actionConfig, releaseName)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): Error checking if chart exists: %+v", err)
 				return nil, err
 			}
-			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
+			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", releaseName, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
+			fmt.Printf("  P (Helm Target): Applying chart name: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s\n", releaseName, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if releaseExists {
-				sLog.Info(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", component.Component.Name)
-				if _, err = upgradeClient.Run(component.Component.Name, chart, helmProp.Values); err != nil {
+				sLog.Info(ctx, "  P (Helm Target): Begin to upgrade chart, chart name: %s", releaseName)
+				if _, err = upgradeClient.Run(releaseName, chart, helmProp.Values); err != nil {
 					sLog.InfofCtx(ctx, "  P (Helm Target): failed to upgrade: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to upgrade chart", providerName), v1alpha2.HelmActionFailed)
 					ret[component.Component.Name] = model.ComponentResultSpec{
@@ -575,7 +593,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 			} else {
-				sLog.InfofCtx(ctx, "  P (Helm Target): Begin to install chart, chart name: %s", component.Component.Name)
+				sLog.InfofCtx(ctx, "  P (Helm Target): Begin to install chart, chart name: %s", releaseName)
 				if _, err := installClient.Run(chart, helmProp.Values); err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to install: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to install chart", providerName), v1alpha2.HelmActionFailed)
@@ -594,10 +612,10 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				}
 			}
 
-			sLog.InfofCtx(ctx, "  P (Helm Target): apply chart successfully: %s", component.Component.Name)
+			sLog.InfofCtx(ctx, "  P (Helm Target): apply chart successfully: %s", releaseName)
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
-				Message: fmt.Sprintf("No error. %s has been updated", component.Component.Name),
+				Message: fmt.Sprintf("No error. %s has been updated", releaseName),
 			}
 		} else {
 			switch component.Component.Type {
@@ -607,8 +625,9 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to configure uninstall client: %+v", err)
 					return nil, err
 				}
-				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", component.Component.Name, deployment.Instance.Spec.Scope)
-				_, err = uninstallClient.Run(component.Component.Name)
+				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, namespace: %s", releaseName, deployment.Instance.Spec.Scope)
+				fmt.Printf("  P (Helm Target): Uninstalling chart name: %s, namespace: %s\n", releaseName, deployment.Instance.Spec.Scope)
+				_, err = uninstallClient.Run(releaseName)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to uninstall Helm chart: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to uninstall chart", providerName), v1alpha2.HelmActionFailed)
@@ -627,7 +646,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 
-				sLog.InfofCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", component.Component.Name)
+				sLog.InfofCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", releaseName)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.Deleted,
 					Message: "",
@@ -760,16 +779,9 @@ func pullOCIChartWithBasicAuth(ctx context.Context, repo, version, username, pas
 	return pullRes, nil
 }
 
-func configureInstallClient(ctx context.Context, componentName string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer, releaseName string) (*action.Install, error) {
+func configureInstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer, releaseName string) (*action.Install, error) {
 	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
 	installClient := action.NewInstall(config)
-
-	// use the chart name as the release name if not provided
-	if releaseName != "" {
-		installClient.ReleaseName = releaseName
-	} else {
-		installClient.ReleaseName = componentName
-	}
 
 	if deployment.Instance.Spec.Scope == "" {
 		installClient.Namespace = constants.DefaultScope
@@ -789,6 +801,7 @@ func configureInstallClient(ctx context.Context, componentName string, component
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
 	installClient.PostRenderer = postRenderer
+	installClient.ReleaseName = releaseName
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil

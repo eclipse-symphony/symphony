@@ -19,6 +19,8 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/postrender"
 	"k8s.io/client-go/rest"
 )
 
@@ -885,5 +887,94 @@ func TestPropChange(t *testing.T) {
 
 	for _, c := range cases {
 		assert.Equal(t, c.Changed, propChange(c.OldProp, c.NewProp), c.Name)
+	}
+}
+
+func TestConfigureInstallClient(t *testing.T) {
+	ctx := context.Background()
+	actionConfig := &action.Configuration{}
+	postRenderer := postrender.PostRenderer(nil)
+
+	tests := []struct {
+		name           string
+		componentName  string
+		releaseName    string
+		componentProps HelmChartProperty
+		deployment     model.DeploymentSpec
+		expectedName   string
+		expectedError  bool
+	}{
+		{
+			name:          "Release name provided",
+			componentName: "test-component",
+			releaseName:   "custom-release",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "30s",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "custom-release",
+			expectedError: false,
+		},
+		{
+			name:          "Release name not provided",
+			componentName: "test-component",
+			releaseName:   "",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "30s",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "test-component",
+			expectedError: false,
+		},
+		{
+			name:          "Invalid timeout",
+			componentName: "test-component",
+			releaseName:   "custom-release",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "invalid-timeout",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			installClient, err := configureInstallClient(ctx, tt.componentName, &tt.componentProps, &tt.deployment, actionConfig, postRenderer, tt.releaseName)
+
+			if tt.expectedError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedName, installClient.ReleaseName)
+				assert.Equal(t, tt.deployment.Instance.Spec.Scope, installClient.Namespace)
+				if tt.componentProps.Timeout != "" {
+					duration, _ := time.ParseDuration(tt.componentProps.Timeout)
+					assert.Equal(t, duration, installClient.Timeout)
+				}
+			}
+		})
 	}
 }
