@@ -78,8 +78,9 @@ type (
 	}
 	// HelmProperty is the property for the Helm chart
 	HelmProperty struct {
-		Chart  HelmChartProperty      `json:"chart"`
-		Values map[string]interface{} `json:"values,omitempty"`
+		Chart       HelmChartProperty      `json:"chart"`
+		Values      map[string]interface{} `json:"values,omitempty"`
+		ReleaseName string                 `json:"releaseName,omitempty"` // 新增字段
 	}
 	// HelmChartProperty is the property for the Helm Charts
 	HelmChartProperty struct {
@@ -330,6 +331,7 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 					Name: res.Name,
 					Type: "helm.v3",
 					Properties: map[string]interface{}{
+						"releaseName": res.Name,
 						"chart": map[string]string{
 							"repo":    repo,
 							"name":    name,
@@ -537,7 +539,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient, err := configureInstallClient(ctx, component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender)
+			installClient, err := configureInstallClient(ctx, component.Component.Name, &helmProp.Chart, &deployment, actionConfig, postRender, helmProp.ReleaseName)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm install client: %+v", err)
 				return nil, err
@@ -758,10 +760,17 @@ func pullOCIChartWithBasicAuth(ctx context.Context, repo, version, username, pas
 	return pullRes, nil
 }
 
-func configureInstallClient(ctx context.Context, name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
+func configureInstallClient(ctx context.Context, componentName string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer, releaseName string) (*action.Install, error) {
 	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
 	installClient := action.NewInstall(config)
-	installClient.ReleaseName = name
+
+	// use the chart name as the release name if not provided
+	if releaseName != "" {
+		installClient.ReleaseName = releaseName
+	} else {
+		installClient.ReleaseName = componentName
+	}
+
 	if deployment.Instance.Spec.Scope == "" {
 		installClient.Namespace = constants.DefaultScope
 	} else {
