@@ -4,6 +4,7 @@ metadata:
   name: {{ include "symphony.apiClientCATrustBundle" . }}
   namespace: cert-manager
 spec:
+  sources: []
   target:
     configMap:
       key: {{ include "symphony.apiClientCATrustBundleKey" . }}
