@@ -7,7 +7,7 @@ apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   annotations: {}
-  name: ${PLACEHOLDER_NAME}
+  name: SOLUTIONFULLNAME
 spec:
-  rootResource: ${PLACEHOLDER_ROOT_RESOURCE}
+  rootResource: SOLUTIONCONTAINERFULLNAME
   displayName: solution
