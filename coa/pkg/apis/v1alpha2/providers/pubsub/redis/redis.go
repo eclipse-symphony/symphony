@@ -28,16 +28,16 @@ import (
 var mLog = logger.NewLogger("coa.runtime")
 
 type RedisPubSubProvider struct {
-	Config      RedisPubSubProviderConfig          `json:"config"`
-	Subscribers map[string][]v1alpha2.EventHandler `json:"subscribers"`
-	Client      *redis.Client
-	Ctx         context.Context
-	Cancel      context.CancelFunc
-	Context     *contexts.ManagerContext
-	WorkerLock  *sync.Mutex
-	IdleWorkers int
-	rwLock      sync.RWMutex
-	readyFlag   bool
+	Config        RedisPubSubProviderConfig          `json:"config"`
+	Subscribers   map[string][]v1alpha2.EventHandler `json:"subscribers"`
+	Client        *redis.Client
+	Ctx           context.Context
+	ContextCancel context.CancelFunc
+	Context       *contexts.ManagerContext
+	WorkerLock    *sync.Mutex
+	IdleWorkers   int
+	rwLock        sync.RWMutex
+	readyFlag     bool
 }
 
 type RedisMessageWrapper struct {
@@ -144,7 +144,7 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(nil, "Redis host is not supplied", v1alpha2.MissingConfig)
 	}
 
-	i.Ctx, i.Cancel = context.WithCancel(context.Background())
+	i.Ctx, i.ContextCancel = context.WithCancel(context.Background())
 
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
@@ -439,4 +439,13 @@ func (i *RedisPubSubProvider) ReleaseWorker(msgID string) {
 	defer i.WorkerLock.Unlock()
 	i.IdleWorkers++
 	mLog.DebugfCtx(i.Ctx, "  P (Redis PubSub) : releaseWorker for message %s, remaining %d", msgID, i.IdleWorkers)
+}
+
+func (i *RedisPubSubProvider) Cancel() context.CancelFunc {
+	return func() {
+		fmt.Println("  P (Redis PubSub) : canceling provider")
+		i.ContextCancel()
+		fmt.Println("  P (Redis PubSub) : closing redis client")
+		i.Client.Close()
+	}
 }
