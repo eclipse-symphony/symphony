@@ -1023,7 +1023,7 @@ func ensureSecureOtelCollectorPrereqs() error {
 
 	cmds := []shellcmd.Command{
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/0.selfsigned-issuer.yaml -n %s", getChartNamespace())),
-		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/1.root-ca.yaml -n %s", getChartNamespace())),
+		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/1.root-ca.yaml")),
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/2.root-ca-issuer.yaml -n %s", getChartNamespace())),
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/3.tls-cert.yaml -n %s", getChartNamespace())),
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/4.trust-bundle.yaml -n %s", getChartNamespace())),
