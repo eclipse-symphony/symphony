@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -260,28 +259,17 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 			}
 		}
 	}
+	stringYaml, err := testhelpers.ReplacePlaceHolderInManifestWithString(fileName, namespace+"target", namespace+"solution", "version1", namespace+"instance", "")
 
-	fullPath, err := filepath.Abs(fileName)
 	if err != nil {
-		return []byte(fullPath), err
+		return []byte(stringYaml), err
 	}
 
-	data, err := os.ReadFile(fullPath)
-	if err != nil {
-		return data, err
-	}
-	stringYaml := string(data)
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", namespace+"solution")
-	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 	stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v-version1")
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:version1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
 	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 
-	err = writeYamlStringsToFile(stringYaml, "./test.yaml")
+	err = testhelpers.WriteYamlStringsToFile(stringYaml, "./test.yaml")
 	if err != nil {
 		return []byte{}, err
 	}
@@ -293,36 +281,57 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 	return []byte{}, nil
 }
 
-func writeYamlStringsToFile(yamlString string, filePath string) error {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write([]byte(yamlString))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func CleanUpSymphonyObjects(namespace string) error {
-	instanceName := namespace + "instance"
-	targetName := namespace + "target"
-	solutionName := namespace + "solution-v-version1"
-	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
+	// Get all instances in the namespace
+	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solution.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list instances: %v", err)
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
-	if err != nil {
-		return err
+
+	// Split the output into individual instance names
+	instances := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, instance := range instances {
+		if instance == "" {
+			continue
+		}
+		// Delete each instance
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", instance, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete instance %s: %v", instance, err)
+		}
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete solutions.solution.symphony %s -n %s", solutionName, namespace)).Run()
+
+	// Repeat similar logic for targets and solutions if needed
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get targets.fabric.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list targets: %v", err)
+	}
+
+	targets := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, target := range targets {
+		if target == "" {
+			continue
+		}
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", target, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete target %s: %v", target, err)
+		}
+	}
+
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutions.solution.symphony -n %s -o name", namespace)).Output()
+	if err != nil {
+		return fmt.Errorf("failed to list solutions: %v", err)
+	}
+
+	solutions := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, solution := range solutions {
+		if solution == "" {
+			continue
+		}
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", solution, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete solution %s: %v", solution, err)
+		}
 	}
 	return nil
 }
