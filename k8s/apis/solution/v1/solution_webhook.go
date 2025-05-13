@@ -40,7 +40,7 @@ import (
 
 var (
 	solutionContainerMaxNameLength = 61
-	solutionContainerMinNameLength = 3
+	solutionContainerMinNameLength = 1
 	solutionlog                    = logf.Log.WithName("solution-resource")
 	mySolutionReaderClient         client.Reader
 	projectConfig                  *configv1.ProjectConfig
