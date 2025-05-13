@@ -680,11 +680,13 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 	component := model.ComponentSpec{
 		Name: "brigade",
 		Type: "helm.v3",
-		Properties: map[string]any{
-			"repo":    "https://brigadecore.github.io/charts",
-			"name":    "brigade",
-			"wait":    true,
-			"timeout": "0.01s",
+		Properties: map[string]interface{}{
+			"chart": map[string]any{
+				"repo":    "https://brigadecore.github.io/charts",
+				"name":    "brigade",
+				"wait":    true,
+				"timeout": "0.01s",
+			},
 		},
 	}
 	deployment := model.DeploymentSpec{
