@@ -38,18 +38,18 @@ var (
 	diagnostic = "test/integration/scenarios/12.naming/manifest/diagnostic.yaml"
 
 	longLength     = 65
-	shortLength    = 3
-	solutionLength = 7
+	shortLength    = 1
 	specialLength  = 10
-	diaShortLength = 2
+	diaShortLength = 1
 	diaLongLength  = 95
+	labelLength    = 35
 )
 
 // generateRFC1123Subdomain generates a random string of the specified length
 // conforming to the RFC 1123 subdomain validation rule.
 func generateRandomName(length int, special bool) string {
-	if length < 2 {
-		panic("Length must be at least 2 to ensure start and end with alphanumeric characters")
+	if length < 1 {
+		panic("Length must be at least 1 to ensure start and end with alphanumeric characters")
 	}
 
 	var alphanumericCharset = "abcdefghijklmnopqrstuvwxyz"
@@ -223,10 +223,73 @@ func TestLongResourceName(t *testing.T) {
 	assert.True(t, strings.Contains(string(output), "Name length"))
 }
 
+func TestLabelLengthResourceName(t *testing.T) {
+	targetName := generateRandomName(labelLength, false) // Generate a random name with length characters
+	solutionContainerName := generateRandomName(labelLength, false)
+	solutionName := generateRandomName(labelLength, false)
+	instanceName := generateRandomName(labelLength, false)
+	historyName := generateRandomName(labelLength, false)
+	// create target
+	targetManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), target), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err := applyManifest([]byte(targetManifest))
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
+	// do the same for the solutioncontainer manifest
+	solutionContainerManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solutionContainer), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionContainerManifest))
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// do the same for the solution manifest
+	solutionManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), solution), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(solutionManifest))
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// do the same for the instance manifest
+	instanceManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instance), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(instanceManifest))
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
+	// do the same for the instance history manifest
+	historyManifest, err := testhelpers.ReplacePlaceHolderInManifestWithString(path.Join(getRepoPath(), instanceHistory), targetName, solutionContainerName, solutionName, instanceName, historyName)
+	assert.Nil(t, err, "No error expected")
+	output, err = applyManifest([]byte(historyManifest))
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
+	if testhelpers.IsTestInAzure() {
+		// skip the campaign and catalog tests in azure
+		return
+	}
+	// do the same for the catalog container manifest
+	catalogContainerName, output, err := createNonLinkedResource(catalogcontainer, labelLength, false)
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// do the same for the catalog manifest
+	_, output, err = createRootLinkedResource(catalog, labelLength, false, catalogContainerName)
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// do the same for the campaign container manifest
+	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, labelLength, false)
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// do the same for the campaign manifest
+	campaignName, output, err := createRootLinkedResource(campaign, labelLength, false, campaignContainerName)
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+	// do the same for the activation manifest
+	_, output, err = createActivationResource(activation, labelLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
+	// do the same for the diagnostic manifest
+	diaName, output, err := createNonLinkedResource(diagnostic, labelLength, false)
+	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
+
+	//delete Diagnostic k8s resource named diaName
+	output, err = exec.Command("kubectl", "delete", "Diagnostic", diaName).Output()
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+}
+
 func TestForShortResourceName(t *testing.T) {
 	targetName := generateRandomName(shortLength, false) // Generate a random name with length characters
 	solutionContainerName := generateRandomName(shortLength, false)
-	solutionName := generateRandomName(solutionLength, false)
+	solutionName := generateRandomName(shortLength, false)
 	instanceName := generateRandomName(shortLength, false)
 	historyName := generateRandomName(shortLength, false)
 	// create target
