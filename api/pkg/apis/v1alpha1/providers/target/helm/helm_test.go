@@ -959,6 +959,10 @@ func TestConfigureInstallClient(t *testing.T) {
 }
 
 func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
@@ -1009,6 +1013,10 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 }
 
 func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)

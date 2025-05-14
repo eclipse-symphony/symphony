@@ -154,7 +154,7 @@ func (i *HelmTargetProvider) Init(config providers.IProviderConfig) error {
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Helm Target): Init()")
+	sLog.InfoCtx(ctx, "  P (Helm Target): Init()")
 
 	i.MetaPopulator, err = metahelper.NewMetaPopulator(metahelper.WithDefaultPopulators())
 	if err != nil {
@@ -427,7 +427,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfoCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -551,7 +551,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				instance:  deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient, err := configureInstallClient(ctx, &helmProp.Chart, &deployment, actionConfig, postRender, releaseName)
+			installClient, err := configureInstallClient(ctx, releaseName, &helmProp.Chart, &deployment, actionConfig, postRender)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm install client: %+v", err)
 				return nil, err
@@ -639,7 +639,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					return ret, err
 				}
 
-				sLog.InfofCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", releaseName)
+				sLog.InfoCtx(ctx, "  P (Helm Target): uninstall chart successfully: %s", releaseName)
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.Deleted,
 					Message: "",
@@ -662,7 +662,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 		if isDownloadableUri(chart.Repo) {
 			chartPath = chart.Repo
 		} else {
-			sLog.InfofCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
+			sLog.InfoCtx(ctx, "   P (Helm Target): artifact is hosted in public repo. Attempting to pull without basic auth")
 			chartPath, err = repo.FindChartInRepoURL(chart.Repo, chart.Name, chart.Version, "", "", "", getter.All(&cli.EnvSettings{}))
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "   P (Helm Target): failed to find helm chart in repo: %+v", err)
@@ -693,7 +693,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 			}
 			if isUnauthorized(err) {
 				if chart.Username != "" && chart.Password != "" {
-					sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
+					sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
 					pullRes, err = pullOCIChartWithBasicAuth(ctx, chart.Repo, chart.Version, chart.Username, chart.Password)
 					if err != nil {
 						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo using basic auth: %+v", err)
@@ -701,7 +701,7 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 					}
 				} else {
 					if isAzureContainerRegistry(host) {
-						sLog.InfofCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
+						sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
 						err = loginToACR(ctx, host)
 						if err != nil {
 							sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to login to ACR: %+v", err)
@@ -772,10 +772,10 @@ func pullOCIChartWithBasicAuth(ctx context.Context, repo, version, username, pas
 	return pullRes, nil
 }
 
-func configureInstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer, releaseName string) (*action.Install, error) {
+func configureInstallClient(ctx context.Context, name string, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Install, error) {
 	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring install client in the namespace %s", deployment.Instance.Spec.Scope)
 	installClient := action.NewInstall(config)
-
+	installClient.ReleaseName = name
 	if deployment.Instance.Spec.Scope == "" {
 		installClient.Namespace = constants.DefaultScope
 	} else {
@@ -794,7 +794,6 @@ func configureInstallClient(ctx context.Context, componentProps *HelmChartProper
 	installClient.IsUpgrade = true
 	installClient.CreateNamespace = true
 	installClient.PostRenderer = postRenderer
-	installClient.ReleaseName = releaseName
 	// We can't add labels to the release in the current version of the helm client.
 	// This should added when we upgrade to helm ^3.13.1
 	return installClient, nil
