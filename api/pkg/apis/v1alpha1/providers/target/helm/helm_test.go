@@ -970,13 +970,12 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 
 	customReleaseName := "custom-release-name"
 	component := model.ComponentSpec{
-		Name: "test-component",
+		Name: "kashti",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    "https://charts.bitnami.com/bitnami",
-				"name":    "nginx",
-				"version": "13.0.0",
+				"repo": "https://brigadecore.github.io/charts",
+				"name": "kashti",
 			},
 			"releaseName": customReleaseName,
 		},
@@ -1014,7 +1013,7 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 	// Verify the release name using Helm client
 	settings := cli.New()
 	actionConfig := &action.Configuration{}
-	err = actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secrets", func(format string, v ...interface{}) {})
+	err = actionConfig.Init(settings.RESTClientGetter(), defaultTestScope, "secrets", func(format string, v ...interface{}) {})
 	assert.Nil(t, err)
 
 	listClient := action.NewList(actionConfig)
@@ -1025,6 +1024,7 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 	found := false
 	for _, release := range releases {
 		if release.Name == customReleaseName {
+			fmt.Printf("Found release with custom name: %s\n", release.Name)
 			found = true
 			break
 		}
@@ -1044,13 +1044,12 @@ func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
 
 	customReleaseName := "custom-release-name"
 	component := model.ComponentSpec{
-		Name: "test-component",
+		Name: "kashti",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    "https://charts.bitnami.com/bitnami",
-				"name":    "nginx",
-				"version": "13.0.0",
+				"repo": "https://brigadecore.github.io/charts",
+				"name": "kashti",
 			},
 			"releaseName": customReleaseName,
 		},
