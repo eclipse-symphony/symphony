@@ -715,7 +715,6 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 }
 
 func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
-	os.Setenv("TEST_MINIKUBE_ENABLED", "yes")
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
 		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
@@ -942,7 +941,7 @@ func TestConfigureInstallClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			installClient, err := configureInstallClient(ctx, &tt.componentProps, &tt.deployment, actionConfig, postRenderer, tt.releaseName)
+			installClient, err := configureInstallClient(ctx, tt.releaseName, &tt.componentProps, &tt.deployment, actionConfig, postRenderer)
 			if tt.expectedError {
 				assert.NotNil(t, err)
 			} else {
@@ -961,7 +960,7 @@ func TestConfigureInstallClient(t *testing.T) {
 func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
-		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED environment variable is not set")
 	}
 	config := HelmTargetProviderConfig{InCluster: true}
 	provider := HelmTargetProvider{}
@@ -1010,6 +1009,25 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.Updated, results[component.Name].Status)
 	assert.Contains(t, results[component.Name].Message, customReleaseName)
+
+	// Verify the release name using Helm client
+	actionConfig := &action.Configuration{}
+	err = actionConfig.Init(action.NewPull().Settings.RESTClientGetter(), defaultTestScope, "secrets", sLog.Debugf)
+	assert.Nil(t, err)
+
+	listClient := action.NewList(actionConfig)
+	listClient.AllNamespaces = true
+	releases, err := listClient.Run()
+	assert.Nil(t, err)
+
+	found := false
+	for _, release := range releases {
+		if release.Name == customReleaseName {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Custom release name not found in Helm releases")
 }
 
 func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
