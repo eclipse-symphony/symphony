@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/postrender"
 	"k8s.io/client-go/rest"
 )
@@ -1010,24 +1011,25 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 	assert.Equal(t, v1alpha2.Updated, results[component.Name].Status)
 	assert.Contains(t, results[component.Name].Message, customReleaseName)
 
-	// // Verify the release name using Helm client
-	// actionConfig := &action.Configuration{}
-	// err = actionConfig.Init(action.NewPull().Settings.RESTClientGetter(), defaultTestScope, "secrets", sLog.Debugf)
-	// assert.Nil(t, err)
+	// Verify the release name using Helm client
+	settings := cli.New()
+	actionConfig := &action.Configuration{}
+	err = actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secrets", func(format string, v ...interface{}) {})
+	assert.Nil(t, err)
 
-	// listClient := action.NewList(actionConfig)
-	// listClient.AllNamespaces = true
-	// releases, err := listClient.Run()
-	// assert.Nil(t, err)
+	listClient := action.NewList(actionConfig)
+	listClient.AllNamespaces = true
+	releases, err := listClient.Run()
+	assert.Nil(t, err)
 
-	// found := false
-	// for _, release := range releases {
-	// 	if release.Name == customReleaseName {
-	// 		found = true
-	// 		break
-	// 	}
-	// }
-	// assert.True(t, found, "Custom release name not found in Helm releases")
+	found := false
+	for _, release := range releases {
+		if release.Name == customReleaseName {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Custom release name not found in Helm releases")
 }
 
 func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
