@@ -600,7 +600,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			sLog.InfofCtx(ctx, "  P (Helm Target): apply chart successfully. Details - Release Name: %s, Component Name: %s", releaseName, component.Component.Name)
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
-				Message: fmt.Sprintf("No error. %s has been updated, release Name is %s", component.Component.Name, releaseName),
+				Message: fmt.Sprintf("No error. %s has been updated. Release Name: %s", component.Component.Name, releaseName),
 			}
 		} else {
 			switch component.Component.Type {
