@@ -37,7 +37,9 @@ spec:
         image: {{ .Values.paiImage.repository }}:{{ .Values.paiImage.tag }}
         imagePullPolicy: {{ .Values.paiImage.pullPolicy }}
         ports:
+        {{- if ne .Values.api.openHTTP false }}
         - containerPort: {{ include "symphony.apiContainerPortHttp" . }}
+        {{- end }}  
         - containerPort: {{ include "symphony.apiContainerPortHttps" . }}
         env:          
           - name: "HELM_NAMESPACE"

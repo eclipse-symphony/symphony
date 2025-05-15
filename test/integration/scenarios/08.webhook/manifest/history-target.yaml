@@ -1,7 +1,9 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: history-target 
+  name: TARGETNAME
+  annotations: 
+    management.azure.com/resourceId: TARGETREFNAME
 spec:  
   topologies:
   - bindings:

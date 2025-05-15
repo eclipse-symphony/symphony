@@ -126,10 +126,6 @@ func isPrivateResourceProvider(resourceId string) bool {
 
 func ConvertReferenceToObjectNameHelper(name string) string {
 	// deal with Azure pattern
-	if strings.Contains(name, constants.ReferenceSeparator) {
-		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
-		return name
-	}
 	if n, ok := ConvertAzureSolutionVersionReferenceToObjectName(name); ok {
 		return n
 	}
