@@ -557,7 +557,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): Error checking if chart exists: %+v", err)
 				return nil, err
 			}
-			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying releaseName: %s, componentName: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", releaseName, component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
+			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart, releaseName: %s, defined in component: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", releaseName, component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
 			if releaseExists {
 				sLog.InfofCtx(ctx, "  P (Helm Target): Chart upgrade started. Details - Release Name: %s, Component Name: %s", releaseName, component.Component.Name)
 				if _, err = upgradeClient.Run(releaseName, chart, helmProp.Values); err != nil {
@@ -610,7 +610,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to configure uninstall client: %+v", err)
 					return nil, err
 				}
-				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart name: %s, component Name: %s, namespace: %s", releaseName, component.Component.Name, deployment.Instance.Spec.Scope)
+				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart, releaseName: %s, defined in component: %s, namespace: %s", releaseName, component.Component.Name, deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(releaseName)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to uninstall Helm chart: %+v", err)
@@ -791,7 +791,7 @@ func configureInstallClient(ctx context.Context, name string, componentProps *He
 }
 
 func checkReleaseExists(ctx context.Context, config *action.Configuration, releaseName string) (bool, error) {
-	sLog.InfofCtx(ctx, " P (Helm Target): begin to check release exists %s", releaseName)
+	sLog.InfofCtx(ctx, "  P (Helm Target): begin to check release exists %s", releaseName)
 
 	if releaseName == "" {
 		return false, v1alpha2.NewCOAError(nil, "Release name is required", v1alpha2.BadConfig)
@@ -815,7 +815,7 @@ func checkReleaseExists(ctx context.Context, config *action.Configuration, relea
 }
 
 func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration, postRenderer postrender.PostRenderer) (*action.Upgrade, error) {
-	sLog.InfofCtx(ctx, " P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring upgrade client in the namespace %s", deployment.Instance.Spec.Scope)
 	upgradeClient := action.NewUpgrade(config)
 	upgradeClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
