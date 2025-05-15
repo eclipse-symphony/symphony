@@ -7,6 +7,7 @@
 package contexts
 
 import (
+	"context"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -43,6 +44,10 @@ func (t *TestPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHandl
 	t.Subscribers[topic] = append(t.Subscribers[topic], handler)
 
 	return nil
+}
+
+func (t *TestPubSubProvider) Cancel() context.CancelFunc {
+	return func() {}
 }
 
 func TestVendorContextInit(t *testing.T) {
