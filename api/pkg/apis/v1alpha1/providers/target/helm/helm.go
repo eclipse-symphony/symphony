@@ -422,7 +422,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfoCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
