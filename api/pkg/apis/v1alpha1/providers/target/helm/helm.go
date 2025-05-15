@@ -839,7 +839,7 @@ func configureUpgradeClient(ctx context.Context, componentProps *HelmChartProper
 }
 
 func configureUninstallClient(ctx context.Context, componentProps *HelmChartProperty, deployment *model.DeploymentSpec, config *action.Configuration) (*action.Uninstall, error) {
-	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring uninstall client. Details - Release Name: %s, Component Name: %s, Namespace: %s", componentProps.Name, componentProps.Name, deployment.Instance.Spec.Scope)
+	sLog.InfofCtx(ctx, "  P (Helm Target): start configuring uninstall client. Details - Release Name: %s, componentProps.Name: %s, Namespace: %s", componentProps.Name, componentProps.Name, deployment.Instance.Spec.Scope)
 	uninstallClient := action.NewUninstall(config)
 	uninstallClient.Wait = componentProps.Wait
 	if componentProps.Timeout != "" {
