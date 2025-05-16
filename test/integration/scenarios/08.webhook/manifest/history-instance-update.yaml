@@ -1,11 +1,11 @@
 apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
-  name: history-instance
+  name: INSTANCEFULLNAME
 spec:
-  solution: history-solution:version2
+  solution: SOLUTIONREFNAME
   target: 
-    name: history-target
+    name: TARGETREFNAME
   reconciliationPolicy:
     interval: 60m
     state: active

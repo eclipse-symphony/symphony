@@ -33,7 +33,7 @@ var (
 func Test() error {
 	fmt.Println("Running ", TEST_NAME)
 
-	//defer testhelpers.Cleanup(TEST_NAME)
+	defer testhelpers.Cleanup(TEST_NAME)
 	err := testhelpers.SetupCluster()
 	if err != nil {
 		return err
@@ -59,5 +59,27 @@ func Verify() error {
 		}
 	}
 
+	return nil
+}
+
+func PrepareManifests() error {
+	// Prepare manifests
+	err := testhelpers.ReplacePlaceHolderInManifest("manifest/instance.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
+	if err != nil {
+		return err
+	}
+	err = testhelpers.ReplacePlaceHolderInManifest("manifest/solution.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
+	if err != nil {
+		return err
+	}
+	err = testhelpers.ReplacePlaceHolderInManifest("manifest/solution-container.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
+	if err != nil {
+		return err
+	}
+	err = testhelpers.ReplacePlaceHolderInManifest("manifest/target.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
+	if err != nil {
+		return err
+	}
+	err = testhelpers.ReplacePlaceHolderInManifest("manifest/target01.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "${PLACEHOLDER_INSTANCEHISTORY}")
 	return nil
 }
