@@ -8,10 +8,12 @@ on:
     branches:
       - main
       - 'release/**'
+      - remote-agent
   pull_request:
     branches:
       - main
       - 'release/**'
+      - remote-agent
   workflow_dispatch:
 env:
     ContainerRegistry: "ghcr.io"

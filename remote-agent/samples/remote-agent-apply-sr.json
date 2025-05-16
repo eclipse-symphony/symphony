@@ -1,0 +1,48 @@
+[
+    {
+        "operationID": "2",
+        "provider": "remote-agent",
+        "action" : "get",
+        "isDryRun": false,
+        "deployment": {
+            "solutionName": "sample",
+            "instance": {
+                "spec": {
+                    "scope": "namespace"
+                },
+                "metadata": {
+                    "name": "sample"
+                }
+            },
+            "solution": {
+                "spec": {
+                    "components": [{
+                        "component":{
+                            "name": "sample",
+                            "type": "remote-agent"
+                        }
+                    }]
+                },
+                "metadata": {
+                    "name": "sample"
+                }
+            },
+            "targets": {}
+        },
+        "step":{
+            "Target": "remote-target",
+            "Role": "remote-agent",
+            "Components" : [{
+                "action": "update",
+                "component":{
+                    "name": "sample",
+                    "type": "remote-agent",
+                    "parameters":{
+                        "action": "secretrotation"
+                    }
+                }
+            }]
+        }
+
+    }
+]

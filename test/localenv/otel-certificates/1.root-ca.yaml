@@ -2,7 +2,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: 'arc-diagnostics-extension-root-ca'
-  namespace: cert-manager
 spec:
   isCA: true
   commonName: 'arc-diagnostics-extension-root-ca'

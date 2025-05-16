@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  annotations: {}
+  name: remotedemoinstance
+spec:
+  displayName: remotedemoinstance
+  scope: default
+  solution: solutiontest:v1
+  target:
+    name: remote-demo

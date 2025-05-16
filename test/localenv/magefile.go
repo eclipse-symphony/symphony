@@ -131,7 +131,7 @@ func ghcrValuesOptions() string {
 	} else if enableNonTlsOtelSetup() {
 		return "-f symphony-ghcr-values.otel.non-tls.yaml"
 	} else {
-		return "-f symphony-ghcr-values.yaml"
+		return "-f symphony-ghcr-values.yaml --skip-crds"
 	}
 }
 
@@ -164,8 +164,14 @@ func (Cluster) Deploy() error {
 		if err != nil {
 			return err
 		}
+	} else {
+		err := ensureCertAndTrustManager()
+		if err != nil {
+			return err
+		}
 	}
-
+	ss := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())
+	fmt.Printf("%s\n", ss)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
 		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())),
@@ -336,6 +342,7 @@ func shellExecWithoutOutput(cmd string, printCmdOrNot bool) error {
 func Logs(logRootFolder string) error {
 	// api logs
 	apiLogFile := fmt.Sprintf("%s/api.log", logRootFolder)
+	apiCrashLogFile := fmt.Sprintf("%s/api-crash.log", logRootFolder)
 	k8sLogFile := fmt.Sprintf("%s/k8s.log", logRootFolder)
 	otelCollectorLogFile := fmt.Sprintf("%s/otel-collector.log", logRootFolder)
 	otelForwarderLogFile := fmt.Sprintf("%s/otel-forwarder.log", logRootFolder)
@@ -344,6 +351,7 @@ func Logs(logRootFolder string) error {
 	if err != nil {
 		fmt.Printf("Failed to collect api logs: %s\n", err)
 	}
+	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-api' --all-containers -n %s --previous > %s", getChartNamespace(), apiCrashLogFile), true)
 	err = shellExec(fmt.Sprintf("kubectl logs 'deployment/symphony-controller-manager' --all-containers -n %s > %s", getChartNamespace(), k8sLogFile), true)
 	if err != nil {
 		fmt.Printf("Failed to collect controller-manager logs: %s\n", err)
@@ -955,7 +963,7 @@ func recreateMinikube() error {
 	return ensureMinikubeUp()
 }
 
-func ensureSecureOtelCollectorPrereqs() error {
+func ensureCertAndTrustManager() error {
 	fmt.Println("Deploying OSS cert-manager for otel-collector")
 	err := shellcmd.Command("kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.yaml --wait").Run()
 	if err != nil {
@@ -983,7 +991,22 @@ func ensureSecureOtelCollectorPrereqs() error {
 		return err
 	}
 
-	err = shellcmd.Command("helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-manager --wait").Run()
+	trustNS := "cert-manager"
+	installTrustManager := fmt.Sprintf("helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-manager --wait --set app.trust.namespace=%s", trustNS)
+	err = shellcmd.Command(installTrustManager).Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureSecureOtelCollectorPrereqs() error {
+	// Ensure chart namespace exists
+	fmt.Printf("Creating namespace %s\n", getChartNamespace())
+	shellcmd.Command(fmt.Sprintf("kubectl create ns %s", getChartNamespace())).Run()
+
+	// Ensure cert-manager is deployed
+	err := ensureCertAndTrustManager()
 	if err != nil {
 		return err
 	}
@@ -998,12 +1021,9 @@ func ensureSecureOtelCollectorPrereqs() error {
 		return err
 	}
 
-	fmt.Printf("Creating namespace %s\n", getChartNamespace())
-	shellcmd.Command(fmt.Sprintf("kubectl create ns %s", getChartNamespace())).Run()
-
 	cmds := []shellcmd.Command{
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/0.selfsigned-issuer.yaml -n %s", getChartNamespace())),
-		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/1.root-ca.yaml")),
+		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/1.root-ca.yaml -n %s", getChartNamespace())),
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/2.root-ca-issuer.yaml -n %s", getChartNamespace())),
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/3.tls-cert.yaml -n %s", getChartNamespace())),
 		shellcmd.Command(fmt.Sprintf("kubectl apply -f ./otel-certificates/4.trust-bundle.yaml -n %s", getChartNamespace())),

@@ -14,7 +14,8 @@ import (
 )
 
 type DeploymentPlan struct {
-	Steps []DeploymentStep
+	Steps        []DeploymentStep
+	DefaultScope string `json:"defaultScope,omitempty"`
 }
 type DeploymentStep struct {
 	Target     string          `json:"target"`

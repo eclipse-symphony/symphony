@@ -29,6 +29,7 @@ type ActivationsCleanupManager struct {
 }
 
 func (s *ActivationsCleanupManager) Init(ctx *vendorCtx.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	s.ActivationsManager = ActivationsManager{}
 	err := s.ActivationsManager.Init(ctx, config, providers)
 	if err != nil {
 		return err

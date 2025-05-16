@@ -1,0 +1,10 @@
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: {{ include "symphony.apiClientCATrustBundle" . }}
+  namespace: cert-manager
+spec:
+  sources: []
+  target:
+    configMap:
+      key: {{ include "symphony.apiClientCATrustBundleKey" . }}

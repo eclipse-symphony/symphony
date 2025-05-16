@@ -8,6 +8,7 @@ data:
   CHART_VERSION: {{ .Chart.Version }}
   API_SERVING_CA: {{ include "symphony.apiServingCA" . }}
   SYMPHONY_API_URL: {{ include "symphony.httpsUrl" . }}
+  SYMPHONY_SERVICE_NAME: {{ include "symphony.serviceName" . }}
   USE_SERVICE_ACCOUNT_TOKENS: "true"
   DEPLOYMENT_FINALIZER: symphony.deploymentFinalizer
 {{- if and .Values.api.labelKey .Values.api.labelValue }}
@@ -17,6 +18,13 @@ data:
 {{- if .Values.api.annotationKey }}
   ANNOTATION_KEY: {{ .Values.api.annotationKey }}
 {{- end }}
+{{- if .Values.Cert.Subjects }}
+  CLIENT_SUBJECTS: {{ .Values.Cert.Subjects }}
+{{- end }}
   EXTENSION_RESOURCEID: {{ .Values.Azure.Extension.ResourceId }}
   EMIT_TIME_FIELD_IN_USER_LOGS: {{ include "symphony.emitTimeFieldInUserLogs" . }}
   LABEL_LENGTH_UPPER_LIMIT: "64"
+  CLIENT_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
+  ISSUER_NAME: {{ include "symphony.apiCAIssuerName" . }}
+  AGENT_PATH: "/remote-agent"
+  AGENT_VERSION: {{ .Values.remoteAgent.version }}
