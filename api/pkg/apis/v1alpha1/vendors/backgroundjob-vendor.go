@@ -8,6 +8,7 @@ package vendors
 
 import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
+	remoteAgent "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/remote-agent"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -19,9 +20,11 @@ import (
 type BackgroundJobVendor struct {
 	vendors.Vendor
 	// Add a new manager if you want to add another background job
-	ActivationsCleanerManager *activations.ActivationsCleanupManager
-	SummaryCleanupManager     *solution.SummaryCleanupManager
+	ActivationsCleanerManager    *activations.ActivationsCleanupManager
+	SummaryCleanupManager        *solution.SummaryCleanupManager
+	RemoteTargetSchedulerManager *remoteAgent.RemoteTargetSchedulerManager
 	ResourceCountManager      *solution.ResourceCountManager
+
 }
 
 func (s *BackgroundJobVendor) GetInfo() vendors.VendorInfo {
@@ -48,6 +51,10 @@ func (s *BackgroundJobVendor) Init(config vendors.VendorConfig, factories []mana
 			s.SummaryCleanupManager = c
 		} else if c, ok := m.(*solution.ResourceCountManager); ok {
 			s.ResourceCountManager = c
+		}
+
+		if c, ok := m.(*remoteAgent.RemoteTargetSchedulerManager); ok {
+			s.RemoteTargetSchedulerManager = c
 		}
 		// Load a new manager if you want to add another background job
 	}

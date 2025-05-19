@@ -44,7 +44,7 @@ func (s *SummaryManager) Init(ctx *vendorCtx.VendorContext, config managers.Mana
 	return nil
 }
 
-func (s *SummaryManager) GetDeploymentState(ctx context.Context, instance string, namespace string) *SolutionManagerDeploymentState {
+func (s *SummaryManager) GetDeploymentState(ctx context.Context, instance string, namespace string) *model.SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
 		Metadata: map[string]interface{}{
@@ -55,7 +55,7 @@ func (s *SummaryManager) GetDeploymentState(ctx context.Context, instance string
 		},
 	})
 	if err == nil {
-		var managerState SolutionManagerDeploymentState
+		var managerState model.SolutionManagerDeploymentState
 		jData, _ := json.Marshal(state.Body)
 		err = json.Unmarshal(jData, &managerState)
 		if err == nil {
@@ -70,7 +70,7 @@ func (s *SummaryManager) UpsertDeploymentState(ctx context.Context, instance str
 	_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: instance,
-			Body: SolutionManagerDeploymentState{
+			Body: model.SolutionManagerDeploymentState{
 				Spec:  deployment,
 				State: mergedState,
 			},

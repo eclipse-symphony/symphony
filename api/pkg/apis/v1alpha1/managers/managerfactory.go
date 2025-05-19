@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/models"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	remoteAgent "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/remote-agent"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/secrets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/skills"
@@ -81,6 +82,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &activations.ActivationsManager{}
 	case "managers.symphony.activationscleanup":
 		manager = &activations.ActivationsCleanupManager{}
+	case "managers.symphony.remoteagentscheduler":
+		manager = &remoteAgent.RemoteTargetSchedulerManager{}
 	case "managers.symphony.stage":
 		manager = &stage.StageManager{}
 	case "managers.symphony.configs":

@@ -1,0 +1,31 @@
+{
+    "bindings": [
+      {
+        "provider": "providers.target.script",
+        "role": "script"
+      },
+      {
+        "provider": "providers.target.remote-agent",
+        "role": "remote-agent"
+      },
+      {
+        "provider": "providers.target.http",
+        "role": "http"
+      },
+      {
+        "provider": "providers.target.win10.sideload",
+        "role": "win.uwp",
+        "config": 
+        {
+          "name": "sideload",
+          "winAppDeployCmdPath": "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+          "ipAddress": <IP>,
+          "pin": <PIN>
+        }
+      },
+      {
+        "provider": "providers.target.docker",
+        "role": "docker"
+      }
+    ]
+}

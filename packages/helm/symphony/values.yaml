@@ -105,3 +105,10 @@ Azure:
 otlpLogsEndpointGrpc: 
 otlpMetricsEndpointGrpc: 
 otlpInsecureGrpc: true
+Cert:
+  ClientCAs: 
+    SecretName: 
+    SecretKey: 
+  Subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
+remoteAgent:
+  version: "0.0.0.1"

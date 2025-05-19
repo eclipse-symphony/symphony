@@ -250,7 +250,7 @@ func TestMergeStateAddAComponent(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	state := MergeDeploymentStates(&state1, state2)
+	state := MergeDeploymentStates(state1, state2)
 	assert.Equal(t, 3, len(state.Components))
 	assert.Equal(t, 1, len(state.Targets))
 	assert.Equal(t, "instance", state.TargetComponent["a::T1"])
@@ -307,7 +307,7 @@ func TestMergeStateRemoveAComponent(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	state := MergeDeploymentStates(&state1, state2)
+	state := MergeDeploymentStates(state1, state2)
 	assert.Equal(t, 3, len(state.Components))
 	assert.Equal(t, 1, len(state.Targets))
 	assert.Equal(t, "instance", state.TargetComponent["a::T1"])
@@ -367,7 +367,7 @@ func TestMergeStateProviderChange(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	state := MergeDeploymentStates(&state1, state2)
+	state := MergeDeploymentStates(state1, state2)
 	assert.Equal(t, 3, len(state.Components))
 	assert.Equal(t, 2, len(state.Targets))
 	assert.Equal(t, "-instance", state.TargetComponent["a::T1"])
@@ -427,7 +427,7 @@ func TestMergeStateUnrelated(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	state := MergeDeploymentStates(&state1, state2)
+	state := MergeDeploymentStates(state1, state2)
 	assert.Equal(t, 5, len(state.Components))
 	assert.Equal(t, 2, len(state.Targets))
 	assert.Equal(t, "-instance", state.TargetComponent["a::T1"])
@@ -493,7 +493,7 @@ func TestMergeStateAddProvider(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	state := MergeDeploymentStates(&state1, state2)
+	state := MergeDeploymentStates(state1, state2)
 	assert.Equal(t, 3, len(state.Components))
 	assert.Equal(t, 2, len(state.Targets))
 	assert.Equal(t, 5, len(state.TargetComponent))
