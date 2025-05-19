@@ -158,33 +158,26 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 	if remove {
 		action = v1alpha2.HeartBeatDelete
 	}
-	first := true
 	for {
-		if first {
-			first = false
-		} else {
-			select {
-			case <-ticker.C:
-				// continue to send heartbeat
-			case <-stopCh:
-				return
-			}
+		select {
+		case <-ticker.C:
+			log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
+			s.VendorContext.Publish("heartbeat", v1alpha2.Event{
+				Body: v1alpha2.HeartBeatData{
+					JobId:     id,
+					Scope:     namespace,
+					Action:    action,
+					Time:      time.Now().UTC(),
+					JobAction: v1alpha2.JobUpdate,
+				},
+				Metadata: map[string]string{
+					"namespace": namespace,
+				},
+				Context: ctx,
+			})
+		case <-stopCh:
+			return // Exit the goroutine when the stop signal is received
 		}
-
-		log.DebugfCtx(ctx, " M (Solution): sendHeartbeat, id: %s, namespace: %s, remove:%v", id, namespace, remove)
-		s.VendorContext.Publish("heartbeat", v1alpha2.Event{
-			Body: v1alpha2.HeartBeatData{
-				JobId:     id,
-				Scope:     namespace,
-				Action:    action,
-				Time:      time.Now().UTC(),
-				JobAction: v1alpha2.JobUpdate,
-			},
-			Metadata: map[string]string{
-				"namespace": namespace,
-			},
-			Context: ctx,
-		})
 	}
 }
 
