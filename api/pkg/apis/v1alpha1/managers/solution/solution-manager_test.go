@@ -370,6 +370,10 @@ func TestMockGet(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -379,6 +383,7 @@ func TestMockGet(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(components))
@@ -485,6 +490,10 @@ func TestMockGetTwoTargets(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -494,6 +503,7 @@ func TestMockGetTwoTargets(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(components))
@@ -584,6 +594,10 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock1": targetProvider,
@@ -594,6 +608,7 @@ func TestMockGetTwoTargetsTwoProviders(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	state, components, err := manager.Get(context.Background(), deployment, "")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(components))
@@ -663,6 +678,10 @@ func TestMockApply(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -672,6 +691,7 @@ func TestMockApply(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
@@ -804,6 +824,10 @@ func TestMockApplyMultiRoles(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock":  targetProvider,
@@ -814,6 +838,7 @@ func TestMockApplyMultiRoles(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
@@ -866,6 +891,10 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -875,6 +904,7 @@ func TestMockApplyWithUpdateAndRemove(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, summary.SuccessCount)
@@ -922,6 +952,10 @@ func TestMockApplyWithError(t *testing.T) {
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	keyLockProvider := &memorykeylock.MemoryKeyLockProvider{}
 	keyLockProvider.Init(memorykeylock.MemoryKeyLockProviderConfig{Mode: memorykeylock.Dedicated})
+	vendorContext := &contexts.VendorContext{}
+	pubSubProvider := memory.InMemoryPubSubProvider{}
+	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
+	vendorContext.Init(&pubSubProvider)
 	manager := SolutionManager{
 		TargetProviders: map[string]target.ITargetProvider{
 			"mock": targetProvider,
@@ -931,6 +965,7 @@ func TestMockApplyWithError(t *testing.T) {
 		},
 		KeyLockProvider: keyLockProvider,
 	}
+	manager.VendorContext = vendorContext
 	summary, err := manager.Reconcile(context.Background(), deployment, false, "default", "")
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, summary.SuccessCount)
