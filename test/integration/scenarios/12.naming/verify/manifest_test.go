@@ -184,7 +184,11 @@ func TestLongResourceName(t *testing.T) {
 	assert.Nil(t, err, "No error expected")
 	output, err = applyManifest([]byte(historyManifest))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
-	//assert.True(t, strings.Contains(string(output), "Name length"))
+
+	// do the same for the diagnostic manifest
+	_, output, err = createNonLinkedResource(diagnostic, diaLongLength, false)
+	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	if testhelpers.IsTestInAzure() {
 		// skip the campaign and catalog tests in azure
@@ -214,11 +218,6 @@ func TestLongResourceName(t *testing.T) {
 
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, longLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
-	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
-	assert.True(t, strings.Contains(string(output), "Name length"))
-
-	// do the same for the diagnostic manifest
-	_, output, err = createNonLinkedResource(diagnostic, diaLongLength, false)
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 }
@@ -257,6 +256,14 @@ func TestLabelLengthResourceName(t *testing.T) {
 	output, err = applyManifest([]byte(historyManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
+	// do the same for the diagnostic manifest
+	diaName, output, err := createNonLinkedResource(diagnostic, labelLength, false)
+	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
+
+	//delete Diagnostic k8s resource named diaName
+	output, err = exec.Command("kubectl", "delete", "Diagnostic", diaName).Output()
+	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
+
 	if testhelpers.IsTestInAzure() {
 		// skip the campaign and catalog tests in azure
 		return
@@ -275,14 +282,6 @@ func TestLabelLengthResourceName(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, labelLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
-	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
-
-	// do the same for the diagnostic manifest
-	diaName, output, err := createNonLinkedResource(diagnostic, labelLength, false)
-	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
-
-	//delete Diagnostic k8s resource named diaName
-	output, err = exec.Command("kubectl", "delete", "Diagnostic", diaName).Output()
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 }
 
@@ -320,6 +319,10 @@ func TestForShortResourceName(t *testing.T) {
 	output, err = applyManifest([]byte(historyManifest))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
+	// do the same for the diagnostic manifest
+	_, output, err = createNonLinkedResource(diagnostic, diaShortLength, false)
+	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
+
 	if testhelpers.IsTestInAzure() {
 		// skip the campaign and catalog tests in azure
 		return
@@ -339,10 +342,6 @@ func TestForShortResourceName(t *testing.T) {
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, shortLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
-
-	// do the same for the diagnostic manifest
-	_, output, err = createNonLinkedResource(diagnostic, diaShortLength, false)
-	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
 }
 
 func TestForSpecialResourceName(t *testing.T) {
@@ -386,6 +385,11 @@ func TestForSpecialResourceName(t *testing.T) {
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
+	// do the same for the diagnostic manifest
+	_, output, err = createNonLinkedResource(diagnostic, specialLength, false)
+	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
+	assert.True(t, strings.Contains(string(output), "invalid"))
+
 	if testhelpers.IsTestInAzure() {
 		// skip the campaign and catalog tests in azure
 		return
@@ -409,11 +413,6 @@ func TestForSpecialResourceName(t *testing.T) {
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the activation manifest
 	_, output, err = createActivationResource(activation, specialLength, true, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
-	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
-	assert.True(t, strings.Contains(string(output), "invalid"))
-
-	// do the same for the diagnostic manifest
-	_, output, err = createNonLinkedResource(diagnostic, specialLength, false)
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 }
