@@ -21,7 +21,7 @@ type TargetValidator struct {
 
 var (
 	targetMaxNameLength = 61
-	targetMinNameLength = 3
+	targetMinNameLength = 1
 )
 
 func NewTargetValidator(targetInstanceLookupFunc LinkedObjectLookupFunc, uniqueNameTargetLookupFunc ObjectLookupFunc) TargetValidator {

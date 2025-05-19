@@ -38,7 +38,7 @@ import (
 // log is for logging in this package.
 var (
 	campaignContainerMaxNameLength  = 61
-	campaignContainerMinNameLength  = 3
+	campaignContainerMinNameLength  = 1
 	campaignlog                     = logf.Log.WithName("campaign-resource")
 	myCampaignReaderClient          client.Reader
 	catalogWebhookValidationMetrics *metrics.Metrics

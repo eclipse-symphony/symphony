@@ -29,7 +29,7 @@ import (
 
 // log is for logging in this package.
 var (
-	iHistoryNameMin = 3
+	iHistoryNameMin = 1
 	iHistoryNameMax = 61
 )
 var historyLog = logf.Log.WithName("instance-history-resource")
