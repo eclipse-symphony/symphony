@@ -365,8 +365,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 		err = v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
 		return err
 	}
-	log.InfofCtx(ctx, " M (Job): skip job %s as existing job in progress", job.Id)
-	err = v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
+	log.InfofCtx(ctx, " M (Job): delay job %s as existing job in progress", job.Id)
+	err = v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Delayed)
 	return err
 }
 func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Event) error {

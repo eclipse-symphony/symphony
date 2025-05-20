@@ -158,7 +158,6 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 	if remove {
 		action = v1alpha2.HeartBeatDelete
 	}
-
 	for {
 		select {
 		case <-ticker.C:
