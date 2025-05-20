@@ -23,7 +23,7 @@ var log = logger.NewLogger("coa.runtime")
 
 const (
 	DefaultRetryCount      = 5
-	DefaultRetryWaitSecond = 10
+	DefaultRetryWaitSecond = 20
 )
 
 type InMemoryPubSubProvider struct {
