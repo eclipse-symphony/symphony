@@ -225,23 +225,23 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 			Streams:  []string{topic, ">"},
 			Count:    1,
 		}).Result()
-		if err != nil && !errors.Is(err, redis.Nil) {
+		if err != nil && errors.Is(err, context.Canceled) {
+			// Context is canceled, exit the loop
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is cancelled", topic, handler.Group)
+			continue
+		} else if err != nil && errors.Is(err, redis.Nil) {
+			// No new messages. Since block parameter is not set, this branch is not expected.
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no new messages for topic %s", topic)
+			continue
+		} else if err != nil {
 			// Something wrong with redis server
 			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to read message %v", err)
 			time.Sleep(ClaimMessageInterval)
 			continue
-		} else if err != nil && errors.Is(err, context.Canceled) {
-			// Context is canceled, exit the loop
-			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is cancelled", topic, handler.Group)
-			continue
-		} else if errors.Is(err, redis.Nil) {
-			// No new messages. Since block parameter is not set, this branch is not expected.
-			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no new messages for topic %s", topic)
-			continue
 		}
 		if len(streams) == 1 && len(streams[0].Messages) == 1 {
-			if i.CheckMessageExpired(streams[0].Messages[0].ID) {
-				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : message %s for topic %s, group %s is expired", streams[0].Messages[0].ID, topic, handler.Group)
+			if enqueueTime, expired := i.CheckMessageExpired(streams[0].Messages[0].ID); expired {
+				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : message %s for topic %s, group %s is expired, enqueued at %s", streams[0].Messages[0].ID, topic, handler.Group, enqueueTime.String())
 				i.AcknowledgeAndDeleteMessage(i.Ctx, topic, handler.Group, streams[0].Messages[0].ID)
 				continue
 			}
@@ -258,64 +258,60 @@ func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2
 }
 
 func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, handler v1alpha2.EventHandler) {
-	i.reclaimPendingMessages(topic, handler)
-	reclaimTicker := time.NewTicker(ClaimMessageInterval)
-	defer reclaimTicker.Stop()
+	startMessageId := "-"
 	for {
-		select {
-		case <-i.Ctx.Done():
+		if i.Ctx.Err() != nil {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is stopped", topic, handler.Group)
 			return
-		case <-reclaimTicker.C:
-			i.reclaimPendingMessages(topic, handler)
 		}
-	}
-}
-
-func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, handler v1alpha2.EventHandler) {
-	// If worker is claimed but not started, release it in defer function
-	claimWorker := false
-	workerStarted := false
-	defer func() {
-		if claimWorker && !workerStarted {
-			i.ReleaseWorker(topic)
-		}
-	}()
-	for {
-		claimWorker = false
-		workerStarted = false
 		pendingResult, err := i.Client.XPendingExt(i.Ctx, &redis.XPendingExtArgs{
 			Stream:   topic,
 			Group:    handler.Group,
-			Start:    "-",
+			Start:    startMessageId,
 			End:      "+",
 			Count:    1,
 			Idle:     ClaimMessageIdleTime,
 			Consumer: "",
 		}).Result()
-		if err != nil && !errors.Is(err, redis.Nil) {
-			mLog.Errorf("  P (Redis PubSub) : failed to get pending message %v", err)
-			return
+		if err != nil && errors.Is(err, context.Canceled) {
+			// Context is canceled, exit the loop
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : reclaimPendingMessages for topic %s with Group %s is cancelled", topic, handler.Group)
+			continue
+		} else if err != nil && errors.Is(err, redis.Nil) {
+			// No pending messages, reset startMessageId, wait for a while before checking again
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no pending messages for topic %s", topic)
+			startMessageId = "-"
+			time.Sleep(ClaimMessageInterval)
+			continue
+		} else if err != nil {
+			// Something wrong with redis server
+			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to read message %v", err)
+			time.Sleep(ClaimMessageInterval)
+			continue
 		}
 		if len(pendingResult) != 1 {
-			return
+			// should not happen
+			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : pending message is not 1 but no error is thrown")
+			continue
 		}
-		if i.CheckMessageExpired(pendingResult[0].ID) {
-			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : message %s for topic %s, group %s is expired", pendingResult[0].ID, topic, handler.Group)
+		if enqueueTime, expired := i.CheckMessageExpired(pendingResult[0].ID); expired {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : message %s for topic %s, group %s is expired, enqueued at %s", pendingResult[0].ID, topic, handler.Group, enqueueTime.String())
 			i.AcknowledgeAndDeleteMessage(i.Ctx, topic, handler.Group, pendingResult[0].ID)
 			continue
 		}
-		if claimWorker = i.WaitForIdleWorkers(pendingResult[0].ID, time.Second); !claimWorker {
+		if claimWorker := i.WaitForIdleWorkers(pendingResult[0].ID, time.Second); !claimWorker {
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : unable to claim idle workers in %s for topic %s, group %s, message %s", time.Second, topic, handler.Group, pendingResult[0].ID)
 			time.Sleep(ClaimMessageInterval)
 			continue
 		}
+		startMessageId = pendingResult[0].ID
 		msg, succeeded := i.ClaimMessage(topic, handler.Group, ClaimMessageIdleTime, pendingResult[0].ID)
 		if !succeeded {
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : failed to claim message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+			i.ReleaseWorker(pendingResult[0].ID)
 			continue
 		}
 		go i.processMessage(topic, handler, msg)
-		workerStarted = true
 	}
 }
 
@@ -471,12 +467,12 @@ func redisIDToTime(msgID string) (time.Time, error) {
 	return time.UnixMilli(milliseconds), nil
 }
 
-func (i *RedisPubSubProvider) CheckMessageExpired(msgID string) bool {
+func (i *RedisPubSubProvider) CheckMessageExpired(msgID string) (time.Time, bool) {
 	enqueueTime, err := redisIDToTime(msgID)
 	if err != nil {
-		return false
+		return time.Time{}, false
 	}
-	return enqueueTime.Add(MessageExpireDuration).Before(time.Now())
+	return enqueueTime, enqueueTime.Add(MessageExpireDuration).Before(time.Now())
 }
 
 func (i *RedisPubSubProvider) AcknowledgeAndDeleteMessage(ctx context.Context, topic string, group string, msgID string) {
