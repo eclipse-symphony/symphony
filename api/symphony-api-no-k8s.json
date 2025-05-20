@@ -25,6 +25,17 @@
         "config": {}
       }
     },
+    "keylock": {
+      "shared": true,
+      "provider": {      
+        "type": "providers.keylock.memory",
+        "config": {
+          "mode": "Global",
+          "cleanInterval" : 30,
+          "purgeDuration" : 43200
+        }
+      }
+    },
     "vendors": [
       {
         "type": "vendors.settings",
@@ -39,7 +50,6 @@
               "catalog": {
                 "type": "providers.config.catalog",
                 "config": {
-                  "baseUrl": "http://localhost:8082/v1alpha2/",
                   "user": "admin",
                   "password": ""
                 }
@@ -56,13 +66,12 @@
             "name": "stage-manager",
             "type": "managers.symphony.stage",
             "properties": {   
-              "baseUrl": "http://localhost:8082/v1alpha2/",
               "user": "admin",
               "password": "",
-              "providers.state": "k8s-state"        
+              "providers.volatilestate": "memory"        
             },
             "providers": {
-              "k8s-state": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -72,7 +81,7 @@
             "name": "campaigns-manager",
             "type": "managers.symphony.campaigns",
             "properties": {
-              "providers.state": "k8s-state",
+              "providers.persistentstate": "k8s-state",
               "singleton": "true"
             },
             "providers": {
@@ -86,7 +95,7 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.state": "k8s-state",
+              "providers.persistentstate": "k8s-state",
               "singleton": "true"
             },
             "providers": {
@@ -98,7 +107,6 @@
           }
         ],
         "properties": {
-          "wait.baseUrl": "http://localhost:8082/v1alpha2/",
           "wait.user": "admin",
           "wait.password": "",
           "wait.wait.interval": "15",
@@ -113,8 +121,31 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.state": "k8s-state",
+              "providers.persistentstate": "k8s-state",
+              "useJobManager": "true",
               "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.backgroundjob",
+        "route": "backgroundjob",
+        "loopInterval": 3600,
+        "managers": [
+          {
+            "name": "activations-cleanup-manager",
+            "type": "managers.symphony.activationscleanup",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true",
+              "RetentionDuration": "4320h"
             },
             "providers": {
               "k8s-state": {
@@ -133,8 +164,27 @@
             "name": "campaigns-manager",
             "type": "managers.symphony.campaigns",
             "properties": {
-              "providers.state": "k8s-state",
+              "providers.persistentstate": "k8s-state",
               "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.campaigncontainers",
+        "route": "campaigncontainers",
+        "managers": [
+          {
+            "name": "campaign-container-manager",
+            "type": "managers.symphony.campaigncontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -159,8 +209,8 @@
             "name": "jobs-manager",
             "type": "managers.symphony.jobs",
             "properties": {
-              "providers.state": "mem-state",
-              "baseUrl": "http://localhost:8082/v1alpha2/",
+              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
               "user": "admin",
               "password": "",
               "interval": "#15",
@@ -185,7 +235,7 @@
             "name": "targets-manager",
             "type": "managers.symphony.targets",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -208,7 +258,7 @@
             "name": "solutions-manager",
             "type": "managers.symphony.solutions",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -228,7 +278,7 @@
             "name": "instances-manager",
             "type": "managers.symphony.instances",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -242,6 +292,25 @@
           "useJobManager": "true"
         }
       },
+	    {
+        "type": "vendors.solutioncontainers",
+        "route": "solutioncontainers",
+        "managers": [
+          {
+            "name": "solution-container-manager",
+            "type": "managers.symphony.solutioncontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
       {
         "type": "vendors.devices",
         "loopInterval": 15,
@@ -251,7 +320,7 @@
             "name": "devices-manager",
             "type": "managers.symphony.devices",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -271,7 +340,7 @@
             "name": "models-manager",
             "type": "managers.symphony.models",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -291,7 +360,7 @@
             "name": "skills-manager",
             "type": "managers.symphony.skills",
             "properties": {
-              "providers.state": "k8s-state"
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
@@ -314,7 +383,7 @@
             "name": "users-manager",
             "type": "managers.symphony.users",
             "properties": {
-              "providers.state": "mem-state"
+              "providers.volatilestate": "mem-state"
             },
             "providers": {
               "mem-state": {
@@ -334,14 +403,21 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.state": "mem-state",
+              "providers.persistentstate": "mem-state",
               "providers.config": "mock-config",
-              "providers.secret": "mock-secret"
+              "providers.secret": "mock-secret",
+              "providers.keylock": "mem-keylock"
             },
             "providers": {
               "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
+              },
+              "mem-keylock": {
+                "type": "providers.keylock.memory",
+                "config": {
+                  "mode" : "Shared"
+                }
               },
               "mock-config": {
                 "type": "providers.config.mock",
@@ -365,7 +441,7 @@
             "type": "managers.symphony.reference",
             "properties": {
               "providers.reference": "http-reference",
-              "providers.state": "memory",
+              "providers.volatilestate": "memory",
               "providers.reporter": "http-reporter"
             },
             "providers": {
@@ -375,15 +451,11 @@
               },
               "http-reference": {
                 "type": "providers.reference.http",
-                "config": {
-                  "url": "http://localhost:8082/v1alpha2/"
-                }
+                "config": {}
               },
               "http-reporter": {
                 "type": "providers.reporter.http",
-                "config": {
-                  "url": "http://localhost:8082/v1alpha2/"
-                }
+                "config": {}
               }
             }
           }
@@ -408,10 +480,10 @@
             "name": "sites-manager",
             "type": "managers.symphony.sites",
             "properties": {
-              "providers.state": "memeory"              
+              "providers.persistentstate": "memory"              
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -421,11 +493,11 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.state": "memeory",
+              "providers.persistentstate": "memory",
               "singleton": "true"              
             },
             "providers": {
-              "memeory": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               }
@@ -438,7 +510,7 @@
               "poll.enabled": "true",
               "interval": "#15",
               "providers.queue": "memory-queue",
-              "providers.state": "memory-state"              
+              "providers.volatilestate": "memory-state"              
             },
             "providers": {
               "memory-queue": {
@@ -472,11 +544,55 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.state": "memeory",
+              "providers.persistentstate": "memory",
               "singleton": "true"
             },
             "providers": {
-              "memeory": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogcontainers",
+        "route": "catalogcontainers",
+        "managers": [
+          {
+            "name": "catalog-container-manager",
+            "type": "managers.symphony.catalogcontainers",
+            "properties": {
+              "providers.persistentstate": "memory",
+              "singleton": "true" 
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.visualization",
+        "route": "visualization",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.persistentstate": "memory",
+              "singleton": "true"
+            },
+            "providers": {
+              "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               },

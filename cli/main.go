@@ -7,7 +7,7 @@
 package main
 
 import (
-	"github.com/azure/symphony/cli/cmd"
+	"github.com/eclipse-symphony/symphony/cli/cmd"
 )
 
 // Version value is injected by the build.

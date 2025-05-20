@@ -32,7 +32,7 @@ pub struct ObjectRef {
     group: String,
     version: String,
     kind: String,
-    scope: String,
+    namespace: String,
 }
 #[derive(Serialize, Deserialize)]
 pub struct StagedProperties {
@@ -42,9 +42,6 @@ pub struct StagedProperties {
 }
 #[derive(Serialize, Deserialize)]
 pub struct CatalogSpec {
-    #[serde(rename = "siteId")]
-    site_id: String,
-    pub name: String,
     #[serde(rename = "type")]
     pub catalog_type: String,
     pub properties: StagedProperties,
@@ -57,8 +54,15 @@ pub struct CatalogStatus {
     properties: Option<HashMap<String, String>>,
 }
 #[derive(Serialize, Deserialize)]
+pub struct ObjectMeta {
+    namespace: Option<String>,
+    pub name: String,
+    labels: Option<HashMap<String, String>>,
+    annotations: Option<HashMap<String, String>>,
+}
+#[derive(Serialize, Deserialize)]
 pub struct CatalogState {
-    id: String,
+    pub metadata: ObjectMeta,
     pub spec: CatalogSpec,
     status: Option<CatalogStatus>,
 }

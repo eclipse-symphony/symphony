@@ -7,7 +7,7 @@
 use serde_json::json;
 use crate::models::{Token, CatalogState};
 
-static BASE_URL: &str = "http://20.121.77.132:8080/v1alpha2";
+static BASE_URL: &str = "http://localhost:8080/v1alpha2";
 
 pub fn get_catalogs(token: &str) -> Vec<CatalogState> {
     let req = attohttpc::get(format!("{}/catalogs/registry", BASE_URL)).bearer_auth(token).send();

@@ -1,12 +1,14 @@
 # Symphony agent
 
+_(last edit: 6/4/2024)_
+
 A Symphony agent runs on a `target` and provides several services to Symphony payloads running on the same target, including:
 
 * Get object references from the control plane.
 * Probe and report on health of associated `device` objects.
 * Capture and upload camera images for camera `device` objects.
 
-A Symphony agent is a microservice that exposes an HTTP endpoint to Symphony payloads. We offer a Symphony container (`ghcr.io/azure/symphony/symphony-agent`) as well as a cross-platform binary that can be configured as a system daemon or service.
+A Symphony agent is a microservice that exposes an HTTP endpoint to Symphony payloads. We offer a Symphony container (`ghcr.io/eclipse-symphony/symphony-agent`) as well as a cross-platform binary that can be configured as a system daemon or service.
 
 ## Prepare for Symphony agent deployment
 
@@ -32,6 +34,9 @@ In this example, the Symphony agent needs a service principal to access an Azure
    ```bash
    az storage account create --name <storage account name> --resource-group <resource group name> --location <location> --sku Standard_LRS
    az storage container create -n snapshots --account-name <storage account name>
+
+   # grant permission to access storage account
+   az role assignment create --assignee <service principal app id> --role "Storage Blob Data Owner" --scope /subscriptions/<subscription id>/resourceGroups/<resource group name>/providers/Microsoft.Storage/storageAccounts/<storage account name>
    ```
 
 3. If you plan to run Symphony agent as a process or a service, install [FFmpeg](https://ffmpeg.org/) on your target machine. You can skip this step if you plan to run Symphony agent as a container, which has FFmpeg pre-installed.
@@ -48,7 +53,7 @@ In this example, the Symphony agent needs a service principal to access an Azure
 To test Symphony agent on your local dev machine, you can use the prebuilt container:
 
 ```bash
-docker run -p 8088:8088 -e SYMPHONY_URL=http://<Symphony control plane endpoint>:8080/v1alpha2/agent/references -e AZURE_CLIENT_ID=<service principal app id> -e AZURE_TENANT_ID=<service principal tenant id> -e AZURE_CLIENT_SECRET=<service principal client secret> -e STORAGE_ACCOUNT=<storage account name> -e STORAGE_CONTAINER=<storage container name> -e TARGET_NAME=<target name> hbai/symphony-agent:0.1.26
+docker run -p 8088:8088 -e SYMPHONY_URL=http://<Symphony control plane endpoint>:8080/v1alpha2/agent/references -e AZURE_CLIENT_ID=<service principal app id> -e AZURE_TENANT_ID=<service principal tenant id> -e AZURE_CLIENT_SECRET=<service principal client secret> -e STORAGE_ACCOUNT=<storage account name> -e STORAGE_CONTAINER=<storage container name> -e TARGET_NAME=<target name> eclipse-symphony/symphony-agent:0.1.26
 ```
 
 Where `<Symphony control plane endpoint>` is the DNS/IP of Symphony control plane endpoint. For example, when you run Symphony control plane on a Kubernetes cluster, the control plane exposes a load-balanced service endpoint for agents. You can get the service endpoint with:
@@ -75,7 +80,7 @@ export TARGET_NAME=<target name> #the name of the Target object representing the
 
 ## Get object reference
 
-You can get Symphony object specs, such as AI [skill](../uom/ai-skill.md) and [solution](../uom/solution.md), through the Symphony agent:
+You can get Symphony object specs, such as AI [skill](../concepts/unified-object-model/ai-skill.md) and [solution](../concepts/unified-object-model/solution.md), through the Symphony agent:
 
 * **Route**: `http://<Symphony agent endpoint>:8088/v1alpha2/agent/references`
 * **Method**: GET
@@ -91,7 +96,7 @@ You can get Symphony object specs, such as AI [skill](../uom/ai-skill.md) and [s
   | kind | Resource kind, like `skills`, `solutions` and `devices`|
   | label-selector | Label selector (optional), for example: `foo=bar`|
   | ref | Reference provider type. Use `v1alpha2.ReferenceK8sCRD` to query K8s objects |
-  | scope | Namespace, like `default`|
+  | namespace | Namespace, like `default`|
   | version | Resource version, like `v1`|
 
   **<sup>1</sup>**: This parameter is supposed to be used in `skill` queries only. When supplied, `skill` parameter values will be overridden by corresponding values (named as `<skill name>.<parameter name>`) in the `instance` object. In addition, if the `alias` parameter is specified, Symphony uses `<skill name>.<alias>.<parameter name>` to locate instance overrides instead. For more information, see [parameter management](../ai-management/parameter-management.md).
@@ -140,7 +145,7 @@ You can report object state through Symphony agent.
   | id | Resource name (optional)|
   | kind | Resource type, like `skills`, `solutions`, and `devices`|
   | overwrite | If set to true, the object state will be reset to reported properties. Otherwise, the reported properties are merged into existing state (optional, default = false) |
-  | scope | Namespace, like `default` |
+  | namespace | Namespace, like `default` |
   | version | resource version, like `v1` |
 
 * **Body**: A key-value pair collection of reported properties

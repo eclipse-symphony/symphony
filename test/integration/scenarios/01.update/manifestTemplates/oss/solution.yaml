@@ -6,7 +6,9 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  annotations: {}
-  name: my-sol
+  annotations: 
+    management.azure.com/resourceId: SOLUTIONREFNAME
+  name: SOLUTIONFULLNAME
 spec:
-  displayName: My solution
+  rootResource: SOLUTIONCONTAINERFULLNAME
+  displayName: SOLUTIONFULLNAME

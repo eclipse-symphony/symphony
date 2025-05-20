@@ -15,17 +15,19 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.proxy"
+
+var sLog = logger.NewLogger(loggerName)
 
 type ProxyUpdateProviderConfig struct {
 	Name      string `json:"name"`
@@ -53,6 +55,7 @@ func ProxyUpdateProviderConfigFromMap(properties map[string]string) (ProxyUpdate
 func (i *ProxyUpdateProvider) InitWithMap(properties map[string]string) error {
 	config, err := ProxyUpdateProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Proxy Target): expected ProxyUpdateProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -63,15 +66,17 @@ func (s *ProxyUpdateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ProxyUpdateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Proxy Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Proxy Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Info("~~~ Proxy Provider ~~~ : Init()")
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfoCtx(ctx, "  P (Proxy Target): Init()")
 
 	updateConfig, err := toProxyUpdateProviderConfig(config)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): expected ProxyUpdateProviderConfig - %+v", err)
 		err = errors.New("expected ProxyUpdateProviderConfig")
 		return err
 	}
@@ -120,17 +125,20 @@ func (i *ProxyUpdateProvider) Get(ctx context.Context, deployment model.Deployme
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("~~~ Proxy Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Proxy Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	data, _ := json.Marshal(deployment)
 	payload, err := i.callRestAPI("instances", "GET", data)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to get instances: %+v", err)
 		return nil, err
 	}
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(payload, &ret)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to unmarshall get response: %+v", err)
 		return nil, err
 	}
 
@@ -143,15 +151,18 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("~~~ Proxy Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Proxy Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to validate components: %v", err)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugfCtx(ctx, "  P (Proxy Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -159,21 +170,37 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Proxy Target): get updated components: count - %d", len(components))
 		data, _ := json.Marshal(deployment)
+		payload, err := i.callRestAPI("instances", "POST", data)
 
-		_, err = i.callRestAPI("instances", "POST", data)
 		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to post instances: %+v", err)
 			return ret, err
 		}
-		if err != nil {
-			return ret, err
+
+		var summarySpec model.SummarySpec
+		err = json.Unmarshal(payload, &summarySpec)
+
+		if err == nil {
+			// Update ret
+			for target, targetResult := range summarySpec.TargetResults {
+				for _, componentResults := range targetResult.ComponentResults {
+					ret[target] = componentResults
+				}
+			}
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to unmarshall post response: %+v", err)
 		}
 	}
+
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Proxy Target): get deleted components: count - %d", len(components))
 		data, _ := json.Marshal(deployment)
 		_, err = i.callRestAPI("instances", "DELETE", data)
 		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Proxy Target): failed to delete instances: %+v", err)
 			return ret, err
 		}
 	}
@@ -184,11 +211,14 @@ func (i *ProxyUpdateProvider) Apply(ctx context.Context, deployment model.Deploy
 
 func (*ProxyUpdateProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }
 

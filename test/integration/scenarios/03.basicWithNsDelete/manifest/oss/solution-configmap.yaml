@@ -1,0 +1,17 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: solution-configmap
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: solution-configmap-v-version1
+spec:
+  rootResource: solution-configmap
+  components:
+    - name: configmap
+      type: config
+      properties: 
+        tags: "test-tag"

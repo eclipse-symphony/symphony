@@ -11,18 +11,26 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type CampaignsManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	CampaignValidator validation.CampaignValidator
 }
 
 func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -30,66 +38,100 @@ func (s *CampaignsManager) Init(context *contexts.VendorContext, config managers
 	if err != nil {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
 		return err
 	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		//s.CampaignValidator = validation.NewCampaignValidator(s.CampaignContainerLookup, s.CampaignActivationsLookup)
+		s.CampaignValidator = validation.NewCampaignValidator(nil, nil)
+	}
 	return nil
 }
 
 // GetCampaign retrieves a CampaignSpec object by name
-func (m *CampaignsManager) GetSpec(ctx context.Context, name string) (model.CampaignState, error) {
+func (m *CampaignsManager) GetState(ctx context.Context, name string, namespace string) (model.CampaignState, error) {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Get campaign state %s in namespace", name, namespace)
 
 	getRequest := states.GetRequest{
 		ID: name,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "campaigns",
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": namespace,
+			"kind":      "Campaign",
 		},
 	}
-	entry, err := m.StateProvider.Get(ctx, getRequest)
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
-
-	ret, err := getCampaignState(name, entry.Body)
+	var ret model.CampaignState
+	ret, err = getCampaignState(entry.Body)
 	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to convert to campaign state for %s in namespace %s: %v", name, namespace, err)
 		return model.CampaignState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
 	return ret, nil
 }
 
-func getCampaignState(id string, body interface{}) (model.CampaignState, error) {
-	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-
-	j, _ := json.Marshal(spec)
-	var rSpec model.CampaignSpec
-	err := json.Unmarshal(j, &rSpec)
+func getCampaignState(body interface{}) (model.CampaignState, error) {
+	var campaignState model.CampaignState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &campaignState)
 	if err != nil {
 		return model.CampaignState{}, err
 	}
-	state := model.CampaignState{
-		Id:   id,
-		Spec: &rSpec,
+	if campaignState.Spec == nil {
+		campaignState.Spec = &model.CampaignSpec{}
 	}
-	return state, nil
+	return campaignState, nil
 }
 
-func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec model.CampaignSpec) error {
+func (m *CampaignsManager) UpsertState(ctx context.Context, name string, state model.CampaignState) error {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Upsert campaign state %s in namespace %s", name, state.ObjectMeta.Namespace)
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+	state.ObjectMeta.FixNames(name)
+
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
+	if m.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+		}
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CampaignValidator, state, oldState, getStateErr); err != nil {
+			return err
+		}
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -97,72 +139,101 @@ func (m *CampaignsManager) UpsertSpec(ctx context.Context, name string, spec mod
 			Body: map[string]interface{}{
 				"apiVersion": model.WorkflowGroup + "/v1",
 				"kind":       "Campaign",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
+				"metadata":   state.ObjectMeta,
+				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Campaign", "metadata": {"name": "${{$campaign()}}"}}`, model.WorkflowGroup),
-			"scope":    "",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "campaigns",
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaigns",
+			"kind":      "Campaign",
 		},
 	}
+
 	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func (m *CampaignsManager) DeleteSpec(ctx context.Context, name string) error {
+func (m *CampaignsManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Delete campaign state %s in namespace %s", name, namespace)
+	if m.needValidate {
+		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
 
 	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.WorkflowGroup,
-			"version":  "v1",
-			"resource": "campaigns",
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaigns",
+			"kind":      "Campaign",
 		},
 	})
 	return err
 }
 
-func (t *CampaignsManager) ListSpec(ctx context.Context) ([]model.CampaignState, error) {
+func (t *CampaignsManager) ListState(ctx context.Context, namespace string) ([]model.CampaignState, error) {
 	ctx, span := observability.StartSpan("Campaigns Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, "List campaign state for namespace %s", namespace)
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.WorkflowGroup,
-			"resource": "campaigns",
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaigns",
+			"namespace": namespace,
+			"kind":      "Campaign",
 		},
 	}
-	solutions, _, err := t.StateProvider.List(ctx, listRequest)
+	var campaigns []states.StateEntry
+	campaigns, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.CampaignState, 0)
-	for _, t := range solutions {
+	for _, t := range campaigns {
 		var rt model.CampaignState
-		rt, err = getCampaignState(t.ID, t.Body)
+		rt, err = getCampaignState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
+	log.InfofCtx(ctx, "List campaign state for namespace %s get total count %d", namespace, len(ret))
 	return ret, nil
+}
+
+func (t *CampaignsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return validation.ValidateDeleteWrapper(ctx, &t.CampaignValidator, state, err)
+}
+
+func (t *CampaignsManager) CampaignContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.CampaignContainer, name, namespace)
+}
+
+func (t *CampaignsManager) CampaignActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.Campaign: name, constants.StatusMessage: v1alpha2.Running.String()}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(activationList) > 0, nil
 }

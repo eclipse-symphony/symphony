@@ -7,20 +7,22 @@
 package config
 
 import (
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"context"
+
+	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type IConfigProvider interface {
 	Init(config providers.IProviderConfig) error
-	Read(object string, field string, localContext interface{}) (interface{}, error)
-	ReadObject(object string, localContext interface{}) (map[string]interface{}, error)
-	Set(object string, field string, value interface{}) error
-	SetObject(object string, value map[string]interface{}) error
-	Remove(object string, field string) error
-	RemoveObject(object string) error
+	Read(ctx context.Context, object string, field string, localContext interface{}) (interface{}, error)
+	ReadObject(ctx context.Context, object string, localContext interface{}) (map[string]interface{}, error)
+	Set(ctx context.Context, object string, field string, value interface{}) error
+	SetObject(ctx context.Context, object string, value map[string]interface{}) error
+	Remove(ctx context.Context, object string, field string) error
+	RemoveObject(ctx context.Context, object string) error
 }
 
 type IExtConfigProvider interface {
-	Get(object string, field string, overrides []string, localContext interface{}) (interface{}, error)
-	GetObject(object string, overrides []string, localContext interface{}) (map[string]interface{}, error)
+	Get(ctx context.Context, object string, field string, overrides []string, localContext interface{}) (interface{}, error)
+	GetObject(ctx context.Context, object string, overrides []string, localContext interface{}) (map[string]interface{}, error)
 }

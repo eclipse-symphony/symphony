@@ -10,6 +10,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +22,14 @@ func TestInit(t *testing.T) {
 		Name: "test",
 	})
 	assert.Nil(t, err)
+
+	properties := map[string]string{
+		"name": "test",
+	}
+	assert.Nil(t, err)
+	err = provider.InitWithMap(properties)
+	assert.Nil(t, err)
+
 }
 func TestProbe(t *testing.T) {
 	rtspAddr := os.Getenv("TEST_RTSP")
@@ -59,4 +70,30 @@ func TestParseRTSPAllCustom(t *testing.T) {
 	addr, err := fixRtspUrl("rtsp://20.212.158.240:1234/file.mp4", "admin", "pass")
 	assert.Nil(t, err)
 	assert.Equal(t, "rtsp://admin:pass@20.212.158.240:1234/file.mp4", addr)
+}
+
+func TestID(t *testing.T) {
+	provider := RTSPProbeProvider{}
+	err := provider.Init(RTSPProbeProviderConfig{
+		Name: "test",
+	})
+	assert.Nil(t, err)
+
+	id := provider.ID()
+	assert.Equal(t, "test", id)
+}
+
+func TestContext(t *testing.T) {
+	provider := RTSPProbeProvider{}
+	err := provider.Init(RTSPProbeProviderConfig{
+		Name: "test",
+	})
+	assert.Nil(t, err)
+
+	provider.SetContext(&contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "test",
+		},
+	})
+	assert.Equal(t, "test", provider.Context.SiteInfo.SiteId)
 }

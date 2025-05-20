@@ -10,41 +10,74 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var msLock sync.Mutex
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	loggerName   = "providers.stage.patch"
+	providerName = "P (Patch Stage)"
+	patch        = "patch"
+)
+
+var (
+	msLock                   sync.Mutex
+	sLog                     = logger.NewLogger(loggerName)
+	once                     sync.Once
+	providerOperationMetrics *metrics.Metrics
+)
 
 type PatchStageProviderConfig struct {
-	BaseUrl  string `json:"baseUrl"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 }
 
 type PatchStageProvider struct {
-	Config  PatchStageProviderConfig
-	Context *contexts.ManagerContext
+	Config    PatchStageProviderConfig
+	Context   *contexts.ManagerContext
+	ApiClient api_utils.ApiClient
 }
 
 func (s *PatchStageProvider) Init(config providers.IProviderConfig) error {
+	ctx, span := observability.StartSpan("[Stage] Patch Provider", context.TODO(), &map[string]string{
+		"method": "Init",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
 	msLock.Lock()
 	defer msLock.Unlock()
-	mockConfig, err := toPatchStageProviderConfig(config)
+	var mockConfig PatchStageProviderConfig
+	mockConfig, err = toPatchStageProviderConfig(config)
 	if err != nil {
 		return err
 	}
 	s.Config = mockConfig
-	return nil
+	s.ApiClient, err = api_utils.GetApiClient()
+	if err != nil {
+		return err
+	}
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Materialize Stage): failed to create metrics: %+v", err)
+			}
+		}
+	})
+	return err
 }
 func (s *PatchStageProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
@@ -55,7 +88,7 @@ func toPatchStageProviderConfig(config providers.IProviderConfig) (PatchStagePro
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *PatchStageProvider) InitWithMap(properties map[string]string) error {
@@ -67,35 +100,30 @@ func (i *PatchStageProvider) InitWithMap(properties map[string]string) error {
 }
 func SymphonyStageProviderConfigFromMap(properties map[string]string) (PatchStageProviderConfig, error) {
 	ret := PatchStageProviderConfig{}
-	baseUrl, err := utils.GetString(properties, "baseUrl")
-	if err != nil {
-		return ret, err
+	if api_utils.ShouldUseUserCreds() {
+		user, err := api_utils.GetString(properties, "user")
+		if err != nil {
+			return ret, err
+		}
+		ret.User = user
+		if ret.User == "" {
+			return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
+		}
+		password, err := api_utils.GetString(properties, "password")
+		ret.Password = password
+		if err != nil {
+			return ret, err
+		}
 	}
-	ret.BaseUrl = baseUrl
-	if ret.BaseUrl == "" {
-		return ret, v1alpha2.NewCOAError(nil, "baseUrl is required", v1alpha2.BadConfig)
-	}
-	user, err := utils.GetString(properties, "user")
-	if err != nil {
-		return ret, err
-	}
-	ret.User = user
-	if ret.User == "" {
-		return ret, v1alpha2.NewCOAError(nil, "user is required", v1alpha2.BadConfig)
-	}
-	password, err := utils.GetString(properties, "password")
-	if err != nil {
-		return ret, err
-	}
-	ret.Password = password
 	return ret, nil
 }
-func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
+func (m *PatchStageProvider) traceValue(ctx context.Context, v interface{}, localContext interface{}) (interface{}, error) {
 	switch val := v.(type) {
 	case string:
-		parser := utils.NewParser(val)
+		parser := api_utils.NewParser(val)
 		context := m.Context.VencorContext.EvaluationContext.Clone()
-		context.Value = ctx
+		context.Value = localContext
+		context.Context = ctx
 		v, err := parser.Eval(*context)
 		if err != nil {
 			return "", err
@@ -104,12 +132,12 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 		case string:
 			return vt, nil
 		default:
-			return m.traceValue(v, ctx)
+			return m.traceValue(ctx, v, localContext)
 		}
 	case []interface{}:
 		ret := []interface{}{}
 		for _, v := range val {
-			tv, err := m.traceValue(v, ctx)
+			tv, err := m.traceValue(ctx, v, localContext)
 			if err != nil {
 				return "", err
 			}
@@ -119,7 +147,7 @@ func (m *PatchStageProvider) traceValue(v interface{}, ctx interface{}) (interfa
 	case map[string]interface{}:
 		ret := map[string]interface{}{}
 		for k, v := range val {
-			tv, err := m.traceValue(v, ctx)
+			tv, err := m.traceValue(ctx, v, localContext)
 			if err != nil {
 				return "", err
 			}
@@ -137,13 +165,22 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (Patch Stage): start process request")
-
+	sLog.InfoCtx(ctx, "  P (Patch Stage): start process request")
+	processTime := time.Now().UTC()
+	functionName := observ_utils.GetFunctionName()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		processTime,
+		patch,
+		metrics.ProcessOperation,
+		metrics.RunOperationType,
+		functionName,
+	)
 	outputs := make(map[string]interface{})
 
 	objectType := stage.ReadInputString(inputs, "objectType")
-	objectName := stage.ReadInputString(inputs, "objectName")
+	objectName := api_utils.ConvertReferenceToObjectName(stage.ReadInputString(inputs, "objectName"))
 	patchSource := stage.ReadInputString(inputs, "patchSource")
 	var patchContent interface{}
 	if v, ok := inputs["patchContent"]; ok {
@@ -157,22 +194,41 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	if patchAction == "" {
 		patchAction = "add"
 	}
-	udpated := false
+	updated := false
+	objectNamespace := stage.GetNamespace(inputs)
+	if objectNamespace == "" {
+		objectNamespace = "default"
+	}
 
 	var catalog model.CatalogState
 
 	switch patchSource {
 	case "", "catalog":
 		if v, ok := patchContent.(string); ok {
-			catalog, err = utils.GetCatalog(ctx, i.Config.BaseUrl, v, i.Config.User, i.Config.Password)
+			v := api_utils.ConvertReferenceToObjectName(v)
+			catalog, err = i.ApiClient.GetCatalog(ctx, v, objectNamespace, i.Config.User, i.Config.Password)
 
 			if err != nil {
-				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CatalogsGetFailed.String(),
+				)
 				return nil, false, err
 			}
 		} else {
-			sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
 			err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+			providerOperationMetrics.ProviderOperationErrors(
+				patch,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.BadConfig.String(),
+			)
 			return nil, false, err
 		}
 	case "inline":
@@ -184,15 +240,29 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 					},
 				}
 			} else {
-				sLog.Errorf("  P (Patch Stage): error getting catalog %s", v)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
 				err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.BadConfig.String(),
+				)
 				return nil, false, err
 			}
 		} else {
 			var componentSpec model.ComponentSpec
 			jData, _ := json.Marshal(patchContent)
-			if err = json.Unmarshal(jData, &componentSpec); err != nil {
-				sLog.Errorf("  P (Patch Stage): error unmarshalling componentSpec")
+			if err = utils2.UnmarshalJson(jData, &componentSpec); err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error unmarshalling componentSpec")
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.BadConfig.String(),
+				)
 				return nil, false, err
 			}
 			catalog = model.CatalogState{
@@ -204,16 +274,23 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			}
 		}
 	default:
-		sLog.Errorf("  P (Patch Stage): unsupported patchSource: %s", patchSource)
+		sLog.ErrorfCtx(ctx, "  P (Patch Stage): unsupported patchSource: %s", patchSource)
 		err = v1alpha2.NewCOAError(nil, "patchSource is not valid", v1alpha2.BadConfig)
+		providerOperationMetrics.ProviderOperationErrors(
+			patch,
+			functionName,
+			metrics.ProcessOperation,
+			metrics.RunOperationType,
+			v1alpha2.BadConfig.String(),
+		)
 		return nil, false, err
 	}
 
 	for k, v := range catalog.Spec.Properties {
 		var tv interface{}
-		tv, err = i.traceValue(v, inputs["context"])
+		tv, err = i.traceValue(ctx, v, inputs["context"])
 		if err != nil {
-			sLog.Errorf("  P (Patch Stage): error tracing value %s", k)
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error tracing value %s", k)
 			return nil, false, err
 		}
 		catalog.Spec.Properties[k] = tv
@@ -221,19 +298,30 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 
 	switch objectType {
 	case "solution":
-		objectScope := stage.ReadInputString(inputs, "objectScope")
-		if objectScope == "" {
-			objectScope = "default"
-		}
 		var solution model.SolutionState
-		solution, err := utils.GetSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, objectScope)
+		solution, err = i.ApiClient.GetSolution(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			sLog.Errorf("  P (Patch Stage): error getting solution %s", objectName)
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting solution %s", objectName)
+			providerOperationMetrics.ProviderOperationErrors(
+				patch,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.SolutionGetFailed.String(),
+			)
 			return nil, false, err
 		}
 
 		if componentName == "" {
-			componentSpec := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			componentSpec, ok := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			if !ok {
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): catalog spec is not valid")
+				err = v1alpha2.NewCOAError(nil, "catalog spec is not valid", v1alpha2.BadConfig)
+				return nil, false, err
+			}
+			if solution.Spec.Components == nil {
+				solution.Spec.Components = make([]model.ComponentSpec, 0)
+			}
 			for i, c := range solution.Spec.Components {
 				if c.Name == componentSpec.Name {
 					if patchAction == "remove" {
@@ -241,13 +329,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 					} else {
 						solution.Spec.Components[i] = componentSpec
 					}
-					udpated = true
+					updated = true
 					break
 				}
 			}
-			if !udpated && patchAction != "remove" {
+			if !updated && patchAction != "remove" {
 				solution.Spec.Components = append(solution.Spec.Components, componentSpec)
-				udpated = true
+				updated = true
 			}
 		} else {
 			for i, c := range solution.Spec.Components {
@@ -279,20 +367,41 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 											}
 											detailedTarget[subKey] = targetMap
 											solution.Spec.Components[i].Properties[propertyName] = detailedTarget
-											udpated = true
+											updated = true
 										} else {
-											sLog.Errorf("  P (Patch Stage): target properties is not valid")
+											sLog.ErrorfCtx(ctx, "  P (Patch Stage): target properties is not valid")
 											err = v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+											providerOperationMetrics.ProviderOperationErrors(
+												patch,
+												functionName,
+												metrics.ProcessOperation,
+												metrics.RunOperationType,
+												v1alpha2.BadConfig.String(),
+											)
 											return nil, false, err
 										}
 									} else {
-										sLog.Errorf("  P (Patch Stage): subKey is not valid")
+										sLog.ErrorfCtx(ctx, "  P (Patch Stage): subKey is not valid")
 										err = v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+										providerOperationMetrics.ProviderOperationErrors(
+											patch,
+											functionName,
+											metrics.ProcessOperation,
+											metrics.RunOperationType,
+											v1alpha2.BadConfig.String(),
+										)
 										return nil, false, err
 									}
 								} else {
-									sLog.Errorf("  P (Patch Stage): subKey is not valid")
+									sLog.ErrorfCtx(ctx, "  P (Patch Stage): subKey is not valid")
 									err = v1alpha2.NewCOAError(nil, "subKey is not valid", v1alpha2.BadConfig)
+									providerOperationMetrics.ProviderOperationErrors(
+										patch,
+										functionName,
+										metrics.ProcessOperation,
+										metrics.RunOperationType,
+										v1alpha2.BadConfig.String(),
+									)
 									return nil, false, err
 								}
 							} else {
@@ -317,10 +426,17 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 										targetMap = append(targetMap, catalog.Spec.Properties)
 									}
 									solution.Spec.Components[i].Properties[propertyName] = targetMap
-									udpated = true
+									updated = true
 								} else {
-									sLog.Errorf("  P (Patch Stage): target properties is not valid")
+									sLog.ErrorfCtx(ctx, "  P (Patch Stage): target properties is not valid")
 									err = v1alpha2.NewCOAError(nil, "target properties is not valid", v1alpha2.BadConfig)
+									providerOperationMetrics.ProviderOperationErrors(
+										patch,
+										functionName,
+										metrics.ProcessOperation,
+										metrics.RunOperationType,
+										v1alpha2.BadConfig.String(),
+									)
 									return nil, false, err
 								}
 							}
@@ -331,16 +447,25 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				}
 			}
 		}
-		if udpated {
-			jData, _ := json.Marshal(solution.Spec)
-			err := utils.UpsertSolution(ctx, i.Config.BaseUrl, objectName, i.Config.User, i.Config.Password, jData, objectScope)
+		if updated {
+			jData, _ := json.Marshal(solution)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Patch Stage): updating solution name: %s namespace: %s", objectName, objectNamespace)
+			err = i.ApiClient.UpsertSolution(ctx, objectName, jData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				sLog.Errorf("  P (Patch Stage): error updating solution %s", objectName)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error updating solution %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					patch,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.UpdateFailed.String(),
+				)
 				return nil, false, err
 			}
 		}
 
 	}
-	sLog.Info("  P (Patch Stage): end process request")
+	sLog.InfoCtx(ctx, "  P (Patch Stage): end process request")
+
 	return outputs, false, nil
 }

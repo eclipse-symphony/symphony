@@ -56,7 +56,7 @@ Multiple levels of role-based access control (RBAC) can be applied to Symphony:
 
 * Symphony REST API has RBAC control based on claims in authorization tokens
 * Kubernetes RBAC can be applied to Kubernetes resources
-* When a particular [provider](../providers/providers.md) is used, the provider is subject to authentication and authorization mechanisms reinforced by the connected system.
+* When a particular [provider](../providers/_overview.md) is used, the provider is subject to authentication and authorization mechanisms reinforced by the connected system.
 
 Kubernetes RBAC and provider configuration are out of scope of this document. This section covers how to configure Symphony REST API RBAC.
 
@@ -66,9 +66,9 @@ Symphony REST API defines a few roles:
 
 * **Administrator**: Full access to all Symphony APIs
 * **Reader**: - Read-only access to Symphony APIs
-* **Solution creator**: CRUD on [solutions](../uom/solution.md) only
-* **Target manager**: CRUD on [targets](../uom/target.md) only
-* **Operator**: CRUD on [instances](../uom/instance.md) only
+* **Solution creator**: CRUD on [solutions](../concepts/unified-object-model/solution.md) only
+* **Target manager**: CRUD on [targets](../concepts/unified-object-model/target.md) only
+* **Operator**: CRUD on [instances](../concepts/unified-object-model/instance.md) only
 
 Symphony's JWT handler allows you to map claim values into the above roles. For example, the following mapping rule maps an `admin` user to the `administrator` role. When integrated with an external identity provider (IdP) such as Microsoft Entra ID, you probably want to configure such mappings based on the Microsoft Entra ID token you expect (such as looking for embedded application roles).
 

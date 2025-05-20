@@ -13,18 +13,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
+	"sync"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-const (
+var (
 	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
+	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
+	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
 
 type authRequest struct {
@@ -38,25 +44,81 @@ type authResponse struct {
 	Roles       []string `json:"roles"`
 }
 
-// We shouldn't use specific error types
-// SummarySpecError represents an error that includes a SummarySpec in its message
-// field.
-// type SummarySpecError struct {
-// 	Code    string `json:"code"`
-// 	Message string `json:"message"`
-// }
+func GetSymphonyAPIAddressBase() string {
+	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
+		return SymphonyAPIAddressBase
+	}
+	return os.Getenv(constants.SymphonyAPIUrlEnvName)
+}
 
-// func (e *SummarySpecError) Error() string {
-// 	return fmt.Sprintf(
-// 		"failed to invoke Symphony API: [%s] - %s",
-// 		e.Code,
-// 		e.Message,
-// 	)
-// }
+var symphonyApiClients sync.Map
+
+func GetApiClient() (*apiClient, error) {
+	symphonyBaseUrl := os.Getenv(constants.SymphonyAPIUrlEnvName)
+	if value, ok := symphonyApiClients.Load(symphonyBaseUrl); ok {
+		client, ok := value.(*apiClient)
+		if !ok {
+			log.Info("Symphony base url apiclient is broken. Recreating it.")
+		} else {
+			return client, nil
+		}
+	}
+	log.Info("Creating the symphony base url apiclient.")
+	client, err := getApiClient()
+	if err != nil {
+		log.Errorf("Failed to create the apiclient: %+v", err.Error())
+		return nil, err
+	}
+	symphonyApiClients.Store(symphonyBaseUrl, client)
+	return client, nil
+}
+
+func getApiClient() (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+	baseUrl := GetSymphonyAPIAddressBase()
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	if ShouldUseSATokens() {
+		clientOptions = append(clientOptions, WithServiceAccountToken())
+	} else {
+		clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
+	}
+
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func GetParentApiClient(baseUrl string) (*apiClient, error) {
+	clientOptions := make([]ApiClientOption, 0)
+
+	if caCert, ok := os.LookupEnv(constants.ApiCertEnvName); ok {
+		clientOptions = append(clientOptions, WithCertAuth(caCert))
+	}
+
+	clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
+	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func ShouldUseSATokens() bool {
+	return !ShouldUseUserCreds()
+}
+
+func ShouldUseUserCreds() bool {
+	return strings.ToLower(os.Getenv(constants.UseServiceAccountTokenEnvName)) == "false"
+}
 
 var log = logger.NewLogger("coa.runtime")
 
-func GetInstancesForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
+func GetInstancesForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -75,13 +137,13 @@ func GetInstancesForAllScope(context context.Context, baseUrl string, user strin
 	return ret, nil
 }
 
-func GetInstances(context context.Context, baseUrl string, user string, password string, scope string) ([]model.InstanceState, error) {
+func GetInstances(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "instances?scope=" + scope
+	path := "instances?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -112,7 +174,7 @@ func GetSites(context context.Context, baseUrl string, user string, password str
 
 	return ret, nil
 }
-func SyncActivationStatus(context context.Context, baseUrl string, user string, password string, status model.ActivationStatus) error {
+func SyncStageStatus(context context.Context, baseUrl string, user string, password string, status model.StageStatus) error {
 	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
@@ -126,26 +188,49 @@ func SyncActivationStatus(context context.Context, baseUrl string, user string, 
 
 	return nil
 }
-func GetCatalogs(context context.Context, baseUrl string, user string, password string) ([]model.CatalogState, error) {
+func ReportCatalogs(context context.Context, baseUrl string, user string, password string, instance string, components []model.ComponentSpec) error {
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+	path := "catalogs/status/" + url.QueryEscape(instance)
+	jData, _ := json.Marshal(components)
+	_, err = callRestAPI(context, baseUrl, path, "POST", jData, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetCatalogsWithFilter(context context.Context, baseUrl string, user string, password string, namespace string, filterType string, filterValue string) ([]model.CatalogState, error) {
 	ret := make([]model.CatalogState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-
-	response, err := callRestAPI(context, baseUrl, "catalogs/registry", "GET", nil, token)
+	path := "catalogs/registry"
+	if filterType != "" && filterValue != "" {
+		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
+		if namespace != "" {
+			path = path + "&namespace=" + url.QueryEscape(namespace)
+		}
+	} else if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+	}
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
-
 	err = json.Unmarshal(response, &ret)
 	if err != nil {
 		return ret, err
 	}
-
 	return ret, nil
 }
-func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string) (model.CatalogState, error) {
+func GetCatalogs(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.CatalogState, error) {
+	return GetCatalogsWithFilter(context, baseUrl, user, password, namespace, "", "")
+}
+func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string, namespace string) (model.CatalogState, error) {
 	ret := model.CatalogState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -157,7 +242,11 @@ func GetCatalog(context context.Context, baseUrl string, catalog string, user st
 		catalogName = catalogName[1 : len(catalogName)-1]
 	}
 
-	response, err := callRestAPI(context, baseUrl, "catalogs/registry/"+catalogName, "GET", nil, token)
+	path := "catalogs/registry/" + url.QueryEscape(catalogName)
+	if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+	}
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -168,7 +257,7 @@ func GetCatalog(context context.Context, baseUrl string, catalog string, user st
 	}
 	return ret, nil
 }
-func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string) (model.CampaignState, error) {
+func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string, namespace string) (model.CampaignState, error) {
 	ret := model.CampaignState{}
 	token, err := auth(context, baseUrl, user, password)
 
@@ -176,7 +265,12 @@ func GetCampaign(context context.Context, baseUrl string, campaign string, user 
 		return ret, err
 	}
 
-	response, err := callRestAPI(context, baseUrl, "campaigns/"+campaign, "GET", nil, token)
+	path := "campaigns/" + url.QueryEscape(campaign)
+	if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+
+	}
+	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -209,7 +303,7 @@ func GetABatchForSite(context context.Context, baseUrl string, site string, user
 		return ret, err
 	}
 
-	response, err := callRestAPI(context, baseUrl, "federation/sync/"+site+"?count=10", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "federation/sync/"+url.QueryEscape(site)+"?count=10", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -228,7 +322,7 @@ func GetActivation(context context.Context, baseUrl string, activation string, u
 		return ret, err
 	}
 
-	response, err := callRestAPI(context, baseUrl, "activations/registry/"+activation, "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "activations/registry/"+url.QueryEscape(activation), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -247,13 +341,13 @@ func ReportActivationStatus(context context.Context, baseUrl string, name string
 	}
 
 	jData, _ := json.Marshal(activation)
-	_, err = callRestAPI(context, baseUrl, "activations/status/"+name, "POST", jData, token)
+	_, err = callRestAPI(context, baseUrl, "activations/status/"+url.QueryEscape(name), "POST", jData, token)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func GetInstance(context context.Context, baseUrl string, instance string, user string, password string, scope string) (model.InstanceState, error) {
+func GetInstance(context context.Context, baseUrl string, instance string, user string, password string, namespace string) (model.InstanceState, error) {
 	ret := model.InstanceState{}
 	token, err := auth(context, baseUrl, user, password)
 
@@ -261,8 +355,8 @@ func GetInstance(context context.Context, baseUrl string, instance string, user 
 		return ret, err
 	}
 
-	path := "instances/" + instance
-	path = path + "?scope=" + scope
+	path := "instances/" + url.QueryEscape(instance)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -280,21 +374,21 @@ func UpsertCatalog(context context.Context, baseUrl string, catalog string, user
 		return err
 	}
 
-	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+catalog, "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+url.QueryEscape(catalog), "POST", payload, token)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte, scope string) error {
+func CreateInstance(context context.Context, baseUrl string, instance string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	path := "instances/" + instance
-	path = path + "?scope=" + scope
+	path := "instances/" + url.QueryEscape(instance)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -308,20 +402,20 @@ func DeleteCatalog(context context.Context, baseUrl string, catalog string, user
 		return err
 	}
 
-	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+catalog, "DELETE", nil, token)
+	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+url.QueryEscape(catalog), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string, scope string) error {
+func DeleteInstance(context context.Context, baseUrl string, instance string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "instances/" + instance
-	path = path + "?direct=true&scope=" + scope
+	path := "instances/" + url.QueryEscape(instance)
+	path = path + "?direct=true&namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
@@ -329,13 +423,13 @@ func DeleteInstance(context context.Context, baseUrl string, instance string, us
 	return nil
 }
 
-func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string, scope string) error {
+func DeleteTarget(context context.Context, baseUrl string, target string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "targets/registry/" + target
-	path = path + "?direct=true&scope=" + scope
+	path := "targets/registry/" + url.QueryEscape(target)
+	path = path + "?direct=true&namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
@@ -343,7 +437,7 @@ func DeleteTarget(context context.Context, baseUrl string, target string, user s
 	return nil
 }
 
-func GetSolutionsForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
+func GetSolutionsForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -362,13 +456,13 @@ func GetSolutionsForAllScope(context context.Context, baseUrl string, user strin
 	return ret, nil
 }
 
-func GetSolutions(context context.Context, baseUrl string, user string, password string, scope string) ([]model.SolutionState, error) {
+func GetSolutions(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.SolutionState, error) {
 	ret := make([]model.SolutionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "solution" + "?scope=" + scope
+	path := "solution" + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -381,14 +475,14 @@ func GetSolutions(context context.Context, baseUrl string, user string, password
 	return ret, nil
 }
 
-func GetSolution(context context.Context, baseUrl string, solution string, user string, password string, scope string) (model.SolutionState, error) {
+func GetSolution(context context.Context, baseUrl string, solution string, user string, password string, namespace string) (model.SolutionState, error) {
 	ret := model.SolutionState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "solutions/" + solution
-	path = path + "?scope=" + scope
+	path := "solutions/" + url.QueryEscape(solution)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -401,13 +495,13 @@ func GetSolution(context context.Context, baseUrl string, solution string, user 
 	return ret, nil
 }
 
-func UpsertTarget(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, scope string) error {
+func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "targets/registry/" + solution
-	path = path + "?scope=" + scope
+	path := "solutions/" + url.QueryEscape(solution)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -415,27 +509,13 @@ func UpsertTarget(context context.Context, baseUrl string, solution string, user
 	return nil
 }
 
-func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, scope string) error {
+func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "solutions/" + solution
-	path = path + "?scope=" + scope
-	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string, scope string) error {
-	token, err := auth(context, baseUrl, user, password)
-	if err != nil {
-		return err
-	}
-	path := "solutions/" + solution
-	path = path + "?scope=" + scope
+	path := "solutions/" + url.QueryEscape(solution)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
 		return err
@@ -443,14 +523,14 @@ func DeleteSolution(context context.Context, baseUrl string, solution string, us
 	return nil
 }
 
-func GetTarget(context context.Context, baseUrl string, target string, user string, password string, scope string) (model.TargetState, error) {
+func GetTarget(context context.Context, baseUrl string, target string, user string, password string, namespace string) (model.TargetState, error) {
 	ret := model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "targets/registry/" + target
-	path = path + "?scope=" + scope
+	path := "targets/registry/" + url.QueryEscape(target)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -463,7 +543,7 @@ func GetTarget(context context.Context, baseUrl string, target string, user stri
 	return ret, nil
 }
 
-func GetTargetsForAllScope(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
+func GetTargetsForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
@@ -482,14 +562,14 @@ func GetTargetsForAllScope(context context.Context, baseUrl string, user string,
 	return ret, nil
 }
 
-func GetTargets(context context.Context, baseUrl string, user string, password string, scope string) ([]model.TargetState, error) {
+func GetTargets(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 	path := "targets/registry"
-	path = path + "?scope=" + scope
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -502,13 +582,25 @@ func GetTargets(context context.Context, baseUrl string, user string, password s
 	return ret, nil
 }
 
+func SendVisualizationPacket(context context.Context, baseUrl string, user string, password string, payload []byte) error {
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return err
+	}
+	_, err = callRestAPI(context, baseUrl, "visualization", "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateSite(context context.Context, baseUrl string, site string, user string, password string, payload []byte) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(context, baseUrl, "federation/status/"+site, "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "federation/status/"+url.QueryEscape(site), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -516,18 +608,17 @@ func UpdateSite(context context.Context, baseUrl string, site string, user strin
 	return nil
 }
 
-func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte, scope string) error {
+func CreateTarget(context context.Context, baseUrl string, target string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "targets/registry/" + target
-	path = path + "?scope=" + scope
+	path := "targets/registry/" + url.QueryEscape(target)
+	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
 	}
-	log.Info(">>>>>CreateTarget Succeed: " + target + " " + scope)
 	return nil
 }
 
@@ -535,8 +626,9 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
-			if matchString(instance.Spec.Target.Name, t.Id) {
-				ret[t.Id] = t
+			targetName := ConvertReferenceToObjectName(instance.Spec.Target.Name)
+			if matchString(targetName, t.ObjectMeta.Name) {
+				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
@@ -551,7 +643,7 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 			}
 
 			if fullMatch {
-				ret[t.Id] = t
+				ret[t.ObjectMeta.Name] = t
 			}
 		}
 	}
@@ -564,19 +656,25 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.DeploymentSpec, error) {
-	key := fmt.Sprintf("%s-%s", "target-runtime", target.Id)
+func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.TargetState, namespace string) (model.DeploymentSpec, error) {
+	key := GetTargetRuntimeKey(target.ObjectMeta.Name)
 	scope := target.Spec.Scope
-
-	ret := model.DeploymentSpec{}
-	solution := model.SolutionSpec{
-		DisplayName: key,
-		Scope:       scope,
-		Components:  make([]model.ComponentSpec, 0),
-		Metadata:    make(map[string]string, 0),
+	if scope == "" {
+		scope = constants.DefaultScope
 	}
-	for k, v := range target.Spec.Metadata {
-		solution.Metadata[k] = v
+
+	ret := model.DeploymentSpec{
+		ObjectNamespace: namespace,
+	}
+	solution := model.SolutionState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      key,
+			Namespace: target.ObjectMeta.Namespace,
+		},
+		Spec: &model.SolutionSpec{
+			DisplayName: key,
+			Components:  make([]model.ComponentSpec, 0),
+		},
 	}
 
 	for _, component := range target.Spec.Components {
@@ -587,34 +685,36 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 		if err != nil {
 			return ret, err
 		}
-		solution.Components = append(solution.Components, c)
+		solution.Spec.Components = append(solution.Spec.Components, c)
 	}
 
-	targets := make(map[string]model.TargetSpec)
-	var t model.TargetSpec
-	data, _ := json.Marshal(target.Spec)
-	err := json.Unmarshal(data, &t)
-	if err != nil {
-		return ret, err
-	}
+	targets := make(map[string]model.TargetState)
+	targets[target.ObjectMeta.Name] = target
 
-	targets[target.Id] = t
-
-	instance := model.InstanceSpec{
-		Name:        key,
-		DisplayName: key,
-		Scope:       scope,
-		Solution:    key,
-		Target: model.TargetSelector{
-			Name: target.Id,
+	instance := model.InstanceState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      key,
+			Namespace: target.ObjectMeta.Namespace,
+		},
+		Spec: &model.InstanceSpec{
+			Scope:       scope,
+			DisplayName: key,
+			Solution:    key,
+			Target: model.TargetSelector{
+				Name: target.ObjectMeta.Name,
+			},
 		},
 	}
+	// TODO: is this a good way to set guid for deployment?
+	instance.ObjectMeta.SetGuid(target.ObjectMeta.GetGuid())
 
 	ret.Solution = solution
 	ret.Instance = instance
 	ret.Targets = targets
 	ret.SolutionName = key
-	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	// set the target generation to the deployment
+	ret.Generation = target.ObjectMeta.ETag
+	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -623,38 +723,44 @@ func CreateSymphonyDeploymentFromTarget(target model.TargetState) (model.Deploym
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = target.Spec.IsDryRun
 
 	return ret, nil
 }
 
-func CreateSymphonyDeployment(instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState) (model.DeploymentSpec, error) {
-	ret := model.DeploymentSpec{}
-	ret.Generation = instance.Spec.Generation
-	// convert instance
-	sInstance := instance.Spec
+// Add target-runtime prefix to notify the object is a target.
+func GetTargetRuntimeKey(guid string) string {
+	return fmt.Sprintf("%s-%s", constants.TargetRuntimePrefix, guid)
+}
 
-	sInstance.Name = instance.Id
-	sInstance.Scope = instance.Spec.Scope
+func ConstructSummaryId(name string, guid string) string {
+	if guid != "" {
+		return fmt.Sprintf("%s-%s", name, guid)
+	}
+	return name
+}
 
-	// convert solution
-	sSolution := solution.Spec
-
-	sSolution.DisplayName = solution.Spec.DisplayName
-	sSolution.Scope = solution.Spec.Scope
+func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
+	ret := model.DeploymentSpec{
+		ObjectNamespace: namespace,
+	}
+	ret.Generation = instance.ObjectMeta.ETag
 
 	// convert targets
-	sTargets := make(map[string]model.TargetSpec)
+	sTargets := make(map[string]model.TargetState)
 	for _, t := range targets {
-		sTargets[t.Id] = *t.Spec
+		sTargets[t.ObjectMeta.Name] = t
 	}
 
 	//TODO: handle devices
-	ret.Solution = *sSolution
+	ret.Solution = solution
 	ret.Targets = sTargets
-	ret.Instance = *sInstance
-	ret.SolutionName = solution.Id
+	ret.Instance = instance
+	ret.SolutionName = solution.ObjectMeta.Name
+	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
+	ret.Instance.ObjectMeta.SetGuid(instance.ObjectMeta.GetGuid())
 
-	assignments, err := AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -663,11 +769,13 @@ func CreateSymphonyDeployment(instance model.InstanceState, solution model.Solut
 	for k, v := range assignments {
 		ret.Assignments[k] = v
 	}
+	ret.IsDryRun = instance.Spec.IsDryRun
+	ret.IsInActive = instance.Spec.ActiveState == model.ActiveState_Inactive
 
 	return ret, nil
 }
 
-func AssignComponentsToTargets(components []model.ComponentSpec, targets map[string]model.TargetSpec) (map[string]string, error) {
+func AssignComponentsToTargets(ctx context.Context, components []model.ComponentSpec, targets map[string]model.TargetState) (map[string]string, error) {
 	//TODO: evaluate constraints
 	ret := make(map[string]string)
 	for key, target := range targets {
@@ -676,9 +784,14 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 			match := true
 			if component.Constraints != "" {
 				parser := NewParser(component.Constraints)
-				val, err := parser.Eval(utils.EvaluationContext{Properties: target.Properties})
+				val, err := parser.Eval(utils.EvaluationContext{
+					Properties: target.Spec.Properties,
+					Context:    ctx,
+				})
 				if err != nil {
-					return ret, err
+					// append the error message with the component constraint expression
+					errMsg := fmt.Sprintf("%s in constraint expression: %s", err.Error(), component.Constraints)
+					return ret, v1alpha2.NewCOAError(nil, errMsg, v1alpha2.TargetPropertyNotFound)
 				}
 				match = (val == "true" || val == true)
 			}
@@ -690,14 +803,14 @@ func AssignComponentsToTargets(components []model.ComponentSpec, targets map[str
 
 	return ret, nil
 }
-func GetSummary(context context.Context, baseUrl string, user string, password string, id string, scope string) (model.SummaryResult, error) {
+func GetSummary(context context.Context, baseUrl string, user string, password string, id string, namespace string) (model.SummaryResult, error) {
 	result := model.SummaryResult{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return result, err
 	}
 	path := "solution/queue"
-	path = path + "?instance=" + id + "&scope=" + scope
+	path = path + "?instance=" + url.QueryEscape(id) + "&namespace=" + url.QueryEscape(namespace)
 	ret, err := callRestAPI(context, baseUrl, path, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return result, err
@@ -708,6 +821,9 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 			return result, err
 		}
 	}
+
+	log.InfofCtx(context, "Summary result: %s", string(ret))
+
 	return result, nil
 }
 func CatalogHook(context context.Context, baseUrl string, user string, password string, payload []byte) error {
@@ -723,30 +839,30 @@ func CatalogHook(context context.Context, baseUrl string, user string, password 
 	return nil
 }
 
-func QueueJob(context context.Context, baseUrl string, user string, password string, id string, scope string, isDelete bool, isTarget bool) error {
+func QueueJob(context context.Context, baseUrl string, user string, password string, id string, namespace string, isDelete bool, isTarget bool) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "solution/queue?instance=" + id
+	path := "solution/queue?instance=" + url.QueryEscape(id)
 	if isDelete {
 		path += "&delete=true"
 	}
 	if isTarget {
 		path += "&target=true"
 	}
-	path = path + "&scope=" + scope
+	path = path + "&namespace=" + namespace
 	_, err = callRestAPI(context, baseUrl, path, "POST", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, scope string, isDelete bool) (model.SummarySpec, error) {
+func Reconcile(context context.Context, baseUrl string, user string, password string, deployment model.DeploymentSpec, namespace string, isDelete bool) (model.SummarySpec, error) {
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
-	path := "solution/reconcile" + "?scope=" + scope
+	path := "solution/reconcile" + "?namespace=" + url.QueryEscape(namespace)
 	if isDelete {
 		path = path + "&delete=true"
 	}
@@ -782,29 +898,30 @@ func auth(context context.Context, baseUrl string, user string, password string)
 
 	return response.AccessToken, nil
 }
-func callRestAPI(context context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
-	context, span := observability.StartSpan("Symphony-API-Client", context, &map[string]string{
+func callRestAPI(ctx context.Context, baseUrl string, route string, method string, payload []byte, token string) ([]byte, error) {
+	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
 		"method":      "callRestAPI",
 		"http.method": method,
 		"http.url":    baseUrl + route,
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Infof("Calling Symphony API: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "Calling Symphony API: %s %s", method, baseUrl+route)
 
 	client := &http.Client{}
 	rUrl := baseUrl + route
 	var req *http.Request
 	if payload != nil {
-		req, err = http.NewRequestWithContext(context, method, rUrl, bytes.NewBuffer(payload))
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, bytes.NewBuffer(payload))
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req, err = http.NewRequestWithContext(context, method, rUrl, nil)
+		req, err = http.NewRequestWithContext(ctx, method, rUrl, nil)
 		observ_utils.PropagateSpanContextToHttpRequestHeader(req)
 		if err != nil {
 			return nil, err
@@ -837,7 +954,7 @@ func callRestAPI(context context.Context, baseUrl string, route string, method s
 		return nil, err
 	}
 	err = nil
-	log.Infof("Symphony API succeeded: %s %s, spanId: %s, traceId: %s", method, baseUrl+route, span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
+	log.InfofCtx(ctx, "Symphony API succeeded: %s %s", method, baseUrl+route)
 
 	return bodyBytes, nil
 }

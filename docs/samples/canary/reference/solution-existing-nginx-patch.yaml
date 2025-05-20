@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: test-app  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: test-app
-spec:  
+  name: test-app-v-version1
+spec:
+  rootResource: test-app
   components:
   - name: frontend
     type: container
@@ -12,7 +19,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
   - name: backend-v1
     type: container
     metadata:
@@ -21,7 +28,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
   - name: backend-v2
     type: container
     metadata:
@@ -30,7 +37,7 @@ spec:
     properties:
       deployment.replicas: "#1"
       container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
-      container.image: "ghcr.io/azure/symphony/sample-flask-app:latest"
+      container.image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
   - name: ingress
     type: ingress
     metadata:

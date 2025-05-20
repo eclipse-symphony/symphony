@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -92,6 +92,11 @@ func TestInitWithBadFile(t *testing.T) {
 }
 
 func TestInitWithEmptyConfigData(t *testing.T) {
+	getConfigMap := os.Getenv("TEST_CONFIGMAP")
+	if getConfigMap == "" {
+		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
+	}
+
 	config := ConfigMapTargetProviderConfig{
 		ConfigType: "path",
 		ConfigData: "",
@@ -154,65 +159,25 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+				Name:      "config-test",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "configs",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-}
-
-// TestConfigMapTargetProviderDekete tests that deleting a configmap works
-func TestConfigMapTargetProviderDekete(t *testing.T) {
-	getConfigMap := os.Getenv("TEST_CONFIGMAP")
-	if getConfigMap == "" {
-		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
-	}
-
-	config := ConfigMapTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-		ConfigData: "",
-	}
-	provider := ConfigMapTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	component := model.ComponentSpec{
-		Name: "test-config",
-		Type: "config",
-		Properties: map[string]interface{}{
-			"foo": "bar",
-			"complex": map[string]interface{}{
-				"easy": "as",
-				"123":  456,
-			},
-		},
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "delete",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -241,18 +206,25 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 		Type: "config",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+				Name:      "config-test",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "configs",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -266,7 +238,65 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 	assert.Equal(t, 456.0, components[0].Properties["complex"].(map[string]interface{})["123"])
 }
 
+// TestConfigMapTargetProviderDelete tests that deleting a configmap works
+func TestConfigMapTargetProviderDelete(t *testing.T) {
+	getConfigMap := os.Getenv("TEST_CONFIGMAP")
+	if getConfigMap == "" {
+		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
+	}
+
+	config := ConfigMapTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path",
+		ConfigData: "",
+	}
+	provider := ConfigMapTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "test-config",
+		Type: "config",
+		Properties: map[string]interface{}{
+			"foo": "bar",
+			"complex": map[string]interface{}{
+				"easy": "as",
+				"123":  456,
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+				Name:      "config-test",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "configs",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentDelete,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
 func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
+	getConfigMap := os.Getenv("TEST_CONFIGMAP")
+	if getConfigMap == "" {
+		t.Skip("Skipping because TEST_CONFIGMAP environment variable is not set")
+	}
 	config := ConfigMapTargetProviderConfig{
 		InCluster:  false,
 		ConfigType: "path",
@@ -286,18 +316,25 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "config-test",
-			Scope: "configs",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "configs",
+				Name:      "config-test",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "configs",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},

@@ -1,0 +1,6 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: create-activation
+spec:
+  campaign: "create-campaign:version1"

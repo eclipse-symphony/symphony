@@ -15,13 +15,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var sLog = logger.NewLogger("coa.runtime")
@@ -78,6 +78,7 @@ func Win10SideLoadProviderConfigFromMap(properties map[string]string) (Win10Side
 func (i *Win10SideLoadProvider) InitWithMap(properties map[string]string) error {
 	config, err := Win10SideLoadProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Win10Sideload Target): expected Win10SideLoadProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -88,16 +89,18 @@ func (s *Win10SideLoadProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Win 10 Sideload Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("~~~ Win 10 Sideload Provider ~~~ : Init()")
+	sLog.InfoCtx(ctx, "  P (Win10Sideload Target): Init()")
 
 	updateConfig, err := toWin10SideLoadProviderConfig(config)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): expected Win10SideLoadProviderConfig - %+v", err)
 		err = errors.New("expected Win10SideLoadProviderConfig")
 		return err
 	}
@@ -115,13 +118,14 @@ func toWin10SideLoadProviderConfig(config providers.IProviderConfig) (Win10SideL
 	return ret, err
 }
 func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	params := make([]string, 0)
 	params = append(params, "list")
@@ -135,6 +139,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	out, err := exec.Command(i.Config.WinAppDeployCmdPath, params...).Output()
 
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to run deploy cmd %s, error: %+v", i.Config.WinAppDeployCmdPath, err)
 		return nil, err
 	}
 	str := string(out)
@@ -153,7 +158,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 			for _, component := range desired {
 				if component.Name == mLine {
 					ret = append(ret, model.ComponentSpec{
-						Name: line,
+						Name: mLine,
 						Type: "win.uwp",
 					})
 				}
@@ -163,28 +168,62 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 
 	return ret, nil
 }
+func (i *Win10SideLoadProvider) getPackageReferenceName(ctx context.Context, name string) string {
+
+	params := make([]string, 0)
+	params = append(params, "list")
+	params = append(params, "-ip")
+	params = append(params, i.Config.IPAddress)
+	if i.Config.Pin != "" {
+		params = append(params, "-pin")
+		params = append(params, i.Config.Pin)
+	}
+
+	out, err := exec.Command(i.Config.WinAppDeployCmdPath, params...).Output()
+
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to run deploy cmd %s, error: %+v", i.Config.WinAppDeployCmdPath, err)
+		return ""
+	}
+	str := string(out)
+	lines := strings.Split(str, "\r\n")
+
+	re := regexp.MustCompile(`^(\w+\.)+\w+$`)
+	for _, line := range lines {
+		if re.Match([]byte(line)) {
+			if strings.HasPrefix(line, name) {
+				return line
+			}
+		}
+	}
+
+	return ""
+}
 func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("~~~ Win 10 Sideload Provider ~~~ : applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to validate components, error: %+v", err)
 		return nil, err
 	}
 	if isDryRun {
-		err = nil
+		sLog.DebugfCtx(ctx, "  P (Win10Sideload Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Win10Sideload Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if path, ok := component.Properties["app.package.path"].(string); ok {
 				params := make([]string, 0)
@@ -201,6 +240,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
 				err = cmd.Run()
 				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to install application %s, error: %+v", path, err)
 					ret[component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
@@ -216,6 +256,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Win10Sideload Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Name != "" {
 				params := make([]string, 0)
@@ -230,19 +271,17 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 
 				name := component.Name
 
-				// TODO: this is broken due to the refactor, the current reference is no longer available
-				// for _, ref := range currentRef {
-				// 	if ref.Name == name || strings.HasPrefix(ref.Name, name) {
-				// 		name = ref.Name
-				// 		break
-				// 	}
-				// }
+				refName := i.getPackageReferenceName(ctx, name)
+				if refName != "" {
+					name = refName
+				}
 
 				params = append(params, name)
 
 				cmd := exec.Command(i.Config.WinAppDeployCmdPath, params...)
 				err = cmd.Run()
 				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to uninstall application %s, silent config: %t, error: %+v", name, i.Config.Silent, err)
 					if i.Config.Silent {
 						return ret, nil
 					} else {
@@ -284,13 +323,16 @@ func (i *Win10SideLoadProvider) NeedsRemove(ctx context.Context, desired []model
 
 func (*Win10SideLoadProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: "", IsComponentName: true, IgnoreCase: true, PrefixMatch: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: "", IsComponentName: true, IgnoreCase: true, PrefixMatch: true},
+			},
 		},
 	}
 }

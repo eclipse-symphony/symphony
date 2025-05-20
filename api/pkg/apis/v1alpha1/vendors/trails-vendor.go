@@ -7,17 +7,16 @@
 package vendors
 
 import (
-	"encoding/json"
-
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/trails"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/trails"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
 )
 
@@ -72,13 +71,14 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 		"method": "onTrails",
 	})
 	defer span.End()
-	tLog.Info("V (Trails) : onTrails")
+	tLog.InfofCtx(pCtx, "V (Trails) : onTrails %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var trails []v1alpha2.Trail
-		err := json.Unmarshal(request.Body, &trails)
+		err := utils2.UnmarshalJson(request.Body, &trails)
 		if err != nil {
+			tLog.ErrorfCtx(pCtx, "V (Trails): onTrails failed to parse trails from request body, error: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -86,6 +86,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 		}
 		err = c.TrailsManager.Append(pCtx, trails)
 		if err != nil {
+			tLog.ErrorfCtx(pCtx, "V (Trails): onTrails failed to Append, error: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
@@ -96,6 +97,7 @@ func (c *TrailsVendor) onTrails(request v1alpha2.COARequest) v1alpha2.COARespons
 			Body:  []byte("{\"result\":\"ok\"}"),
 		})
 	}
+	tLog.ErrorCtx(pCtx, "V (Trails): onTrails returned MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

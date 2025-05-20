@@ -57,7 +57,7 @@ If you would like to start with a fresh cluster and test out the arc-extension y
 However if you are just interested in installing symphony not as an arc-extension, you can just install it directly from the repo. Assuming you're in the root of the symphony-k8s directory you can run
 ```bash
 cd ../packages/helm/
-helm install symphony symphony/ --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm install symphony symphony/
 ```
 
 ## Route 2: Updating CRDs
@@ -93,7 +93,7 @@ At this step you have a new helm chart and need to update the existing one. Depe
 If you are just interested in locally installing symphony with no RP connection you can install symphony directly using
 ```bash
 cd ../packages/helm/
-helm install symphony symphony/ --set imagePullSecrets='{YOUR_GITHUB_PAT_TOKEN}'
+helm install symphony symphony/
 ```
 assuming you're in the root of symphony-k8s directory
 ### 2.6.2 Symphony Helm Chart with RP and as an arc-extension

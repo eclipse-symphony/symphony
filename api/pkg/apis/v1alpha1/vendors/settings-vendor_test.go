@@ -10,19 +10,21 @@ import (
 	"context"
 	"testing"
 
-	sym_mgr "github.com/azure/symphony/api/pkg/apis/v1alpha1/managers"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/configs"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	memory "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/memoryconfig"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
-	coa_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
+	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	memory "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/memoryconfig"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
+
+var ctx = context.Background()
 
 func createSettingsVendor() SettingsVendor {
 	provider := memory.MemoryConfigProvider{}
@@ -53,7 +55,7 @@ func TestSettingsVendorInit(t *testing.T) {
 				Name: "configs-manager",
 				Type: "managers.symphony.configs",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -110,7 +112,7 @@ func TestConfigGet(t *testing.T) {
 	vendor := createSettingsVendor()
 	manager := vendor.EvaluationContext.ConfigProvider.(*configs.ConfigsManager)
 	provider := manager.ConfigProviders["memory"]
-	provider.Set("test", "field", "obj::field")
+	provider.Set(ctx, "test", "field", "obj::field")
 
 	request := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -124,14 +126,14 @@ func TestConfigGet(t *testing.T) {
 
 	request.Parameters["__name"] = "unknown"
 	res = vendor.onConfig(*request)
-	assert.Equal(t, v1alpha2.InternalError, res.State)
+	assert.Equal(t, v1alpha2.NotFound, res.State)
 }
 
 func TestConfigGetField(t *testing.T) {
 	vendor := createSettingsVendor()
 	manager := vendor.EvaluationContext.ConfigProvider.(*configs.ConfigsManager)
 	provider := manager.ConfigProviders["memory"]
-	provider.Set("test", "field", "obj::field")
+	provider.Set(ctx, "test", "field", "obj::field")
 
 	request := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -146,5 +148,5 @@ func TestConfigGetField(t *testing.T) {
 
 	request.Parameters["__name"] = "unknown"
 	res = vendor.onConfig(*request)
-	assert.Equal(t, v1alpha2.InternalError, res.State)
+	assert.Equal(t, v1alpha2.NotFound, res.State)
 }

@@ -1,0 +1,9 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: child-v-version1
+spec: 
+  rootResource: child
+  catalogType: config
+  properties:
+    dummyField: dummyValue

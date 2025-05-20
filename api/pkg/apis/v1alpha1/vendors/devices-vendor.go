@@ -7,19 +7,18 @@
 package vendors
 
 import (
-	"encoding/json"
-
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
 )
 
@@ -75,8 +74,12 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		"method": "onDevices",
 	})
 	defer span.End()
+	tLog.InfofCtx(pCtx, "V (Devices): onDevices %s", request.Method)
 
-	tLog.Info("~ Devices Manager ~ : onDevices")
+	namespace, namespaceSupplied := request.Parameters["namespace"]
+	if !namespaceSupplied {
+		namespace = "default"
+	}
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -86,14 +89,18 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 		var state interface{}
 		isArray := false
 		if id == "" {
-			state, err = c.DevicesManager.ListSpec(ctx)
+			if !namespaceSupplied {
+				namespace = ""
+			}
+			state, err = c.DevicesManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.DevicesManager.GetSpec(ctx, id)
+			state, err = c.DevicesManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
+			log.ErrorfCtx(ctx, "V (Devices): failed to get device spec, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -104,27 +111,29 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onDevices-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 
-		var device model.DeviceSpec
+		var device model.DeviceState
 
-		err := json.Unmarshal(request.Body, &device)
+		err := utils2.UnmarshalJson(request.Body, &device)
 		if err != nil {
+			log.ErrorfCtx(ctx, "V (Devices): failed to unmarshall request body, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
 		}
 
-		err = c.DevicesManager.UpsertSpec(ctx, id, device)
+		err = c.DevicesManager.UpsertState(ctx, id, device)
 		if err != nil {
+			log.ErrorfCtx(ctx, "V (Devices): failed to upsert device spec, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -134,10 +143,11 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onDevices-DELETE", pCtx, nil)
 		id := request.Parameters["__name"]
-		err := c.DevicesManager.DeleteSpec(ctx, id)
+		err := c.DevicesManager.DeleteState(ctx, id, namespace)
 		if err != nil {
+			log.ErrorfCtx(ctx, "V (Devices): failed to delete device spec, error %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -145,6 +155,8 @@ func (c *DevicesVendor) onDevices(request v1alpha2.COARequest) v1alpha2.COARespo
 			State: v1alpha2.OK,
 		})
 	}
+
+	log.ErrorCtx(pCtx, "V (Devices): onDevices returns MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

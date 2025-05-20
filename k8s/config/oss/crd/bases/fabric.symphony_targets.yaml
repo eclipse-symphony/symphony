@@ -1,15 +1,9 @@
-##
-## Copyright (c) Microsoft Corporation.
-## Licensed under the MIT license.
-## SPDX-License-Identifier: MIT
-##
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: targets.fabric.symphony
 spec:
   group: fabric.symphony
@@ -21,7 +15,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.properties.status
+    - jsonPath: .status.status
       name: Status
       type: string
     name: v1
@@ -30,14 +24,19 @@ spec:
         description: Target is the Schema for the targets API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -61,7 +60,6 @@ spec:
                     name:
                       type: string
                     properties:
-                      type: object
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
@@ -95,6 +93,17 @@ spec:
                         - type
                         type: object
                       type: array
+                    sidecars:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          properties:
+                            x-kubernetes-preserve-unknown-fields: true
+                          type:
+                            type: string
+                        type: object
+                      type: array
                     skills:
                       items:
                         type: string
@@ -112,8 +121,8 @@ spec:
                 type: string
               forceRedeploy:
                 type: boolean
-              generation:
-                type: string
+              isDryRun:
+                type: boolean
               metadata:
                 additionalProperties:
                   type: string
@@ -122,7 +131,26 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              reconciliationPolicy:
+                description: |-
+                  Optional ReconcilicationPolicy to specify how target controller should reconcile.
+                  Now only periodic reconciliation is supported. If the interval is 0, it will only reconcile
+                  when the instance is created or updated.
+                properties:
+                  interval:
+                    minLength: 1
+                    type: string
+                  state:
+                    enum:
+                    - active
+                    - inactive
+                    type: string
+                required:
+                - state
+                type: object
               scope:
+                type: string
+              solutionScope:
                 type: string
               topologies:
                 items:
@@ -153,21 +181,21 @@ spec:
                       type: object
                   type: object
                 type: array
-              version:
-                description: Defines the version of a particular resource
-                type: string
             type: object
           status:
-            description: TargetStatus defines the observed state of Target
             properties:
+              deployed:
+                type: integer
+              expectedRunningJobId:
+                type: integer
+              generation:
+                type: integer
               lastModified:
                 format: date-time
                 type: string
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
               provisioningStatus:
                 description: Defines the state of the ARM resource for long running
@@ -219,12 +247,41 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  percentComplete:
+                    format: int64
+                    type: integer
                   status:
                     type: string
                 required:
                 - operationId
                 - status
                 type: object
+              runningJobId:
+                type: integer
+              status:
+                type: string
+              statusDetails:
+                type: string
+              targetStatuses:
+                items:
+                  properties:
+                    componentStatuses:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              targets:
+                type: integer
             required:
             - provisioningStatus
             type: object

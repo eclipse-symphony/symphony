@@ -25,17 +25,17 @@ function Header() {
   
     return (        
         <header>
-            <nav className='w-full h-24 hadow-xl bg-black'>
+            <nav className='w-full h-36 shadow-xl bg-black'>
                 {/* View Menu */}
                 <div className='flex items-center justify-between h-full px-4 w-full'>
                     <Link href='/'>
-                        <Image src='/logo.jpg' alt='One Edge Logo' width={65} height={65} className='cursor-pointer'/>
+                        <Image src='/symphony-header.png' alt='One Edge Logo' width={365} height={165} className='cursor-pointer'/>
                     </Link>
-                    <span className='text-white text-lg font-bold'>Opera</span>
+                    <span className='text-white text-lg font-bold'></span>
                     <div className='text-white hidden sm:flex'>
                         <ul className='hidden sm:flex items-center'>
                             <li className={styles.navLink}>
-                                <Link href='http://github.com/azure/symphony'>
+                                <Link href='http://github.com/eclipse-symphony'>
                                     <span className="flex items-center gap-1">
                                         <FaGithub />
                                         <span>Symphony</span>
@@ -54,10 +54,10 @@ function Header() {
                                 { userObj?.username ? (
                                     <>
                                         <h1>{userObj.username}</h1>
-                                        <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-full bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signOut()}>Sign Out</button>                                    
+                                        <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-sm bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signOut()}>Sign Out</button>                                    
                                     </>
                                 ) : (
-                                    <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-full bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signIn()}>Sign In</button>
+                                    <button className='cursor-pointer border border-[#F6B519] px-4 py-1 rounded-sm bg-[#F6B519] text-black hover:bg-black hover:text-[#F6B519] ease-in-out duration-300' onClick={()=> signIn()}>Sign In</button>
                                 )}                                
                             </li>
                         </ul>

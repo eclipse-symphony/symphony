@@ -11,10 +11,10 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var mLog = logger.NewLogger("coa.runtime")
@@ -69,56 +69,56 @@ func (s *MemoryQueueProvider) Init(config providers.IProviderConfig) error {
 	// parameter checks
 	stateConfig, err := toMemoryQueueProviderConfig(config)
 	if err != nil {
-		return errors.New("expected MemoryStackProviderConfig")
+		return errors.New("expected MemoryQueueProviderConfig")
 	}
 	s.Config = stateConfig
 	s.Data = make(map[string][]interface{})
 	return nil
 }
 
-func (s *MemoryQueueProvider) Enqueue(stack string, data interface{}) error {
+func (s *MemoryQueueProvider) Enqueue(queue string, data interface{}) error {
 	mLock.Lock()
 	defer mLock.Unlock()
-	if _, ok := s.Data[stack]; !ok {
-		s.Data[stack] = make([]interface{}, 0)
+	if _, ok := s.Data[queue]; !ok {
+		s.Data[queue] = make([]interface{}, 0)
 	}
-	s.Data[stack] = append(s.Data[stack], data)
+	s.Data[queue] = append(s.Data[queue], data)
 	return nil
 }
-func (s *MemoryQueueProvider) Dequeue(stack string) (interface{}, error) {
+func (s *MemoryQueueProvider) Dequeue(queue string) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
-	if _, ok := s.Data[stack]; !ok {
-		return nil, errors.New("stack not found")
+	if _, ok := s.Data[queue]; !ok {
+		return nil, errors.New("queue not found")
 	}
-	if len(s.Data[stack]) == 0 {
-		return nil, errors.New("stack is empty")
+	if len(s.Data[queue]) == 0 {
+		return nil, errors.New("queue is empty")
 	}
-	// ret := s.Data[stack][len(s.Data[stack])-1]
-	// s.Data[stack] = s.Data[stack][:len(s.Data[stack])-1]
-	ret := s.Data[stack][0]
-	s.Data[stack] = s.Data[stack][1:]
+	// ret := s.Data[queue][len(s.Data[queue])-1]
+	// s.Data[queue] = s.Data[queue][:len(s.Data[queue])-1]
+	ret := s.Data[queue][0]
+	s.Data[queue] = s.Data[queue][1:]
 	return ret, nil
 }
 
-func (s *MemoryQueueProvider) Peek(stack string) (interface{}, error) {
+func (s *MemoryQueueProvider) Peek(queue string) (interface{}, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
-	if _, ok := s.Data[stack]; !ok {
-		return nil, errors.New("stack not found")
+	if _, ok := s.Data[queue]; !ok {
+		return nil, errors.New("queue not found")
 	}
-	if len(s.Data[stack]) == 0 {
-		return nil, errors.New("stack is empty")
+	if len(s.Data[queue]) == 0 {
+		return nil, errors.New("queue is empty")
 	}
-	//return s.Data[stack][len(s.Data[stack])-1], nil
-	return s.Data[stack][0], nil
+	//return s.Data[queue][len(s.Data[queue])-1], nil
+	return s.Data[queue][0], nil
 }
 
-func (s *MemoryQueueProvider) Size(stack string) int {
+func (s *MemoryQueueProvider) Size(queue string) int {
 	mLock.Lock()
 	defer mLock.Unlock()
-	if _, ok := s.Data[stack]; !ok {
+	if _, ok := s.Data[queue]; !ok {
 		return 0
 	}
-	return len(s.Data[stack])
+	return len(s.Data[queue])
 }

@@ -10,7 +10,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,15 +36,19 @@ func TestMockTargetProviderApply(t *testing.T) {
 	assert.Nil(t, err)
 
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "name",
-			Scope: "default",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "name",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "default",
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "name",
 				},
@@ -56,7 +60,7 @@ func TestMockTargetProviderApply(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "name",
 				},

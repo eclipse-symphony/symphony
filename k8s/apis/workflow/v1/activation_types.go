@@ -7,31 +7,39 @@
 package v1
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	k8smodel "github.com/azure/symphony/k8s/apis/model/v1"
+	k8smodel "gopls-workspace/apis/model/v1"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type ActivationStatus struct {
-	Stage     string `json:"stage"`
+	Status               v1alpha2.State `json:"status,omitempty"`
+	StatusMessage        string         `json:"statusMessage,omitempty"`
+	ActivationGeneration string         `json:"activationGeneration,omitempty"`
+	UpdateTime           string         `json:"updateTime,omitempty"`
+	StageHistory         []StageStatus  `json:"stageHistory,omitempty"`
+}
+
+type StageStatus struct {
+	Stage     string `json:"stage,omitempty"`
 	NextStage string `json:"nextStage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Inputs runtime.RawExtension `json:"inputs,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Outputs              runtime.RawExtension `json:"outputs,omitempty"`
-	Status               v1alpha2.State       `json:"status,omitempty"`
-	ErrorMessage         string               `json:"errorMessage,omitempty"`
-	IsActive             bool                 `json:"isActive,omitempty"`
-	ActivationGeneration string               `json:"activationGeneration,omitempty"`
+	Outputs       runtime.RawExtension `json:"outputs,omitempty"`
+	Status        v1alpha2.State       `json:"status,omitempty"`
+	StatusMessage string               `json:"statusMessage,omitempty"`
+	ErrorMessage  string               `json:"errorMessage,omitempty"`
+	IsActive      bool                 `json:"isActive,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Next Stage",type=string,JSONPath=`.status.nextStage`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.statusMessage`
 // Activation is the Schema for the activations API
 type Activation struct {
 	metav1.TypeMeta   `json:",inline"`

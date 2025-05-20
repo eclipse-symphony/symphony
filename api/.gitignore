@@ -19,3 +19,5 @@ symphony-api
 symphony-agent
 symphony-api-mac
 symphony-api.exe
+.env.debug
+.vscode/serviceaccount/

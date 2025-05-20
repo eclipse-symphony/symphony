@@ -7,6 +7,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -163,6 +164,14 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 	}
 
 	return true
+}
+
+func ExtractReferenceSlice[K IDeepEquals](a []K) []*K {
+	ret := make([]*K, 0)
+	for _, v := range a {
+		ret = append(ret, &v)
+	}
+	return ret
 }
 
 // SliceEuql compares two slices of IDeepEqual items, ignoring the order of items
@@ -336,4 +345,13 @@ func ResolveString(value string, injections *ValueInjections) string {
 	}
 
 	return value
+}
+
+func ToDeployment(data []byte) (*DeploymentSpec, error) {
+	var deployment DeploymentSpec
+	err := json.Unmarshal(data, &deployment)
+	if err != nil {
+		return nil, err
+	}
+	return &deployment, nil
 }

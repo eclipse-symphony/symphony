@@ -15,6 +15,50 @@ import (
 	"strings"
 )
 
+type TargetProviderConfig struct {
+	Type   string                 `json:"type"`
+	Config map[string]interface{} `json:"config"`
+}
+type SymphonyAgentConfig struct {
+	SiteInfo struct {
+		SiteId      string `json:"siteId"`
+		CurrentSite struct {
+			BaseURL  string `json:"baseUrl"`
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"currentSite"`
+	} `json:"siteInfo"`
+	API struct {
+		Vendors []struct {
+			Type         string `json:"type"`
+			Route        string `json:"route"`
+			LoopInterval int    `json:"loopInterval,omitempty"`
+			Managers     []struct {
+				Name       string `json:"name"`
+				Type       string `json:"type"`
+				Properties struct {
+					ProvidersPersistentState string `json:"providers.persistentstate"`
+					IsTarget                 string `json:"isTarget"`
+					TargetNames              string `json:"targetNames"`
+					ProvidersConfig          string `json:"providers.config"`
+					ProvidersSecret          string `json:"providers.secret"`
+					PollEnabled              string `json:"poll.enabled"`
+				} `json:"properties"`
+				Providers map[string]TargetProviderConfig `json:"providers"`
+			} `json:"managers"`
+		} `json:"vendors"`
+	} `json:"api"`
+	Bindings []struct {
+		Type   string `json:"type"`
+		Config struct {
+			BrokerAddress string `json:"brokerAddress"`
+			ClientID      string `json:"clientID"`
+			RequestTopic  string `json:"requestTopic"`
+			ResponseTopic string `json:"responseTopic"`
+		} `json:"config"`
+	} `json:"bindings"`
+}
+
 type MaestroContext struct {
 	Url    string `json:"url"`
 	User   string `json:"user"`

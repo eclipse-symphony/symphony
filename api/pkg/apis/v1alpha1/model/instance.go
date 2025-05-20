@@ -6,34 +6,35 @@
 
 package model
 
-import "errors"
+import (
+	"errors"
+)
 
 type (
+	InstanceStatus = DeployableStatusV2
+
+	ActiveState string
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
-		Id     string            `json:"id"`
-		Scope  string            `json:"scope"`
-		Spec   *InstanceSpec     `json:"spec,omitempty"`
-		Status map[string]string `json:"status,omitempty"`
+		ObjectMeta ObjectMeta     `json:"metadata,omitempty"`
+		Spec       *InstanceSpec  `json:"spec,omitempty"`
+		Status     InstanceStatus `json:"status,omitempty"`
 	}
 
 	// InstanceSpec defines the spec property of the InstanceState
 	// +kubebuilder:object:generate=true
 	InstanceSpec struct {
-		Name        string                       `json:"name"`
-		DisplayName string                       `json:"displayName,omitempty"`
-		Scope       string                       `json:"scope,omitempty"`
-		Parameters  map[string]string            `json:"parameters,omitempty"` //TODO: Do we still need this?
-		Metadata    map[string]string            `json:"metadata,omitempty"`
-		Solution    string                       `json:"solution"`
-		Target      TargetSelector               `json:"target,omitempty"`
-		Topologies  []TopologySpec               `json:"topologies,omitempty"`
-		Pipelines   []PipelineSpec               `json:"pipelines,omitempty"`
-		Arguments   map[string]map[string]string `json:"arguments,omitempty"`
-		Generation  string                       `json:"generation,omitempty"`
-		// Defines the version of a particular resource
-		Version string `json:"version,omitempty"`
+		DisplayName string            `json:"displayName,omitempty"`
+		Scope       string            `json:"scope,omitempty"`
+		Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
+		Metadata    map[string]string `json:"metadata,omitempty"`
+		Solution    string            `json:"solution"`
+		Target      TargetSelector    `json:"target,omitempty"`
+		Topologies  []TopologySpec    `json:"topologies,omitempty"`
+		Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
+		IsDryRun    bool              `json:"isDryRun,omitempty"`
+		ActiveState ActiveState       `json:"activeState,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
@@ -50,6 +51,11 @@ type (
 		Skill      string            `json:"skill"`
 		Parameters map[string]string `json:"parameters,omitempty"`
 	}
+)
+
+const (
+	ActiveState_Active   ActiveState = "active"
+	ActiveState_Inactive ActiveState = "inactive"
 )
 
 func (c TargetSelector) DeepEquals(other IDeepEquals) (bool, error) {
@@ -117,15 +123,15 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a InstanceSpec type")
 	}
 
-	if c.Name != otherC.Name {
-		return false, nil
-	}
-
 	if c.DisplayName != otherC.DisplayName {
 		return false, nil
 	}
 
 	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if c.ActiveState != otherC.ActiveState {
 		return false, nil
 	}
 
@@ -160,9 +166,23 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !StringStringMapsEqual(c.Arguments, otherC.Arguments, nil) {
-		return false, nil
+	return true, nil
+}
+
+func (c InstanceState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(InstanceState)
+	if !ok {
+		return false, errors.New("parameter is not a InstanceState type")
 	}
 
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
 	return true, nil
 }

@@ -7,7 +7,7 @@
 package vendors
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 )
 
 type SymphonyVendorFactory struct {
@@ -29,10 +29,16 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &DevicesVendor{}, nil
 	case "vendors.solutions":
 		return &SolutionsVendor{}, nil
+	case "vendors.solutioncontainers":
+		return &SolutionContainersVendor{}, nil
 	case "vendors.campaigns":
 		return &CampaignsVendor{}, nil
+	case "vendors.campaigncontainers":
+		return &CampaignContainersVendor{}, nil
 	case "vendors.catalogs":
 		return &CatalogsVendor{}, nil
+	case "vendors.catalogcontainers":
+		return &CatalogContainersVendor{}, nil
 	case "vendors.activations":
 		return &ActivationsVendor{}, nil
 	case "vendors.users":
@@ -53,6 +59,12 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &SettingsVendor{}, nil
 	case "vendors.trails":
 		return &TrailsVendor{}, nil
+	case "vendors.backgroundjob":
+		return &BackgroundJobVendor{}, nil
+	case "vendors.visualization.client":
+		return &VisualizationClientVendor{}, nil
+	case "vendors.visualization":
+		return &VisualizationVendor{}, nil
 	default:
 		return nil, nil //Can't throw errors as other factories may create it...
 	}

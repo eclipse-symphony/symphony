@@ -9,6 +9,7 @@ package utils
 import (
 	"archive/zip"
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cenkalti/backoff/v4"
 )
 
 const (
@@ -69,7 +72,53 @@ func RunCommandNoCapture(message string, successMessage string, name string, arg
 	}
 	return "", exeErr
 }
-func RunCommand(message string, successMessage string, showOutput bool, name string, args ...string) (string, error) {
+
+func RunCommandWithRetry(message string, successMessage string, showOutput bool, debug bool, name string, args ...string) (string, string, error) {
+	var output string
+	var errOutput string
+	var err error
+
+	retryCount := 0
+
+	b := backoff.NewExponentialBackOff()
+	if debug {
+		// Customize the backoff parameters.
+		b.InitialInterval = 2 * time.Second    // Initial retry interval.
+		b.MaxInterval = 30 * time.Second       // Maximum retry interval.
+		b.MaxElapsedTime = 1 * time.Nanosecond // Maximum total waiting time. (no retry)
+	} else {
+		// Customize the backoff parameters.
+		b.InitialInterval = 2 * time.Second // Initial retry interval.
+		b.MaxInterval = 30 * time.Second    // Maximum retry interval.
+		b.MaxElapsedTime = 5 * time.Minute  // Maximum total waiting time.
+	}
+
+	retryErr := backoff.Retry(func() error {
+		retryCount++
+		if retryCount > 1 {
+			fmt.Printf("\r  %s%s%s ... %s%s \n", ColorReset(), message, ColorCyan(), "checking post-command condition", ColorReset())
+		}
+		output, errOutput, err = runCommandHelper(message, successMessage, showOutput, true, name, args...)
+		if err != nil {
+			return err
+		}
+
+		if output == "" || output == "''" || output == "\"\"" {
+			return errors.New("no output")
+		}
+		return nil
+	}, b)
+
+	if retryErr == nil {
+		// success
+		return output, "", nil
+	} else {
+		// failure
+		return "", errOutput, fmt.Errorf("failed to run command %s %s", name, strings.Join(args, " "))
+	}
+}
+
+func runCommandHelper(message string, successMessage string, showOutput bool, skipFailurePrompt bool, name string, args ...string) (string, string, error) {
 	cmd := exec.Command(name, args...)
 	output := []string{}
 	errOutput := []string{}
@@ -114,9 +163,13 @@ func RunCommand(message string, successMessage string, showOutput bool, name str
 	running = false
 	time.Sleep(200 * time.Millisecond)
 	if exeErr == nil {
-		fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorGreen(), successMessage, ColorReset())
+		if message != "" {
+			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorGreen(), successMessage, ColorReset())
+		}
 	} else {
-		fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "failed", ColorReset())
+		if !skipFailurePrompt {
+			fmt.Printf("\r  %s%s%s ...%s%s \n", ColorReset(), message, ColorYellow(), "failed", ColorReset())
+		}
 	}
 
 	if showOutput {
@@ -128,7 +181,11 @@ func RunCommand(message string, successMessage string, showOutput bool, name str
 		}
 	}
 	showCursor()
-	return strings.Join(output, " "), exeErr
+	return strings.Join(output, " "), strings.Join(errOutput, "\n"), exeErr
+}
+
+func RunCommand(message string, successMessage string, showOutput bool, name string, args ...string) (string, string, error) {
+	return runCommandHelper(message, successMessage, showOutput, false, name, args...)
 }
 
 func AddtoPath(des string) string {
@@ -143,31 +200,40 @@ func AddtoPath(des string) string {
 }
 
 func CheckDocker(verbose bool) bool {
-	_, err := RunCommand("Checking Docker", "found", verbose, "docker", "info")
+	_, _, err := RunCommand("Checking Docker", "found", verbose, "docker", "info")
 	return err == nil
 }
 
 func CheckKubectl(verbose bool) bool {
-	_, err := RunCommand("Checking kubectl", "found", verbose, "kubectl")
+	_, _, err := RunCommand("Checking kubectl", "found", verbose, "kubectl")
 	return err == nil
 }
 
 func CheckMinikube(verbose bool) bool {
-	_, err := RunCommand("Checking minikube", "found", verbose, "minikube", "version")
+	// on Windows, add the known Windows installation path to env:PATH to avoid minikube checking error
+	osName := runtime.GOOS
+	if strings.EqualFold(osName, "windows") {
+		var des = filepath.Join(os.Getenv("programfiles"), "maestro", "minikube")
+		path := AddtoPath(des)
+		if err := os.Setenv("path", path); err != nil {
+			fmt.Printf("\n%s  Failed to setting path for minikube.%s\n\n", ColorRed(), ColorReset())
+		}
+	}
+	_, _, err := RunCommand("Checking minikube", "found", verbose, "minikube", "version")
 	return err == nil
 }
 
 func CheckK8sConnection(verbose bool) (string, bool) {
-	str, err := RunCommand("Checking kubectl context", "OK", verbose, "kubectl", "config", "current-context")
+	str, _, err := RunCommand("Checking kubectl context", "OK", verbose, "kubectl", "config", "current-context")
 	if err != nil {
 		return str, false
 	}
-	_, err = RunCommand("Checking Kubernetes connection", "OK", verbose, "kubectl", "cluster-info")
+	_, _, err = RunCommand("Checking Kubernetes connection", "OK", verbose, "kubectl", "cluster-info")
 	return str, err == nil
 }
 
 func CheckHelm(verbose bool) bool {
-	info, err := RunCommand("Checking Helm", "found", verbose, "helm", "version")
+	info, _, err := RunCommand("Checking Helm", "found", verbose, "helm", "version")
 	if err != nil {
 		return false
 	}
@@ -204,61 +270,61 @@ func InstallDocker(verbose bool) bool {
 	ios := runtime.GOOS
 	switch ios {
 	case "windows":
-		_, err := RunCommand("Downloading Docker Desktop Engine", "done", verbose, "curl", "-Lo", "docker-msi.exe", "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe")
+		_, _, err := RunCommand("Downloading Docker Desktop Engine", "done", verbose, "curl", "-Lo", "docker-msi.exe", "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download Docker Desktop Engine.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		_, err = RunCommand("Installing Docker Desktop Engine", "done", verbose, "start", "/w", "", "docker-msi.exe", "install", "--quiet", "--accept-license")
+		_, _, err = RunCommand("Installing Docker Desktop Engine", "done", verbose, "start", "/w", "", "docker-msi.exe", "install", "--quiet", "--accept-license")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to install Docker Desktop Engine.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
 	case "darwin":
 		//TODO: This downloads only for Intel chips
-		_, err := RunCommand("Downloading Docker Desktop Engine", "done", verbose, "curl", "-Lo", "Docker.dmg", "https://desktop.docker.com/mac/main/amd64/Docker.dmg")
+		_, _, err := RunCommand("Downloading Docker Desktop Engine", "done", verbose, "curl", "-Lo", "Docker.dmg", "https://desktop.docker.com/mac/main/amd64/Docker.dmg")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to download Docker Desktop Engine.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		_, err = RunCommand("Attaching Docker Desktop Engine installer", "done", verbose, "sudo", "hdiutil", "attach", "Docker.dmg")
+		_, _, err = RunCommand("Attaching Docker Desktop Engine installer", "done", verbose, "sudo", "hdiutil", "attach", "Docker.dmg")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to attach Docker Desktop Engine installer.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		_, err = RunCommand("Installing Docker Desktop Engine", "done", verbose, "sudo", "/Volumes/Docker/Docker.app/Contents/MacOS/install")
+		_, _, err = RunCommand("Installing Docker Desktop Engine", "done", verbose, "sudo", "/Volumes/Docker/Docker.app/Contents/MacOS/install")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to intall Docker Desktop Engine.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		_, err = RunCommand("Detaching Docker Desktop Engine installer", "done", verbose, "sudo", "hdiutil", "detach", "/Volumes/Docker")
+		_, _, err = RunCommand("Detaching Docker Desktop Engine installer", "done", verbose, "sudo", "hdiutil", "detach", "/Volumes/Docker")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to detach Docker Desktop Engine installer.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
 	case "linux":
-		_, err := RunCommand("Updating package index", "done", verbose, "sudo", "apt-get", "update")
+		_, _, err := RunCommand("Updating package index", "done", verbose, "sudo", "apt-get", "update")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to update package index.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		_, err = RunCommand("Installing Docker", "done", verbose, "sudo", "apt-get", "install", "-y", "docker.io")
+		_, _, err = RunCommand("Installing Docker", "done", verbose, "sudo", "apt-get", "install", "-y", "docker.io")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to install Docker.%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		// err, _ = utils.RunCommand("Adding Docker user group", "done", verbose, "sudo", "groupadd", "docker")
+		// _, _, err = utils.RunCommand("Adding Docker user group", "done", verbose, "sudo", "groupadd", "docker")
 		// if err != nil {
 		// 	fmt.Printf("\n%s  Failed to add Docker user group./%s\n\n", utils.ColorRed(), utils.ColorReset())
 		// 	return false
 		// }
 		user := os.Getenv("USER")
-		_, err = RunCommand("Adding current user to Docker user group", "done", verbose, "sudo", "usermod", "-aG", "docker", user)
+		_, _, err = RunCommand("Adding current user to Docker user group", "done", verbose, "sudo", "usermod", "-aG", "docker", user)
 		if err != nil {
 			fmt.Printf("\n%s  Failed to add current user to Docker user group./%s\n\n", ColorRed(), ColorReset())
 			return false
 		}
-		_, err = RunCommand("Activating group membership", "done", verbose, "newgrp", "docker")
+		_, _, err = RunCommand("Activating group membership", "done", verbose, "newgrp", "docker")
 		if err != nil {
 			fmt.Printf("\n%s  Failed to activate user group.%s\n\n", ColorRed(), ColorReset())
 			return false

@@ -11,8 +11,8 @@ SYMPHONY_INSTALL_DIR="/usr/local/bin"
 SYMPHONY_HOME_DIR="${HOME}/.symphony"
 USE_SUDO="false"
 SYMPHONY_HTTP_REQUEST_CLI=curl
-SYMPHONY_GITHUB_ORG=Haishi2016
-SYMPHONY_GITHUB_REPO=Vault818
+SYMPHONY_GITHUB_ORG=eclipse-symphony
+SYMPHONY_GITHUB_REPO=symphony
 SYMPHONY_CLI_FILENAME=maestro
 SYMPHONY_CLI_FILE="${SYMPHONY_INSTALL_DIR}/${SYMPHONY_CLI_FILENAME}"
 getSystemInfo() {
@@ -119,9 +119,9 @@ downloadFile() {
 
     echo "Downloading $DOWNLOAD_URL ..."
     if [ "$SYMPHONY_HTTP_REQUEST_CLI" == "curl" ]; then
-        curl -SsL "$DOWNLOAD_URL" -o "$ARTIFACT_TMP_FILE"
+        curl -SL "$DOWNLOAD_URL" -o "$ARTIFACT_TMP_FILE"
     else
-        wget -q -O "$ARTIFACT_TMP_FILE" "$DOWNLOAD_URL"
+        wget -O "$ARTIFACT_TMP_FILE" "$DOWNLOAD_URL"
     fi
 
     if [ ! -f "$ARTIFACT_TMP_FILE" ]; then
@@ -168,7 +168,7 @@ installFile() {
     fi
 
     mkdir -p $SYMPHONY_HOME_DIR
-
+    rm -rf $SYMPHONY_HOME_DIR/*
     mv $SYMPHONY_TMP_ROOT/* $SYMPHONY_HOME_DIR/    
 }
 
@@ -196,7 +196,7 @@ if [ -z "$1" ]; then
     echo "Getting the latest Maestro CLI..."
     getLatestRelease
 else
-    retVal=v$1
+    retVal=$1
 fi
 
 verifySupported $retVal

@@ -7,18 +7,22 @@
 package managers
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	providers "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
+	"context"
+
+	k8sstate "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/uploader"
 )
 
 type ProviderConfig struct {
@@ -35,6 +39,7 @@ type ManagerConfig struct {
 
 type IManager interface {
 	Init(context *contexts.VendorContext, config ManagerConfig, providers map[string]providers.IProvider) error
+	v1alpha2.Terminable
 }
 
 type ISchedulable interface {
@@ -85,14 +90,51 @@ func GetQueueProvider(config ManagerConfig, providers map[string]providers.IProv
 	}
 	return queueProvider, nil
 }
-func GetStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
-	stateProviderName, ok := config.Properties[v1alpha2.ProvidersState]
+
+func (m *Manager) Shutdown(ctx context.Context) error {
+	return nil
+}
+
+func GetPersistentStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
+	stateProviderName, ok := config.Properties[v1alpha2.ProvidersPersistentState]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "state provider is not configured", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "persistent state provider is not configured", v1alpha2.MissingConfig)
 	}
 	provider, ok := providers[stateProviderName]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "state provider is not supplied", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "persistent state provider is not supplied", v1alpha2.MissingConfig)
+	}
+	stateProvider, ok := provider.(states.IStateProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a state provider", v1alpha2.BadConfig)
+	}
+	return stateProvider, nil
+}
+
+func GetKeyLockProvider(config ManagerConfig, providers map[string]providers.IProvider) (keylock.IKeyLockProvider, error) {
+	keyLockProviderName, ok := config.Properties[v1alpha2.ProvidersKeyLock]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "keylock provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[keyLockProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "keylock provider is not supplied", v1alpha2.MissingConfig)
+	}
+	keyLockProvider, ok := provider.(keylock.IKeyLockProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a keylock provider", v1alpha2.BadConfig)
+	}
+	return keyLockProvider, nil
+}
+
+func GetVolatileStateProvider(config ManagerConfig, providers map[string]providers.IProvider) (states.IStateProvider, error) {
+	stateProviderName, ok := config.Properties[v1alpha2.ProvidersVolatileState]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "volatile state provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[stateProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "volatile state provider is not supplied", v1alpha2.MissingConfig)
 	}
 	stateProvider, ok := provider.(states.IStateProvider)
 	if !ok {
@@ -193,15 +235,15 @@ func GetUploaderProvider(config ManagerConfig, providers map[string]providers.IP
 func GetReferenceProvider(config ManagerConfig, providers map[string]providers.IProvider) (reference.IReferenceProvider, error) {
 	referenceProviderName, ok := config.Properties[v1alpha2.ProvidersReference]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "uploader provider is not configured", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "reference provider is not configured", v1alpha2.MissingConfig)
 	}
 	provider, ok := providers[referenceProviderName]
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "uploader provider is not supplied", v1alpha2.MissingConfig)
+		return nil, v1alpha2.NewCOAError(nil, "reference provider is not supplied", v1alpha2.MissingConfig)
 	}
 	referenceProvider, ok := provider.(reference.IReferenceProvider)
 	if !ok {
-		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a uploader provider", v1alpha2.BadConfig)
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a reference provider", v1alpha2.BadConfig)
 	}
 	return referenceProvider, nil
 }
@@ -219,4 +261,21 @@ func GetReporter(config ManagerConfig, providers map[string]providers.IProvider)
 		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a reporter provider", v1alpha2.BadConfig)
 	}
 	return reporterProvider, nil
+}
+
+func NeedObjectValidate(config ManagerConfig, providers map[string]providers.IProvider) bool {
+	stateProviderName, ok := config.Properties[v1alpha2.ProvidersPersistentState]
+	if !ok {
+		return true
+	}
+	provider, ok := providers[stateProviderName]
+	if !ok {
+		return true
+	}
+	_, ok = provider.(*k8sstate.K8sStateProvider)
+	if !ok {
+		return true
+	} else {
+		return false
+	}
 }

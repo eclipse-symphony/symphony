@@ -5,15 +5,13 @@ SPDX-License-Identifier: MIT
 -->
 # Local environment
 
-The local environment is a minikube cluster that deploys symphony for testing purposes.
+Symphony is primarily developed using the Go programming language, with additional Rust bindings that enable Rust-based Target providers. It natively supports Kubernetes, and its components are packaged as a Helm chart consisting of several microservices.
 
-## Prerequisites
+For local development and testing, you’ll need Docker, Kubernetes, Go, and Rust-related tools. While Symphony can be used on Windows or macOS, we recommend using an Azure Ubuntu VM or the WSL Ubuntu distribution for a more streamlined experience. Symphony leverages Mage for scripting tasks and uses Minikube as the local test environment, which is provisioned through Mage.
 
-Linux environment such as Azure Ubuntu VM or WSL Ubuntu Distribution.
+## Docker installation
 
-### Docker installation
-
-https://docs.docker.com/engine/install/ubuntu/
+Official instructions: https://docs.docker.com/engine/install/ubuntu/
 
 Example:
 ```shell
@@ -37,25 +35,33 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-### go installation
-https://go.dev/doc/install
+## Go installation
+Official instructions:  https://go.dev/doc/install
 
 Example:
 
 ```shell
 # Go installation
-curl -LO "https://go.dev/dl/go1.21.3.linux-amd64.tar.gz"
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz
+curl -LO "https://go.dev/dl/go1.22.4.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.4.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
-
+rm go1.22.4.linux-amd64.tar.gz
 mkdir -p $HOME/go/bin
 
 ```
 
-### helm installation
+use `vim ~/.bash_profile` to open the configuration file, append following command:
+```shell
+export GOPATH=~/go
+export GOROOT=/usr/local/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+```
+run `source ~/.bash_profile` to finish the environment variable setting.
 
-https://helm.sh/docs/intro/install/#from-the-binary-releases
+## Helm installation
+
+Official instructions: https://helm.sh/docs/intro/install/#from-the-binary-releases
 
 Example:
 
@@ -63,13 +69,13 @@ Example:
 wget https://get.helm.sh/helm-v3.9.3-linux-amd64.tar.gz
 tar xvf helm-v3.9.3-linux-amd64.tar.gz
 sudo mv linux-amd64/helm /usr/local/bin
-rm helm-v3.4.1-linux-amd64.tar.gz
+rm helm-v3.9.3-linux-amd64.tar.gz
 rm -rf linux-amd64
 helm version
 ```
 
-### kubectl installation
-https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-binary-with-curl-on-linux
+## Kubectl installation
+Official instructions: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-kubectl-binary-with-curl-on-linux
 
 Example:
 
@@ -80,18 +86,30 @@ echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check # valid output: kubect
 
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 kubectl version --client
+rm -rf kubectl kubectl.sha256
 ```
 
-### mage installation
+## Mage installation
+
+Official instructions: https://github.com/magefile/mage#installation
 
 Example:
-
-https://github.com/magefile/mage#installation
+(Please make sure you set go environment variable correctly in previous steps.)
 
 ```shell
 git clone https://github.com/magefile/mage
 cd mage
 go run bootstrap.go
+```
+## Rust installation
+
+Official instructions: https://www.rust-lang.org/tools/install
+
+Example:
+```shell
+# Use the recommended script, then follow the on-screen instructions to install Rust.
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
 ```
 
 ## Usage of mage
@@ -99,6 +117,8 @@ go run bootstrap.go
 See all commands with `mage -l`
 
 ```
+> git clone https://github.com/eclipse-symphony/symphony
+> cd symphony/test/localenv
 > mage -l
 
 Use this tool to quickly get started developing in the symphony ecosystem. The tool provides a set of common commands to make development easier for the team. To get started using Minikube, run 'mage build minikube:start minikube:load deploy'.
@@ -181,6 +201,11 @@ To remove symphony from the cluster use
 mage Destroy all,nowait
 ```
 
+If packages version in go.mod is updated, prepare dependencies using
+```
+go mod tidy
+```
+
 # Troubleshooting
 
 If you are seeing strange behavior or getting errors the first thing to try is completely deleting minikube and starting over with a fresh cluster. Many commands will recreate minikube for you automatically, but it is worth checking that minikube is actually getting cleaned up.
@@ -198,13 +223,13 @@ CI integration tests can be run locally with the following command:
 mage test:up
 ```
 
-See [integration test README](../test/integration/README.md) for more details.
+See [integration test README](../integration/README.md) for more details.
 
 # Unit tests
 
 ## Perquisites for running unit tests
 
-In [k8s](../k8s) and [api](../api) folder, we could run unit tests.
+In [k8s](../../k8s) and [api](../../api) folder, we could run unit tests.
 
 To run unit tests, we need to
 
@@ -220,4 +245,4 @@ sudo apt-get install jq
 go env -w CGO_ENABLED=1
 go env CGO_ENABLED
 ```
-Then go to [k8s](../k8s) or [api](../api), run ```mage test``` to launch unit tests.
+Then go to [k8s](../../k8s) or [api](../../api) folder, run ```mage test``` to launch unit tests.

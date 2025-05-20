@@ -1,0 +1,41 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: sample-visualization-solution  
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: sample-visualization-solution-v-version1
+spec: 
+  rootResource: sample-visualization-solution
+  components:
+  - name: flask-a
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port5000\",\"port\": 5000,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"      
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "hbai/sample-flask-app:latest"
+      env.SYMPHONY_SOLUTION: sample-visualization-solution
+      env.SYMPHONY_COMPONENT: flask-a
+    sidecars:
+    - name: sample-visualization-sidecar
+      type: container
+      properties:
+        container.image: "hbai/visualization-sidecar:latest"
+        env.SYMPHONY_URL: "http://symphony-service:8080/v1alpha2/"
+        env.SYMPHONY_USERNAME: "admin"
+        env.SYMPHONY_PASSWORD: ""
+  - name: flask-b
+    type: container
+    metadata:
+      service.ports: "[{\"name\":\"port5001\",\"port\": 5001,\"targetPort\":5000}]"
+      service.type: "LoadBalancer"      
+    properties:
+      deployment.replicas: "#1"
+      container.ports: "[{\"containerPort\":5000,\"protocol\":\"TCP\"}]"
+      container.image: "hbai/sample-flask-app:latest"

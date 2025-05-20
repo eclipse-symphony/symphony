@@ -11,15 +11,19 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type ModelsManager struct {
 	managers.Manager
@@ -27,7 +31,7 @@ type ModelsManager struct {
 }
 
 func (s *ModelsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
@@ -36,31 +40,51 @@ func (s *ModelsManager) Init(context *contexts.VendorContext, config managers.Ma
 	return nil
 }
 
-func (t *ModelsManager) DeleteSpec(ctx context.Context, name string) error {
+func (t *ModelsManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.DebugfCtx(ctx, " M (Models): DeleteState, name: %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
-			"scope":    "",
-			"group":    model.AIGroup,
-			"version":  "v1",
-			"resource": "models",
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.AIGroup,
+			"version":   "v1",
+			"resource":  "models",
+			"kind":      "Model",
 		},
 	})
+
+	if err != nil {
+		log.ErrorfCtx(ctx, " M (Models): failed to delete state, name: %s, err: %v", name, err)
+	}
 	return err
 }
 
-func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.DeviceSpec) error {
+func (t *ModelsManager) UpsertState(ctx context.Context, name string, state model.ModelState) error {
 	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
-		"method": "UpsertSpec",
+		"method": "UpsertState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.DebugfCtx(ctx, " M (Models): UpsertState, name: %s", name)
+
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+	state.ObjectMeta.FixNames(name)
+
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
@@ -68,98 +92,110 @@ func (t *ModelsManager) UpsertSpec(ctx context.Context, name string, spec model.
 			Body: map[string]interface{}{
 				"apiVersion": model.AIGroup + "/v1",
 				"kind":       "model",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
+				"metadata":   state.ObjectMeta,
+				"spec":       state.Spec,
 			},
+			ETag: state.ObjectMeta.ETag,
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion": "%s/v1", "kind": "Model", "metadata": {"name": "${{$model()}}"}}`, model.AIGroup),
-			"scope":    "",
-			"group":    model.AIGroup,
-			"version":  "v1",
-			"resource": "models",
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.AIGroup,
+			"version":   "v1",
+			"resource":  "models",
+			"kind":      "Model",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
+		log.ErrorfCtx(ctx, " M (Models): failed to UpsertSpec, name: %s, err: %v", name, err)
 		return err
 	}
 	return nil
 }
 
-func (t *ModelsManager) ListSpec(ctx context.Context) ([]model.ModelState, error) {
+func (t *ModelsManager) ListState(ctx context.Context, namespace string) ([]model.ModelState, error) {
 	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.DebugCtx(ctx, " M (Models): ListState")
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.AIGroup,
-			"resource": "models",
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.AIGroup,
+			"resource":  "models",
+			"kind":      "Model",
+			"namespace": namespace,
 		},
 	}
-	models, _, err := t.StateProvider.List(ctx, listRequest)
+	var models []states.StateEntry
+	models, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
+		log.ErrorfCtx(ctx, " M (Models): failed to ListState, err: %v", err)
 		return nil, err
 	}
 	ret := make([]model.ModelState, 0)
 	for _, t := range models {
 		var rt model.ModelState
-		rt, err = getModelState(t.ID, t.Body, t.ETag)
+		rt, err = getModelState(t.Body)
 		if err != nil {
+			log.ErrorfCtx(ctx, " M (Models): failed to getModelState, err: %v", err)
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getModelState(id string, body interface{}, etag string) (model.ModelState, error) {
-	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-
-	j, _ := json.Marshal(spec)
-	var rSpec model.ModelSpec
-	err := json.Unmarshal(j, &rSpec)
+func getModelState(body interface{}) (model.ModelState, error) {
+	var modelState model.ModelState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &modelState)
 	if err != nil {
 		return model.ModelState{}, err
 	}
-	//rSpec.Generation??
-	state := model.ModelState{
-		Id:   id,
-		Spec: &rSpec,
+	if modelState.Spec == nil {
+		modelState.Spec = &model.ModelSpec{}
 	}
-	return state, nil
+	return modelState, nil
 }
 
-func (t *ModelsManager) GetSpec(ctx context.Context, id string) (model.ModelState, error) {
+func (t *ModelsManager) GetState(ctx context.Context, name string, namespace string) (model.ModelState, error) {
 	ctx, span := observability.StartSpan("Models Manager", ctx, &map[string]string{
-		"method": "GetSpec",
+		"method": "GetState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	log.DebugfCtx(ctx, " M (Models): GetState, name: %s", name)
 	getRequest := states.GetRequest{
-		ID: id,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.AIGroup,
-			"resource": "models",
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.AIGroup,
+			"resource":  "models",
+			"namespace": namespace,
+			"kind":      "Model",
 		},
 	}
-	m, err := t.StateProvider.Get(ctx, getRequest)
+	var m states.StateEntry
+	m, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
+		log.ErrorfCtx(ctx, " M (Models): failed to GetSpec, name: %s, err: %v", name, err)
 		return model.ModelState{}, err
 	}
 
-	ret, err := getModelState(id, m.Body, m.ETag)
+	var ret model.ModelState
+	ret, err = getModelState(m.Body)
 	if err != nil {
+		log.ErrorfCtx(ctx, " M (Models): failed to getModelState, name: %s, err: %v", name, err)
 		return model.ModelState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(m.ETag)
 	return ret, nil
 }

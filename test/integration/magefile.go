@@ -93,7 +93,11 @@ func listTests(dir string) ([]string, error) {
 	// Read test subfolders
 	for _, entry := range subDirs {
 		if entry.IsDir() {
-			results = append(results, filepath.Join(dir, entry.Name()))
+			dirPath := filepath.Join(dir, entry.Name())
+			filePath := filepath.Join(dirPath, "magefile.go")
+			if _, err := os.Stat(filePath); err == nil {
+				results = append(results, dirPath)
+			}
 		}
 	}
 
@@ -114,4 +118,29 @@ func shellExec(cmd string) error {
 	execCmd.Stderr = os.Stderr
 
 	return execCmd.Run()
+}
+
+func TestFault() error {
+	fmt.Println("Searching for integration tests")
+
+	scenariosPath, err := filepath.Abs("scenarios")
+	if err != nil {
+		return err
+	}
+
+	testFiles, err := listTests(scenariosPath)
+	if err != nil {
+		return err
+	}
+
+	for _, testFile := range testFiles {
+		fmt.Printf("Running tests in: %s\n", testFile)
+
+		err = RunTest(testFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

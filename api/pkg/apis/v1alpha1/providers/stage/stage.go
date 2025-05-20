@@ -9,7 +9,7 @@ package stage
 import (
 	"context"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 )
 
 type IStageProvider interface {
@@ -27,4 +27,14 @@ func ReadInputString(inputs map[string]interface{}, key string) string {
 		}
 	}
 	return ""
+}
+
+func GetNamespace(inputs map[string]interface{}) string {
+	// objectNamespace is the namespace declared in the stage yaml, #1 priority
+	// __namespace is the namespace where the stage is triggered, #2 priority
+	objNamespace := ReadInputString(inputs, "objectNamespace")
+	if objNamespace != "" {
+		return objNamespace
+	}
+	return ReadInputString(inputs, "__namespace")
 }

@@ -1,0 +1,10 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: evalcatalog-v-version2
+spec:
+  rootResource: evalcatalog
+  catalogType: catalog
+  properties:
+    city: Sydney
+    country: Australia

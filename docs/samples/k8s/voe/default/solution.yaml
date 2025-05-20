@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: voe-default  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: voe-default
+  name: voe-default-v-version1
 spec:
+  rootResource: voe-default
   parameters:
   - name: IoT_Hub_Connection_String
     requried: true

@@ -9,17 +9,18 @@ package sync
 import (
 	"context"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type SyncManager struct {
 	managers.Manager
+	apiClient utils.ApiClient
 }
 
 func (s *SyncManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -29,6 +30,10 @@ func (s *SyncManager) Init(context *contexts.VendorContext, config managers.Mana
 	}
 	if s.Context.SiteInfo.SiteId == "" {
 		return v1alpha2.NewCOAError(nil, "siteId is required", v1alpha2.BadConfig)
+	}
+	s.apiClient, err = utils.GetParentApiClient(s.VendorContext.SiteInfo.ParentSite.BaseUrl)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -41,13 +46,11 @@ func (s *SyncManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	if s.VendorContext.SiteInfo.ParentSite.BaseUrl == "" {
 		return nil
 	}
-	batch, err := utils.GetABatchForSite(
-		ctx,
-		s.VendorContext.SiteInfo.ParentSite.BaseUrl,
-		s.VendorContext.SiteInfo.SiteId,
+	batch, err := s.apiClient.GetABatchForSite(ctx, s.VendorContext.SiteInfo.SiteId,
 		s.VendorContext.SiteInfo.ParentSite.Username,
 		s.VendorContext.SiteInfo.ParentSite.Password)
 	if err != nil {
@@ -57,13 +60,15 @@ func (s *SyncManager) Poll() []error {
 		for _, catalog := range batch.Catalogs {
 			s.Context.Publish("catalog-sync", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Type,
+					"objectType": catalog.Spec.CatalogType,
+					"origin":     batch.Origin,
 				},
 				Body: v1alpha2.JobData{
-					Id:     catalog.Name,
-					Action: "UPDATE", //TODO: handle deletion, this probably requires BetBachForSites return flags
+					Id:     catalog.ObjectMeta.Name,
+					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
 					Body:   catalog,
 				},
+				Context: ctx,
 			})
 		}
 	}
@@ -73,7 +78,8 @@ func (s *SyncManager) Poll() []error {
 				Metadata: map[string]string{
 					"origin": batch.Origin,
 				},
-				Body: job,
+				Body:    job,
+				Context: ctx,
 			})
 		}
 	}

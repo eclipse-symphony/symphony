@@ -7,9 +7,9 @@
 package contexts
 
 import (
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	logger "github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	logger "github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 type ManagerContext struct {
@@ -20,7 +20,7 @@ type ManagerContext struct {
 }
 
 func (v *ManagerContext) Init(c *VendorContext, p pubsub.IPubSubProvider) error {
-	if c != nil {
+	if c != nil && c.Logger != nil {
 		v.Logger = c.Logger
 	} else {
 		v.Logger = logger.NewLogger("coa.runtime")

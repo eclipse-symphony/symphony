@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: INSTANCEFULLNAME
+spec:
+  solution: SOLUTIONREFNAME
+  target: 
+    name: TARGETREFNAME
+  reconciliationPolicy:
+    interval: 60m
+    state: active

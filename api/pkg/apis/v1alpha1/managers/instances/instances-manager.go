@@ -11,19 +11,28 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
-	observability "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
+
+var log = logger.NewLogger("coa.runtime")
 
 type InstancesManager struct {
 	managers.Manager
-	StateProvider states.IStateProvider
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	InstanceValidator validation.InstanceValidator
 }
 
 func (s *InstancesManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -31,60 +40,93 @@ func (s *InstancesManager) Init(context *contexts.VendorContext, config managers
 	if err != nil {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
 		return err
 	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		//s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, s.solutionLookup, s.targetLookup)
+		s.InstanceValidator = validation.NewInstanceValidator(s.instanceUniqueNameLookup, nil, nil)
+	}
 	return nil
 }
 
-func (t *InstancesManager) DeleteSpec(ctx context.Context, name string, scope string) error {
+func (t *InstancesManager) DeleteState(ctx context.Context, name string, namespace string) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "DeleteSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
-		Metadata: map[string]string{
-			"scope":    scope,
-			"group":    model.SolutionGroup,
-			"version":  "v1",
-			"resource": "instances",
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "instances",
+			"kind":      "Instance",
 		},
 	})
 	return err
 }
 
-func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec model.InstanceSpec, scope string) error {
+func (t *InstancesManager) UpsertState(ctx context.Context, name string, state model.InstanceState) error {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "UpsertSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+	state.ObjectMeta.FixNames(name)
+
+	oldState, getStateErr := t.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
+	if t.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
+			state.ObjectMeta.Labels[constants.Solution] = state.Spec.Solution
+			state.ObjectMeta.Labels[constants.Target] = state.Spec.Target.Name
+		}
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.InstanceValidator, state, oldState, getStateErr); err != nil {
+			return err
+		}
+	}
+
+	body := map[string]interface{}{
+		"apiVersion": model.SolutionGroup + "/v1",
+		"kind":       "Instance",
+		"metadata":   state.ObjectMeta,
+		"spec":       state.Spec,
+	}
 
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: name,
-			Body: map[string]interface{}{
-				"apiVersion": model.SolutionGroup + "/v1",
-				"kind":       "Instance",
-				"metadata": map[string]interface{}{
-					"name": name,
-				},
-				"spec": spec,
-			},
-			ETag: spec.Generation,
+			ID:   name,
+			Body: body,
+			ETag: state.ObjectMeta.ETag,
 		},
-		Metadata: map[string]string{
-			"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Instance", "metadata": {"name": "${{$instance()}}"}}`, model.SolutionGroup),
-			"scope":    scope,
-			"group":    model.SolutionGroup,
-			"version":  "v1",
-			"resource": "instances",
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.SolutionGroup,
+			"version":   "v1",
+			"resource":  "instances",
+			"kind":      "Instance",
 		},
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
@@ -94,104 +136,92 @@ func (t *InstancesManager) UpsertSpec(ctx context.Context, name string, spec mod
 	return nil
 }
 
-func (t *InstancesManager) ListSpec(ctx context.Context, scope string) ([]model.InstanceState, error) {
+func (t *InstancesManager) ListState(ctx context.Context, namespace string) ([]model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "ListSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	listRequest := states.ListRequest{
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.SolutionGroup,
-			"resource": "instances",
-			"scope":    scope,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "instances",
+			"namespace": namespace,
+			"kind":      "Instance",
 		},
 	}
-	instances, _, err := t.StateProvider.List(ctx, listRequest)
+	var instances []states.StateEntry
+	instances, _, err = t.StateProvider.List(ctx, listRequest)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]model.InstanceState, 0)
 	for _, t := range instances {
 		var rt model.InstanceState
-		rt, err = getInstanceState(t.ID, t.Body, t.ETag)
+		rt, err = getInstanceState(t.Body)
 		if err != nil {
 			return nil, err
 		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
 		ret = append(ret, rt)
 	}
 	return ret, nil
 }
 
-func getInstanceState(id string, body interface{}, etag string) (model.InstanceState, error) {
-	dict := body.(map[string]interface{})
-	spec := dict["spec"]
-	status := dict["status"]
-
-	j, _ := json.Marshal(spec)
-	var rSpec model.InstanceSpec
-	err := json.Unmarshal(j, &rSpec)
+func getInstanceState(body interface{}) (model.InstanceState, error) {
+	var instanceState model.InstanceState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &instanceState)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
-
-	j, _ = json.Marshal(status)
-	var rStatus map[string]interface{}
-	err = json.Unmarshal(j, &rStatus)
-	if err != nil {
-		return model.InstanceState{}, err
+	if instanceState.Spec == nil {
+		instanceState.Spec = &model.InstanceSpec{}
 	}
-	j, _ = json.Marshal(rStatus["properties"])
-	var rProperties map[string]string
-	err = json.Unmarshal(j, &rProperties)
-	if err != nil {
-		return model.InstanceState{}, err
-	}
-	rSpec.Generation = etag
-
-	scope, exist := dict["scope"]
-	var s string
-	if !exist {
-		s = "default"
-	} else {
-		s = scope.(string)
-	}
-
-	state := model.InstanceState{
-		Id:     id,
-		Scope:  s,
-		Spec:   &rSpec,
-		Status: rProperties,
-	}
-	return state, nil
+	return instanceState, nil
 }
 
-func (t *InstancesManager) GetSpec(ctx context.Context, id string, scope string) (model.InstanceState, error) {
+func (t *InstancesManager) GetState(ctx context.Context, id string, namespace string) (model.InstanceState, error) {
 	ctx, span := observability.StartSpan("Instances Manager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	getRequest := states.GetRequest{
 		ID: id,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.SolutionGroup,
-			"resource": "instances",
-			"scope":    scope,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.SolutionGroup,
+			"resource":  "instances",
+			"namespace": namespace,
+			"kind":      "Instance",
 		},
 	}
-	instance, err := t.StateProvider.Get(ctx, getRequest)
+	var instance states.StateEntry
+	instance, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
-
-	ret, err := getInstanceState(id, instance.Body, instance.ETag)
+	var ret model.InstanceState
+	ret, err = getInstanceState(instance.Body)
 	if err != nil {
 		return model.InstanceState{}, err
 	}
+	ret.ObjectMeta.UpdateEtag(instance.ETag)
 	return ret, nil
+}
+
+func (t *InstancesManager) instanceUniqueNameLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
+	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, validation.Instance, displayName, namespace)
+}
+func (t *InstancesManager) solutionLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Solution, name, namespace)
+}
+func (t *InstancesManager) targetLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Target, name, namespace)
 }

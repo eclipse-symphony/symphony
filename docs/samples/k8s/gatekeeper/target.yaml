@@ -13,7 +13,7 @@ spec:
     properties:
       container.version: "1.0"
       container.type: "docker"
-      container.image: "ghcr.io/azure/symphony/symphony-agent:0.39.9"
+      container.image: "ghcr.io/eclipse-symphony/symphony-agent:0.39.9"
       container.createOptions: ""      
       container.restartPolicy: "always"     
       env.AZURE_CLIENT_ID: "<Azure SP Client Id>"
@@ -34,7 +34,7 @@ spec:
   - name: "policies"
     type: yaml.k8s
     properties:
-      yaml.url: "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml"        
+      yaml.url: "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml"        
     dependencies:
     - gatekeeper
   topologies:

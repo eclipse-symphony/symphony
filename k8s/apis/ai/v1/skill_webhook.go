@@ -9,24 +9,40 @@ package v1
 import (
 	"context"
 	"fmt"
+	"gopls-workspace/apis/metrics/v1"
+	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
 var skilllog = logf.Log.WithName("skill-resource")
 var mySkillClient client.Client
+var skillWebhookValidationMetrics *metrics.Metrics
 
 func (r *Skill) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	mySkillClient = mgr.GetClient()
+	// will check in the future if we need to use "uniqueDisplayNameForSolution" here, currently Skill is not supported by toolchainorchestrator
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Skill{}, ".spec.displayName", func(rawObj client.Object) []string {
 		skill := rawObj.(*Skill)
 		return []string{skill.Spec.DisplayName}
 	})
+
+	// initialize the controller operation metrics
+	if skillWebhookValidationMetrics == nil {
+		metrics, err := metrics.New()
+		if err != nil {
+			return err
+		}
+		skillWebhookValidationMetrics = metrics
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
@@ -50,32 +66,70 @@ func (r *Skill) Default() {
 var _ webhook.Validator = &Skill{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Skill) ValidateCreate() error {
+func (r *Skill) ValidateCreate() (admission.Warnings, error) {
 	skilllog.Info("validate create", "name", r.Name)
 
-	return r.validateCreateSkill()
+	validateCreateTime := time.Now()
+	validationError := r.validateCreateSkill()
+
+	if validationError != nil {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.InvalidResource,
+			metrics.SkillResourceType,
+		)
+	} else {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateCreateTime,
+			metrics.CreateOperationType,
+			metrics.ValidResource,
+			metrics.SkillResourceType,
+		)
+	}
+
+	return nil, validationError
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Skill) ValidateUpdate(old runtime.Object) error {
+func (r *Skill) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	skilllog.Info("validate update", "name", r.Name)
 
-	return r.validateUpdateSkill()
+	validateUpdateTime := time.Now()
+	validationError := r.validateUpdateSkill()
+
+	if validationError != nil {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.InvalidResource,
+			metrics.SkillResourceType,
+		)
+	} else {
+		skillWebhookValidationMetrics.ControllerValidationLatency(
+			validateUpdateTime,
+			metrics.UpdateOperationType,
+			metrics.ValidResource,
+			metrics.SkillResourceType,
+		)
+	}
+
+	return nil, validationError
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Skill) ValidateDelete() error {
+func (r *Skill) ValidateDelete() (admission.Warnings, error) {
 	skilllog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return nil, nil
 }
 
 func (r *Skill) validateCreateSkill() error {
 	var skills SkillList
 	mySkillClient.List(context.Background(), &skills, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if len(skills.Items) != 0 {
-		return fmt.Errorf("skill display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("skill display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }
@@ -84,10 +138,10 @@ func (r *Skill) validateUpdateSkill() error {
 	var skills SkillList
 	err := mySkillClient.List(context.Background(), &skills, client.InNamespace(r.Namespace), client.MatchingFields{".spec.displayName": r.Spec.DisplayName})
 	if err != nil {
-		return err
+		return apierrors.NewInternalError(err)
 	}
 	if !(len(skills.Items) == 0 || len(skills.Items) == 1 && skills.Items[0].ObjectMeta.Name == r.ObjectMeta.Name) {
-		return fmt.Errorf("skill display name '%s' is already taken", r.Spec.DisplayName)
+		return apierrors.NewBadRequest(fmt.Sprintf("skill display name '%s' is already taken", r.Spec.DisplayName))
 	}
 	return nil
 }

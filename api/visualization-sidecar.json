@@ -1,0 +1,33 @@
+{
+    "siteInfo": {
+        "siteId": "${{}}",        
+        "currentSite": {
+            "baseUrl": "$env:SYMPHONY_URL",
+            "username": "$env:SYMPHONY_USERNAME",
+            "password": "$env:SYMPHONY_PASSWORD"
+          }
+    },
+    "api": {
+        "pubsub": {
+            "shared": true,
+            "provider": {
+              "type": "providers.pubsub.memory",
+              "config": {}
+            }
+        },
+        "vendors": [
+            {
+                "type": "vendors.visualization.client",
+                "route": "vis-client"
+            }
+        ]
+    },
+    "bindings": [
+        {
+          "type": "bindings.http",
+          "config": {
+            "port": 8088
+          }
+        }
+    ]
+}

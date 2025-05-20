@@ -7,26 +7,217 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
-	symphonyv1 "gopls-workspace/apis/symphony.microsoft.com/v1"
+	"gopls-workspace/constants"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
-	symphony "github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	api_utils "github.com/azure/symphony/api/pkg/apis/v1alpha1/utils" //TODO: Eventually, most logic here should be moved into this
+	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+
+	fabric_v1 "gopls-workspace/apis/fabric/v1"
+	federation_v1 "gopls-workspace/apis/federation/v1"
+	k8smodel "gopls-workspace/apis/model/v1"
+	solution_v1 "gopls-workspace/apis/solution/v1"
 )
 
-const (
-	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
+var (
+	SymphonyAPIAddressBase = os.Getenv(constants.SymphonyAPIUrlEnvName)
 )
 
-func MatchTargets(instance symphonyv1.Instance, targets symphonyv1.TargetList) []symphonyv1.Target {
-	ret := make(map[string]symphonyv1.Target)
+type (
+	ApiClient interface {
+		api_utils.SummaryGetter
+		api_utils.Dispatcher
+	}
+
+	DeploymentResources struct {
+		Instance         solution_v1.Instance
+		Solution         solution_v1.Solution
+		TargetList       fabric_v1.TargetList
+		TargetCandidates []fabric_v1.Target
+	}
+)
+
+func K8SSidecarSpecToAPISidecarSpec(sidecar k8smodel.SidecarSpec) (apimodel.SidecarSpec, error) {
+	sidecarSpec := apimodel.SidecarSpec{}
+	data, _ := json.Marshal(sidecar)
+	var err error
+	err = json.Unmarshal(data, &sidecarSpec)
+	if err != nil {
+		return apimodel.SidecarSpec{}, err
+	}
+	if sidecar.Properties.Raw != nil {
+		sidecarSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(sidecar.Properties.Raw, &sidecarSpec.Properties)
+	}
+	return sidecarSpec, err
+}
+
+func K8SComponentSpecToAPIComponentSpec(component k8smodel.ComponentSpec) (apimodel.ComponentSpec, error) {
+	componentSpec := apimodel.ComponentSpec{}
+	data, _ := json.Marshal(component)
+	var err error
+	err = json.Unmarshal(data, &componentSpec)
+	if err != nil {
+		return apimodel.ComponentSpec{}, err
+	}
+	if component.Properties.Raw != nil {
+		componentSpec.Properties = make(map[string]interface{})
+		err = json.Unmarshal(component.Properties.Raw, &componentSpec.Properties)
+	}
+
+	return componentSpec, err
+}
+
+func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, error) {
+	ret := apimodel.TargetState{
+		ObjectMeta: apimodel.ObjectMeta{
+			Name:        target.ObjectMeta.Name,
+			Namespace:   target.ObjectMeta.Namespace,
+			Labels:      target.ObjectMeta.Labels,
+			Annotations: target.ObjectMeta.Annotations,
+		},
+		Spec: &apimodel.TargetSpec{
+			DisplayName:   target.Spec.DisplayName,
+			Metadata:      target.Spec.Metadata,
+			Scope:         target.Spec.Scope,
+			SolutionScope: target.Spec.SolutionScope,
+			Properties:    target.Spec.Properties,
+			Constraints:   target.Spec.Constraints,
+			ForceRedeploy: target.Spec.ForceRedeploy,
+			Topologies:    target.Spec.Topologies,
+		},
+	}
+
+	var err error
+	ret.Spec.Components = make([]apimodel.ComponentSpec, len(target.Spec.Components))
+	for i, c := range target.Spec.Components {
+		ret.Spec.Components[i], err = K8SComponentSpecToAPIComponentSpec(c)
+		if err != nil {
+			return apimodel.TargetState{}, err
+		}
+	}
+
+	return ret, nil
+}
+
+func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.InstanceState, error) {
+	ret := apimodel.InstanceState{
+		ObjectMeta: apimodel.ObjectMeta{
+			Name:        instance.ObjectMeta.Name,
+			Namespace:   instance.ObjectMeta.Namespace,
+			Labels:      instance.ObjectMeta.Labels,
+			Annotations: instance.ObjectMeta.Annotations,
+		},
+		Spec: &apimodel.InstanceSpec{
+			Scope:       instance.Spec.Scope,
+			DisplayName: instance.Spec.DisplayName,
+			Solution:    instance.Spec.Solution,
+			Target:      instance.Spec.Target,
+			Parameters:  instance.Spec.Parameters,
+			Metadata:    instance.Spec.Metadata,
+			Topologies:  instance.Spec.Topologies,
+			Pipelines:   instance.Spec.Pipelines,
+		},
+	}
+
+	return ret, nil
+}
+
+func K8SCatalogToAPICatalogState(catalog federation_v1.Catalog) (apimodel.CatalogState, error) {
+	ret := apimodel.CatalogState{
+		ObjectMeta: apimodel.ObjectMeta{
+			Name:        catalog.ObjectMeta.Name,
+			Namespace:   catalog.ObjectMeta.Namespace,
+			Labels:      catalog.ObjectMeta.Labels,
+			Annotations: catalog.ObjectMeta.Annotations,
+		},
+		Spec: &apimodel.CatalogSpec{
+			CatalogType:  catalog.Spec.CatalogType,
+			Metadata:     catalog.Spec.Metadata,
+			ParentName:   catalog.Spec.ParentName,
+			ObjectRef:    catalog.Spec.ObjectRef,
+			Version:      catalog.Spec.Version,
+			RootResource: catalog.Spec.RootResource,
+		},
+	}
+
+	if catalog.Spec.Properties.Raw != nil {
+		ret.Spec.Properties = make(map[string]interface{})
+		err := json.Unmarshal(catalog.Spec.Properties.Raw, &catalog.Spec.Properties)
+		if err != nil {
+			return apimodel.CatalogState{}, err
+		}
+	}
+
+	return ret, nil
+}
+
+func K8SSolutionToAPISolutionState(solution solution_v1.Solution) (apimodel.SolutionState, error) {
+	ret := apimodel.SolutionState{
+		ObjectMeta: apimodel.ObjectMeta{
+			Name:        solution.ObjectMeta.Name,
+			Namespace:   solution.ObjectMeta.Namespace,
+			Labels:      solution.ObjectMeta.Labels,
+			Annotations: solution.ObjectMeta.Annotations,
+		},
+		Spec: &apimodel.SolutionSpec{
+			DisplayName: solution.Spec.DisplayName,
+			Metadata:    solution.Spec.Metadata,
+		},
+	}
+
+	var err error
+	ret.Spec.Components = make([]apimodel.ComponentSpec, len(solution.Spec.Components))
+	for i, t := range solution.Spec.Components {
+		ret.Spec.Components[i], err = K8SComponentSpecToAPIComponentSpec(t)
+		if err != nil {
+			return apimodel.SolutionState{}, err
+		}
+	}
+	return ret, nil
+
+}
+
+func ContainsString(slice []string, target string) bool {
+	if slice == nil {
+		return false
+	}
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
+func matchString(src string, target string) bool {
+	if strings.Contains(src, "*") || strings.Contains(src, "%") {
+		p := strings.ReplaceAll(src, "*", ".*")
+		p = strings.ReplaceAll(p, "%", ".")
+		re := regexp.MustCompile(p)
+		return re.MatchString(target)
+	} else {
+		return src == target
+	}
+}
+
+func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) []fabric_v1.Target {
+	ret := make(map[string]fabric_v1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
-
 			if matchString(instance.Spec.Target.Name, t.ObjectMeta.Name) {
 				ret[t.ObjectMeta.Name] = t
+			} else {
+				// azure case
+				if t.Annotations[constants.AzureResourceIdKey] != "" && matchString(instance.Spec.Target.Name, strings.ToLower(t.Annotations[constants.AzureResourceIdKey])) {
+					ret[t.ObjectMeta.Name] = t
+				}
 			}
 		}
 	}
@@ -43,171 +234,78 @@ func MatchTargets(instance symphonyv1.Instance, targets symphonyv1.TargetList) [
 			}
 		}
 	}
-	slice := make([]symphonyv1.Target, 0, len(ret))
+	slice := make([]fabric_v1.Target, 0, len(ret))
 	for _, v := range ret {
 		slice = append(slice, v)
 	}
 	return slice
 }
 
-func CreateSymphonyDeploymentFromTarget(target symphonyv1.Target) (symphony.DeploymentSpec, error) {
-	ret := symphony.DeploymentSpec{}
-	// create solution
-	scope := target.Spec.Scope
-	if scope == "" {
-		scope = "default"
+func CreateSymphonyDeploymentFromTarget(ctx context.Context, target fabric_v1.Target, namespace string) (apimodel.DeploymentSpec, error) {
+	targetState, err := K8STargetToAPITargetState(target)
+	if err != nil {
+		return apimodel.DeploymentSpec{}, err
 	}
 
-	solution := symphony.SolutionSpec{
-		DisplayName: "target-runtime",
-		Scope:       scope,
-		Components:  make([]symphony.ComponentSpec, 0),
-		Metadata:    make(map[string]string, 0),
+	var ret apimodel.DeploymentSpec
+	ret, err = api_utils.CreateSymphonyDeploymentFromTarget(ctx, targetState, namespace)
+	ret.Hash = HashObjects(DeploymentResources{
+		TargetCandidates: []fabric_v1.Target{target},
+	})
+
+	ret.Generation = strconv.Itoa(int(target.ObjectMeta.Generation))
+	ret.IsDryRun = target.Spec.IsDryRun
+
+	return ret, err
+}
+
+func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance, solution solution_v1.Solution, targets []fabric_v1.Target, objectNamespace string) (apimodel.DeploymentSpec, error) {
+	instanceState, err := K8SInstanceToAPIInstanceState(instance)
+	if err != nil {
+		return apimodel.DeploymentSpec{}, err
 	}
 
-	for k, v := range target.Spec.Metadata {
-		solution.Metadata[k] = v
+	solutionState, err := K8SSolutionToAPISolutionState(solution)
+	if err != nil {
+		return apimodel.DeploymentSpec{}, err
 	}
 
-	for _, component := range target.Spec.Components {
-		var c symphony.ComponentSpec
-		data, _ := json.Marshal(component)
-		err := json.Unmarshal(data, &c)
+	targetStates := make([]apimodel.TargetState, len(targets))
+	for i, t := range targets {
+		targetStates[i], err = K8STargetToAPITargetState(t)
 		if err != nil {
-			return ret, err
+			return apimodel.DeploymentSpec{}, err
 		}
-		solution.Components = append(solution.Components, c)
 	}
 
-	// create targets
-	targets := make(map[string]symphony.TargetSpec)
-	var t symphony.TargetSpec
-	data, _ := json.Marshal(target.Spec)
-	err := json.Unmarshal(data, &t)
-	if err != nil {
-		return ret, err
-	}
+	var ret apimodel.DeploymentSpec
+	ret, err = api_utils.CreateSymphonyDeployment(ctx, instanceState, solutionState, targetStates, nil, objectNamespace)
+	ret.Hash = HashObjects(DeploymentResources{
+		Instance:         instance,
+		Solution:         solution,
+		TargetCandidates: targets,
+	})
 
-	targets[target.ObjectMeta.Name] = t
+	ret.Generation = strconv.Itoa(int(instance.ObjectMeta.Generation))
+	ret.IsDryRun = instance.Spec.IsDryRun
+	ret.IsInActive = instance.Spec.ActiveState == apimodel.ActiveState_Inactive
 
-	// create instance
-	instance := symphony.InstanceSpec{
-		Name:        "target-runtime",
-		DisplayName: "target-runtime-" + target.ObjectMeta.Name,
-		Scope:       scope,
-		Solution:    "target-runtime",
-		Target: symphony.TargetSelector{
-			Name: target.ObjectMeta.Name,
-		},
-	}
-
-	ret.Solution = solution
-	ret.Instance = instance
-	ret.Targets = targets
-	ret.SolutionName = "target-runtime"
-	assignments, err := api_utils.AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
-	if err != nil {
-		return ret, err
-	}
-
-	ret.Assignments = make(map[string]string)
-
-	for k, v := range assignments {
-		ret.Assignments[k] = v
-	}
-
-	return ret, nil
+	return ret, err
 }
 
-func CreateSymphonyDeployment(instance symphonyv1.Instance, solution symphonyv1.Solution, targets []symphonyv1.Target) (symphony.DeploymentSpec, error) {
-	ret := symphony.DeploymentSpec{}
-	// convert instance
-	var sInstance symphony.InstanceSpec
-	data, _ := json.Marshal(instance.Spec)
-	err := json.Unmarshal(data, &sInstance)
-	if err != nil {
-		return ret, err
-	}
-
-	sInstance.Name = instance.ObjectMeta.Name
-	sInstance.Scope = instance.Spec.Scope
-	if sInstance.Scope == "" {
-		sInstance.Scope = "default"
-	}
-
-	// convert solution
-	var sSolution symphony.SolutionSpec
-	data, _ = json.Marshal(solution.Spec)
-	err = json.Unmarshal(data, &sSolution)
-	if err != nil {
-		return ret, err
-	}
-
-	sSolution.DisplayName = solution.ObjectMeta.Name
-	sSolution.Scope = solution.ObjectMeta.Namespace
-
-	// convert targets
-	sTargets := make(map[string]symphony.TargetSpec)
-	for _, t := range targets {
-		var target symphony.TargetSpec
-		data, _ = json.Marshal(t.Spec)
-		err = json.Unmarshal(data, &target)
+func NeedWatchInstance(instance solution_v1.Instance) bool {
+	var interval time.Duration = 30
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
+		parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)
 		if err != nil {
-			return ret, err
+			parsedInterval = 30
 		}
-		sTargets[t.ObjectMeta.Name] = target
+		interval = parsedInterval
 	}
 
-	//TODO: handle devices
-	ret.Solution = sSolution
-	ret.Targets = sTargets
-	ret.Instance = sInstance
-	ret.SolutionName = solution.ObjectMeta.Name
-
-	assignments, err := api_utils.AssignComponentsToTargets(ret.Solution.Components, ret.Targets)
-	if err != nil {
-		return ret, err
+	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.State.IsInActive() || interval == 0 {
+		return false
 	}
-	ret.Assignments = make(map[string]string)
-	for k, v := range assignments {
-		ret.Assignments[k] = v
-	}
-	return ret, nil
-}
 
-// func Get(scope string, name string, targets map[string]symphony.TargetSpec) ([]symphony.ComponentSpec, error) {
-// 	payload, _ := json.Marshal(targets)
-// 	ret, err := callRestAPI("solution/instances?scope="+scope+"&name="+name, "GET", payload) //TODO: URL enchode params
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var components []symphony.ComponentSpec
-// 	err = json.Unmarshal(ret, &components)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return components, nil
-// }
-
-// func NeedsUpdate(deployment symphony.DeploymentSpec, components []symphony.ComponentSpec) bool {
-// 	return !symphony.SlicesEqual(deployment.Solution.Components, components)
-// }
-// func NeedsRemove(deployment symphony.DeploymentSpec, components []symphony.ComponentSpec) bool {
-// 	return symphony.SlicesCover(deployment.Solution.Components, components)
-// }
-
-func matchString(src string, target string) bool {
-	if strings.Contains(src, "*") || strings.Contains(src, "%") {
-		p := strings.ReplaceAll(src, "*", ".*")
-		p = strings.ReplaceAll(p, "%", ".")
-		re := regexp.MustCompile(p)
-		return re.MatchString(target)
-	} else {
-		return src == target
-	}
-}
-
-type ParsedAPIError struct {
-	Code string               `json:"code"`
-	Spec symphony.SummarySpec `json:"spec"`
+	return true
 }

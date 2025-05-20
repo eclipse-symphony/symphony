@@ -1,4 +1,4 @@
-module github.com/azure/symphony/agent
+module github.com/eclipse-symphony/symphony/agent
 
 go 1.19
 

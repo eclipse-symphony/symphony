@@ -411,7 +411,6 @@ paths:
             schema:
               type: object
               example:
-                siteId: hq
                 name: '{{CATALOG_NAME}}'
                 type: asset
                 properties:
@@ -502,7 +501,6 @@ paths:
             schema:
               type: object
               example:
-                siteId: hq
                 name: '{{CATALOG_NAME}}'
                 type: asset
                 properties:
@@ -525,7 +523,6 @@ paths:
             schema:
               type: object
               example:
-                siteId: hq
                 name: '{{CATALOG_NAME}}-2'
                 type: asset
                 properties:
@@ -1562,7 +1559,6 @@ paths:
             schema:
               type: object
               example:
-                siteId: hq
                 name: '{{CATALOG_NAME}}'
                 type: asset
                 properties:

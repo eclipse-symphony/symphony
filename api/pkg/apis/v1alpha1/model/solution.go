@@ -12,16 +12,16 @@ import (
 
 type (
 	SolutionState struct {
-		Id    string        `json:"id"`
-		Scope string        `json:"scope"`
-		Spec  *SolutionSpec `json:"spec,omitempty"`
+		ObjectMeta ObjectMeta    `json:"metadata,omitempty"`
+		Spec       *SolutionSpec `json:"spec,omitempty"`
 	}
 
 	SolutionSpec struct {
-		DisplayName string            `json:"displayName,omitempty"`
-		Scope       string            `json:"scope,omitempty"`
-		Metadata    map[string]string `json:"metadata,omitempty"`
-		Components  []ComponentSpec   `json:"components,omitempty"`
+		DisplayName  string            `json:"displayName,omitempty"`
+		Metadata     map[string]string `json:"metadata,omitempty"`
+		Components   []ComponentSpec   `json:"components,omitempty"`
+		Version      string            `json:"version,omitempty"`
+		RootResource string            `json:"rootResource,omitempty"`
 	}
 )
 
@@ -35,16 +35,31 @@ func (c SolutionSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if c.Scope != otherC.Scope {
-		return false, nil
-	}
-
 	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
 		return false, nil
 	}
 
 	if !SlicesEqual(c.Components, otherC.Components) {
 		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c SolutionState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(SolutionState)
+	if !ok {
+		return false, errors.New("parameter is not a SolutionState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil

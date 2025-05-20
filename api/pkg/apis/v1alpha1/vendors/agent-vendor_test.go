@@ -11,15 +11,15 @@ import (
 	"encoding/json"
 	"testing"
 
-	sym_mgr "github.com/azure/symphony/api/pkg/apis/v1alpha1/managers"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	refmock "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/mock"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
+	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	refmock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
@@ -37,9 +37,9 @@ func creatAgentVendor() AgentVendor {
 
 	manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "reference",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "reference",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"reference": &referenceProvider,
@@ -70,9 +70,9 @@ func TestAgentVendorInit(t *testing.T) {
 				Name: "reference-manager",
 				Type: "managers.symphony.reference",
 				Properties: map[string]string{
-					"providers.reference": "reference",
-					"providers.state":     "mem-state",
-					"providers.reporter":  "report",
+					"providers.reference":     "reference",
+					"providers.volatilestate": "mem-state",
+					"providers.reporter":      "report",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"reference": {
@@ -149,7 +149,7 @@ func TestPostReference(t *testing.T) {
 
 	request.Method = fasthttp.MethodPost
 	request.Parameters = map[string]string{
-		"scope":     "test",
+		"namespace": "test",
 		"kind":      "kind",
 		"version":   "version",
 		"group":     "group",
@@ -194,7 +194,7 @@ func TestGetReference(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, res.State)
 
 	request.Parameters = map[string]string{
-		"scope":     "scope",
+		"namespace": "scope",
 		"kind":      "kind",
 		"version":   "version",
 		"group":     "group",

@@ -1,0 +1,13 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: evalcatalog-v-version4
+spec:
+  rootResource: evalcatalog
+  catalogType: catalog
+  parentName: evalcatalog:version1
+  properties:
+    city: "${{$config('evalcatalog:version2','city')}}"
+    country: "${{$config('evalcatalog:version2','country')}}"
+    from:
+      state: Virginia

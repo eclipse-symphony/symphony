@@ -10,15 +10,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/cli/config"
-	"github.com/azure/symphony/cli/utils"
+	"github.com/eclipse-symphony/symphony/cli/config"
+	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
@@ -93,7 +93,8 @@ type ActionSpec struct {
 func listSamples() (SampleManifest, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		return SampleManifest{}, fmt.Errorf("failed to get user home directory: %s", err.Error())
+
 	}
 	sampleManifest := filepath.Join(dirname, ".symphony", "samples.json")
 	jsonFile, err := os.Open(sampleManifest)
@@ -101,7 +102,7 @@ func listSamples() (SampleManifest, error) {
 		return SampleManifest{}, fmt.Errorf("sample manifest file '%s' is not found", sampleManifest)
 	}
 	defer jsonFile.Close()
-	data, err := ioutil.ReadAll(jsonFile)
+	data, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return SampleManifest{}, fmt.Errorf("failed to read sample manifest: %s", err.Error())
 	}
@@ -192,9 +193,11 @@ var RunCmd = &cobra.Command{
 							action.Args[i] = strings.ReplaceAll(action.Args[i], "$(1)", strings.Trim(xArg, `'"`))
 						}
 					}
-					xArg, err = utils.RunCommand("", "", false, action.Command, action.Args...)
+					errOutput := ""
+					xArg, errOutput, err = utils.RunCommandWithRetry("", "", verbose, debug, action.Command, action.Args...)
 					if err != nil {
 						fmt.Printf("\n%s  Failed to execute post deployment script: %s %s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+						fmt.Printf("\n%s  Detailed Messages: %s %s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
 						return
 					}
 				}
@@ -242,6 +245,7 @@ func removeArtifact(artifact ArtifactSpec) error {
 		return err
 	}
 	fmt.Printf("%sdone\n%s", utils.ColorGreen(), utils.ColorReset())
+	time.Sleep(8 * time.Second)
 	return nil
 }
 func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]string) error {
@@ -254,7 +258,7 @@ func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]s
 	if _, err := os.Stat(artifactFile); errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("sample artifact '%s' is not found", artifactFile)
 	}
-	src, err := ioutil.ReadFile(artifactFile)
+	src, err := os.ReadFile(artifactFile)
 	strStr := string(src)
 	if len(artifact.Parameters) > 0 {
 		if err != nil {
@@ -281,6 +285,7 @@ func runArtifact(samplePath string, artifact ArtifactSpec, paramMap map[string]s
 	}
 
 	fmt.Printf("%sCreating %s %s%s ... ", utils.ColorCyan(), artifact.Type, utils.ColorReset(), artifact.Name)
+
 	err = utils.Upsert(
 		c.Contexts[ctx].Url,
 		c.Contexts[ctx].User,

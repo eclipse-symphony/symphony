@@ -11,10 +11,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 )
 
 type HTTPReferenceProviderConfig struct {
@@ -100,6 +100,7 @@ func (m *HTTPReferenceProvider) Get(id string, namespace string, group string, k
 	}
 	q := req.URL.Query()
 	q.Add("id", id)
+	q.Add("namespace", namespace)
 	q.Add("scope", namespace)
 	q.Add("group", group)
 	q.Add("kind", kind)
@@ -131,6 +132,7 @@ func (m *HTTPReferenceProvider) List(labelSelector string, fieldSelector string,
 	q := req.URL.Query()
 	q.Add("label-selector", labelSelector)
 	q.Add("field-selector", fieldSelector)
+	q.Add("namespace", namespace)
 	q.Add("scope", namespace)
 	q.Add("group", group)
 	q.Add("kind", kind)

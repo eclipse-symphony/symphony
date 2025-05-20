@@ -4,7 +4,7 @@ HTTP binding binds Symphony API to standard HTTP/HTTPS clients.
 
 ## Configure HTTP binding
 
-To set up HTTP binding, modify your [Symphony host configuration file](../hosts/overview.md). The simplest HTTP binding configuration looks like this:
+To set up HTTP binding, modify your [Symphony host configuration file](../hosts/_overview.md). The simplest HTTP binding configuration looks like this:
 
 ```json
 "bindings": [
@@ -69,4 +69,4 @@ To define a middleware pipeline, add a `pipeline` element to the root of your bi
 
 Upon requests, middleware is applied in the order they are defined in the pipeline. Upon responses, middleware is applied in the reversed order. Specific middleware may choose to handle only requests, only responses, or both.
 
-> **NOTE:** Please see a few examples of Symphony host configuration files under the `/api` folder of the `symphony` repo. For more information, see [hosts](../hosts/overview.md).
+> **NOTE:** Please see a few examples of Symphony host configuration files under the `/api` folder of the `symphony` repo. For more information, see [hosts](../hosts/_overview.md).

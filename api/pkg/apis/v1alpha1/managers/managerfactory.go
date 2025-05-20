@@ -7,27 +7,31 @@
 package managers
 
 import (
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/activations"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/configs"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/devices"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/instances"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/jobs"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/models"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sites"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/skills"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solution"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/solutions"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/stage"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/staging"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/sync"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/target"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/targets"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/trails"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/users"
-	cm "github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigncontainers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogcontainers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/jobs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/models"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/secrets"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sites"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/skills"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutioncontainers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/staging"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sync"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/target"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targets"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/trails"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/users"
+	cm "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 )
 
 type SymphonyManagerFactory struct {
@@ -57,6 +61,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &devices.DevicesManager{}
 	case "managers.symphony.solutions":
 		manager = &solutions.SolutionsManager{}
+	case "managers.symphony.solutioncontainers":
+		manager = &solutioncontainers.SolutionContainersManager{}
 	case "managers.symphony.instances":
 		manager = &instances.InstancesManager{}
 	case "managers.symphony.users":
@@ -65,18 +71,30 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &jobs.JobsManager{}
 	case "managers.symphony.campaigns":
 		manager = &campaigns.CampaignsManager{}
+	case "managers.symphony.campaigncontainers":
+		manager = &campaigncontainers.CampaignContainersManager{}
 	case "managers.symphony.catalogs":
 		manager = &catalogs.CatalogsManager{}
+	case "managers.symphony.catalogcontainers":
+		manager = &catalogcontainers.CatalogContainersManager{}
 	case "managers.symphony.activations":
 		manager = &activations.ActivationsManager{}
+	case "managers.symphony.activationscleanup":
+		manager = &activations.ActivationsCleanupManager{}
 	case "managers.symphony.stage":
 		manager = &stage.StageManager{}
 	case "managers.symphony.configs":
 		manager = &configs.ConfigsManager{}
+	case "managers.symphony.secrets":
+		manager = &secrets.SecretsManager{}
 	case "managers.symphony.sites":
 		manager = &sites.SitesManager{}
 	case "managers.symphony.staging":
 		manager = &staging.StagingManager{}
+	case "managers.symphony.summarycleanup":
+		manager = &solution.SummaryCleanupManager{}
+	case "managers.symphony.resourcecount":
+		manager = &solution.ResourceCountManager{}
 	case "managers.symphony.sync":
 		manager = &sync.SyncManager{}
 	case "managers.symphony.models":

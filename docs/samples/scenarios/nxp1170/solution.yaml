@@ -1,10 +1,17 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: tiny-ml  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: tiny-ml
+  name: tiny-ml-v-version1
 spec:
+  rootResource: tiny-ml
   components:
   - name: model
     type: container
     properties:
-      image: "/Users/haishi/projects/go/src/github.com/azure/symphony-docs/samples/scenarios/nxp1170/model-7.2.0.bin"
+      image: "/Users/haishi/projects/go/src/github.com/eclipse-symphony-docs/samples/scenarios/nxp1170/model-7.2.0.bin"

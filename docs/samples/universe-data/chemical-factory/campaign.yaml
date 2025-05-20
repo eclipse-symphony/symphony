@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: disco
 spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: disco-v-version1
+spec:  
+  rootResource: disco
   firstStage: list
   stages:
     list:
@@ -25,8 +32,8 @@ spec:
         operation: wait
         objectType: catalogs
         names:
-        - site-app
-        - site-instance
+        - site-app:version1
+        - site-instance:version1
     deploy:
       name: deploy
       provider: providers.stage.remote
@@ -35,6 +42,6 @@ spec:
       inputs:
         operation: materialize
         names:
-        - site-app
-        - site-instance
+        - site-app:version1
+        - site-instance:version1
   selfDriving: true

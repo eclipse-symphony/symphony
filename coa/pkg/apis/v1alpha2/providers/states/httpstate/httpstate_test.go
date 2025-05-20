@@ -9,14 +9,16 @@ package httpstate
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	contexts "github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	states "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +65,7 @@ func TestInitWithMapWithError(t *testing.T) {
 			"postAsArray":       "This is causing an Error :)",
 		},
 	)
-	assert.Error(t, err, "invalid bool value in the 'postAsArray' setting of Http state provider")
+	assert.True(t, strings.Contains(err.Error(), "invalid bool value in the 'postAsArray'"))
 }
 
 func TestID(t *testing.T) {
@@ -237,12 +239,48 @@ func TestGet(t *testing.T) {
 func TestUpsertGetDelete(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
+			relativePath := r.URL.Path
+			if relativePath == "" || relativePath == "/" {
+				http.Error(w, "invalid path", http.StatusBadRequest)
+				return
+			}
 			response := map[string]interface{}{
 				"key": "abc",
 			}
 			jsonResponse, _ := json.Marshal(response)
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(jsonResponse)
+		} else if r.Method == "POST" {
+			var data []map[string]interface{}
+			body, _ := ioutil.ReadAll(r.Body)
+			err := json.Unmarshal([]byte(body), &data)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if len(data) == 0 {
+				http.Error(w, "invalid request body", http.StatusBadRequest)
+				return
+			}
+			firstItemKey := data[0]["key"].(string)
+			if firstItemKey == "" {
+				http.Error(w, "invalid request body", http.StatusBadRequest)
+				return
+			}
+			response := map[string]interface{}{
+				"key":   data[0]["key"],
+				"value": data[0]["value"],
+			}
+			jsonResponse, _ := json.Marshal(response)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(jsonResponse)
+		} else if r.Method == "DELETE" {
+			relativePath := r.URL.Path
+			if relativePath == "" || relativePath == "/" {
+				http.Error(w, "invalid path", http.StatusBadRequest)
+				return
+			}
+			w.Write([]byte("OK"))
 		} else {
 			w.Write([]byte("OK"))
 		}
@@ -258,6 +296,7 @@ func TestUpsertGetDelete(t *testing.T) {
 		PostAsArray:       true,
 		NotFoundAs204:     true,
 	})
+	assert.Nil(t, err)
 
 	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
@@ -277,6 +316,24 @@ func TestUpsertGetDelete(t *testing.T) {
 		ID: "123",
 	})
 	assert.Nil(t, err)
+
+	_, err = provider.Upsert(context.Background(), states.UpsertRequest{
+		Value: states.StateEntry{
+			ID:   "",
+			Body: TestPayload{},
+		},
+	})
+	assert.NotNil(t, err)
+
+	_, err = provider.Get(context.Background(), states.GetRequest{
+		ID: "",
+	})
+	assert.NotNil(t, err)
+
+	err = provider.Delete(context.Background(), states.DeleteRequest{
+		ID: "",
+	})
+	assert.NotNil(t, err)
 }
 
 func TestClone(t *testing.T) {

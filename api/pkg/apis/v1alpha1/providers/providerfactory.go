@@ -9,56 +9,60 @@ package providers
 import (
 	"fmt"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	catalogconfig "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
-	memorygraph "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
-	counterstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
-	symphonystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
-	delaystage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
-	httpstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
-	liststage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
-	materialize "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
-	mockstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
-	patchstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/patch"
-	remotestage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
-	scriptstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/script"
-	waitstage "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
-	k8sstate "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/configmap"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
-	targethttp "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/http"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/ingress"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/kubectl"
-	tgtmock "github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/script"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	cp "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	mockconfig "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
-	mockledger "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
-	mempubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
-	reidspubsub "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/redis"
-	memoryqueue "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
-	cvref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
-	httpref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
-	k8sref "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
-	httpreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
-	k8sreporter "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
-	mocksecret "github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	catalogconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/secret"
+	counterstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
+	symphonystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
+	delaystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
+	httpstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
+	liststage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
+	materialize "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
+	mockstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/mock"
+	patchstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/patch"
+	remotestage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/remote"
+	scriptstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/script"
+	waitstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/wait"
+	k8sstate "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/states/k8s"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/adb"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/azure/adu"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/configmap"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
+	targethttp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/http"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/ingress"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/kubectl"
+	tgtmock "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	cp "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
+	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
+	mockledger "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/probe/rtsp"
+	mempubsub "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	reidspubsub "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/redis"
+	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
+	cvref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/customvision"
+	httpref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/http"
+	k8sref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
+	httpreporter "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
+	k8sreporter "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
+	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/redisstate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/uploader/azure/blob"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 )
 
 type SymphonyProviderFactory struct {
@@ -93,6 +97,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.state.k8s":
 		mProvider := &k8sstate.K8sStateProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.state.redis":
+		mProvider := &redisstate.RedisStateProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -253,6 +263,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.target.rust":
+		mProvider := &rust.RustTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.config.mock":
 		mProvider := &mockconfig.MockConfigProvider{}
 		err = mProvider.Init(config)
@@ -267,6 +283,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.secret.mock":
 		mProvider := &mocksecret.MockSecretProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.secret.k8s":
+		mProvider := &secret.K8sSecretProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -355,12 +377,18 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.keylock.memory":
+		mProvider := &memorykeylock.MemoryKeyLockProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	}
 	return nil, err //TODO: in current design, factory doesn't return errors on unrecognized provider types as there could be other factories. We may want to change this.
 }
 
-func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, target model.TargetSpec, override cp.IProvider) (cp.IProvider, error) {
-	for _, topology := range target.Topologies {
+func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, target model.TargetState, override cp.IProvider) (cp.IProvider, error) {
+	for _, topology := range target.Spec.Topologies {
 		for _, binding := range topology.Bindings {
 			testRole := role
 			if role == "" || role == "container" {
@@ -488,6 +516,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
+				case "providers.target.rust":
+					provider := &rust.RustTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
 				case "providers.state.memory":
 					provider := &memorystate.MemoryStateProvider{}
 					err := provider.InitWithMap(binding.Config)
@@ -502,6 +538,7 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
 					return provider, nil
 				case "providers.ledger.mock":
 					provider := &mockledger.MockLedgerProvider{}
@@ -581,6 +618,8 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
+					provider.Context = context
+					return provider, nil
 				case "providers.target.mock":
 					provider := &tgtmock.MockTargetProvider{}
 					err := provider.InitWithMap(binding.Config)

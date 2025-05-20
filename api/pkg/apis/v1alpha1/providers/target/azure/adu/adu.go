@@ -12,14 +12,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	azureutils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/cloudutils/azure"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	azureutils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/cloudutils/azure"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/google/uuid"
 )
 
@@ -81,6 +81,7 @@ func ADUTargetProviderConfigFromMap(properties map[string]string) (ADUTargetProv
 func (i *ADUTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := ADUTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (ADU Target): expected ADUTargetProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -91,17 +92,18 @@ func (s *ADUTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ADUTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("ADU Target Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("ADU Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("~~~ ADU Target Provider ~~~ : Init()")
+	sLog.InfoCtx(ctx, "  P (ADU Target): Init()")
 
 	updateConfig, err := toADUTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("~~~ ADU Target Provider ~~~ : expected ADUTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): expected ADUTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -125,16 +127,23 @@ func toADUTargetProviderConfig(config providers.IProviderConfig) (ADUTargetProvi
 }
 
 func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("~~~ ADU Update Provider ~~~ : getting components")
+	if dep.Instance.Spec == nil {
+		err = errors.New("deployment instance spec is nil")
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to get deployment, error: %+v", err)
+		return nil, err
+	}
+
+	sLog.InfofCtx(ctx, "  P (ADU Target): getting components: %s - %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
 	deployment, err := i.getDeployment()
 	if err != nil {
-		sLog.Errorf("~~~ ADU Target Provider ~~~ : %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): %+v", err)
 		return nil, err
 	}
 
@@ -185,15 +194,18 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (ADU Update): applying components")
+	sLog.InfofCtx(ctx, "  P (ADU Target): applying components: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to validate components, error: %v", err)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (ADU Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -204,13 +216,14 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 		var deployment azureutils.ADUDeployment
 		deployment, err = getDeploymentFromComponent(c.Component)
 		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to get deployment from component: %v", err)
 			ret[c.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.ValidateFailed,
 				Message: err.Error(),
 			}
 			return ret, err
 		}
-		if c.Action == "update" {
+		if c.Action == model.ComponentUpdate {
 			deployment.GroupId = i.Config.ADUGroup
 			err = i.applyDeployment(deployment)
 			if err != nil {
@@ -218,12 +231,13 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (ADU Update): %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (ADU Target):  failed to apply deployment: %+v", err)
 				return ret, err
 			}
 		} else {
 			err = i.deleteDeploymeent(deployment)
 			if err != nil {
+				sLog.DebugfCtx(ctx, "  P (ADU Target):  failed to delete deployment: %+v", err)
 				ret[c.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.DeleteFailed,
 					Message: err.Error(),
@@ -308,10 +322,13 @@ func (i *ADUTargetProvider) applyDeployment(deployment azureutils.ADUDeployment)
 }
 func (*ADUTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{"update.provider", "update.name", "update.version"},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }

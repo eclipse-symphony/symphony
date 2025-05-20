@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type AzureToken struct {
@@ -173,5 +173,12 @@ func CreateADUDeployment(token string, aduAccountEndpoint string, aduAccountInst
 func DeleteADUDeployment(token string, aduAccountEndpoint string, aduAccountInstance string, group string, deployment string) error {
 	getUrl := fmt.Sprintf("https://%s/deviceupdate/%s/management/groups/%s/deployments/%s?api-version=2021-06-01-preview", aduAccountEndpoint, aduAccountInstance, group, deployment)
 	_, err := callRESTAPI("DELETE", getUrl, token, nil)
+	return err
+}
+
+func CreateResourceGroup(token string, subscription string, group string, location string) error {
+	getUrl := fmt.Sprintf("https://management.azure.com/subscriptions/%s/resourceGroups/%s?api-version=2021-04-01", subscription, group)
+	data := fmt.Sprintf("{\"location\": \"%s\"}", location)
+	_, err := callRESTAPI("PUT", getUrl, token, strings.NewReader(data))
 	return err
 }

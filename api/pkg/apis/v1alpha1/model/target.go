@@ -6,31 +6,32 @@
 
 package model
 
-import "errors"
+import (
+	"errors"
+)
 
 type (
+	TargetStatus = DeployableStatusV2
+
 	// TargetState defines the current state of the target
 	TargetState struct {
-		Id       string            `json:"id"`
-		Scope    string            `json:"scope,omitempty"`
-		Metadata map[string]string `json:"metadata,omitempty"`
-		Status   map[string]string `json:"status,omitempty"`
-		Spec     *TargetSpec       `json:"spec,omitempty"`
+		ObjectMeta ObjectMeta   `json:"metadata,omitempty"`
+		Status     TargetStatus `json:"status,omitempty"`
+		Spec       *TargetSpec  `json:"spec,omitempty"`
 	}
 
 	// TargetSpec defines the spec property of the TargetState
 	TargetSpec struct {
 		DisplayName   string            `json:"displayName,omitempty"`
 		Scope         string            `json:"scope,omitempty"`
+		SolutionScope string            `json:"solutionScope,omitempty"`
 		Metadata      map[string]string `json:"metadata,omitempty"`
 		Properties    map[string]string `json:"properties,omitempty"`
 		Components    []ComponentSpec   `json:"components,omitempty"`
 		Constraints   string            `json:"constraints,omitempty"`
 		Topologies    []TopologySpec    `json:"topologies,omitempty"`
 		ForceRedeploy bool              `json:"forceRedeploy,omitempty"`
-		Generation    string            `json:"generation,omitempty"`
-		// Defines the version of a particular resource
-		Version string `json:"version,omitempty"`
+		IsDryRun      bool              `json:"isDryRun,omitempty"`
 	}
 )
 
@@ -45,6 +46,10 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if c.SolutionScope != otherC.SolutionScope {
 		return false, nil
 	}
 
@@ -70,6 +75,25 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 
 	if c.ForceRedeploy != otherC.ForceRedeploy {
 		return false, nil
+	}
+
+	return true, nil
+}
+
+func (c TargetState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(TargetState)
+	if !ok {
+		return false, errors.New("parameter is not a TargetState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil

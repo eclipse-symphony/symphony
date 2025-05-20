@@ -1,0 +1,96 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Condition": {
+                "actions": {
+                    "Approve": {
+                        "inputs": {
+                            "statusCode": 200
+                        },
+                        "kind": "Http",
+                        "type": "Response"
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Reject": {
+                            "inputs": {
+                                "statusCode": 403
+                            },
+                            "kind": "Http",
+                            "type": "Response"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Send_email_with_options')?['SelectedOption']",
+                                "Approve"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Send_email_with_options": [
+                        "SUCCEEDED"
+                    ]
+                },
+                "type": "If"
+            },
+            "Send_email_with_options": {
+                "inputs": {
+                    "body": {
+                        "Message": {
+                            "HideHTMLMessage": false,
+                            "Importance": "Normal",
+                            "Options": "Approve, Reject",
+                            "ShowHTMLConfirmationDialog": false,
+                            "Subject": "A Symphony deployment needs your attention: (instance: @{triggerBody()?['instance']})",
+                            "To": "hbai@microsoft.com"
+                        },
+                        "NotificationUrl": "@{listCallbackUrl()}"
+                    },
+                    "host": {
+                        "connection": {
+                            "referenceName": "office365"
+                        }
+                    },
+                    "path": "/mailwithoptions/$subscriptions"
+                },
+                "runAfter": {},
+                "type": "ApiConnectionWebhook"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "instance": {
+                                "type": "string"
+                            },
+                            "solution": {
+                                "type": "string"
+                            },
+                            "target": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    },
+    "kind": "Stateful"
+}

@@ -11,12 +11,12 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 )
 
 type MockTargetProviderConfig struct {
@@ -31,7 +31,7 @@ var cache map[string][]model.ComponentSpec
 var mLock sync.Mutex
 
 func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"Mock Target Provider",
 		context.TODO(),
 		&map[string]string{
@@ -40,6 +40,7 @@ func (m *MockTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLock.Lock()
 	defer mLock.Unlock()
@@ -92,8 +93,17 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-
-	return cache[m.Config.ID], nil
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	ret := make([]model.ComponentSpec, 0)
+	for _, c := range cache[m.Config.ID] {
+		for _, r := range references {
+			if c.Name == r.Component.Name {
+				ret = append(ret, c)
+				break
+			}
+		}
+	}
+	return ret, nil
 }
 func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(
@@ -105,6 +115,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	mLock.Lock()
 	defer mLock.Unlock()
@@ -116,7 +127,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		for i, _ := range cache[m.Config.ID] {
 			if cache[m.Config.ID][i].Name == c.Component.Name {
 				found = true
-				if c.Action == "delete" {
+				if c.Action == model.ComponentDelete {
 					cache[m.Config.ID] = append(cache[m.Config.ID][:i], cache[m.Config.ID][i+1:]...)
 				}
 				break

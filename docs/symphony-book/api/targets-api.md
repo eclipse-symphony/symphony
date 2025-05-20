@@ -68,7 +68,7 @@
   |Parameter| Value|
   |--------|--------|
   | `{target name}` | name of the target |
-  | `[<with-binding>]` | (option) add a [role binding](../target-management/target-management.md#role-bindings). Currently supported binding is `staging`, which binds container operations to a [staging provider](../providers/staging_provider.md)|
+  | `[<with-binding>]` | (option) add a [role binding](../concepts/unified-object-model/target.md#role-bindings). Currently supported binding is `staging`, which binds container operations to a [staging provider](../providers/target-providers/staging_provider.md)|
 
 * **Headers:**
 
@@ -202,7 +202,7 @@ To report target status, you can report a single status value through the query 
       "ping": "2022-10-27 01:16:06.867714383 +0000 UTC",
       "status": "OK",
       "targets": "1",
-      "targets.my-phone-a": "OK - "
+      "targets.my-phone-a": "OK"
     }
   }
   ```

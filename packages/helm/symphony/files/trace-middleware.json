@@ -1,0 +1,22 @@
+{
+    "type": "middleware.http.tracing",
+    "properties": {
+      "serviceName": "symphony-api",
+      "pipelines": [
+        {{- if .Values.otlpTracesEndpointGrpc }}
+        {
+          "exporter": {
+            "type": "tracing.exporters.otlpgrpc",
+            "collectorUrl": "{{ tpl .Values.otlpTracesEndpointGrpc $ }}",
+            {{- if eq .Values.otlpInsecureGrpc true }}
+            "insecureEndpoint": true
+            {{- else }}
+            "insecureEndpoint": false,
+            "serverCAFilePath": "/certs/root-certs.pem"
+            {{- end }}
+          }
+        }
+        {{- end }}
+      ]
+    }
+  }

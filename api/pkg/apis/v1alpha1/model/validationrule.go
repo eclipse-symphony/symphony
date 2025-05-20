@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type PropertyDesc struct {
@@ -20,8 +20,10 @@ type PropertyDesc struct {
 	SkipIfMissing   bool   `json:"skipIfMissing,omitempty"`
 	PrefixMatch     bool   `json:"prefixMatch,omitempty"`
 	IsComponentName bool   `json:"isComponentName,omitempty"`
+	// This is a stop-gap solution to support change detection for advanced comparison scenarios.
+	PropChanged func(oldProp, newProp any) bool `json:"-"`
 }
-type ValidationRule struct {
+type ComponentValidationRule struct {
 	RequiredComponentType     string         `json:"requiredType"`
 	ChangeDetectionProperties []PropertyDesc `json:"changeDetection,omitempty"`
 	ChangeDetectionMetadata   []PropertyDesc `json:"changeDetectionMetadata,omitempty"`
@@ -29,6 +31,13 @@ type ValidationRule struct {
 	OptionalProperties        []string       `json:"optionalProperties"`
 	RequiredMetadata          []string       `json:"requiredMetadata"`
 	OptionalMetadata          []string       `json:"optionalMetadata"`
+}
+type ValidationRule struct {
+	RequiredComponentType   string                  `json:"requiredType"`
+	ComponentValidationRule ComponentValidationRule `json:"componentValidationRule,omitempty"`
+	SidecarValidationRule   ComponentValidationRule `json:"sidecarValidationRule,omitempty"`
+	// a provider that supports sidecar can deploy sidecar containers with the main container.
+	AllowSidecar bool `json:"allowSidecar,omitempty"`
 	// a provider that supports scope isolation can deploy to specified scopes other than the "default" scope.
 	// instances from different scopes are isolated from each other.
 	ScopeIsolation bool `json:"supportScopes,omitempty"`
@@ -38,10 +47,18 @@ type ValidationRule struct {
 
 func (v ValidationRule) ValidateInputs(inputs map[string]interface{}) error {
 	// required properties must all present
-	for _, p := range v.RequiredProperties {
+	for _, p := range v.ComponentValidationRule.RequiredProperties {
 		if ReadPropertyCompat(inputs, p, nil) == "" {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required property '%s' is missing", p), v1alpha2.BadRequest)
 		}
+	}
+	if v.AllowSidecar {
+		for _, p := range v.SidecarValidationRule.RequiredProperties {
+			if ReadPropertyCompat(inputs, p, nil) == "" {
+				return v1alpha2.NewCOAError(nil, fmt.Sprintf("required sidecar property '%s' is missing", p), v1alpha2.BadRequest)
+			}
+		}
+
 	}
 	return nil
 }
@@ -57,51 +74,90 @@ func (v ValidationRule) Validate(components []ComponentSpec) error {
 	return nil
 }
 
-func (v ValidationRule) IsComponentChanged(old ComponentSpec, new ComponentSpec) bool {
-	for _, c := range v.ChangeDetectionProperties {
-		if strings.Contains(c.Name, "*") {
-			escapedPattern := regexp.QuoteMeta(c.Name)
+func mergeKeysInOldAndNew(oldValues map[string]interface{}, newValues map[string]interface{}) []string {
+	keys := make(map[string]bool)
+	for k := range oldValues {
+		keys[k] = true
+	}
+	for k := range newValues {
+		keys[k] = true
+	}
+	mergedKeys := make([]string, 0, len(keys))
+	for k := range keys {
+		mergedKeys = append(mergedKeys, k)
+	}
+	return mergedKeys
+}
+
+func detectChanges(properties []PropertyDesc, oldName string, newName string, oldValues map[string]interface{}, newValues map[string]interface{}) bool {
+	// loop all provider's change detection properties
+	for _, p := range properties {
+		if strings.Contains(p.Name, "*") {
+			escapedPattern := regexp.QuoteMeta(p.Name)
 			// Replace the wildcard (*) with a regular expression pattern
 			regexpPattern := strings.ReplaceAll(escapedPattern, `\*`, ".*")
 			// Compile the regular expression
 			regexpObject := regexp.MustCompile("^" + regexpPattern + "$")
-			for k := range old.Properties {
+			mergedKeys := mergeKeysInOldAndNew(oldValues, newValues)
+			for _, k := range mergedKeys {
 				if regexpObject.MatchString(k) {
-					if compareProperties(c, old, new, k) {
+					if compareProperties(p, oldValues, newValues, k) {
 						return true
 					}
 				}
 			}
 		} else {
-			if c.IsComponentName {
-				if !compareStrings(old.Name, new.Name, c.IgnoreCase, c.SkipIfMissing) {
+			if p.IsComponentName {
+				if !compareStrings(oldName, newName, p.IgnoreCase, p.PrefixMatch) {
 					return true
 				}
 			} else {
-				if compareProperties(c, old, new, c.Name) {
+				if compareProperties(p, oldValues, newValues, p.Name) {
 					return true
 				}
 			}
 		}
 	}
-	for _, c := range v.ChangeDetectionMetadata {
-		if strings.Contains(c.Name, "*") {
-			escapedPattern := regexp.QuoteMeta(c.Name)
-			// Replace the wildcard (*) with a regular expression pattern
-			regexpPattern := strings.ReplaceAll(escapedPattern, `\*`, ".*")
-			// Compile the regular expression
-			regexpObject := regexp.MustCompile("^" + regexpPattern + "$")
-			for k := range old.Metadata {
-				if regexpObject.MatchString(k) {
-					if compareMetadata(c, old, new, k) {
+
+	return false
+}
+func convertMapStringToStringInterface(m map[string]string) map[string]interface{} {
+	newMap := make(map[string]interface{})
+	for k, v := range m {
+		newMap[k] = v
+	}
+	return newMap
+}
+
+func (v ValidationRule) IsComponentChanged(old ComponentSpec, new ComponentSpec) bool {
+	if detectChanges(v.ComponentValidationRule.ChangeDetectionProperties, old.Name, new.Name, old.Properties, new.Properties) {
+		return true
+	}
+	if detectChanges(v.ComponentValidationRule.ChangeDetectionMetadata, old.Name, new.Name,
+		convertMapStringToStringInterface(old.Metadata),
+		convertMapStringToStringInterface(new.Metadata)) {
+		return true
+	}
+	if v.AllowSidecar {
+		touchCount := 0
+		for _, sidecar := range new.Sidecars {
+			foundOld := false
+			for _, oldSidecar := range old.Sidecars {
+				if sidecar.Name == oldSidecar.Name {
+					if detectChanges(v.SidecarValidationRule.ChangeDetectionProperties, oldSidecar.Name, sidecar.Name, oldSidecar.Properties, sidecar.Properties) {
 						return true
 					}
+					foundOld = true
+					touchCount++
+					break
 				}
 			}
-		} else {
-			if compareMetadata(c, old, new, c.Name) {
+			if !foundOld {
 				return true
 			}
+		}
+		if touchCount != len(old.Sidecars) {
+			return true
 		}
 	}
 	return false
@@ -116,37 +172,37 @@ func compareStrings(a, b string, ignoreCase bool, prefixMatch bool) bool {
 	if !prefixMatch {
 		return ta == tb
 	} else {
-		return strings.HasPrefix(tb, ta)
+		return strings.HasPrefix(tb, ta) || strings.HasPrefix(ta, tb)
 	}
 }
-func compareProperties(c PropertyDesc, old ComponentSpec, new ComponentSpec, key string) bool {
-	if v, ok := old.Properties[key]; ok {
-		if nv, nok := new.Properties[key]; nok {
-			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
-				return true
-			}
-		}
-	} else {
-		if !c.SkipIfMissing {
-			return true
-		}
+func compareProperties(c PropertyDesc, old map[string]interface{}, new map[string]interface{}, key string) bool {
+	v, ook := old[key]
+	nv, nok := new[key]
+	if c.PropChanged != nil {
+		return c.PropChanged(v, nv)
 	}
-	return false
-}
 
-func compareMetadata(c PropertyDesc, old ComponentSpec, new ComponentSpec, key string) bool {
-	if v, ok := old.Metadata[key]; ok {
-		if nv, nok := new.Metadata[key]; nok {
-			if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
-				return true
-			}
+	if ook && nok {
+		// case 1: key exists in both old and new
+		// compare the values, if different, return true
+		if !compareStrings(fmt.Sprintf("%v", v), fmt.Sprintf("%v", nv), c.IgnoreCase, c.PrefixMatch) {
+			return true
+		} else {
+			return false
 		}
+	} else if !ook && !nok {
+		// case 2: key does not exist in both old and new
+		// return false to indicate no change
+		return false
 	} else {
+		// case 3: one of them is missing
+		// if the property is optional, no matter it doesn't exist in old or new, return false to indicate no change
 		if !c.SkipIfMissing {
 			return true
+		} else {
+			return false
 		}
 	}
-	return false
 }
 
 func (v ValidationRule) validateComponent(component ComponentSpec) error {
@@ -156,16 +212,26 @@ func (v ValidationRule) validateComponent(component ComponentSpec) error {
 	}
 
 	// required properties must all present
-	for _, p := range v.RequiredProperties {
+	for _, p := range v.ComponentValidationRule.RequiredProperties {
 		if ReadPropertyCompat(component.Properties, p, nil) == "" {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required property '%s' is missing", p), v1alpha2.BadRequest)
 		}
 	}
 
 	// required metadata must all present
-	for _, p := range v.RequiredMetadata {
+	for _, p := range v.ComponentValidationRule.RequiredMetadata {
 		if ReadProperty(component.Metadata, p, nil) == "" {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("required metadata '%s' is missing", p), v1alpha2.BadRequest)
+		}
+	}
+
+	if v.AllowSidecar {
+		for _, sidecar := range component.Sidecars {
+			for _, p := range v.SidecarValidationRule.RequiredProperties {
+				if ReadPropertyCompat(sidecar.Properties, p, nil) == "" {
+					return v1alpha2.NewCOAError(nil, fmt.Sprintf("required sidecar property '%s' is missing in sidecar %s", p, sidecar.Name), v1alpha2.BadRequest)
+				}
+			}
 		}
 	}
 

@@ -10,14 +10,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSmpleCount(t *testing.T) {
 
 	provider := CounterStageProvider{}
-	err := provider.Init(CounterStageProvider{})
+	err := provider.Init(provider.Config)
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo": 1,
@@ -28,7 +28,7 @@ func TestSmpleCount(t *testing.T) {
 func TestAccumulate(t *testing.T) {
 
 	provider := CounterStageProvider{}
-	err := provider.Init(CounterStageProvider{})
+	err := provider.Init(provider.Config)
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo": 1,
@@ -43,7 +43,7 @@ func TestAccumulate(t *testing.T) {
 func TestSmpleCountWithInitialValue(t *testing.T) {
 
 	provider := CounterStageProvider{}
-	err := provider.Init(CounterStageProvider{})
+	err := provider.Init(provider.Config)
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo":      1,
@@ -55,7 +55,7 @@ func TestSmpleCountWithInitialValue(t *testing.T) {
 func TestAccumulateWithInitialValue(t *testing.T) {
 
 	provider := CounterStageProvider{}
-	err := provider.Init(CounterStageProvider{})
+	err := provider.Init(provider.Config)
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"foo":      1,

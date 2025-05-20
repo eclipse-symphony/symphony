@@ -14,9 +14,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -247,9 +247,9 @@ func TestToModuleEnvVariables(t *testing.T) {
 	assert.Equal(t, "DEF", module.Environments["A2"].Value)
 }
 func TestUpdateDeployment(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	updateDeployment(&deployment, "my-instance-1", map[string]Module{
+	updateDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -262,9 +262,9 @@ func TestUpdateDeployment(t *testing.T) {
 	assert.Equal(t, "ABC", col["my-instance-1-my-module"].Settings["123"])
 }
 func TestUpdateDeploymentWithExistingModule(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	updateDeployment(&deployment, "my-instance-1", map[string]Module{
+	updateDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -292,9 +292,9 @@ func TestUpdateDeploymentWithExistingModule(t *testing.T) {
 }
 
 func TestUpdateDeploymentWithCurrentModule(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	updateDeployment(&deployment, "my-instance-1", map[string]Module{
+	updateDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -320,9 +320,9 @@ func TestUpdateDeploymentWithCurrentModule(t *testing.T) {
 	assert.Equal(t, "ABC", col["my-instance-1-my-module"].Settings["123"])
 }
 func TestReduceDeploymentWithCurrentModule(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	reduceDeployment(&deployment, "my-instance-1", map[string]Module{
+	reduceDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -347,9 +347,9 @@ func TestReduceDeploymentWithCurrentModule(t *testing.T) {
 	assert.Equal(t, 0, len(col))
 }
 func TestReduceDeploymentWithMoreModule(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	reduceDeployment(&deployment, "my-instance-1", map[string]Module{
+	reduceDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -416,9 +416,9 @@ func TestModifyRoutesHitOther(t *testing.T) {
 	assert.Equal(t, "FROM /messages/modules/my-instance-1-SimulatedTemperatureSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/filtermodule/inputs/input1\")", route)
 }
 func TestUpdateDeploymentWithRoutes(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	updateDeployment(&deployment, "my-instance-1", map[string]Module{
+	updateDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -435,9 +435,9 @@ func TestUpdateDeploymentWithRoutes(t *testing.T) {
 	assert.Equal(t, "FROM messagees/modules/my-instance-1-my-module INTO messages/modules/other", col2["my-instance-1-route-1"])
 }
 func TestUpdateDeploymentWithExistingModuleAndRoute(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	updateDeployment(&deployment, "my-instance-1", map[string]Module{
+	updateDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -474,9 +474,9 @@ func TestUpdateDeploymentWithExistingModuleAndRoute(t *testing.T) {
 	assert.Equal(t, "FROM messagees/modules/other-module INTO messages/modules/another", col2["route-1"])
 }
 func TestUpdateDeploymentWithCurrentModuleAndRoutes(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	updateDeployment(&deployment, "my-instance-1", map[string]Module{
+	updateDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -512,9 +512,9 @@ func TestUpdateDeploymentWithCurrentModuleAndRoutes(t *testing.T) {
 	assert.Equal(t, "FROM messagees/modules/my-instance-1-my-module INTO messages/modules/cool", col2["my-instance-1-route-1"])
 }
 func TestReduceDeploymentWithCurrentModuleRoute(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	reduceDeployment(&deployment, "my-instance-1", map[string]Module{
+	reduceDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -550,9 +550,9 @@ func TestReduceDeploymentWithCurrentModuleRoute(t *testing.T) {
 	assert.Equal(t, 0, len(col2))
 }
 func TestReduceDeploymentWithMoreModuleAndRoutes(t *testing.T) {
-	deployment := makeDefaultDeployment(nil, "", "")
+	deployment := makeDefaultDeployment(context.Background(), nil, "", "")
 
-	reduceDeployment(&deployment, "my-instance-1", map[string]Module{
+	reduceDeployment(context.Background(), &deployment, "my-instance-1", map[string]Module{
 		"my-module": {
 			Settings: map[string]string{
 				"123": "ABC",
@@ -617,7 +617,11 @@ func TestGetFailed(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
+	}, nil)
 	assert.NotNil(t, err)
 }
 
@@ -648,14 +652,16 @@ func TestApplyFailed(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},

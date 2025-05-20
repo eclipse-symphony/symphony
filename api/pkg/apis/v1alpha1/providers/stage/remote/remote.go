@@ -9,14 +9,16 @@ package remote
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
 var rmtLock sync.Mutex
@@ -50,7 +52,7 @@ func toRemoteStageProviderConfig(config providers.IProviderConfig) (RemoteStageP
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *RemoteStageProvider) InitWithMap(properties map[string]string) error {
@@ -68,13 +70,14 @@ func (i *RemoteStageProvider) SetOutputsContext(outputs map[string]map[string]in
 	i.OutputContext = outputs
 }
 func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
-	_, span := observability.StartSpan("[Stage] Remote Process Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("[Stage] Remote Process Provider", ctx, &map[string]string{
 		"method": "Process",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.Info("  P (Remote Processor): Process")
+	log.InfoCtx(ctx, "  P (Remote Processor): Process")
 
 	outputs := make(map[string]interface{})
 
@@ -82,27 +85,35 @@ func (i *RemoteStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, "no site found in inputs", v1alpha2.BadRequest)
-		log.Errorf("  P (Remote Processor): %v", err)
+		log.ErrorfCtx(ctx, "  P (Remote Processor): %v", err)
+		return nil, false, err
+	}
+
+	siteString, ok := v.(string)
+	if !ok {
+		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("site name is not a valid string: %v", v), v1alpha2.BadRequest)
+		log.ErrorfCtx(ctx, "  P (Remote Processor): %v", err)
 		return nil, false, err
 	}
 
 	err = mgrContext.Publish("remote", v1alpha2.Event{
 		Metadata: map[string]string{
-			"site":       v.(string),
+			"site":       siteString,
 			"objectType": "task",
 			"origin":     mgrContext.SiteInfo.SiteId,
 		},
 		Body: v1alpha2.JobData{
 			Id:     "",
-			Action: "RUN",
+			Action: v1alpha2.JobRun,
 			Body: v1alpha2.InputOutputData{
 				Inputs:  inputs,
 				Outputs: i.OutputContext,
 			},
 		},
+		Context: ctx,
 	})
 	if err != nil {
-		log.Errorf("  P (Remote Processor): publish failed - %v", err)
+		log.ErrorfCtx(ctx, "  P (Remote Processor): publish failed - %v", err)
 		return nil, false, err
 	}
 

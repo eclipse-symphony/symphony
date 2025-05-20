@@ -11,9 +11,10 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	dfake "k8s.io/client-go/dynamic/fake"
@@ -143,9 +144,9 @@ func TestReadYamlFromUrl(t *testing.T) {
 }
 
 // TestKubectlTargetProviderApply tests that applying a deployment works
-func TestKubectlTargetProviderPathApply(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL")
-	if testGatekeeper == "" {
+func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
+	testKubectl := os.Getenv("TEST_KUBECTL")
+	if testKubectl == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
 	}
 	config := KubectlTargetProviderConfig{
@@ -157,31 +158,54 @@ func TestKubectlTargetProviderPathApply(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "gatekeeper",
+		Name: "nginx",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
+			// use nginx deployment as an example to replace gatekeeper tests since insufficient cleanup for gatekeeper deployment may break other cases.
+			"yaml": "https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/deployment.yaml",
+			// "yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "gatekeeper",
-			Scope: "gatekeeper-system",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "nginx-deployment",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
+
+	time.Sleep(3 * time.Second)
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentDelete,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	// sleep 30s and wait for sufficient cleanup for gatekeeper
+	time.Sleep(30 * time.Second)
 }
 
 func TestKubectlTargetProviderInlineApply(t *testing.T) {
@@ -238,18 +262,24 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx-deployment",
-			Scope: "default",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx-deployment",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "default",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -257,6 +287,210 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.Nil(t, err)
 }
+
+// TestKubectlTargetProviderInlineUpdate tests that updating a component works
+func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+	// wait for 5 sec before updating the deployment
+	time.Sleep(5 * time.Second)
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path"}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "nginx",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginx",
+				},
+				"spec": map[string]interface{}{
+					"replicas": 4,
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]string{
+							"app": "nginx",
+						},
+					},
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]string{
+								"app": "nginx",
+							},
+						},
+						"spec": map[string]interface{}{
+							"containers": []map[string]interface{}{
+								{
+									"name":  "nginx",
+									"image": "nginx:1.17.0",
+									"ports": []map[string]interface{}{
+										{
+											"containerPort": 80,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance-iu",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope-iu",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	// update
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	time.Sleep(3 * time.Second)
+
+	// cleanup
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentDelete,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
+// TestKubectlTargetProviderInlineStatusProbeApply tests that applying a deployment with a status probe works
+func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
+	testGatekeeper := os.Getenv("TEST_KUBECTL")
+	if testGatekeeper == "" {
+		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
+	}
+
+	config := KubectlTargetProviderConfig{
+		InCluster:  false,
+		ConfigType: "path"}
+	provider := KubectlTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	component := model.ComponentSpec{
+		Name: "nginxtest",
+		Type: "yaml.k8s",
+		Properties: map[string]interface{}{
+			"resource": map[string]interface{}{
+				"apiVersion": "apps/v1",
+				"kind":       "Deployment",
+				"metadata": map[string]interface{}{
+					"name": "nginxtest",
+				},
+				"spec": map[string]interface{}{
+					"replicas": 3,
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]string{
+							"app": "nginxtest",
+						},
+					},
+					"template": map[string]interface{}{
+						"metadata": map[string]interface{}{
+							"labels": map[string]string{
+								"app": "nginxtest",
+							},
+						},
+						"spec": map[string]interface{}{
+							"containers": []map[string]interface{}{
+								{
+									"name":  "nginx",
+									"image": "nginx:1.16.1",
+									"ports": []map[string]interface{}{
+										{
+											"containerPort": 80,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"statusProbe": map[string]interface{}{
+				"succeededValues":  []string{"True"},
+				"failedValues":     []string{"Failed"},
+				"statusPath":       "$.status.conditions[0].status",
+				"errorMessagePath": "$.status.conditions[0].message",
+				"timeout":          "1m",
+				"interval":         "2s",
+				"initialWait":      "10s",
+			},
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance-spa",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope-spa",
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	// update
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+
+	time.Sleep(3 * time.Second)
+
+	// cleanup
+	step = model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentDelete,
+				Component: component,
+			},
+		},
+	}
+	_, err = provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+}
+
 func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
@@ -326,17 +560,22 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "gatekeeper",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "gatekeeper",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -365,69 +604,32 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "policies",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "policies",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
 	}
 	_, err = provider.Apply(context.Background(), deployment, step, false)
 	assert.NotNil(t, err)
-}
-
-// TestKubectlTargetProviderDelete tests that deleting a deployment works
-func TestKubectlTargetProviderDelete(t *testing.T) {
-	testGatekeeper := os.Getenv("TEST_KUBECTL")
-	if testGatekeeper == "" {
-		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
-	}
-
-	config := KubectlTargetProviderConfig{
-		InCluster:  false,
-		ConfigType: "path",
-	}
-
-	provider := KubectlTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-	component := model.ComponentSpec{
-		Name: "gatekeepr1",
-		Type: "yaml.k8s",
-		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-		},
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "gatekeeper",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "delete",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
 }
 
 func TestKubectlTargetProviderDeleteInline(t *testing.T) {
@@ -487,17 +689,22 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "nginx-deployment",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx-deployment",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -526,21 +733,26 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "policies",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "policies",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -565,7 +777,7 @@ func TestConformanceSuite(t *testing.T) {
 	conformance.ConformanceSuite(t, provider)
 }
 
-func TestKubectlTargetProviderApply(t *testing.T) {
+func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 	testGatekeeper := os.Getenv("TEST_KUBECTL")
 	if testGatekeeper == "" {
 		t.Skip("Skipping because TEST_KUBECTL environment variable is not set")
@@ -585,43 +797,6 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	provider.DynamicClient = dynamicClient
 
 	component := model.ComponentSpec{
-		Name: "gatekeeper",
-		Type: "yaml.k8s",
-		Properties: map[string]interface{}{
-			"yaml": "https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml",
-		},
-	}
-	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "gatekeeper",
-			Scope: "gatekeeper-system",
-		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
-		},
-	}
-	step := model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "update",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-	step = model.DeploymentStep{
-		Components: []model.ComponentStep{
-			{
-				Action:    "delete",
-				Component: component,
-			},
-		},
-	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
-	assert.Nil(t, err)
-
-	component = model.ComponentSpec{
 		Name: "nginx",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
@@ -634,19 +809,25 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	deployment = model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx",
-			Scope: "nginx-system",
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "nginx-system",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
-	step = model.DeploymentStep{
+	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -658,7 +839,7 @@ func TestKubectlTargetProviderApply(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -690,20 +871,25 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "policies",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "policies",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	reference := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -724,17 +910,23 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 		},
 	}
 	deployment = model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name:  "nginx",
-			Scope: "nginx-system",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "nginx",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: "nginx-system",
+			},
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	reference = []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}

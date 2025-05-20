@@ -1,0 +1,13 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: my-k8s
+spec:  
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.staging
+      config:
+        inCluster: "true"   
+        targetName: my-k8s

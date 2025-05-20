@@ -8,19 +8,20 @@ package vendors
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/managers/reference"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/vendors"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
 )
 
@@ -81,7 +82,7 @@ func (c *AgentVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse
 	})
 	defer span.End()
 
-	log.Infof("V (Agent): onConfig %s", request.Method)
+	log.InfofCtx(pCtx, "V (Agent): onConfig %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodPost:
@@ -104,7 +105,7 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 	})
 	defer span.End()
 
-	log.Infof("V (Agent): onReference %s", request.Method)
+	log.InfofCtx(pCtx, "V (Agent): onReference %s", request.Method)
 
 	switch request.Method {
 	case fasthttp.MethodGet:
@@ -117,6 +118,7 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 		return observ_utils.CloseSpanWithCOAResponse(span, response)
 	}
 
+	log.ErrorCtx(pCtx, "V (Agent): onReference returns MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -127,7 +129,13 @@ func (c *AgentVendor) onReference(request v1alpha2.COARequest) v1alpha2.COARespo
 }
 
 func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v1alpha2.COAResponse {
-	var scope = "default"
+	ctx, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
+		"method": "doGet",
+	})
+	defer span.End()
+	log.InfofCtx(ctx, "V (Agent): doGet with parameters %v", parameters)
+
+	var namespace = constants.DefaultScope
 	var kind = ""
 	var ref = ""
 	var group = ""
@@ -141,8 +149,8 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	var flavor = ""
 	var iteration = ""
 	var alias = ""
-	if v, ok := parameters["scope"]; ok {
-		scope = v
+	if v, ok := parameters["namespace"]; ok {
+		namespace = v
 	}
 	if v, ok := parameters["ref"]; ok {
 		ref = v
@@ -187,18 +195,21 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 	var data []byte
 	var err error
 	if instance != "" {
-		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, model.SolutionGroup, "instances", "v1", "", alias)
+		data, err = c.ReferenceManager.GetExt(ref, namespace, id, group, kind, version, instance, model.SolutionGroup, "instances", "v1", "", alias)
 	} else if lookup != "" {
-		data, err = c.ReferenceManager.GetExt(ref, scope, id, group, kind, version, instance, lookup, platform, flavor, iteration, "")
+		data, err = c.ReferenceManager.GetExt(ref, namespace, id, group, kind, version, instance, lookup, platform, flavor, iteration, "")
 	} else {
-		data, err = c.ReferenceManager.Get(ref, id, scope, group, kind, version, labelSelector, fieldSelector)
+		data, err = c.ReferenceManager.Get(ref, id, namespace, group, kind, version, labelSelector, fieldSelector)
 	}
 	if err != nil {
+		log.ErrorfCtx(ctx, "V (Agent): failed to get references: %v", err)
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
 	}
+
+	log.InfoCtx(ctx, "V (Agent): get references successfully")
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
@@ -207,8 +218,15 @@ func (c *AgentVendor) doGet(ctx context.Context, parameters map[string]string) v
 }
 
 func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]string, data []byte) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
+		"method": "doApplyConfig",
+	})
+	defer span.End()
+
+	log.InfofCtx(ctx, "V (Agent): doApplyConfig with parameters %v", parameters)
+
 	var config managers.ProviderConfig
-	err := json.Unmarshal(data, &config)
+	err := utils2.UnmarshalJson(data, &config)
 	if err != nil {
 		return v1alpha2.COAResponse{
 			State: v1alpha2.BadRequest,
@@ -229,6 +247,8 @@ func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]s
 			}
 		}
 	}
+
+	log.InfoCtx(ctx, "V (Agent): apply configs successfully")
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        []byte("{}"),
@@ -237,14 +257,21 @@ func (c *AgentVendor) doApplyConfig(ctx context.Context, parameters map[string]s
 }
 
 func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, data []byte) v1alpha2.COAResponse {
-	var scope = "default"
+	ctx, span := observability.StartSpan("Agent Vendor", ctx, &map[string]string{
+		"method": "doPost",
+	})
+	defer span.End()
+
+	log.InfofCtx(ctx, "V (Agent): doPost with parameters %v", parameters)
+
+	var namespace = constants.DefaultScope
 	var kind = ""
 	var group = ""
 	var id = ""
 	var version = ""
 	var overwrite = false
-	if v, ok := parameters["scope"]; ok {
-		scope = v
+	if v, ok := parameters["namespace"]; ok {
+		namespace = v
 	}
 	if v, ok := parameters["kind"]; ok {
 		kind = v
@@ -262,20 +289,24 @@ func (c *AgentVendor) doPost(ctx context.Context, parameters map[string]string, 
 		overwrite, _ = strconv.ParseBool(v)
 	}
 	properties := make(map[string]string)
-	err := json.Unmarshal(data, &properties)
+	err := utils2.UnmarshalJson(data, &properties)
 	if err != nil {
+		log.ErrorCtx(ctx, "V (Agent): failed to unmarshall data")
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
 	}
-	err = c.ReferenceManager.Report(id, scope, group, kind, version, properties, overwrite)
+	err = c.ReferenceManager.Report(id, namespace, group, kind, version, properties, overwrite)
 	if err != nil {
+		log.ErrorfCtx(ctx, "V (Agent): failed to report status: +v", err)
 		return v1alpha2.COAResponse{
 			State: v1alpha2.InternalError,
 			Body:  []byte(err.Error()),
 		}
 	}
+
+	log.InfoCtx(ctx, "V (Agent): report status successfully")
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,

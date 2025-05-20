@@ -12,53 +12,61 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPush(t *testing.T) {
-	stack := MemoryQueueProvider{}
-	err := stack.Init(MemoryQueueProviderConfig{})
+func TestInit(t *testing.T) {
+	queue := MemoryQueueProvider{}
+	err := queue.InitWithMap(map[string]string{
+		"name": "test",
+	})
 	assert.Nil(t, err)
-	stack.Enqueue("queue1", "a")
-	stack.Enqueue("queue1", "b")
-	stack.Enqueue("queue1", "c")
-	element, err := stack.Peek("queue1")
+	assert.Equal(t, "test", queue.ID())
+}
+func TestPush(t *testing.T) {
+	queue := MemoryQueueProvider{}
+	err := queue.Init(MemoryQueueProviderConfig{})
+	assert.Nil(t, err)
+	queue.Enqueue("queue1", "a")
+	queue.Enqueue("queue1", "b")
+	queue.Enqueue("queue1", "c")
+	element, err := queue.Peek("queue1")
 	assert.Nil(t, err)
 	assert.Equal(t, "a", element)
 }
 func TestPop(t *testing.T) {
-	stack := MemoryQueueProvider{}
-	err := stack.Init(MemoryQueueProviderConfig{})
+	queue := MemoryQueueProvider{}
+	err := queue.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	stack.Enqueue("queue1", "a")
-	stack.Enqueue("queue1", "b")
-	stack.Enqueue("queue1", "c")
-	element, err := stack.Dequeue("queue1")
+	queue.Enqueue("queue1", "a")
+	queue.Enqueue("queue1", "b")
+	queue.Enqueue("queue1", "c")
+	element, err := queue.Dequeue("queue1")
 	assert.Nil(t, err)
 	assert.Equal(t, "a", element)
-	element, err = stack.Peek("queue1")
+	element, err = queue.Peek("queue1")
 	assert.Nil(t, err)
 	assert.Equal(t, "b", element)
 }
 func TestPopEmpty(t *testing.T) {
-	stack := MemoryQueueProvider{}
-	err := stack.Init(MemoryQueueProviderConfig{})
+	queue := MemoryQueueProvider{}
+	err := queue.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	element, err := stack.Dequeue("queue1")
+	element, err := queue.Dequeue("queue1")
 	assert.NotNil(t, err)
 	assert.Equal(t, nil, element)
 }
 func TestPeekEmepty(t *testing.T) {
-	stack := MemoryQueueProvider{}
-	err := stack.Init(MemoryQueueProviderConfig{})
+	queue := MemoryQueueProvider{}
+	err := queue.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	element, err := stack.Peek("queue1")
+	element, err := queue.Peek("queue1")
 	assert.NotNil(t, err)
 	assert.Equal(t, nil, element)
 }
 func TestSize(t *testing.T) {
-	stack := MemoryQueueProvider{}
-	err := stack.Init(MemoryQueueProviderConfig{})
+	queue := MemoryQueueProvider{}
+	err := queue.Init(MemoryQueueProviderConfig{})
 	assert.Nil(t, err)
-	stack.Enqueue("queue1", "a")
-	stack.Enqueue("queue1", "b")
-	stack.Enqueue("queue1", "c")
-	assert.Equal(t, 3, stack.Size("queue1"))
+	queue.Enqueue("queue1", "a")
+	queue.Enqueue("queue1", "b")
+	queue.Enqueue("queue1", "c")
+	assert.Equal(t, 3, queue.Size("queue1"))
 }

@@ -292,3 +292,25 @@ func TestRouteMissingFilter(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
+
+func TestRouteMatchOneEmpty(t *testing.T) {
+	route1 := RouteSpec{
+		Route: "route",
+		Type:  "type",
+		Properties: map[string]string{
+			"foo": "bar",
+		},
+		Filters: []FilterSpec{
+			{
+				Direction: "direction",
+				Type:      "type",
+				Parameters: map[string]string{
+					"foo2": "bar2",
+				},
+			},
+		},
+	}
+	res, err := route1.DeepEquals(nil)
+	assert.EqualError(t, err, "parameter is not a RouteSpec type")
+	assert.False(t, res)
+}

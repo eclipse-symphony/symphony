@@ -1,14 +1,21 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogContainer
 metadata:
   name: site-instance
 spec:  
-  siteId: hq
-  type: instance
-  name: site-instance
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: site-instance-v-version1
+spec:
+  rootResource: site-instance
+  catalogType: instance
   properties:
+    metadata: 
+      name: site-instance
     spec: 
-      solution: site-app
+      solution: site-app:version1
       target:
         selector:
           group: site

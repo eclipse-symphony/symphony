@@ -10,21 +10,27 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
 	"strings"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const loggerName = "providers.target.docker"
+
+var sLog = logger.NewLogger(loggerName)
 
 type DockerTargetProviderConfig struct {
 	Name string `json:"name"`
@@ -45,6 +51,7 @@ func DockerTargetProviderConfigFromMap(properties map[string]string) (DockerTarg
 func (d *DockerTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := DockerTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Docker Target): expected DockerTargetProviderConfigFromMap: %+v", err)
 		return err
 	}
 	return d.Init(config)
@@ -54,18 +61,19 @@ func (s *DockerTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Docker Target Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Docker Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (Docker Target): Init()")
+	sLog.InfoCtx(ctx, "  P (Docker Target): Init()")
 
 	// convert config to DockerTargetProviderConfig type
 	dockerConfig, err := toDockerTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (Docker Target): expected DockerTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Docker Target): expected DockerTargetProviderConfig: %+v", err)
 		return err
 	}
 
@@ -88,12 +96,13 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to create docker client: %+v", err)
 		return nil, err
 	}
 
@@ -154,7 +163,10 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 					}
 				}
 			}
+			sLog.InfofCtx(ctx, "  P (Docker Target): append component: %s", component.Name)
 			ret = append(ret, component)
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to get container info: %+v", err)
 		}
 	}
 
@@ -167,21 +179,24 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.Name,
-		SolutionId: deployment.Instance.Solution,
+		InstanceId: deployment.Instance.ObjectMeta.Name,
+		SolutionId: deployment.Instance.Spec.Solution,
 		TargetId:   deployment.ActiveTarget,
 	}
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to validate components: %+v", err)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (Docker Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -190,21 +205,21 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		sLog.Errorf("  P (Docker Target): failed to create docker client: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to create docker client: %+v", err)
 		return ret, err
 	}
 
 	for _, component := range step.Components {
-		if component.Action == "update" {
-			image := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
+		if component.Action == model.ComponentUpdate {
+			containerImage := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)
-			if image == "" {
+			if containerImage == "" {
 				err = errors.New("component doesn't have container.image property")
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Helm Target): component doesn't have container.image property")
+				sLog.ErrorfCtx(ctx, "  P (Docker Target): %+v", err)
 				return ret, err
 			}
 
@@ -214,32 +229,31 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				alreadyRunning = false
 			}
 
-			// TODO: I don't think we need to do an explict image pull here, as Docker will pull the image upon cache miss
-			// reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
-			// if err != nil {
-			// 	observ_utils.CloseSpanWithError(span, &err)
-			// 	sLog.Errorf("  P (Docker Target): failed to pull docker image: %+v", err)
-			// 	return err
-			// }
+			reader, err := cli.ImagePull(ctx, containerImage, image.PullOptions{})
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to pull docker image: %+v", err)
+				return ret, err
+			}
 
-			// defer reader.Close()
-			// io.Copy(os.Stdout, reader)
+			defer reader.Close()
+			io.Copy(os.Stdout, reader)
 
 			if alreadyRunning {
-				err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
+				err = cli.ContainerStop(ctx, component.Component.Name, container.StopOptions{})
 				if err != nil {
 					if !client.IsErrNotFound(err) {
-						sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
+						sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to stop a running container: %+v", err)
 						return ret, err
 					}
+					sLog.DebugfCtx(ctx, "  P (Docker Target): container %s is not found", component.Component.Name)
 				}
-				err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
+				err = cli.ContainerRemove(ctx, component.Component.Name, container.RemoveOptions{})
 				if err != nil {
 					ret[component.Component.Name] = model.ComponentResultSpec{
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
 			}
@@ -248,12 +262,12 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 			env := make([]string, 0)
 			for k, v := range component.Component.Properties {
 				if strings.HasPrefix(k, "env.") {
-					env = append(env, strings.TrimPrefix(k, "env.")+"="+v.(string))
+					env = append(env, strings.TrimPrefix(k, "env.")+"="+utils.FormatAsString(v))
 				}
 			}
 
 			containerConfig := container.Config{
-				Image: image,
+				Image: containerImage,
 				Env:   env,
 			}
 			var hostConfig *container.HostConfig
@@ -265,30 +279,32 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 						Status:  v1alpha2.UpdateFailed,
 						Message: err.Error(),
 					}
-					sLog.Errorf("  P (Docker Target): failed to read container resource settings: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to read container resource settings: %+v", err)
 					return ret, err
 				}
 				hostConfig = &container.HostConfig{
 					Resources: resourceSpec,
 				}
 			}
-			var container container.ContainerCreateCreatedBody
-			container, err = cli.ContainerCreate(context.TODO(), &containerConfig, hostConfig, nil, nil, component.Component.Name)
+			var containerResponse container.CreateResponse
+			sLog.InfofCtx(ctx, "  P (Docker Target): create container: %s", component.Component.Name)
+			containerResponse, err = cli.ContainerCreate(ctx, &containerConfig, hostConfig, nil, nil, component.Component.Name)
 			if err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Docker Target): failed to create container: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to create container: %+v", err)
 				return ret, err
 			}
 
-			if err = cli.ContainerStart(context.TODO(), container.ID, types.ContainerStartOptions{}); err != nil {
+			sLog.InfofCtx(ctx, "  P (Docker Target): start container: %s", component.Component.Name)
+			if err = cli.ContainerStart(ctx, containerResponse.ID, container.StartOptions{}); err != nil {
 				ret[component.Component.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
 					Message: err.Error(),
 				}
-				sLog.Errorf("  P (Docker Target): failed to start container: %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to start container: %+v", err)
 				return ret, err
 			}
 			ret[component.Component.Name] = model.ComponentResultSpec{
@@ -296,19 +312,24 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 				Message: "",
 			}
 		} else {
-			err = cli.ContainerStop(context.TODO(), component.Component.Name, nil)
+			sLog.InfofCtx(ctx, "  P (Docker Target): stop container: %s", component.Component.Name)
+			err = cli.ContainerStop(ctx, component.Component.Name, container.StopOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					sLog.Errorf("  P (Docker Target): failed to stop a running container: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to stop a running container: %+v", err)
 					return ret, err
 				}
+				sLog.DebugfCtx(ctx, "  P (Docker Target): container %s is not found", component.Component.Name)
 			}
-			err = cli.ContainerRemove(context.TODO(), component.Component.Name, types.ContainerRemoveOptions{})
+
+			sLog.InfofCtx(ctx, "  P (Docker Target): remove container: %s", component.Component.Name)
+			err = cli.ContainerRemove(ctx, component.Component.Name, container.RemoveOptions{})
 			if err != nil {
 				if !client.IsErrNotFound(err) {
-					sLog.Errorf("  P (Docker Target): failed to remove existing container: %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to remove existing container: %+v", err)
 					return ret, err
 				}
+				sLog.DebugfCtx(ctx, "  P (Docker Target): container %s is not found", component.Component.Name)
 			}
 			ret[component.Component.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Deleted,
@@ -321,15 +342,18 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 func (*DockerTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{model.ContainerImage},
-		OptionalProperties:    []string{"container.resources"},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
-			{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
-			{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{model.ContainerImage},
+			OptionalProperties:    []string{"container.resources"},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
+				{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
+				{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
+			},
 		},
 	}
 }

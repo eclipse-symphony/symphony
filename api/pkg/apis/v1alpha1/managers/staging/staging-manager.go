@@ -10,18 +10,18 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/azure/symphony/api/pkg/apis/v1alpha1/utils"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/contexts"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/managers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/queue"
-	"github.com/azure/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/azure/symphony/coa/pkg/logger"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
-	observ_utils "github.com/azure/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 )
 
 var log = logger.NewLogger("coa.runtime")
@@ -30,6 +30,7 @@ type StagingManager struct {
 	managers.Manager
 	QueueProvider queue.IQueueProvider
 	StateProvider states.IStateProvider
+	apiClient     utils.ApiClient
 }
 
 const Site_Job_Queue = "site-job-queue"
@@ -45,10 +46,14 @@ func (s *StagingManager) Init(context *contexts.VendorContext, config managers.M
 	} else {
 		return err
 	}
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		return err
+	}
+	s.apiClient, err = utils.GetApiClient()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -62,63 +67,67 @@ func (s *StagingManager) Poll() []error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	log.Debug(" M (Staging): Polling...")
 	if s.QueueProvider.Size(Site_Job_Queue) == 0 {
 		return nil
 	}
-	site, err := s.QueueProvider.Dequeue(Site_Job_Queue)
+	var site interface{}
+	site, err = s.QueueProvider.Dequeue(Site_Job_Queue)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to poll: %s", err.Error())
 		return []error{err}
 	}
-	siteId := site.(string)
-	catalogs, err := utils.GetCatalogs(
-		ctx,
-		s.VendorContext.SiteInfo.CurrentSite.BaseUrl,
+	siteId := utils.FormatAsString(site)
+	var catalogs []model.CatalogState
+	catalogs, err = s.apiClient.GetCatalogs(ctx, "",
 		s.VendorContext.SiteInfo.CurrentSite.Username,
 		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
 		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
-		observ_utils.CloseSpanWithError(span, &err)
 		return []error{err}
 	}
 	for _, catalog := range catalogs {
-		cacheId := siteId + "-" + catalog.Spec.Name
+		cacheId := siteId + "-" + catalog.ObjectMeta.Name
 		getRequest := states.GetRequest{
 			ID: cacheId,
-			Metadata: map[string]string{
-				"version":  "v1",
-				"group":    model.FederationGroup,
-				"resource": "catalogs",
+			Metadata: map[string]interface{}{
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  "catalogs",
+				"namespace": catalog.ObjectMeta.Namespace,
 			},
 		}
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(ctx, getRequest)
-		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.Spec.Generation {
+		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.ETag {
 			continue
 		}
-		if err != nil && !v1alpha2.IsNotFound(err) {
-			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.Spec.Name, err.Error())
+		if err != nil && !utils.IsNotFound(err) {
+			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
-			Id:     catalog.Spec.Name,
-			Action: "UPDATE",
+			Id:     catalog.ObjectMeta.Name,
+			Action: v1alpha2.JobUpdate,
 			Body:   catalog,
 		})
+
+		// TODO: clean up the catalog synchronization status for multi-site
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,
-				Body: catalog.Spec.Generation,
+				Body: catalog.ObjectMeta.ETag,
 			},
-			Metadata: map[string]string{
-				"version":  "v1",
-				"group":    model.FederationGroup,
-				"resource": "catalogs",
+			Metadata: map[string]interface{}{
+				"version":   "v1",
+				"group":     model.FederationGroup,
+				"resource":  "catalogs",
+				"namespace": catalog.ObjectMeta.Namespace,
 			},
 		})
 		if err != nil {
-			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.Spec.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
 		}
 	}
 	return nil
@@ -133,6 +142,7 @@ func (s *StagingManager) HandleJobEvent(ctx context.Context, event v1alpha2.Even
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	var job v1alpha2.JobData
 	jData, _ := json.Marshal(event.Body)
@@ -153,15 +163,15 @@ func (s *StagingManager) GetABatchForSite(site string, count int) ([]v1alpha2.Jo
 	items := []v1alpha2.JobData{}
 	itemCount := 0
 	for {
-		stackElement, err := s.QueueProvider.Dequeue(site)
+		queueElement, err := s.QueueProvider.Dequeue(site)
 		if err != nil {
 			return nil, err
 		}
-		if job, ok := stackElement.(v1alpha2.JobData); ok {
+		if job, ok := queueElement.(v1alpha2.JobData); ok {
 			items = append(items, job)
 			itemCount++
 		} else {
-			s.QueueProvider.Enqueue(site, stackElement)
+			s.QueueProvider.Enqueue(site, queueElement)
 		}
 		if itemCount == count || s.QueueProvider.Size(site) == 0 {
 			break

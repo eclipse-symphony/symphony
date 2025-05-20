@@ -22,8 +22,8 @@ $SymphonyCliFileName = "maestro.exe"
 $SymphonyCliFilePath = "${SymphonyRoot}\${SymphonyCliFileName}"
 
 # GitHub Org and repo hosting Dapr CLI
-$GitHubOrg = "Haishi2016"
-$GitHubRepo = "Vault818"
+$GitHubOrg = "eclipse-symphony"
+$GitHubRepo = "symphony"
 
 # Set Github request authentication for basic authentication.
 if ($Env:GITHUB_USER) {
@@ -47,7 +47,7 @@ if ((Get-ExecutionPolicy) -gt 'RemoteSigned' -or (Get-ExecutionPolicy) -eq 'ByPa
 # Check if Dapr CLI is installed.
 if (Test-Path $SymphonyCliFilePath -PathType Leaf) {
     Write-Warning "Maestro is detected - $SymphonyCliFilePath"
-    Invoke-Expression "$SymphonyCliFilePath --version"
+    Invoke-Expression "$SymphonyCliFilePath version"
     Write-Output "Reinstalling Maestro..."
 }
 else {
@@ -58,7 +58,7 @@ else {
 Write-Output "Creating $SymphonyRoot directory"
 New-Item -ErrorAction Ignore -Path $SymphonyRoot -ItemType "directory"
 if (!(Test-Path $SymphonyRoot -PathType Container)) {
-    Write-Warning "Please visit https://github.com/azure/symphony-docs/ for instructions on how to install without admin rights."
+    Write-Warning "Please visit https://github.com/eclipse-symphony/symphony/tree/main/docs/ for instructions on how to install without admin rights."
     throw "Cannot create $SymphonyRoot"
 }
 
@@ -84,7 +84,7 @@ function GetVersionInfo {
         $release = $Releases | Where-Object { $_.tag_name -notlike "*rc*" } | Select-Object -First 1
     }
     else {
-        $release = $Releases | Where-Object { $_.tag_name -eq "v$Version" } | Select-Object -First 1
+        $release = $Releases | Where-Object { $_.tag_name -eq "$Version" } | Select-Object -First 1
     }
 
     return $release
