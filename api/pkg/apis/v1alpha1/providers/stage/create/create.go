@@ -79,6 +79,14 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	if err != nil {
 		return err
 	}
+	if mockConfig.WaitInterval <= 0 {
+		mockConfig.WaitInterval = 20
+	}
+
+	if mockConfig.WaitCount <= 0 {
+		mockConfig.WaitCount = 31 * 60 / mockConfig.WaitInterval
+	}
+
 	s.Config = mockConfig
 	s.ApiClient, err = api_utils.GetApiClient()
 	if err != nil {
@@ -497,7 +505,6 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, err
 			}
 			summaryId := ret.ObjectMeta.GetSummaryId()
-			jobId := ret.ObjectMeta.GetSummaryJobId()
 			if summaryId == "" {
 				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", instanceName)
 				providerOperationMetrics.ProviderOperationErrors(
@@ -508,6 +515,44 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					v1alpha2.CreateInstanceFailed.String(),
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
+			}
+			// Loop to get jobId with timeout
+			jobId := ret.ObjectMeta.GetSummaryJobId()
+			timeout := time.After(time.Duration(i.Config.WaitInterval) * time.Second * 3) // 3x wait interval for timeout
+			ticker := time.NewTicker(time.Second * 2)                                     // Check every 2 seconds
+			defer ticker.Stop()
+
+			for jobId == "" {
+				select {
+				case <-timeout:
+					mLog.ErrorfCtx(ctx, "Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name)
+					providerOperationMetrics.ProviderOperationErrors(
+						create,
+						functionName,
+						metrics.ProcessOperation,
+						metrics.RunOperationType,
+						v1alpha2.TimedOut.String(),
+					)
+					return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name), v1alpha2.TimedOut)
+				case <-ticker.C:
+					ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+					if err != nil {
+						mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+						providerOperationMetrics.ProviderOperationErrors(
+							create,
+							functionName,
+							metrics.ProcessOperation,
+							metrics.RunOperationType,
+							v1alpha2.InstanceGetFailed.String(),
+						)
+						return outputs, false, err
+					}
+					jobId = ret.ObjectMeta.GetSummaryJobId()
+					if jobId != "" {
+						break
+					}
+					mLog.DebugfCtx(ctx, "Waiting for job ID for instance %s", instanceState.ObjectMeta.Name)
+				}
 			}
 
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
