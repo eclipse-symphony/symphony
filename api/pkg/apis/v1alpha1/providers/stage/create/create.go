@@ -475,6 +475,25 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", instanceName), v1alpha2.BadRequest)
 			}
 
+			// get instance first to get the previous jobid before update
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if instance exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
+			}
+
 			objectData, _ := json.Marshal(instanceState)
 			mLog.InfofCtx(ctx, "  P (Create Stage): creating instance %s with state: %s", instanceName, objectData)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", instanceName, objectNamespace)
@@ -492,7 +511,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 
 			// check guid after instance created
-			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -518,11 +537,12 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 			// Loop to get jobId with timeout
 			jobId := ret.ObjectMeta.GetSummaryJobId()
+			prevJobIdInt, _ := strconv.Atoi(previousJobId)
 			timeout := time.After(time.Duration(60) * time.Second) // 60s for timeout
 			ticker := time.NewTicker(time.Second * 2)              // Check every 2 seconds
 			defer ticker.Stop()
 
-			for jobId == "" {
+			for jobId == "" || jobId == previousJobId {
 				select {
 				case <-timeout:
 					mLog.ErrorfCtx(ctx, "Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name)
@@ -548,10 +568,11 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 						return outputs, false, err
 					}
 					jobId = ret.ObjectMeta.GetSummaryJobId()
-					if jobId != "" {
+					jobIdInt, err := strconv.Atoi(jobId)
+					if err == nil && jobIdInt > prevJobIdInt && jobId != "" {
 						break
 					}
-					mLog.DebugfCtx(ctx, "Waiting for job ID for instance %s", instanceState.ObjectMeta.Name)
+					mLog.DebugfCtx(ctx, "Waiting for new job ID for instance %s (current: %s, previous: %s)", instanceState.ObjectMeta.Name, jobId, previousJobId)
 				}
 			}
 
