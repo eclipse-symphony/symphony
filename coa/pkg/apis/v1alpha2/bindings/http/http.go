@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -102,12 +103,15 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}()
 
-	// Check for immediate failures (like port already in use)
+	// Check for server errors within 10 seconds of startup
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	select {
 	case err := <-h.errChan:
 		return err
-	default:
-		// No immediate error, continue
+	case <-ctx.Done():
+		// No error in 10 seconds, server is likely running successfully
 	}
 
 	return nil
