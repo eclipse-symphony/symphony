@@ -79,11 +79,11 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	if err != nil {
 		return err
 	}
-	if mockConfig.WaitInterval <= 0 {
+	if mockConfig.WaitInterval == 0 {
 		mockConfig.WaitInterval = 20
 	}
 
-	if mockConfig.WaitCount <= 0 {
+	if mockConfig.WaitCount == 0 {
 		mockConfig.WaitCount = 31 * 60 / mockConfig.WaitInterval
 	}
 
