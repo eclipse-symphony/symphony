@@ -518,8 +518,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 			// Loop to get jobId with timeout
 			jobId := ret.ObjectMeta.GetSummaryJobId()
-			timeout := time.After(time.Duration(i.Config.WaitInterval) * time.Second * 3) // 3x wait interval for timeout
-			ticker := time.NewTicker(time.Second * 2)                                     // Check every 2 seconds
+			timeout := time.After(time.Duration(60) * time.Second) // 60s for timeout
+			ticker := time.NewTicker(time.Second * 2)              // Check every 2 seconds
 			defer ticker.Stop()
 
 			for jobId == "" {
