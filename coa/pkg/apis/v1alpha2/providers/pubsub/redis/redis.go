@@ -277,21 +277,17 @@ func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, handler v1alpha2.Ev
 			// Context is canceled, exit the loop
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : reclaimPendingMessages for topic %s with Group %s is cancelled", topic, handler.Group)
 			continue
-		} else if err != nil && errors.Is(err, redis.Nil) {
-			// No pending messages, reset startMessageId, wait for a while before checking again
-			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no pending messages for topic %s", topic)
-			startMessageId = "-"
-			time.Sleep(ClaimMessageInterval)
-			continue
 		} else if err != nil {
 			// Something wrong with redis server
 			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to read message %v", err)
 			time.Sleep(ClaimMessageInterval)
 			continue
 		}
-		if len(pendingResult) != 1 {
-			// should not happen
-			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : pending message is not 1 but no error is thrown")
+		if len(pendingResult) == 0 {
+			// No pending messages, reset startMessageId, wait for a while before checking again
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no pending messages for topic %s", topic)
+			startMessageId = "-"
+			time.Sleep(ClaimMessageInterval)
 			continue
 		}
 		if enqueueTime, expired := i.CheckMessageExpired(pendingResult[0].ID); expired {
