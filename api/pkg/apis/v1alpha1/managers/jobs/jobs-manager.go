@@ -246,10 +246,14 @@ func (s *JobsManager) pollSchedules() []error {
 				log.InfofCtx(ctx, " M (Job): firing schedule %s", activationData.Activation)
 				activationData.Schedule = ""
 				// trigger the activation first and then delete the schedule events in state store
-				s.Context.Publish("trigger", v1alpha2.Event{
+				err = s.Context.Publish("trigger", v1alpha2.Event{
 					Body:    activationData,
 					Context: ctx,
 				})
+				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error publishing trigger event for activation %s: %s", activationData.Activation, err.Error())
+					continue
+				}
 				s.PersistentStateProvider.Delete(ctx, states.DeleteRequest{
 					ID: entry.ID,
 					Metadata: map[string]interface{}{

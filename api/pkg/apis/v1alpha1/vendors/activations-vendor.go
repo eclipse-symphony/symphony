@@ -205,7 +205,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			}
 			// If the activation is new and has no status, publish an activation event
 			if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
-				c.Context.Publish("activation", v1alpha2.Event{
+				err = c.Context.Publish("activation", v1alpha2.Event{
 					Body: v1alpha2.ActivationData{
 						Campaign:             activation.Spec.Campaign,
 						ActivationGeneration: entry.ObjectMeta.ETag,
@@ -216,6 +216,14 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 					},
 					Context: ctx,
 				})
+				if err != nil {
+					vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
+					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+						State:       v1alpha2.InternalError,
+						Body:        []byte(err.Error()),
+						ContentType: "application/json",
+					})
+				}
 			}
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
