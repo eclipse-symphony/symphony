@@ -1,5 +1,5 @@
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
 metadata:
-  name: ${PLACEHOLDER_NAME}
+  name: "${PLACEHOLDER_NAME}"
 spec:  

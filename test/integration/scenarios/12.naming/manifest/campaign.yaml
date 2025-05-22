@@ -1,9 +1,9 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: ${PLACEHOLDER_NAME}
+  name: "${PLACEHOLDER_NAME}"
 spec:  
-  rootResource: ${PLACEHOLDER_ROOT_RESOURCE}
+  rootResource: "${PLACEHOLDER_ROOT_RESOURCE}"
   firstStage: wait
   stages:
     wait:
