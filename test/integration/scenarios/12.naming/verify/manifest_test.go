@@ -52,7 +52,7 @@ func generateRandomName(length int, special bool) string {
 		panic("Length must be at least 1 to ensure start and end with alphanumeric characters")
 	}
 
-	var alphanumericCharset = "abcdeghijklmnopqrsuvwxyz"
+	var alphanumericCharset = "abcdefghijklmopqrstuvwxz"
 	var middleCharset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	var specialCharset = "!@#$%^&*()_=+[]{}|;:',<>?/"
 
