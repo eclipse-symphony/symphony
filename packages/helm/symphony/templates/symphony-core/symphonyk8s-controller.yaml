@@ -62,8 +62,8 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 500m
-            memory: 128Mi
+            cpu: '{{ .Values.K8sController.limits.cpu }}'
+            memory: '{{ .Values.K8sController.limits.memory }}'
           requests:
             cpu: 10m
             memory: 64Mi
