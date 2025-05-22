@@ -103,44 +103,22 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}()
 
-	// Check for server errors within 10 seconds of startup
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	select {
 	case err := <-h.errChan:
+		httpLogger.ErrorCtx(context.Background(), "H (HttpBinding): Server error: %s", err.Error())
 		return err
-	case <-ctx.Done():
-		// No error in 10 seconds, server is likely running successfully
+	case <-time.After(10 * time.Second):
+		httpLogger.DebugCtx(context.Background(), "H (HttpBinding): Server started on port: %s", config.Port)
 	}
-
 	return nil
 }
 
 // Shutdown fasthttp server
 func (h *HttpBinding) Shutdown(ctx context.Context) error {
-	// First shutdown the pipeline
 	if err := h.pipeline.Shutdown(ctx); err != nil {
 		return err
 	}
-
-	// Then shutdown the server
-	err := h.server.ShutdownWithContext(ctx)
-
-	// Wait a moment for any pending errors from the server shutdown to be sent
-	// But use a non-blocking select to avoid deadlock if no errors are sent
-	select {
-	case serverErr := <-h.errChan:
-		// If we already have an error from ShutdownWithContext, prioritize that
-		if err != nil {
-			return err
-		}
-		return serverErr
-	default:
-		// No error in channel
-	}
-
-	return err
+	return h.server.ShutdownWithContext(ctx)
 }
 
 func (h *HttpBinding) useRouter(endpoints []v1alpha2.Endpoint) fasthttp.RequestHandler {
