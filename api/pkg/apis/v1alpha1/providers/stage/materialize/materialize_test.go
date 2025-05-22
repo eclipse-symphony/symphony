@@ -146,9 +146,13 @@ type AuthResponse struct {
 }
 
 func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
+	requestCounts := make(map[string]int)
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		body, _ := io.ReadAll(r.Body)
+		requestCounts[r.URL.Path]++
+		count := requestCounts[r.URL.Path]
 		switch r.URL.Path {
 		case "/instances/instance1-v-version1":
 			instance := model.InstanceState{
@@ -161,9 +165,14 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				err := json.Unmarshal(body, &instance)
 				assert.Nil(t, err)
 				assert.Equal(t, expectNs, instance.ObjectMeta.Namespace)
-			} else if r.Method == "GET" {
+			} else if r.Method == "GET" && count == 1 {
 				// Mock GUID for get
 				instance.ObjectMeta.SetGuid("test-guid")
+				instance.ObjectMeta.SetSummaryJobId("1")
+			} else if r.Method == "GET" && count >= 2 {
+				// Mock GUID for get
+				instance.ObjectMeta.SetGuid("test-guid")
+				instance.ObjectMeta.SetSummaryJobId("2")
 			}
 			response = instance
 		case "/targets/registry/target1-v-version1":

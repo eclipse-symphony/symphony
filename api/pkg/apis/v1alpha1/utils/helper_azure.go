@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	AzureSolutionVersionIdPattern = "^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
-	AzureTargetIdPattern          = "^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
+	AzureSolutionVersionIdPattern = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
+	AzureTargetIdPattern          = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
 )
 
 func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool) {
