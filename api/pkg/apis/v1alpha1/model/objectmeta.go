@@ -185,3 +185,10 @@ func (c *ObjectMeta) SetGuid(guid string) {
 func (c *ObjectMeta) GetSummaryJobId() string {
 	return c.Annotations[constants.SummaryJobIdKey]
 }
+
+func (c *ObjectMeta) SetSummaryJobId(jobId string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.SummaryJobIdKey] = jobId
+}

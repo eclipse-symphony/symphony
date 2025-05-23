@@ -523,20 +523,33 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			key = GetTargetRuntimeKey(object.SummaryId)
 			nameKey = GetTargetRuntimeKey(object.Name)
 		}
-		// TODO
-		// jobId := object.SummaryJobId
-		// In order to make sure the current instance reconcile is completed not the previous.
-		// We should check the SummaryJobId equal to summary.JobID. However, object.SummaryJobId may be null and summary.JobID may also be null.
-		// Issue id: 689. We need to get this done before shared app integrating with workflow.
+		jobId := object.SummaryJobId
 		var summary *model.SummaryResult
 		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
 		// TODO: summary.Summary.JobID may be empty in standalone
-		if err != nil {
+		if err != nil || summary == nil {
 			remainingObjects = append(remainingObjects, object)
 			continue
 		}
 
-		if err == nil && summary.State == model.SummaryStateDone {
+		if jobId == "" {
+			jobId = "-1"
+		}
+		jobIdInt, err := strconv.Atoi(jobId)
+		if err != nil {
+			log.DebugfCtx(ctx, "Failed to convert jobId %s to int: %s", jobId, err.Error())
+			remainingObjects = append(remainingObjects, object)
+			continue
+		}
+		summaryJobIdInt, err := strconv.Atoi(summary.Summary.JobID)
+		if err != nil {
+			log.DebugfCtx(ctx, "Failed to convert summaryJobId %s to int: %s", summary.Summary.JobID, err.Error())
+			remainingObjects = append(remainingObjects, object)
+			continue
+		}
+		log.DebugfCtx(ctx, "Getting job id as %s from resource and %s from summary", jobId, summary.Summary.JobID)
+
+		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt > jobIdInt {
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
 				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})

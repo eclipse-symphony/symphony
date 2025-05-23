@@ -296,20 +296,40 @@ func TestCreateProcessUnsupported(t *testing.T) {
 }
 
 func InitializeMockSymphonyAPI() *httptest.Server {
+	requestCounts := make(map[string]int)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		statuCode := 200
+
+		// Create counters to track request counts for endpoints
+		requestCounts[r.URL.Path]++
+		count := requestCounts[r.URL.Path]
 		switch r.URL.Path {
 		case "/instances/instance1":
-			response = model.InstanceState{
-				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
-					Annotations: map[string]string{
-						"Guid": "test-guid",
+			if count == 1 {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "1",
+						},
 					},
-				},
-				Spec:   &model.InstanceSpec{},
-				Status: model.InstanceStatus{},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
+			} else {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "2",
+						},
+					},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
 			}
 		case "/solution/queue":
 			response = model.SummaryResult{
@@ -317,6 +337,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					TargetCount:         1,
 					SuccessCount:        1,
 					AllAssignedDeployed: true,
+					JobID:               "3",
 				},
 				State: model.SummaryStateDone,
 			}
@@ -343,25 +364,46 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 }
 
 func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
+	requestCounts := make(map[string]int)
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
+		// Create counters to track request counts for endpoints
+		requestCounts[r.URL.Path]++
+		count := requestCounts[r.URL.Path]
 		switch r.URL.Path {
 		case "/instances/instance1":
-			response = model.InstanceState{
-				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
-					Annotations: map[string]string{
-						"Guid": "test-guid",
+			if count == 1 {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "1",
+						},
 					},
-				},
-				Spec:   &model.InstanceSpec{},
-				Status: model.InstanceStatus{},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
+			} else {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "2",
+						},
+					},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
 			}
 		case "/solution/queue":
 			response = model.SummaryResult{
 				Summary: model.SummarySpec{
 					TargetCount:  2,
 					SuccessCount: 1,
+					JobID:        "3",
 				},
 			}
 		default:

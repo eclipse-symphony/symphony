@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -60,5 +61,5 @@ func ConvertReferenceToObjectNameHelper(name string) string {
 }
 
 func GenerateOperationId() string {
-	return ""
+	return uuid.New().String()
 }

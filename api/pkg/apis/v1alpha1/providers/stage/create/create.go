@@ -79,6 +79,14 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	if err != nil {
 		return err
 	}
+	if mockConfig.WaitInterval == 0 {
+		mockConfig.WaitInterval = 20
+	}
+
+	if mockConfig.WaitCount == 0 {
+		mockConfig.WaitCount = 31 * 60 / mockConfig.WaitInterval
+	}
+
 	s.Config = mockConfig
 	s.ApiClient, err = api_utils.GetApiClient()
 	if err != nil {
@@ -467,6 +475,25 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", instanceName), v1alpha2.BadRequest)
 			}
 
+			// get instance first to get the previous jobid before update
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if instance exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
+			}
+
 			objectData, _ := json.Marshal(instanceState)
 			mLog.InfofCtx(ctx, "  P (Create Stage): creating instance %s with state: %s", instanceName, objectData)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", instanceName, objectNamespace)
@@ -484,7 +511,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 
 			// check guid after instance created
-			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -497,7 +524,6 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, err
 			}
 			summaryId := ret.ObjectMeta.GetSummaryId()
-			jobId := ret.ObjectMeta.GetSummaryJobId()
 			if summaryId == "" {
 				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", instanceName)
 				providerOperationMetrics.ProviderOperationErrors(
@@ -514,7 +540,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				obj := api_utils.ObjectInfo{
 					Name:         instanceName,
 					SummaryId:    summaryId,
-					SummaryJobId: jobId,
+					SummaryJobId: previousJobId,
 				}
 				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
