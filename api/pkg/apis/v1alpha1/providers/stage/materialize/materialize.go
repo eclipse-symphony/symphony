@@ -148,6 +148,7 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 	}
 	return ret, nil
 }
+
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	ctx, span := observability.StartSpan("[Stage] Materialize Provider", ctx, &map[string]string{
 		"method": "Process",
@@ -300,7 +301,35 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
 			}
 
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				if instanceState.ObjectMeta.Annotations == nil {
+					instanceState.ObjectMeta.Annotations = make(map[string]string)
+				}
+				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", instanceState.ObjectMeta.Name, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
+
 			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if instance exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
+			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): previous jobid is %s for instance: %s", previousJobId, instanceState.ObjectMeta.Name)
+
 			objectData, _ := json.Marshal(instanceState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
@@ -317,7 +346,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, err
 			}
 			// Get instance guid
-			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -329,7 +358,19 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: ret.ObjectMeta.GetSummaryId(), SummaryJobId: ret.ObjectMeta.GetSummaryJobId()})
+			summaryId := ret.ObjectMeta.GetSummaryId()
+			if summaryId == "" {
+				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", instanceState.ObjectMeta.Name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceState.ObjectMeta.Name), v1alpha2.BadRequest)
+			}
+			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
@@ -453,7 +494,35 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
 			}
 
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				if targetState.ObjectMeta.Annotations == nil {
+					targetState.ObjectMeta.Annotations = make(map[string]string)
+				}
+				targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", targetState.ObjectMeta.Name, constants.AzureOperationIdKey, targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
+
 			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get target %s: %s", targetState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.TargetGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if target exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
+			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): previous jobid is %s for target: %s", previousJobId, targetState.ObjectMeta.Name)
+
 			objectData, _ := json.Marshal(targetState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
@@ -470,7 +539,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, err
 			}
 			// Get target guid
-			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			ret, err = i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -482,7 +551,20 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: ret.ObjectMeta.GetSummaryId(), SummaryJobId: ret.ObjectMeta.GetSummaryJobId()})
+
+			summaryId := ret.ObjectMeta.GetSummaryId()
+			if summaryId == "" {
+				mLog.ErrorfCtx(ctx, "Target GUID is empty: - %s", targetState.ObjectMeta.Name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.TargetGetFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target guid: - %s", targetState.ObjectMeta.Name), v1alpha2.BadRequest)
+			}
+			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
