@@ -547,6 +547,8 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			remainingObjects = append(remainingObjects, object)
 			continue
 		}
+		log.DebugfCtx(ctx, "Getting job id as %s from resource and %s from summary", jobId, summary.Summary.JobID)
+
 		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt > jobIdInt {
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)

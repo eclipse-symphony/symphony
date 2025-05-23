@@ -357,9 +357,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					instanceState.ObjectMeta.Annotations = make(map[string]string)
 				}
 				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
-				mLog.InfofCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", instanceState.ObjectMeta.Name, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", instanceState.ObjectMeta.Name, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}
 
+			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 			previousJobId := "-1"
 			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil && !api_utils.IsNotFound(err) {
@@ -377,8 +378,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				// Get the previous job ID if instance exists
 				previousJobId = ret.ObjectMeta.GetSummaryJobId()
 			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): previous jobid is %s for instance: %s", previousJobId, instanceState.ObjectMeta.Name)
 
-			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 			objectData, _ := json.Marshal(instanceState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
@@ -549,9 +550,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					targetState.ObjectMeta.Annotations = make(map[string]string)
 				}
 				targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
-				mLog.InfofCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", targetState.ObjectMeta.Name, constants.AzureOperationIdKey, targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", targetState.ObjectMeta.Name, constants.AzureOperationIdKey, targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}
 
+			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
 			previousJobId := "-1"
 			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil && !api_utils.IsNotFound(err) {
@@ -569,8 +571,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				// Get the previous job ID if target exists
 				previousJobId = ret.ObjectMeta.GetSummaryJobId()
 			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): previous jobid is %s for target: %s", previousJobId, targetState.ObjectMeta.Name)
 
-			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
 			objectData, _ := json.Marshal(targetState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
