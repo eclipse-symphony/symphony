@@ -10,9 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -149,54 +147,6 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 		ret.Password = password
 	}
 	return ret, nil
-}
-func GetUpdatedJobId(previousJobId string, objectName string, objectNamespace string, objectType string,
-	apiClient utils.ApiClient, user string, password string, ctx context.Context,
-	timeout <-chan time.Time, ticker *time.Ticker) string {
-
-	jobId := ""
-	prevJobIdInt, _ := strconv.Atoi(previousJobId)
-
-	for jobId == "" || jobId == previousJobId {
-		select {
-		case <-timeout:
-			log.Printf("Timeout waiting for job ID for %s %s", objectType, objectName)
-			return jobId
-		case <-ticker.C:
-			var err error
-			var instance model.InstanceState
-			var target model.TargetState
-
-			if objectType == "instance" {
-				instance, err = apiClient.GetInstance(ctx, objectName, objectNamespace, user, password)
-			} else if objectType == "target" {
-				target, err = apiClient.GetTarget(ctx, objectName, objectNamespace, user, password)
-			} else {
-				log.Printf("Unknown object type: %s", objectType)
-				return jobId
-			}
-
-			if err != nil {
-				log.Printf("Failed to get %s %s: %s", objectType, objectName, err.Error())
-				return jobId
-			}
-
-			if objectType == "instance" {
-				jobId = instance.ObjectMeta.GetSummaryJobId()
-			} else if objectType == "target" {
-				jobId = target.ObjectMeta.GetSummaryJobId()
-			}
-
-			jobIdInt, err := strconv.Atoi(jobId)
-			if err == nil && jobIdInt > prevJobIdInt && jobId != "" {
-				return jobId
-			}
-			log.Printf("Waiting for new job ID for %s %s (current: %s, previous: %s)",
-				objectType, objectName, jobId, previousJobId)
-		}
-	}
-
-	return jobId
 }
 
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
