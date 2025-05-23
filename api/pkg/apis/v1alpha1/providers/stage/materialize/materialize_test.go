@@ -185,9 +185,14 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				err := json.Unmarshal(body, &target)
 				assert.Nil(t, err)
 				assert.Equal(t, expectNs, target.ObjectMeta.Namespace)
-			} else if r.Method == "GET" {
+			} else if r.Method == "GET" && count == 1 {
 				// Mock GUID for get
 				target.ObjectMeta.SetGuid("test-guid")
+				target.ObjectMeta.SetSummaryJobId("1")
+			} else if r.Method == "GET" && count >= 2 {
+				// Mock GUID for get
+				target.ObjectMeta.SetGuid("test-guid")
+				target.ObjectMeta.SetSummaryJobId("2")
 			}
 			response = target
 		case "/solutions/solution1-v-version1":

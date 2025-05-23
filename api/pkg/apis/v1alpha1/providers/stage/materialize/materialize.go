@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -149,6 +150,55 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 	}
 	return ret, nil
 }
+func GetUpdatedJobId(previousJobId string, objectName string, objectNamespace string, objectType string,
+	apiClient utils.ApiClient, user string, password string, ctx context.Context,
+	timeout <-chan time.Time, ticker *time.Ticker) string {
+
+	jobId := ""
+	prevJobIdInt, _ := strconv.Atoi(previousJobId)
+
+	for jobId == "" || jobId == previousJobId {
+		select {
+		case <-timeout:
+			log.Printf("Timeout waiting for job ID for %s %s", objectType, objectName)
+			return jobId
+		case <-ticker.C:
+			var err error
+			var instance model.InstanceState
+			var target model.TargetState
+
+			if objectType == "instance" {
+				instance, err = apiClient.GetInstance(ctx, objectName, objectNamespace, user, password)
+			} else if objectType == "target" {
+				target, err = apiClient.GetTarget(ctx, objectName, objectNamespace, user, password)
+			} else {
+				log.Printf("Unknown object type: %s", objectType)
+				return jobId
+			}
+
+			if err != nil {
+				log.Printf("Failed to get %s %s: %s", objectType, objectName, err.Error())
+				return jobId
+			}
+
+			if objectType == "instance" {
+				jobId = instance.ObjectMeta.GetSummaryJobId()
+			} else if objectType == "target" {
+				jobId = target.ObjectMeta.GetSummaryJobId()
+			}
+
+			jobIdInt, err := strconv.Atoi(jobId)
+			if err == nil && jobIdInt > prevJobIdInt && jobId != "" {
+				return jobId
+			}
+			log.Printf("Waiting for new job ID for %s %s (current: %s, previous: %s)",
+				objectType, objectName, jobId, previousJobId)
+		}
+	}
+
+	return jobId
+}
+
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	ctx, span := observability.StartSpan("[Stage] Materialize Provider", ctx, &map[string]string{
 		"method": "Process",
@@ -369,47 +419,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceState.ObjectMeta.Name), v1alpha2.BadRequest)
 			}
-			// Loop to get jobId with timeout
-			jobId := ret.ObjectMeta.GetSummaryJobId()
-			prevJobIdInt, _ := strconv.Atoi(previousJobId)
-			timeout := time.After(time.Duration(60) * time.Second) // 60s for timeout
-			ticker := time.NewTicker(time.Second * 2)              // Check every 2 seconds
-			defer ticker.Stop()
-
-			for jobId == "" || jobId == previousJobId {
-				select {
-				case <-timeout:
-					mLog.ErrorfCtx(ctx, "Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name)
-					providerOperationMetrics.ProviderOperationErrors(
-						materialize,
-						functionName,
-						metrics.ProcessOperation,
-						metrics.RunOperationType,
-						v1alpha2.TimedOut.String(),
-					)
-					return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name), v1alpha2.TimedOut)
-				case <-ticker.C:
-					ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InstanceGetFailed.String(),
-						)
-						return outputs, false, err
-					}
-					jobId = ret.ObjectMeta.GetSummaryJobId()
-					jobIdInt, err := strconv.Atoi(jobId)
-					if err == nil && jobIdInt > prevJobIdInt && jobId != "" {
-						break
-					}
-					mLog.DebugfCtx(ctx, "Waiting for new job ID for instance %s (current: %s, previous: %s)", instanceState.ObjectMeta.Name, jobId, previousJobId)
-				}
-			}
-			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: jobId})
+			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
@@ -602,47 +612,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target guid: - %s", targetState.ObjectMeta.Name), v1alpha2.BadRequest)
 			}
-			// Loop to get jobId with timeout
-			jobId := ret.ObjectMeta.GetSummaryJobId()
-			prevJobIdInt, _ := strconv.Atoi(previousJobId)
-			timeout := time.After(time.Duration(60) * time.Second) // 60s for timeout
-			ticker := time.NewTicker(time.Second * 2)              // Check every 2 seconds
-			defer ticker.Stop()
-
-			for jobId == "" || jobId == previousJobId {
-				select {
-				case <-timeout:
-					mLog.ErrorfCtx(ctx, "Timeout waiting for job ID for target %s", targetState.ObjectMeta.Name)
-					providerOperationMetrics.ProviderOperationErrors(
-						materialize,
-						functionName,
-						metrics.ProcessOperation,
-						metrics.RunOperationType,
-						v1alpha2.TimedOut.String(),
-					)
-					return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Timeout waiting for job ID for target %s", targetState.ObjectMeta.Name), v1alpha2.TimedOut)
-				case <-ticker.C:
-					ret, err = i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to get target %s: %s", targetState.ObjectMeta.Name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							materialize,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.TargetGetFailed.String(),
-						)
-						return outputs, false, err
-					}
-					jobId = ret.ObjectMeta.GetSummaryJobId()
-					jobIdInt, err := strconv.Atoi(jobId)
-					if err == nil && jobIdInt > prevJobIdInt && jobId != "" {
-						break
-					}
-					mLog.DebugfCtx(ctx, "Waiting for new job ID for target %s (current: %s, previous: %s)", targetState.ObjectMeta.Name, jobId, previousJobId)
-				}
-			}
-			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: jobId})
+			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name

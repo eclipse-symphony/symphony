@@ -337,7 +337,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					TargetCount:         1,
 					SuccessCount:        1,
 					AllAssignedDeployed: true,
-					JobID:               "2",
+					JobID:               "3",
 				},
 				State: model.SummaryStateDone,
 			}
@@ -403,7 +403,7 @@ func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
 				Summary: model.SummarySpec{
 					TargetCount:  2,
 					SuccessCount: 1,
-					JobID:        "2",
+					JobID:        "3",
 				},
 			}
 		default:

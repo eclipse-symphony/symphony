@@ -532,6 +532,9 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			continue
 		}
 
+		if jobId == "" {
+			jobId = "-1"
+		}
 		jobIdInt, err := strconv.Atoi(jobId)
 		if err != nil {
 			log.DebugfCtx(ctx, "Failed to convert jobId %s to int: %s", jobId, err.Error())
@@ -544,7 +547,7 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 			remainingObjects = append(remainingObjects, object)
 			continue
 		}
-		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt >= jobIdInt {
+		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt > jobIdInt {
 			if !summary.Summary.AllAssignedDeployed {
 				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
 				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})

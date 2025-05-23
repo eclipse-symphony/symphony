@@ -535,52 +535,12 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
 			}
-			// Loop to get jobId with timeout
-			jobId := ret.ObjectMeta.GetSummaryJobId()
-			prevJobIdInt, _ := strconv.Atoi(previousJobId)
-			timeout := time.After(time.Duration(60) * time.Second) // 60s for timeout
-			ticker := time.NewTicker(time.Second * 2)              // Check every 2 seconds
-			defer ticker.Stop()
-
-			for jobId == "" || jobId == previousJobId {
-				select {
-				case <-timeout:
-					mLog.ErrorfCtx(ctx, "Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name)
-					providerOperationMetrics.ProviderOperationErrors(
-						create,
-						functionName,
-						metrics.ProcessOperation,
-						metrics.RunOperationType,
-						v1alpha2.TimedOut.String(),
-					)
-					return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Timeout waiting for job ID for instance %s", instanceState.ObjectMeta.Name), v1alpha2.TimedOut)
-				case <-ticker.C:
-					ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-					if err != nil {
-						mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
-						providerOperationMetrics.ProviderOperationErrors(
-							create,
-							functionName,
-							metrics.ProcessOperation,
-							metrics.RunOperationType,
-							v1alpha2.InstanceGetFailed.String(),
-						)
-						return outputs, false, err
-					}
-					jobId = ret.ObjectMeta.GetSummaryJobId()
-					jobIdInt, err := strconv.Atoi(jobId)
-					if err == nil && jobIdInt > prevJobIdInt && jobId != "" {
-						break
-					}
-					mLog.DebugfCtx(ctx, "Waiting for new job ID for instance %s (current: %s, previous: %s)", instanceState.ObjectMeta.Name, jobId, previousJobId)
-				}
-			}
 
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
 					Name:         instanceName,
 					SummaryId:    summaryId,
-					SummaryJobId: jobId,
+					SummaryJobId: previousJobId,
 				}
 				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
