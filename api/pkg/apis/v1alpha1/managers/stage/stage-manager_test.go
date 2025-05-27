@@ -585,6 +585,57 @@ func TestErrorHandlerNotSet(t *testing.T) {
 	assert.Equal(t, v1alpha2.InternalError, status.Status)
 	assert.True(t, v1alpha2.InternalError.EqualsWithString(status.StatusMessage))
 }
+
+func TestErrorAtLastStage(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.StageStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:   "test-campaign",
+		Activation: "test-activation",
+		Stage:      "test",
+		Outputs:    nil,
+		Provider:   "providers.stage.http",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.http",
+					StageSelector: "test2",
+					Inputs: map[string]interface{}{
+						"method": "GET",
+						"url":    "bad url",
+					},
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.InternalError, status.Status)
+	assert.True(t, v1alpha2.InternalError.EqualsWithString(status.StatusMessage))
+}
+
 func TestAccessingPreviousStage(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})

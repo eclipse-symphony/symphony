@@ -739,7 +739,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 
 			if sVal != "" {
-				if nextStage, ok := campaign.Stages[sVal]; ok {
+				if nextStage, ok := campaign.Stages[sVal]; ok || delayedExit {
 					if !delayedExit || nextStage.HandleErrors {
 						status.NextStage = sVal
 						activationData = &v1alpha2.ActivationData{
@@ -755,48 +755,42 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							Schedule:             nextStage.Schedule,
 							Namespace:            triggerData.Namespace,
 						}
+						s.setStageStatus(&status, sVal, v1alpha2.Done, "")
+						return status, activationData
 					} else {
-						status.Status = v1alpha2.InternalError
-						status.StatusMessage = v1alpha2.InternalError.String()
-						status.ErrorMessage = fmt.Sprintf("stage %s failed", triggerData.Stage)
-						status.IsActive = false
+						s.setStageStatus(&status, "", v1alpha2.InternalError, fmt.Sprintf("stage %s failed", triggerData.Stage))
 						log.ErrorfCtx(ctx, " M (Stage): failed to process stage outputs: %v", status.ErrorMessage)
 						return status, activationData
 					}
 				} else {
-					err = v1alpha2.NewCOAError(nil, status.ErrorMessage, v1alpha2.BadRequest)
-					status.Status = v1alpha2.BadRequest
-					status.StatusMessage = v1alpha2.BadRequest.String()
-					status.ErrorMessage = fmt.Sprintf("stage %s is not found", sVal)
-					status.IsActive = false
+					s.setStageStatus(&status, "", v1alpha2.BadRequest, fmt.Sprintf("stage %s is not found", sVal))
 					log.ErrorfCtx(ctx, " M (Stage): failed to find next stage: %v", err)
 					return status, activationData
 				}
 			}
 			// sVal is empty, no next stage
-			status.NextStage = sVal
-			status.IsActive = false
-			status.Status = v1alpha2.Done
-			status.StatusMessage = v1alpha2.Done.String()
+			s.setStageStatus(&status, sVal, v1alpha2.Done, "")
 			log.InfofCtx(ctx, " M (Stage): stage %s is done", triggerData.Stage)
 			return status, activationData
 		} else {
 			// Not self-driving, no next stage
-			status.Status = v1alpha2.Done
-			status.StatusMessage = v1alpha2.Done.String()
-			status.NextStage = ""
-			status.IsActive = false
+			s.setStageStatus(&status, "", v1alpha2.Done, "")
 			log.InfofCtx(ctx, " M (Stage): stage %s is done (no next stage)", triggerData.Stage)
 			return status, activationData
 		}
 	}
 	err = v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", triggerData.Stage), v1alpha2.BadRequest)
-	status.Status = v1alpha2.InternalError
-	status.StatusMessage = v1alpha2.InternalError.String()
-	status.ErrorMessage = err.Error()
-	status.IsActive = false
+	s.setStageStatus(&status, "", v1alpha2.InternalError, err.Error())
 	log.ErrorfCtx(ctx, " M (Stage): failed to find stage: %v", err)
 	return status, activationData
+}
+
+func (s *StageManager) setStageStatus(status *model.StageStatus, nextStage string, state v1alpha2.State, errMsg string) {
+	status.NextStage = nextStage
+	status.Status = state
+	status.StatusMessage = state.String()
+	status.IsActive = false
+	status.ErrorMessage = errMsg
 }
 
 func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace string, inputs map[string]interface{}, triggers map[string]interface{}, outputs map[string]map[string]interface{}) (interface{}, error) {
