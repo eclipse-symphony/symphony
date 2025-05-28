@@ -547,9 +547,11 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					outputs["objectType"] = objectType
 					outputs["objectName"] = instanceName
 					mLog.InfofCtx(ctx, "  P (Create Stage) process completed with fail count is %d", len(failed))
-					outputs["failedDeployment"] = failed
-					outputs["failedDeploymentCount"] = len(failed)
 
+					outputs["failedDeploymentCount"] = len(failed)
+					if len(failed) > 0 {
+						outputs["failedDeployment"] = failed[0]
+					}
 					return outputs, false, nil
 				}
 				time.Sleep(time.Duration(i.Config.WaitInterval) * time.Second)
