@@ -875,7 +875,7 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = 2 * time.Second // Initial retry interval.
 	b.MaxInterval = 30 * time.Second    // Maximum retry interval.
-	b.MaxElapsedTime = 2 * time.Minute  // Maximum total waiting time.
+	b.MaxElapsedTime = 3 * time.Minute  // Maximum total waiting time.
 
 	retryErr := backoff.Retry(func() error {
 		resp, err = a.client.Do(req)
@@ -889,10 +889,11 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 			return err
 		}
 
-		if resp.StatusCode >= 500 {
-			object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
-			return object
-		} else if resp.StatusCode >= 300 {
+		// if resp.StatusCode >= 500 {
+		// 	object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
+		// 	return object
+		// } else
+		if resp.StatusCode >= 300 {
 			if resp.StatusCode == http.StatusForbidden {
 				// 403 is a retriable error, so we return a COAError with the same status code
 				// This should only happen at k8s token provider so can skip the username and password
