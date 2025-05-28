@@ -427,7 +427,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
+	log.InfofCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s, selfDriving %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage, campaign.SelfDriving)
 	status := model.StageStatus{
 		Stage:         triggerData.Stage,
 		NextStage:     "",
@@ -636,7 +636,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		// gofail: var afterProvider string
 
 		outputs := make(map[string]interface{})
-		delayedExit := false
+		hasStageError := false
 		for result := range results {
 			err = result.GetError()
 			if err != nil {
@@ -651,7 +651,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 				log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
-				delayedExit = true
+				hasStageError = true
 			}
 			for k, v := range result.Outputs {
 				if result.Site == s.Context.SiteInfo.SiteId {
@@ -733,20 +733,21 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				return status, activationData
 			}
 
-			sVal := ""
+			nextStageName := ""
 			if val != nil {
-				sVal = utils.FormatAsString(val)
+				nextStageName = utils.FormatAsString(val)
 			}
 
-			if sVal != "" {
-				if nextStage, ok := campaign.Stages[sVal]; ok || delayedExit {
-					if !delayedExit || nextStage.HandleErrors {
-						status.NextStage = sVal
+			log.InfoCtx(ctx, " M (Stage): stage %s finished. has error? %s", triggerData.Stage, hasStageError)
+			if nextStageName != "" {
+				if nextStage, ok := campaign.Stages[nextStageName]; ok || hasStageError {
+					if !hasStageError || nextStage.HandleErrors {
+						status.NextStage = nextStageName
 						activationData = &v1alpha2.ActivationData{
 							Campaign:             triggerData.Campaign,
 							Activation:           triggerData.Activation,
 							ActivationGeneration: triggerData.ActivationGeneration,
-							Stage:                sVal,
+							Stage:                nextStageName,
 							Inputs:               triggerData.Inputs,
 							Outputs:              triggerData.Outputs,
 							Provider:             nextStage.Provider,
@@ -755,7 +756,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							Schedule:             nextStage.Schedule,
 							Namespace:            triggerData.Namespace,
 						}
-						s.setStageStatus(&status, sVal, v1alpha2.Done, "")
+						s.setStageStatus(&status, nextStageName, v1alpha2.Done, "")
 						return status, activationData
 					} else {
 						s.setStageStatus(&status, "", v1alpha2.InternalError, fmt.Sprintf("stage %s failed", triggerData.Stage))
@@ -763,13 +764,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						return status, activationData
 					}
 				} else {
-					s.setStageStatus(&status, "", v1alpha2.BadRequest, fmt.Sprintf("stage %s is not found", sVal))
+					s.setStageStatus(&status, "", v1alpha2.BadRequest, fmt.Sprintf("stage %s is not found", nextStageName))
 					log.ErrorfCtx(ctx, " M (Stage): failed to find next stage: %v", err)
 					return status, activationData
 				}
 			}
 			// sVal is empty, no next stage
-			s.setStageStatus(&status, sVal, v1alpha2.Done, "")
+			s.setStageStatus(&status, nextStageName, v1alpha2.Done, "")
 			log.InfofCtx(ctx, " M (Stage): stage %s is done", triggerData.Stage)
 			return status, activationData
 		} else {
