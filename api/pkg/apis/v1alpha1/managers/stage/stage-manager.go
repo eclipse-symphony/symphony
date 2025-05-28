@@ -775,6 +775,11 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			return status, activationData
 		} else {
 			// Not self-driving, no next stage
+			if hasStageError {
+				s.setStageStatus(&status, "", v1alpha2.InternalError, fmt.Sprintf("stage %s failed", triggerData.Stage))
+				log.ErrorfCtx(ctx, " M (Stage): failed to process stage outputs: %v", status.ErrorMessage)
+				return status, activationData
+			}
 			s.setStageStatus(&status, "", v1alpha2.Done, "")
 			log.InfofCtx(ctx, " M (Stage): stage %s is done (no next stage)", triggerData.Stage)
 			return status, activationData
