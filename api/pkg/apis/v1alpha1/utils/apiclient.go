@@ -893,6 +893,19 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 			object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 			return object
 		} else if resp.StatusCode >= 300 {
+			if resp.StatusCode == http.StatusForbidden {
+				// 403 is a retriable error, so we return a COAError with the same status code
+				// This should only happen at k8s token provider so can skip the username and password
+				token, err := a.tokenProvider(ctx, a.baseUrl, a.client, "", "")
+				if token != "" {
+					req.Header.Set("Authorization", "Bearer "+token)
+				}
+				if err != nil {
+					return err
+				}
+				object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
+				return object
+			}
 			userError = NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
 		}
 		return nil
