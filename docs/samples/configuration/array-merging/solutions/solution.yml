@@ -1,0 +1,57 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: array-merging-solution  
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: array-merging-solution-v-v1
+spec:
+  rootResource: array-merging-solution
+  components:
+    - name: array-merging-deployment
+      type: yaml.k8s
+      properties:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: testapp
+            labels:
+              version: "1"
+              application: "testapp"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: testapp
+            template:
+              metadata:
+                labels:
+                  app: testapp
+              spec:
+                nodeSelector:
+                  "kubernetes.io/os": linux
+                containers:
+                  - name: busybox
+                    image: k8s.gcr.io/e2e-test-images/busybox:1.29
+                    command:
+                      - "/bin/sleep"
+                      - "10000"
+                volumes:
+                  - name: config-region1
+                    configMap:
+                      name: merged-config-region1
+                  - name: config-region2
+                    configMap:
+                      name: merged-config-region2
+    - name: merged-config-region1
+      type: config
+      properties:
+        tags: ${{$config('region1:config', '')}}
+    - name: merged-config-region2
+      type: config
+      properties:
+        tags: ${{$config('region2:config', '')}}

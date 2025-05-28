@@ -9,21 +9,33 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	baseUrl  = "http://localhost:8090/v1alpha2/"
+	baseUrl  = "http://localhost:8082/v1alpha2/"
 	user     = "admin"
 	password = ""
 )
 
-func TestGetInstancesWhenSomeInstances(t *testing.T) {
+func getTestApiClient() *apiClient {
+	os.Setenv(constants.SymphonyAPIUrlEnvName, baseUrl)
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	apiClient, err := GetApiClient()
+	if err != nil {
+		panic(err)
+	}
+	return apiClient
+}
+
+func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	testSymphonyApi := os.Getenv("TEST_SYMPHONY_API")
 	if testSymphonyApi != "yes" {
 		t.Skip("Skipping becasue TEST_SYMPHONY_API is missing or not set to 'yes'")
@@ -31,12 +43,15 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 
 	solutionName := "solution1"
 	solution1JsonObj := map[string]interface{}{
-		"name": "e4i-assets",
+		"name": "nginx-solution",
 		"type": "helm.v3",
 		"properties": map[string]interface{}{
 			"chart": map[string]interface{}{
-				"repo":    "e4ipreview.azurecr.io/helm/az-e4i-demo-assets",
-				"version": "0.4.0",
+				"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+				"version": "18.1.8",
+			},
+			"values": map[string]interface{}{
+				"replicaCount": 2,
 			},
 		},
 	}
@@ -46,7 +61,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1, "default")
+	err = getTestApiClient().CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -57,47 +72,28 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 			"scope":       "alice-springs",
 			"components": []interface{}{
 				map[string]interface{}{
-					"name": "e4k",
+					"name": "nginx-target1",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "e4kpreview.azurecr.io/helm/az-e4k",
-							"version": "0.3.0",
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "e4i",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "e4ipreview.azurecr.io/helm/az-e4i",
-							"version": "0.4.0",
+							"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+							"version": "18.1.8",
 						},
 						"values": map[string]interface{}{
-							"mqttBroker": map[string]interface{}{
-								"authenticationMethod": "serviceAccountToken",
-								"name":                 "azedge-dmqtt-frontend",
-								"namespace":            "alice-springs",
-							},
-							"opcPlcSimulation": map[string]interface{}{
-								"deploy": "true",
-							},
-							"openTelemetry": map[string]interface{}{
-								"enabled":  "true",
-								"endpoint": "http://otel-collector.alice-springs.svc.cluster.local:4317",
-								"protocol": "grpc",
-							},
+							"replicaCount": 2,
 						},
 					},
 				},
 				map[string]interface{}{
-					"name": "bluefin",
+					"name": "nginx-target2",
 					"type": "helm.v3",
 					"properties": map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-							"version": "0.1.2",
+							"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+							"version": "18.1.8",
+						},
+						"values": map[string]interface{}{
+							"replicaCount": 2,
 						},
 					},
 				},
@@ -106,22 +102,8 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 				map[string]interface{}{
 					"bindings": []interface{}{
 						map[string]interface{}{
-							"role":     "instance",
-							"provider": "providers.target.k8s",
-							"config": map[string]interface{}{
-								"inCluster": "true",
-							},
-						},
-						map[string]interface{}{
 							"role":     "helm.v3",
 							"provider": "providers.target.helm",
-							"config": map[string]interface{}{
-								"inCluster": "true",
-							},
-						},
-						map[string]interface{}{
-							"role":     "yaml.k8s",
-							"provider": "providers.target.kubectl",
 							"config": map[string]interface{}{
 								"inCluster": "true",
 							},
@@ -134,7 +116,7 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 	target1, err := json.Marshal(target1JsonObj)
 	require.NoError(t, err)
 
-	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1, "default")
+	err = getTestApiClient().CreateTarget(context.Background(), targetName, target1, "default", user, password)
 	require.NoError(t, err)
 
 	instanceName := "instance1"
@@ -151,38 +133,38 @@ func TestGetInstancesWhenSomeInstances(t *testing.T) {
 		panic(err)
 	}
 
-	err = CreateInstance(context.Background(), baseUrl, instanceName, user, password, instance1, "default")
+	err = getTestApiClient().CreateInstance(context.Background(), instanceName, instance1, "default", user, password)
 	require.NoError(t, err)
 
 	// ensure instance gets created properly
 	time.Sleep(time.Second)
 
-	instancesRes, err := GetInstances(context.Background(), baseUrl, user, password, "default")
+	instancesRes, err := getTestApiClient().GetInstances(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(instancesRes))
 	require.Equal(t, instanceName, instancesRes[0].Spec.DisplayName)
 	require.Equal(t, solutionName, instancesRes[0].Spec.Solution)
 	require.Equal(t, targetName, instancesRes[0].Spec.Target.Name)
-	require.Equal(t, "1", instancesRes[0].Status["targets"])
-	require.Equal(t, "OK", instancesRes[0].Status["status"])
+	require.Equal(t, 1, instancesRes[0].Status.Targets)
+	require.Equal(t, "OK", instancesRes[0].Status.Status)
 
-	instanceRes, err := GetInstance(context.Background(), baseUrl, instanceName, user, password, "default")
+	instanceRes, err := getTestApiClient().GetInstance(context.Background(), instanceName, "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
 	require.Equal(t, solutionName, instanceRes.Spec.Solution)
 	require.Equal(t, targetName, instanceRes.Spec.Target.Name)
-	require.Equal(t, "1", instanceRes.Status["targets"])
-	require.Equal(t, "OK", instanceRes.Status["status"])
+	// require.Equal(t, "1", instanceRes.Status.Properties["targets"])
+	require.Equal(t, "OK", instanceRes.Status.Status)
 
-	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
+	err = getTestApiClient().DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 
-	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password, "default")
+	err = getTestApiClient().DeleteSolution(context.Background(), solutionName, "default", user, password)
 	require.NoError(t, err)
 
-	err = DeleteInstance(context.Background(), baseUrl, instanceName, user, password, "default")
+	err = getTestApiClient().DeleteInstance(context.Background(), instanceName, "default", user, password)
 	require.NoError(t, err)
 }
 
@@ -192,38 +174,68 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		t.Skip("Skipping becasue TEST_SYMPHONY_API is missing or not set to 'yes'")
 	}
 
-	solutionName := "solution1"
-	solution1JsonObj := map[string]interface{}{
-		"name": "e4i-assets",
-		"type": "helm.v3",
-		"properties": map[string]interface{}{
-			"chart": map[string]interface{}{
-				"repo":    "e4ipreview.azurecr.io/helm/az-e4i-demo-assets",
-				"version": "0.4.0",
-			},
+	solutionContainerName := "solution"
+	solutionContainer := model.SolutionContainerState{
+		ObjectMeta: model.ObjectMeta{
+			Name: solutionContainerName,
 		},
+		Spec: &model.SolutionContainerSpec{},
 	}
 
-	solution1, err := json.Marshal(solution1JsonObj)
+	solutionContainer1, err := json.Marshal(solutionContainer)
 	if err != nil {
 		panic(err)
 	}
 
-	err = UpsertSolution(context.Background(), baseUrl, solutionName, user, password, solution1, "default")
+	err = getTestApiClient().CreateSolutionContainer(context.Background(), solutionContainerName, solutionContainer1, "default", user, password)
 	require.NoError(t, err)
 
-	solutionsRes, err := GetSolutions(context.Background(), baseUrl, user, password, "default")
+	solutionName := fmt.Sprintf("%s%s%s", solutionContainerName, constants.ResourceSeperator, "v1")
+	solution := model.SolutionState{
+		ObjectMeta: model.ObjectMeta{
+			Name: solutionName,
+		},
+		Spec: &model.SolutionSpec{
+			RootResource: solutionContainerName,
+			DisplayName:  solutionName,
+			Components: []model.ComponentSpec{
+				{
+					Name: "simple-chart-1",
+					Type: "helm.v3",
+					Properties: map[string]interface{}{
+						"chart": map[string]interface{}{
+							"repo":    "ghcr.io/eclipse-symphony/tests/helm/simple-chart",
+							"version": "0.3.0",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	solution1, err := json.Marshal(solution)
+	if err != nil {
+		panic(err)
+	}
+
+	err = getTestApiClient().CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	require.NoError(t, err)
+
+	solutionsRes, err := getTestApiClient().GetSolutions(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(solutionsRes))
 	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := GetSolution(context.Background(), baseUrl, solutionName, user, password, "default")
+	solutionRes, err := getTestApiClient().GetSolution(context.Background(), solutionName, "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
 
-	err = DeleteSolution(context.Background(), baseUrl, solutionName, user, password, "default")
+	err = getTestApiClient().DeleteSolution(context.Background(), solutionName, "default", user, password)
+	require.NoError(t, err)
+
+	err = getTestApiClient().DeleteSolutionContainer(context.Background(), solutionContainerName, "default", user, password)
 	require.NoError(t, err)
 }
 
@@ -234,79 +246,35 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 	}
 
 	targetName := "target1"
-	target1JsonObj := map[string]interface{}{
-		"id": "self",
-		"spec": map[string]interface{}{
-			"displayName": "int-virtual-02",
-			"scope":       "alice-springs",
-			"components": []interface{}{
-				map[string]interface{}{
-					"name": "e4k",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
+	target := model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name: targetName,
+		},
+		Spec: &model.TargetSpec{
+			DisplayName: targetName,
+			Scope:       "alice-springs",
+			Components: []model.ComponentSpec{
+				{
+					Name: "nginx-chart-1",
+					Type: "helm.v3",
+					Properties: map[string]interface{}{
 						"chart": map[string]interface{}{
-							"repo":    "e4kpreview.azurecr.io/helm/az-e4k",
-							"version": "0.3.0",
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "e4i",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "e4ipreview.azurecr.io/helm/az-e4i",
-							"version": "0.4.0",
+							"repo":    "registry-1.docker.io/bitnamicharts/nginx",
+							"version": "18.1.8",
 						},
 						"values": map[string]interface{}{
-							"mqttBroker": map[string]interface{}{
-								"authenticationMethod": "serviceAccountToken",
-								"name":                 "azedge-dmqtt-frontend",
-								"namespace":            "alice-springs",
-							},
-							"opcPlcSimulation": map[string]interface{}{
-								"deploy": "true",
-							},
-							"openTelemetry": map[string]interface{}{
-								"enabled":  "true",
-								"endpoint": "http://otel-collector.alice-springs.svc.cluster.local:4317",
-								"protocol": "grpc",
-							},
-						},
-					},
-				},
-				map[string]interface{}{
-					"name": "bluefin",
-					"type": "helm.v3",
-					"properties": map[string]interface{}{
-						"chart": map[string]interface{}{
-							"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-							"version": "0.1.2",
+							"replicaCount": 2,
 						},
 					},
 				},
 			},
-			"topologies": []interface{}{
-				map[string]interface{}{
-					"bindings": []interface{}{
-						map[string]interface{}{
-							"role":     "instance",
-							"provider": "providers.target.k8s",
-							"config": map[string]interface{}{
-								"inCluster": "true",
-							},
-						},
-						map[string]interface{}{
-							"role":     "helm.v3",
-							"provider": "providers.target.helm",
-							"config": map[string]interface{}{
-								"inCluster": "true",
-							},
-						},
-						map[string]interface{}{
-							"role":     "yaml.k8s",
-							"provider": "providers.target.kubectl",
-							"config": map[string]interface{}{
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "helm.v3",
+							Provider: "providers.target.helm",
+							Config: map[string]string{
 								"inCluster": "true",
 							},
 						},
@@ -315,73 +283,87 @@ func TestGetTargetsWithSomeTargets(t *testing.T) {
 			},
 		},
 	}
-	target1, err := json.Marshal(target1JsonObj)
+	target1, err := json.Marshal(target)
 	require.NoError(t, err)
 
-	err = CreateTarget(context.Background(), baseUrl, targetName, user, password, target1, "default")
+	err = getTestApiClient().CreateTarget(context.Background(), targetName, target1, "default", user, password)
 	require.NoError(t, err)
 
 	// Ensure target gets created properly
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
-	targetsRes, err := GetTargets(context.Background(), baseUrl, user, password, "default")
+	targetsRes, err := getTestApiClient().GetTargets(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, len(targetsRes))
 	require.Equal(t, targetName, targetsRes[0].Spec.DisplayName)
-	require.Equal(t, "default", targetsRes[0].Spec.Scope)
-	require.Equal(t, "1", targetsRes[0].Status["targets"])
-	require.Equal(t, "OK", targetsRes[0].Status["status"])
+	require.Equal(t, "default", targetsRes[0].ObjectMeta.Namespace)
+	// TODO: https://github.com/eclipse-symphony/symphony/issues/401
+	// require.Equal(t, "1", targetsRes[0].Status.Properties["targets"])
+	// require.Equal(t, "Succeeded", targetsRes[0].Status.Properties["status"])
 
-	targetRes, err := GetTarget(context.Background(), baseUrl, targetName, user, password, "default")
+	targetRes, err := getTestApiClient().GetTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 
 	require.Equal(t, targetName, targetRes.Spec.DisplayName)
-	require.Equal(t, "default", targetRes.Spec.Scope)
-	require.Equal(t, "1", targetRes.Status["targets"])
-	require.Equal(t, "OK", targetRes.Status["status"])
+	require.Equal(t, "default", targetRes.ObjectMeta.Namespace)
+	// TODO: https://github.com/eclipse-symphony/symphony/issues/401
+	// require.Equal(t, "1", targetRes.Status.Properties["targets"])
+	// require.Equal(t, "Succeeded", targetRes.Status.Properties["status"])
 
-	err = DeleteTarget(context.Background(), baseUrl, targetName, user, password, "default")
+	err = getTestApiClient().DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 }
 
 func TestMatchTargetsWithTargetName(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someTargetName",
-		Metadata: map[string]string{
-			"key": "value",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someTargetName",
 		},
-		Spec: &model.TargetSpec{},
+		Spec: &model.TargetSpec{
+			Metadata: map[string]string{
+				"key": "value",
+			},
+		},
 	}})
 
 	require.Equal(t, []model.TargetState{{
-		Id: "someTargetName",
-		Metadata: map[string]string{
-			"key": "value",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someTargetName",
 		},
-		Spec: &model.TargetSpec{},
+		Spec: &model.TargetSpec{
+			Metadata: map[string]string{
+				"key": "value",
+			},
+		},
 	}}, res)
 }
 
 func TestMatchTargetsWithUnmatchedName(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id:   "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{},
 	}})
 
@@ -390,7 +372,9 @@ func TestMatchTargetsWithUnmatchedName(t *testing.T) {
 
 func TestMatchTargetsWithSelectors(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -399,9 +383,11 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
 			Properties: map[string]string{
@@ -411,7 +397,9 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 	}})
 
 	require.Equal(t, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
 			Properties: map[string]string{
@@ -423,7 +411,9 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 
 func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 	res := MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -432,9 +422,11 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			Properties: map[string]string{
 				"OS": "linux",
@@ -445,7 +437,9 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 	require.Equal(t, []model.TargetState{}, res)
 
 	res = MatchTargets(model.InstanceState{
-		Id: "someId",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someId",
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -454,9 +448,11 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 				},
 			},
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, []model.TargetState{{
-		Id: "someDifferentTargetName",
+		ObjectMeta: model.ObjectMeta{
+			Name: "someDifferentTargetName",
+		},
 		Spec: &model.TargetSpec{
 			Properties: map[string]string{
 				"company": "linux",
@@ -468,15 +464,16 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 }
 
 func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
-	res, err := CreateSymphonyDeploymentFromTarget(model.TargetState{
-		Id: "someTargetName",
+	res, err := CreateSymphonyDeploymentFromTarget(ctx, model.TargetState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "someTargetName",
+			Annotations: map[string]string{
+				"Guid": "someGuid",
+			},
+		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
 			Scope:       "targetScope",
-			Metadata: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
 			Components: []model.ComponentSpec{
 				{
 					Name: "componentName1",
@@ -494,54 +491,22 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			Properties: map[string]string{
 				"OS": "windows",
 			},
-		},
-	})
-	require.NoError(t, err)
-
-	require.Equal(t, model.DeploymentSpec{
-		SolutionName: "target-runtime-someTargetName",
-		Solution: model.SolutionSpec{
-			DisplayName: "target-runtime-someTargetName",
-			Scope:       "targetScope",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
 			},
-			Components: []model.ComponentSpec{
-				{
-					Name: "componentName1",
-					Type: "componentType1",
-					Metadata: map[string]string{
-						"key1": "value1",
-						"key2": "value2",
-					},
-				},
-				{
-					Name: "componentName2",
-					Type: "componentType2",
-				},
-			},
 		},
-		Instance: model.InstanceSpec{
-			Name:        "target-runtime-someTargetName",
-			DisplayName: "target-runtime-someTargetName",
-			Scope:       "targetScope",
-			Solution:    "target-runtime-someTargetName",
-			Target: model.TargetSelector{
-				Name: "someTargetName",
+	}, "default")
+	require.NoError(t, err)
+
+	ret, err := res.DeepEquals(model.DeploymentSpec{
+		SolutionName: "target-runtime-someTargetName",
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "target-runtime-someTargetName",
 			},
-		},
-		Targets: map[string]model.TargetSpec{
-			"someTargetName": {
-				DisplayName: "someDisplayName",
-				Scope:       "targetScope",
-				Metadata: map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-				},
-				Properties: map[string]string{
-					"OS": "windows",
-				},
+			Spec: &model.SolutionSpec{
+				DisplayName: "target-runtime-someTargetName",
 				Components: []model.ComponentSpec{
 					{
 						Name: "componentName1",
@@ -556,18 +521,77 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 						Type: "componentType2",
 					},
 				},
-				ForceRedeploy: false,
+			},
+		},
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "target-runtime-someTargetName",
+				Annotations: map[string]string{
+					"Guid": "someGuid",
+				},
+			},
+			Spec: &model.InstanceSpec{
+				Scope:       "targetScope",
+				DisplayName: "target-runtime-someTargetName",
+				Solution:    "target-runtime-someTargetName",
+				Target: model.TargetSelector{
+					Name: "someTargetName",
+				},
+			},
+		},
+		Targets: map[string]model.TargetState{
+			"someTargetName": {
+				ObjectMeta: model.ObjectMeta{
+					Name: "someTargetName",
+					Annotations: map[string]string{
+						"Guid": "someGuid",
+					},
+				},
+				Spec: &model.TargetSpec{
+					DisplayName: "someDisplayName",
+					Scope:       "targetScope",
+					Properties: map[string]string{
+						"OS": "windows",
+					},
+					Components: []model.ComponentSpec{
+						{
+							Name: "componentName1",
+							Type: "componentType1",
+							Metadata: map[string]string{
+								"key1": "value1",
+								"key2": "value2",
+							},
+						},
+						{
+							Name: "componentName2",
+							Type: "componentType2",
+						},
+					},
+					ForceRedeploy: false,
+					Metadata: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+					},
+				},
 			},
 		},
 		Assignments: map[string]string{
 			"someTargetName": "{componentName1}{componentName2}",
 		},
-	}, res)
+	})
+	require.NoError(t, err)
+	require.True(t, ret)
 }
 
 func TestCreateSymphonyDeployment(t *testing.T) {
-	res, err := CreateSymphonyDeployment(model.InstanceState{
-		Id: "someOtherId",
+	res, err := CreateSymphonyDeployment(ctx, model.InstanceState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "someOtherId",
+			Namespace: "instanceScope",
+			Annotations: map[string]string{
+				"Guid": "someGuid",
+			},
+		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
@@ -575,19 +599,15 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 					"OS": "windows",
 				},
 			},
-			Scope: "instanceScope",
 		},
-		Status: map[string]string{},
+		Status: model.InstanceStatus{},
 	}, model.SolutionState{
-		Id: "someOtherId",
+		ObjectMeta: model.ObjectMeta{
+			Name:      "someOtherId",
+			Namespace: "solutionsScope",
+		},
 		Spec: &model.SolutionSpec{
 			DisplayName: "someDisplayName",
-			Scope:       "solutionsScope",
-			Metadata: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
 			Components: []model.ComponentSpec{
 				{
 					Name: "componentName1",
@@ -602,25 +622,34 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 					},
 				},
 			},
-		},
-	}, []model.TargetState{
-		{
-			Id: "someTargetName1",
 			Metadata: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
 				"key3": "value3",
 			},
+		},
+	}, []model.TargetState{
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "someTargetName1",
+				Namespace: "targetScope",
+			},
 			Spec: &model.TargetSpec{
 				Properties: map[string]string{
 					"company": "microsoft",
 				},
-				Scope: "targetScope",
+				Metadata: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
 			},
 		},
 	}, []model.DeviceState{
 		{
-			Id: "someTargetName2",
+			ObjectMeta: model.ObjectMeta{
+				Name: "someTargetName2",
+			},
 			Spec: &model.DeviceSpec{
 				DisplayName: "someDeviceDisplayName",
 				Properties: map[string]string{
@@ -628,63 +657,89 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, "default")
 	require.NoError(t, err)
 
-	require.Equal(t, model.DeploymentSpec{
+	jData, _ := json.Marshal(res)
+	t.Log(string(jData))
+	ret, err := res.DeepEquals(model.DeploymentSpec{ //require.Equal( doesn't seem to compare pointer fields correctly
 		SolutionName: "someOtherId",
-		Solution: model.SolutionSpec{
-			DisplayName: "someDisplayName",
-			Scope:       "solutionsScope",
-			Metadata: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "someOtherId",
+				Namespace: "solutionsScope",
 			},
-			Components: []model.ComponentSpec{
-				{
-					Name: "componentName1",
-					Type: "componentType1",
+			Spec: &model.SolutionSpec{
+				DisplayName: "someDisplayName",
+				Components: []model.ComponentSpec{
+					{
+						Name: "componentName1",
+						Type: "componentType1",
+					},
+					{
+						Name: "componentName2",
+						Type: "componentType2",
+						Metadata: map[string]string{
+							"key1": "value1",
+							"key2": "value2",
+						},
+					},
 				},
-				{
-					Name: "componentName2",
-					Type: "componentType2",
-					Metadata: map[string]string{
-						"key1": "value1",
-						"key2": "value2",
+				Metadata: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
+			},
+		},
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "someOtherId",
+				Namespace: "instanceScope",
+				Annotations: map[string]string{
+					"Guid": "someGuid",
+				},
+			},
+			Spec: &model.InstanceSpec{
+				Solution: "",
+				Target: model.TargetSelector{
+					Name: "someTargetName",
+					Selector: map[string]string{
+						"OS": "windows",
 					},
 				},
 			},
+			Status: model.InstanceStatus{},
 		},
-		Instance: model.InstanceSpec{
-			Name:        "someOtherId",
-			DisplayName: "",
-			Scope:       "instanceScope",
-			Solution:    "",
-			Target: model.TargetSelector{
-				Name: "someTargetName",
-				Selector: map[string]string{
-					"OS": "windows",
-				},
-			},
-		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"someTargetName1": {
-				Scope: "targetScope",
-				Properties: map[string]string{
-					"company": "microsoft",
+				ObjectMeta: model.ObjectMeta{
+					Name:      "someTargetName1",
+					Namespace: "targetScope",
 				},
-				ForceRedeploy: false,
+				Spec: &model.TargetSpec{
+					Properties: map[string]string{
+						"company": "microsoft",
+					},
+					ForceRedeploy: false,
+					Metadata: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+						"key3": "value3",
+					},
+				},
 			},
 		},
 		Assignments: map[string]string{
 			"someTargetName1": "{componentName1}{componentName2}",
 		},
-	}, res)
+	})
+	require.NoError(t, err)
+	require.True(t, ret)
 }
 
 func TestAssignComponentsToTargetsWithMixedConstraints(t *testing.T) {
-	res, err := AssignComponentsToTargets([]model.ComponentSpec{
+	res, err := AssignComponentsToTargets(ctx, []model.ComponentSpec{
 		{
 			Name:        "componentName1",
 			Constraints: "${{$equal($property(OS),windows)}}",
@@ -697,20 +752,26 @@ func TestAssignComponentsToTargetsWithMixedConstraints(t *testing.T) {
 			Name:        "componentName3",
 			Constraints: "${{$equal($property(OS),unix)}}",
 		},
-	}, map[string]model.TargetSpec{
+	}, map[string]model.TargetState{
 		"target1": {
-			Properties: map[string]string{
-				"OS": "windows",
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "windows",
+				},
 			},
 		},
 		"target2": {
-			Properties: map[string]string{
-				"OS": "linux",
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "linux",
+				},
 			},
 		},
 		"target3": {
-			Properties: map[string]string{
-				"OS": "unix",
+			Spec: &model.TargetSpec{
+				Properties: map[string]string{
+					"OS": "unix",
+				},
 			},
 		},
 	})

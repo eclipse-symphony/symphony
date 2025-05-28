@@ -8,6 +8,7 @@ package users
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 
@@ -34,10 +35,11 @@ type UserState struct {
 }
 
 func (s *UsersManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
-	stateprovider, err := managers.GetStateProvider(config, providers)
+	stateprovider, err := managers.GetVolatileStateProvider(config, providers)
 	if err == nil {
 		s.StateProvider = stateprovider
 	} else {
+		log.Errorf(" M (Users): failed to get state provider %+v", err)
 		return err
 	}
 
@@ -49,11 +51,17 @@ func (t *UsersManager) DeleteUser(ctx context.Context, name string) error {
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Users): DeleteUser name %s", name)
 
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 	})
-	return err
+	if err != nil {
+		log.DebugfCtx(ctx, " M (Users) : failed to delete user %s", err)
+		return err
+	}
+	return nil
 }
 
 func hash(name string, s string) string {
@@ -68,8 +76,9 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Users): UpsertUser name %s", name)
 
-	log.Debug(" M (Users) : upsert user")
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID: name,
@@ -82,7 +91,7 @@ func (t *UsersManager) UpsertUser(ctx context.Context, name string, password str
 	}
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
 	if err != nil {
-		log.Debugf(" M (Users) : failed to upsert user - %s", err)
+		log.DebugfCtx(ctx, " M (Users) : failed to upsert user %v", err)
 		return err
 	}
 	return nil
@@ -93,23 +102,30 @@ func (t *UsersManager) CheckUser(ctx context.Context, name string, password stri
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, " M (Users): CheckUser name %s", name)
 
-	log.Debug(" M (Users) : check user")
 	getRequest := states.GetRequest{
 		ID: name,
 	}
-	user, err := t.StateProvider.Get(ctx, getRequest)
+	var user states.StateEntry
+	user, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		log.Debugf(" M (Users) : failed to read user - %s", err)
+		log.DebugfCtx(ctx, " M (Users) : failed to get user %s states", err)
+		return nil, false
+	}
+	var userState UserState
+	bytes, _ := json.Marshal(user.Body)
+	err = json.Unmarshal(bytes, &userState)
+	if err != nil {
 		return nil, false
 	}
 
-	if v, ok := user.Body.(UserState); ok {
-		if hash(name, password) == v.PasswordHash {
-			log.Debug(" M (Users) : user authenticated")
-			return v.Roles, true
-		}
+	if hash(name, password) == userState.PasswordHash {
+		log.DebugCtx(ctx, " M (Users) : user authenticated")
+		return userState.Roles, true
 	}
-	log.Debug(" M (Users) : authentication failed")
+
+	log.DebugCtx(ctx, " M (Users) : authentication failed")
 	return nil, false
 }

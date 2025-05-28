@@ -20,24 +20,28 @@ func TestConstructManagerState(t *testing.T) {
 	//	b	 X
 	//	c	 X
 	state, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -54,16 +58,18 @@ func TestConstructManagerStateTwoProviders(t *testing.T) {
 	//	b	 .       X
 	//	c	 X		 .
 	state, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
@@ -71,9 +77,13 @@ func TestConstructManagerStateTwoProviders(t *testing.T) {
 			"T1": "{a}{c}",
 			"T2": "{b}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
-			"T2": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
+			"T2": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -85,15 +95,17 @@ func TestConstructManagerStateTwoProviders(t *testing.T) {
 }
 func Test(t *testing.T) {
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "mock1",
-				},
-				{
-					Name: "b",
-					Type: "mock2",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "mock1",
+					},
+					{
+						Name: "b",
+						Type: "mock2",
+					},
 				},
 			},
 		},
@@ -101,26 +113,30 @@ func Test(t *testing.T) {
 			"T1": "{a}",
 			"T2": "{b}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"T1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock1",
-								Provider: "providers.target.mock",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock1",
+									Provider: "providers.target.mock",
+								},
 							},
 						},
 					},
 				},
 			},
 			"T2": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "mock2",
-								Provider: "providers.target.mock",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "mock2",
+									Provider: "providers.target.mock",
+								},
 							},
 						},
 					},
@@ -143,18 +159,20 @@ func TestConstructManagerStateThreeProvidersDepedencies(t *testing.T) {
 	//	b	 .       X		.
 	//	a	 X		 .		.
 	state, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name:         "a",
-					Dependencies: []string{"b"},
-				},
-				{
-					Name:         "b",
-					Dependencies: []string{"c"},
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name:         "a",
+						Dependencies: []string{"b"},
+					},
+					{
+						Name:         "b",
+						Dependencies: []string{"c"},
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
@@ -163,10 +181,16 @@ func TestConstructManagerStateThreeProvidersDepedencies(t *testing.T) {
 			"T2": "{b}",
 			"T3": "{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
-			"T2": {},
-			"T3": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
+			"T2": {
+				Spec: &model.TargetSpec{},
+			},
+			"T3": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -178,43 +202,51 @@ func TestConstructManagerStateThreeProvidersDepedencies(t *testing.T) {
 }
 func TestMergeStateAddAComponent(t *testing.T) {
 	state1, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
 	state2, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -227,43 +259,51 @@ func TestMergeStateAddAComponent(t *testing.T) {
 }
 func TestMergeStateRemoveAComponent(t *testing.T) {
 	state1, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
 	state2, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -276,46 +316,54 @@ func TestMergeStateRemoveAComponent(t *testing.T) {
 }
 func TestMergeStateProviderChange(t *testing.T) {
 	state1, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
 	state2, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T2": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T2": {},
+		Targets: map[string]model.TargetState{
+			"T2": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -331,43 +379,51 @@ func TestMergeStateProviderChange(t *testing.T) {
 }
 func TestMergeStateUnrelated(t *testing.T) {
 	state1, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
 	state2, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "d",
-				},
-				{
-					Name: "e",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "d",
+					},
+					{
+						Name: "e",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T2": "{d}{e}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T2": {},
+		Targets: map[string]model.TargetState{
+			"T2": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -382,38 +438,44 @@ func TestMergeStateUnrelated(t *testing.T) {
 }
 func TestMergeStateAddProvider(t *testing.T) {
 	state1, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
 	state2, err := NewDeploymentState(model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+					},
 				},
 			},
 		},
@@ -421,9 +483,13 @@ func TestMergeStateAddProvider(t *testing.T) {
 			"T1": "{a}{b}{c}",
 			"T2": "{a}{b}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
-			"T2": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
+			"T2": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	})
 	assert.Nil(t, err)
@@ -444,26 +510,30 @@ func TestPlanSimple(t *testing.T) {
 	//	b	 X	(instance)
 	//	c	 X	instance
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name: "b",
-				},
-				{
-					Name: "c",
-					Type: "instance",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name: "b",
+					},
+					{
+						Name: "c",
+						Type: "instance",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -475,15 +545,15 @@ func TestPlanSimple(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 1, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
 	//T1-container: b,c
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "instance", plan.Steps[1].Role)
 	assert.Equal(t, 2, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[1].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[1].Components[1].Component.Name)
 }
 func TestPlanComplex(t *testing.T) {
@@ -494,25 +564,27 @@ func TestPlanComplex(t *testing.T) {
 	//	c	        X       X
 	//  d    X              X
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-				},
-				{
-					Name:         "b",
-					Dependencies: []string{"a"},
-					Type:         "helm",
-				},
-				{
-					Name:         "c",
-					Dependencies: []string{"b"},
-					Type:         "helm",
-				},
-				{
-					Name:         "d",
-					Dependencies: []string{"b", "c"},
-					Type:         "kubectl",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+					},
+					{
+						Name:         "b",
+						Dependencies: []string{"a"},
+						Type:         "helm",
+					},
+					{
+						Name:         "c",
+						Dependencies: []string{"b"},
+						Type:         "helm",
+					},
+					{
+						Name:         "d",
+						Dependencies: []string{"b", "c"},
+						Type:         "kubectl",
+					},
 				},
 			},
 		},
@@ -521,10 +593,16 @@ func TestPlanComplex(t *testing.T) {
 			"T2": "{b}{c}",
 			"T3": "{a}{c}{d}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
-			"T2": {},
-			"T3": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
+			"T2": {
+				Spec: &model.TargetSpec{},
+			},
+			"T3": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -536,38 +614,38 @@ func TestPlanComplex(t *testing.T) {
 	assert.Equal(t, "T3", plan.Steps[0].Target)
 	assert.Equal(t, "instance", plan.Steps[0].Role)
 	assert.Equal(t, 1, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
 	//T1:b
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "helm", plan.Steps[1].Role)
 	assert.Equal(t, 1, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
 	//T2:b,c
 	assert.Equal(t, "T2", plan.Steps[2].Target)
 	assert.Equal(t, "helm", plan.Steps[1].Role)
 	assert.Equal(t, 2, len(plan.Steps[2].Components))
-	assert.Equal(t, "update", plan.Steps[2].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[2].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[2].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[2].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[2].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[2].Components[1].Component.Name)
 	//T3:c
 	assert.Equal(t, "T3", plan.Steps[3].Target)
 	assert.Equal(t, "helm", plan.Steps[3].Role)
 	assert.Equal(t, 1, len(plan.Steps[3].Components))
-	assert.Equal(t, "update", plan.Steps[3].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[3].Components[0].Action)
 	assert.Equal(t, "c", plan.Steps[3].Components[0].Component.Name)
 	//T1:d
 	assert.Equal(t, "T1", plan.Steps[4].Target)
 	assert.Equal(t, "kubectl", plan.Steps[4].Role)
 	assert.Equal(t, 1, len(plan.Steps[4].Components))
-	assert.Equal(t, "update", plan.Steps[4].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[4].Components[0].Action)
 	assert.Equal(t, "d", plan.Steps[4].Components[0].Component.Name)
 	//T3:d
 	assert.Equal(t, "T3", plan.Steps[5].Target)
 	assert.Equal(t, 1, len(plan.Steps[5].Components))
-	assert.Equal(t, "update", plan.Steps[5].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[5].Components[0].Action)
 	assert.Equal(t, "d", plan.Steps[5].Components[0].Component.Name)
 }
 func TestProviderStepsMergeNoDepedencies(t *testing.T) {
@@ -577,27 +655,31 @@ func TestProviderStepsMergeNoDepedencies(t *testing.T) {
 	//	b	 X       kubectl
 	//	c	 X       helm
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name: "b",
-					Type: "kubectl",
-				},
-				{
-					Name: "c",
-					Type: "helm",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name: "b",
+						Type: "kubectl",
+					},
+					{
+						Name: "c",
+						Type: "helm",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -609,15 +691,15 @@ func TestProviderStepsMergeNoDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 2, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[0].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[0].Components[1].Component.Name)
 	//T1:b
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "kubectl", plan.Steps[1].Role)
 	assert.Equal(t, 1, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
 }
 func TestProviderStepsMergeWithDepedencies(t *testing.T) {
@@ -627,28 +709,32 @@ func TestProviderStepsMergeWithDepedencies(t *testing.T) {
 	//	b	 X       kubectl
 	//	c	 X       helm
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name: "b",
-					Type: "kubectl",
-				},
-				{
-					Name:         "c",
-					Type:         "helm",
-					Dependencies: []string{"b"},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name: "b",
+						Type: "kubectl",
+					},
+					{
+						Name:         "c",
+						Type:         "helm",
+						Dependencies: []string{"b"},
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -660,19 +746,19 @@ func TestProviderStepsMergeWithDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 1, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
 	//T1:b
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "kubectl", plan.Steps[1].Role)
 	assert.Equal(t, 1, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
 	//T1:c
 	assert.Equal(t, "T1", plan.Steps[2].Target)
 	assert.Equal(t, "helm", plan.Steps[2].Role)
 	assert.Equal(t, 1, len(plan.Steps[2].Components))
-	assert.Equal(t, "update", plan.Steps[2].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[2].Components[0].Action)
 	assert.Equal(t, "c", plan.Steps[2].Components[0].Component.Name)
 }
 func TestDockerHelmMixNoDepedencies(t *testing.T) {
@@ -683,31 +769,35 @@ func TestDockerHelmMixNoDepedencies(t *testing.T) {
 	//c		helm
 	//d		docker
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name: "b",
-					Type: "docker",
-				},
-				{
-					Name: "c",
-					Type: "helm",
-				},
-				{
-					Name: "d",
-					Type: "docker",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name: "b",
+						Type: "docker",
+					},
+					{
+						Name: "c",
+						Type: "helm",
+					},
+					{
+						Name: "d",
+						Type: "docker",
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}{d}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -719,17 +809,17 @@ func TestDockerHelmMixNoDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 2, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[0].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[0].Components[1].Component.Name)
 	//T1:b,d
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "docker", plan.Steps[1].Role)
 	assert.Equal(t, 2, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[1].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[1].Action)
 	assert.Equal(t, "d", plan.Steps[1].Components[1].Component.Name)
 }
 func TestDockerHelmMixPairedDepedencies(t *testing.T) {
@@ -740,33 +830,37 @@ func TestDockerHelmMixPairedDepedencies(t *testing.T) {
 	//c		helm
 	//d		docker -> c
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name:         "b",
-					Type:         "docker",
-					Dependencies: []string{"a"},
-				},
-				{
-					Name: "c",
-					Type: "helm",
-				},
-				{
-					Name:         "d",
-					Type:         "docker",
-					Dependencies: []string{"c"},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name:         "b",
+						Type:         "docker",
+						Dependencies: []string{"a"},
+					},
+					{
+						Name: "c",
+						Type: "helm",
+					},
+					{
+						Name:         "d",
+						Type:         "docker",
+						Dependencies: []string{"c"},
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}{d}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -778,17 +872,17 @@ func TestDockerHelmMixPairedDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 2, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[0].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[0].Components[1].Component.Name)
 	//T1:b,d
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "docker", plan.Steps[1].Role)
 	assert.Equal(t, 2, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[1].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[1].Action)
 	assert.Equal(t, "d", plan.Steps[1].Components[1].Component.Name)
 }
 func TestDockerHelmMixCrosseddDepedencies(t *testing.T) {
@@ -799,33 +893,37 @@ func TestDockerHelmMixCrosseddDepedencies(t *testing.T) {
 	//c		helm -> a
 	//d		docker -> b
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name: "b",
-					Type: "docker",
-				},
-				{
-					Name:         "c",
-					Type:         "helm",
-					Dependencies: []string{"a"},
-				},
-				{
-					Name:         "d",
-					Type:         "docker",
-					Dependencies: []string{"b"},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name: "b",
+						Type: "docker",
+					},
+					{
+						Name:         "c",
+						Type:         "helm",
+						Dependencies: []string{"a"},
+					},
+					{
+						Name:         "d",
+						Type:         "docker",
+						Dependencies: []string{"b"},
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}{d}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -837,17 +935,17 @@ func TestDockerHelmMixCrosseddDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 2, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[0].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[0].Components[1].Component.Name)
 	//T1:b,d
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "docker", plan.Steps[1].Role)
 	assert.Equal(t, 2, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[1].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[1].Action)
 	assert.Equal(t, "d", plan.Steps[1].Components[1].Component.Name)
 }
 func TestDockerHelmMixCombineddDepedencies(t *testing.T) {
@@ -858,32 +956,36 @@ func TestDockerHelmMixCombineddDepedencies(t *testing.T) {
 	//c		helm
 	//d		docker -> b,c
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name: "b",
-					Type: "docker",
-				},
-				{
-					Name: "c",
-					Type: "helm",
-				},
-				{
-					Name:         "d",
-					Type:         "docker",
-					Dependencies: []string{"b", "c"},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name: "b",
+						Type: "docker",
+					},
+					{
+						Name: "c",
+						Type: "helm",
+					},
+					{
+						Name:         "d",
+						Type:         "docker",
+						Dependencies: []string{"b", "c"},
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}{d}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -895,17 +997,17 @@ func TestDockerHelmMixCombineddDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 2, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[0].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[1].Action)
 	assert.Equal(t, "c", plan.Steps[0].Components[1].Component.Name)
 	//T1:b,d
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "docker", plan.Steps[1].Role)
 	assert.Equal(t, 2, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
-	assert.Equal(t, "update", plan.Steps[1].Components[1].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[1].Action)
 	assert.Equal(t, "d", plan.Steps[1].Components[1].Component.Name)
 }
 func TestDockerHelmMixLinearDepedencies(t *testing.T) {
@@ -916,34 +1018,38 @@ func TestDockerHelmMixLinearDepedencies(t *testing.T) {
 	//c		helm -> b
 	//d		docker -> c
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "a",
-					Type: "helm",
-				},
-				{
-					Name:         "b",
-					Type:         "docker",
-					Dependencies: []string{"a"},
-				},
-				{
-					Name:         "c",
-					Type:         "helm",
-					Dependencies: []string{"b"},
-				},
-				{
-					Name:         "d",
-					Type:         "docker",
-					Dependencies: []string{"c"},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "a",
+						Type: "helm",
+					},
+					{
+						Name:         "b",
+						Type:         "docker",
+						Dependencies: []string{"a"},
+					},
+					{
+						Name:         "c",
+						Type:         "helm",
+						Dependencies: []string{"b"},
+					},
+					{
+						Name:         "d",
+						Type:         "docker",
+						Dependencies: []string{"c"},
+					},
 				},
 			},
 		},
 		Assignments: map[string]string{
 			"T1": "{a}{b}{c}{d}",
 		},
-		Targets: map[string]model.TargetSpec{
-			"T1": {},
+		Targets: map[string]model.TargetState{
+			"T1": {
+				Spec: &model.TargetSpec{},
+			},
 		},
 	}
 	state, err := NewDeploymentState(deployment)
@@ -955,24 +1061,24 @@ func TestDockerHelmMixLinearDepedencies(t *testing.T) {
 	assert.Equal(t, "T1", plan.Steps[0].Target)
 	assert.Equal(t, "helm", plan.Steps[0].Role)
 	assert.Equal(t, 1, len(plan.Steps[0].Components))
-	assert.Equal(t, "update", plan.Steps[0].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[0].Components[0].Action)
 	assert.Equal(t, "a", plan.Steps[0].Components[0].Component.Name)
 	//T1:b
 	assert.Equal(t, "T1", plan.Steps[1].Target)
 	assert.Equal(t, "docker", plan.Steps[1].Role)
 	assert.Equal(t, 1, len(plan.Steps[1].Components))
-	assert.Equal(t, "update", plan.Steps[1].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[1].Components[0].Action)
 	assert.Equal(t, "b", plan.Steps[1].Components[0].Component.Name)
 	//T1:c
 	assert.Equal(t, "T1", plan.Steps[2].Target)
 	assert.Equal(t, "helm", plan.Steps[2].Role)
 	assert.Equal(t, 1, len(plan.Steps[2].Components))
-	assert.Equal(t, "update", plan.Steps[2].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[2].Components[0].Action)
 	assert.Equal(t, "c", plan.Steps[2].Components[0].Component.Name)
 	//T1:d
 	assert.Equal(t, "T1", plan.Steps[3].Target)
 	assert.Equal(t, "docker", plan.Steps[3].Role)
 	assert.Equal(t, 1, len(plan.Steps[3].Components))
-	assert.Equal(t, "update", plan.Steps[3].Components[0].Action)
+	assert.Equal(t, model.ComponentUpdate, plan.Steps[3].Components[0].Action)
 	assert.Equal(t, "d", plan.Steps[3].Components[0].Component.Name)
 }

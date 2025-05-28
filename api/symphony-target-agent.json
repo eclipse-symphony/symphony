@@ -1,0 +1,112 @@
+{
+  "siteInfo": {
+    "siteId": "symphony-agent"
+  },
+  "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
+    "vendors": [
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.agent",
+        "loopInterval": 15,
+        "route": "agent",
+        "managers": [
+          {
+            "name": "reference-manager",
+            "type": "managers.symphony.reference",
+            "properties": {
+              "providers.reference": "http-reference",
+              "providers.volatilestate": "memory",
+              "providers.reporter": "http-reporter"
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "http-reporter": {
+                "type": "providers.reporter.http",
+                "config": {
+                  "url": "$env:SYMPHONY_URL"
+                }
+              },
+              "http-reference": {
+                "type": "providers.reference.http",
+                "config": {
+                  "url": "$env:SYMPHONY_URL"
+                }
+              }
+            }
+          },
+          {
+            "name": "target-manager",
+            "type": "managers.symphony.target",
+            "properties": {              
+              "providers.probe": "rtsp-probe",
+              "providers.reference": "http-reference",
+              "providers.uploader": "azure-uploader",
+              "providers.reporter": "http-reporter",
+              "poll.enabled": "true"
+            },
+            "providers": {      
+              "rtsp-probe": {
+                "type": "providers.probe.rtsp",
+                "config": {                  
+                }
+              },
+              "http-reference": {
+                "type": "providers.reference.http",
+                "config": {
+                  "url": "$env:SYMPHONY_URL",
+                  "target": "$env:TARGET_NAME"
+                }
+              },
+              "http-reporter": {
+                "type": "providers.reporter.http",
+                "config": {
+                  "url": "$env:SYMPHONY_URL"
+                }
+              },
+              "azure-uploader": {
+                "type": "providers.uploader.azure.blob",
+                "config": {
+                  "account": "$env:STORAGE_ACCOUNT",
+                  "container": "$env:STORAGE_CONTAINER"
+                }
+              }        
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.http",
+      "config": {
+        "port": 8088
+      }
+    },
+    {
+      "type": "bindings.http",
+      "config": {
+          "port": 8089,
+          "tls": true,
+          "certProvider": {
+          "type": "certs.autogen",
+          "config":{}
+          }
+      }
+    }
+  ]
+}

@@ -13,9 +13,9 @@ import (
 
 // TODO: all state objects should converge to this paradigm: id, spec and status
 type CatalogState struct {
-	Id     string         `json:"id"`
-	Spec   *CatalogSpec   `json:"spec,omitempty"`
-	Status *CatalogStatus `json:"status,omitempty"`
+	ObjectMeta ObjectMeta     `json:"metadata,omitempty"`
+	Spec       *CatalogSpec   `json:"spec,omitempty"`
+	Status     *CatalogStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -25,20 +25,19 @@ type ObjectRef struct {
 	Group      string            `json:"group"`
 	Version    string            `json:"version"`
 	Kind       string            `json:"kind"`
-	Scope      string            `json:"scope"`
+	Namespace  string            `json:"namespace"`
 	Address    string            `json:"address,omitempty"`
 	Generation string            `json:"generation,omitempty"`
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 type CatalogSpec struct {
-	SiteId     string                 `json:"siteId"`
-	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	Properties map[string]interface{} `json:"properties"`
-	Metadata   map[string]string      `json:"metadata,omitempty"`
-	ParentName string                 `json:"parentName,omitempty"`
-	ObjectRef  ObjectRef              `json:"objectRef,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	CatalogType  string                 `json:"catalogType"`
+	Metadata     map[string]string      `json:"metadata,omitempty"`
+	Properties   map[string]interface{} `json:"properties"`
+	ParentName   string                 `json:"parentName,omitempty"`
+	ObjectRef    ObjectRef              `json:"objectRef,omitempty"`
+	Version      string                 `json:"version,omitempty"`
+	RootResource string                 `json:"rootResource,omitempty"`
 }
 
 type CatalogStatus struct {
@@ -51,19 +50,7 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a CatalogSpec type")
 	}
 
-	if c.SiteId != otherC.SiteId {
-		return false, nil
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
-	}
-
 	if c.ParentName != otherC.ParentName {
-		return false, nil
-	}
-
-	if c.Generation != otherC.Generation {
 		return false, nil
 	}
 
@@ -74,9 +61,28 @@ func (c CatalogSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 
+func (c CatalogState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(CatalogState)
+	if !ok {
+		return false, errors.New("parameter is not a CatalogState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	return true, nil
+}
+
 // INode interface
 func (s CatalogState) GetId() string {
-	return s.Id
+	return s.ObjectMeta.Name
 }
 func (s CatalogState) GetParent() string {
 	if s.Spec != nil {
@@ -86,7 +92,7 @@ func (s CatalogState) GetParent() string {
 }
 func (s CatalogState) GetType() string {
 	if s.Spec != nil {
-		return s.Spec.Type
+		return s.Spec.CatalogType
 	}
 	return ""
 }
@@ -100,7 +106,7 @@ func (s CatalogState) GetProperties() map[string]interface{} {
 // IEdge interface
 func (s CatalogState) GetFrom() string {
 	if s.Spec != nil {
-		if s.Spec.Type == "edge" {
+		if s.Spec.CatalogType == "edge" {
 			if s.Spec.Metadata != nil {
 				if from, ok := s.Spec.Metadata["from"]; ok {
 					return from
@@ -113,7 +119,7 @@ func (s CatalogState) GetFrom() string {
 
 func (s CatalogState) GetTo() string {
 	if s.Spec != nil {
-		if s.Spec.Type == "edge" {
+		if s.Spec.CatalogType == "edge" {
 			if s.Spec.Metadata != nil {
 				if to, ok := s.Spec.Metadata["to"]; ok {
 					return to

@@ -1,8 +1,15 @@
 apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: dummy-solution  
+spec:
+---
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: dummy-solution
-spec:  
+  name: dummy-solution-v-version1
+spec:
+  rootResource: dummy-solution
   metadata:
   components:
   - name: simulated-sensor

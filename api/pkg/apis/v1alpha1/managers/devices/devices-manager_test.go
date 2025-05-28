@@ -25,7 +25,7 @@ func TestInit(t *testing.T) {
 	}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.persistentstate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)
@@ -42,22 +42,27 @@ func TestUpsertAndDelete(t *testing.T) {
 	}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.persistentstate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)
 	providers["StateProvider"] = stateProvider
 	err := manager.Init(nil, config, providers)
 	assert.Nil(t, err)
-	deviceSpec := model.DeviceSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	deviceState := model.DeviceState{
+		ObjectMeta: model.ObjectMeta{
+			Name: "test",
+		},
+		Spec: &model.DeviceSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
 		},
 	}
-	err = manager.UpsertSpec(context.Background(), "test", deviceSpec)
+	err = manager.UpsertState(context.Background(), "test", deviceState)
 	assert.Nil(t, err)
-	err = manager.DeleteSpec(context.Background(), "test")
+	err = manager.DeleteState(context.Background(), "test", "default")
 	assert.Nil(t, err)
 }
 
@@ -69,29 +74,32 @@ func TestUpsertAndGet(t *testing.T) {
 	}
 	config := managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.state": "StateProvider",
+			"providers.persistentstate": "StateProvider",
 		},
 	}
 	providers := make(map[string]providers.IProvider)
 	providers["StateProvider"] = stateProvider
 	err := manager.Init(nil, config, providers)
 	assert.Nil(t, err)
-	deviceSpec := model.DeviceSpec{
-		DisplayName: "device",
-		Properties: map[string]string{
-			"a": "a",
+	deviceState := model.DeviceState{
+		ObjectMeta: model.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: &model.DeviceSpec{
+			DisplayName: "device",
+			Properties: map[string]string{
+				"a": "a",
+			},
 		},
 	}
-	err = manager.UpsertSpec(context.Background(), "test", deviceSpec)
+	err = manager.UpsertState(context.Background(), "test", deviceState)
 	assert.Nil(t, err)
-	state, err := manager.GetSpec(context.Background(), "test")
+	state, err := manager.GetState(context.Background(), "test", "default")
 	assert.Nil(t, err)
-	deviceState := model.DeviceState{
-		Id:   "test",
-		Spec: &deviceSpec,
-	}
+	deviceState.ObjectMeta.UpdateEtag(state.ObjectMeta.ETag)
 	assert.Equal(t, deviceState, state)
-	states, err := manager.ListSpec(context.Background())
+	states, err := manager.ListState(context.Background(), "default")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(states))
 	assert.Equal(t, deviceState, states[len(states)-1])

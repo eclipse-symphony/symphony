@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "name": "counter-campaign-v-version1"
+  },
+  "spec": {
+    "rootResource": "counter-campaign",
+    "firstStage": "mock",
+    "selfDriving": true,
+    "stages": {
+      "mock": {
+        "name": "mock",
+        "provider": "providers.stage.mock",
+        "inputs": {
+          "foo": "${{trigger(foo,0)}}"
+        }
+      },
+      "counter": {
+        "name": "counter",
+        "provider": "providers.stage.counter",
+        "stageSelector": "${{$if($lt($output(counter,val), 20), counter, '')}}",
+        "inputs": {
+          "val": "${{$trigger(val, 0)}}",
+          "val.init": "${{$trigger(val.init, 0)}}"
+        }
+      }
+    }
+  }
+}

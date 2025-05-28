@@ -56,7 +56,7 @@ Multiple levels of role-based access control (RBAC) can be applied to Symphony:
 
 * Symphony REST API has RBAC control based on claims in authorization tokens
 * Kubernetes RBAC can be applied to Kubernetes resources
-* When a particular [provider](../providers/providers.md) is used, the provider is subject to authentication and authorization mechanisms reinforced by the connected system.
+* When a particular [provider](../providers/_overview.md) is used, the provider is subject to authentication and authorization mechanisms reinforced by the connected system.
 
 Kubernetes RBAC and provider configuration are out of scope of this document. This section covers how to configure Symphony REST API RBAC.
 

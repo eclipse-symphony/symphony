@@ -8,6 +8,17 @@
     }
   },
   "api": {
+    "keylock": {
+      "shared": true,
+      "provider": {      
+        "type": "providers.keylock.memory",
+        "config": {
+          "mode": "Global",
+          "cleanInterval" : 30,
+          "purgeDuration" : 43200
+        }
+      }
+    },
     "vendors": [
       {
         "type": "vendors.echo",
@@ -24,9 +35,10 @@
             "type": "managers.symphony.solution",
             "properties": {
               "providers.target": "sideload",
-              "providers.state": "mem-state",
+              "providers.persistentstate": "mem-state",
               "providers.config": "mock-config",  
-              "providers.secret": "mock-secret"  
+              "providers.secret": "mock-secret",
+              "providers.keylock": "mem-keylock"
             },
             "providers": {
               "sideload": {
@@ -40,6 +52,12 @@
               "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
+              },
+              "mem-keylock": {
+                "type": "providers.keylock.memory",
+                "config": {
+                  "mode" : "Shared"
+                }
               },
               "mock-config": {
                 "type": "providers.config.mock",

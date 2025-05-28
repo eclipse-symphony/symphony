@@ -10,12 +10,6 @@
                 "contents": {
                     "source": "https://github.com/Haishi2016/Vault818/releases/download/vtest/tiny_stack.raw"
                 }
-            },
-            {
-                "path": "/etc/sysupdate.d/noop.conf",
-                "contents": {
-                    "source": "https://github.com/flatcar/sysext-bakery/releases/download/20230901/noop.conf"
-                }
             }
         ],
         "links": [
@@ -40,10 +34,6 @@
             {
                 "mask": true,
                 "name": "sshd.socket"
-            },
-            {
-                "name": "systemd-sysupdate.timer",
-                "enable": true
             },
             {
                 "name": "systemd-sysupdate.service",

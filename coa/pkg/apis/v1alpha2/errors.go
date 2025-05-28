@@ -6,6 +6,12 @@
 
 package v1alpha2
 
+import "fmt"
+
+type IRetriableError interface {
+	IsRetriableErr() bool
+}
+
 type COAError struct {
 	InnerError error
 	Message    string
@@ -13,11 +19,57 @@ type COAError struct {
 }
 
 func (e COAError) Error() string {
-	ret := e.Message
-	if e.InnerError != nil {
-		ret += " (" + e.InnerError.Error() + ")"
+	if e.Message != "" && e.InnerError != nil {
+		return fmt.Sprintf("%s: %s (caused by: %s)", e.State.String(), e.Message, e.InnerError.Error())
+	} else if e.Message != "" {
+		return fmt.Sprintf("%s: %s", e.State.String(), e.Message)
+	} else if e.InnerError != nil {
+		return e.InnerError.Error()
+	} else {
+		return ""
 	}
-	return ret
+}
+
+func (e COAError) IsUserErr() bool {
+	// case BadRequest, Unauthorized, NotFound, BadConfig, MethodNotAllowed, Conflict, MissingConfig, InvalidArgument, DeserializeError, SerializationError:
+	return e.State < 500 && e.State >= 400
+}
+
+func containsError(states []State, state State) bool {
+	for _, s := range states {
+		if s == state {
+			return true
+		}
+	}
+	return false
+}
+
+func getNonRetriableManagerConfigErrors() []State {
+	return []State{
+		InitFailed, ValidateFailed, GetComponentPropsFailed,
+	}
+}
+
+func getNonRetriableProviderConfigErrors() []State {
+	return []State{
+		CreateProjectorFailed,                           // k8s
+		CreateActionConfigFailed, GetHelmPropertyFailed, // helm provider
+	}
+}
+
+func (e COAError) IsRetriableErr() bool {
+	if e.IsUserErr() {
+		return false
+	}
+	if containsError(getNonRetriableManagerConfigErrors(), e.State) {
+		return false
+	}
+	if containsError(getNonRetriableProviderConfigErrors(), e.State) {
+		return false
+	}
+
+	// default:
+	return true
 }
 
 func FromError(err error) COAError {
@@ -48,6 +100,14 @@ func FromHTTPResponseCode(code int, body []byte) COAError {
 		State:   state,
 	}
 }
+
+func GetErrorState(err error) State {
+	if coaErr, ok := err.(COAError); ok {
+		return coaErr.State
+	}
+	return InternalError
+}
+
 func NewCOAError(err error, msg string, state State) COAError {
 	return COAError{
 		InnerError: err,
@@ -68,4 +128,19 @@ func IsDelayed(err error) bool {
 		return false
 	}
 	return coaE.State == Delayed
+}
+func IsBadConfig(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return false
+	}
+	return coaE.State == BadConfig
+}
+
+func IsRetriableErr(err error) bool {
+	ret, ok := err.(IRetriableError)
+	if !ok {
+		return true
+	}
+	return ret.IsRetriableErr()
 }

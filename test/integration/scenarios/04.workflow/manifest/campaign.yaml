@@ -1,0 +1,46 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: 04campaign-v-version1
+spec:  
+  rootResource: 04campaign
+  firstStage: wait
+  stages:
+    wait:
+      name: wait
+      provider: providers.stage.wait
+      stageSelector: list
+      config:
+        user: admin
+        password: ""
+      inputs:
+        objectType: catalogs
+        names:
+        - sitecatalog:version1
+        - sitecatalog2:version1
+        - siteapp:version1
+        - sitek8starget:version1
+        - siteinstance:version1
+    list:
+      name: list
+      provider: providers.stage.list
+      stageSelector: deploy
+      config:
+        user: admin
+        password: ""
+      inputs:
+        objectType: catalogs
+        namesOnly: "${{$trigger(namesOnly,false)}}"
+    deploy:
+      name: deploy
+      provider: providers.stage.materialize
+      stageSelector: ""
+      schedule: "2020-10-31T12:00:00-07:00"
+      config:
+        user: admin
+        password: ""
+        waitForDeployment: true
+        WaitTimeout: 10m
+      inputs:
+        names: "${{$output(list,items)}}"
+  selfDriving: true

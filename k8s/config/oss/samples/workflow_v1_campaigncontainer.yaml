@@ -1,0 +1,12 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  labels:
+    app.kubernetes.io/name: campaigncontainer
+    app.kubernetes.io/instance: campaigncontainer-sample
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: symphony-k8s
+  name: campaigncontainer-sample
+spec:
+  # TODO(user): Add fields here

@@ -7,147 +7,55 @@
 package v1alpha2
 
 import (
+	"encoding/json"
 	"testing"
-	"time"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestScheduleTimeZone(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-01-01",
-		Time: "12:00:00PM",
-		Zone: "PST",
+func TestEvents_MarshalAndUnmarshalJSON(t *testing.T) {
+	actCtx := contexts.NewActivityLogContext("diagnosticResourceId", "diagnosticResourceCloudLocation", "resourceCloudId", "resourceCloudLocation", "edgeLocation", "operationName", "correlationId", "callerId", "resourceK8SId")
+	diagCtx := contexts.NewDiagnosticLogContext("correlationId", "resourceId", "traceId", "spanId")
+	ctx := contexts.PatchActivityLogContextToCurrentContext(actCtx, diagCtx)
+	ctx = contexts.PatchDiagnosticLogContextToCurrentContext(diagCtx, ctx)
+	event := Event{
+		Metadata: map[string]string{
+			"key": "value",
+		},
+		Body:    "body",
+		Context: ctx,
 	}
-	dt, err := schedule.GetTime()
+	data, err := event.MarshalJSON()
 	assert.Nil(t, err)
-	assert.Equal(t, "2020-01-01 12:00:00 -0800 PST", dt.String())
-}
 
-func TestScheduleTimeZoneDaylight(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-10-31",
-		Time: "12:00:00PM",
-		Zone: "PDT",
-	}
-	dt, err := schedule.GetTime()
+	var event2 Event
+	err = json.Unmarshal(data, &event2)
 	assert.Nil(t, err)
-	assert.Equal(t, "2020-10-31 12:00:00 -0700 PDT", dt.String()) //This is parsed as PDT because it is daylight savings time
-}
 
-func TestScheduleTimeZoneDaylight2(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-10-31",
-		Time: "12:00:00PM",
-		Zone: "PDT",
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2020-10-31 12:00:00 -0700 PDT", dt.String())
-}
-
-func TestScheduleTimeZoneDaylight3(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-10-20",
-		Time: "11:53:03AM",
-		Zone: "PDT",
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2020-10-20 11:53:03 -0700 PDT", dt.String())
-}
-
-func TestScheduleIANATimeZone(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-01-02",
-		Time: "12:00:00PM",
-		Zone: "America/Los_Angeles",
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2020-01-02 12:00:00 -0800 PST", dt.String())
-}
-
-func TestScheduleEmpty(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-01-01",
-		Time: "12:00:00PM",
-		Zone: "", //this is equivalent to UTC
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2020-01-01 12:00:00 +0000 UTC", dt.String())
-}
-
-func TestScheduleUTC(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2020-01-01",
-		Time: "12:00:00PM",
-		Zone: "UTC",
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2020-01-01 12:00:00 +0000 UTC", dt.String())
+	assert.True(t, EventEquals(&event, &event2))
 }
 
 func TestScheduleShouldFire(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2023-10-17",
-		Time: "12:00:00PM",
-		Zone: "PDT",
+	activationData := ActivationData{
+		Schedule: "2023-10-17T12:00:00-07:00",
 	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2023-10-17 12:00:00 -0700 PDT", dt.String())
-	fire, _ := schedule.ShouldFireNow()
+	fire, _ := activationData.ShouldFireNow()
 	assert.True(t, fire)
 }
 func TestScheduleShouldFireUTC(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2023-10-20",
-		Time: "9:48:00PM",
-		Zone: "UTC",
+	activationData := ActivationData{
+		Schedule: "2023-10-20T21:48:00Z",
 	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2023-10-20 21:48:00 +0000 UTC", dt.String())
-	fire, _ := schedule.ShouldFireNow()
-	assert.True(t, fire)
-}
-func TestGetTime(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2023-10-20",
-		Time: "3:53:00PM",
-		Zone: "PDT",
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2023-10-20 15:53:00 -0700 PDT", dt.String())
-	assert.Equal(t, "2023-10-20 22:53:00 +0000 UTC", dt.In(time.UTC).String())
-}
-func TestScheduleShouldFirePDT(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2023-10-20",
-		Time: "3:26:00PM",
-		Zone: "PDT",
-	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2023-10-20 15:26:00 -0700 PDT", dt.String())
-	fire, _ := schedule.ShouldFireNow()
+	fire, _ := activationData.ShouldFireNow()
 	assert.True(t, fire)
 }
 
 func TestScheduleShouldNotFire(t *testing.T) {
-	schedule := ScheduleSpec{
-		Date: "2073-10-17",
-		Time: "12:00:00PM",
-		Zone: "PDT",
+	activationData := ActivationData{
+		Schedule: "2073-10-17T12:00:00-07:00",
 	}
-	dt, err := schedule.GetTime()
-	assert.Nil(t, err)
-	assert.Equal(t, "2073-10-17 12:00:00 -0700 PDT", dt.String())
-	fire, _ := schedule.ShouldFireNow()
+	fire, _ := activationData.ShouldFireNow()
 	assert.False(t, fire) // This should remain false for the next 50 years, so I guess we'll have to update this test in 2073
 }
 

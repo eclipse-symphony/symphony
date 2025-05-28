@@ -31,12 +31,14 @@ func TestGet(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "HomeHub_1.0.4.0_x64",
-					Properties: map[string]interface{}{
-						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "HomeHub_1.0.4.0_x64",
+						Properties: map[string]interface{}{
+							"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+						},
 					},
 				},
 			},
@@ -44,18 +46,20 @@ func TestGet(t *testing.T) {
 		Assignments: map[string]string{
 			"target1": "{HomeHub_1.0.4.0_x64}",
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"target1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "instance",
-								Provider: "providers.target.win10.sideload",
-								Config: map[string]string{
-									"name":                "win10sideload",
-									"ipAddress":           "192.168.50.55",
-									"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "instance",
+									Provider: "providers.target.win10.sideload",
+									Config: map[string]string{
+										"name":                "win10sideload",
+										"ipAddress":           "192.168.50.55",
+										"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+									},
 								},
 							},
 						},
@@ -65,7 +69,7 @@ func TestGet(t *testing.T) {
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "HomeHub_1.0.4.0_x64",
 				Properties: map[string]interface{}{
@@ -99,21 +103,25 @@ func TestRemove(t *testing.T) {
 		Assignments: map[string]string{
 			"target1": "{HomeHub_1.0.4.0_x64}",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"target1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "instance",
-								Provider: "providers.target.win10.sideload",
-								Config: map[string]string{
-									"name":                "win10sideload",
-									"ipAddress":           "192.168.50.55",
-									"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "instance",
+									Provider: "providers.target.win10.sideload",
+									Config: map[string]string{
+										"name":                "win10sideload",
+										"ipAddress":           "192.168.50.55",
+										"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+									},
 								},
 							},
 						},
@@ -125,7 +133,7 @@ func TestRemove(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -154,21 +162,25 @@ func TestApply(t *testing.T) {
 		Assignments: map[string]string{
 			"target1": "{HomeHub_1.0.4.0_x64}",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
-		Targets: map[string]model.TargetSpec{
+		Targets: map[string]model.TargetState{
 			"target1": {
-				Topologies: []model.TopologySpec{
-					{
-						Bindings: []model.BindingSpec{
-							{
-								Role:     "instance",
-								Provider: "providers.target.win10.sideload",
-								Config: map[string]string{
-									"name":                "win10sideload",
-									"ipAddress":           "192.168.50.55",
-									"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+				Spec: &model.TargetSpec{
+					Topologies: []model.TopologySpec{
+						{
+							Bindings: []model.BindingSpec{
+								{
+									Role:     "instance",
+									Provider: "providers.target.win10.sideload",
+									Config: map[string]string{
+										"name":                "win10sideload",
+										"ipAddress":           "192.168.50.55",
+										"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+									},
 								},
 							},
 						},
@@ -180,7 +192,7 @@ func TestApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -240,16 +252,21 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 		Name: "test",
 	}
 	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{},
+		},
 		Assignments: map[string]string{
 			"target1": "test",
 		},
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
 		},
 	}
 	components := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -265,7 +282,7 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},

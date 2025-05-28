@@ -1,0 +1,16 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: empty-solution
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: empty-solution-v-version1
+spec:
+  rootResource: empty-solution
+  components:
+  - name: anything
+    type: anything
+    properties: null

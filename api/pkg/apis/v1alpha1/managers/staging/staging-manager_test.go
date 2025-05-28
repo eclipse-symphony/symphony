@@ -11,9 +11,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	memoryqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/memory"
@@ -24,6 +27,8 @@ import (
 
 func TestPoll(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProviderConfig{})
 
@@ -44,6 +49,9 @@ func TestPoll(t *testing.T) {
 			},
 		},
 	}
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
 	queueProvider.Enqueue("site-job-queue", "fake")
 	errList := manager.Poll()
 	assert.Nil(t, errList)
@@ -52,7 +60,7 @@ func TestPoll(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
 	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
-	assert.Equal(t, "UPDATE", jobData.(v1alpha2.JobData).Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
 	item, err := stateProvider.Get(context.Background(), states.GetRequest{
 		ID: "fake-catalog1",
@@ -63,6 +71,7 @@ func TestPoll(t *testing.T) {
 
 func TestHandleJobEvent(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProviderConfig{})
 
@@ -83,13 +92,16 @@ func TestHandleJobEvent(t *testing.T) {
 			},
 		},
 	}
-	err := manager.HandleJobEvent(context.Background(), v1alpha2.Event{
+	var err error
+	manager.apiClient, err = utils.GetApiClient()
+	assert.Nil(t, err)
+	err = manager.HandleJobEvent(context.Background(), v1alpha2.Event{
 		Metadata: map[string]string{
 			"site": "fake",
 		},
 		Body: v1alpha2.JobData{
 			Id:     "catalog1",
-			Action: "UPDATE",
+			Action: v1alpha2.JobUpdate,
 		},
 	})
 	assert.Nil(t, err)
@@ -98,7 +110,7 @@ func TestHandleJobEvent(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
 	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
-	assert.Equal(t, "UPDATE", jobData.(v1alpha2.JobData).Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
 	site, err := queueProvider.Dequeue("site-job-queue")
 	assert.Nil(t, err)
@@ -118,23 +130,23 @@ func TestGetABatchForSite(t *testing.T) {
 
 	queueProvider.Enqueue("fake", v1alpha2.JobData{
 		Id:     "catalog1",
-		Action: "UPDATE",
+		Action: v1alpha2.JobUpdate,
 	})
 	queueProvider.Enqueue("fake", v1alpha2.JobData{
 		Id:     "catalog2",
-		Action: "UPDATE",
+		Action: v1alpha2.JobUpdate,
 	})
 	jobs, err := manager.GetABatchForSite("fake", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "catalog1", jobs[0].Id)
-	assert.Equal(t, "UPDATE", jobs[0].Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobs[0].Action)
 
 	jobs, err = manager.GetABatchForSite("fake", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "catalog2", jobs[0].Id)
-	assert.Equal(t, "UPDATE", jobs[0].Action)
+	assert.Equal(t, v1alpha2.JobUpdate, jobs[0].Action)
 }
 
 type AuthResponse struct {
@@ -151,11 +163,10 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		switch r.URL.Path {
 		case "/catalogs/registry":
 			response = []model.CatalogState{{
-				Id: "catalog1",
+				ObjectMeta: model.ObjectMeta{
+					Name: "catalog1",
+				},
 				Spec: &model.CatalogSpec{
-					Name:       "catalog1",
-					SiteId:     "fake",
-					Generation: "1",
 					ParentName: "fakeparent",
 				},
 				Status: &model.CatalogStatus{

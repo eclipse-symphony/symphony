@@ -1,0 +1,7 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: activationwrongstage
+spec:
+  campaign: "04campaign:version1"
+  stage: "wrongStage"

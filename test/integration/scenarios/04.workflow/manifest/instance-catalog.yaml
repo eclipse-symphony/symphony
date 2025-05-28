@@ -1,0 +1,16 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: siteinstance-v-version1
+spec:
+  rootResource: siteinstance
+  catalogType: instance
+  properties:
+    metadata:
+      name: siteinstance
+    spec: 
+      solution: siteapp:version1
+      scope: SCOPENAME
+      target:
+        selector:
+          group: site

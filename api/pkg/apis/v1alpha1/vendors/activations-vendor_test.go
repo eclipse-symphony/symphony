@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -31,6 +30,9 @@ func createActivationsVendor() ActivationsVendor {
 	vendor := ActivationsVendor{
 		ActivationsManager: &manager,
 	}
+	vendor.Config.Properties = map[string]string{
+		"useJobManager": "true",
+	}
 	return vendor
 }
 func TestActivationsEndpoints(t *testing.T) {
@@ -48,9 +50,7 @@ func TestActivationsInfo(t *testing.T) {
 }
 func TestActivationsOnStatus(t *testing.T) {
 	vendor := createActivationsVendor()
-	status := model.ActivationStatus{
-		Status: 9996,
-	}
+	status := model.ActivationStatus{}
 	data, _ := json.Marshal(status)
 	resp := vendor.onStatus(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -60,8 +60,8 @@ func TestActivationsOnStatus(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "entry 'activation1' is not found", string(resp.Body))
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
+	assert.Equal(t, "Not Found: entry 'activation1' is not found in namespace default", string(resp.Body))
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
@@ -72,7 +72,7 @@ func TestActivationsOnStatus(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "unexpected end of JSON input", string(resp.Body))
+	assert.Equal(t, "empty data when unmarshalling JSON", string(resp.Body))
 }
 func TestActivationsOnActivations(t *testing.T) {
 	vendor := createActivationsVendor()
@@ -83,15 +83,19 @@ func TestActivationsOnActivations(t *testing.T) {
 	activationName := "activation1"
 	campaignName := "campaign1"
 	succeededCount := 0
-	vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
-		var activation v1alpha2.ActivationData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &activation)
-		assert.Nil(t, err)
-		assert.Equal(t, campaignName, activation.Campaign)
-		assert.Equal(t, activationName, activation.Activation)
-		succeededCount += 1
-		return nil
+	sigs := make(chan bool)
+	vendor.Context.Subscribe("activation", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var activation v1alpha2.ActivationData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &activation)
+			assert.Nil(t, err)
+			assert.Equal(t, campaignName, activation.Campaign)
+			assert.Equal(t, activationName, activation.Activation)
+			succeededCount += 1
+			sigs <- true
+			return nil
+		},
 	})
 	resp := vendor.onActivations(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
@@ -100,12 +104,16 @@ func TestActivationsOnActivations(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	activationSpec := model.ActivationSpec{
-		Name:     activationName,
-		Campaign: campaignName,
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
+	activationState := model.ActivationState{
+		Spec: &model.ActivationSpec{
+			Campaign: campaignName,
+		},
+		ObjectMeta: model.ObjectMeta{
+			Name: activationName,
+		},
 	}
-	data, _ := json.Marshal(activationSpec)
+	data, _ := json.Marshal(activationState)
 	resp = vendor.onActivations(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Body:   data,
@@ -114,8 +122,8 @@ func TestActivationsOnActivations(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
+	<-sigs
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	time.Sleep(time.Second)
 	assert.Equal(t, 1, succeededCount)
 
 	resp = vendor.onActivations(v1alpha2.COARequest{
@@ -129,7 +137,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	err := json.Unmarshal(resp.Body, &activation)
 	assert.Nil(t, err)
-	assert.Equal(t, activationName, activation.Id)
+	assert.Equal(t, activationName, activation.ObjectMeta.Name)
 	assert.Equal(t, campaignName, activation.Spec.Campaign)
 
 	resp = vendor.onActivations(v1alpha2.COARequest{
@@ -140,11 +148,12 @@ func TestActivationsOnActivations(t *testing.T) {
 	err = json.Unmarshal(resp.Body, &activations)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(activations))
-	assert.Equal(t, activationName, activations[0].Id)
+	assert.Equal(t, activationName, activations[0].ObjectMeta.Name)
 	assert.Equal(t, campaignName, activations[0].Spec.Campaign)
 
 	status := model.ActivationStatus{
-		Status: 9996,
+		Status:        v1alpha2.Done,
+		StatusMessage: v1alpha2.Done.String(),
 	}
 	data, _ = json.Marshal(status)
 	resp = vendor.onStatus(v1alpha2.COARequest{

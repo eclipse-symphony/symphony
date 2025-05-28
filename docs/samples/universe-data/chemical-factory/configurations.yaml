@@ -1,10 +1,16 @@
 apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: config
+spec:  
+---
+apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: influx-db-config
-spec:  
-  siteId: hq
-  type: config
+  name: config-v-influx-db
+spec:
+  rootResource: config
+  catalogType: config
   name: influx-db-config
   properties:
     host: localhost
@@ -18,11 +24,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: grafana-config
-spec:  
-  siteId: hq
-  type: config
-  name: grafana-config
+  name: config-v-grafana
+spec:
+  rootResource: config
+  catalogType: config
   properties:
     host: localhost
     port: 3000
@@ -33,11 +38,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: e4k-config
-spec:  
-  siteId: hq
-  type: config
-  name: e4k-config
+  name: config-v-e4k
+spec:
+  rootResource: config
+  catalogType: config
   properties:
     host: localhost
     port: 3000
@@ -48,11 +52,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: bluefin-config
-spec:  
-  siteId: hq
-  type: config
-  name: bluefin-config
+  name: config-v-luefin
+spec:
+  rootResource: config
+  catalogType: config
   properties:
     host: localhost
     port: 3000
@@ -63,11 +66,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: ai-config
-spec:  
-  siteId: hq
-  type: config
-  name: ai-config
+  name: config-v-ai
+spec:
+  rootResource: config
+  catalogType: config
   metadata:
     asset: hq
   properties:
@@ -78,11 +80,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: ai-config-site
-spec:  
-  siteId: hq
-  type: config
-  name: ai-config-site
+  name: config-v-ai-site
+spec:
+  rootResource: config
+  catalogType: config
   parentName: ai-config
   metadata:
     asset: hq-doe-site
@@ -93,11 +94,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: ai-config-line
-spec:  
-  siteId: hq
-  type: config
-  name: ai-config-line
+  name: config-v-ai-line
+spec:
+  rootResource: config
+  catalogType: config
   metadata:
     asset: line-1
   parentName: ai-config-site
@@ -107,11 +107,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: combined
-spec:  
-  siteId: hq
-  type: config
-  name: combined  
+  name: config-v-combined
+spec:
+  rootResource: config
+  catalogType: config
   properties:
     foo: bar
     ai: "<ai-config>"
@@ -125,11 +124,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: combined-1
-spec:  
-  siteId: hq
-  type: config
-  name: combined-1  
+  name: config-v-combined1
+spec:
+  rootResource: config
+  catalogType: config 
   properties:
     foo: <combined-2>.foo
     loop: <combined-2>.loop
@@ -137,11 +135,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: combined-2
-spec:  
-  siteId: hq
-  type: config
-  name: combined-2  
+  name: config-v-combined2
+spec: 
+  rootResource: config
+  catalogType: config
   properties:
     foo: bar2   
     loop: <combined>.loop
@@ -149,11 +146,10 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: external
-spec:  
-  siteId: hq
-  type: config
-  name: external  
+  name: config-v-external
+spec:
+  rootResource: config
+  catalogType: config
   properties:
     foo: far
   objectRef:
@@ -163,6 +159,6 @@ spec:
     kind: dummy
     siteId: dummy
     version: dummy
-    scope: dummy
+    namespace: dummy
     metadata:
       foo: bar

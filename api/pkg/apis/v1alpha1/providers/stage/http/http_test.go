@@ -8,6 +8,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -15,6 +16,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHttpInitWithMap(t *testing.T) {
+	provider := HttpStageProvider{}
+	input := map[string]string{
+		"name":          "test",
+		"url":           "https://www.bing.com",
+		"method":        "GET",
+		"successCodes":  "200, 202",
+		"wait.start":    "200",
+		"wait.fail":     "404",
+		"wait.success":  "200",
+		"wait.url":      "https://www.bing.com",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+	assert.Equal(t, []int{200, 202}, provider.Config.SuccessCodes)
+}
+
+func TestHttpProcessOverrideConfig(t *testing.T) {
+	provider := HttpStageProvider{}
+	input := map[string]string{
+		"name":          "test",
+		"url":           "https://www.bing.com",
+		"method":        "GET",
+		"successCodes":  "200, 202",
+		"wait.start":    "200",
+		"wait.fail":     "404",
+		"wait.success":  "200",
+		"wait.url":      "https://www.bing.com",
+		"wait.interval": "1",
+		"wait.count":    "3",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"wait.fail": []int{500},
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.Equal(t, 200, outputs["status"])
+	assert.NotNil(t, outputs["body"])
+	assert.Equal(t, []int{500}, provider.Config.WaitFailedCodes)
+	assert.Equal(t, []int{200}, provider.Config.WaitStartCodes)
+}
 func TestPingBing(t *testing.T) {
 	provider := HttpStageProvider{}
 	err := provider.Init(HttpStageProviderConfig{
@@ -27,6 +73,35 @@ func TestPingBing(t *testing.T) {
 	assert.NotNil(t, outputs)
 	assert.Equal(t, 200, outputs["status"])
 	assert.NotNil(t, outputs["body"])
+}
+func TestPostRequestWithJson(t *testing.T) {
+	provider := HttpStageProvider{}
+	err := provider.Init(HttpStageProviderConfig{
+		Method: "POST",
+		Url:    "https://jsonplaceholder.typicode.com/posts",
+	})
+	assert.Nil(t, err)
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"body": map[string]interface{}{
+			"title":  "foo",
+			"body":   "bar",
+			"userId": 1,
+		},
+	})
+	// refer to https://jsonplaceholder.typicode.com/guide/
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+	assert.NotNil(t, outputs["body"])
+	var respBody map[string]interface{}
+	_, ok := outputs["body"].(string)
+	assert.True(t, ok)
+	bodyBytes := []byte(outputs["body"].(string))
+	err = json.Unmarshal(bodyBytes, &respBody)
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", respBody["title"])
+	assert.Equal(t, "bar", respBody["body"])
+	assert.EqualValues(t, 1, respBody["userId"])
+	assert.EqualValues(t, 101, respBody["id"])
 }
 func TestCallLogicApp(t *testing.T) {
 	testLogicApp := os.Getenv("TEST_HTTP_PROCESS_LOGICAPP")

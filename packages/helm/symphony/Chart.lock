@@ -1,9 +1,9 @@
 dependencies:
 - name: cert-manager
   repository: https://charts.jetstack.io
-  version: v1.4.0
+  version: v1.13.1
 - name: zipkin
   repository: https://openzipkin.github.io/zipkin
   version: 0.7.0
-digest: sha256:6a9659781094689371804a49949e9301c64a97ced77855ac3e4066ae8c85c066
-generated: "2023-06-16T17:47:12.9942484Z"
+digest: sha256:41b29cef601c700f479aa80f396289f03171924af558b8d814df8dac205e4908
+generated: "2024-10-15T22:36:08.98822013+08:00"

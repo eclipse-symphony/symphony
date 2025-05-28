@@ -1,0 +1,14 @@
+{{ if .Values.global.azure.identity.isEnabled -}}
+apiVersion: clusterconfig.azure.com/v1beta1
+kind: AzureExtensionIdentity
+metadata:
+  name: {{ .Release.Name }}-override
+  namespace: azure-arc
+spec:
+  serviceAccounts:
+    - name: {{ include "symphony.serviceAccountName" . }}
+      namespace: {{ .Release.Namespace }}
+    - name: {{ include "symphony.fullname" . }}-controller-manager
+      namespace: {{ .Release.Namespace }}
+  tokenNamespace: {{ .Release.Namespace }}
+{{- end }}

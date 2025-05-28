@@ -37,7 +37,7 @@ func TestBindingMatchOneEmpty(t *testing.T) {
 		Role: "role",
 	}
 	res, err := binding1.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a BindingSpec type")
+	assert.EqualError(t, err, "parameter is not a BindingSpec type")
 	assert.False(t, res)
 }
 

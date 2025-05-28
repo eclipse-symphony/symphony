@@ -1,0 +1,27 @@
+# permissions for end users to view diagnostics.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: diagnostic-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: symphony-k8s
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+  name: diagnostic-viewer-role
+rules:
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - monitor.symphony
+  resources:
+  - diagnostics/status
+  verbs:
+  - get

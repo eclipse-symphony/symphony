@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"sigs.k8s.io/yaml"
@@ -34,6 +34,8 @@ func Remove(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
+	case "solution-container", "solution-containers":
+		route = "/solutioncontainers"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "solution", "solutions":
@@ -58,6 +60,8 @@ func Upsert(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
+	case "solution-container", "solution-containers":
+		route = "/solutioncontainers"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "solution", "solutions":
@@ -81,10 +85,10 @@ func Upsert(url string, username string, password string, objType string, objNam
 }
 
 type YamlArtifact struct {
-	APIVersion string            `json:"apiVersion"`
-	Kind       string            `json:"kind"`
-	Metadata   map[string]string `json:"metadata"`
-	Spec       interface{}       `json:"spec"`
+	APIVersion string                 `json:"apiVersion"`
+	Kind       string                 `json:"kind"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Spec       interface{}            `json:"spec"`
 }
 
 func yamlToJson(payload []byte) ([]byte, error) {
@@ -93,7 +97,7 @@ func yamlToJson(payload []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(o.Spec)
+	return json.Marshal(o)
 }
 
 func Get(url string, username string, password string, objType string, path string, docType string, objName string) ([]interface{}, error) {
@@ -111,6 +115,10 @@ func Get(url string, username string, password string, objType string, path stri
 		route = "/solutions"
 	case "instance", "instances":
 		route = "/instances"
+	case "catalog", "catalogs":
+		route = "/catalogs/registry"
+	default:
+		return nil, fmt.Errorf("unsupported object type: %s", objType)
 	}
 	if objName != "" {
 		route += "/" + objName
@@ -186,7 +194,7 @@ func callRestAPI(url string, route string, method string, payload []byte, token 
 		return nil, err
 	}
 	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

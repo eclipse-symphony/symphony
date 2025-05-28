@@ -37,9 +37,9 @@ func creatAgentVendor() AgentVendor {
 
 	manager.Init(nil, managers.ManagerConfig{
 		Properties: map[string]string{
-			"providers.reference": "reference",
-			"providers.state":     "memory",
-			"providers.reporter":  "report",
+			"providers.reference":     "reference",
+			"providers.volatilestate": "memory",
+			"providers.reporter":      "report",
 		},
 	}, map[string]providers.IProvider{
 		"reference": &referenceProvider,
@@ -70,9 +70,9 @@ func TestAgentVendorInit(t *testing.T) {
 				Name: "reference-manager",
 				Type: "managers.symphony.reference",
 				Properties: map[string]string{
-					"providers.reference": "reference",
-					"providers.state":     "mem-state",
-					"providers.reporter":  "report",
+					"providers.reference":     "reference",
+					"providers.volatilestate": "mem-state",
+					"providers.reporter":      "report",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"reference": {
@@ -149,7 +149,7 @@ func TestPostReference(t *testing.T) {
 
 	request.Method = fasthttp.MethodPost
 	request.Parameters = map[string]string{
-		"scope":     "test",
+		"namespace": "test",
 		"kind":      "kind",
 		"version":   "version",
 		"group":     "group",
@@ -194,7 +194,7 @@ func TestGetReference(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, res.State)
 
 	request.Parameters = map[string]string{
-		"scope":     "scope",
+		"namespace": "scope",
 		"kind":      "kind",
 		"version":   "version",
 		"group":     "group",

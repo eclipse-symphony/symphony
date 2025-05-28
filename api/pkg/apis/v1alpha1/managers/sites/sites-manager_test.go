@@ -22,18 +22,18 @@ func TestCreateGetDeleteTargetsSpec(t *testing.T) {
 	manager := SitesManager{
 		StateProvider: stateProvider,
 	}
-	err := manager.UpsertSpec(context.Background(), "test", model.SiteSpec{})
+	err := manager.UpsertState(context.Background(), "test", model.SiteState{})
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
-	specLists, err := manager.ListSpec(context.Background())
+	specLists, err := manager.ListState(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(specLists))
 	assert.Equal(t, "test", specLists[0].Id)
 	err = manager.DeleteSpec(context.Background(), "test")
 	assert.Nil(t, err)
-	spec, err = manager.GetSpec(context.Background(), "test")
+	spec, err = manager.GetState(context.Background(), "test")
 	assert.NotNil(t, err)
 }
 
@@ -52,7 +52,7 @@ func TestUpdateTargetStatus(t *testing.T) {
 	state.Status = &status
 	err := manager.ReportState(context.Background(), state)
 	assert.Nil(t, err)
-	spec, err := manager.GetSpec(context.Background(), "test")
+	spec, err := manager.GetState(context.Background(), "test")
 	assert.Nil(t, err)
 	assert.Equal(t, "test", spec.Id)
 	assert.Equal(t, true, spec.Status.IsOnline)

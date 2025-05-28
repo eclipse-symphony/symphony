@@ -11,8 +11,11 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -35,8 +38,13 @@ import (
 )
 
 var (
-	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-	sLog            = logger.NewLogger("coa.runtime")
+	decUnstructured          = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+	loggerName               = "providers.target.configmap"
+	providerName             = "P (ConfigMap Target)"
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
+	configmap                = "configmap"
 )
 
 type (
@@ -97,6 +105,7 @@ func (s *ConfigMapTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *ConfigMapTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := ConfigMapTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (ConfigMap Target): expected ConfigMapTargetProviderConfig: %+v", err)
 		return err
 	}
 
@@ -105,7 +114,7 @@ func (i *ConfigMapTargetProvider) InitWithMap(properties map[string]string) erro
 
 // Init initializes the configmap target provider
 func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan(
+	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		context.TODO(),
 		&map[string]string{
@@ -114,11 +123,12 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Info("  P (ConfigMap Target): Init()")
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfoCtx(ctx, "  P (ConfigMap Target): Init()")
 
 	updateConfig, err := toConfigMapTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): expected ConfigMapTargetProviderConfig - %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): expected ConfigMapTargetProviderConfig - %+v", err)
 		return err
 	}
 
@@ -134,7 +144,7 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					sLog.Errorf("  P (ConfigMap Target): %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): %+v", err)
 					return err
 				}
 			}
@@ -143,46 +153,56 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 			if i.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (ConfigMap Target):  %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to read kube config: %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				sLog.Errorf("  P (ConfigMap Target): %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and inline", v1alpha2.BadConfig)
-			sLog.Errorf("  P (ConfigMap Target): %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to get the cluster config: %+v", err)
 		return err
 	}
 
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create a new clientset: %+v", err)
 		return err
 	}
 
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create a dynamic client: %+v", err)
 		return err
 	}
 
 	i.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create a discovery client: %+v", err)
 		return err
 	}
 
 	i.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(i.DiscoveryClient))
 	i.RESTConfig = kConfig
-	return nil
+
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create metrics: %+v", err)
+			}
+		}
+	})
+
+	return err
 }
 
 // toConfigMapTargetProviderConfig converts a generic IProviderConfig to a ConfigMapTargetProviderConfig
@@ -207,18 +227,19 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
 		var obj *corev1.ConfigMap
-		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
-				sLog.Infof("  P (ConfigMap Target): resource not found: %s", err)
+				sLog.InfofCtx(ctx, "  P (ConfigMap Target): resource not found: %s", err)
 				continue
 			}
-			sLog.Error("  P (ConfigMap Target): failed to read object: +%v", err)
+			sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to read object: %+v", err)
 			return nil, err
 		}
 		component.Component.Properties = make(map[string]interface{})
@@ -231,6 +252,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 				component.Component.Properties[key] = value
 			}
 		}
+		sLog.InfofCtx(ctx, "  P (ConfigMap Target): append component: %s", component.Component.Name)
 		ret = append(ret, component.Component)
 	}
 
@@ -248,28 +270,50 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (ConfigMap Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
+	functionName := utils.GetFunctionName()
+	startTime := time.Now().UTC()
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		configmap,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to validate components: %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			configmap,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.ApplyOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (ConfigMap Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
+	// apply components
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (ConfigMap Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "config" {
 				newConfigMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      component.Name,
-						Namespace: deployment.Instance.Scope,
+						Namespace: deployment.Instance.Spec.Scope,
 					},
 					Data: make(map[string]string),
 				}
@@ -281,22 +325,39 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 						newConfigMap.Data[key] = string(jData)
 					}
 				}
-				i.ensureNamespace(ctx, deployment.Instance.Scope)
-				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Scope)
+				i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
+				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Spec.Scope)
 				if err != nil {
-					sLog.Error("  P (ConfigMap Target): failed to apply configmap: +%v", err)
+					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to apply configmap: %+v", err)
+					providerOperationMetrics.ProviderOperationErrors(
+						configmap,
+						functionName,
+						metrics.ConfigMapOperation,
+						metrics.ApplyOperationType,
+						v1alpha2.ConfigMapApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
 		}
 	}
+
 	components = step.GetDeletedComponents()
+	// delete components
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (ConfigMap Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "config" {
-				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Scope)
+				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Spec.Scope)
 				if err != nil {
-					sLog.Error("  P (ConfigMap Target): failed to delete configmap: +%v", err)
+					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to delete configmap: %+v", err)
+					providerOperationMetrics.ProviderOperationErrors(
+						configmap,
+						functionName,
+						metrics.ConfigMapOperation,
+						metrics.ApplyOperationType,
+						v1alpha2.ConfigMapApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -316,6 +377,8 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 	)
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  ensureNamespace namespace - %s", namespace)
 
 	if namespace == "" || namespace == "default" {
 		return nil
@@ -332,13 +395,12 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 				Name: namespace,
 			},
 		}, metav1.CreateOptions{})
-		if err != nil {
-			sLog.Error("  P (ConfigMap Target): failed to create namespace: +%v", err)
+		if err != nil && !kerrors.IsAlreadyExists(err) {
+			sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create namespace: %+v", err)
 			return err
 		}
-
 	} else {
-		sLog.Error("  P (ConfigMap Target): failed to get namespace: +%v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to get namespace %s: %+v", namespace, err)
 		return err
 	}
 
@@ -348,25 +410,41 @@ func (k *ConfigMapTargetProvider) ensureNamespace(ctx context.Context, namespace
 // GetValidationRule returns validation rule for the provider
 func (*ConfigMapTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{
-				Name: "*", //react to all property changes
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{
+					Name: "*", //react to all property changes
+				},
 			},
 		},
 	}
 }
 
 // deleteConfigMap deletes a configmap
-func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name string, scope string) error {
-	err := i.Client.CoreV1().ConfigMaps(scope).Delete(ctx, name, metav1.DeleteOptions{})
+func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name string, namespace string) error {
+	ctx, span := observability.StartSpan(
+		"ConfigMap Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "deleteConfigMap",
+		},
+	)
+	var err error = nil
+	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  deleteConfigMap name %s, namespace: %s", name, namespace)
+
+	utils.EmitUserAuditsLogs(ctx, "  P (ConfigMap Target):  Start to delete configmap name %s, namespace: %s", name, namespace)
+	err = i.Client.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Error("  P (Kubectl Target): failed to delete configmap: +%v", err)
+			sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to delete configmap: %+v", err)
 			return err
 		}
 	}
@@ -374,27 +452,41 @@ func (i *ConfigMapTargetProvider) deleteConfigMap(ctx context.Context, name stri
 }
 
 // applyCustomResource applies a custom resource from a byte array
-func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *corev1.ConfigMap, scope string) error {
-	existingConfigMap, err := i.Client.CoreV1().ConfigMaps(scope).Get(ctx, config.Name, metav1.GetOptions{})
+func (i *ConfigMapTargetProvider) applyConfigMap(ctx context.Context, config *corev1.ConfigMap, namespace string) error {
+	ctx, span := observability.StartSpan(
+		"ConfigMap Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "applyConfigMap",
+		},
+	)
+	var err error = nil
+	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target):  applyConfigMap namespace: %s", namespace)
+
+	existingConfigMap, err := i.Client.CoreV1().ConfigMaps(namespace).Get(ctx, config.Name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			sLog.Infof("  P (ConfigMap Target): resource not found: %s", err)
-			_, err = i.Client.CoreV1().ConfigMaps(scope).Create(ctx, config, metav1.CreateOptions{})
+			sLog.InfofCtx(ctx, "  P (ConfigMap Target): resource not found: %s", err)
+			utils.EmitUserAuditsLogs(ctx, "  P (ConfigMap Target):  Start to create configmap name %s, namespace: %s", config.Name, namespace)
+			_, err = i.Client.CoreV1().ConfigMaps(namespace).Create(ctx, config, metav1.CreateOptions{})
 			if err != nil {
-				sLog.Error("  P (ConfigMap Target): failed to create configmap: +%v", err)
+				sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create configmap: %+v", err)
 				return err
 			}
 			return nil
 		}
-		sLog.Error("  P (ConfigMap Target): failed to read object: +%v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to read object: %+v", err)
 		return err
 	}
 
 	existingConfigMap.Data = config.Data
 
-	_, err = i.Client.CoreV1().ConfigMaps(scope).Update(ctx, existingConfigMap, metav1.UpdateOptions{})
+	utils.EmitUserAuditsLogs(ctx, "  P (ConfigMap Target):  Start to update configmap name %s, namespace: %s", config.Name, namespace)
+	_, err = i.Client.CoreV1().ConfigMaps(namespace).Update(ctx, existingConfigMap, metav1.UpdateOptions{})
 	if err != nil {
-		sLog.Error("  P (ConfigMap Target): failed to update configmap: +%v", err)
+		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to update configmap: %+v", err)
 		return err
 	}
 	return nil

@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: tiny-app
 spec:
-  solution: busybox
+  solution: busy-box:version1
   target: 
     name: tiny-edge

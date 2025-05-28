@@ -3,5 +3,4 @@ kind: Activation
 metadata:
   name: approval-activation
 spec:
-  campaign: "approval-campaign"
-  name: "approval-activation"
+  campaign: "approval-campaign:version1"

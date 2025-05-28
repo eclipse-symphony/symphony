@@ -7,22 +7,24 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 )
 
 type CampaignState struct {
-	Id   string        `json:"id"`
-	Spec *CampaignSpec `json:"spec,omitempty"`
+	ObjectMeta ObjectMeta    `json:"metadata,omitempty"`
+	Spec       *CampaignSpec `json:"spec,omitempty"`
 }
 
 type ActivationState struct {
-	Id       string            `json:"id"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-	Spec     *ActivationSpec   `json:"spec,omitempty"`
-	Status   *ActivationStatus `json:"status,omitempty"`
+	ObjectMeta ObjectMeta        `json:"metadata,omitempty"`
+	Spec       *ActivationSpec   `json:"spec,omitempty"`
+	Status     *ActivationStatus `json:"status,omitempty"`
 }
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
@@ -32,7 +34,43 @@ type StageSpec struct {
 	StageSelector string                 `json:"stageSelector,omitempty"`
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
-	Schedule      *v1alpha2.ScheduleSpec `json:"schedule,omitempty"`
+	Schedule      string                 `json:"schedule,omitempty"`
+	Target        string                 `json:"target,omitempty"`
+}
+
+// UnmarshalJSON customizes the JSON unmarshalling for StageSpec
+func (s *StageSpec) UnmarshalJSON(data []byte) error {
+	type Alias StageSpec
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(s),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	// validate if Schedule meet RFC 3339
+	if s.Schedule != "" {
+		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
+		}
+	}
+	return nil
+}
+
+// MarshalJSON customizes the JSON marshalling for StageSpec
+func (s StageSpec) MarshalJSON() ([]byte, error) {
+	type Alias StageSpec
+	if s.Schedule != "" {
+		if _, err := time.Parse(time.RFC3339, s.Schedule); err != nil {
+			return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid timestamp format: %v", err), v1alpha2.BadConfig)
+		}
+	}
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&s),
+	})
 }
 
 func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -69,23 +107,27 @@ func (s StageSpec) DeepEquals(other IDeepEquals) (bool, error) {
 }
 
 type ActivationStatus struct {
-	Stage                string                 `json:"stage"`
-	NextStage            string                 `json:"nextStage,omitempty"`
-	Inputs               map[string]interface{} `json:"inputs,omitempty"`
-	Outputs              map[string]interface{} `json:"outputs,omitempty"`
-	Status               v1alpha2.State         `json:"status,omitempty"`
-	ErrorMessage         string                 `json:"errorMessage,omitempty"`
-	IsActive             bool                   `json:"isActive,omitempty"`
-	ActivationGeneration string                 `json:"activationGeneration,omitempty"`
-	UpdateTime           string                 `json:"updateTime,omitempty"`
+	ActivationGeneration string         `json:"activationGeneration,omitempty"`
+	UpdateTime           string         `json:"updateTime,omitempty"`
+	Status               v1alpha2.State `json:"status,omitempty"`
+	StatusMessage        string         `json:"statusMessage,omitempty"`
+	StageHistory         []StageStatus  `json:"stageHistory,omitempty"`
+}
+type StageStatus struct {
+	Stage         string                 `json:"stage,omitempty"`
+	NextStage     string                 `json:"nextStage,omitempty"`
+	Inputs        map[string]interface{} `json:"inputs,omitempty"`
+	Outputs       map[string]interface{} `json:"outputs,omitempty"`
+	Status        v1alpha2.State         `json:"status,omitempty"`
+	IsActive      bool                   `json:"isActive,omitempty"`
+	StatusMessage string                 `json:"statusMessage,omitempty"`
+	ErrorMessage  string                 `json:"errorMessage,omitempty"`
 }
 
 type ActivationSpec struct {
-	Campaign   string                 `json:"campaign,omitempty"`
-	Name       string                 `json:"name,omitempty"`
-	Stage      string                 `json:"stage,omitempty"`
-	Inputs     map[string]interface{} `json:"inputs,omitempty"`
-	Generation string                 `json:"generation,omitempty"`
+	Campaign string                 `json:"campaign,omitempty"`
+	Stage    string                 `json:"stage,omitempty"`
+	Inputs   map[string]interface{} `json:"inputs,omitempty"`
 }
 
 func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {
@@ -95,39 +137,49 @@ func (c ActivationSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Campaign != otherC.Campaign {
-		return false, nil
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
+		return false, errors.New("campaign doesn't match")
 	}
 
 	if c.Stage != otherC.Stage {
-		return false, nil
+		return false, errors.New("stage doesn't match")
 	}
 
 	if !reflect.DeepEqual(c.Inputs, otherC.Inputs) {
-		return false, nil
+		return false, errors.New("inputs doesn't match")
 	}
 
 	return true, nil
 }
+func (c ActivationState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(ActivationState)
+	if !ok {
+		return false, errors.New("parameter is not a ActivationState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+	return true, nil
+}
 
 type CampaignSpec struct {
-	Name        string               `json:"name,omitempty"`
-	FirstStage  string               `json:"firstStage,omitempty"`
-	Stages      map[string]StageSpec `json:"stages,omitempty"`
-	SelfDriving bool                 `json:"selfDriving,omitempty"`
+	FirstStage   string               `json:"firstStage,omitempty"`
+	Stages       map[string]StageSpec `json:"stages,omitempty"`
+	SelfDriving  bool                 `json:"selfDriving,omitempty"`
+	Version      string               `json:"version,omitempty"`
+	RootResource string               `json:"rootResource,omitempty"`
 }
 
 func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	otherC, ok := other.(CampaignSpec)
 	if !ok {
 		return false, errors.New("parameter is not a CampaignSpec type")
-	}
-
-	if c.Name != otherC.Name {
-		return false, nil
 	}
 
 	if c.FirstStage != otherC.FirstStage {
@@ -142,15 +194,30 @@ func (c CampaignSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if len(c.Stages) != len(otherC.Stages) {
-		return false, nil
-	}
 	for i, stage := range c.Stages {
 		otherStage := otherC.Stages[i]
 
 		if eq, err := stage.DeepEquals(otherStage); err != nil || !eq {
 			return eq, err
 		}
+	}
+
+	return true, nil
+}
+func (c CampaignState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(CampaignState)
+	if !ok {
+		return false, errors.New("parameter is not a CampaignState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
 	}
 
 	return true, nil

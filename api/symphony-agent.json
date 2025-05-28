@@ -1,6 +1,11 @@
 {
   "siteInfo": {
-    "siteId": "symphony-agent",
+    "siteId": "hq",
+    "currentSite": {
+      "baseUrl": "",
+      "username": "",
+      "password": ""
+    }
   },
   "api": {
     "vendors": [
@@ -10,73 +15,34 @@
         "managers": []
       },
       {
-        "type": "vendors.agent",
+        "type": "vendors.solution",
         "loopInterval": 15,
-        "route": "agent",
+        "route": "solution",
         "managers": [
           {
-            "name": "reference-manager",
-            "type": "managers.symphony.reference",
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
             "properties": {
-              "providers.reference": "http-reference",
-              "providers.state": "memory",
-              "providers.reporter": "http-reporter"
+              "providers.persistentstate": "mem-state",                
+              "providers.config": "mock-config",  
+              "providers.secret": "mock-secret",
+              "isTarget": "true",
+              "targetNames": "test-target",
+              "poll.enabled": "true"              
             },
             "providers": {
-              "memory": {
+              "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
+              },              
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
               },
-              "http-reporter": {
-                "type": "providers.reporter.http",
-                "config": {
-                  "url": "$env:SYMPHONY_URL"
-                }
-              },
-              "http-reference": {
-                "type": "providers.reference.http",
-                "config": {
-                  "url": "$env:SYMPHONY_URL"
-                }
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
               }
-            }
-          },
-          {
-            "name": "target-manager",
-            "type": "managers.symphony.target",
-            "properties": {              
-              "providers.probe": "rtsp-probe",
-              "providers.reference": "http-reference",
-              "providers.uploader": "azure-uploader",
-              "providers.reporter": "http-reporter",
-              "poll.enabled": "true"
-            },
-            "providers": {      
-              "rtsp-probe": {
-                "type": "providers.probe.rtsp",
-                "config": {                  
-                }
-              },
-              "http-reference": {
-                "type": "providers.reference.http",
-                "config": {
-                  "url": "$env:SYMPHONY_URL",
-                  "target": "$env:TARGET_NAME"
-                }
-              },
-              "http-reporter": {
-                "type": "providers.reporter.http",
-                "config": {
-                  "url": "$env:SYMPHONY_URL"
-                }
-              },
-              "azure-uploader": {
-                "type": "providers.uploader.azure.blob",
-                "config": {
-                  "account": "$env:STORAGE_ACCOUNT",
-                  "container": "$env:STORAGE_CONTAINER"
-                }
-              }        
             }
           }
         ]
@@ -85,20 +51,12 @@
   },
   "bindings": [
     {
-      "type": "bindings.http",
+      "type": "bindings.mqtt",
       "config": {
-        "port": 8088
-      }
-    },
-    {
-      "type": "bindings.http",
-      "config": {
-          "port": 8089,
-          "tls": true,
-          "certProvider": {
-          "type": "certs.autogen",
-          "config":{}
-          }
+        "brokerAddress": "tcp://20.118.146.198:1883",
+        "clientID": "coa-test-2",
+        "requestTopic": "coa-request",
+        "responseTopic": "coa-response"
       }
     }
   ]

@@ -8,6 +8,7 @@ SOLUTION_GROUP=solution.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
 WORKFLOW_GROUP=workflow.symphony
+FEDERATION_GROUP=federation.symphony
 
 patchResource() {
   local resource_type="$1"
@@ -60,3 +61,5 @@ remove_finalizers "devices.$FABRIC_GROUP"
 remove_finalizers "models.$AI_GROUP"
 remove_finalizers "skills.$AI_GROUP"  
 remove_finalizers "skillpackages.$AI_GROUP"  
+remove_finalizers "catalogs.$FEDERATION_GROUP"
+remove_finalizers "sites.$FEDERATION_GROUP"

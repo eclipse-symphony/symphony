@@ -18,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -44,13 +45,20 @@ func (e *SettingsVendor) Init(cfg vendors.VendorConfig, factories []managers.IMa
 		return err
 	}
 	var configProvider config.IExtConfigProvider
+	var secretProvider secret.IExtSecretProvider
 	for _, m := range e.Managers {
 		if c, ok := m.(config.IExtConfigProvider); ok {
+			log.Debugf("V (Settings): found config provider")
 			configProvider = c
+		}
+		if s, ok := m.(secret.IExtSecretProvider); ok {
+			log.Debugf("V (Settings): found secret provider")
+			secretProvider = s
 		}
 	}
 	e.EvaluationContext = &utils.EvaluationContext{
 		ConfigProvider: configProvider,
+		SecretProvider: secretProvider,
 	}
 	return nil
 }
@@ -74,25 +82,31 @@ func (o *SettingsVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	_, span := observability.StartSpan("Settings Vendor", request.Context, &map[string]string{
+	ctx, span := observability.StartSpan("Settings Vendor", request.Context, &map[string]string{
 		"method": "onConfig",
 	})
 	defer span.End()
-	csLog.Info("V (Settings): onConfig")
+	csLog.InfofCtx(ctx, "V (Settings): onConfig method: %s", request.Method)
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		id := request.Parameters["__name"]
 		overrides := request.Parameters["overrides"]
 		field := request.Parameters["field"]
+		namespace := request.Parameters["namespace"]
+		EvaluationContext := utils.EvaluationContext{
+			Namespace: namespace,
+		}
 		var parts []string
 		if overrides != "" {
 			parts = strings.Split(overrides, ",")
 		}
 		if field != "" {
-			val, err := c.EvaluationContext.ConfigProvider.Get(id, field, parts, nil)
+			val, err := c.EvaluationContext.ConfigProvider.Get(ctx, id, field, parts, EvaluationContext)
 			if err != nil {
+				log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get config %s, error: %v", id, err)
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -103,13 +117,22 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 				ContentType: "text/plain",
 			})
 		} else {
-			val, err := c.EvaluationContext.ConfigProvider.GetObject(id, parts, nil)
+			val, err := c.EvaluationContext.ConfigProvider.GetObject(ctx, id, parts, EvaluationContext)
 			if err != nil {
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
+				if val == nil {
+					log.ErrorfCtx(ctx, "V (Settings): onConfig failed to get object %s, error: %v", id, err)
+					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+						State: v1alpha2.GetErrorState(err),
+						Body:  []byte(err.Error()),
+					})
+				} else {
+					log.WarnfCtx(ctx, "V (Settings): onConfig parsing object %s, warnings: %v", id, err)
+					val["evaluationStatus"] = "Failed"
+				}
+			} else {
+				val["evaluationStatus"] = "Succeeded"
 			}
+
 			jData, _ := api_utils.FormatObject(val, false, "", "")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.OK,
@@ -118,6 +141,8 @@ func (c *SettingsVendor) onConfig(request v1alpha2.COARequest) v1alpha2.COARespo
 			})
 		}
 	}
+
+	log.ErrorCtx(ctx, "V (Settings): onConfig returned MethodNotAllowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

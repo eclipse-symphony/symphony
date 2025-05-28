@@ -1,0 +1,14 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: config-v-version2
+spec:
+  rootResource: wrongconfig
+  catalogType: config
+  metadata:
+    schema: schema:version1
+  properties:
+    person:
+      bar:
+        foo: 0
+    email.bar.foo: invalid

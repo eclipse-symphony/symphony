@@ -2,18 +2,36 @@ name: Release
 
 on:
   workflow_dispatch:
-permissions: write-all
+permissions:
+  contents: write
+  packages: write
 env:
   ContainerRegistry: "ghcr.io"
   ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
+  BOT_USER_NAME: eclipse-symphoy-bot
+  BOT_EMAIL_ID: symphony-bot@eclipse.org
+  IMAGE_NAME: ${{ github.repository }}
 
+# Two users are used in this pipeline
+# BOT_USER_NAME (eclipse-symphoy-bot) / secrets.BOT_GITHUB_TOKEN is used to checkout/commit/push the changes to the repository
+# github.repository_owner / secrets.GITHUB_TOKEN is used to login to the docker registry and helm registry and to create the release
 jobs:
   build:
-    if: github.repository == 'eclipse-symphony/symphony' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
+    if: github.repository == 'eclipse-symphony/symphony' && github.event_name != 'pull_request' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+      
+      - name: Print branch name
+        run: echo ${{ steps.extract_branch.outputs.branch }}
 
       - name: Install dependencies
         run: |
@@ -40,9 +58,35 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19  # Replace with your desired Go version
+          go-version: 1.23.0  # Replace with your desired Go version
+
+      - name: Install dependencies
+        run: |
+           sudo apt-get update && sudo apt-get install -y \
+           gcc g++ make curl wget git protobuf-compiler \
+           llvm clang \
+           zlib1g-dev libcurl4-openssl-dev \
+           libxml2-dev uuid-dev \
+           gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+           libssl-dev pkg-config mingw-w64
+           sudo snap install yq
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install Rust targets
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          rustup target add armv7-unknown-linux-gnueabihf
+          rustup target add x86_64-pc-windows-gnu
+          rustup target add x86_64-apple-darwin
+          rustup target add x86_64-unknown-linux-gnu
 
       - name: Install Kubebuilder
         run: |
@@ -69,15 +113,22 @@ jobs:
           echo $new_version > .github/version/versions.txt
           echo "version=$new_version" >> $GITHUB_OUTPUT
 
+      - name: Build Rust bindings
+        run: |
+          cd api/pkg/apis/v1alpha1/providers/target/rust
+          cargo build --release        
+
       - name: Build Symphony Api
         run: |
           cd api
-          mage dockerBuild
+          mage dockerBuildAPIMultiPlatform
+          mage dockerBuildTargetAgentMultiPlatform
+          mage dockerBuildPollAgentMultiPlatform
       
       - name: Build Symphony k8s
         run: | 
           cd k8s
-          mage dockerBuild
+          mage dockerBuildK8sMultiPlatform
 
       - name: Replace version in cli/cmd/up.go
         run: |
@@ -95,37 +146,43 @@ jobs:
           version=$(cat .github/version/versions.txt)
           yq eval -i ".version = \"$version\"" packages/helm/symphony/Chart.yaml
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony/Chart.yaml
-
+          yq eval -i ".version = \"$version\"" packages/helm/symphony-poll-agent/Chart.yaml
+          yq eval -i ".appVersion = \"$version\"" packages/helm/symphony-poll-agent/Chart.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
+          sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony-poll-agent/values.yaml
+          
       - name: Build Helm
         run: |
           cd k8s
           mage helmTemplate
           cd ../packages/helm
           helm package symphony
+          helm package symphony-poll-agent
       
       - name: Push symphony api images
         run: |
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-api:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-api:latest ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-api:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-api-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-target-agent:latest ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-target-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-target-agent-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:latest ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-poll-agent:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-poll-agent-multi:latest
 
       - name: Push symphony k8s images
         run: |
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }}
-          docker tag  ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
-          docker push ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest
-
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-k8s:latest ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
+          docker buildx imagetools create -t ${{ env.ContainerRegistryRepo }}/symphony-k8s:${{ steps.increment_version.outputs.version }} ${{ env.ContainerRegistryRepo }}/symphony-k8s-multi:latest
+          
       - name: Push symphony helm package
         run: |
           cd packages/helm
           helm push symphony-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
+          helm push symphony-poll-agent-${{ steps.increment_version.outputs.version }}.tgz oci://${{ env.ContainerRegistryRepo }}/helm
 
       - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.name ${{ env.BOT_USER_NAME }}
+          git config --local user.email ${{ env.BOT_EMAIL_ID }}
           git add .github/version/versions.txt
           git add packages/helm/symphony/Chart.yaml
           git add cli/cmd/up.go
@@ -134,8 +191,8 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
+          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
+          branch: ${{ steps.extract_branch.outputs.branch }}
 
       - name: Create Release
         id: create_release
@@ -163,9 +220,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: /home/runner/maestro/maestro_linux_amd64.tar.gz
           asset_name: maestro_linux_amd64.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload linux mastro ARM64 packages
+        id: upload_mastro_linux_arm64_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /home/runner/maestro/maestro_linux_arm64.tar.gz
+          asset_name: maestro_linux_arm64.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload linux mastro ARM7 packages
+        id: upload_mastro_linux_arm_package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /home/runner/maestro/maestro_linux_arm.tar.gz
+          asset_name: maestro_linux_arm.tar.gz
           asset_content_type: application/gzip
       - name: Upload mac mastro packages
         id: upload_mastro_mac_package

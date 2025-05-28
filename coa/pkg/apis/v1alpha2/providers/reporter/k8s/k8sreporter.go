@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"time"
 
 	"strconv"
 
@@ -123,7 +124,7 @@ func toK8sReporterConfig(config providers.IProviderConfig) (K8sReporterConfig, e
 	return ret, err
 }
 
-func (m *K8sReporter) Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrtie bool) error {
+func (m *K8sReporter) Report(id string, namespace string, group string, kind string, version string, properties map[string]string, overwrite bool) error {
 
 	obj, err := m.DynamicClient.Resource(schema.GroupVersionResource{
 		Group:    group,
@@ -137,9 +138,12 @@ func (m *K8sReporter) Report(id string, namespace string, group string, kind str
 
 	propCol := make(map[string]string)
 
-	if !overwrtie {
-		if existingStatus, ok := obj.Object["status"]; ok {
-			dict := existingStatus.(map[string]interface{})
+	statusMap := map[string]interface{}{}
+
+	if existingStatus, ok := obj.Object["status"]; ok {
+		dict := existingStatus.(map[string]interface{})
+		if !overwrite {
+			// TODO: properties should not hold the deployable status
 			if propsElement, ok := dict["properties"]; ok {
 				props := propsElement.(map[string]interface{})
 				for k, v := range props {
@@ -147,11 +151,18 @@ func (m *K8sReporter) Report(id string, namespace string, group string, kind str
 				}
 			}
 		}
+		if provisioningStatus, ok := dict["provisioningStatus"]; ok {
+			statusMap["provisioningStatus"] = provisioningStatus
+		}
+		if _, ok := dict["lastModified"]; ok {
+			statusMap["lastModified"] = time.Now().Format(time.RFC3339)
+		}
 	}
 
 	for k, v := range properties {
 		propCol[k] = v
 	}
+	statusMap["properties"] = propCol
 
 	status := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -160,9 +171,7 @@ func (m *K8sReporter) Report(id string, namespace string, group string, kind str
 			"metadata": map[string]interface{}{
 				"name": id,
 			},
-			"status": map[string]interface{}{
-				"properties": propCol,
-			},
+			"status": statusMap,
 		},
 	}
 

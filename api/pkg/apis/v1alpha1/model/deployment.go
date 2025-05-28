@@ -7,26 +7,35 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 
 	go_slices "golang.org/x/exp/slices"
 )
 
 type DeploymentSpec struct {
-	SolutionName        string                `json:"solutionName"`
-	Solution            SolutionSpec          `json:"solution"`
-	Instance            InstanceSpec          `json:"instance"`
-	Targets             map[string]TargetSpec `json:"targets"`
-	Devices             []DeviceSpec          `json:"devices,omitempty"`
-	Assignments         map[string]string     `json:"assignments,omitempty"`
-	ComponentStartIndex int                   `json:"componentStartIndex,omitempty"`
-	ComponentEndIndex   int                   `json:"componentEndIndex,omitempty"`
-	ActiveTarget        string                `json:"activeTarget,omitempty"`
-	Generation          string                `json:"generation,omitempty"`
+	SolutionName        string                 `json:"solutionName"`
+	Solution            SolutionState          `json:"solution"`
+	Instance            InstanceState          `json:"instance"`
+	Targets             map[string]TargetState `json:"targets"`
+	Devices             []DeviceSpec           `json:"devices,omitempty"`
+	Assignments         map[string]string      `json:"assignments,omitempty"`
+	ComponentStartIndex int                    `json:"componentStartIndex,omitempty"`
+	ComponentEndIndex   int                    `json:"componentEndIndex,omitempty"`
+	ActiveTarget        string                 `json:"activeTarget,omitempty"`
+	Generation          string                 `json:"generation,omitempty"`
+	JobID               string                 `json:"jobID,omitempty"`
+	ObjectNamespace     string                 `json:"objectNamespace,omitempty"`
+	Hash                string                 `json:"hash,omitempty"`
+	IsDryRun            bool                   `json:"isDryRun,omitempty"`
+	IsInActive          bool                   `json:"isInActive,omitempty"`
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
-	components := d.Solution.Components
+	if d.Solution.Spec == nil {
+		return nil
+	}
+	components := d.Solution.Spec.Components
 	if d.ComponentStartIndex >= 0 && d.ComponentEndIndex >= 0 && d.ComponentEndIndex > d.ComponentStartIndex {
 		components = components[d.ComponentStartIndex:d.ComponentEndIndex]
 	}
@@ -88,7 +97,7 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	return true, nil
 }
 
-func mapsEqual(a map[string]TargetSpec, b map[string]TargetSpec, ignoredMissingKeys []string) bool {
+func mapsEqual(a map[string]TargetState, b map[string]TargetState, ignoredMissingKeys []string) bool {
 	for k, v := range a {
 		if bv, ok := b[k]; ok {
 			equal, err := bv.DeepEquals(v)
@@ -122,4 +131,67 @@ func mapsEqual(a map[string]TargetSpec, b map[string]TargetSpec, ignoredMissingK
 	}
 
 	return true
+}
+
+func GetDeploymentSpecForLog(d *DeploymentSpec) string {
+	targets := make(map[string]TargetState, len(d.Targets))
+	for k, v := range d.Targets {
+		targets[k] = TargetState{
+			ObjectMeta: ObjectMeta{
+				Name:        v.ObjectMeta.Name,
+				Namespace:   v.ObjectMeta.Namespace,
+				Annotations: getAnnotationsForLog(v.ObjectMeta.Annotations),
+			},
+		}
+	}
+	solution := SolutionState{
+		ObjectMeta: ObjectMeta{
+			Name:        d.Solution.ObjectMeta.Name,
+			Namespace:   d.Solution.ObjectMeta.Namespace,
+			Annotations: getAnnotationsForLog(d.Solution.ObjectMeta.Annotations),
+		},
+	}
+	instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Name:        d.Instance.ObjectMeta.Name,
+			Namespace:   d.Instance.ObjectMeta.Namespace,
+			Annotations: getAnnotationsForLog(d.Instance.ObjectMeta.Annotations),
+		},
+	}
+	deployment := DeploymentSpec{
+		SolutionName:        d.SolutionName,
+		Solution:            solution,
+		Instance:            instance,
+		Targets:             targets,
+		Devices:             d.Devices,
+		Assignments:         d.Assignments,
+		ComponentStartIndex: d.ComponentStartIndex,
+		ComponentEndIndex:   d.ComponentEndIndex,
+		ActiveTarget:        d.ActiveTarget,
+		Generation:          d.Generation,
+		JobID:               d.JobID,
+		ObjectNamespace:     d.ObjectNamespace,
+		Hash:                d.Hash,
+		IsDryRun:            d.IsDryRun,
+		IsInActive:          d.IsInActive,
+	}
+	payload, err := json.Marshal(deployment)
+	if err != nil {
+		return "{}"
+	}
+	return string(payload)
+}
+
+func getAnnotationsForLog(annotations map[string]string) map[string]string {
+	filterdAnnotations := map[string]string{}
+	if annotations == nil {
+		return filterdAnnotations
+	}
+	if _, ok := annotations["Guid"]; ok {
+		filterdAnnotations["Guid"] = annotations["Guid"]
+	}
+	if _, ok := annotations["SummaryJobIdKey"]; ok {
+		filterdAnnotations["SummaryJobIdKey"] = annotations["SummaryJobIdKey"]
+	}
+	return filterdAnnotations
 }

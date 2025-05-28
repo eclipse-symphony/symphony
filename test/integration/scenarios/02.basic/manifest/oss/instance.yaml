@@ -7,10 +7,15 @@ apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   annotations: {}
-  name: INSTANCENAME
+  name: INSTANCEFULLNAME
 spec:
-  displayName: INSTANCENAME
+  displayName: INSTANCEFULLNAME
   scope: SCOPENAME
-  solution: SOLUTIONNAME
+  solution: SOLUTIONREFNAME
+  isDryRun: DRYRUN
+  activeState: ACTIVESTATE
   target:
-    name: TARGETNAME
+    name: TARGETREFNAME
+  reconciliationPolicy:
+    state: active
+    interval: 1m

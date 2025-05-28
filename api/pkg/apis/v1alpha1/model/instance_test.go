@@ -13,41 +13,49 @@ import (
 )
 
 func TestInstanceDeepEquals(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
 	}
 	res, err := Instance.DeepEquals(other)
 	assert.Nil(t, err)
@@ -55,73 +63,76 @@ func TestInstanceDeepEquals(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a InstanceSpec type")
+	assert.EqualError(t, err, "parameter is not a InstanceState type")
 	assert.False(t, res)
 }
 
 func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName1",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName1",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -130,46 +141,48 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName1",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName1",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -177,47 +190,49 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 	assert.False(t, res)
 }
 
-func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default1",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default1",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -226,94 +241,98 @@ func TestInstanceDeepEqualsScopeNotMatch(t *testing.T) {
 }
 
 func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName1",
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName1",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		}}
-
+	}
 	res, err := Instance.DeepEquals(other)
 	assert.Nil(t, err)
 	assert.False(t, res)
 }
 
 func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName1",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName1",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -322,142 +341,48 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 }
 
 func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	Instance := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		},
-	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
-		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName1",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
-	res, err := Instance.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestInstanceEqualsArgumentsKeysNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
+	other := InstanceState{
+		ObjectMeta: ObjectMeta{
+			Namespace: "Default",
+			Name:      "InstanceName",
 		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		},
-	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
-		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo1": {"foo": "bar"},
-		},
-	}
-	res, err := Instance.DeepEquals(other)
-	assert.Nil(t, err)
-	assert.False(t, res)
-}
-
-func TestInstanceEqualsArgumentsValuesNotMatch(t *testing.T) {
-	Instance := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
-		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo": "bar"},
-		},
-	}
-	other := InstanceSpec{
-		Name:        "InstanceName",
-		DisplayName: "InstanceDisplayName",
-		Scope:       "Default",
-		Metadata: map[string]string{
-			"foo": "bar",
-		},
-		Solution: "SolutionName",
-		Target: TargetSelector{
-			Name: "TargetName",
-		},
-		Topologies: []TopologySpec{{
-			Device: "DeviceName",
-		}},
-		Pipelines: []PipelineSpec{{
-			Name: "PipelineName",
-		}},
-		Arguments: map[string]map[string]string{
-			"foo": {"foo1": "bar1"},
+		Spec: &InstanceSpec{
+			DisplayName: "InstanceDisplayName",
+			Solution:    "SolutionName",
+			Target: TargetSelector{
+				Name: "TargetName",
+			},
+			Topologies: []TopologySpec{{
+				Device: "DeviceName",
+			}},
+			Pipelines: []PipelineSpec{{
+				Name: "PipelineName1",
+			}},
+			Metadata: map[string]string{
+				"foo": "bar",
+			},
 		},
 	}
 	res, err := Instance.DeepEquals(other)
@@ -470,7 +395,7 @@ func TestTargetSelectorDeepEqualsOneEmpty(t *testing.T) {
 		Name: "TargetName",
 	}
 	res, err := Target.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TargetSelector type")
+	assert.EqualError(t, err, "parameter is not a TargetSelector type")
 	assert.False(t, res)
 }
 
@@ -497,7 +422,7 @@ func TestPipelineSpecDeepEqualsOneEmpty(t *testing.T) {
 		Name: "PipelineName",
 	}
 	res, err := Pipeline.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a PipelineSpec type")
+	assert.EqualError(t, err, "parameter is not a PipelineSpec type")
 	assert.False(t, res)
 }
 
@@ -546,7 +471,7 @@ func TestTopologySpecDeepEqualsOneEmpty(t *testing.T) {
 		Device: "DeviceName",
 	}
 	res, err := Topology.DeepEquals(nil)
-	assert.Errorf(t, err, "parameter is not a TopologySpec type")
+	assert.EqualError(t, err, "parameter is not a TopologySpec type")
 	assert.False(t, res)
 }
 

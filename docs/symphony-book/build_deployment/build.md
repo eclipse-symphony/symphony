@@ -1,6 +1,6 @@
 # Build Symphony containers
 
-_(last edit: 4/12/2023)_
+_(last edit: 2/11/2025)_
 
 Symphony has two parts: the platform-agnostic API (symphony-api) and Kubernetes binding (symphony-k8s), both are packaged as Docker containers.
 
@@ -8,6 +8,7 @@ Symphony has two parts: the platform-agnostic API (symphony-api) and Kubernetes 
 
 * [Go](https://golang.org/dl/) (1.19 or higher, latest stable version is recommended)
 * [Git](https://git-scm.com/downloads)
+* [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) (for Rust-based [providers](../providers/target-providers/target_provider.md))
 * [Docker](https://www.docker.com/products/docker-desktop)
 
   > **NOTE:** Some tools we use work better with access to docker commands without sudo. Use Docker Desktop version when possible. Otherwise, you need to add your user to docker group (see [instructions](https://www.docker.com/products/docker-desktop)). Please don't use rootless model, which isn't supported by some of the tools.
@@ -69,7 +70,12 @@ git clone https://github.com/eclipse-symphony/symphony.git
 To build Symphony API binary, use `go build`:
 
 ```bash
+# to build Rust provider binding
 cd api
+pushd .
+cd api/pkg/apis/v1alpha1/providers/target/rust
+cargo build --release
+popd #back to the api folder
 go build -o symphony-api
 # to build for Windows
 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
@@ -80,7 +86,7 @@ GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac
 Then, you can launch the API as a local web service using (default port is `8082`. See `./symphony-api-no-k8s.json` settings):
 
 ```bash
-./symphony-api -c ./symphony-api-no-k8s.json
+./symphony-api -c ./symphony-api-no-k8s.json -l Debug
 ```
 
 ## 2. Build and run Symphony API container for local dev/test
@@ -162,10 +168,16 @@ docker push ghcr.io/eclipse-symphony/symphony-k8s:latest
 
 ## 5. Update Helm chart (optional)
 
+`mage helmTemplate` manipulates the generated symphonyk8s.yaml for all components required by symphony-k8s pod except for the pod yaml itself.
+
+The symphonyk8s deployment is maintained as static yaml in `../packages/helm/symphony/templates/symphony-core/symphony-k8s-controller.yaml` with helm value expressions, which allows us to write helm value expressions to render the yaml during runtime. 
+
 ```bash
 cd k8s
 mage helmTemplate
-# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony.yaml.
+# Generated startup yaml will be updated in ../packages/helm/symphony/templates/symphony-core/symphonyk8s.yaml.
+
+# To modify the symphony-k8s deployment yaml, please modify `../packages/helm/symphony/templates/symphony-core/symphony-k8s-controller.yaml` directly.
 ```
 
 > **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solution is found.
@@ -194,9 +206,9 @@ If you plan to use Symphony Agent as a container, run the following commands to 
 
 ```bash
 cd api
-docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.agent --push .
+docker buildx build --no-cache --platform linux/amd64,linux/arm64,linux/arm/v7 -t <Agent image tag> --file ./Dockerfile.target-agent --push .
 # or to build for single platform
-docker build -t <Agent image tag> -f ./Dockerfile.agent .
+docker build -t <Agent image tag> -f ./Dockerfile.target-agent .
 ```
 
 To run an agent locally, use Docker:

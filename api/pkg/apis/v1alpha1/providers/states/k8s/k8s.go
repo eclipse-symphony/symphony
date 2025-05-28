@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -91,17 +92,18 @@ func (s *K8sStateProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("K8s State Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("K8s State Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.Debug("  P (K8s State): initialize")
 
 	updateConfig, err := toK8sStateProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (K8s State): expected KubectlTargetProviderConfig: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (K8s State): expected KubectlTargetProviderConfig: %+v", err)
 		return err
 	}
 	i.Config = updateConfig
@@ -116,7 +118,7 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					sLog.Errorf("  P (K8s State): %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (K8s State): %+v", err)
 					return err
 				}
 			}
@@ -125,27 +127,27 @@ func (i *K8sStateProvider) Init(config providers.IProviderConfig) error {
 			if i.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (K8s State): %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (K8s State): %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				sLog.Errorf("  P (K8s State): %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (K8s State): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and bytes", v1alpha2.BadConfig)
-			sLog.Errorf("  P (K8s State): %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (K8s State): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		sLog.Errorf("  P (K8s State): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (K8s State): %+v", err)
 		return err
 	}
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (K8s State): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (K8s State): %+v", err)
 		return err
 	}
 
@@ -171,17 +173,18 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (K8s State): upsert state")
+	namespace := model.ReadPropertyCompat(entry.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(entry.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(entry.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(entry.Metadata, "resource", nil)
+	kind := model.ReadPropertyCompat(entry.Metadata, "kind", nil)
 
-	scope := model.ReadProperty(entry.Metadata, "scope", nil)
-	group := model.ReadProperty(entry.Metadata, "group", nil)
-	version := model.ReadProperty(entry.Metadata, "version", nil)
-	resource := model.ReadProperty(entry.Metadata, "resource", nil)
-
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
+	sLog.DebugfCtx(ctx, "  P (K8s State): upsert state %s in namespace %s", entry.Value.ID, namespace)
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
@@ -189,74 +192,117 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		Resource: resource,
 	}
 
-	j, _ := json.Marshal(entry.Value.Body)
+	if entry.Value.ID == "" {
+		sLog.ErrorfCtx(ctx, "  P (K8s State): found invalid request ID")
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return "", err
+	}
 
-	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, entry.Value.ID, metav1.GetOptions{})
+	j, _ := json.Marshal(entry.Value.Body)
+	var item *unstructured.Unstructured
+	item, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
 	if err != nil {
-		// TODO: check if not-found error
-		template := model.ReadProperty(entry.Metadata, "template", &model.ValueInjections{
-			TargetId:     entry.Value.ID,
-			SolutionId:   entry.Value.ID, //TODO: This is not very nice. Maybe change ValueInjection to include a generic ID?
-			InstanceId:   entry.Value.ID,
-			ActivationId: entry.Value.ID,
-			CampaignId:   entry.Value.ID,
-			CatalogId:    entry.Value.ID,
-			DeviceId:     entry.Value.ID,
-			ModelId:      entry.Value.ID,
-			SkillId:      entry.Value.ID,
-			SiteId:       entry.Value.ID,
-		})
+		template := fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "%s", "metadata": {}}`, group, kind)
 		var unc *unstructured.Unstructured
 		err = json.Unmarshal([]byte(template), &unc)
 		if err != nil {
-			sLog.Errorf("  P (K8s State): failed to deserialize template: %v", err)
-			return "", err
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to deserialize template: %v", err)
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because of bad template", v1alpha2.BadRequest)
 		}
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
-			sLog.Errorf("  P (K8s State): failed to get object: %v", err)
-			return "", err
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to get object: %v", err)
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because of bad inputs", v1alpha2.BadRequest)
 		}
 		unc.Object["spec"] = dict["spec"]
-		_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).Create(ctx, unc, metav1.CreateOptions{})
+		metaJson, _ := json.Marshal(dict["metadata"])
+		var metadata metav1.ObjectMeta
+		err = json.Unmarshal(metaJson, &metadata)
 		if err != nil {
-			sLog.Errorf("  P (K8s State): failed to create object: %v", err)
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to get object: %v", err)
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because of bad inputs", v1alpha2.BadRequest)
+		}
+		unc.SetName(metadata.Name)
+		unc.SetNamespace(metadata.Namespace)
+		unc.SetLabels(metadata.Labels)
+		unc.SetAnnotations(metadata.Annotations)
+		unc.SetOwnerReferences(metadata.OwnerReferences)
+
+		_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Create(ctx, unc, metav1.CreateOptions{})
+		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to create object: %v", err)
 			return "", err
 		}
 		//Note: state is ignored for new object
 	} else {
+		// if there is no error, we are updating an existing object.
 		j, _ := json.Marshal(entry.Value.Body)
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
 		if err != nil {
-			sLog.Errorf("  P (K8s State): failed to unmarshal object: %v", err)
-			return "", err
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to unmarshal object: %v", err)
+			return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object", v1alpha2.BadRequest)
 		}
-		if v, ok := dict["spec"]; ok {
+		if v, ok := dict["metadata"]; ok {
+			metaJson, _ := json.Marshal(v)
+			var metadata model.ObjectMeta
+			err = json.Unmarshal(metaJson, &metadata)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to unmarshal object metadata: %v", err)
+				return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object metadata", v1alpha2.BadRequest)
+			}
+
+			item.SetName(metadata.Name)
+			item.SetNamespace(metadata.Namespace)
+			item.SetLabels(metadata.Labels)
+			item.SetAnnotations(metadata.Annotations)
+		}
+		getResourceVersion := false
+		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStatusOnly {
 			item.Object["spec"] = v
 
-			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).Update(ctx, item, metav1.UpdateOptions{})
+			// If we update the labels, annotations or spec, we should respect the resource version provided by client.
+			// If client does not provide a ETag, we treat it as concurrency not required and ignore the ETag.
+			if entry.Value.ETag != "" {
+				item.SetResourceVersion(entry.Value.ETag)
+			}
+			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
-				sLog.Errorf("  P (K8s State): failed to update object: %v", err)
+				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object: %v", err)
 				return "", err
 			}
+			getResourceVersion = true
 		}
 		if v, ok := dict["status"]; ok {
-			status := &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"apiVersion": group + "/" + version,
-					"kind":       "Status",
-					"metadata": map[string]interface{}{
-						"name": entry.Value.ID,
-					},
-					"status": v.(map[string]interface{}),
-				},
+			if getResourceVersion {
+				// Get latest resource version in case the the object spec is also updated
+				item, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, entry.Value.ID, metav1.GetOptions{})
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (K8s State): failed to get object when trying to update status: %v", err)
+					return "", err
+				}
 			}
-			status.SetResourceVersion(item.GetResourceVersion())
-			_, err = s.DynamicClient.Resource(resourceId).Namespace(scope).UpdateStatus(ctx, status, v1.UpdateOptions{})
-			if err != nil {
-				sLog.Errorf("  P (K8s State): failed to update object status: %v", err)
+
+			if vMap, ok := v.(map[string]interface{}); ok {
+				status := &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": group + "/" + version,
+						"kind":       "Status",
+						"metadata": map[string]interface{}{
+							"name": entry.Value.ID,
+						},
+						"status": vMap,
+					},
+				}
+				status.SetResourceVersion(item.GetResourceVersion())
+				_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).UpdateStatus(ctx, status, v1.UpdateOptions{})
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object status: %v", err)
+					return "", err
+				}
+			} else {
+				err = v1alpha2.NewCOAError(nil, "status field is not a valid map[string]interface{}", v1alpha2.BadRequest)
 				return "", err
 			}
 		}
@@ -285,24 +331,25 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (K8s State): list state")
+	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
 
-	scope := model.ReadProperty(request.Metadata, "scope", nil)
-	group := model.ReadProperty(request.Metadata, "group", nil)
-	version := model.ReadProperty(request.Metadata, "version", nil)
-	resource := model.ReadProperty(request.Metadata, "resource", nil)
+	sLog.InfofCtx(ctx, "  P (K8s State): list state for %s.%s in namespace %s", resource, group, namespace)
 
 	var namespaces []string
-	if scope == "" {
+	if namespace == "" {
 		ret, err := s.ListAllNamespaces(ctx, version)
 		if err != nil {
-			sLog.Errorf("  P (K8s State): failed to list namespaces: %v", err)
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to list namespaces: %v", err)
 			return nil, "", err
 		}
 		namespaces = ret
 	} else {
-		namespaces = []string{scope}
+		namespaces = []string{namespace}
 	}
 	for _, namespace := range namespaces {
 		resourceId := schema.GroupVersionResource{
@@ -310,20 +357,80 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 			Version:  version,
 			Resource: resource,
 		}
-		items, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).List(ctx, metav1.ListOptions{})
+		options := metav1.ListOptions{}
+		filterValue := ""
+		switch request.FilterType {
+		case "label":
+			labelSelector := request.FilterValue
+			options = metav1.ListOptions{
+				LabelSelector: labelSelector,
+			}
+		case "field":
+			fieldSelector := request.FilterValue
+			options = metav1.ListOptions{
+				FieldSelector: fieldSelector,
+			}
+		case "spec":
+			filterValue = request.FilterValue
+		case "status":
+			filterValue = request.FilterValue
+		case "":
+			//no filter
+		default:
+			sLog.ErrorfCtx(ctx, "  P (K8s State): invalid filter type: %s", request.FilterType)
+			return nil, "", v1alpha2.NewCOAError(nil, "invalid filter type", v1alpha2.BadRequest)
+		}
+		items, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).List(ctx, options)
 		if err != nil {
-			sLog.Errorf("  P (K8s State): failed to list objects in namespace %s: %v ", namespace, err)
+			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to list objects in namespace %s: %v ", namespace, err)
 			return nil, "", err
 		}
 		for _, v := range items.Items {
-			generation := v.GetGeneration()
+
+			if filterValue != "" {
+				switch request.FilterType {
+				case "spec":
+					var dict map[string]interface{}
+					j, _ := json.Marshal(v.Object["spec"])
+					err = json.Unmarshal(j, &dict)
+					if err != nil {
+						sLog.ErrorfCtx(ctx, "  P (K8s State): failed to unmarshal object spec: %v", err)
+						return nil, "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object spec", v1alpha2.BadRequest)
+					}
+					if v, e := utils.JsonPathQuery(dict, filterValue); e != nil || v == nil {
+						continue
+					}
+				case "status":
+					if v.Object["status"] != nil {
+						var dict map[string]interface{}
+						j, _ := json.Marshal(v.Object["status"])
+						err = json.Unmarshal(j, &dict)
+						if err != nil {
+							sLog.ErrorfCtx(ctx, "  P (K8s State): failed to unmarshal object status: %v", err)
+							return nil, "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object status", v1alpha2.BadRequest)
+						}
+						if v, e := utils.JsonPathQuery(dict, filterValue); e != nil || v == nil {
+							continue
+						}
+					}
+				}
+			}
+
+			metadata := model.ObjectMeta{
+				Name:          v.GetName(),
+				Namespace:     v.GetNamespace(),
+				Labels:        v.GetLabels(),
+				ETag:          v.GetResourceVersion(),
+				Annotations:   v.GetAnnotations(),
+				ObjGeneration: v.GetGeneration(),
+			}
 			entry := states.StateEntry{
-				ETag: strconv.FormatInt(generation, 10),
+				ETag: v.GetResourceVersion(),
 				ID:   v.GetName(),
 				Body: map[string]interface{}{
-					"spec":   v.Object["spec"],
-					"status": v.Object["status"],
-					"scope":  namespace,
+					"spec":     v.Object["spec"],
+					"status":   v.Object["status"],
+					"metadata": metadata,
 				},
 			}
 			entities = append(entities, entry)
@@ -338,26 +445,32 @@ func (s *K8sStateProvider) Delete(ctx context.Context, request states.DeleteRequ
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (K8s State): delete state")
-
-	scope := model.ReadProperty(request.Metadata, "scope", nil)
-	group := model.ReadProperty(request.Metadata, "group", nil)
-	version := model.ReadProperty(request.Metadata, "version", nil)
-	resource := model.ReadProperty(request.Metadata, "resource", nil)
+	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,
 		Resource: resource,
 	}
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
+	}
+	sLog.InfofCtx(ctx, "  P (K8s State): delete state %s in namespace %s", request.ID, namespace)
+
+	if request.ID == "" {
+		sLog.ErrorfCtx(ctx, "  P (K8s State): found invalid request ID")
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return err
 	}
 
-	err = s.DynamicClient.Resource(resourceId).Namespace(scope).Delete(ctx, request.ID, metav1.DeleteOptions{})
+	err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Delete(ctx, request.ID, metav1.DeleteOptions{})
 	if err != nil {
-		sLog.Errorf("  P (K8s State): failed to delete objects: %v", err)
+		sLog.ErrorfCtx(ctx, "  P (K8s State): failed to delete objects: %v", err)
 		return err
 	}
 	return nil
@@ -369,17 +482,18 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (K8s State): get state")
+	namespace := model.ReadPropertyCompat(request.Metadata, "namespace", nil)
+	group := model.ReadPropertyCompat(request.Metadata, "group", nil)
+	version := model.ReadPropertyCompat(request.Metadata, "version", nil)
+	resource := model.ReadPropertyCompat(request.Metadata, "resource", nil)
 
-	scope := model.ReadProperty(request.Metadata, "scope", nil)
-	group := model.ReadProperty(request.Metadata, "group", nil)
-	version := model.ReadProperty(request.Metadata, "version", nil)
-	resource := model.ReadProperty(request.Metadata, "resource", nil)
-
-	if scope == "" {
-		scope = "default"
+	if namespace == "" {
+		namespace = "default"
 	}
+
+	sLog.InfofCtx(ctx, "  P (K8s State): get state %s in namespace %s", request.ID, namespace)
 
 	resourceId := schema.GroupVersionResource{
 		Group:    group,
@@ -387,201 +501,42 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 		Resource: resource,
 	}
 
-	item, err := s.DynamicClient.Resource(resourceId).Namespace(scope).Get(ctx, request.ID, metav1.GetOptions{})
+	if request.ID == "" {
+		sLog.ErrorfCtx(ctx, "  P (K8s State): found invalid request ID")
+		err := v1alpha2.NewCOAError(nil, "found invalid request ID", v1alpha2.BadRequest)
+		return states.StateEntry{}, err
+	}
+
+	item, err := s.DynamicClient.Resource(resourceId).Namespace(namespace).Get(ctx, request.ID, metav1.GetOptions{})
 	if err != nil {
 		coaError := v1alpha2.NewCOAError(err, "failed to get object", v1alpha2.InternalError)
 		//check if not found
 		if k8s_errors.IsNotFound(err) {
 			coaError.State = v1alpha2.NotFound
 		}
-		sLog.Errorf("  P (K8s State %v", coaError.Error())
+		sLog.ErrorfCtx(ctx, "  P (K8s State) %v", coaError.Error())
 		return states.StateEntry{}, coaError
 	}
-	generation := item.GetGeneration()
+
+	metadata := model.ObjectMeta{
+		Name:            item.GetName(),
+		Namespace:       item.GetNamespace(),
+		Labels:          item.GetLabels(),
+		ETag:            item.GetResourceVersion(),
+		Annotations:     item.GetAnnotations(),
+		ObjGeneration:   item.GetGeneration(),
+		UID:             item.GetUID(),
+		OwnerReferences: item.GetOwnerReferences(),
+	}
+
 	ret := states.StateEntry{
 		ID:   request.ID,
-		ETag: strconv.FormatInt(generation, 10),
+		ETag: item.GetResourceVersion(),
 		Body: map[string]interface{}{
-			"spec":   item.Object["spec"],
-			"status": item.Object["status"],
-			"scope":  scope,
+			"spec":     item.Object["spec"],
+			"status":   item.Object["status"],
+			"metadata": metadata,
 		},
 	}
 	return ret, nil
-}
-
-// Implmeement the IConfigProvider interface
-func (s *K8sStateProvider) Read(object string, field string) (string, error) {
-	obj, err := s.Get(context.TODO(), states.GetRequest{
-		ID: object,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
-		spec := v.(map[string]interface{})
-		if v, ok := spec["properties"]; ok {
-			properties := v.(map[string]interface{})
-			if v, ok := properties[field]; ok {
-				return v.(string), nil
-			} else {
-				return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("field '%s' is not found in configuration catalog '%s'", field, object), v1alpha2.NotFound)
-			}
-		} else {
-			return "", v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
-		}
-	}
-	return "", v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
-}
-
-func (s *K8sStateProvider) ReadObject(object string) (map[string]string, error) {
-	obj, err := s.Get(context.TODO(), states.GetRequest{
-		ID: object,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
-		spec := v.(map[string]interface{})
-		if v, ok := spec["properties"]; ok {
-			properties := v.(map[string]interface{})
-			ret := map[string]string{}
-			for k, v := range properties {
-				ret[k] = v.(string)
-			}
-			return ret, nil
-		} else {
-			return nil, v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
-		}
-	}
-	return nil, v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
-}
-
-func (s *K8sStateProvider) Set(object string, field string, value string, scope string) error {
-	obj, err := s.Get(context.TODO(), states.GetRequest{
-		ID: object,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
-			"scope":    scope,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
-		spec := v.(map[string]interface{})
-		if v, ok := spec["properties"]; ok {
-			properties := v.(map[string]interface{})
-			properties[field] = value
-			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
-				Value: obj,
-				Metadata: map[string]string{
-					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-					"scope":    scope,
-					"group":    model.FederationGroup,
-					"version":  "v1",
-					"resource": "catalogs",
-				},
-			})
-			return err
-		} else {
-			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
-		}
-	}
-	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
-}
-func (s *K8sStateProvider) SetObject(object string, values map[string]string, scope string) error {
-	obj, err := s.Get(context.TODO(), states.GetRequest{
-		ID: object,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
-			"scope":    scope,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
-		spec := v.(map[string]interface{})
-		if v, ok := spec["properties"]; ok {
-			properties := v.(map[string]interface{})
-			for k, v := range values {
-				properties[k] = v
-			}
-			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
-				Value: obj,
-				Metadata: map[string]string{
-					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-					"scope":    scope,
-					"group":    model.FederationGroup,
-					"version":  "v1",
-					"resource": "catalogs",
-				},
-			})
-			return err
-		} else {
-			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
-		}
-	}
-	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
-}
-func (s *K8sStateProvider) Remove(object string, field string, scope string) error {
-	obj, err := s.Get(context.TODO(), states.GetRequest{
-		ID: object,
-		Metadata: map[string]string{
-			"version":  "v1",
-			"group":    model.FederationGroup,
-			"resource": "catalogs",
-			"scope":    scope,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if v, ok := obj.Body.(map[string]interface{})["spec"]; ok {
-		spec := v.(map[string]interface{})
-		if v, ok := spec["properties"]; ok {
-			properties := v.(map[string]interface{})
-			delete(properties, field)
-			_, err := s.Upsert(context.TODO(), states.UpsertRequest{
-				Value: obj,
-				Metadata: map[string]string{
-					"template": fmt.Sprintf(`{"apiVersion":"%s/v1", "kind": "Catalog", "metadata": {"name": "${{$catalog()}}"}}`, model.FederationGroup),
-					"scope":    scope,
-					"group":    model.FederationGroup,
-					"version":  "v1",
-					"resource": "catalogs",
-				},
-			})
-			return err
-		} else {
-			return v1alpha2.NewCOAError(nil, "properties not found", v1alpha2.NotFound)
-		}
-	}
-	return v1alpha2.NewCOAError(nil, "spec not found", v1alpha2.NotFound)
-}
-func (s *K8sStateProvider) RemoveObject(object string, scope string) error {
-	return s.Delete(context.TODO(), states.DeleteRequest{
-		ID: object,
-		Metadata: map[string]string{
-			"scope":    scope,
-			"group":    model.FederationGroup,
-			"version":  "v1",
-			"resource": "catalogs",
-		},
-	})
 }

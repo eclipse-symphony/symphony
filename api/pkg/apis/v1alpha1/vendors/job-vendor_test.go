@@ -29,7 +29,8 @@ func createJobVendor() JobVendor {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := jobs.JobsManager{
-		StateProvider: stateProvider,
+		VolatileStateProvider:   stateProvider,
+		PersistentStateProvider: stateProvider,
 	}
 	vendor := JobVendor{
 		JobsManager: &manager,
@@ -62,7 +63,11 @@ func TestJobsInit(t *testing.T) {
 				Name: "jobs-manager",
 				Type: "managers.symphony.jobs",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.volatilestate":   "mem-state",
+					"providers.persistentstate": "mem-state",
+					"baseUrl":                   "http://localhost:8082/v1alpha2/",
+					"user":                      "admin",
+					"password":                  "",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -88,15 +93,19 @@ func TestJobsonHello(t *testing.T) {
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor.Context.Init(&pubSubProvider)
 	succeededCount := 0
-	vendor.Context.Subscribe("activation", func(topic string, event v1alpha2.Event) error {
-		var activation v1alpha2.ActivationData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &activation)
-		assert.Nil(t, err)
-		assert.Equal(t, "activation1", activation.Activation)
-		assert.Equal(t, "campaign1", activation.Campaign)
-		succeededCount += 1
-		return nil
+	sig := make(chan bool)
+	vendor.Context.Subscribe("activation", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var activation v1alpha2.ActivationData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &activation)
+			assert.Nil(t, err)
+			assert.Equal(t, "activation1", activation.Activation)
+			assert.Equal(t, "campaign1", activation.Campaign)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	activation := v1alpha2.ActivationData{
 		Activation: "activation1",
@@ -108,6 +117,7 @@ func TestJobsonHello(t *testing.T) {
 		Body:    data,
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, succeededCount)

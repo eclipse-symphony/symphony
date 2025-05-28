@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: approval-campaign
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: approval-campaign-v-version1
 spec:
+  rootResource: approval-campaign
   firstStage: "approval"
   selfDriving: true
   stages:
@@ -10,7 +17,7 @@ spec:
       name: "approval"
       provider: "providers.stage.script"     
       config: 
-        scriptFolder: "https://demopolicies.blob.core.windows.net/scripts"
+        scriptFolder: "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/approval/script"
         scriptEngine: "bash"
         script: "mock-reject.sh"
       stageSelector: ${{$if($equal($output(approval,status), 200),'deploy','end')}}     

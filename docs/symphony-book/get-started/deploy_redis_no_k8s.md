@@ -1,6 +1,6 @@
 # Symphony quickstart - Deploy a Redis container with standalone Symphony
 
-_(last edit: 9/18/2023)_
+_(last edit: 4/15/2024)_
 
 This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solution instance to your local machine using Docker.
 
@@ -37,7 +37,7 @@ The response body contains an access token, which you need to attach to the subs
 
 ## Define a target
 
-Define your current machine as a [target](../concepts/unified-object-model/target.md) with a Docker [target provider](../providers/target_provider.md):
+Define your current machine as a [target](../concepts/unified-object-model/target.md) with a Docker [target provider](../providers/target-providers/target_provider.md):
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/targets/registry/sample-docker-target
 * **METHOD**: POST
@@ -45,20 +45,23 @@ Define your current machine as a [target](../concepts/unified-object-model/targe
 
   ```json
   {
-    "displayName": "sample-docker-target",
-    "forceRedploy": true,
-    "topologies": [
-      {
-        "bindings": [
-          {
-            "role": "instance",
-            "provider": "providers.target.docker",
-            "config": {}
-          }
-        ]
-      }
-    ]
+    "spec": {
+      "displayName": "sample-docker-target",
+      "forceRedeploy": true,
+      "topologies": [
+        {
+          "bindings": [
+            {
+              "role": "instance",
+              "provider": "providers.target.docker",
+              "config": {}
+            }
+          ]
+        }
+      ]
+    }
   }
+
   ```
 
 ## Define a solution
@@ -71,16 +74,18 @@ Define a [solution](../concepts/unified-object-model/solution.md) with a single 
 
   ```json
   {
-    "displayName": "sample-redis",
-    "components": [
-      {
-        "name": "sample-redis",
-        "type": "container",
-        "properties": {
-          "container.image": "redis:latest"
-        }
+    "spec": {
+      "displayName": "sample-redis",
+      "components": [
+        {
+          "name": "sample-redis",
+          "type": "container",
+          "properties": {
+            "container.image": "redis:latest"
+          }
       }
-    ]
+      ]
+    }
   }
   ```
 
@@ -94,12 +99,14 @@ Define an [instance](../concepts/unified-object-model/instance.md), which trigge
 
   ```json
   {
-    "displayName": "redis-server",
-    "name": "default",
-    "solution": "sample-redis",
-    "target": {
-      "name": "sample-docker-target"
-    }        
+    "spec": {
+      "displayName": "redis-server",
+      "name": "default",
+      "solution": "sample-redis",
+      "target": {
+        "name": "sample-docker-target"
+      }        
+    }
   }
   ```
 
@@ -131,11 +138,13 @@ To delete the container, send a `DELETE` request:
 
   ```json
   {
-    "displayName": "redis-server",
-    "solution": "sample-redis",
-    "target": {
-      "name": "sample-docker-target"
-    }        
+    "spec": {
+      "displayName": "redis-server",
+      "solution": "sample-redis",
+      "target": {
+        "name": "sample-docker-target"
+      }        
+    }
   }
   ```
 

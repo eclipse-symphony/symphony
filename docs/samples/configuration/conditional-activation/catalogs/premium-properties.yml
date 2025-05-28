@@ -1,0 +1,19 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: premium-properties
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: premium-properties-v-v1
+  labels:
+    version: "1"
+spec:
+  rootResource: premium-properties
+  catalogType: config
+  properties:
+    premium_settings:
+      premium_key1: "premium1"
+      premium_key2: "premium2"

@@ -5,9 +5,14 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
 
 jobs:
 
@@ -16,13 +21,19 @@ jobs:
     env:
       TEST_KUBECTL: yes
       TEST_MINIKUBE_ENABLED: yes
+      TEST_MQTT_LOCAL_ENABLED: yes
+      TEST_DOCKER_ENABLED: yes
+      TEST_K8S_STATE: yes
+      TEST_SYMPHONY_HELM_VERSION: yes
+      TEST_HELM_CHART: yes
+      TEST_CONFIGMAP: yes # requires minikube start
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.19
+        go-version: 1.23.0
         
     - name: Set up custom GOPATH
       run: |
@@ -30,9 +41,38 @@ jobs:
         echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
         echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
         source $HOME/.bashrc
-          
+
     - name: Install make
       run: sudo apt-get update && sudo apt-get install -y build-essential
+
+    - name: Check docker version and images
+      run: docker version && docker images
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y \
+        gcc g++ make curl wget git protobuf-compiler \
+        llvm clang \
+        zlib1g-dev libcurl4-openssl-dev \
+        libxml2-dev uuid-dev \
+        gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+        libssl-dev pkg-config mingw-w64
+        sudo snap install yq
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Install Rust targets
+      run: |
+        rustup target add aarch64-unknown-linux-gnu
+        rustup target add armv7-unknown-linux-gnueabihf
+        rustup target add x86_64-pc-windows-gnu
+        rustup target add x86_64-apple-darwin
+        rustup target add x86_64-unknown-linux-gnu
 
     - name: Install kubectl
       run: |
@@ -49,38 +89,89 @@ jobs:
         sudo mv minikube /usr/local/bin/
         minikube start
         kubectl config view
+    
+    - name: Install Mqtt
+      run: | 
+        sudo apt-get update
+        sudo apt-get install mosquitto mosquitto-clients
+        sudo service mosquitto start
+        sudo service mosquitto status
 
+    - name: Install Mage
+      run: |
+        cd ..
+        git clone https://github.com/magefile/mage
+        cd mage
+        go run bootstrap.go
+        cd ..
+
+    - name: Clean up docker
+      run: |
+        docker system prune -a -f
+        docker volume prune -f
+        docker builder prune -a -f
+
+    - name: Free up disk space
+      run: |
+        sudo apt-get clean
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/swift
+    
     - name: COA Test
-      run: cd coa && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+      run: cd coa && mage cleanTest
+
+    - name: Build Rust bindings
+      run: |
+        cd api/pkg/apis/v1alpha1/providers/target/rust
+        cargo build --release --target x86_64-unknown-linux-gnu    
 
     - name: API Build
-      run: cd api && go build -o symphony-api
-
+      run: cd api && CGO_ENABLED=1 GOARCH=amd64 GOOS=linux CC=gcc LD_LIBRARY=./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release CGO_LDFLAGS=-L./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release go build -o symphony-api
+  
     - name: API Test
       run: |
-        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED"
-        cd api && go test -v ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
+        echo "TEST_KUBECTL:$TEST_KUBECTL TEST_MINIKUBE_ENABLED:$TEST_MINIKUBE_ENABLED TEST_K8S_STATE: $TEST_K8S_STATE TEST_CONFIGMAP: $TEST_CONFIGMAP"
+        export REPOPATH="${{ github.workspace }}"
+        echo "REPOPATH=$REPOPATH"
+        export DOCKER_API_VERSION=1.45
+        cd api && mage cleanTest
+
+    - name: K8S Test
+      run: cd k8s && mage operatorTest
 
     - name: target-api-testcoverage-app
       run: |
-        cd api && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        cd api
+        COVERAGE=`mage printCoverage`
         echo "coverage=$COVERAGE"
+        go tool cover -html=coverage.out -o coverage-api.html 
       continue-on-error: true
       if: always()
 
     - name: target-k8s-testcoverage-app
       run: |
-        cd k8s && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        cd k8s
+        COVERAGE=`mage printCoverage`
         echo "coverage=$COVERAGE"
+        go tool cover -html=coverage.out -o coverage-k8s.html 
       continue-on-error: true
       if: always()
 
     - name: target-coa-testcoverage-app
       run: |
-        cd coa && go test -coverprofile=coverage.out ./... -run '^[^C]*$|^[^c][^o]*$|^[^c][^o]*o[^n][^f][^o][^r][^m][^a][^n][^c][^e][^C]*$'
-        COVERAGE=`go tool cover -func=coverage.out | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+        cd coa
+        COVERAGE=`mage printCoverage`
         echo "coverage=$COVERAGE"
+        go tool cover -html=coverage.out -o coverage-coa.html 
       continue-on-error: true
       if: always()
+
+    - name: Upload test assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-coverage
+        path: |
+          api/coverage-api.html
+          k8s/coverage-k8s.html
+          coa/coverage-coa.html

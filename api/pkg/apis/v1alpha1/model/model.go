@@ -6,9 +6,11 @@
 
 package model
 
+import "errors"
+
 type ModelState struct {
-	Id   string     `json:"id"`
-	Spec *ModelSpec `json:"spec,omitempty"`
+	ObjectMeta ObjectMeta `json:"metadata,omitempty"`
+	Spec       *ModelSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -26,7 +28,7 @@ const (
 )
 
 func (c ModelSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherModelSpec, ok := other.(*ModelSpec)
+	otherModelSpec, ok := other.(ModelSpec)
 	if !ok {
 		return false, nil
 	}
@@ -42,5 +44,24 @@ func (c ModelSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !SlicesEqual(c.Bindings, otherModelSpec.Bindings) {
 		return false, nil
 	}
+	return true, nil
+}
+
+func (c ModelState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(ModelState)
+	if !ok {
+		return false, errors.New("parameter is not a ModelState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+
 	return true, nil
 }

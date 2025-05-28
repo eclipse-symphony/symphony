@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: test-instance
 spec:
-  solution: test-app
+  solution: test-app:version1
   target:
     name: test-target

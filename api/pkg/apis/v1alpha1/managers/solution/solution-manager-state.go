@@ -26,9 +26,9 @@ func PlanForDeployment(deployment model.DeploymentSpec, state model.DeploymentSt
 				if role == "" {
 					role = "instance"
 				}
-				action := "update"
+				action := model.ComponentUpdate
 				if strings.HasPrefix(v, "-") {
-					action = "delete"
+					action = model.ComponentDelete
 				}
 				index := ret.FindLastTargetRole(t.Name, c.Type)
 				if index < 0 || !ret.CanAppendToStep(index, c) {
@@ -62,7 +62,7 @@ func NewDeploymentState(deployment model.DeploymentSpec) (model.DeploymentState,
 		TargetComponent: make(map[string]string),
 	}
 
-	components, err := sortByDepedencies(deployment.Solution.Components)
+	components, err := sortByDepedencies(deployment.Solution.Spec.Components)
 	if err != nil {
 		return ret, err
 	}
@@ -80,7 +80,7 @@ func NewDeploymentState(deployment model.DeploymentSpec) (model.DeploymentState,
 				}
 			}
 			if !found {
-				ret.Targets = append(ret.Targets, model.TargetDesc{Name: k, Spec: v})
+				ret.Targets = append(ret.Targets, model.TargetDesc{Name: k, Spec: *v.Spec})
 			}
 			t := component.Type
 			if t == "" {
@@ -134,8 +134,8 @@ func MergeDeploymentStates(previous *model.DeploymentState, current model.Deploy
 	}
 	return current
 }
-func findComponentProviders(component string, deployment model.DeploymentSpec) map[string]model.TargetSpec {
-	ret := make(map[string]model.TargetSpec)
+func findComponentProviders(component string, deployment model.DeploymentSpec) map[string]model.TargetState {
+	ret := make(map[string]model.TargetState)
 	for k, v := range deployment.Assignments {
 		if v != "" {
 			if strings.Contains(v, "{"+component+"}") {

@@ -6,9 +6,11 @@
 
 package model
 
+import "errors"
+
 type SkillState struct {
-	Id   string     `json:"id"`
-	Spec *SkillSpec `json:"spec,omitempty"`
+	ObjectMeta ObjectMeta `json:"metadata,omitempty"`
+	Spec       *SkillSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -31,7 +33,7 @@ type SkillPackageSpec struct {
 }
 
 func (c SkillSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherSkillSpec, ok := other.(*SkillSpec)
+	otherSkillSpec, ok := other.(SkillSpec)
 	if !ok {
 		return false, nil
 	}
@@ -50,8 +52,28 @@ func (c SkillSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	if !SlicesEqual(c.Bindings, otherSkillSpec.Bindings) {
 		return false, nil
 	}
+
 	if !SlicesEqual(c.Edges, otherSkillSpec.Edges) {
 		return false, nil
 	}
+	return true, nil
+}
+
+func (c SkillState) DeepEquals(other IDeepEquals) (bool, error) {
+	otherC, ok := other.(SkillState)
+	if !ok {
+		return false, errors.New("parameter is not a SkillState type")
+	}
+
+	equal, err := c.ObjectMeta.DeepEquals(otherC.ObjectMeta)
+	if err != nil || !equal {
+		return equal, err
+	}
+
+	equal, err = c.Spec.DeepEquals(*otherC.Spec)
+	if err != nil || !equal {
+		return equal, err
+	}
+
 	return true, nil
 }

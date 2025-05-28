@@ -7,9 +7,9 @@
 package vendors
 
 import (
-	"encoding/json"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -19,6 +19,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -76,34 +77,35 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		"method": "onInstances",
 	})
 	defer span.End()
+	iLog.InfofCtx(pCtx, "V (Instances): onInstances, method: %s", request.Method)
 
-	iLog.Infof("V (Instances): onInstances, method: %s, traceId: %s", string(request.Method), span.SpanContext().TraceID().String())
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
 
+	iLog.InfofCtx(pCtx, "V (Instances): onInstances, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onInstances-GET", pCtx, nil)
-		id := request.Parameters["__name"]
-		scope, exist := request.Parameters["scope"]
-		if !exist {
-			scope = "default"
-		}
 		var err error
 		var state interface{}
 		isArray := false
 		if id == "" {
 			// Change partition back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
-				scope = ""
+				namespace = ""
 			}
-			state, err = c.InstancesManager.ListSpec(ctx, scope)
+			state, err = c.InstancesManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.InstancesManager.GetSpec(ctx, id, scope)
+			state, err = c.InstancesManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -114,62 +116,65 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onInstances-POST", pCtx, nil)
-		id := request.Parameters["__name"]
-
 		solution := request.Parameters["solution"]
 		target := request.Parameters["target"]
 		target_selector := request.Parameters["target-selector"]
-		scope, exist := request.Parameters["scope"]
-		if !exist {
-			scope = "default"
-		}
-		var instance model.InstanceSpec
+
+		var instance model.InstanceState
 
 		if solution != "" && (target != "" || target_selector != "") {
-			instance = model.InstanceSpec{
-				DisplayName: id,
-				Name:        id,
-				Solution:    solution,
+			instance = model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name:      id,
+					Namespace: namespace,
+				},
+				Spec: &model.InstanceSpec{
+					DisplayName: id,
+					Solution:    solution,
+				},
 			}
 			if target != "" {
-				instance.Target = model.TargetSelector{
+				instance.Spec.Target = model.TargetSelector{
 					Name: target,
 				}
 			} else {
 				parts := strings.Split(target_selector, "=")
 				if len(parts) != 2 {
-					iLog.Infof("V (Instances): onInstances failed - invalid target selector format, traceId: %s", span.SpanContext().TraceID().String())
+					iLog.ErrorCtx(ctx, "V (Instances): onInstances failed - invalid target selector format")
 					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 						State: v1alpha2.InternalError,
 						Body:  []byte("invalid target selector format. Expected: <property>=<value>"),
 					})
 				}
-				instance.Target = model.TargetSelector{
+				instance.Spec.Target = model.TargetSelector{
 					Selector: map[string]string{
 						parts[0]: parts[1],
 					},
 				}
 			}
 		} else {
-			err := json.Unmarshal(request.Body, &instance)
+			err := utils2.UnmarshalJson(request.Body, &instance)
 			if err != nil {
-				iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
 				})
 			}
+			if instance.ObjectMeta.Name == "" {
+				instance.ObjectMeta.Name = id
+			}
 		}
-		err := c.InstancesManager.UpsertSpec(ctx, id, instance, scope)
+		err := c.InstancesManager.UpsertState(ctx, id, instance)
 		if err != nil {
-			iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -177,12 +182,14 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "instance",
-					"scope":      scope,
+					"namespace":  instance.ObjectMeta.Namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
-					Action: "UPDATE",
+					Action: v1alpha2.JobUpdate,
+					Scope:  instance.ObjectMeta.Namespace,
 				},
+				Context: ctx,
 			})
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -190,32 +197,29 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onInstances-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
 		direct := request.Parameters["direct"]
-		scope, exist := request.Parameters["scope"]
-		if !exist {
-			scope = "default"
-		}
 		if c.Config.Properties["useJobManager"] == "true" && direct != "true" {
 			c.Context.Publish("job", v1alpha2.Event{
 				Metadata: map[string]string{
 					"objectType": "instance",
-					"scope":      scope,
+					"namespace":  namespace,
 				},
 				Body: v1alpha2.JobData{
 					Id:     id,
-					Action: "DELETE",
+					Action: v1alpha2.JobDelete,
+					Scope:  namespace,
 				},
+				Context: ctx,
 			})
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.OK,
 			})
 		} else {
-			err := c.InstancesManager.DeleteSpec(ctx, id, scope)
+			err := c.InstancesManager.DeleteState(ctx, id, namespace)
 			if err != nil {
-				iLog.Infof("V (Instances): onInstances failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -224,7 +228,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 			State: v1alpha2.OK,
 		})
 	}
-	iLog.Infof("V (Instances): onInstances failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	iLog.InfoCtx(pCtx, "V (Instances): onInstances failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

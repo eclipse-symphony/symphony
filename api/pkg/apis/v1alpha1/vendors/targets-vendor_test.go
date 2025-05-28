@@ -13,6 +13,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -53,7 +54,7 @@ func createTargetsVendor() TargetsVendor {
 				Name: "targets-manager",
 				Type: "managers.symphony.targets",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -71,20 +72,23 @@ func createTargetsVendor() TargetsVendor {
 		},
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
+	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {
 	vendor := createTargetsVendor()
-	target := model.TargetSpec{
-		DisplayName: "target1",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config: map[string]string{
-							"id": uuid.New().String(),
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
 						},
 					},
 				},
@@ -96,7 +100,7 @@ func TestTargetsOnRegistry(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":       "target1",
+			"__name":       "target1-v1",
 			"with-binding": "staging",
 		},
 		Context: context.Background(),
@@ -106,14 +110,14 @@ func TestTargetsOnRegistry(t *testing.T) {
 	resp = vendor.onRegistry(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name": "target1-v1",
 		},
 		Context: context.Background(),
 	})
 	var targets model.TargetState
 	json.Unmarshal(resp.Body, &targets)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "target1", targets.Id)
+	assert.Equal(t, "target1-v1", targets.ObjectMeta.Name)
 	assert.Equal(t, 1, len(targets.Spec.Topologies))
 
 	resp = vendor.onRegistry(v1alpha2.COARequest{
@@ -128,7 +132,7 @@ func TestTargetsOnRegistry(t *testing.T) {
 	resp = vendor.onRegistry(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name": "target1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -164,16 +168,18 @@ func TestTargetsOnBootstrap(t *testing.T) {
 func TestTargetsOnStatus(t *testing.T) {
 	vendor := createTargetsVendor()
 
-	target := model.TargetSpec{
-		DisplayName: "target1",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config: map[string]string{
-							"id": uuid.New().String(),
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
 						},
 					},
 				},
@@ -185,7 +191,7 @@ func TestTargetsOnStatus(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":       "target1",
+			"__name":       "target1-v1",
 			"with-binding": "staging",
 		},
 		Context: context.Background(),
@@ -202,31 +208,33 @@ func TestTargetsOnStatus(t *testing.T) {
 	data, _ = json.Marshal(dict)
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
-		Method: fasthttp.MethodPost,
+		Method: fasthttp.MethodPut,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name": "target1-v1",
 		},
 		Context: context.Background(),
 	})
 	var targetState model.TargetState
 	json.Unmarshal(resp.Body, &targetState)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "testvalue", targetState.Status["testkey"])
+	assert.Equal(t, "testvalue", targetState.Status.Properties["testkey"])
 }
 func TestTargetsOnHeartbeats(t *testing.T) {
 	vendor := createTargetsVendor()
 
-	target := model.TargetSpec{
-		DisplayName: "target1",
-		Topologies: []model.TopologySpec{
-			{
-				Bindings: []model.BindingSpec{
-					{
-						Role:     "mock",
-						Provider: "providers.target.mock",
-						Config: map[string]string{
-							"id": uuid.New().String(),
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
 						},
 					},
 				},
@@ -238,7 +246,7 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":       "target1",
+			"__name":       "target1-v1",
 			"with-binding": "staging",
 		},
 		Context: context.Background(),
@@ -248,7 +256,7 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	resp = vendor.onHeartBeat(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name": "target1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -257,14 +265,14 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	resp = vendor.onRegistry(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "target1",
+			"__name": "target1-v1",
 		},
 		Context: context.Background(),
 	})
 	var targetState model.TargetState
 	json.Unmarshal(resp.Body, &targetState)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.NotNil(t, targetState.Status["ping"])
+	assert.NotNil(t, targetState.Status.Properties["ping"])
 }
 func TestTargetWrongMethod(t *testing.T) {
 	vendor := createTargetsVendor()
@@ -281,7 +289,7 @@ func TestTargetWrongMethod(t *testing.T) {
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
-		Method:  fasthttp.MethodPut,
+		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)

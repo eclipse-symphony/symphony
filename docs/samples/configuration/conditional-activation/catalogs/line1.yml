@@ -1,0 +1,15 @@
+apiVersion: federation.symphony/v1
+kind: CatalogContainer
+metadata:
+  name: line1
+spec:  
+---
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: line1-v-v1
+spec:
+  rootResource: line1
+  catalogType: config
+  properties:
+    IS_PREMIUM_LINE: true

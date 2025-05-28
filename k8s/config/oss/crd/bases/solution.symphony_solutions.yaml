@@ -1,15 +1,9 @@
-##
-## Copyright (c) Microsoft Corporation.
-## Licensed under the MIT license.
-## SPDX-License-Identifier: MIT
-##
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: solutions.solution.symphony
 spec:
   group: solution.symphony
@@ -26,14 +20,19 @@ spec:
         description: Solution is the Schema for the solutions API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -56,7 +55,6 @@ spec:
                     name:
                       type: string
                     properties:
-                      type: object
                       x-kubernetes-preserve-unknown-fields: true
                     routes:
                       items:
@@ -90,6 +88,17 @@ spec:
                         - type
                         type: object
                       type: array
+                    sidecars:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          properties:
+                            x-kubernetes-preserve-unknown-fields: true
+                          type:
+                            type: string
+                        type: object
+                      type: array
                     skills:
                       items:
                         type: string
@@ -107,10 +116,9 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
-              scope:
+              rootResource:
                 type: string
               version:
-                description: Defines the version of a particular resource
                 type: string
             type: object
           status:

@@ -4,7 +4,7 @@ A vendor defines a chunk of API. You can consider each vendor a nano service, wh
 
 ## Vendor configuration
 
-Vendors are configured as part of the [host configuration file](../hosts/_overview.md#host-configuration), under the `vendors` array under the top-level `api` element. The following example shows an example of a simple `vendors.echo` vendor, which returns a string when invoked:
+Vendors are configured as part of the [host configuration file](../hosts/_overview.md#host-configurations), under the `vendors` array under the top-level `api` element. The following example shows an example of a simple `vendors.echo` vendor, which returns a string when invoked:
 
 ```json
 {
@@ -33,7 +33,7 @@ A more complex vendor usually loads a number of [managers](../managers/_overview
       "name": "targets-manager",
       "type": "managers.symphony.targets",
       "properties": {
-        "providers.state": "k8s-state"
+        "providers.persistentstate": "k8s-state"
       },
       "providers": {
         "k8s-state": {

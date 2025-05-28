@@ -21,6 +21,7 @@ type ComponentSpec struct {
 	Constraints  string                 `json:"constraints,omitempty"`
 	Dependencies []string               `json:"dependencies,omitempty"`
 	Skills       []string               `json:"skills,omitempty"`
+	Sidecars     []SidecarSpec          `json:"sidecars,omitempty"`
 }
 
 func (c ComponentSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid using reflect, which has performance problems
@@ -44,6 +45,9 @@ func (c ComponentSpec) DeepEquals(other IDeepEquals) (bool, error) { // avoid us
 		return false, nil
 	}
 
+	if !SlicesEqual(c.Sidecars, otherC.Sidecars) {
+		return false, nil
+	}
 	// if c.Constraints != otherC.Constraints {	Can't compare constraints as components from actual envrionments don't have constraints
 	// 	return false, nil
 	// }

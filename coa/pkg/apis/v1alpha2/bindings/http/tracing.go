@@ -7,13 +7,13 @@
 package http
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/textproto"
 	"strings"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -35,7 +35,7 @@ const (
 
 type Tracing struct {
 	Observability observability.Observability
-	Buffer        *bytes.Buffer
+	Buffer        *v1alpha2.SafeBuffer // this is not used but should be a thread safe buffer
 }
 
 func (t Tracing) Tracing(next fasthttp.RequestHandler) fasthttp.RequestHandler {
@@ -56,6 +56,7 @@ func (t Tracing) Tracing(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		span.End()
 	}
 }
+
 func startTracingClientSpanFromHTTPContext(ctx *fasthttp.RequestCtx, spanName string) (*fasthttp.RequestCtx, trace.Span) {
 	sc, ok := SpanContextFromRequest(&ctx.Request)
 	if ok {

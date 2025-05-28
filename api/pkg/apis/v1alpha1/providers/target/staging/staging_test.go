@@ -14,6 +14,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -63,17 +64,20 @@ func TestStagingTargetProviderGet(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test",
+			},
+			Spec: &model.InstanceSpec{},
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "policies",
 				Type: "yaml.k8s",
 				Properties: map[string]interface{}{
-					"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+					"yaml.url": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 				},
 			},
 		},
@@ -109,23 +113,30 @@ func TestStagingTargetProviderApply(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml.url": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "policies",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "policies",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -162,23 +173,30 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 		Name: "policies",
 		Type: "yaml.k8s",
 		Properties: map[string]interface{}{
-			"yaml.url": "https://demopolicies.blob.core.windows.net/gatekeeper/policy.yaml",
+			"yaml.url": "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/k8s/gatekeeper/policy.yaml",
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "policies",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "policies",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -195,19 +213,14 @@ type AuthResponse struct {
 }
 
 func TestApply(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
 		case "/catalogs/registry/test-target":
 			response = model.CatalogState{
-				Id: "abc",
+				ObjectMeta: model.ObjectMeta{
+					Name: "abc",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
@@ -231,7 +244,15 @@ func TestApply(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	assert.Nil(t, err)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 
 	provider.Context = &contexts.ManagerContext{
 		SiteInfo: v1alpha2.SiteInfo{
@@ -249,19 +270,26 @@ func TestApply(t *testing.T) {
 		Type: "type",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "name",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "name",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},
@@ -272,7 +300,7 @@ func TestApply(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "delete",
+				Action:    model.ComponentDelete,
 				Component: component,
 			},
 		},
@@ -282,26 +310,22 @@ func TestApply(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-target-v-version1":
 			response = model.CatalogState{
-				Id: "abc",
+				ObjectMeta: model.ObjectMeta{
+					Name: "abc",
+				},
 				Spec: &model.CatalogSpec{
 					Properties: map[string]interface{}{
-						"components": []model.ComponentSpec{
-							{
-								Name: "name",
-								Type: "type",
+						"staged": map[string]interface{}{
+							"components": []model.ComponentSpec{
+								{
+									Name: "name",
+									Type: "type",
+								},
 							},
 						},
 					},
@@ -319,8 +343,15 @@ func TestGet(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
-	assert.Nil(t, err)
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
 
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 	provider.Context = &contexts.ManagerContext{
 		SiteInfo: v1alpha2.SiteInfo{
 			CurrentSite: v1alpha2.SiteConnection{
@@ -337,18 +368,25 @@ func TestGet(t *testing.T) {
 		Type: "type",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "name",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "name",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := []model.ComponentStep{
 		{
-			Action:    "update",
+			Action:    model.ComponentUpdate,
 			Component: component,
 		},
 	}
@@ -357,17 +395,10 @@ func TestGet(t *testing.T) {
 }
 
 func TestGetCatalogsFailed(t *testing.T) {
-	config := StagingTargetProviderConfig{
-		Name:       "default",
-		TargetName: "target",
-	}
-	provider := StagingTargetProvider{}
-	err := provider.Init(config)
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
+		case "/catalogs/registry/test-target-v-version1":
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:
@@ -382,6 +413,14 @@ func TestGetCatalogsFailed(t *testing.T) {
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+
+	config := StagingTargetProviderConfig{
+		Name:       "default",
+		TargetName: "target",
+	}
+	provider := StagingTargetProvider{}
+	err := provider.Init(config)
 	assert.Nil(t, err)
 
 	provider.Context = &contexts.ManagerContext{
@@ -400,19 +439,26 @@ func TestGetCatalogsFailed(t *testing.T) {
 		Type: "type",
 	}
 	deployment := model.DeploymentSpec{
-		Instance: model.InstanceSpec{
-			Name: "test",
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test",
+			},
+			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionSpec{
-			DisplayName: "name",
-			Scope:       "",
-			Components:  []model.ComponentSpec{component},
+		Solution: model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Namespace: "",
+			},
+			Spec: &model.SolutionSpec{
+				DisplayName: "name",
+				Components:  []model.ComponentSpec{component},
+			},
 		},
 	}
 	step := model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action:    "update",
+				Action:    model.ComponentUpdate,
 				Component: component,
 			},
 		},

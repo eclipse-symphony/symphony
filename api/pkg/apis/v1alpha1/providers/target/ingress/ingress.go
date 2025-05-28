@@ -9,11 +9,15 @@ package ingress
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -36,9 +40,17 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+const (
+	loggerName   = "providers.target.ingress"
+	providerName = "P (Ingress Target)"
+	ingress      = "ingress"
+)
+
 var (
-	decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-	sLog            = logger.NewLogger("coa.runtime")
+	decUnstructured          = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
 )
 
 type (
@@ -99,6 +111,7 @@ func (s *IngressTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 func (i *IngressTargetProvider) InitWithMap(properties map[string]string) error {
 	config, err := IngressTargetProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Ingress Target): expected IngressTargetProviderConfig: %+v", err)
 		return err
 	}
 
@@ -107,8 +120,8 @@ func (i *IngressTargetProvider) InitWithMap(properties map[string]string) error 
 
 // Init initializes the ingress target provider
 func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan(
-		"ConfigMap Target Provider",
+	ctx, span := observability.StartSpan(
+		"Ingress Target Provider",
 		context.TODO(),
 		&map[string]string{
 			"method": "Init",
@@ -116,11 +129,12 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Info("  P (ConfigMap Target): Init()")
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfoCtx(ctx, "  P (Ingress Target): Init()")
 
 	updateConfig, err := toIngressTargetProviderConfig(config)
 	if err != nil {
-		sLog.Errorf("  P (ConfigMap Target): expected IngressTargetProviderConfig - %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): expected IngressTargetProviderConfig - %+v", err)
 		return err
 	}
 
@@ -136,7 +150,7 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 					i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 				} else {
 					err = v1alpha2.NewCOAError(nil, "can't locate home direction to read default kubernetes config file, to run in cluster, set inCluster config setting to true", v1alpha2.BadConfig)
-					sLog.Errorf("  P (Ingress Target): %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Ingress Target): %+v", err)
 					return err
 				}
 			}
@@ -145,46 +159,56 @@ func (i *IngressTargetProvider) Init(config providers.IProviderConfig) error {
 			if i.Config.ConfigData != "" {
 				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
-					sLog.Errorf("  P (Ingress Target):  %+v", err)
+					sLog.ErrorfCtx(ctx, "  P (Ingress Target):  %+v", err)
 					return err
 				}
 			} else {
 				err = v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
-				sLog.Errorf("  P (Ingress Target): %+v", err)
+				sLog.ErrorfCtx(ctx, "  P (Ingress Target): %+v", err)
 				return err
 			}
 		default:
 			err = v1alpha2.NewCOAError(nil, "unrecognized config type, accepted values are: path and inline", v1alpha2.BadConfig)
-			sLog.Errorf("  P (Ingress Target): %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Ingress Target): %+v", err)
 			return err
 		}
 	}
 	if err != nil {
-		sLog.Errorf("  P (Ingress Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to get the cluster config: %+v", err)
 		return err
 	}
 
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (Ingress Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create a new clientset: %+v", err)
 		return err
 	}
 
 	i.DynamicClient, err = dynamic.NewForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (Ingress Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create a dynamic client: %+v", err)
 		return err
 	}
 
 	i.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(kConfig)
 	if err != nil {
-		sLog.Errorf("  P (Ingress Target): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create a discovery client: %+v", err)
 		return err
 	}
 
 	i.Mapper = restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(i.DiscoveryClient))
 	i.RESTConfig = kConfig
-	return nil
+
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create metrics: %+v", err)
+			}
+		}
+	})
+
+	return err
 }
 
 // toIngressTargetProviderConfig converts a generic IProviderConfig to a IngressTargetProviderConfig
@@ -209,23 +233,25 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Ingress Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Ingress Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
 	for _, component := range references {
 		var obj *networkingv1.Ingress
-		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
-				sLog.Infof("  P (Ingress Target): resource not found: %s", err)
+				sLog.InfofCtx(ctx, "  P (Ingress Target): resource %s not found: %v", component.Component.Name, err)
 				continue
 			}
-			sLog.Error("  P (Ingress Target): failed to read object: +%v", err)
+			sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to read object: %+v", err)
 			return nil, err
 		}
 		component.Component.Properties = make(map[string]interface{})
 
 		component.Component.Properties["rules"] = obj.Spec.Rules
+		sLog.InfofCtx(ctx, "  P (Ingress Target): append component: %s", component.Component.Name)
 		ret = append(ret, component.Component)
 	}
 
@@ -243,26 +269,49 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
+	functionName := utils.GetFunctionName()
+	startTime := time.Now().UTC()
+
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		ingress,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
 
 	components := step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to validate components: %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			ingress,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.ApplyOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.DebugCtx(ctx, "  P (Ingress Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
 	ret := step.PrepareResultMap()
 	components = step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Ingress Target): get updated components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "ingress" {
 				newIngress := &networkingv1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      component.Name,
-						Namespace: deployment.Instance.Scope,
+						Namespace: deployment.Instance.Spec.Scope,
 					},
 					Spec: networkingv1.IngressSpec{
 						Rules: make([]networkingv1.IngressRule, 0),
@@ -273,7 +322,15 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					var rules []networkingv1.IngressRule
 					err = json.Unmarshal(jData, &rules)
 					if err != nil {
-						sLog.Error("  P (Ingress Target): failed to unmarshal ingress: +%v", err)
+						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to unmarshal ingress rules: %+v", err)
+						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: parse ingress rules failed", providerName), v1alpha2.BadConfig)
+						providerOperationMetrics.ProviderOperationErrors(
+							ingress,
+							functionName,
+							metrics.IngressPropertiesOperation,
+							metrics.ApplyOperationType,
+							v1alpha2.BadConfig.String(),
+						)
 						return ret, err
 					}
 					newIngress.Spec.Rules = rules
@@ -284,7 +341,15 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					if ok {
 						newIngress.Spec.IngressClassName = &s
 					} else {
-						sLog.Error("  P (Ingress Target): failed to convert ingress class name: +%v", v)
+						sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to convert ingress class name: %+v", v)
+						err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: failed to convert ingress class name", providerName), v1alpha2.BadConfig)
+						providerOperationMetrics.ProviderOperationErrors(
+							ingress,
+							functionName,
+							metrics.IngressPropertiesOperation,
+							metrics.ApplyOperationType,
+							v1alpha2.BadConfig.String(),
+						)
 						return ret, err
 					}
 				}
@@ -298,10 +363,18 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					}
 				}
 
-				i.ensureNamespace(ctx, deployment.Instance.Scope)
-				err = i.applyIngress(ctx, newIngress, deployment.Instance.Scope)
+				i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
+				err = i.applyIngress(ctx, newIngress, deployment.Instance.Spec.Scope)
 				if err != nil {
-					sLog.Error("  P (Ingress Target): failed to apply ingress: +%v", err)
+					sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to apply ingress: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply ingress", providerName), v1alpha2.IngressApplyFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						ingress,
+						functionName,
+						metrics.IngressOperation,
+						metrics.ApplyOperationType,
+						v1alpha2.IngressApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -309,11 +382,20 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	}
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Ingress Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "ingress" {
-				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Scope)
+				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Spec.Scope)
 				if err != nil {
-					sLog.Error("  P (Ingress Target): failed to delete ingress: +%v", err)
+					sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to delete ingress: %+v", err)
+					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to delete ingress", providerName), v1alpha2.IngressApplyFailed)
+					providerOperationMetrics.ProviderOperationErrors(
+						ingress,
+						functionName,
+						metrics.IngressOperation,
+						metrics.ApplyOperationType,
+						v1alpha2.IngressApplyFailed.String(),
+					)
 					return ret, err
 				}
 			}
@@ -324,8 +406,8 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 
 // ensureNamespace ensures that the namespace exists
 func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace string) error {
-	_, span := observability.StartSpan(
-		"ConfigMap Target Provider",
+	ctx, span := observability.StartSpan(
+		"Ingress Target Provider",
 		ctx,
 		&map[string]string{
 			"method": "ensureNamespace",
@@ -333,6 +415,8 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	)
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Ingress Target): ensureNamespace %s", namespace)
 
 	_, err = k.Client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err == nil {
@@ -340,18 +424,19 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 	}
 
 	if kerrors.IsNotFound(err) {
+		sLog.InfofCtx(ctx, "  P (Ingress Target): start to create namespace %s", namespace)
+		utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to create namespace - %s", namespace)
 		_, err = k.Client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
 			},
 		}, metav1.CreateOptions{})
-		if err != nil {
-			sLog.Error("  P (ConfigMap Target): failed to create namespace: +%v", err)
+		if err != nil && !kerrors.IsAlreadyExists(err) {
+			sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create namespace: %+v", err)
 			return err
 		}
-
 	} else {
-		sLog.Error("  P (ConfigMap Target): failed to get namespace: +%v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to get namespace: %+v", err)
 		return err
 	}
 
@@ -361,60 +446,93 @@ func (k *IngressTargetProvider) ensureNamespace(ctx context.Context, namespace s
 // GetValidationRule returns validation rule for the provider
 func (*IngressTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
-		ChangeDetectionProperties: []model.PropertyDesc{
-			{
-				Name: "*", //react to all property changes
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+			ChangeDetectionProperties: []model.PropertyDesc{
+				{
+					Name: "*", //react to all property changes
+				},
 			},
-		},
-		ChangeDetectionMetadata: []model.PropertyDesc{
-			{
-				Name: "annotations.*", //react to all annotation changes
+			ChangeDetectionMetadata: []model.PropertyDesc{
+				{
+					Name: "annotations.*", //react to all annotation changes
+				},
 			},
 		},
 	}
 }
 
 // deleteConfigMap deletes a configmap
-func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, scope string) error {
-	err := i.Client.NetworkingV1().Ingresses(scope).Delete(ctx, name, metav1.DeleteOptions{})
+func (i *IngressTargetProvider) deleteIngress(ctx context.Context, name string, namespace string) error {
+	_, span := observability.StartSpan(
+		"Ingress Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "deleteIngress",
+		},
+	)
+	var err error
+	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Ingress Target): deleteIngress name %s, namespace %s", name, namespace)
+
+	utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to delete ingress - %s", name)
+	err = i.Client.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
-			sLog.Error("  P (Ingress Target): failed to delete ingress: +%v", err)
+			sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to delete ingress: %+v", err)
 			return err
+		} else {
+			sLog.InfoCtx(ctx, "  P (Ingress Target): ingress %s is not found in the namespace %s", name, namespace)
 		}
 	}
 	return nil
 }
 
 // applyCustomResource applies a custom resource from a byte array
-func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *networkingv1.Ingress, scope string) error {
-	existingIngress, err := i.Client.NetworkingV1().Ingresses(scope).Get(ctx, ingress.Name, metav1.GetOptions{})
+func (i *IngressTargetProvider) applyIngress(ctx context.Context, ingress *networkingv1.Ingress, namespace string) error {
+	ctx, span := observability.StartSpan(
+		"Ingress Target Provider",
+		ctx,
+		&map[string]string{
+			"method": "applyIngress",
+		},
+	)
+	var err error
+	defer utils.CloseSpanWithError(span, &err)
+	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Ingress Target): applyIngress namespace %s, name %s", namespace, ingress.Name)
+
+	existingIngress, err := i.Client.NetworkingV1().Ingresses(namespace).Get(ctx, ingress.Name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			sLog.Infof("  P (Ingress Target): resource not found: %s", err)
-			_, err = i.Client.NetworkingV1().Ingresses(scope).Create(ctx, ingress, metav1.CreateOptions{})
+			sLog.InfofCtx(ctx, "  P (Ingress Target): resource not found: %v", err)
+			utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to create ingress - %s", ingress.Name)
+			_, err = i.Client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
 			if err != nil {
-				sLog.Error("  P (Ingress Target): failed to create ingress: +%v", err)
+				sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to create ingress: %+v", err)
 				return err
 			}
 			return nil
 		}
-		sLog.Error("  P (Ingress Target): failed to read object: +%v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to read object %s in the namespace %s: %+v", ingress.Name, namespace, err)
 		return err
 	}
 
+	sLog.InfofCtx(ctx, "  P (Ingress Target): resource exists and start to update ingress %s in the namespace", ingress.Name, namespace)
 	existingIngress.Spec.Rules = ingress.Spec.Rules
 	if ingress.ObjectMeta.Annotations != nil {
 		existingIngress.ObjectMeta.Annotations = ingress.ObjectMeta.Annotations
 	}
-	_, err = i.Client.NetworkingV1().Ingresses(scope).Update(ctx, existingIngress, metav1.UpdateOptions{})
+	utils.EmitUserAuditsLogs(ctx, "  P (Ingress Target): Start to update ingress - %s", ingress.Name)
+	_, err = i.Client.NetworkingV1().Ingresses(namespace).Update(ctx, existingIngress, metav1.UpdateOptions{})
 	if err != nil {
-		sLog.Error("  P (Ingress Target): failed to update ingress: +%v", err)
+		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to update ingress: %+v", err)
 		return err
 	}
 	return nil

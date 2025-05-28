@@ -7,8 +7,7 @@
 package vendors
 
 import (
-	"encoding/json"
-
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -18,6 +17,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -75,32 +75,33 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		"method": "onSolutions",
 	})
 	defer span.End()
-	uLog.Infof("V (Solutions): onSolutions, method: %s, traceId: %s", request.Method, span.SpanContext().TraceID().String())
-	scope, exist := request.Parameters["scope"]
+	uLog.InfofCtx(pCtx, "V (Solutions): onSolutions, method: %s", request.Method)
+
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
 	if !exist {
-		scope = "default"
+		namespace = constants.DefaultScope
 	}
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
-		id := request.Parameters["__name"]
 		var err error
 		var state interface{}
 		isArray := false
 		if id == "" {
-			// Change scope back to empty to indicate ListSpec need to query all namespaces
+			// Change namespace back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
-				scope = ""
+				namespace = ""
 			}
-			state, err = c.SolutionsManager.ListSpec(ctx, scope)
+			state, err = c.SolutionsManager.ListState(ctx, namespace)
 			isArray = true
 		} else {
-			state, err = c.SolutionsManager.GetSpec(ctx, id, scope)
+			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -111,56 +112,69 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			ContentType: "application/json",
 		})
 		if request.Parameters["doc-type"] == "yaml" {
-			resp.ContentType = "application/text"
+			resp.ContentType = "text/plain"
 		}
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutions-POST", pCtx, nil)
-		id := request.Parameters["__name"]
-
 		embed_type := request.Parameters["embed-type"]
 		embed_component := request.Parameters["embed-component"]
 		embed_property := request.Parameters["embed-property"]
 
-		var solution model.SolutionSpec
+		var solution model.SolutionState
 
 		if embed_type != "" && embed_component != "" && embed_property != "" {
-			solution = model.SolutionSpec{
-				DisplayName: id,
-				Components: []model.ComponentSpec{
-					{
-						Name: embed_component,
-						Type: embed_type,
-						Properties: map[string]interface{}{
-							embed_property: string(request.Body),
+			solution = model.SolutionState{
+				ObjectMeta: model.ObjectMeta{
+					Name:      id,
+					Namespace: namespace,
+				},
+				Spec: &model.SolutionSpec{
+					DisplayName: id,
+					Components: []model.ComponentSpec{
+						{
+							Name: embed_component,
+							Type: embed_type,
+							Properties: map[string]interface{}{
+								embed_property: string(request.Body),
+							},
 						},
 					},
 				},
 			}
 		} else {
-			err := json.Unmarshal(request.Body, &solution)
+			err := utils2.UnmarshalJson(request.Body, &solution)
 			if err != nil {
-				uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+				uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 					State: v1alpha2.InternalError,
 					Body:  []byte(err.Error()),
 				})
 			}
+			if solution.ObjectMeta.Name == "" {
+				solution.ObjectMeta.Name = id
+			}
 		}
-		err := c.SolutionsManager.UpsertSpec(ctx, id, solution, scope)
+		err := c.SolutionsManager.UpsertState(ctx, id, solution)
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
 		// TODO: this is a PoC of publishing trails when an object is updated
+		strCat := ""
+		if solution.Spec.Metadata != nil {
+			if v, ok := solution.Spec.Metadata["catalog"]; ok {
+				strCat = v
+			}
+		}
 		c.Vendor.Context.Publish("trail", v1alpha2.Event{
 			Body: []v1alpha2.Trail{
 				{
 					Origin:  c.Vendor.Context.SiteInfo.SiteId,
-					Catalog: solution.Metadata["catalog"],
+					Catalog: strCat,
 					Type:    "solutions.solution.symphony/v1",
 					Properties: map[string]interface{}{
 						"spec": solution,
@@ -168,20 +182,20 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 				},
 			},
 			Metadata: map[string]string{
-				"scope": scope,
+				"namespace": namespace,
 			},
+			Context: ctx,
 		})
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
 	case fasthttp.MethodDelete:
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
-		id := request.Parameters["__name"]
-		err := c.SolutionsManager.DeleteSpec(ctx, id, scope)
+		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			uLog.Infof("V (Solutions): onSolutions failed - %s, traceId: %s", err.Error(), span.SpanContext().TraceID().String())
+			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -189,7 +203,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			State: v1alpha2.OK,
 		})
 	}
-	uLog.Infof("V (Solutions): onSolutions failed - 405 method not allowed, traceId: %s", span.SpanContext().TraceID().String())
+	uLog.ErrorCtx(pCtx, "V (Solutions): onSolutions failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

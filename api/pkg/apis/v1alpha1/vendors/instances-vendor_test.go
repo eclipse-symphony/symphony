@@ -14,6 +14,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -38,7 +39,7 @@ func createInstancesVendor() InstancesVendor {
 				Name: "instances-manager",
 				Type: "managers.symphony.instances",
 				Properties: map[string]string{
-					"providers.state": "mem-state",
+					"providers.persistentstate": "mem-state",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -55,6 +56,7 @@ func createInstancesVendor() InstancesVendor {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
+	vendor.InstancesManager.InstanceValidator = validation.NewInstanceValidator(nil, nil, nil)
 	return vendor
 }
 func TestInstancesEndpoints(t *testing.T) {
@@ -80,16 +82,20 @@ func TestInstancesOnInstances(t *testing.T) {
 		"useJobManager": "true",
 	}
 	succeededCount := 0
-	vendor.Context.Subscribe("job", func(topic string, event v1alpha2.Event) error {
-		var job v1alpha2.JobData
-		jData, _ := json.Marshal(event.Body)
-		err := json.Unmarshal(jData, &job)
-		assert.Nil(t, err)
-		assert.Equal(t, "instance", event.Metadata["objectType"])
-		assert.Equal(t, "instance1", job.Id)
-		assert.Equal(t, true, job.Action == "UPDATE" || job.Action == "DELETE")
-		succeededCount += 1
-		return nil
+	sig := make(chan bool)
+	vendor.Context.Subscribe("job", v1alpha2.EventHandler{
+		Handler: func(topic string, event v1alpha2.Event) error {
+			var job v1alpha2.JobData
+			jData, _ := json.Marshal(event.Body)
+			err := json.Unmarshal(jData, &job)
+			assert.Nil(t, err)
+			assert.Equal(t, "instance", event.Metadata["objectType"])
+			assert.Equal(t, "instance1-v1", job.Id)
+			assert.Equal(t, true, job.Action == v1alpha2.JobUpdate || job.Action == v1alpha2.JobDelete)
+			succeededCount += 1
+			sig <- true
+			return nil
+		},
 	})
 	instanceSpec := model.InstanceSpec{}
 	data, _ := json.Marshal(instanceSpec)
@@ -97,18 +103,19 @@ func TestInstancesOnInstances(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":   "instance1",
-			"target":   "target1",
-			"solution": "solution1",
+			"__name":   "instance1-v1",
+			"target":   "target1-v1",
+			"solution": "solution1-v1",
 		},
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name": "instance1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -116,8 +123,8 @@ func TestInstancesOnInstances(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &instance)
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "instance1", instance.Id)
-	assert.Equal(t, "target1", instance.Spec.Target.Name)
+	assert.Equal(t, "instance1-v1", instance.ObjectMeta.Name)
+	assert.Equal(t, "target1-v1", instance.Spec.Target.Name)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -128,16 +135,17 @@ func TestInstancesOnInstances(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	assert.Equal(t, 1, len(instances))
-	assert.Equal(t, "instance1", instances[0].Id)
-	assert.Equal(t, "target1", instances[0].Spec.Target.Name)
+	assert.Equal(t, "instance1-v1", instances[0].ObjectMeta.Name)
+	assert.Equal(t, "target1-v1", instances[0].Spec.Target.Name)
 
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name": "instance1-v1",
 		},
 		Context: context.Background(),
 	})
+	<-sig
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	time.Sleep(time.Second)
 	assert.Equal(t, 2, succeededCount)
@@ -148,7 +156,7 @@ func TestInstancesOnInstances(t *testing.T) {
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name": "instance1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -177,9 +185,9 @@ func TestInstancesTargetSelector(t *testing.T) {
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":          "instance1",
+			"__name":          "instance1-v1",
 			"target-selector": "property1=value1",
-			"solution":        "solution1",
+			"solution":        "solution1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -188,7 +196,7 @@ func TestInstancesTargetSelector(t *testing.T) {
 	resp = vendor.onInstances(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name": "instance1",
+			"__name": "instance1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -196,7 +204,7 @@ func TestInstancesTargetSelector(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &instance)
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	assert.Equal(t, "instance1", instance.Id)
+	assert.Equal(t, "instance1-v1", instance.ObjectMeta.Name)
 	assert.Equal(t, "value1", instance.Spec.Target.Selector["property1"])
 }
 

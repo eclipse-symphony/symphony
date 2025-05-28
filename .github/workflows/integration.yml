@@ -1,0 +1,164 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: integration
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
+env:
+    ContainerRegistry: "ghcr.io"
+    ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.23.0
+        
+    - name: Set up custom GOPATH
+      run: |
+        mkdir -p /home/runner/go
+        echo "export GOPATH=/home/runner/go" >> $HOME/.bashrc
+        echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.bashrc
+        source $HOME/.bashrc
+
+    - name: Install make
+      run: sudo apt-get update && sudo apt-get install -y build-essential protobuf-compiler
+
+    - name: Check docker version and images
+      run: docker --version && docker images
+
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+        kubectl version --client
+        kubectl config view
+
+    - name: Install Helm
+      run: |
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+
+    - name: Install minikube
+      run: | 
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        chmod +x minikube
+        sudo mv minikube /usr/local/bin/
+        minikube start
+        kubectl config view
+    
+    - name: Install Mage
+      run: |
+        cd ..
+        git clone https://github.com/magefile/mage
+        cd mage
+        go run bootstrap.go
+        cd ..
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.ContainerRegistry }}
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Clean up docker
+      run: |
+        docker system prune -a -f
+        docker volume prune -f
+        docker builder prune -a -f
+
+    - name: Free up disk space
+      run: |
+        sudo apt-get clean
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/swift
+
+    - name: Build docker images
+      run: |
+        cd test/localenv/
+        mage build:all
+        mage cluster:up
+    
+    - name: Go work init
+      run: |
+        mv go.work.bk go.work
+
+    - name: Run integration tests 00
+      run: |
+        cd test/integration/scenarios/00.unit/ && mage test
+
+    - name: Run integration tests 01
+      run: |
+        cd test/integration/scenarios/01.update/ && mage test
+        
+    - name: Run integration tests 02
+      run: |
+        cd test/integration/scenarios/02.basic/ && mage test
+
+    - name: Run integration tests 03
+      run: |
+        cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
+
+    - name: Run integration tests 04 without labeling
+      run: |
+        export REPO_PATH="${{ github.workspace }}"
+        echo "REPO_PATH=$REPO_PATH"
+        cd test/integration/scenarios/04.workflow/ && mage test false
+
+    - name: Run integration tests 04 with labeling
+      run: |
+        export REPO_PATH="${{ github.workspace }}"
+        echo "REPO_PATH=$REPO_PATH"
+        cd test/integration/scenarios/04.workflow/ && mage test true
+
+    - name: Run integration tests 05
+      run: |
+        cd test/integration/scenarios/05.catalogNconfigmap/ && mage test
+        
+    - name: Run integration tests 07
+      run: |
+        cd test/integration/scenarios/07.maestroTest/ && mage test
+    
+    - name: Run integration tests 08
+      run: |
+        cd test/integration/scenarios/08.webhook/ && mage test
+
+    - name: Run integration tests 09
+      run: |
+        cd test/integration/scenarios/09.stress/ && mage test
+
+    - name: Run integration tests 10
+      run: |
+        cd test/integration/scenarios/10.catalogEval/ && mage test
+    
+    - name: Run integration tests 12
+      run: |
+        cd test/integration/scenarios/12.naming/ && mage test
+
+    - name: Collect and upload symphony logs
+      uses: actions/upload-artifact@v4
+      with:
+        name: symphony-logs
+        path: |
+          /tmp/symphony-integration-test-logs/**/*.log
+      continue-on-error: true
+      if: always()

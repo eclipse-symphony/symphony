@@ -12,6 +12,5 @@ For example, you can proxy provider operations to a Windows machine, and your pr
 
 ## Related topics
 
-* [Provider interface](./provider_interface.md)
 * [Write a Python-based Provider](./python_provider.md)
 * [Scenario: Deploy a Linux container with a WUP frontend](../scenarios/linux-with-uwp-frontend.md)

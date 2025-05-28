@@ -14,10 +14,13 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
   * Instances manager
   * Solutions manager
   * Targets manager
+  * Campaigns manager
+  * Activations manager
+  * Catalogs manager
 
   These managers implement CRUD operations on corresponding object types, and they are hosted by corresponding vendors such as the devices vendor and target vendor. These vendors collectively offer Symphony REST API to manage Symphony objects.
 
-  When hosted on Kubernetes, such object operations are delegated to Kubernetes API. In such a case, users interact with Symphony objects through native Kubernetes API instead of through these REST API routes. For an example, see [Run Symphony in standalone mode](../build_deployment/standalone.md).
+  When hosted on Kubernetes, such object operations are delegated to Kubernetes API. In such a case, users interact with Symphony objects through native Kubernetes API instead of through these REST API routes. For an example, see [Run Symphony in kubernetes mode](../build_deployment/symphony_mode.md).
 
 * Solution manager
 
@@ -36,3 +39,24 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 * Users manager
 
   A users manager implements a simple user store for easy password-based authentication and authorization. This is mostly to facilitate testing. In a production environment, Symphony encourages claim-based architecture that delegates authentication to a trusted identity provider (IdP) such as Microsoft Entra ID.
+
+* Stage manager
+
+  A stage manager is used in symphony workflow. It triggers stage provider defined in each stage and report stage output to activation status.
+
+* Staging manager
+
+  A staging manager is used for catalog synchronization and remote job distribution between symphony parent and child sites.
+
+## Choose appropriate state providers for managers
+
+  Most of the managers need to load state provider to store, query or delete objects in the state store. Some managers store important information to state store like symphony unified objects while some others only store cache which is tolerant to process crash. Symphony explicitly defines whether a manager requires persistent state provider to help user choose appropriate data store in their scenario.
+  | manager | state provider |
+  |---|---|
+  | jobs manager | persistent, volatile |
+  | object manager <br> ( instances manager, solutions manager, <br> targets manager, device manager, <br> campaigns manager, activations manager, <br> catalogs manager)  | persistent |
+  | solution manager | persistent |
+  | reference manager | volatile |
+  | stage manager | volatile |
+  | staging manager | volatile |
+  | user manager | volatile |

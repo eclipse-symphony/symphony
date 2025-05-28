@@ -62,14 +62,17 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 ## Use Symphony
 
 * [Deploy Symphony to a single site](./symphony-book/build_deployment/deploy.md)
-* [Deploy Symphony to multiple sites](./symphony-book/build_deployment/multisite-deploy.md)
+* [Multi-cluster and multi-site management](./symphony-book/multi-site/_overview.md)
 * [Troubleshoot](./symphony-book/dev-guide/troubleshoot.md)
 * [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
+* [Symphony agents](./symphony-book/agent/_overview.md)
+* [Configuration management](./symphony-book/configuration-management/_overview.md)
+## Sample scenarios
 
-## Advanced scenarios
-
+### Advanced
 * [Canary deployment](./symphony-book/scenarios/canary-deployment.md)
 * Gated deployment with [Azure Logic Apps](./symphony-book/scenarios/gated-deployment-logic-app.md) or [custom script](./symphony-book/scenarios/gated-deployment-script.md)
+* [Multi-OS deployment](./symphony-book/scenarios/multi-os.md)
 * [Multi-site deployment](./symphony-book/scenarios/multisite-deployment.md)
 
 ## Contribute to Symphony
@@ -77,9 +80,11 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Developer guide](./symphony-book/dev-guide/_overview.md)
 * [API reference](./symphony-book/api/_overview.md)
 
+## Architecture
+
+* [Providers](./symphony-book/providers/_overview.md)
 ## Additional topics
 
-* [Symphony agent](./symphony-book/agent/_overview.md)
 * [Symphony portal](./symphony-book/portals/_overview.md)
 * [Symphony expressions](./symphony-book/concepts/unified-object-model/property-expressions.md)
 

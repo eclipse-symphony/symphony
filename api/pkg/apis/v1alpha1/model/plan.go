@@ -7,6 +7,7 @@
 package model
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -16,14 +17,22 @@ type DeploymentPlan struct {
 	Steps []DeploymentStep
 }
 type DeploymentStep struct {
-	Target     string
-	Components []ComponentStep
-	Role       string
-	IsFirst    bool
+	Target     string          `json:"target"`
+	Components []ComponentStep `json:"components"`
+	Role       string          `json:"role"`
+	IsFirst    bool            `json:"isFirst"`
 }
+
+type ComponentAction string
+
+const (
+	ComponentUpdate ComponentAction = "update"
+	ComponentDelete ComponentAction = "delete"
+)
+
 type ComponentStep struct {
-	Action    string        `json:"action"`
-	Component ComponentSpec `json:"component"`
+	Action    ComponentAction `json:"action"`
+	Component ComponentSpec   `json:"component"`
 }
 
 type TargetDesc struct {
@@ -47,7 +56,7 @@ func (s DeploymentStep) PrepareResultMap() map[string]ComponentResultSpec {
 	for _, c := range s.Components {
 		ret[c.Component.Name] = ComponentResultSpec{
 			Status:  v1alpha2.Untouched,
-			Message: "",
+			Message: fmt.Sprintf("No error. %s is untouched", c.Component.Name),
 		}
 	}
 	return ret
@@ -62,7 +71,7 @@ func (s DeploymentStep) GetComponents() []ComponentSpec {
 func (s DeploymentStep) GetUpdatedComponents() []ComponentSpec {
 	ret := make([]ComponentSpec, 0)
 	for _, c := range s.Components {
-		if c.Action == "update" {
+		if c.Action == ComponentUpdate {
 			ret = append(ret, c.Component)
 		}
 	}
@@ -71,7 +80,7 @@ func (s DeploymentStep) GetUpdatedComponents() []ComponentSpec {
 func (s DeploymentStep) GetDeletedComponents() []ComponentSpec {
 	ret := make([]ComponentSpec, 0)
 	for _, c := range s.Components {
-		if c.Action == "delete" {
+		if c.Action == ComponentDelete {
 			ret = append(ret, c.Component)
 		}
 	}
@@ -80,7 +89,7 @@ func (s DeploymentStep) GetDeletedComponents() []ComponentSpec {
 func (s DeploymentStep) GetUpdatedComponentSteps() []ComponentStep {
 	ret := make([]ComponentStep, 0)
 	for _, c := range s.Components {
-		if c.Action == "update" {
+		if c.Action == ComponentUpdate {
 			ret = append(ret, c)
 		}
 	}
@@ -114,7 +123,7 @@ func (p DeploymentPlan) CanAppendToStep(step int, component ComponentSpec) bool 
 		resolved := false
 		for j := 0; j <= step; j++ {
 			for _, c := range p.Steps[j].Components {
-				if c.Component.Name == d && c.Action == "update" {
+				if c.Component.Name == d && c.Action == ComponentUpdate {
 					resolved = true
 					break
 				}
@@ -163,7 +172,7 @@ func makeUpdateStep(step DeploymentStep) DeploymentStep {
 		IsFirst:    step.IsFirst,
 	}
 	for _, c := range step.Components {
-		if c.Action == "update" {
+		if c.Action == ComponentUpdate {
 			ret.Components = append(ret.Components, c)
 		}
 	}
@@ -177,7 +186,7 @@ func makeReversedDeletionStep(step DeploymentStep) DeploymentStep {
 		IsFirst:    step.IsFirst,
 	}
 	for i := len(step.Components) - 1; i >= 0; i-- {
-		if step.Components[i].Action == "delete" {
+		if step.Components[i].Action == ComponentDelete {
 			ret.Components = append(ret.Components, step.Components[i])
 		}
 	}

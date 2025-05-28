@@ -1,0 +1,18 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: asset-v-version1
+spec:
+  rootResource: asset
+  catalogType: asset
+  properties:
+    name: "東京"
+    address: "東京都港区港南 2-16-3"
+    city: "品川グランドセントラルタワー"
+    state: ""
+    zip: "108-0075"
+    country: "日本"
+    phone: "03-4332-5300"
+    version: "0.45.1"
+    lat: "35.62674"
+    lng: "139.74043" 

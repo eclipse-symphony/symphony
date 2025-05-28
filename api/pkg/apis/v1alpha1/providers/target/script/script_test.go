@@ -52,6 +52,7 @@ func TestInitMissingRemove(t *testing.T) {
 		"applyScript":   "b",
 	})
 	require.NotNil(t, err)
+	assert.Equal(t, err.Error(), "Bad Config: invalid script provider config, exptected 'removeScript'")
 }
 
 // TestInitWithMap tests that we can init with a map
@@ -62,7 +63,7 @@ func TestInitWithMap(t *testing.T) {
 		"needsUpdate":   "mock-needsupdate.sh",
 		"needsRemove":   "mock-needsremove.sh",
 		"stagingFolder": "./staging",
-		"scriptFolder":  "https://demopolicies.blob.core.windows.net/gatekeeper",
+		"scriptFolder":  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
 		"applyScript":   "mock-apply.sh",
 		"removeScript":  "mock-remove.sh",
 		"getScript":     "mock-get.sh",
@@ -81,19 +82,23 @@ func TestGet(t *testing.T) {
 	})
 	require.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Scope: "test-scope",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, []model.ComponentStep{
 		{
-			Action: "update",
+			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
 				Name: "com1",
 			},
@@ -112,27 +117,32 @@ func TestRemoveScript(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Scope: "test-scope",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "delete",
+				Action: model.ComponentDelete,
 				Component: model.ComponentSpec{
 					Name: "com1",
 				},
 			},
 		},
 	}, false)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "executing script returned error output")
 }
 
 // TestApplyScript tests that we can apply a script
@@ -143,27 +153,32 @@ func TestApplyScript(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionSpec{
-			Components: []model.ComponentSpec{
-				{
-					Name: "com1",
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name: "com1",
+					},
 				},
 			},
 		},
-		Instance: model.InstanceSpec{
-			Scope: "test-scope",
+		Instance: model.InstanceState{
+			Spec: &model.InstanceSpec{
+				Scope: "test-scope",
+			},
 		},
 	}, model.DeploymentStep{
 		Components: []model.ComponentStep{
 			{
-				Action: "update",
+				Action: model.ComponentUpdate,
 				Component: model.ComponentSpec{
 					Name: "com1",
 				},
 			},
 		},
 	}, false)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "executing script returned error output")
 }
 
 func TestGetScriptFromUrl(t *testing.T) {
@@ -177,9 +192,10 @@ func TestGetScriptFromUrl(t *testing.T) {
 		ApplyScript:   "mock-apply.sh",
 		RemoveScript:  "mock-remove.sh",
 		StagingFolder: "./staging",
-		ScriptFolder:  "https://demopolicies.blob.core.windows.net/gatekeeper",
+		ScriptFolder:  "https://raw.githubusercontent.com/eclipse-symphony/symphony/main/docs/samples/script-provider",
 	})
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "executing script returned error output")
 }
 
 // Conformance: you should call the conformance suite to ensure provider conformance

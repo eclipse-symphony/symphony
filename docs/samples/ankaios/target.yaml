@@ -1,0 +1,13 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: ankaios-target
+spec:  
+  topologies:
+  - bindings:
+    - role: instance
+      provider: providers.target.rust
+      config:
+        name: "ankaios-lib"
+        libFile: "/extensions/libankaios.so"
+        libHash: "74cb85fe45ee8a979d3f5845df8dbb9dbc879ec15346bd6f5a26d2af1aaf853c"

@@ -1,8 +1,15 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignContainer
 metadata:
   name: canary
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: canary-v-version1
 spec:
+  rootResource: canary
   firstStage: "deploy-v2"
   selfDriving: true
   stages:
@@ -15,7 +22,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: backend-v2
@@ -39,7 +46,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -47,13 +54,14 @@ spec:
           metadata:
             annotations.nginx.ingress.kubernetes.io/canary: "true"
             annotations.nginx.ingress.kubernetes.io/canary-weight: "10"
-            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+            annotations.nginx.ingress.kubernetes.io/use-regex: "true"
           properties:
             ingressClassName: nginx
             rules:
             - http:
                 paths:
-                - path: "'/api(/|$)(.*)'"
+                - path: "/api()(.*)"
                   pathType: ImplementationSpecific
                   backend:
                     service:
@@ -96,7 +104,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -112,7 +120,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: backend-v2
@@ -128,19 +136,20 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: ingress
           type: ingress
           metadata:
-            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+            annotations.nginx.ingress.kubernetes.io/use-regex: "true"
           properties:
             ingressClassName: nginx
             rules:
             - http:
                 paths:
-                - path: "'/api(/|$)(.*)'"
+                - path: "/api()(.*)"
                   pathType: ImplementationSpecific
                   backend:
                     service:
@@ -158,7 +167,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -174,7 +183,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: backend-v1
@@ -190,21 +199,22 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
           type: ingress
           metadata:
             annotations.nginx.ingress.kubernetes.io/canary: "true"
-            annotations.nginx.ingress.kubernetes.io/canary-weight: "${{$output(weight-counter,weight)}}"
-            annotations.nginx.ingress.kubernetes.io/rewrite-target: "'/$2'"
+            annotations.nginx.ingress.kubernetes.io/canary-weight: "${{$str($output(weight-counter,weight))}}"
+            annotations.nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+            annotations.nginx.ingress.kubernetes.io/use-regex: "true"
           properties:
             ingressClassName: nginx
             rules:
             - http:
                 paths:
-                - path: "'/api(/|$)(.*)'"
+                - path: "/api()(.*)"
                   pathType: ImplementationSpecific
                   backend:
                     service:

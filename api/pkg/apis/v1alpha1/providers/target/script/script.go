@@ -11,25 +11,37 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/google/uuid"
 )
 
-var sLog = logger.NewLogger("coa.runtime")
+const (
+	script     = "script"
+	loggerName = "providers.target.script"
+)
+
+var (
+	sLog                     = logger.NewLogger(loggerName)
+	providerOperationMetrics *metrics.Metrics
+	once                     sync.Once
+)
 
 type ScriptProviderConfig struct {
 	Name          string `json:"name"`
@@ -85,6 +97,7 @@ func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderCo
 func (i *ScriptProvider) InitWithMap(properties map[string]string) error {
 	config, err := ScriptProviderConfigFromMap(properties)
 	if err != nil {
+		sLog.Errorf("  P (Script Target): expected ScriptProviderConfig: %+v", err)
 		return err
 	}
 	return i.Init(config)
@@ -95,16 +108,18 @@ func (s *ScriptProvider) SetContext(ctx *contexts.ManagerContext) {
 }
 
 func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
-	_, span := observability.StartSpan("Script Provider", context.TODO(), &map[string]string{
+	ctx, span := observability.StartSpan("Script Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Info("  P (Script Target): Init()")
+	sLog.InfoCtx(ctx, "  P (Script Target): Init()")
 
 	updateConfig, err := toScriptProviderConfig(config)
 	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): expected ScriptProviderConfig - %+v", err)
 		err = errors.New("expected ScriptProviderConfig")
 		return err
 	}
@@ -113,21 +128,33 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 		err = downloadFile(i.Config.ScriptFolder, i.Config.ApplyScript, i.Config.StagingFolder)
 		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download apply script %s, error: %+v", i.Config.ApplyScript, err)
 			return err
 		}
 		err = downloadFile(i.Config.ScriptFolder, i.Config.RemoveScript, i.Config.StagingFolder)
 		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download remove script %s, error: %+v", i.Config.RemoveScript, err)
 			return err
 		}
 		err = downloadFile(i.Config.ScriptFolder, i.Config.GetScript, i.Config.StagingFolder)
 		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download get script %s, error: %+v", i.Config.GetScript, err)
 			return err
 		}
 	}
 
-	err = nil
-	return nil
+	once.Do(func() {
+		if providerOperationMetrics == nil {
+			providerOperationMetrics, err = metrics.New()
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Script Target): failed to create metrics: %+v", err)
+			}
+		}
+	})
+
+	return err
 }
+
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
 	sPath, err := url.JoinPath(scriptFolder, script)
 	if err != nil {
@@ -163,26 +190,27 @@ func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderCon
 }
 
 func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
-	_, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.Infof("  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	sLog.InfofCtx(ctx, "  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	id := uuid.New().String()
 	input := id + ".json"
 	input_ref := id + "-ref.json"
-	output := id + "-output.json"
+	output := id + "-get-output.json"
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
 	file, _ := json.MarshalIndent(deployment, "", " ")
-	_ = ioutil.WriteFile(staging, file, 0644)
+	_ = os.WriteFile(staging, file, 0644)
 
 	staging_ref := filepath.Join(i.Config.StagingFolder, input_ref)
 	file_ref, _ := json.MarshalIndent(references, "", " ")
-	_ = ioutil.WriteFile(staging_ref, file_ref, 0644)
+	_ = os.WriteFile(staging_ref, file_ref, 0644)
 
 	abs, _ := filepath.Abs(staging)
 	abs_ref, _ := filepath.Abs(staging_ref)
@@ -196,19 +224,19 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	}
 
 	o, err := i.runCommand(scriptAbs, abs, abs_ref)
-	sLog.Debugf("  P (Script Target): get script output: %s", o)
+	sLog.DebugfCtx(ctx, "  P (Script Target): get script output: %s", string(o))
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to run get script: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run get script: %+v", err)
 		return nil, err
 	}
 
 	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
-	data, err := ioutil.ReadFile(outputStaging)
+	data, err := os.ReadFile(outputStaging)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to read output file: %+v", err)
 		return nil, err
 	}
 
@@ -219,12 +247,12 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	ret := make([]model.ComponentSpec, 0)
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to parse get script output (expected []ComponentSpec): %+v", err)
 		return nil, err
 	}
 	return ret, nil
 }
-func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, components []model.ComponentSpec, isRemove bool) (map[string]model.ComponentResultSpec, error) {
+func (i *ScriptProvider) runScriptOnComponents(ctx context.Context, deployment model.DeploymentSpec, components []model.ComponentSpec, isRemove bool) (map[string]model.ComponentResultSpec, error) {
 	id := uuid.New().String()
 	deploymentId := id + ".json"
 	currenRefId := id + "-ref.json"
@@ -232,11 +260,11 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 
 	stagingDeployment := filepath.Join(i.Config.StagingFolder, deploymentId)
 	file, _ := json.MarshalIndent(deployment, "", " ")
-	_ = ioutil.WriteFile(stagingDeployment, file, 0644)
+	_ = os.WriteFile(stagingDeployment, file, 0644)
 
 	stagingRef := filepath.Join(i.Config.StagingFolder, currenRefId)
 	file, _ = json.MarshalIndent(components, "", " ")
-	_ = ioutil.WriteFile(stagingRef, file, 0644)
+	_ = os.WriteFile(stagingRef, file, 0644)
 
 	absDeployment, _ := filepath.Abs(stagingDeployment)
 	absRef, _ := filepath.Abs(stagingRef)
@@ -244,32 +272,34 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 	var scriptAbs = ""
 	if isRemove {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.RemoveScript))
+		utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run remove script - %s", i.Config.RemoveScript)
 		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.RemoveScript))
 		}
 	} else {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.ApplyScript))
+		utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run apply script - %s", i.Config.ApplyScript)
 		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.ApplyScript))
 		}
 	}
 	o, err := i.runCommand(scriptAbs, absDeployment, absRef)
-	sLog.Debugf("  P (Script Target): apply script output: %s", o)
+	sLog.DebugfCtx(ctx, "  P (Script Target): apply script output: %s", o)
 
 	defer os.Remove(absDeployment)
 	defer os.Remove(absRef)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run apply script: %+v", err)
 		return nil, err
 	}
 
 	outputStaging := filepath.Join(i.Config.StagingFolder, output)
 
-	data, err := ioutil.ReadFile(outputStaging)
+	data, err := os.ReadFile(outputStaging)
 
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to parse apply script output (expected map[string]model.ComponentResultSpec): %+v", err)
 		return nil, err
 	}
 
@@ -280,7 +310,7 @@ func (i *ScriptProvider) runScriptOnComponents(deployment model.DeploymentSpec, 
 	ret := make(map[string]model.ComponentResultSpec)
 	err = json.Unmarshal(data, &ret)
 	if err != nil {
-		sLog.Errorf("  P (Script Target): failed to parse get script output (expected map[string]model.ComponentResultSpec): %+v", err)
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to parse get script output (expected map[string]model.ComponentResultSpec): %+v", err)
 		return nil, err
 	}
 	return ret, nil
@@ -291,13 +321,33 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
-	sLog.Infof("  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Scope, deployment.Instance.Name)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	sLog.InfofCtx(ctx, "  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
+	functionName := observ_utils.GetFunctionName()
+	startTime := time.Now().UTC()
+
+	defer providerOperationMetrics.ProviderOperationLatency(
+		startTime,
+		script,
+		metrics.ApplyOperation,
+		metrics.ApplyOperationType,
+		functionName,
+	)
 
 	err = i.GetValidationRule(ctx).Validate([]model.ComponentSpec{}) //this provider doesn't handle any components	TODO: is this right?
 	if err != nil {
+		providerOperationMetrics.ProviderOperationErrors(
+			script,
+			functionName,
+			metrics.ValidateRuleOperation,
+			metrics.ApplyOperationType,
+			v1alpha2.ValidateFailed.String(),
+		)
 		return nil, err
 	}
 	if isDryRun {
+		sLog.InfofCtx(ctx, "  P (Proxy Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
@@ -305,37 +355,65 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	ret := step.PrepareResultMap()
 	components := step.GetUpdatedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Script Target): get updated components: count - %d", len(components))
 		var retU map[string]model.ComponentResultSpec
-		retU, err = i.runScriptOnComponents(deployment, components, false)
+		retU, err = i.runScriptOnComponents(ctx, deployment, components, false)
 		if err != nil {
-			sLog.Errorf("  P (Script Target): failed to run apply script: %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run apply script: %+v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				script,
+				functionName,
+				metrics.ApplyScriptOperation,
+				metrics.ApplyOperationType,
+				v1alpha2.ApplyScriptFailed.String(),
+			)
 			return nil, err
 		}
 		for k, v := range retU {
 			ret[k] = v
 		}
 	}
+
 	components = step.GetDeletedComponents()
 	if len(components) > 0 {
+		sLog.InfofCtx(ctx, "  P (Script Target): get deleted components: count - %d", len(components))
 		var retU map[string]model.ComponentResultSpec
-		retU, err = i.runScriptOnComponents(deployment, components, true)
+		retU, err = i.runScriptOnComponents(ctx, deployment, components, true)
 		if err != nil {
-			sLog.Errorf("  P (Script Target): failed to run remove script: %+v", err)
+			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run remove script: %+v", err)
+			providerOperationMetrics.ProviderOperationErrors(
+				script,
+				functionName,
+				metrics.ApplyScriptOperation,
+				metrics.ApplyOperationType,
+				v1alpha2.RemoveScriptFailed.String(),
+			)
 			return nil, err
 		}
 		for k, v := range retU {
 			ret[k] = v
+		}
+	}
+
+	for _, v := range ret {
+		switch v.Status {
+		case v1alpha2.DeleteFailed, v1alpha2.ValidateFailed, v1alpha2.UpdateFailed:
+			err := v1alpha2.NewCOAError(errors.New(v.Message), "executing script returned error output", v.Status)
+			return ret, err
 		}
 	}
 	return ret, nil
 }
 func (*ScriptProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
-		RequiredProperties:    []string{},
-		OptionalProperties:    []string{},
-		RequiredComponentType: "",
-		RequiredMetadata:      []string{},
-		OptionalMetadata:      []string{},
+		AllowSidecar: false,
+		ComponentValidationRule: model.ComponentValidationRule{
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
+			RequiredComponentType: "",
+			RequiredMetadata:      []string{},
+			OptionalMetadata:      []string{},
+		},
 	}
 }
 
