@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	v1alpha2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -48,6 +49,7 @@ type HttpBinding struct {
 	CertProvider certs.ICertProvider
 	server       *fasthttp.Server
 	pipeline     Pipeline
+	errChan      chan error
 }
 
 // Launch fasthttp server
@@ -59,6 +61,9 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	if err != nil {
 		return err
 	}
+
+	// Initialize error channel for the server goroutine
+	h.errChan = make(chan error, 1)
 
 	if config.TLS {
 		switch config.CertProvider.Type {
@@ -80,13 +85,31 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	}
 
 	go func() {
+		var serverErr error
 		if config.TLS {
-			cert, key, _ := h.CertProvider.GetCert("localhost") //TODO: user proper host/DNS name
-			h.server.ListenAndServeTLSEmbed(fmt.Sprintf(":%d", config.Port), cert, key)
+			cert, key, err := h.CertProvider.GetCert("localhost") //TODO: user proper host/DNS name
+			if err != nil {
+				h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("error getting TLS certificates: %s", err.Error()), v1alpha2.BadConfig)
+				return
+			}
+			serverErr = h.server.ListenAndServeTLSEmbed(fmt.Sprintf(":%d", config.Port), cert, key)
 		} else {
-			h.server.ListenAndServe(fmt.Sprintf(":%d", config.Port))
+			serverErr = h.server.ListenAndServe(fmt.Sprintf(":%d", config.Port))
+		}
+		// Send all server errors to the channel
+		// During normal shutdown, serverErr might be nil or a "server closed" type error
+		if serverErr != nil {
+			h.errChan <- v1alpha2.NewCOAError(nil, fmt.Sprintf("server error: %s", serverErr.Error()), v1alpha2.InternalError)
 		}
 	}()
+
+	select {
+	case err := <-h.errChan:
+		httpLogger.ErrorCtx(context.Background(), "H (HttpBinding): Server error: %s", err.Error())
+		return err
+	case <-time.After(10 * time.Second):
+		httpLogger.DebugCtx(context.Background(), "H (HttpBinding): Server started on port: %s", config.Port)
+	}
 	return nil
 }
 

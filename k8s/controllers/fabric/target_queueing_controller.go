@@ -9,16 +9,21 @@ package fabric
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
+	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
 	"gopls-workspace/utils/diagnostic"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -47,9 +52,24 @@ func (r *TargetQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	target := &symphonyv1.Target{}
 
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
-		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if apierrors.IsNotFound(err) {
+			diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since this CR has been deleted")
+			return ctrl.Result{}, nil
+		} else {
+			diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
+			return ctrl.Result{}, err
+		}
 	}
+
+	// reform context with annotations
+	resourceK8SId := target.GetNamespace() + "/" + target.GetName()
+	operationName := constants.TargetOperationNamePrefix
+	if target.ObjectMeta.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(target.GetNamespace(), resourceK8SId, target.Annotations, operationName, r, ctx, log)
 
 	reconciliationType := metrics.CreateOperationType
 	resultType := metrics.ReconcileSuccessResult
@@ -59,17 +79,29 @@ func (r *TargetQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, false, log, targetOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
+		diagnostic.InfoWithCtx(log, ctx, "Reconcile removing target:  "+req.Name+" in namespace "+req.Namespace)
 		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetOperationStartTimeKey, operationName)
-		if err != nil {
-			resultType = metrics.ReconcileFailedResult
+		if utils.ContainsString(target.GetFinalizers(), os.Getenv(constants.DeploymentFinalizer)) {
+			// set finalizer to nil
+			diagnostic.InfoWithCtx(log, ctx, "Reconcile removing target finalizer:  "+req.Name+" in namespace "+req.Namespace)
+			patch := client.MergeFrom(target.DeepCopy())
+			target.SetFinalizers([]string{})
+			if err = r.Patch(ctx, target, patch); err != nil {
+				diagnostic.ErrorWithCtx(log, ctx, err, "Failed to patch target finalizers")
+				resultType = metrics.ReconcileFailedResult
+			} else {
+				resultType = metrics.ReconcileSuccessResult
+			}
+		} else {
+			deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetOperationStartTimeKey, operationName)
+			if err != nil {
+				resultType = metrics.ReconcileFailedResult
+			}
 		}
 	}
 
@@ -99,7 +131,11 @@ func (r *TargetQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err != nil {
 		return err
 	}
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("TargetQueueing").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		WithEventFilter(predicate.Or(genChangePredicate, operationIdPredicate)).
 		For(&symphonyv1.Target{}).
 		Complete(r)

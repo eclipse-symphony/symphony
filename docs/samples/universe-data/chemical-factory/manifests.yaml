@@ -34,12 +34,12 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-app-v-v1
+  name: site-app-v-version1
 spec:
   catalogType: solution
   properties:
     metadata:
-      name: site-app:v1
+      name: site-app:version1
     spec: 
       components:
       - name: influxdb
@@ -65,12 +65,12 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: line-app-v-v1
+  name: line-app-v-version1
 spec:
   catalogType: solution
   properties:
     metadata:
-      name: line-app:v1
+      name: line-app:version1
     spec: 
       components:
       - name: e4k-high-availability-broker
@@ -159,12 +159,12 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: smart-fridge-v-v1
+  name: smart-fridge-v-version1
 spec:
   catalogType: solution
   properties:
     metadata:
-      name: smart-fridge:v1
+      name: smart-fridge:version1
     spec: 
       components:
       - name: backend
@@ -192,14 +192,14 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-instance-v-v1
+  name: site-instance-v-version1
 spec:
   catalogType: instance
   properties:
     metadata:
       name: site-instance
     spec: 
-      solution: site-app:v1
+      solution: site-app:version1
       target:
         selector:
           group: demo

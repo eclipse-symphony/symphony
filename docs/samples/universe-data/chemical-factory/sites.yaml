@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-v-v1
+  name: hq-v-version1
 spec:
   rootResource: hq
   catalogType: asset
@@ -32,7 +32,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: tokyo-v-v1
+  name: tokyo-v-version1
 spec:
   rootResource: tokyo
   catalogType: asset
@@ -57,7 +57,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: new-york-v-v1
+  name: new-york-v-version1
 spec:
   rootResource: new-york
   catalogType: asset
@@ -82,7 +82,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: munchen-v-v1
+  name: munchen-v-version1
 spec:
   rootResource: munchen
   catalogType: asset

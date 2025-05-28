@@ -7,8 +7,6 @@
 package vendors
 
 import (
-	"encoding/json"
-
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutioncontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -19,6 +17,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -103,7 +102,7 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		if err != nil {
 			scLog.ErrorfCtx(ctx, "V (SolutionContainers): onSolutionContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -120,7 +119,7 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutionContainers-POST", pCtx, nil)
 		var solutionContainer model.SolutionContainerState
-		err := json.Unmarshal(request.Body, &solutionContainer)
+		err := utils2.UnmarshalJson(request.Body, &solutionContainer)
 		if err != nil {
 			scLog.ErrorfCtx(ctx, "V (SolutionContainers): onSolutionContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -136,7 +135,7 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		if err != nil {
 			scLog.ErrorfCtx(ctx, "V (SolutionContainers): onSolutionContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -150,7 +149,7 @@ func (c *SolutionContainersVendor) onSolutionContainers(request v1alpha2.COARequ
 		if err != nil {
 			scLog.ErrorfCtx(ctx, "V (SolutionContainers): onSolutionContainers failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}

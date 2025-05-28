@@ -65,8 +65,8 @@ var (
 var (
 	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "testtarget", Namespace: TestNamespace}
 	DefaultInstanceNamespacedName = types.NamespacedName{Name: "testinstance", Namespace: TestNamespace}
-	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v-v1", Namespace: TestNamespace}
-	SolutionReferenceName         = "solution:v1"
+	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v-version1", Namespace: TestNamespace}
+	SolutionReferenceName         = "solution:version1"
 
 	TerminalError = v1alpha2.NewCOAError(errors.New(""), "timed out", v1alpha2.TimedOut)
 	NotFoundError = v1alpha2.NewCOAError(errors.New(""), "not found", v1alpha2.NotFound)
@@ -287,7 +287,7 @@ func MockInProgressDeleteSummaryResult(obj reconcilers.Reconcilable, hash string
 }
 
 // GetSummary implements ApiClient.
-func (c *MockApiClient) GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error) {
+func (c *MockApiClient) GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	args := c.Called(ctx, id, namespace)
 	summary := args.Get(0)
 	if summary == nil {

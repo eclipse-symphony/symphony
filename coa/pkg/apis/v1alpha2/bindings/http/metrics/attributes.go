@@ -17,10 +17,22 @@ func Deployment(
 	}
 }
 
-func Error(
-	errorCode string,
+func Status(
+	statusCode int,
+	formatedStatusCode string,
 ) map[string]any {
 	return map[string]any{
-		"errorCode": errorCode,
+		"statusCode":         statusCode,
+		"formatedStatusCode": formatedStatusCode,
 	}
+}
+
+func mergeAttrs(attrs ...map[string]any) map[string]any {
+	merged := make(map[string]any)
+	for _, attr := range attrs {
+		for k, v := range attr {
+			merged[k] = v
+		}
+	}
+	return merged
 }

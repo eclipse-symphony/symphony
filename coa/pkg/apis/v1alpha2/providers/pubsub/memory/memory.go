@@ -7,6 +7,7 @@
 package memory
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"time"
@@ -22,7 +23,7 @@ var log = logger.NewLogger("coa.runtime")
 
 const (
 	DefaultRetryCount      = 5
-	DefaultRetryWaitSecond = 10
+	DefaultRetryWaitSecond = 20
 )
 
 type InMemoryPubSubProvider struct {
@@ -167,4 +168,10 @@ func (a *InMemoryPubSubProvider) Clone(config providers.IProviderConfig) (provid
 		}
 	}
 	return ret, nil
+}
+
+func (a *InMemoryPubSubProvider) Cancel() context.CancelFunc {
+	return func() {
+		log.Info("  P (Memory PubSub): canceling")
+	}
 }

@@ -10,8 +10,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	federationv1 "gopls-workspace/apis/federation/v1"
+	"gopls-workspace/configutils"
+	"gopls-workspace/constants"
 
 	"gopls-workspace/utils/diagnostic"
 
@@ -19,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -39,6 +43,15 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	diagnostic.InfoWithCtx(log, ctx, "Entering the CatalogEvalExpression reconciler")
 
 	evalCR := &federationv1.CatalogEvalExpression{}
+
+	resourceK8SId := evalCR.GetNamespace() + "/" + evalCR.GetName()
+	operationName := constants.CatalogEvalOperationNamePrefix
+	if evalCR.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(evalCR.GetNamespace(), resourceK8SId, evalCR.GetAnnotations(), operationName, r, ctx, log)
 
 	err := r.Get(ctx, req.NamespacedName, evalCR)
 	if err != nil {
@@ -150,7 +163,11 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CatalogEvalReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("CatalogEval").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&federationv1.CatalogEvalExpression{}).
 		Complete(r)
 }

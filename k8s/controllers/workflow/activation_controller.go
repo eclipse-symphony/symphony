@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/configutils"
@@ -24,6 +25,7 @@ import (
 	"gopls-workspace/utils/diagnostic"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -54,6 +56,16 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	//get Activation
 	activation := &workflowv1.Activation{}
+
+	resourceK8SId := activation.GetNamespace() + "/" + activation.GetName()
+	operationName := constants.ActivationOperationNamePrefix
+	if activation.ObjectMeta.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(activation.GetNamespace(), resourceK8SId, activation.Annotations, operationName, r, ctx, log)
+
 	if err := r.Get(ctx, req.NamespacedName, activation); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Activation")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -67,9 +79,6 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		diagnostic.InfoWithCtx(log, ctx, fmt.Sprintf("Activation status: %v", activation.Status.Status))
 		if activation.Status.UpdateTime == "" && activation.ObjectMeta.Labels[api_constants.StatusMessage] == "" &&
 			activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
-			resourceK8SId := activation.GetNamespace() + "/" + activation.GetName()
-			operationName := fmt.Sprintf("%s/%s", constants.ActivationOperationNamePrefix, constants.ActivityOperation_Write)
-			ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(activation.GetNamespace(), resourceK8SId, activation.Annotations, operationName, r, ctx, log)
 			diagnostic.InfoWithCtx(log, ctx, "Publishing activation event", "Name", activation.Name, "Namespace", activation.Namespace)
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
 				Campaign:             activation.Spec.Campaign,
@@ -84,6 +93,9 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return ctrl.Result{}, err
 			}
 		}
+	} else {
+		diagnostic.InfoWithCtx(log, ctx, "Deleting activation", "name", activation.ObjectMeta.Name, "namespace", activation.ObjectMeta.Namespace)
+		observ_utils.EmitUserAuditsLogs(ctx, "Activation %s is being deleted on namespace %s", activation.ObjectMeta.Name, activation.ObjectMeta.Namespace)
 	}
 
 	return ctrl.Result{}, nil
@@ -102,7 +114,11 @@ func convertRawExtensionToMap(raw *runtime.RawExtension) map[string]interface{} 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ActivationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Activation").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&workflowv1.Activation{}).
 		Complete(r)
 }

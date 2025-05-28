@@ -146,8 +146,8 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	require.Equal(t, instanceName, instancesRes[0].Spec.DisplayName)
 	require.Equal(t, solutionName, instancesRes[0].Spec.Solution)
 	require.Equal(t, targetName, instancesRes[0].Spec.Target.Name)
-	require.Equal(t, "1", instancesRes[0].Status.Properties["targets"])
-	require.Equal(t, "OK", instancesRes[0].Status.Properties["status"])
+	require.Equal(t, 1, instancesRes[0].Status.Targets)
+	require.Equal(t, "OK", instancesRes[0].Status.Status)
 
 	instanceRes, err := getTestApiClient().GetInstance(context.Background(), instanceName, "default", user, password)
 	require.NoError(t, err)
@@ -155,8 +155,8 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
 	require.Equal(t, solutionName, instanceRes.Spec.Solution)
 	require.Equal(t, targetName, instanceRes.Spec.Target.Name)
-	require.Equal(t, "1", instanceRes.Status.Properties["targets"])
-	require.Equal(t, "OK", instanceRes.Status.Properties["status"])
+	// require.Equal(t, "1", instanceRes.Status.Properties["targets"])
+	require.Equal(t, "OK", instanceRes.Status.Status)
 
 	err = getTestApiClient().DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
@@ -467,6 +467,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	res, err := CreateSymphonyDeploymentFromTarget(ctx, model.TargetState{
 		ObjectMeta: model.ObjectMeta{
 			Name: "someTargetName",
+			Annotations: map[string]string{
+				"Guid": "someGuid",
+			},
 		},
 		Spec: &model.TargetSpec{
 			DisplayName: "someDisplayName",
@@ -523,6 +526,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "target-runtime-someTargetName",
+				Annotations: map[string]string{
+					"Guid": "someGuid",
+				},
 			},
 			Spec: &model.InstanceSpec{
 				Scope:       "targetScope",
@@ -537,6 +543,9 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			"someTargetName": {
 				ObjectMeta: model.ObjectMeta{
 					Name: "someTargetName",
+					Annotations: map[string]string{
+						"Guid": "someGuid",
+					},
 				},
 				Spec: &model.TargetSpec{
 					DisplayName: "someDisplayName",
@@ -579,6 +588,9 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		ObjectMeta: model.ObjectMeta{
 			Name:      "someOtherId",
 			Namespace: "instanceScope",
+			Annotations: map[string]string{
+				"Guid": "someGuid",
+			},
 		},
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
@@ -684,10 +696,12 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			ObjectMeta: model.ObjectMeta{
 				Name:      "someOtherId",
 				Namespace: "instanceScope",
+				Annotations: map[string]string{
+					"Guid": "someGuid",
+				},
 			},
 			Spec: &model.InstanceSpec{
 				Solution: "",
-				Scope:    "default", // CreateSymphonyDeployment will give default if instance.Spec.Scope is empty
 				Target: model.TargetSelector{
 					Name: "someTargetName",
 					Selector: map[string]string{

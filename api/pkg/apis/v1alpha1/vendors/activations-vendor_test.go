@@ -30,6 +30,9 @@ func createActivationsVendor() ActivationsVendor {
 	vendor := ActivationsVendor{
 		ActivationsManager: &manager,
 	}
+	vendor.Config.Properties = map[string]string{
+		"useJobManager": "true",
+	}
 	return vendor
 }
 func TestActivationsEndpoints(t *testing.T) {
@@ -57,7 +60,7 @@ func TestActivationsOnStatus(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
 	assert.Equal(t, "Not Found: entry 'activation1' is not found in namespace default", string(resp.Body))
 
 	resp = vendor.onStatus(v1alpha2.COARequest{
@@ -69,7 +72,7 @@ func TestActivationsOnStatus(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.InternalError, resp.State)
-	assert.Equal(t, "unexpected end of JSON input", string(resp.Body))
+	assert.Equal(t, "empty data when unmarshalling JSON", string(resp.Body))
 }
 func TestActivationsOnActivations(t *testing.T) {
 	vendor := createActivationsVendor()
@@ -101,7 +104,7 @@ func TestActivationsOnActivations(t *testing.T) {
 		},
 		Context: context.Background(),
 	})
-	assert.Equal(t, v1alpha2.InternalError, resp.State)
+	assert.Equal(t, v1alpha2.NotFound, resp.State)
 	activationState := model.ActivationState{
 		Spec: &model.ActivationSpec{
 			Campaign: campaignName,

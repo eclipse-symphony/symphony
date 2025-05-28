@@ -21,12 +21,8 @@ spec:
         command:
         - /bin/bash
         - -c
-        - |-
-          {{- if eq .Values.flavor "azure" }}
-          {{- .Files.Get "files/azure/trust-bundles.sh" | nindent 12 }}
-          {{- else }}          
+        - |-       
           {{- .Files.Get "files/oss/trust-bundles.sh" | nindent 12 }}
-          {{- end }}
         env:
         - name: TRUST_BUNDLE_NS
           value: {{ .Release.Namespace }}

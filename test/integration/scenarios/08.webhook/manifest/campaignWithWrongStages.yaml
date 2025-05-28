@@ -1,7 +1,7 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: 04campaign-v-v2
+  name: 04campaign-v-version2
 spec:  
   rootResource: 04campaign
   firstStage: wait
@@ -17,10 +17,10 @@ spec:
       inputs:
         objectType: catalogs
         names:
-        - sitecatalog:v1
-        - siteapp:v1
-        - sitek8starget:v1
-        - siteinstance:v1
+        - sitecatalog:version1
+        - siteapp:version1
+        - sitek8starget:version1
+        - siteinstance:version1
     list:
       name: list
       provider: providers.stage.list

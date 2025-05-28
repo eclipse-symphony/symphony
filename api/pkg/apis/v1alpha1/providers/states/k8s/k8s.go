@@ -227,6 +227,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		unc.SetNamespace(metadata.Namespace)
 		unc.SetLabels(metadata.Labels)
 		unc.SetAnnotations(metadata.Annotations)
+		unc.SetOwnerReferences(metadata.OwnerReferences)
 
 		_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Create(ctx, unc, metav1.CreateOptions{})
 		if err != nil {
@@ -235,6 +236,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		}
 		//Note: state is ignored for new object
 	} else {
+		// if there is no error, we are updating an existing object.
 		j, _ := json.Marshal(entry.Value.Body)
 		var dict map[string]interface{}
 		err = json.Unmarshal(j, &dict)
@@ -250,6 +252,7 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to unmarshal object metadata: %v", err)
 				return "", v1alpha2.NewCOAError(err, "failed to upsert state because failed to unmarshal object metadata", v1alpha2.BadRequest)
 			}
+
 			item.SetName(metadata.Name)
 			item.SetNamespace(metadata.Namespace)
 			item.SetLabels(metadata.Labels)
@@ -259,6 +262,11 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		if v, ok := dict["spec"]; ok && !entry.Options.UpdateStatusOnly {
 			item.Object["spec"] = v
 
+			// If we update the labels, annotations or spec, we should respect the resource version provided by client.
+			// If client does not provide a ETag, we treat it as concurrency not required and ignore the ETag.
+			if entry.Value.ETag != "" {
+				item.SetResourceVersion(entry.Value.ETag)
+			}
 			_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Update(ctx, item, metav1.UpdateOptions{})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object: %v", err)
@@ -412,6 +420,7 @@ func (s *K8sStateProvider) List(ctx context.Context, request states.ListRequest)
 				Name:          v.GetName(),
 				Namespace:     v.GetNamespace(),
 				Labels:        v.GetLabels(),
+				ETag:          v.GetResourceVersion(),
 				Annotations:   v.GetAnnotations(),
 				ObjGeneration: v.GetGeneration(),
 			}
@@ -510,11 +519,14 @@ func (s *K8sStateProvider) Get(ctx context.Context, request states.GetRequest) (
 	}
 
 	metadata := model.ObjectMeta{
-		Name:          item.GetName(),
-		Namespace:     item.GetNamespace(),
-		Labels:        item.GetLabels(),
-		Annotations:   item.GetAnnotations(),
-		ObjGeneration: item.GetGeneration(),
+		Name:            item.GetName(),
+		Namespace:       item.GetNamespace(),
+		Labels:          item.GetLabels(),
+		ETag:            item.GetResourceVersion(),
+		Annotations:     item.GetAnnotations(),
+		ObjGeneration:   item.GetGeneration(),
+		UID:             item.GetUID(),
+		OwnerReferences: item.GetOwnerReferences(),
 	}
 
 	ret := states.StateEntry{

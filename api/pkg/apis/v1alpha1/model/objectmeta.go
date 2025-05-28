@@ -12,7 +12,10 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ObjectMeta struct {
@@ -21,7 +24,7 @@ type ObjectMeta struct {
 	// ETag is a string representing the version of the object, it bump whenever the object is updated.
 	// All the state store should support auto-incrementing the version number.
 	// For example, resourceVersion in kubernetes
-	ETag string `json:"eTag,omitempty"`
+	ETag string `json:"etag,omitempty"`
 	// ObjGeneration changes when Spec changes
 	// object manager need to detect spec changes and update the generation
 	// For example, generation in kubernetes
@@ -29,6 +32,10 @@ type ObjectMeta struct {
 
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
+
+	UID types.UID `json:"uid,omitempty"`
+
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty"`
 }
 
 // UnmarshalJSON custom unmarshaller to handle Generation field(accept both of number and string)
@@ -88,6 +95,10 @@ func (c ObjectMeta) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a ObjectMeta type")
 	}
 
+	if c.GetGuid() != otherC.GetGuid() {
+		return false, nil
+	}
+
 	if c.Name != otherC.Name {
 		return false, nil
 	}
@@ -118,4 +129,66 @@ func (c *ObjectMeta) UpdateAnnotation(key string, value string) {
 	}
 
 	c.Annotations[key] = value
+}
+
+func (c *ObjectMeta) UpdateEtag(etag string) {
+	c.ETag = etag
+}
+
+func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+
+	for _, key := range constants.SystemReservedAnnotations() {
+		if _, exists := c.Annotations[key]; !exists {
+			if value, ok := metadata.Annotations[key]; ok {
+				c.Annotations[key] = value
+			}
+		}
+	}
+
+	if c.Labels == nil {
+		c.Labels = make(map[string]string)
+	}
+
+	for _, key := range constants.SystemReservedLabels() {
+		if _, exists := c.Labels[key]; !exists {
+			if value, ok := metadata.Labels[key]; ok {
+				c.Labels[key] = value
+			}
+		}
+	}
+}
+
+func (c *ObjectMeta) GetSummaryId() string {
+	if c.Annotations == nil || c.Annotations[constants.GuidKey] == "" {
+		return c.Name
+	}
+	return fmt.Sprintf("%s-%s", c.Name, c.Annotations[constants.GuidKey])
+}
+
+func (c *ObjectMeta) GetGuid() string {
+	if c.Annotations == nil {
+		return ""
+	}
+	return c.Annotations[constants.GuidKey]
+}
+
+func (c *ObjectMeta) SetGuid(guid string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.GuidKey] = guid
+}
+
+func (c *ObjectMeta) GetSummaryJobId() string {
+	return c.Annotations[constants.SummaryJobIdKey]
+}
+
+func (c *ObjectMeta) SetSummaryJobId(jobId string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.SummaryJobIdKey] = jobId
 }

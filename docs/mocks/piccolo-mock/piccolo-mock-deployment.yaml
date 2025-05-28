@@ -1,0 +1,42 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: piccolo-mock-deployment
+  labels:
+    app: piccolo-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: piccolo-mock
+  template:
+    metadata:
+      labels:
+        app: piccolo-mock
+    spec:
+      containers:
+      - name: piccolo-mock-container
+        image: hbai/piccolo-mock:latest
+        ports:
+        - containerPort: 5000
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: piccolo-mock-service
+  labels:
+    app: piccolo-mock
+spec:
+  type: ClusterIP
+  selector:
+    app: piccolo-mock
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000

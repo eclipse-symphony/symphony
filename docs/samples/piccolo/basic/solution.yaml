@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: busy-box-v-v1
+  name: busy-box-v-version1
 spec:  
   components:
   - name: busy-box

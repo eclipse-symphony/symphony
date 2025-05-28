@@ -80,13 +80,24 @@ func (r *Activation) Default() {
 	}
 	if r.Spec.Campaign != "" {
 		diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec.campaign", r.Spec.Campaign)
-		r.Labels[api_constants.Campaign] = validation.ConvertReferenceToObjectName(r.Spec.Campaign)
+		// Remove api_constants.Campaign from r.Labels if it exists
+		if _, exists := r.Labels[api_constants.Campaign]; exists {
+			delete(r.Labels, api_constants.Campaign)
+		}
+		var campaignResult Campaign
+		err := myActivationClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Campaign), Namespace: r.Namespace}, &campaignResult)
+		if err != nil {
+			diagnostic.ErrorWithCtx(activationlog, ctx, err, "failed to get campaign", "name", r.Name, "namespace", r.Namespace)
+			return
+		}
+		r.Labels[api_constants.CampaignUid] = string(campaignResult.UID)
+
 	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-activation,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=activations,verbs=create;update,versions=v1,name=mactivation.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-workflow-symphony-v1-activation,mutating=false,failurePolicy=fail,sideEffects=None,groups=workflow.symphony,resources=activations,verbs=create;update,versions=v1,name=vactivation.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Activation{}
 

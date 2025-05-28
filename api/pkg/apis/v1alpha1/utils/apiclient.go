@@ -19,7 +19,9 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -43,7 +45,7 @@ type (
 	TokenProvider func(ctx context.Context, baseUrl string, client *http.Client, user string, password string) (string, error)
 
 	SummaryGetter interface {
-		GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error)
+		GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error)
 		DeleteSummary(ctx context.Context, id string, namespace string, user string, password string) error
 	}
 
@@ -111,6 +113,10 @@ func (e APIError) Error() string {
 		e.Code,
 		e.Message,
 	)
+}
+
+func (e APIError) IsRetriableErr() bool {
+	return ToCOAError(e).IsRetriableErr()
 }
 
 func NewAPIError(state v1alpha2.State, msg string) APIError {
@@ -465,7 +471,7 @@ func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []b
 	return nil
 }
 
-func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string, user string, password string) (*model.SummaryResult, error) {
+func (a *apiClient) GetSummary(ctx context.Context, id string, name string, namespace string, user string, password string) (*model.SummaryResult, error) {
 	result := model.SummaryResult{}
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
@@ -473,7 +479,7 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, namespace string,
 	}
 
 	log.DebugfCtx(ctx, "apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
-	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	ret, err := a.callRestAPI(ctx, "solution/queue?instance="+url.QueryEscape(id)+"&name="+url.QueryEscape(name)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
 		log.DebugfCtx(ctx, "apiClient.GetSummary: Not found")
@@ -516,12 +522,13 @@ func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, is
 		"delete":     []string{fmt.Sprintf("%t", isDelete)},
 		"objectType": []string{"deployment"},
 	}
+	log.InfofCtx(ctx, "apiClient.QueueDeploymentJob: Deployment payload: %s", model.GetDeploymentSpecForLog(&deployment))
+
 	var payload []byte
 	if err != nil {
 		return err
 	}
 	payload, err = json.Marshal(deployment)
-	log.DebugfCtx(ctx, "apiClient.QueueDeploymentJob: Deployment payload: %s", string(payload))
 	if err != nil {
 		return err
 	}
@@ -862,25 +869,45 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 	}
 
 	var resp *http.Response
-	resp, err = a.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
+	var userError error
 	var bodyBytes []byte
-	bodyBytes, err = io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
 
-	if resp.StatusCode >= 300 {
-		object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
-		return nil, object
-	}
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 2 * time.Second // Initial retry interval.
+	b.MaxInterval = 30 * time.Second    // Maximum retry interval.
+	b.MaxElapsedTime = 5 * time.Minute  // Maximum total waiting time.
 
-	return bodyBytes, nil
+	retryErr := backoff.Retry(func() error {
+		resp, err = a.client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		bodyBytes, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode >= 500 {
+			object := NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
+			return object
+		} else if resp.StatusCode >= 300 {
+			userError = NewAPIError(v1alpha2.GetHttpStatus(resp.StatusCode), fmt.Sprintf("Symphony API: %s", string(bodyBytes)))
+		}
+		return nil
+	}, b)
+
+	if retryErr == nil {
+		if userError != nil {
+			log.DebugfCtx(ctx, "apiClient.callRestAPI: failed to call rest API: %s", userError)
+			return nil, userError
+		}
+		return bodyBytes, nil
+	} else {
+		log.DebugfCtx(ctx, "apiClient.callRestAPI: failed to call rest API after retries: %s", retryErr)
+		return nil, retryErr
+	}
 }
 
 func (a *apiClient) CreateSolutionContainer(ctx context.Context, solutionContainer string, payload []byte, namespace string, user string, password string) error {

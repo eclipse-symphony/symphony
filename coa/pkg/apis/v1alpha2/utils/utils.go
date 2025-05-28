@@ -23,6 +23,20 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 )
 
+func UnmarshalJson[T any](data []byte, obj *T) error {
+	if len(data) == 0 {
+		return fmt.Errorf("empty data when unmarshalling JSON")
+	}
+	// var obj T
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(obj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UnmarshalDuration(duration string) (time.Duration, error) {
 	var v interface{}
 	if err := json.Unmarshal([]byte(duration), &v); err != nil {

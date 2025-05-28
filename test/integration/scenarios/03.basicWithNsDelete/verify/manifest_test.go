@@ -28,6 +28,7 @@ package verify
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,6 +37,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
 	"github.com/princjef/mageutil/shellcmd"
 	"github.com/stretchr/testify/require"
@@ -107,7 +109,7 @@ func TestBasic_DetectCircularReference(t *testing.T) {
 		fmt.Printf("Current instance status: %s\n", status)
 		if status == "Failed" {
 			message := getErrorMessage(resources.Items[0])
-			require.Equal(t, "Deployment failed. failed to evaluate deployment spec: Bad Config: Detect circular dependency, object: config1-v-v1, field: image", message)
+			require.Equal(t, "Deployment failed. failed to evaluate deployment spec: Bad Config: Detect circular dependency, object: config1-v-version1, field: image", message)
 			break
 		}
 
@@ -125,7 +127,7 @@ func TestBasic_DetectCircularReference(t *testing.T) {
 
 	namespace := "default"
 	// read catalog
-	catalog, err := readCatalog("config1-v-v1", namespace, dyn)
+	catalog, err := readCatalog("config1-v-version1", namespace, dyn)
 	require.NoError(t, err)
 
 	// Update catalog
@@ -228,7 +230,6 @@ func TestBasic_VerifyPodUpdatedInNamespace(t *testing.T) {
 
 	// Get old pod name
 	pods, err := kubeClient.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
-
 	require.NoError(t, err)
 
 	podToFind := "instance03"
@@ -394,22 +395,153 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, resources.Items, 1, "there should be only one instance")
+
 		status := getStatus(resources.Items[0])
-		targetCount := getProperty(resources.Items[0], "targets")
-		target03Status := getProperty(resources.Items[0], "targets.target03")
-		targetStatus := getProperty(resources.Items[0], "status")
+		deployableStatus, err := getDeployableStatus(resources.Items[0])
+		require.NoError(t, err)
+		targetCount := deployableStatus.Targets
+		target03Status := deployableStatus.GetTargetStatus("target03")
+		helmTargetStatus := deployableStatus.GetTargetStatus("helm-target")
 
 		fmt.Printf("Current instance status: %s\n", status)
-		fmt.Printf("Current instance deployment count: %s\n", targetCount)
-		fmt.Printf("Current instance deployment helm: %s\n", targetStatus)
+		fmt.Printf("Current instance deployment count: %d\n", targetCount)
+		fmt.Printf("Current instance deployment instance3: %s\n", target03Status)
+		fmt.Printf("Current instance deployment helm: %s\n", helmTargetStatus)
 
 		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
 		require.NotContains(t, target03Status, "OK", "instance should not show target03 status")
-		if status == "Succeeded" && targetCount == "1" && strings.Contains(targetStatus, "Succeeded") {
+		if status == "Succeeded" && targetCount == 1 && target03Status == "" && strings.Contains(helmTargetStatus, "OK") {
 			break
 		}
 
 		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+}
+
+func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
+	// Manifests to deploy
+	var testDefaultManifests = []string{
+		"../manifest/oss/solution-configmap.yaml",
+		"../manifest/oss/target-configmap-default.yaml",
+		"../manifest/oss/instance-configmap-default.yaml",
+	}
+
+	// Deploy the manifests in default namespace
+	for _, manifest := range testDefaultManifests {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+		require.NoError(t, err)
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+	clientset, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	// Verify configmap in default scope
+	for {
+		namespace := "default"
+		configMapName := "configmap"
+		configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err == nil {
+			require.Equal(t, "test-tag", configMap.Data["tags"], "configmap data should match the input")
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("1s")
+		time.Sleep(sleepDuration)
+	}
+
+	// test update target solutionScope, expect error
+	targetFile := "../manifest/oss/target-configmap-error.yaml"
+	fullPath, err := filepath.Abs(targetFile)
+	require.NoError(t, err)
+	output, err := exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "Target has one or more associated instances. Cannot change SolutionScope of the target.")
+
+	// test update instance scope, expect error
+	instanceFile := "../manifest/oss/instance-configmap-error.yaml"
+	fullPath, err = filepath.Abs(instanceFile)
+	require.NoError(t, err)
+	output, err = exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "The instance is already created. Cannot change Scope of the instance.")
+
+	// delete instance and associated deployments
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete instance.solution.symphony %s", "instance-configmap")).Run()
+	require.NoError(t, err)
+
+	// test update target solutionScope with no associated instance, expect no error
+	fullPath, _ = filepath.Abs(targetFile)
+	output, err = exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
+	require.NoError(t, err)
+
+	// deploy new instance and target with solutionScope
+	var testSolutionScopeManifests = []string{
+		"../manifest/oss/target-configmap-update.yaml",
+		"../manifest/oss/instance-configmap-update.yaml",
+	}
+
+	// Deploy the manifests in default namespace
+	for _, manifest := range testSolutionScopeManifests {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+		require.NoError(t, err)
+	}
+
+	// Verify configmp in target solutionScope
+	for {
+		namespace := "target-scope"
+		configMapName := "configmap"
+		configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err == nil {
+			require.Equal(t, "test-tag", configMap.Data["tags"], "configmap data should match the input")
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("1s")
+		time.Sleep(sleepDuration)
+	}
+}
+
+func TestBasic_VerifySolutionScopePrecedence(t *testing.T) {
+	// Create instance with scope and target with solution scope
+	var testSolutionScopeManifests = []string{
+		"../manifest/oss/target-configmap-update.yaml",
+		"../manifest/oss/instance-configmap-with-scope.yaml",
+	}
+
+	// Deploy the manifests in default namespace
+	for _, manifest := range testSolutionScopeManifests {
+		fullPath, err := filepath.Abs(manifest)
+		require.NoError(t, err)
+
+		err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n default", fullPath)).Run()
+		require.NoError(t, err)
+	}
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+	clientset, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	// Verify configmap in nondefault instance scope
+	for {
+		namespace := "nondefault"
+		configMapName := "configmap"
+		configMap, err := clientset.CoreV1().ConfigMaps(namespace).Get(context.Background(), configMapName, metav1.GetOptions{})
+		if err == nil {
+			require.Equal(t, "test-tag", configMap.Data["tags"], "configmap data should match the input")
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("1s")
 		time.Sleep(sleepDuration)
 	}
 }
@@ -448,6 +580,23 @@ func getStatus(resource unstructured.Unstructured) string {
 	}
 
 	return ""
+}
+
+func getDeployableStatus(resource unstructured.Unstructured) (model.DeployableStatusV2, error) {
+	status, ok := resource.Object["status"].(map[string]interface{})
+	if ok {
+		statusJson, err := json.Marshal(status)
+		if err != nil {
+			return model.DeployableStatusV2{}, err
+		}
+		var deployableStatus model.DeployableStatusV2
+		err = json.Unmarshal(statusJson, &deployableStatus)
+		if err != nil {
+			return model.DeployableStatusV2{}, err
+		}
+		return deployableStatus, nil
+	}
+	return model.DeployableStatusV2{}, nil
 }
 
 func getProperty(resource unstructured.Unstructured, propertyName string) string {

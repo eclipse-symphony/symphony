@@ -72,7 +72,7 @@ func (e *JobVendor) Init(config vendors.VendorConfig, factories []managers.IMana
 			}
 			err := e.JobsManager.HandleJobEvent(ctx, event)
 			if err != nil && v1alpha2.IsDelayed(err) {
-				go e.Vendor.Context.Publish(topic, event)
+				return err
 			}
 			// job reconciler already has a retry mechanism, return nil to avoid retrying
 			return nil
@@ -139,10 +139,18 @@ func (c *JobVendor) onHello(request v1alpha2.COARequest) v1alpha2.COAResponse {
 			})
 		}
 		jLog.InfofCtx(ctx, "V (Job): onHello, activationData: %v", activationData)
-		c.Vendor.Context.Publish("activation", v1alpha2.Event{
+		err = c.Vendor.Context.Publish("activation", v1alpha2.Event{
 			Body:    activationData,
 			Context: ctx,
 		})
+		if err != nil {
+			jLog.ErrorfCtx(ctx, "V (Job): onHello failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte(err.Error()),
+				ContentType: "application/json",
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})

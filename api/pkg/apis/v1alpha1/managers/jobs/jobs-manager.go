@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -245,10 +246,14 @@ func (s *JobsManager) pollSchedules() []error {
 				log.InfofCtx(ctx, " M (Job): firing schedule %s", activationData.Activation)
 				activationData.Schedule = ""
 				// trigger the activation first and then delete the schedule events in state store
-				s.Context.Publish("trigger", v1alpha2.Event{
+				err = s.Context.Publish("trigger", v1alpha2.Event{
 					Body:    activationData,
 					Context: ctx,
 				})
+				if err != nil {
+					log.ErrorfCtx(ctx, " M (Job): error publishing trigger event for activation %s: %s", activationData.Activation, err.Error())
+					continue
+				}
 				s.PersistentStateProvider.Delete(ctx, states.DeleteRequest{
 					ID: entry.ID,
 					Metadata: map[string]interface{}{
@@ -328,7 +333,7 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 
 	key := "h_" + job.Id
 	if objectType == "target" {
-		key = fmt.Sprintf("h_%s-%s", "target-runtime", job.Id)
+		key = fmt.Sprintf("h_%s-%s", constants.TargetRuntimePrefix, job.Id)
 	}
 	//check if a manager is working on the job
 	var entry states.StateEntry
@@ -364,8 +369,8 @@ func (s *JobsManager) DelayOrSkipJob(ctx context.Context, namespace string, obje
 		err = v1alpha2.NewCOAError(nil, "delete job is delayed", v1alpha2.Delayed)
 		return err
 	}
-	log.InfofCtx(ctx, " M (Job): skip job %s as existing job in progress", job.Id)
-	err = v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Untouched)
+	log.InfofCtx(ctx, " M (Job): delay job %s as existing job in progress", job.Id)
+	err = v1alpha2.NewCOAError(nil, "existing job in progress", v1alpha2.Delayed)
 	return err
 }
 func (s *JobsManager) HandleScheduleEvent(ctx context.Context, event v1alpha2.Event) error {
@@ -574,14 +579,13 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 			}
 		case "deployment":
 			log.InfofCtx(ctx, " M (Job): handling deployment job %s, action: %s", job.Id, job.Action)
-			// expressions are not evaluated at this step so printing deployment sepc should be safe (TODO: observe)
-			log.InfofCtx(ctx, " M (Job): handling deployment spec: %s", string(job.Data))
-
 			var deployment *model.DeploymentSpec
 			deployment, err = model.ToDeployment(job.Data)
 			if err != nil {
 				return err
 			}
+			log.InfofCtx(ctx, " M (Job): handling deployment spec: %s", model.GetDeploymentSpecForLog(deployment))
+
 			if job.Action == v1alpha2.JobUpdate {
 				_, err = s.apiClient.Reconcile(ctx, *deployment, false, namespace, s.user, s.password)
 				if err != nil {

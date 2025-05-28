@@ -21,7 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	api_constants "github.com/eclipse-symphony/symphony/api/constants"
 	apimodel "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 )
 
 // TargetReconciler reconciles a Target object
@@ -40,6 +42,9 @@ type TargetReconciler struct {
 
 	// PollInterval defines the poll interval
 	PollInterval time.Duration
+
+	// PollingConcurrentReconciles defines the number of concurrent reconciles
+	PollingConcurrentReconciles int
 
 	// Controller Metrics
 	m *metrics.Metrics
@@ -75,7 +80,7 @@ const (
 // }
 
 func (r *TargetReconciler) populateProvisioningError(summaryResult *model.SummaryResult, err error, errorObj *apimodel.ErrorType) {
-	errorObj.Code = "Symphony: [500]"
+	errorObj.Code = "Symphony Orchestrator: [500]"
 	if summaryResult != nil {
 		summary := summaryResult.Summary
 
@@ -93,7 +98,7 @@ func (r *TargetReconciler) populateProvisioningError(summaryResult *model.Summar
 		for k, v := range summary.TargetResults {
 			// fill errorObj with target level status
 			errorObj.Code = v.Status
-			errorObj.Message = v.Status
+			errorObj.Message = v.Message
 			errorObj.Target = k
 			errorObj.Details = make([]apimodel.TargetError, 0)
 			// fill errorObj.Details with component level status
@@ -135,7 +140,10 @@ func (r *TargetReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, 
 		reconcilers.WithDeploymentBuilder(r.deploymentBuilder),
 		reconcilers.WithDeleteSyncDelay(r.DeleteSyncDelay),
 		reconcilers.WithDeploymentKeyResolver(func(target reconcilers.Reconcilable) string {
-			return fmt.Sprintf("target-runtime-%s", target.GetName())
+			return api_utils.GetTargetRuntimeKey(api_utils.ConstructSummaryId(target.GetName(), target.GetAnnotations()[api_constants.GuidKey]))
+		}),
+		reconcilers.WithDeploymentNameResolver(func(target reconcilers.Reconcilable) string {
+			return api_utils.GetTargetRuntimeKey(target.GetName())
 		}),
 	)
 }

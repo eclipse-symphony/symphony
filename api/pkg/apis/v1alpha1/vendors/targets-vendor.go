@@ -23,6 +23,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
@@ -142,7 +144,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -160,7 +162,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		ctx, span := observability.StartSpan("onRegistry-POST", pCtx, nil)
 		binding := request.Parameters["with-binding"]
 		var target model.TargetState
-		err := json.Unmarshal(request.Body, &target)
+		err := utils2.UnmarshalJson(request.Body, &target)
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -217,7 +219,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -263,7 +265,7 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 			if err != nil {
 				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  []byte(err.Error()),
 				})
 			}
@@ -291,7 +293,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	switch request.Method {
 	case fasthttp.MethodPost:
 		var authRequest AuthRequest
-		err := json.Unmarshal(request.Body, &authRequest)
+		err := utils2.UnmarshalJson(request.Body, &authRequest)
 		if err != nil || authRequest.UserName != "symphony-test" {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -350,16 +352,16 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 			namespace = constants.DefaultScope
 		}
 		var dict map[string]interface{}
-		json.Unmarshal(request.Body, &dict)
+		utils2.UnmarshalJson(request.Body, &dict)
 
 		properties := make(map[string]string)
 		if k, ok := dict["status"]; ok {
 			var insideKey map[string]interface{}
 			j, _ := json.Marshal(k)
-			json.Unmarshal(j, &insideKey)
+			utils2.UnmarshalJson(j, &insideKey)
 			if p, ok := insideKey["properties"]; ok {
 				jk, _ := json.Marshal(p)
-				json.Unmarshal(jk, &properties)
+				utils2.UnmarshalJson(jk, &properties)
 			}
 		}
 
@@ -383,7 +385,7 @@ func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARespon
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Targets) : onStatus failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -422,7 +424,7 @@ func (c *TargetsVendor) onDownload(request v1alpha2.COARequest) v1alpha2.COAResp
 		state, err := c.TargetsManager.GetState(pCtx, request.Parameters["__name"], namespace)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -483,7 +485,7 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		if err != nil {
 			tLog.ErrorfCtx(pCtx, "V (Targets) : onHeartBeat failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}

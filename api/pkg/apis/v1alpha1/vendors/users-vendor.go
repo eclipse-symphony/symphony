@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
@@ -87,7 +88,7 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	log.InfofCtx(ctx, "V (Users): authenticate user %s", request.Method)
 
 	var authRequest AuthRequest
-	err := json.Unmarshal(request.Body, &authRequest)
+	err := utils2.UnmarshalJson(request.Body, &authRequest)
 	if err != nil {
 		log.ErrorfCtx(ctx, "V (Users): onAuth failed to unmarshall request body, error: %+v", err)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

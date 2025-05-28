@@ -13,11 +13,13 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/host"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -27,14 +29,16 @@ import (
 var mLog = logger.NewLogger("coa.runtime")
 
 type RedisPubSubProvider struct {
-	Config      RedisPubSubProviderConfig          `json:"config"`
-	Subscribers map[string][]v1alpha2.EventHandler `json:"subscribers"`
-	Client      *redis.Client
-	Ctx         context.Context
-	Cancel      context.CancelFunc
-	Context     *contexts.ManagerContext
-	WorkerLock  *sync.Mutex
-	IdleWorkers int
+	Config        RedisPubSubProviderConfig          `json:"config"`
+	Subscribers   map[string][]v1alpha2.EventHandler `json:"subscribers"`
+	Client        *redis.Client
+	Ctx           context.Context
+	ContextCancel context.CancelFunc
+	Context       *contexts.ManagerContext
+	WorkerLock    *sync.Mutex
+	IdleWorkers   int
+	rwLock        sync.RWMutex
+	readyFlag     bool
 }
 
 type RedisMessageWrapper struct {
@@ -62,6 +66,8 @@ const (
 	ClaimMessageIdleTime = 30 * time.Second
 
 	DefaultNumberOfWorkers = 20
+
+	MessageExpireDuration = 30 * time.Minute
 )
 
 func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSubProviderConfig, error) {
@@ -141,7 +147,7 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(nil, "Redis host is not supplied", v1alpha2.MissingConfig)
 	}
 
-	i.Ctx, i.Cancel = context.WithCancel(context.Background())
+	i.Ctx, i.ContextCancel = context.WithCancel(context.Background())
 
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
@@ -188,121 +194,120 @@ func (i *RedisPubSubProvider) Subscribe(topic string, handler v1alpha2.EventHand
 		mLog.Errorf("  P (Redis PubSub) : failed to subscribe %v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to subscribe to topic %s and group %s", topic, handler.Group), v1alpha2.InternalError)
 	}
-	go i.pollNewMessagesLoop(topic, handler)
-	go i.ClaimMessageLoop(topic, handler)
+
+	go func() {
+		mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : check host initialization, status topic %s with Group %s", topic, handler.Group)
+		for {
+			if host.IsHostReady() {
+				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : start poll message, topic %s with Group %s", topic, handler.Group)
+				go i.pollNewMessagesLoop(topic, handler)
+				go i.ClaimMessageLoop(topic, handler)
+				return
+			}
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : host status not ready, topic %s with Group %s", topic, handler.Group)
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	return nil
 }
 
 func (i *RedisPubSubProvider) pollNewMessagesLoop(topic string, handler v1alpha2.EventHandler) {
-	i.pollNewMessages(topic, handler)
-	reclaimTicker := time.NewTicker(ClaimMessageInterval)
-	defer reclaimTicker.Stop()
 	for {
-		select {
-		case <-i.Ctx.Done():
-			return
-		case <-reclaimTicker.C:
-			i.pollNewMessages(topic, handler)
-		}
-	}
-}
-
-func (i *RedisPubSubProvider) pollNewMessages(topic string, handler v1alpha2.EventHandler) {
-	// If worker is claimed but not started, release it in defer function
-	claimWorker := false
-	workerStarted := false
-	defer func() {
-		if claimWorker && !workerStarted {
-			i.ReleaseWorker(topic)
-		}
-	}()
-
-	for {
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var PollNewMessagesLoop string
 		if i.Ctx.Err() != nil {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is stopped", topic, handler.Group)
 			return
 		}
-		claimWorker = false
-		workerStarted = false
-
 		streams, err := i.Client.XReadGroup(i.Ctx, &redis.XReadGroupArgs{
 			Group:    handler.Group,
 			Consumer: i.Config.ConsumerID,
 			Streams:  []string{topic, ">"},
 			Count:    1,
-			Block:    1 * time.Second,
 		}).Result()
-		if err != nil {
-			break
+		if err != nil && errors.Is(err, context.Canceled) {
+			// Context is canceled, exit the loop
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is cancelled", topic, handler.Group)
+			continue
+		} else if err != nil && errors.Is(err, redis.Nil) {
+			// No new messages. Since block parameter is not set, this branch is not expected.
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no new messages for topic %s", topic)
+			continue
+		} else if err != nil {
+			// Something wrong with redis server
+			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to read message %v", err)
+			time.Sleep(ClaimMessageInterval)
+			continue
 		}
 		if len(streams) == 1 && len(streams[0].Messages) == 1 {
-			if claimWorker = i.WaitForIdleWorkers(streams[0].Messages[0].ID, time.Second); !claimWorker {
-				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no idle workers, abort current pollNewMessages for topic %s and group %s", topic, handler.Group)
-				return
+			if enqueueTime, expired := i.CheckMessageExpired(streams[0].Messages[0].ID); expired {
+				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : message %s for topic %s, group %s is expired, enqueued at %s", streams[0].Messages[0].ID, topic, handler.Group, enqueueTime.String())
+				i.AcknowledgeAndDeleteMessage(i.Ctx, topic, handler.Group, streams[0].Messages[0].ID)
+				continue
 			}
-			workerStarted = false
+			if claimWorker := i.WaitForIdleWorkers(streams[0].Messages[0].ID, time.Second); !claimWorker {
+				mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no idle workers, abort current pollNewMessages %s for topic %s and group %s", streams[0].Messages[0].ID, topic, handler.Group)
+				time.Sleep(ClaimMessageInterval)
+				continue
+			}
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : new message for topic %s, group %s, messages %s", topic, handler.Group, streams[0].Messages[0].ID)
 			go i.processMessage(topic, handler, &streams[0].Messages[0])
-			workerStarted = true
-		} else {
-			break
 		}
 		mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processed pollnewmessages for topic %s", topic)
 	}
 }
 
 func (i *RedisPubSubProvider) ClaimMessageLoop(topic string, handler v1alpha2.EventHandler) {
-	i.reclaimPendingMessages(topic, handler)
-	reclaimTicker := time.NewTicker(ClaimMessageInterval)
-	defer reclaimTicker.Stop()
+	startMessageId := "-"
 	for {
-		select {
-		case <-i.Ctx.Done():
+		if i.Ctx.Err() != nil {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : pollNewMessagesLoop for topic %s with Group %s is stopped", topic, handler.Group)
 			return
-		case <-reclaimTicker.C:
-			i.reclaimPendingMessages(topic, handler)
 		}
-	}
-}
-
-func (i *RedisPubSubProvider) reclaimPendingMessages(topic string, handler v1alpha2.EventHandler) {
-	// If worker is claimed but not started, release it in defer function
-	claimWorker := false
-	workerStarted := false
-	defer func() {
-		if claimWorker && !workerStarted {
-			i.ReleaseWorker(topic)
-		}
-	}()
-	for {
-		claimWorker = false
-		workerStarted = false
 		pendingResult, err := i.Client.XPendingExt(i.Ctx, &redis.XPendingExtArgs{
 			Stream:   topic,
 			Group:    handler.Group,
-			Start:    "-",
+			Start:    startMessageId,
 			End:      "+",
 			Count:    1,
 			Idle:     ClaimMessageIdleTime,
 			Consumer: "",
 		}).Result()
-		if err != nil && !errors.Is(err, redis.Nil) {
-			mLog.Errorf("  P (Redis PubSub) : failed to get pending message %v", err)
-			return
+		if err != nil && errors.Is(err, context.Canceled) {
+			// Context is canceled, exit the loop
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : reclaimPendingMessages for topic %s with Group %s is cancelled", topic, handler.Group)
+			continue
+		} else if err != nil {
+			// Something wrong with redis server
+			mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to read message %v", err)
+			time.Sleep(ClaimMessageInterval)
+			continue
 		}
-		if len(pendingResult) != 1 {
-			return
+		if len(pendingResult) == 0 {
+			// No pending messages, reset startMessageId, wait for a while before checking again
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : no pending messages for topic %s", topic)
+			startMessageId = "-"
+			time.Sleep(ClaimMessageInterval)
+			continue
 		}
-		if claimWorker = i.WaitForIdleWorkers(pendingResult[0].ID, time.Second); !claimWorker {
+		if enqueueTime, expired := i.CheckMessageExpired(pendingResult[0].ID); expired {
+			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : message %s for topic %s, group %s is expired, enqueued at %s", pendingResult[0].ID, topic, handler.Group, enqueueTime.String())
+			i.AcknowledgeAndDeleteMessage(i.Ctx, topic, handler.Group, pendingResult[0].ID)
+			continue
+		}
+		if claimWorker := i.WaitForIdleWorkers(pendingResult[0].ID, time.Second); !claimWorker {
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : unable to claim idle workers in %s for topic %s, group %s, message %s", time.Second, topic, handler.Group, pendingResult[0].ID)
-			return
+			time.Sleep(ClaimMessageInterval)
+			continue
 		}
+		startMessageId = pendingResult[0].ID
 		msg, succeeded := i.ClaimMessage(topic, handler.Group, ClaimMessageIdleTime, pendingResult[0].ID)
 		if !succeeded {
 			mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : failed to claim message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+			i.ReleaseWorker(pendingResult[0].ID)
 			continue
 		}
 		go i.processMessage(topic, handler, msg)
-		workerStarted = true
 	}
 }
 
@@ -327,14 +332,10 @@ func (i *RedisPubSubProvider) processMessage(topic string, handler v1alpha2.Even
 	}
 	shouldRetry := v1alpha2.EventShouldRetryWrapper(handler, topic, evt)
 	if shouldRetry {
-		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : processing failed with retriable error for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+		mLog.ErrorfCtx(evt.Context, "  P (Redis PubSub) : processing failed with retriable error for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("failed to handle message %s", msg.ID), v1alpha2.InternalError)
 	}
-	_, err = i.Client.XAck(i.Ctx, topic, handler.Group, msg.ID).Result()
-	if err != nil {
-		mLog.ErrorfCtx(i.Ctx, "  P (Redis PubSub) : failed to acknowledge message %s for topic %s, group %s: %v", msg.ID, topic, handler.Group, err)
-	}
-	mLog.InfofCtx(i.Ctx, "  P (Redis PubSub) : processing succeeded for message %s for topic %s, group %s", msg.ID, topic, handler.Group)
+	i.AcknowledgeAndDeleteMessage(evt.Context, topic, handler.Group, msg.ID)
 	return nil
 }
 
@@ -435,4 +436,50 @@ func (i *RedisPubSubProvider) ReleaseWorker(msgID string) {
 	defer i.WorkerLock.Unlock()
 	i.IdleWorkers++
 	mLog.DebugfCtx(i.Ctx, "  P (Redis PubSub) : releaseWorker for message %s, remaining %d", msgID, i.IdleWorkers)
+}
+
+func (i *RedisPubSubProvider) Cancel() context.CancelFunc {
+	return func() {
+		fmt.Println("  P (Redis PubSub) : canceling provider")
+		i.ContextCancel()
+		fmt.Println("  P (Redis PubSub) : closing redis client")
+		i.Client.Close()
+	}
+}
+
+func redisIDToTime(msgID string) (time.Time, error) {
+	parts := strings.Split(msgID, "-")
+	if len(parts) != 2 {
+		return time.Time{}, fmt.Errorf("invalid Redis message ID format")
+	}
+
+	// Parse the milliseconds part
+	milliseconds, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	// Convert milliseconds to time
+	return time.UnixMilli(milliseconds), nil
+}
+
+func (i *RedisPubSubProvider) CheckMessageExpired(msgID string) (time.Time, bool) {
+	enqueueTime, err := redisIDToTime(msgID)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return enqueueTime, enqueueTime.Add(MessageExpireDuration).Before(time.Now())
+}
+
+func (i *RedisPubSubProvider) AcknowledgeAndDeleteMessage(ctx context.Context, topic string, group string, msgID string) {
+	_, err := i.Client.XAck(i.Ctx, topic, group, msgID).Result()
+	if err != nil {
+		mLog.ErrorfCtx(ctx, "  P (Redis PubSub) : failed to acknowledge message %s for topic %s, group %s: %v", msgID, topic, group, err)
+	}
+	mLog.InfofCtx(ctx, "  P (Redis PubSub) : processing succeeded for message %s for topic %s, group %s", msgID, topic, group)
+	// TODO: This only works when we have only one consumer group for each topic
+	_, err = i.Client.XDel(i.Ctx, topic, msgID).Result()
+	if err != nil {
+		mLog.ErrorfCtx(ctx, "  P (Redis PubSub) : failed to delete message %s for topic %s, group %s: %v", msgID, topic, group, err)
+	}
 }

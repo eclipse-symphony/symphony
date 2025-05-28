@@ -49,6 +49,9 @@ type InstanceReconciler struct {
 	// PollInterval defines the poll interval
 	PollInterval time.Duration
 
+	// PollingConcurrentReconciles defines the number of concurrent reconciles
+	PollingConcurrentReconciles int
+
 	// Controller metrics
 	m *metrics.Metrics
 
@@ -180,39 +183,63 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	return ret
 }
 
-func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
-	ret := make([]ctrl.Request, 0)
-	solObj := obj.(*solution_v1.Solution)
+func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionRef string, solutionRefNamespace string, updatedInstanceNames []string, requests []ctrl.Request) ([]ctrl.Request, []string) {
 	var instances solution_v1.InstanceList
-
-	solutionName := api_utils.ConvertObjectNameToReference(solObj.Name)
+	ret := make([]ctrl.Request, 0)
+	if requests != nil {
+		ret = requests
+	}
+	if updatedInstanceNames == nil {
+		updatedInstanceNames = make([]string, 0)
+	}
 	options := []client.ListOption{
-		client.InNamespace(solObj.Namespace),
-		client.MatchingFields{"spec.solution": solutionName},
+		client.InNamespace(solutionRefNamespace),
+		client.MatchingFields{"spec.solution": solutionRef},
 	}
 	error := r.List(context.Background(), &instances, options...)
 	if error != nil {
 		diagnostic.ErrorWithCtx(log.Log, ctx, error, "Failed to list instances")
-		return ret
+		return ret, updatedInstanceNames
 	}
-
-	updatedInstanceNames := make([]string, 0)
 	for _, instance := range instances.Items {
 		if !utils.NeedWatchInstance(instance) {
 			continue
 		}
 
-		ret = append(ret, ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      instance.Name,
-				Namespace: instance.Namespace,
-			},
-		})
-		updatedInstanceNames = append(updatedInstanceNames, instance.Name)
+		if !utils.ContainsString(updatedInstanceNames, instance.Name) {
+			ret = append(ret, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      instance.Name,
+					Namespace: instance.Namespace,
+				},
+			})
+			updatedInstanceNames = append(updatedInstanceNames, instance.Name)
+		}
 	}
 
 	if len(ret) > 0 {
-		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solObj.Name, solObj.Namespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solutionRef, solutionRefNamespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+	}
+	return ret, updatedInstanceNames
+}
+
+func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
+	solObj := obj.(*solution_v1.Solution)
+	updatedInstanceNames := make([]string, 0)
+	ret := make([]ctrl.Request, 0)
+
+	// oss reference
+	solutionName := api_utils.ConvertObjectNameToReference(solObj.Name)
+	ret, updatedInstanceNames = r.findRelatedInstances(ctx, solutionName, solObj.Namespace, updatedInstanceNames, ret)
+
+	// azure reference
+	azureSolutionName := strings.ToLower(solObj.Annotations[constants.AzureResourceIdKey])
+	if azureSolutionName != "" {
+		ret, updatedInstanceNames = r.findRelatedInstances(ctx, azureSolutionName, solObj.Namespace, updatedInstanceNames, ret)
+	}
+
+	if len(ret) > 0 {
+		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("In total, needs to requeue instances related, count: %d, list: %s", len(ret), strings.Join(updatedInstanceNames, ",")))
 	}
 
 	return ret

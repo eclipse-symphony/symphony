@@ -9,6 +9,7 @@ data:
   API_SERVING_CA: {{ include "symphony.apiServingCA" . }}
   SYMPHONY_API_URL: {{ include "symphony.httpsUrl" . }}
   USE_SERVICE_ACCOUNT_TOKENS: "true"
+  DEPLOYMENT_FINALIZER: symphony.deploymentFinalizer
 {{- if and .Values.api.labelKey .Values.api.labelValue }}
   LABEL_KEY: {{ .Values.api.labelKey }}
   LABEL_VALUE: {{ .Values.api.labelValue }}
@@ -18,3 +19,4 @@ data:
 {{- end }}
   EXTENSION_RESOURCEID: {{ .Values.Azure.Extension.ResourceId }}
   EMIT_TIME_FIELD_IN_USER_LOGS: {{ include "symphony.emitTimeFieldInUserLogs" . }}
+  LABEL_LENGTH_UPPER_LIMIT: "64"

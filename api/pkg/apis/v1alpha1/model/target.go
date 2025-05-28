@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	TargetStatus = DeployableStatus
+	TargetStatus = DeployableStatusV2
 
 	// TargetState defines the current state of the target
 	TargetState struct {
@@ -24,6 +24,7 @@ type (
 	TargetSpec struct {
 		DisplayName   string            `json:"displayName,omitempty"`
 		Scope         string            `json:"scope,omitempty"`
+		SolutionScope string            `json:"solutionScope,omitempty"`
 		Metadata      map[string]string `json:"metadata,omitempty"`
 		Properties    map[string]string `json:"properties,omitempty"`
 		Components    []ComponentSpec   `json:"components,omitempty"`
@@ -45,6 +46,10 @@ func (c TargetSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if c.SolutionScope != otherC.SolutionScope {
 		return false, nil
 	}
 

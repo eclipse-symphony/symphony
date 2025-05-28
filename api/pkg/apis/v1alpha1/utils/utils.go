@@ -34,6 +34,13 @@ const (
 	Any    = "any"
 )
 
+// Define the struct
+type ObjectInfo struct {
+	Name         string
+	SummaryId    string
+	SummaryJobId string
+}
+
 func IsNotFound(err error) bool {
 	if apiError, ok := err.(APIError); ok {
 		return apiError.Code == v1alpha2.NotFound
@@ -125,6 +132,17 @@ func MergeCollection(cols ...map[string]string) map[string]string {
 	for _, col := range cols {
 		for k, v := range col {
 			ret[k] = v
+		}
+	}
+	return ret
+}
+func GenerateKeyLockName(strs ...string) string {
+	ret := ""
+	for i, str := range strs {
+		if i == 0 {
+			ret += str
+		} else {
+			ret += ("&&" + str)
 		}
 	}
 	return ret
@@ -396,10 +414,7 @@ func formatPathForNestedJsonField(s string) string {
 }
 
 func ConvertReferenceToObjectName(name string) string {
-	if strings.Contains(name, constants.ReferenceSeparator) {
-		name = strings.ReplaceAll(name, constants.ReferenceSeparator, constants.ResourceSeperator)
-	}
-	return name
+	return ConvertReferenceToObjectNameHelper(name)
 }
 
 func ConvertObjectNameToReference(name string) string {
@@ -457,9 +472,8 @@ type FailedDeployment struct {
 	Message string `json:"FailedMessage"`
 }
 
-func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatus) bool {
-	return status.Properties != nil && status.Properties[constants.Generation] == strconv.FormatInt(objectMeta.ObjGeneration, 10) &&
-		(status.Properties[constants.Status] == "Succeeded" || status.Properties[constants.Status] == "Failed")
+func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatusV2) bool {
+	return status.Generation == int(objectMeta.ObjGeneration) && (status.Status == "Succeeded" || status.Status == "Failed")
 }
 
 // Once status report is enabled in standalone mode, we need to use object status rather than summary to check the deployment status
@@ -468,7 +482,7 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
 	var objectMeta model.ObjectMeta
-	var status model.DeployableStatus
+	var status model.DeployableStatusV2
 	for _, objectName := range objectNames {
 		if isInstance {
 			var state model.InstanceState
@@ -488,35 +502,62 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 		}
 		if !DetermineObjectTerminalStatus(objectMeta, status) {
 			remainingObjects = append(remainingObjects, objectName)
-		} else if status.Properties[constants.Status] == "Failed" {
-			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.Properties["status-details"]})
+		} else if status.Status == "Failed" {
+			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.StatusDetails})
 		}
 	}
 	return remainingObjects, failedDeployments
 }
 
-func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objectNames []string, isInstance bool, username string, password string) ([]string, []FailedDeployment) {
-	remainingObjects := make([]string, 0)
+func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiClient, namespace string, objects []ObjectInfo, isInstance bool, username string, password string) ([]ObjectInfo, []FailedDeployment) {
+	remainingObjects := make([]ObjectInfo, 0)
 	failedDeployments := make([]FailedDeployment, 0)
 	var err error
-	for _, objectName := range objectNames {
+	for _, object := range objects {
 		var key string
+		var nameKey string
 		if isInstance {
-			key = objectName
+			key = object.SummaryId
+			nameKey = object.Name
 		} else {
-			key = fmt.Sprintf("target-runtime-%s", objectName)
+			key = GetTargetRuntimeKey(object.SummaryId)
+			nameKey = GetTargetRuntimeKey(object.Name)
 		}
+		jobId := object.SummaryJobId
 		var summary *model.SummaryResult
-		summary, err = (*apiclient).GetSummary(ctx, key, namespace, username, password)
-		if err == nil && summary.State == model.SummaryStateDone {
-			log.DebugfCtx(ctx, "Summary for %s is %v", objectName, summary.Summary)
-			if !summary.Summary.AllAssignedDeployed {
-				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", objectName, summary.Summary.SummaryMessage)
-				failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: summary.Summary.SummaryMessage})
-			}
+		summary, err = (*apiclient).GetSummary(ctx, key, nameKey, namespace, username, password)
+		// TODO: summary.Summary.JobID may be empty in standalone
+		if err != nil || summary == nil {
+			remainingObjects = append(remainingObjects, object)
 			continue
 		}
-		remainingObjects = append(remainingObjects, objectName)
+
+		if jobId == "" {
+			jobId = "-1"
+		}
+		jobIdInt, err := strconv.Atoi(jobId)
+		if err != nil {
+			log.DebugfCtx(ctx, "Failed to convert jobId %s to int: %s", jobId, err.Error())
+			remainingObjects = append(remainingObjects, object)
+			continue
+		}
+		summaryJobIdInt, err := strconv.Atoi(summary.Summary.JobID)
+		if err != nil {
+			log.DebugfCtx(ctx, "Failed to convert summaryJobId %s to int: %s", summary.Summary.JobID, err.Error())
+			remainingObjects = append(remainingObjects, object)
+			continue
+		}
+		log.DebugfCtx(ctx, "Getting job id as %s from resource and %s from summary", jobId, summary.Summary.JobID)
+
+		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt > jobIdInt {
+			if !summary.Summary.AllAssignedDeployed {
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
+			}
+			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", object.Name, len(remainingObjects), len(failedDeployments))
+			continue
+		}
+		remainingObjects = append(remainingObjects, object)
 	}
 	return remainingObjects, failedDeployments
 }

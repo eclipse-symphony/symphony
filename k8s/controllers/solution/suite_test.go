@@ -31,9 +31,11 @@ import (
 	"sigs.k8s.io/yaml"
 
 	fabric_api "gopls-workspace/apis/fabric/v1"
+
 	api "gopls-workspace/apis/solution/v1"
 	controllers "gopls-workspace/controllers/solution"
 
+	solutionv1 "gopls-workspace/apis/solution/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	//+kubebuilder:scaffold:imports
 )
@@ -115,6 +117,9 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cfg).NotTo(BeNil())
 
+		err = solutionv1.AddToScheme(scheme.Scheme)
+		Expect(err).NotTo(HaveOccurred())
+
 		//+kubebuilder:scaffold:scheme
 		err = api.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
@@ -143,7 +148,7 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		k8sClient = k8sManager.GetClient()
 		Expect(k8sClient).NotTo(BeNil())
 
-		apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(BuildDefaultTarget(), ""), nil)
+		apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(BuildDefaultTarget(), ""), nil)
 		apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 		err = (&controllers.InstanceQueueingReconciler{

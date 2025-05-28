@@ -27,7 +27,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: 1.22.4
+        go-version: 1.23.0
         
     - name: Set up custom GOPATH
       run: |
@@ -37,7 +37,7 @@ jobs:
         source $HOME/.bashrc
 
     - name: Install make
-      run: sudo apt-get update && sudo apt-get install -y build-essential
+      run: sudo apt-get update && sudo apt-get install -y build-essential protobuf-compiler
 
     - name: Check docker version and images
       run: docker --version && docker images
@@ -72,9 +72,22 @@ jobs:
         go run bootstrap.go
         cd ..
 
+    - name: Clean up docker
+      run: |
+        docker system prune -a -f
+        docker volume prune -f
+        docker builder prune -a -f
+
+    - name: Free up disk space
+      run: |
+        sudo apt-get clean
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/share/swift
+
     - name: Install Ginkgo
       run: |
-        go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.1
+        go install github.com/onsi/ginkgo/v2/ginkgo@v2.17.1
         export PATH=$PATH:$(go env GOPATH)/bin
 
     - name: Login to Docker Hub

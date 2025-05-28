@@ -18,13 +18,17 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/postrender"
 	"k8s.io/client-go/rest"
 )
 
 const (
-	bluefinRepo      = "azbluefin.azurecr.io/helm/bluefin-arc-extension"
-	bluefinVersion   = "0.2.0-20230717.3-develop"
+	odooRepo         = "registry-1.docker.io/bitnamicharts/odoo"
+	odooVersion      = "28.1.1"
 	defaultTestScope = "alice-springs"
 )
 
@@ -82,18 +86,17 @@ func TestInitWithMap(t *testing.T) {
 // TestHelmTargetProviderGetHelmProperty tests the getHelmValuesFromComponent function with valid input
 func TestHelmTargetProviderGetHelmPropertyMissingRepo(t *testing.T) {
 	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
 				"repo":    "", // blank repo
-				"name":    "bluefin-arc-extension",
+				"name":    "odoo",
 				"version": "0.1.1",
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	})
@@ -102,17 +105,16 @@ func TestHelmTargetProviderGetHelmPropertyMissingRepo(t *testing.T) {
 
 func TestHelmTargetProviderGetHelmProperty(t *testing.T) {
 	_, err := getHelmPropertyFromComponent(model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    bluefinRepo,
-				"version": bluefinVersion,
+				"repo":    odooRepo,
+				"version": odooVersion,
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	})
@@ -131,9 +133,9 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 		ChartRepo     string
 		ExpectedError bool
 	}{
-		{Name: "install with wrong protocol", ChartRepo: fmt.Sprintf("wrongproto://%s", bluefinRepo), ExpectedError: true},
-		{Name: "install with oci prefix", ChartRepo: fmt.Sprintf("oci://%s", bluefinRepo), ExpectedError: false},
-		{Name: "install without oci prefix", ChartRepo: bluefinRepo, ExpectedError: false},
+		{Name: "install with wrong protocol", ChartRepo: fmt.Sprintf("wrongproto://%s", odooRepo), ExpectedError: true},
+		{Name: "install with oci prefix", ChartRepo: fmt.Sprintf("oci://%s", odooRepo), ExpectedError: false},
+		{Name: "install without oci prefix", ChartRepo: odooRepo, ExpectedError: false},
 		// cleanup step is in TestHelmTargetProviderRemove
 	}
 
@@ -144,17 +146,16 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 			err := provider.Init(config)
 			assert.Nil(t, err)
 			component := model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
+				Name: "odoo",
 				Type: "helm.v3",
 				Properties: map[string]interface{}{
 					"chart": map[string]string{
 						"repo":    tc.ChartRepo,
-						"version": bluefinVersion,
+						"version": odooVersion,
 					},
 					"values": map[string]interface{}{
-						"CUSTOM_VISION_KEY": "BBB",
-						"CLUSTER_SECRET":    "test",
-						"CERTIFICATES":      []string{"a", "b"},
+						"service.type": "NodePort",
+						"service.port": 80,
 					},
 				},
 			}
@@ -212,7 +213,7 @@ func TestHelmTargetProviderGet(t *testing.T) {
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
 					{
-						Name: "bluefin-arc-extensions",
+						Name: "odoo",
 					},
 				},
 			},
@@ -221,7 +222,7 @@ func TestHelmTargetProviderGet(t *testing.T) {
 		{
 			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
+				Name: "odoo",
 			},
 		},
 	})
@@ -488,12 +489,12 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    bluefinRepo,
-				"version": bluefinVersion,
+				"repo":    odooRepo,
+				"version": odooVersion,
 			},
 		},
 	}
@@ -574,18 +575,17 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    "azbluefin.azurecr.io/helmcharts/bluefin-arc-extension/bluefin-arc-extension",
-				"name":    "bluefin-arc-extension",
-				"version": "0.1.1",
+				"repo":    "registry-1.docker.io/bitnamicharts/odoo",
+				"name":    "odoo",
+				"version": "28.1.1",
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	}
@@ -716,7 +716,6 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 }
 
 func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
-	os.Setenv("TEST_MINIKUBE_ENABLED", "yes")
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
 		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
@@ -772,18 +771,17 @@ func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
-		Name: "bluefin-arc-extensions",
+		Name: "odoo",
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
 				"repo":    "abc/def",
-				"name":    "bluefin-arc-extension",
+				"name":    "odoo",
 				"version": "0.1.1",
 			},
 			"values": map[string]interface{}{
-				"CUSTOM_VISION_KEY": "BBB",
-				"CLUSTER_SECRET":    "test",
-				"CERTIFICATES":      []string{"a", "b"},
+				"service.type": "NodePort",
+				"service.port": 80,
 			},
 		},
 	}
@@ -826,7 +824,7 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 			Spec: &model.SolutionSpec{
 				Components: []model.ComponentSpec{
 					{
-						Name: "bluefin-arc-extensions",
+						Name: "odoo",
 					},
 				},
 			},
@@ -835,7 +833,7 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 		{
 			Action: model.ComponentUpdate,
 			Component: model.ComponentSpec{
-				Name: "bluefin-arc-extensions",
+				Name: "odoo",
 			},
 		},
 	})
@@ -891,4 +889,196 @@ func TestPropChange(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.Changed, propChange(c.OldProp, c.NewProp), c.Name)
 	}
+}
+
+func TestConfigureInstallClient(t *testing.T) {
+	ctx := context.Background()
+	actionConfig := &action.Configuration{}
+	postRenderer := postrender.PostRenderer(nil)
+
+	tests := []struct {
+		name           string
+		releaseName    string
+		componentProps HelmChartProperty
+		deployment     model.DeploymentSpec
+		expectedName   string
+		expectedError  bool
+	}{
+		{
+			name:        "Custom release name provided",
+			releaseName: "custom-release",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "30s",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "custom-release",
+			expectedError: false,
+		},
+		{
+			name:        "Invalid timeout format",
+			releaseName: "invalid-timeout-release",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "invalid-timeout",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			installClient, err := configureInstallClient(ctx, tt.releaseName, &tt.componentProps, &tt.deployment, actionConfig, postRenderer)
+			if tt.expectedError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedName, installClient.ReleaseName)
+				assert.Equal(t, tt.deployment.Instance.Spec.Scope, installClient.Namespace)
+				if tt.componentProps.Timeout != "" {
+					duration, _ := time.ParseDuration(tt.componentProps.Timeout)
+					assert.Equal(t, duration, installClient.Timeout)
+				}
+			}
+		})
+	}
+}
+
+func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED environment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	customReleaseName := "custom-release-name"
+	component := model.ComponentSpec{
+		Name: "kashti",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo": "https://brigadecore.github.io/charts",
+				"name": "kashti",
+			},
+			"releaseName": customReleaseName,
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: defaultTestScope,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+
+	// Apply the Helm chart with the custom release name
+	results, err := provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+	assert.Equal(t, v1alpha2.Updated, results[component.Name].Status)
+	assert.Contains(t, results[component.Name].Message, customReleaseName)
+
+	// Verify the release name using Helm client
+	settings := cli.New()
+	actionConfig := &action.Configuration{}
+	err = actionConfig.Init(settings.RESTClientGetter(), defaultTestScope, "secrets", func(format string, v ...interface{}) {})
+	assert.Nil(t, err)
+
+	listClient := action.NewList(actionConfig)
+	listClient.AllNamespaces = true
+	releases, err := listClient.Run()
+	assert.Nil(t, err)
+
+	found := false
+	for _, release := range releases {
+		if release.Name == customReleaseName {
+			fmt.Printf("Found release with custom name: %s\n", release.Name)
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Custom release name not found in Helm releases")
+}
+
+func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	customReleaseName := "custom-release-name"
+	component := model.ComponentSpec{
+		Name: "kashti",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo": "https://brigadecore.github.io/charts",
+				"name": "kashti",
+			},
+			"releaseName": customReleaseName,
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: defaultTestScope,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	references := []model.ComponentStep{
+		{
+			Action:    model.ComponentUpdate,
+			Component: component,
+		},
+	}
+
+	// Get the Helm release with the custom release name
+	components, err := provider.Get(context.Background(), deployment, references)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
+	assert.Equal(t, customReleaseName, components[0].Properties["releaseName"])
 }

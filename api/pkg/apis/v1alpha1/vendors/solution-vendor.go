@@ -21,6 +21,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/valyala/fasthttp"
 )
@@ -98,6 +99,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		ctx, span := observability.StartSpan("onQueue-GET", rContext, nil)
 		defer span.End()
 		instance := request.Parameters["instance"]
+		instanceName := request.Parameters["name"]
 
 		if instance == "" {
 			sLog.ErrorCtx(ctx, "V (Solution): onQueue failed - 400 instance parameter is not found")
@@ -107,7 +109,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				ContentType: "application/json",
 			})
 		}
-		summary, err := c.SolutionManager.GetSummary(ctx, instance, namespace)
+		summary, err := c.SolutionManager.GetSummary(ctx, instance, instanceName, namespace)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue failed - %s", err.Error())
@@ -119,7 +121,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				})
 			} else {
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
+					State: v1alpha2.GetErrorState(err),
 					Body:  data,
 				})
 			}
@@ -132,6 +134,10 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onQueue-POST", rContext, nil)
 		defer span.End()
+
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var onQueueError string
+
 		instance := request.Parameters["instance"]
 		delete := request.Parameters["delete"]
 		objectType := request.Parameters["objectType"]
@@ -169,7 +175,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		if delete == "true" {
 			action = v1alpha2.JobDelete
 		}
-		c.Vendor.Context.Publish("job", v1alpha2.Event{
+		err := c.Vendor.Context.Publish("job", v1alpha2.Event{
 			Metadata: map[string]string{
 				"objectType": objectType,
 				"namespace":  namespace,
@@ -182,6 +188,13 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 			},
 			Context: ctx,
 		})
+		if err != nil {
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.InternalError,
+				Body:        []byte("{\"result\":\"500 - failed to publish job pubsub event\")),"),
+				ContentType: "application/json",
+			})
+		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,
 			Body:        []byte("{\"result\":\"200 - instance reconcilation job accepted\"}"),
@@ -205,7 +218,7 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onQueue DeleteSummary failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
@@ -237,7 +250,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		ctx, span := observability.StartSpan("onReconcile-POST", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - unmarshal request %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -257,7 +270,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
+				State: v1alpha2.GetErrorState(err),
 				Body:  data,
 			})
 		}
@@ -297,7 +310,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Apply Deployment", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -311,7 +324,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Get Components", rContext, nil)
 		defer span.End()
 		deployment := new(model.DeploymentSpec)
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{
@@ -325,7 +338,7 @@ func (c *SolutionVendor) onApplyDeployment(request v1alpha2.COARequest) v1alpha2
 		ctx, span := observability.StartSpan("Delete Components", rContext, nil)
 		defer span.End()
 		var deployment model.DeploymentSpec
-		err := json.Unmarshal(request.Body, &deployment)
+		err := utils2.UnmarshalJson(request.Body, &deployment)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onApplyDeployment failed - %s", err.Error())
 			return v1alpha2.COAResponse{

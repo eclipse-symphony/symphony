@@ -19,12 +19,14 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -95,7 +97,7 @@ func toMaterializeStageProviderConfig(config providers.IProviderConfig) (Materia
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	if err != nil {
 		return ret, err
 	}
@@ -146,6 +148,7 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 	}
 	return ret, nil
 }
+
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	ctx, span := observability.StartSpan("[Stage] Materialize Provider", ctx, &map[string]string{
 		"method": "Process",
@@ -241,8 +244,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	}
 
 	createdObjectList := make(map[string]bool, 0)
-	instanceList := make([]string, 0)
-	targetList := make([]string, 0)
+	instanceList := make([]utils.ObjectInfo, 0)
+	targetList := make([]utils.ObjectInfo, 0)
 	for _, catalog := range catalogs {
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
@@ -273,7 +276,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		switch catalog.Spec.CatalogType {
 		case "instance":
 			var instanceState model.InstanceState
-			err = json.Unmarshal(objectData, &instanceState)
+			err = utils2.UnmarshalJson(objectData, &instanceState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -298,7 +301,35 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
 			}
 
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				if instanceState.ObjectMeta.Annotations == nil {
+					instanceState.ObjectMeta.Annotations = make(map[string]string)
+				}
+				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", instanceState.ObjectMeta.Name, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
+
 			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if instance exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
+			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): previous jobid is %s for instance: %s", previousJobId, instanceState.ObjectMeta.Name)
+
 			objectData, _ := json.Marshal(instanceState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize instance %v to namespace %s", instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace)
@@ -314,11 +345,36 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			instanceList = append(instanceList, instanceState.ObjectMeta.Name)
+			// Get instance guid
+			ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			summaryId := ret.ObjectMeta.GetSummaryId()
+			if summaryId == "" {
+				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", instanceState.ObjectMeta.Name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceState.ObjectMeta.Name), v1alpha2.BadRequest)
+			}
+			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "solution":
 			var solutionState model.SolutionState
-			err = json.Unmarshal(objectData, &solutionState)
+			err = utils2.UnmarshalJson(objectData, &solutionState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -365,7 +421,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+			if err != nil && api_utils.IsNotFound(err) {
 				mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
 				solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
 				containerObjectData, _ := json.Marshal(solutionContainerState)
@@ -413,7 +469,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		case "target":
 			var targetState model.TargetState
-			err = json.Unmarshal(objectData, &targetState)
+			err = utils2.UnmarshalJson(objectData, &targetState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal target state for catalog %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -438,7 +494,35 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
 			}
 
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				if targetState.ObjectMeta.Annotations == nil {
+					targetState.ObjectMeta.Annotations = make(map[string]string)
+				}
+				targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", targetState.ObjectMeta.Name, constants.AzureOperationIdKey, targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
+
 			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get target %s: %s", targetState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.TargetGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if target exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
+			}
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): previous jobid is %s for target: %s", previousJobId, targetState.ObjectMeta.Name)
+
 			objectData, _ := json.Marshal(targetState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
 			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize target %v to namespace %s", targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace)
@@ -454,12 +538,38 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			targetList = append(targetList, targetState.ObjectMeta.Name)
+			// Get target guid
+			ret, err = i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.TargetGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+
+			summaryId := ret.ObjectMeta.GetSummaryId()
+			if summaryId == "" {
+				mLog.ErrorfCtx(ctx, "Target GUID is empty: - %s", targetState.ObjectMeta.Name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.TargetGetFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target guid: - %s", targetState.ObjectMeta.Name), v1alpha2.BadRequest)
+			}
+			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		default:
 			// Check wrapped catalog structure and extract wrapped catalog name
 			var catalogState model.CatalogState
-			err = json.Unmarshal(objectData, &catalogState)
+			err = utils2.UnmarshalJson(objectData, &catalogState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -506,7 +616,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
-			if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+			if err != nil && api_utils.IsNotFound(err) {
 				mLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
 				catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
 				containerObjectData, _ := json.Marshal(catalogContainerState)
@@ -553,6 +663,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			createdObjectList[catalog.ObjectMeta.Name] = true
 		}
+		// DO NOT REMOVE THIS COMMENT
+		// gofail: var afterMaterializeOnce bool
 	}
 	if len(createdObjectList) < len(objects) {
 		errorMessage := "failed to create all objects:"
@@ -589,17 +701,26 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				if len(instanceList) == 0 && len(targetList) == 0 {
 					break ForLoop
 				}
-				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+				mLog.InfofCtx(ctx, "  P (Materialize Processor): waiting for deployment to finish. Instance: %v, Target: %v", toObjectNameList(instanceList), toObjectNameList(targetList))
 			case <-timeout:
 				// Timeout, function was not called
-				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", instanceList, targetList)
+				errorMessage := fmt.Sprintf("timeout waiting for deployment to finish. Instance: %v, Target: %v", toObjectNameList(instanceList), toObjectNameList(targetList))
 				mLog.ErrorfCtx(ctx, "  P (Materialize Processor): %s", errorMessage)
 				return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
 			}
 		}
+		outputs["failedDeploymentCount"] = len(outputs["failedDeployment"].([]api_utils.FailedDeployment))
 		mLog.InfofCtx(ctx, "  P (Materialize Processor): successfully waited for deployment to finish.")
 	}
 	return outputs, false, nil
+}
+
+func toObjectNameList(objects []api_utils.ObjectInfo) []string {
+	ret := make([]string, len(objects))
+	for i, object := range objects {
+		ret[i] = object.Name
+	}
+	return ret
 }
 
 func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}) model.ObjectMeta {

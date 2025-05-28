@@ -9,7 +9,6 @@ package staging
 import (
 	"context"
 	"encoding/json"
-	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -108,7 +107,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		scope = "default"
 	}
 	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
-	versionName := containerName + constants.ResourceSeperator + "v1"
+	versionName := containerName + constants.ResourceSeperator + "version1"
 
 	catalog, err := i.ApiClient.GetCatalog(
 		ctx,
@@ -154,7 +153,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	sLog.InfofCtx(ctx, "  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
-	versionName := containerName + constants.ResourceSeperator + "v1"
+	versionName := containerName + constants.ResourceSeperator + "version1"
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
@@ -208,7 +207,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	if catalog.ObjectMeta.Labels == nil {
 		catalog.ObjectMeta.Labels = make(map[string]string)
 	}
-	catalog.ObjectMeta.Labels["staged_target"] = i.Config.TargetName
+	catalog.ObjectMeta.Labels[constants.StagedTarget] = i.Config.TargetName
 
 	var existing []model.ComponentSpec
 	if v, ok := catalog.Spec.Properties["components"]; ok {
@@ -288,7 +287,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	jData, _ := json.Marshal(catalog)
 
 	_, err = i.ApiClient.GetCatalogContainer(ctx, containerName, scope, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
-	if err != nil && strings.Contains(err.Error(), v1alpha2.NotFound.String()) {
+	if err != nil && utils.IsNotFound(err) {
 		sLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", containerName, err.Error())
 		catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: containerName, Namespace: catalog.ObjectMeta.Namespace, Labels: catalog.ObjectMeta.Labels}}
 		containerObjectData, _ := json.Marshal(catalogContainerState)
