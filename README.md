@@ -1,6 +1,4 @@
-> **NOTE:** This repository has been moved to [https://github.com/eclipse-symphony/symphony](https://github.com/eclipse-symphony/symphony). Please make future contributions to the new repository. This repository will be archived by **2/1/2024** and eventually retired.
-
-# Symphony
+# Eclipse Symphony
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![build](https://github.com/eclipse-symphony/symphony/actions/workflows/go.yml/badge.svg)
