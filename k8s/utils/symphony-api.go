@@ -215,7 +215,7 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 				ret[t.ObjectMeta.Name] = t
 			} else {
 				// azure case
-				if t.Annotations[constants.AzureResourceIdKey] != "" && matchString(instance.Spec.Target.Name, strings.ToLower(t.Annotations[constants.AzureResourceIdKey])) {
+				if t.Annotations[constants.AzureResourceIdKey] != "" && matchString(strings.ToLower(instance.Spec.Target.Name), strings.ToLower(t.Annotations[constants.AzureResourceIdKey])) {
 					ret[t.ObjectMeta.Name] = t
 				}
 			}
