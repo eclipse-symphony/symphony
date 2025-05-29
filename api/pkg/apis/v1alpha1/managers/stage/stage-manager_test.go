@@ -679,8 +679,7 @@ func TestErrorAtLastStage(t *testing.T) {
 			FirstStage:  "test",
 			Stages: map[string]model.StageSpec{
 				"test": {
-					Provider:      "providers.stage.http",
-					StageSelector: "test2",
+					Provider: "providers.stage.http",
 					Inputs: map[string]interface{}{
 						"method": "GET",
 						"url":    "bad url",
