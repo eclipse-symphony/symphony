@@ -469,7 +469,7 @@ func AreSlicesEqual(slice1, slice2 []string) bool {
 
 type FailedDeployment struct {
 	Name    string `json:"name"`
-	Message string `json:"FailedMessage"`
+	Message string `json:"message,omitempty"`
 }
 
 func DetermineObjectTerminalStatus(objectMeta model.ObjectMeta, status model.DeployableStatusV2) bool {
@@ -503,7 +503,11 @@ func FilterIncompleteDeploymentUsingStatus(ctx context.Context, apiclient *ApiCl
 		if !DetermineObjectTerminalStatus(objectMeta, status) {
 			remainingObjects = append(remainingObjects, objectName)
 		} else if status.Status == "Failed" {
-			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: status.StatusDetails})
+			targetErrors := make([]string, 0)
+			for _, result := range status.ProvisioningStatus.Error.Details {
+				targetErrors = append(targetErrors, fmt.Sprintf("%s: \"%s\"", result.Target, result.Message))
+			}
+			failedDeployments = append(failedDeployments, FailedDeployment{Name: objectName, Message: strings.Join(targetErrors, "; ")})
 		}
 	}
 	return remainingObjects, failedDeployments
@@ -551,8 +555,12 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 
 		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt > jobIdInt {
 			if !summary.Summary.AllAssignedDeployed {
-				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, summary.Summary.SummaryMessage)
-				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: summary.Summary.SummaryMessage})
+				targetErrors := make([]string, 0)
+				for target, result := range summary.Summary.TargetResults {
+					targetErrors = append(targetErrors, fmt.Sprintf("%s: \"%s\"", target, result.Message))
+				}
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, strings.Join(targetErrors, "; "))
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: strings.Join(targetErrors, "; ")})
 			}
 			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", object.Name, len(remainingObjects), len(failedDeployments))
 			continue
