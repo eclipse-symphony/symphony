@@ -61,7 +61,7 @@ RUN if [ "$FAULT_INJECTION_ENABLED" = "true" ]; then \
 fi
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags "$BUILDFLAG" -o bin/manager
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -tags "$BUILDFLAG" -o bin/manager
 FROM ${TARGET_BASE_IMAGE} AS manager
 
 WORKDIR /
