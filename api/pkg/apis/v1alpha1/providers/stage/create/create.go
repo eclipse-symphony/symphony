@@ -190,7 +190,6 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		objectData, _ = json.Marshal(object)
 	}
 	objectName = api_utils.ConvertReferenceToObjectName(objectName)
-	lastSummaryMessage := ""
 	objectNamespace := stage.GetNamespace(inputs)
 	if objectNamespace == "" {
 		objectNamespace = "default"
@@ -535,7 +534,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
 			}
-
+			var remaining []api_utils.ObjectInfo
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
 					Name:         instanceName,
@@ -563,9 +562,15 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				metrics.RunOperationType,
 				v1alpha2.DeploymentNotReached.String(),
 			)
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation reconcile failed: %s", lastSummaryMessage), v1alpha2.InternalError)
-			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
-			return nil, false, err
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) pInstance creation reconcile timeout.")
+			outputs["objectType"] = objectType
+			outputs["objectName"] = instanceName
+			outputs["failedDeploymentCount"] = len(remaining)
+			outputs["failedDeployment"] = api_utils.FailedDeployment{
+				Name:    instanceName,
+				Message: fmt.Sprintf("Instance creation reconcile timeout after %d seconds", i.Config.WaitCount*i.Config.WaitInterval),
+			}
+			return outputs, false, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.BadRequest)
 			providerOperationMetrics.ProviderOperationErrors(

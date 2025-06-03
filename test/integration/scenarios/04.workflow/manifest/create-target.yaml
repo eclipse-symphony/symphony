@@ -1,0 +1,15 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: create-target
+  namespace: default
+spec:
+  displayName: create-target
+  scope: default
+  solutionScope: new
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "true"
+      provider: providers.target.helm
+      role: helm.v3

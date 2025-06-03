@@ -104,7 +104,7 @@ func TestBasic_Campaign(t *testing.T) {
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		if len(resources.Items) == 1 {
+		if len(resources.Items) == 2 {
 			break
 		}
 
@@ -140,9 +140,17 @@ func TestBasic_ActivationStatus(t *testing.T) {
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 1, "there should be only one activation")
+		require.Len(t, resources.Items, 2, "there should be two activation")
 
-		bytes, _ := json.Marshal(resources.Items[0].Object)
+		var selectedItem unstructured.Unstructured
+		for _, item := range resources.Items {
+			if item.GetName() == "04workflow" {
+				selectedItem = item
+				break
+			}
+		}
+		require.NotNil(t, selectedItem, "activation named '04workflow' not found")
+		bytes, _ := json.Marshal(selectedItem.Object)
 		var state model.ActivationState
 		err = json.Unmarshal(bytes, &state)
 		require.NoError(t, err)
@@ -206,9 +214,18 @@ func TestBasic_TargetStatus(t *testing.T) {
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 1, "there should be only one target")
+		require.Len(t, resources.Items, 2, "there should be two target")
 
-		status := getStatus(resources.Items[0])
+		var selectedItem unstructured.Unstructured
+		for _, item := range resources.Items {
+			if item.GetName() == "sitek8starget" {
+				selectedItem = item
+				break
+			}
+		}
+		require.NotNil(t, selectedItem, "target named 'sitek8starget' not found")
+
+		status := getStatus(selectedItem)
 		fmt.Printf("Current target status: %s\n", status)
 		require.NotEqual(t, "Failed", status, "target should not be in failed state")
 		if status == "Succeeded" {
@@ -271,9 +288,18 @@ func TestBasic_InstanceStatus(t *testing.T) {
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 1, "there should be only one instance")
+		require.Len(t, resources.Items, 3, "there should be three instance")
 
-		status := getStatus(resources.Items[0])
+		var selectedItem unstructured.Unstructured
+		for _, item := range resources.Items {
+			if item.GetName() == "siteinstance" {
+				selectedItem = item
+				break
+			}
+		}
+		require.NotNil(t, selectedItem, "instance named 'siteinstance' not found")
+
+		status := getStatus(selectedItem)
 		fmt.Printf("Current instance status: %s\n", status)
 		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
 		if status == "Succeeded" {
@@ -406,6 +432,74 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	result = getLabels(*resource)
 	fmt.Printf("The catalog container is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
+}
+
+func TestAdvanced_ActivationStatus(t *testing.T) {
+	fmt.Printf("Checking Activation\n")
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+	crd := &unstructured.Unstructured{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "workflow.symphony",
+		Version: "v1",
+		Kind:    "Activation",
+	})
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+	var state model.ActivationState
+
+	for {
+		resource, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "workflow.symphony",
+			Version:  "v1",
+			Resource: "activations",
+		}).Namespace(namespace).Get(context.Background(), "create-activation", metav1.GetOptions{})
+		require.NoError(t, err)
+
+		require.NotNil(t, resource, "activation named '04workflow' not found")
+		bytes, _ := json.Marshal(resource.Object)
+		err = json.Unmarshal(bytes, &state)
+		require.NoError(t, err)
+		status := state.Status.Status
+		fmt.Printf("Current activation status: %s\n", status)
+		if status == v1alpha2.Done || status == v1alpha2.BadRequest || status == v1alpha2.InternalError {
+			break
+		}
+
+		sleepDuration, _ := time.ParseDuration("30s")
+		time.Sleep(sleepDuration)
+	}
+	require.Equal(t, 4, len(state.Status.StageHistory))
+	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
+	require.Equal(t, "stage2", state.Status.StageHistory[0].NextStage)
+	require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
+	require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
+	require.Equal(t, "instance", state.Status.StageHistory[0].Inputs["objectType"])
+
+	require.Equal(t, "stage2", state.Status.StageHistory[1].Stage)
+	require.Equal(t, "stage3", state.Status.StageHistory[1].NextStage)
+	require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
+	require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
+	require.Equal(t, 1.0, state.Status.StageHistory[1].Outputs["failedDeploymentCount"])
+	// require.Contains(t, state.Status.StageHistory[1].Outputs["failedDeployment"].(map[string]interface{})["message"], "")
+
+	require.Equal(t, "stage3", state.Status.StageHistory[2].Stage)
+	require.Equal(t, "stage4", state.Status.StageHistory[2].NextStage)
+	require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
+	require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
+	require.Equal(t, 1.0, state.Status.StageHistory[2].Outputs["failedDeploymentCount"])
+	require.Contains(t, state.Status.StageHistory[2].Outputs["failedDeployment"].(map[string]interface{})["message"], "reconcile timeout")
+
+	require.Equal(t, "stage4", state.Status.StageHistory[3].Stage)
+	require.Equal(t, v1alpha2.InternalError, state.Status.StageHistory[3].Status)
+	// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
+	require.Contains(t, state.Status.StageHistory[3].Outputs["_error"], "does not exist")
 }
 
 // Verify that the pods we expect are running in the namespace
