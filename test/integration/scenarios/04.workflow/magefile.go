@@ -58,6 +58,13 @@ var (
 		"test/integration/scenarios/04.workflow/manifest/activation.yaml",
 	}
 
+	testInAzure = []string{
+		"test/integration/scenarios/04.workflow/manifest/create-target.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-solution.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-campaign.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-activation.yaml",
+	}
+
 	// Tests to run
 	testVerify = []string{
 		"./verify/...",
@@ -148,6 +155,18 @@ func DeployManifests(namespace string) error {
 		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absActivation, namespace)).Run()
 		if err != nil {
 			return err
+		}
+	}
+
+	if testhelpers.IsTestInAzure() {
+		for _, inAzure := range testInAzure {
+			absInAzure := filepath.Join(repoPath, inAzure)
+			err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absInAzure, namespace)).Run()
+			if err != nil {
+				return err
+			}
+			// wait for 3 seconds to make sure the resource is created
+			time.Sleep(time.Second * 3)
 		}
 	}
 

@@ -506,7 +506,7 @@ func TestErrorHandler(t *testing.T) {
 				"test2": {
 					Provider: "providers.stage.counter",
 					Inputs: map[string]interface{}{
-						"success": "${{$if($equal($output(test, __status), 200), 1, 0)}}",
+						"success": "${{$if($equal($output(test, status), 200), 1, 0)}}",
 					},
 					StageSelector: "",
 					HandleErrors:  true,
@@ -573,7 +573,7 @@ func TestErrorHandlerWithSelfDrivingDisabled(t *testing.T) {
 				"test2": {
 					Provider: "providers.stage.counter",
 					Inputs: map[string]interface{}{
-						"success": "${{$if($equal($output(test, __status), 200), 1, 0)}}",
+						"success": "${{$if($equal($output(test, status), 200), 1, 0)}}",
 					},
 					StageSelector: "",
 					HandleErrors:  true,
@@ -631,7 +631,7 @@ func TestErrorHandlerNotSet(t *testing.T) {
 				"test2": {
 					Provider: "providers.stage.counter",
 					Inputs: map[string]interface{}{
-						"success": "${{$if($equal($output(test, __status), 200), 1, 0)}}",
+						"success": "${{$if($equal($output(test, status), 200), 1, 0)}}",
 					},
 					StageSelector: "",
 					HandleErrors:  false,
@@ -782,7 +782,7 @@ func TestAccessingStageStatus(t *testing.T) {
 			Stages: map[string]model.StageSpec{
 				"test": {
 					Provider:      "providers.stage.http",
-					StageSelector: "${{$if($equal($output(test, __status), 200), test2, '')}}",
+					StageSelector: "${{$if($equal($output(test, status), 200), test2, '')}}",
 					Inputs: map[string]interface{}{
 						"method": "GET",
 						"url":    "https://www.bing.com",
@@ -839,8 +839,8 @@ func TestIntentionalError(t *testing.T) {
 					Provider:      "providers.stage.mock",
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
-						"__status": 400,
-						"__error":  "bad",
+						"status": 400,
+						"error":  "bad",
 					},
 				},
 				"test2": {
@@ -854,7 +854,7 @@ func TestIntentionalError(t *testing.T) {
 		if activation == nil {
 			break
 		}
-		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"])
+		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["status"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
@@ -894,8 +894,8 @@ func TestIntentionalErrorState(t *testing.T) {
 					Provider:      "providers.stage.mock",
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
-						"__status": v1alpha2.DeleteFailed,
-						"__error":  "failed",
+						"status": v1alpha2.DeleteFailed,
+						"error":  "failed",
 					},
 				},
 				"test2": {
@@ -909,7 +909,7 @@ func TestIntentionalErrorState(t *testing.T) {
 		if activation == nil {
 			break
 		}
-		assert.Equal(t, v1alpha2.DeleteFailed, status.Outputs["__status"])
+		assert.Equal(t, v1alpha2.DeleteFailed, status.Outputs["status"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
@@ -949,7 +949,7 @@ func TestIntentionalErrorString(t *testing.T) {
 					Provider:      "providers.stage.mock",
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
-						"__status": "400",
+						"status": "400",
 					},
 				},
 				"test2": {
@@ -963,7 +963,7 @@ func TestIntentionalErrorString(t *testing.T) {
 		if activation == nil {
 			break
 		}
-		assert.Equal(t, v1alpha2.InternalError, status.Outputs["__status"]) // non-successful state is returned without __error, set to InternalError
+		assert.Equal(t, v1alpha2.InternalError, status.Outputs["status"]) // non-successful state is returned without __error, set to InternalError
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
@@ -1003,8 +1003,8 @@ func TestIntentionalErrorStringProper(t *testing.T) {
 					Provider:      "providers.stage.mock",
 					StageSelector: "test2",
 					Inputs: map[string]interface{}{
-						"__status": "400",
-						"__error":  "this_is_an_error",
+						"status": "400",
+						"error":  "this_is_an_error",
 					},
 				},
 				"test2": {
@@ -1018,8 +1018,8 @@ func TestIntentionalErrorStringProper(t *testing.T) {
 		if activation == nil {
 			break
 		}
-		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["__status"]) // non-successful state is returned without __error, set to InternalError
-		assert.Equal(t, "Bad Request: this_is_an_error", status.Outputs["__error"])
+		assert.Equal(t, v1alpha2.BadRequest, status.Outputs["status"]) // non-successful state is returned without __error, set to InternalError
+		assert.Equal(t, "Bad Request: this_is_an_error", status.Outputs["error"])
 	}
 	assert.Equal(t, v1alpha2.Done, status.Status)
 	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
@@ -1067,7 +1067,7 @@ func TestAccessingPreviousStageInExpression(t *testing.T) {
 					StageSelector: "",
 					HandleErrors:  false,
 					Inputs: map[string]interface{}{
-						"stcheck": "${{$output($input(__previousStage), __status)}}",
+						"stcheck": "${{$output($input(__previousStage), status)}}",
 						"stfoo":   "${{$output($input(__previousStage), ticket)}}",
 					},
 				},
@@ -1156,7 +1156,7 @@ func TestResumeStage(t *testing.T) {
 				StageSelector: "",
 				HandleErrors:  false,
 				Inputs: map[string]interface{}{
-					"stcheck": "${{$output($input(__previousStage), __status)}}",
+					"stcheck": "${{$output($input(__previousStage), status)}}",
 					"stfoo":   "${{$output($input(__previousStage), ticket)}}",
 				},
 			},
@@ -1234,7 +1234,7 @@ func TestResumeStageFailed(t *testing.T) {
 				StageSelector: "",
 				HandleErrors:  false,
 				Inputs: map[string]interface{}{
-					"stcheck": "${{$output($input(__previousStage), __status)}}",
+					"stcheck": "${{$output($input(__previousStage), status)}}",
 					"stfoo":   "${{$output($input(__previousStage), ticket)}}",
 				},
 			},
@@ -1325,7 +1325,7 @@ func TestHandleDirectTriggerScheduleEvent(t *testing.T) {
 	assert.Equal(t, v1alpha2.Paused, status.Status)
 	assert.True(t, v1alpha2.Paused.EqualsWithString(status.StatusMessage))
 
-	assert.Equal(t, v1alpha2.Paused, status.Outputs["__status"])
+	assert.Equal(t, v1alpha2.Paused, status.Outputs["status"])
 	assert.Equal(t, false, status.IsActive)
 }
 func TestHandleActivationEvent(t *testing.T) {
@@ -1371,7 +1371,7 @@ func TestHandleActivationEvent(t *testing.T) {
 				StageSelector: "",
 				HandleErrors:  false,
 				Inputs: map[string]interface{}{
-					"stcheck": "${{$output($input(__previousStage), __status)}}",
+					"stcheck": "${{$output($input(__previousStage), status)}}",
 					"stfoo":   "${{$output($input(__previousStage), ticket)}}",
 				},
 			},
