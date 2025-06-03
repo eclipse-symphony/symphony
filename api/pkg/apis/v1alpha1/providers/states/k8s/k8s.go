@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strconv"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -22,6 +23,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -232,6 +234,16 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 		_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).Create(ctx, unc, metav1.CreateOptions{})
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (K8s State): failed to create object: %v", err)
+			if statusError, ok := err.(*apierrors.StatusError); ok {
+				sLog.InfofCtx(ctx, "  P (K8s State): This is an webhook error with status: %d, message: %v", statusError.Status().Code, statusError)
+				state := v1alpha2.State(int(statusError.Status().Code))
+				stateValue := reflect.ValueOf(state)
+				if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+					sLog.ErrorfCtx(ctx, "  P (K8s State): invalid state %v", state)
+					return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", state), v1alpha2.InternalError)
+				}
+				err = v1alpha2.NewCOAError(err, fmt.Sprintf("failed to upsert state because of webhook error: %s", statusError.ErrStatus.Message), state)
+			}
 			return "", err
 		}
 		//Note: state is ignored for new object
@@ -299,6 +311,16 @@ func (s *K8sStateProvider) Upsert(ctx context.Context, entry states.UpsertReques
 				_, err = s.DynamicClient.Resource(resourceId).Namespace(namespace).UpdateStatus(ctx, status, v1.UpdateOptions{})
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (K8s State): failed to update object status: %v", err)
+					if statusError, ok := err.(*apierrors.StatusError); ok {
+						sLog.InfofCtx(ctx, "  P (K8s State): This is an webhook error with status: %d, message: %v", statusError.Status().Code, statusError)
+						state := v1alpha2.State(int(statusError.Status().Code))
+						stateValue := reflect.ValueOf(state)
+						if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
+							sLog.ErrorfCtx(ctx, "  P (K8s State): invalid state %v", state)
+							return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", state), v1alpha2.InternalError)
+						}
+						err = v1alpha2.NewCOAError(err, fmt.Sprintf("failed to upsert state because of webhook error: %s", statusError.ErrStatus.Message), state)
+					}
 					return "", err
 				}
 			} else {

@@ -134,3 +134,7 @@ func ConvertReferenceToObjectNameHelper(name string) string {
 	}
 	return name
 }
+
+func IsLowSeverityError(statusCode int) bool {
+	return statusCode >= 400 && statusCode < 500
+}

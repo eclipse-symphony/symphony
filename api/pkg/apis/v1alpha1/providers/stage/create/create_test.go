@@ -165,14 +165,14 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 			Solution:    "sample:version1",
 		},
 	}
-	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+	output, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
 		"action":     "create",
 		"object":     instance,
 	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Instance creation reconcile failed:")
+	assert.Nil(t, err)
+	assert.Contains(t, output["error"], "timeout")
 }
 
 func TestCreateProcessRemove(t *testing.T) {

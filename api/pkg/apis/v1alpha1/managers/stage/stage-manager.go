@@ -48,7 +48,7 @@ func (t *TaskResult) GetError() error {
 	if t.Error != nil {
 		return t.Error
 	}
-	if v, ok := t.Outputs["__status"]; ok {
+	if v, ok := t.Outputs["status"]; ok {
 		switch sv := v.(type) {
 		case v1alpha2.State:
 			break
@@ -58,14 +58,14 @@ func (t *TaskResult) GetError() error {
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
 				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", sv), v1alpha2.InternalError)
 			}
-			t.Outputs["__status"] = state
+			t.Outputs["status"] = state
 		case int:
 			state := v1alpha2.State(sv)
 			stateValue := reflect.ValueOf(state)
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
 				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %d", sv), v1alpha2.InternalError)
 			}
-			t.Outputs["__status"] = state
+			t.Outputs["status"] = state
 		case string:
 			vInt, err := strconv.ParseInt(sv, 10, 32)
 			if err != nil {
@@ -76,14 +76,14 @@ func (t *TaskResult) GetError() error {
 			if stateValue.Type() != reflect.TypeOf(v1alpha2.State(0)) {
 				return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %d", vInt), v1alpha2.InternalError)
 			}
-			t.Outputs["__status"] = state
+			t.Outputs["status"] = state
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid state %v", v), v1alpha2.InternalError)
 		}
 
-		if t.Outputs["__status"] != v1alpha2.OK {
-			if v, ok := t.Outputs["__error"]; ok {
-				return v1alpha2.NewCOAError(nil, utils.FormatAsString(v), t.Outputs["__status"].(v1alpha2.State))
+		if t.Outputs["status"] != v1alpha2.OK {
+			if v, ok := t.Outputs["error"]; ok {
+				return v1alpha2.NewCOAError(nil, utils.FormatAsString(v), t.Outputs["status"].(v1alpha2.State))
 			} else {
 				return v1alpha2.NewCOAError(nil, "stage returned unsuccessful status without an error", v1alpha2.InternalError)
 			}
@@ -356,7 +356,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 			Body:    triggerData,
 			Context: ctx,
 		})
-		status.Outputs["__status"] = v1alpha2.Paused
+		status.Outputs["status"] = v1alpha2.Paused
 		status.Status = v1alpha2.Paused
 		status.StatusMessage = v1alpha2.Paused.String()
 		status.IsActive = false
@@ -388,7 +388,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 		status.Outputs[k] = v
 	}
 
-	status.Outputs["__status"] = v1alpha2.OK
+	status.Outputs["status"] = v1alpha2.OK
 	status.Status = v1alpha2.Done
 	status.StatusMessage = v1alpha2.Done.String()
 	status.IsActive = false
@@ -396,11 +396,11 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 }
 func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site string) map[string]interface{} {
 	ret := make(map[string]interface{})
-	statusKey := "__status"
+	statusKey := "status"
 	if site != "" {
 		statusKey = fmt.Sprintf("%s.%s", statusKey, site)
 	}
-	errorKey := "__error"
+	errorKey := "error"
 	if site != "" {
 		errorKey = fmt.Sprintf("%s.%s", errorKey, site)
 	}
@@ -410,6 +410,8 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	if _, ok := ret[statusKey]; !ok {
 		if cErr, ok := err.(v1alpha2.COAError); ok {
 			ret[statusKey] = cErr.State
+		} else if apiError, ok := err.(utils.APIError); ok {
+			ret[statusKey] = int(apiError.Code)
 		} else {
 			ret[statusKey] = v1alpha2.InternalError
 		}
@@ -639,19 +641,46 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		hasStageError := false
 		for result := range results {
 			err = result.GetError()
+
 			if err != nil {
-				status.Status = v1alpha2.InternalError
-				status.StatusMessage = v1alpha2.InternalError.String()
-				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
-				status.IsActive = false
+				// Check if error is either an *apierrors.StatusError or a v1alpha2.COAError with status < 500
+				ignoreError := false
+				var statusCode int
+
+				// Check if it's a Kubernetes status error
+				if apiError, ok := err.(utils.APIError); ok {
+					log.InfofCtx(ctx, " M (Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
+
+					statusCode = int(apiError.Code)
+				}
+				// Check if it's a COA error
+				if coaErr, ok := err.(v1alpha2.COAError); ok {
+					log.InfofCtx(ctx, " M (Stage): This is a COA error with status: %d, message: %v", int(coaErr.State), coaErr)
+
+					statusCode = int(coaErr.State)
+				}
+
+				ignoreError = utils.IsLowSeverityError(statusCode)
+				// Set the common part regardless of the error type
 				site := result.Site
 				if result.Site == s.Context.SiteInfo.SiteId {
 					site = ""
 				}
-				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
-				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
-				log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
-				hasStageError = true
+				status.Outputs = carryOutPutsToErrorStatus(result.Outputs, err, site)
+				result.Outputs = carryOutPutsToErrorStatus(result.Outputs, err, site)
+
+				if ignoreError {
+					log.InfofCtx(ctx, " M (Stage): low severity error (status %d) in stage %s for site %s: %v",
+						statusCode, triggerData.Stage, result.Site, err)
+				} else {
+					// Handle as normal error
+					status.Status = v1alpha2.InternalError
+					status.StatusMessage = v1alpha2.InternalError.String()
+					status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
+					status.IsActive = false
+					log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
+					hasStageError = true
+				}
 			}
 			for k, v := range result.Outputs {
 				if result.Site == s.Context.SiteInfo.SiteId {
@@ -661,11 +690,11 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 			}
 			if result.Site == s.Context.SiteInfo.SiteId {
-				if _, ok := result.Outputs["__status"]; !ok {
-					outputs["__status"] = v1alpha2.OK
+				if _, ok := result.Outputs["status"]; !ok {
+					outputs["status"] = v1alpha2.OK
 				}
 			} else {
-				key := fmt.Sprintf("%s.__status", result.Site)
+				key := fmt.Sprintf("%s.status", result.Site)
 				if _, ok := result.Outputs[key]; !ok {
 					outputs[key] = v1alpha2.Untouched
 				}
