@@ -16,6 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -165,14 +166,14 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 			Solution:    "sample:version1",
 		},
 	}
-	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+	output, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
 		"action":     "create",
 		"object":     instance,
 	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Instance creation reconcile failed:")
+	assert.Nil(t, err)
+	assert.Contains(t, output["failedDeployment"].(utils.FailedDeployment).Message, "timeout")
 }
 
 func TestCreateProcessRemove(t *testing.T) {
