@@ -225,6 +225,8 @@ func toHttpState(state v1alpha2.State) int {
 		return fasthttp.StatusMethodNotAllowed
 	case v1alpha2.Conflict:
 		return fasthttp.StatusConflict
+	case v1alpha2.StatusUnprocessableEntity:
+		return fasthttp.StatusUnprocessableEntity
 	case v1alpha2.InternalError:
 		return fasthttp.StatusInternalServerError
 	default:

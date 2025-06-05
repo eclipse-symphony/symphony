@@ -31,10 +31,11 @@ const (
 	Unauthorized State = 403
 	// NotFound = HTTP 404
 	NotFound State = 404
-	// MethodNotAllowed = HTTP 405
-	MethodNotAllowed State = 405
-	Conflict         State = 409
-	// InternalError = HTTP 500
+	// MethodNotAllowed = HTTP 405w
+	MethodNotAllowed          State = 405
+	Conflict                  State = 409
+	StatusUnprocessableEntity State = 422
+	// InternalError = HTTP 500sd
 	InternalError State = 500
 	// Config errors
 	BadConfig     State = 1000
@@ -194,6 +195,8 @@ func (s State) String() string {
 		return "Method Not Allowed"
 	case Conflict:
 		return "Conflict"
+	case StatusUnprocessableEntity:
+		return "Unprocessable Entity"
 	case InternalError:
 		return "Internal Error"
 	case BadConfig:

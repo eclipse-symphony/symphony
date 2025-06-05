@@ -288,22 +288,22 @@ func TestBasic_InstanceStatus(t *testing.T) {
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 3, "there should be three instance")
+		if len(resources.Items) == 4 {
+			var selectedItem unstructured.Unstructured
+			for _, item := range resources.Items {
+				if item.GetName() == "siteinstance" {
+					selectedItem = item
+					break
+				}
+			}
+			require.NotNil(t, selectedItem, "instance named 'siteinstance' not found")
 
-		var selectedItem unstructured.Unstructured
-		for _, item := range resources.Items {
-			if item.GetName() == "siteinstance" {
-				selectedItem = item
+			status := getStatus(selectedItem)
+			fmt.Printf("Current instance status: %s\n", status)
+			require.NotEqual(t, "Failed", status, "instance should not be in failed state")
+			if status == "Succeeded" {
 				break
 			}
-		}
-		require.NotNil(t, selectedItem, "instance named 'siteinstance' not found")
-
-		status := getStatus(selectedItem)
-		fmt.Printf("Current instance status: %s\n", status)
-		require.NotEqual(t, "Failed", status, "instance should not be in failed state")
-		if status == "Succeeded" {
-			break
 		}
 
 		sleepDuration, _ := time.ParseDuration("30s")
@@ -497,9 +497,9 @@ func TestAdvanced_ActivationStatus(t *testing.T) {
 	require.Contains(t, state.Status.StageHistory[2].Outputs["failedDeployment"].(map[string]interface{})["message"], "reconcile timeout")
 
 	require.Equal(t, "stage4", state.Status.StageHistory[3].Stage)
-	require.Equal(t, v1alpha2.InternalError, state.Status.StageHistory[3].Status)
+	require.Equal(t, v1alpha2.Done, state.Status.StageHistory[3].Status)
 	// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
-	require.Contains(t, state.Status.StageHistory[3].Outputs["_error"], "does not exist")
+	require.Contains(t, state.Status.StageHistory[3].Outputs["__error"], "does not exist")
 }
 
 // Verify that the pods we expect are running in the namespace

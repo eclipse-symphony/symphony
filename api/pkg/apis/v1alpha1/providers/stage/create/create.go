@@ -506,6 +506,10 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					v1alpha2.CreateInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
+				if apiError, ok := err.(api_utils.APIError); ok {
+					mLog.InfofCtx(ctx, "  P (Create Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
+				}
+
 				return nil, false, err
 			}
 
@@ -535,13 +539,14 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
 			}
 			var remaining []api_utils.ObjectInfo
+			var failed []api_utils.FailedDeployment
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
 					Name:         instanceName,
 					SummaryId:    summaryId,
 					SummaryJobId: previousJobId,
 				}
-				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
+				remaining, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
 					outputs["objectName"] = instanceName
