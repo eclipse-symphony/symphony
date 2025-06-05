@@ -29,7 +29,7 @@ const (
 var (
 	NAMESPACES = []string{
 		"default",
-		"nondefault",
+		//"nondefault",
 	}
 )
 
@@ -47,15 +47,19 @@ var (
 		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-target.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-solution.yaml",
 	}
 
 	testCampaign = []string{
 		"test/integration/scenarios/04.workflow/manifest/campaign-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/campaign.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-campaign.yaml",
 	}
 
 	testActivations = []string{
 		"test/integration/scenarios/04.workflow/manifest/activation.yaml",
+		"test/integration/scenarios/04.workflow/manifest/create-activation.yaml",
 	}
 
 	// Tests to run

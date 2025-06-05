@@ -190,7 +190,6 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		objectData, _ = json.Marshal(object)
 	}
 	objectName = api_utils.ConvertReferenceToObjectName(objectName)
-	lastSummaryMessage := ""
 	objectNamespace := stage.GetNamespace(inputs)
 	if objectNamespace == "" {
 		objectNamespace = "default"
@@ -507,6 +506,10 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					v1alpha2.CreateInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
+				if apiError, ok := err.(api_utils.APIError); ok {
+					mLog.InfofCtx(ctx, "  P (Create Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
+				}
+
 				return nil, false, err
 			}
 
@@ -535,14 +538,15 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				)
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
 			}
-
+			var remaining []api_utils.ObjectInfo
+			var failed []api_utils.FailedDeployment
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
 					Name:         instanceName,
 					SummaryId:    summaryId,
 					SummaryJobId: previousJobId,
 				}
-				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
+				remaining, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
 					outputs["objectName"] = instanceName
@@ -563,9 +567,15 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				metrics.RunOperationType,
 				v1alpha2.DeploymentNotReached.String(),
 			)
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation reconcile failed: %s", lastSummaryMessage), v1alpha2.InternalError)
-			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
-			return nil, false, err
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) pInstance creation reconcile timeout.")
+			outputs["objectType"] = objectType
+			outputs["objectName"] = instanceName
+			outputs["failedDeploymentCount"] = len(remaining)
+			outputs["failedDeployment"] = api_utils.FailedDeployment{
+				Name:    instanceName,
+				Message: fmt.Sprintf("Instance creation reconcile timeout after %d seconds", i.Config.WaitCount*i.Config.WaitInterval),
+			}
+			return outputs, false, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.BadRequest)
 			providerOperationMetrics.ProviderOperationErrors(
