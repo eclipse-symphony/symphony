@@ -240,22 +240,23 @@ Symphony full url Endpoint
 {{- else if $existingPVC  }}
 {{- $existingPVC.spec.storageClassName -}}
 {{- else }}
-{{- $defaultStorageClass := "" -}}
+{{- $defaultStorageClass := dict "storageclassname" "" -}}
 {{- range $sc := (lookup "storage.k8s.io/v1" "StorageClass" "" "").items -}}
-{{- if (hasKey $sc.metadata.annotations "storageclass.kubernetes.io/is-default-class") -}}
-{{- $annotations := $sc.metadata.annotations -}}
-{{- $labelValue := index $annotations "storageclass.kubernetes.io/is-default-class" -}}
-{{- if eq $labelValue "true" -}}
-{{- $defaultStorageClass = $sc.metadata.name -}}
+  {{- if (hasKey $sc.metadata.annotations "storageclass.kubernetes.io/is-default-class") -}}
+    {{- $annotations := $sc.metadata.annotations -}}
+    {{- $labelValue := index $annotations "storageclass.kubernetes.io/is-default-class" -}}
+    {{- if eq $labelValue "true" -}}
+      {{- $_ := set $defaultStorageClass "storageclassname" $sc.metadata.name -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
-{{- end -}}
-{{- end -}}
-{{- if eq $defaultStorageClass "" -}}
+{{- if eq $defaultStorageClass.storageclassname "" -}}
 {{- fail (printf "Error: No default storage class found. Please ensure a storage class with the label 'is-default-class' set to 'true' exists.")}}
 {{- end -}}
-{{- $defaultStorageClass -}}
+{{- $defaultStorageClass.storageclassname -}}
 {{- end -}}
 {{- end -}}
+
 
 {{- define "CheckRedisPvSetting" -}}
 {{- $configMap := (lookup "v1" "ConfigMap" .Release.Namespace "redis-config-map") -}}
