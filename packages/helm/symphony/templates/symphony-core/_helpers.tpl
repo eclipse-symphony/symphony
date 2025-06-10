@@ -214,14 +214,6 @@ Symphony API client CA dir
 {{- end }}
 
 {{/*
-Symphony API client CA path
-*/}}
-{{- define "symphony.apiClientCAPem" -}}
-{{- printf "%s/%s" (include "symphony.apiClientCAMountPath" .) (include "symphony.apiClientCATrustBundleKey" .) }}
-{{- end }}
-
-
-{{/*
 Symphony full url Endpoint
 */}}
 {{- define "symphony.httpsUrl" -}}

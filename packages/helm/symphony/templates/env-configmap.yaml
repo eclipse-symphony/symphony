@@ -24,7 +24,6 @@ data:
   EXTENSION_RESOURCEID: {{ .Values.Azure.Extension.ResourceId }}
   EMIT_TIME_FIELD_IN_USER_LOGS: {{ include "symphony.emitTimeFieldInUserLogs" . }}
   LABEL_LENGTH_UPPER_LIMIT: "64"
-  CLIENT_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
   ISSUER_NAME: {{ include "symphony.apiCAIssuerName" . }}
   AGENT_PATH: "/remote-agent"
   AGENT_VERSION: {{ .Values.remoteAgent.version }}

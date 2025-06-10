@@ -70,9 +70,11 @@ spec:
           mountPath: "/certs"
           readOnly: true
         {{- end }}
+        {{- if .Values.remoteAgent.used }}
         - name: client-ca-bundle
           mountPath: {{ include "symphony.apiClientCAMountPath" . }}
           readOnly: true
+        {{- end }}
         - name: symphony-api-config
           mountPath: /etc/symphony-api/config
         - mountPath: /var/run/secrets/tokens
@@ -115,9 +117,11 @@ spec:
           configMap:
             name: {{ .Values.observability.tls.caBundleConfigMap }}
         {{- end }}
+        {{- if .Values.remoteAgent.used }}
         - name: client-ca-bundle
           configMap:
             name: {{ include "symphony.apiClientCATrustBundle" . }}
+        {{- end }}
         - name: symphony-api-config
           configMap:
             name: {{ include "symphony.configmapName" . }}
