@@ -35,12 +35,11 @@ diff client.crt secret-client.crt
 if [ $? -ne 0 ]; then
     echo "Error: client.crt and secret public key are different!"
 fi
-# add secret name and secret key to values.yaml 
-
 
 cd test/localenv
 
-mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key" 
+mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=<secret name> --set RemoteCert.ClientCAs.SecretKey=<secret key>"
+# default is : mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key"  
 # start a new terminal
 minikube tunnel
 
