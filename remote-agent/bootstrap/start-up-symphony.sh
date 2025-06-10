@@ -5,6 +5,7 @@
 ## SPDX-License-Identifier: MIT
 ##
 
+
 minikube start
 # install openssl
 sudo apt update
@@ -35,10 +36,12 @@ if [ $? -ne 0 ]; then
     echo "Error: client.crt and secret public key are different!"
     exit 1
 fi
+# add secret name and secret key to values.yaml 
+
 
 cd test/localenv
-mage cluster:up
 
+mage cluster:up 
 # start a new terminal
 minikube tunnel
 
