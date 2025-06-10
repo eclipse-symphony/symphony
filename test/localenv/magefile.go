@@ -188,8 +188,17 @@ func (Cluster) DeployWithSettings(values string) error {
 	fmt.Printf("Deploying symphony to minikube with settings, %s\n", values)
 	mg.Deps(ensureMinikubeUp)
 
+	if err := (&Cluster{}).Load(); err != nil {
+		return err
+	}
+
 	if enableTlsOtelSetup() {
 		err := ensureSecureOtelCollectorPrereqs()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := ensureCertAndTrustManager()
 		if err != nil {
 			return err
 		}
@@ -197,7 +206,16 @@ func (Cluster) DeployWithSettings(values string) error {
 
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
-		shellcmd.Command(fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s %s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag(), values)),
+		shellcmd.Command(fmt.Sprintf(
+			"helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s %s",
+			getReleaseName(),
+			getChartPath(),
+			getChartNamespace(),
+			ghcrValuesOptions(),
+			getDockerTag(),
+			getDockerTag(),
+			values,
+		)),
 	}
 	for _, cert := range certsToVerify {
 		commands = append(commands, shellcmd.Command(fmt.Sprintf("kubectl wait --for=condition=ready certificates %s -n %s --timeout=90s", cert, getChartNamespace())))
