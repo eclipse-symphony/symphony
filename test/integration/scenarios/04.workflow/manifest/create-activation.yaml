@@ -2,6 +2,5 @@ apiVersion: workflow.symphony/v1
 kind: Activation
 metadata:
   name: create-activation
-  namespace: default
 spec:
   campaign: create-campaign-v-version1

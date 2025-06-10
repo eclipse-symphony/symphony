@@ -2,13 +2,11 @@ apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
   name: create-solution
-  namespace: default
 ---
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   name: create-solution-v-version1
-  namespace: default
 spec:
   components:
   - name: helmcomponent
@@ -29,7 +27,6 @@ apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   name: create-solution-v-version2
-  namespace: default
 spec:
   components:
   - name: helmcomponent

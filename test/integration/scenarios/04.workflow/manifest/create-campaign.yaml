@@ -2,13 +2,11 @@ apiVersion: workflow.symphony/v1
 kind: CampaignContainer
 metadata:
   name: create-campaign
-  namespace: default
 ---
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
   name: create-campaign-v-version1
-  namespace: default
 spec:
   firstStage: stage1
   rootResource: create-campaign

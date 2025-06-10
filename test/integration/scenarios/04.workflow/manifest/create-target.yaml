@@ -2,7 +2,6 @@ apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
   name: create-target
-  namespace: default
 spec:
   displayName: create-target
   scope: default
