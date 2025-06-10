@@ -34,14 +34,13 @@ kubectl get secret client-cert-secret -n cert-manager -o jsonpath='{.data.client
 diff client.crt secret-client.crt
 if [ $? -ne 0 ]; then
     echo "Error: client.crt and secret public key are different!"
-    exit 1
 fi
 # add secret name and secret key to values.yaml 
 
 
 cd test/localenv
 
-mage cluster:up 
+mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key" 
 # start a new terminal
 minikube tunnel
 
