@@ -644,7 +644,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 			if err != nil {
 				// Check if error is either an *apierrors.StatusError or a v1alpha2.COAError with status < 500
-				isLowSeverityError := false
+				ignoreError := false
 				var statusCode int
 
 				// Check if it's a Kubernetes status error
@@ -652,37 +652,33 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					log.InfofCtx(ctx, " M (Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
 
 					statusCode = int(apiError.Code)
-					isLowSeverityError = statusCode < 500
+					ignoreError = statusCode < 500
 				}
 				// Check if it's a COA error
 				if coaErr, ok := err.(v1alpha2.COAError); ok {
 					log.InfofCtx(ctx, " M (Stage): This is a COA error with status: %d, message: %v", int(coaErr.State), coaErr)
 
 					statusCode = int(coaErr.State)
-					isLowSeverityError = statusCode < 500
+					ignoreError = statusCode < 500
 				}
 
-				if isLowSeverityError {
+				// Set the common part regardless of the error type
+				site := result.Site
+				if result.Site == s.Context.SiteInfo.SiteId {
+					site = ""
+				}
+				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+
+				if ignoreError {
 					log.InfofCtx(ctx, " M (Stage): low severity error (status %d) in stage %s for site %s: %v",
 						statusCode, triggerData.Stage, result.Site, err)
-					site := result.Site
-					if result.Site == s.Context.SiteInfo.SiteId {
-						site = ""
-					}
-					status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
-					result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 				} else {
 					// Handle as normal error
 					status.Status = v1alpha2.InternalError
 					status.StatusMessage = v1alpha2.InternalError.String()
 					status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
 					status.IsActive = false
-					site := result.Site
-					if result.Site == s.Context.SiteInfo.SiteId {
-						site = ""
-					}
-					status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
-					result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 					log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
 					hasStageError = true
 				}

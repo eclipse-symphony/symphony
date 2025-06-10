@@ -567,7 +567,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				metrics.RunOperationType,
 				v1alpha2.DeploymentNotReached.String(),
 			)
-			mLog.ErrorfCtx(ctx, "  P (Create Stage) pInstance creation reconcile timeout.")
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) Instance creation reconcile timeout.")
 			outputs["objectType"] = objectType
 			outputs["objectName"] = instanceName
 			outputs["failedDeploymentCount"] = len(remaining)

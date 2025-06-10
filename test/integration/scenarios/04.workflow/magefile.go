@@ -29,7 +29,7 @@ const (
 var (
 	NAMESPACES = []string{
 		"default",
-		//"nondefault",
+		"nondefault",
 	}
 )
 

@@ -31,11 +31,11 @@ const (
 	Unauthorized State = 403
 	// NotFound = HTTP 404
 	NotFound State = 404
-	// MethodNotAllowed = HTTP 405w
+	// MethodNotAllowed = HTTP 405
 	MethodNotAllowed          State = 405
 	Conflict                  State = 409
 	StatusUnprocessableEntity State = 422
-	// InternalError = HTTP 500sd
+	// InternalError = HTTP 500
 	InternalError State = 500
 	// Config errors
 	BadConfig     State = 1000
