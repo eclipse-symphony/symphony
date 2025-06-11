@@ -39,7 +39,9 @@ fi
 cd test/localenv
 
 mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=<secret name> --set RemoteCert.ClientCAs.SecretKey=<secret key> --set installServiceExt=true"
-# default is : mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true"  
+# default is : mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true --set installServiceExt=true"  
+# install installServiceExt: true
+# topologies.json add fake ip and port
 # topologies.json add fake ip and port
 # start a new terminal
 minikube tunnel
