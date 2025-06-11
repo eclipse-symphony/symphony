@@ -1,6 +1,6 @@
 module github.com/eclipse-symphony/symphony/packages/mage
 
-go 1.23.0
+go 1.23.8
 
 toolchain go1.23.9
 
