@@ -1,8 +1,6 @@
 module github.com/eclipse-symphony/symphony/test/localenv
 
-go 1.23.8
-
-toolchain go1.23.9
+go 1.24.0
 
 require (
 	github.com/magefile/mage v1.14.0
