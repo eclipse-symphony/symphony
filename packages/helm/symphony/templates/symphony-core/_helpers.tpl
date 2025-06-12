@@ -220,7 +220,6 @@ Symphony API client CA path
 {{- printf "%s/%s" (include "symphony.apiClientCAMountPath" .) (include "symphony.apiClientCATrustBundleKey" .) }}
 {{- end }}
 
-
 {{/*
 Symphony full url Endpoint
 */}}

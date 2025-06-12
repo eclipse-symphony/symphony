@@ -35,12 +35,12 @@ diff client.crt secret-client.crt
 if [ $? -ne 0 ]; then
     echo "Error: client.crt and secret public key are different!"
 fi
-# add secret name and secret key to values.yaml 
-
 
 cd test/localenv
 
-mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key" 
+mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=<secret name> --set RemoteCert.ClientCAs.SecretKey=<secret key> --set installServiceExt=true"
+# default is : mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true --set installServiceExt=true"  
+
 # start a new terminal
 minikube tunnel
 
@@ -48,6 +48,18 @@ minikube tunnel
 sudo rm /etc/ssl/certs/localCA.pem
 sudo rm /etc/ssl/certs/8ce967e1.0
 echo "localCA.crt removed from the certificate store."
+
+max_wait=300
+waited=0
+while ! kubectl get secret -n default symphony-api-serving-cert >/dev/null 2>&1; do
+  if [ $waited -ge $max_wait ]; then
+    echo "Timeout: symphony-api-serving-cert not found after $max_wait seconds."
+    exit 1
+  fi
+  echo "Waiting for symphony-api-serving-cert to be created..."
+  sleep 10
+  waited=$((waited + 10))
+done
 
 # Get the server CA certificate
 kubectl get secret -n default symphony-api-serving-cert  -o jsonpath="{['data']['ca\.crt']}" | base64 --decode > localCA.crt
@@ -67,4 +79,4 @@ kubectl apply -f ../../remote-agent/bootstrap/sample_target.yaml
 # call the bootstrap.sh script
 # sign bootstrap script
 # sign binary
-./bootstrap.sh https://symphony-service:8081/v1alpha2 ../client-cert.pem ../client-key.pem remote-demo default topologies.json <user> <group>
+./bootstrap.sh https://symphony-service:8081/v1alpha2 ./client.crt ./client.key remote-demo default topologies.json <user> <group>
