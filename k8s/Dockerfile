@@ -9,7 +9,7 @@
 ##   docker build -f k8s/Dockerfile .
 ## Or build with docker-compose file of k8s
 
-ARG BUILD_BASE_IMAGE=golang:1.23.8-alpine
+ARG BUILD_BASE_IMAGE=golang:1.24.0-alpine
 ARG TARGET_BASE_IMAGE=mcr.microsoft.com/mirror/docker/library/alpine:3.16
 
 FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS builder
