@@ -174,12 +174,12 @@ func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 			// log.Infof("custom resource modified " + string(ss))
 			status, _, err := unstructured.NestedString(obj.Object, "status", "status")
 			if err != nil {
-				log.Errorf(err.Error())
+				log.Errorf("%v", err)
 			}
 
 			name, found, err := unstructured.NestedString(obj.Object, "metadata", "name")
 			if err != nil {
-				log.Errorf(err.Error())
+				log.Errorf("%v", err)
 			}
 
 			if found && status == "Succeeded" {
