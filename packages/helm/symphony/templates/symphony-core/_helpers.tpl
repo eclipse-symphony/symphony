@@ -242,13 +242,13 @@ Symphony full url Endpoint
 {{- else }}
 {{- $defaultStorageClass := "" -}}
 {{- range $sc := (lookup "storage.k8s.io/v1" "StorageClass" "" "").items -}}
-{{- if (hasKey $sc.metadata.annotations "storageclass.kubernetes.io/is-default-class") -}}
-{{- $annotations := $sc.metadata.annotations -}}
-{{- $labelValue := index $annotations "storageclass.kubernetes.io/is-default-class" -}}
-{{- if eq $labelValue "true" -}}
-{{- $defaultStorageClass = $sc.metadata.name -}}
-{{- end -}}
-{{- end -}}
+  {{- if and $sc.metadata.annotations (kindIs "map" $sc.metadata.annotations) (hasKey $sc.metadata.annotations "storageclass.kubernetes.io/is-default-class") -}}
+    {{- $annotations := $sc.metadata.annotations -}}
+    {{- $labelValue := index $annotations "storageclass.kubernetes.io/is-default-class" -}}
+    {{- if eq $labelValue "true" -}}
+      {{- $defaultStorageClass = $sc.metadata.name -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
 {{- if eq $defaultStorageClass "" -}}
 {{- fail (printf "Error: No default storage class found. Please ensure a storage class with the label 'is-default-class' set to 'true' exists.")}}
