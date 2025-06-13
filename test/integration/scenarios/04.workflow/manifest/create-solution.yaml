@@ -1,0 +1,44 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: create-solution
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: create-solution-v-version1
+spec:
+  components:
+  - name: helmcomponent
+    properties:
+      chart:
+        repo: ghcr.io/eclipse-symphony/tests/helm/simple-chart
+        timeout: 5m
+        version: 0.3.0
+        wait: true
+      values:
+        appName: testapp
+    type: helm.v3
+  displayName: create-solution-v-version1
+  rootResource: create-solution
+  version: version1
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: create-solution-v-version2
+spec:
+  components:
+  - name: helmcomponent
+    properties:
+      chart:
+        repo: ghcr.io/eclipse-symphony/tests/helm/simple-chart
+        timeout: 5m
+        version: nonexist
+        wait: true
+      values:
+        appName: testapp
+    type: helm.v3
+  displayName: create-solution-v-version2
+  rootResource: create-solution
+  version: version2

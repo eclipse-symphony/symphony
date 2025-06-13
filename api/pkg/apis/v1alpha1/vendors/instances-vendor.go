@@ -172,7 +172,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		}
 		err := c.InstancesManager.UpsertState(ctx, id, instance)
 		if err != nil {
-			iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s", err.Error())
+			iLog.ErrorfCtx(ctx, "V (Instances): onInstances failed - %s, with status code : %v", err.Error(), v1alpha2.GetErrorState(err))
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),

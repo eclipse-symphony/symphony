@@ -410,6 +410,8 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	if _, ok := ret[statusKey]; !ok {
 		if cErr, ok := err.(v1alpha2.COAError); ok {
 			ret[statusKey] = cErr.State
+		} else if apiError, ok := err.(utils.APIError); ok {
+			ret[statusKey] = int(apiError.Code)
 		} else {
 			ret[statusKey] = v1alpha2.InternalError
 		}
@@ -639,19 +641,47 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		hasStageError := false
 		for result := range results {
 			err = result.GetError()
+
 			if err != nil {
-				status.Status = v1alpha2.InternalError
-				status.StatusMessage = v1alpha2.InternalError.String()
-				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
-				status.IsActive = false
+				// Check if error is either an *apierrors.StatusError or a v1alpha2.COAError with status < 500
+				ignoreError := false
+				var statusCode int
+
+				// Check if it's a Kubernetes status error
+				if apiError, ok := err.(utils.APIError); ok {
+					log.InfofCtx(ctx, " M (Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
+
+					statusCode = int(apiError.Code)
+					ignoreError = statusCode < 500
+				}
+				// Check if it's a COA error
+				if coaErr, ok := err.(v1alpha2.COAError); ok {
+					log.InfofCtx(ctx, " M (Stage): This is a COA error with status: %d, message: %v", int(coaErr.State), coaErr)
+
+					statusCode = int(coaErr.State)
+					ignoreError = statusCode < 500
+				}
+
+				// Set the common part regardless of the error type
 				site := result.Site
 				if result.Site == s.Context.SiteInfo.SiteId {
 					site = ""
 				}
 				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
 				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
-				log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
-				hasStageError = true
+
+				if ignoreError {
+					log.InfofCtx(ctx, " M (Stage): low severity error (status %d) in stage %s for site %s: %v",
+						statusCode, triggerData.Stage, result.Site, err)
+				} else {
+					// Handle as normal error
+					status.Status = v1alpha2.InternalError
+					status.StatusMessage = v1alpha2.InternalError.String()
+					status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
+					status.IsActive = false
+					log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
+					hasStageError = true
+				}
 			}
 			for k, v := range result.Outputs {
 				if result.Site == s.Context.SiteInfo.SiteId {
