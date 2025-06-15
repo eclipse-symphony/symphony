@@ -1549,11 +1549,13 @@ func TestTaskErrorHandling(t *testing.T) {
 			Name:     "task1",
 			Provider: "providers.stage.invalid",
 			Config:   map[string]string{},
+			Target:   "test-target1",
 		},
 		{
 			Name:     "task2",
 			Provider: "providers.stage.mock",
 			Config:   map[string]string{},
+			Target:   "test-target2",
 		},
 	}
 

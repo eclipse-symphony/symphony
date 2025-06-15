@@ -80,6 +80,10 @@ func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpe
 	// Create task-specific inputs
 	taskInputs := utils.MergeCollection_StringAny(inputs, task.Inputs)
 
+	// Re-populate __target from task.Target
+	if task.Target != "" {
+		taskInputs["__target"] = task.Target
+	}
 	// Trace value on task inputs
 	for k, v := range taskInputs {
 		var val interface{}
@@ -216,10 +220,11 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 				// Use the handler to process the task
 				outputs, err := handler.HandleTask(taskCtx, task, inputs, siteName)
 				if err != nil {
+					outputs = carryOutPutsToErrorStatus(outputs, err, task.Target)
 					select {
 					case taskResultsChan <- StageTaskResult{
 						TaskName: task.Name,
-						Outputs:  nil,
+						Outputs:  outputs,
 						Error:    err,
 					}:
 					case <-taskCtx.Done():
@@ -260,9 +265,9 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 						// Don't return, continue processing existing results
 					}
 				}
-			} else {
-				taskProcessor.TaskResults[result.TaskName] = result.Outputs
 			}
+			// populate task results even if there's an error
+			taskProcessor.TaskResults[result.TaskName] = result.Outputs
 		}
 	}()
 
@@ -666,15 +671,15 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	status.IsActive = false
 	return status
 }
-func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site string) map[string]interface{} {
+func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, siteOrTarget string) map[string]interface{} {
 	ret := make(map[string]interface{})
 	statusKey := "__status"
-	if site != "" {
-		statusKey = fmt.Sprintf("%s.%s", statusKey, site)
+	if siteOrTarget != "" {
+		statusKey = fmt.Sprintf("%s.%s", statusKey, siteOrTarget)
 	}
 	errorKey := "__error"
-	if site != "" {
-		errorKey = fmt.Sprintf("%s.%s", errorKey, site)
+	if siteOrTarget != "" {
+		errorKey = fmt.Sprintf("%s.%s", errorKey, siteOrTarget)
 	}
 	for k, v := range outputs {
 		ret[k] = v
