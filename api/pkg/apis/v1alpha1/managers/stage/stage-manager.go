@@ -1075,7 +1075,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				nextStageName = utils.FormatAsString(val)
 			}
 
-			log.InfoCtx(ctx, " M (Stage): stage %s finished. has error? %s", triggerData.Stage, hasStageError)
+			log.InfofCtx(ctx, " M (Stage): stage %s finished. has error? %t", triggerData.Stage, hasStageError)
 			if nextStageName != "" {
 				if nextStage, ok := campaign.Stages[nextStageName]; ok || hasStageError {
 					if !hasStageError || nextStage.HandleErrors {
