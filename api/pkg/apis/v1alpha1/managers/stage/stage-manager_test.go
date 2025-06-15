@@ -1447,6 +1447,247 @@ func TestTriggerEventWithSchedule(t *testing.T) {
 	assert.Equal(t, false, status.IsActive)
 }
 
+func prepareManager() *StageManager {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	return &manager
+}
+
+func TestParallelTaskProcessing(t *testing.T) {
+	// Setup
+	manager := prepareManager()
+
+	ctx := context.Background()
+	triggerData := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		ActivationGeneration: "1",
+		Stage:                "test-stage",
+		Namespace:            "default",
+		Inputs: map[string]interface{}{
+			"input1": "stageValue1",
+		},
+	}
+
+	// Create test tasks
+	tasks := []model.TaskSpec{
+		{
+			Name:     "task1",
+			Provider: "providers.stage.mock",
+			Config:   map[string]string{},
+			Inputs: map[string]interface{}{
+				"taskInput1": "value1",
+				"input1":     "value1",
+				"foo":        1,
+			},
+		},
+		{
+			Name:     "task2",
+			Provider: "providers.stage.mock",
+			Config:   map[string]string{},
+			Inputs: map[string]interface{}{
+				"taskInput2": "value2",
+				"foo":        2,
+			},
+		},
+	}
+
+	// Create processor and handler
+	processor := NewGoRoutineTaskProcessor(manager, ctx)
+	handler := NewCampaignTaskHandler(manager, triggerData, nil)
+
+	// Test parallel processing
+	results, err := processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode: model.ErrorActionMode_StopOnAnyFailure,
+	}, 2, "test-site")
+
+	// Verify results
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(results))
+
+	// examine: taskInput
+	assert.Equal(t, int64(2), results["task1"].(map[string]interface{})["foo"])
+	assert.Equal(t, "value1", results["task1"].(map[string]interface{})["taskInput1"])
+	assert.Equal(t, int64(3), results["task2"].(map[string]interface{})["foo"])
+	assert.Equal(t, "value2", results["task2"].(map[string]interface{})["taskInput2"])
+
+	// examine: stageInput
+	assert.Equal(t, "value1", results["task1"].(map[string]interface{})["input1"]) // will be overridden by taskInput
+	assert.Equal(t, "stageValue1", results["task2"].(map[string]interface{})["input1"])
+}
+
+func TestTaskErrorHandling(t *testing.T) {
+	// Setup
+	manager := prepareManager()
+	ctx := context.Background()
+	triggerData := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		ActivationGeneration: "1",
+		Stage:                "test-stage",
+		Namespace:            "default",
+	}
+
+	// Create test tasks with one failing task
+	tasks := []model.TaskSpec{
+		{
+			Name:     "task1",
+			Provider: "providers.stage.invalid",
+			Config:   map[string]string{},
+		},
+		{
+			Name:     "task2",
+			Provider: "providers.stage.mock",
+			Config:   map[string]string{},
+		},
+	}
+
+	// Create processor and handler
+	processor := NewGoRoutineTaskProcessor(manager, ctx)
+	handler := NewCampaignTaskHandler(manager, triggerData, nil)
+
+	// Test error handling with StopOnAnyFailure
+	results, err := processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode: model.ErrorActionMode_StopOnAnyFailure,
+	}, 2, "test-site")
+
+	// Verify error handling
+	assert.NotNil(t, err)
+	assert.Equal(t, 1, len(results))
+	assert.Contains(t, results, "task2")
+	assert.NotContains(t, results, "task1")
+}
+
+func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
+	// Setup
+	manager := prepareManager()
+	ctx := context.Background()
+	triggerData := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		ActivationGeneration: "1",
+		Stage:                "test-stage",
+		Namespace:            "default",
+	}
+
+	// Create test tasks with one failing task
+	tasks := []model.TaskSpec{
+		{
+			Name:     "task1",
+			Provider: "providers.stage.invalid",
+			Config:   map[string]string{},
+		},
+		{
+			Name:     "task2",
+			Provider: "providers.stage.mock",
+			Config:   map[string]string{},
+		},
+		{
+			Name:     "task3",
+			Provider: "providers.stage.mock",
+			Config:   map[string]string{},
+		},
+	}
+
+	// Create processor and handler
+	processor := NewGoRoutineTaskProcessor(manager, ctx)
+	handler := NewCampaignTaskHandler(manager, triggerData, nil)
+
+	// Test error handling with StopOnAnyFailure
+	results, err := processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode: model.ErrorActionMode_StopOnAnyFailure,
+	}, 2, "test-site")
+
+	// Verify error handling
+	assert.NotNil(t, err)
+	assert.NotContains(t, results, "task1")
+	assert.GreaterOrEqual(t, len(results), 1) // at least one task should be executed
+}
+
+func TestTaskConcurrencyControl(t *testing.T) {
+	// Setup
+	manager := prepareManager()
+	ctx := context.Background()
+	triggerData := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		ActivationGeneration: "1",
+		Stage:                "test-stage",
+		Namespace:            "default",
+	}
+
+	// Create multiple test tasks
+	taskNumber := 5
+	tasks := make([]model.TaskSpec, taskNumber)
+	for i := 0; i < taskNumber; i++ {
+		tasks[i] = model.TaskSpec{
+			Name:     fmt.Sprintf("task%d", i+1),
+			Provider: "providers.stage.mock",
+			Config:   map[string]string{},
+		}
+	}
+
+	// Create processor and handler
+	processor := NewGoRoutineTaskProcessor(manager, ctx)
+	handler := NewCampaignTaskHandler(manager, triggerData, nil)
+
+	// Test with concurrency limit of 2
+	results, err := processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode: model.ErrorActionMode_StopOnAnyFailure,
+	}, 2, "test-site")
+
+	assert.Nil(t, err)
+	assert.Equal(t, taskNumber, len(results))
+}
+
+func TestTaskHandlerInterface(t *testing.T) {
+	// Setup
+	manager := prepareManager()
+	ctx := context.Background()
+	triggerData := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		ActivationGeneration: "1",
+		Stage:                "test-stage",
+		Namespace:            "default",
+	}
+
+	// Create test task
+	task := model.TaskSpec{
+		Name:     "test-task",
+		Provider: "providers.stage.mock",
+		Config:   map[string]string{},
+		Inputs: map[string]interface{}{
+			"testInput": "testValue",
+		},
+	}
+
+	// Create handler
+	handler := NewCampaignTaskHandler(manager, triggerData, nil)
+
+	// Test task handling
+	outputs, err := handler.HandleTask(ctx, task, triggerData.Inputs, "test-site")
+
+	// Verify results
+	assert.Nil(t, err)
+	assert.NotNil(t, outputs)
+}
+
 type AuthResponse struct {
 	AccessToken string   `json:"accessToken"`
 	TokenType   string   `json:"tokenType"`

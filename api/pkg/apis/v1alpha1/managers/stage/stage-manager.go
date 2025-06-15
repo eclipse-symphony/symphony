@@ -97,6 +97,22 @@ func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpe
 		return nil, err
 	}
 
+	if taskProvider == nil {
+		err = v1alpha2.COAError{
+			State:   v1alpha2.BadConfig,
+			Message: fmt.Sprintf("task provider %s is not found, skipping task %s for site %s", task.Provider, task.Name, siteName),
+		}
+		return nil, err
+	}
+
+	// Non-stage provider is not allowed in tasks
+	if _, ok := taskProvider.(stage.IStageProvider); !ok {
+		err = v1alpha2.COAError{
+			State:   v1alpha2.BadConfig,
+			Message: fmt.Sprintf("non-stage provider cannot be used with tasks, skipping task %s for site %s", task.Name, siteName),
+		}
+	}
+
 	// Remote provider is not allowed in tasks
 	if _, ok := taskProvider.(*remote.RemoteStageProvider); ok {
 		err = v1alpha2.COAError{
@@ -155,13 +171,14 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 		return make(map[string]interface{}), nil
 	}
 
-	// Create a context with cancellation to handle early stop
+	// TODO: currently there's no way to cancel in task provider, so we didn't cancel the ongoing tasks, instead we just stop new tasks from starting.
 	taskCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Create channels for task coordination
 	taskResultsChan := make(chan StageTaskResult, len(tasks))
 	taskQueue := make(chan model.TaskSpec, len(tasks))
+	stopNewTasks := make(chan struct{}) // New channel to signal stopping new tasks
 
 	// Track task completion
 	taskWaitGroup := sync.WaitGroup{}
@@ -189,9 +206,9 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 		go func() {
 			defer taskWaitGroup.Done()
 			for task := range taskQueue {
-				// Check if context is cancelled
+				// Check if we should stop processing new tasks
 				select {
-				case <-taskCtx.Done():
+				case <-stopNewTasks:
 					return
 				default:
 				}
@@ -207,7 +224,8 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 					}:
 					case <-taskCtx.Done():
 					}
-					return
+					// Don't return, continue processing other tasks
+					continue
 				}
 
 				select {
@@ -234,12 +252,12 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 
 				// Check error action conditions
 				if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-					cancel() // Stop all tasks
-					return
+					close(stopNewTasks) // Stop new tasks from starting
+					// Don't return, continue processing existing results
 				} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
 					if currentErrorCount >= errorAction.MaxToleratedFailures {
-						cancel() // Stop all tasks
-						return
+						close(stopNewTasks) // Stop new tasks from starting
+						// Don't return, continue processing existing results
 					}
 				}
 			} else {
