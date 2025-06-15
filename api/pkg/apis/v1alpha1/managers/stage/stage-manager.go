@@ -686,16 +686,13 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, siteOr
 	for k, v := range outputs {
 		ret[k] = v
 	}
-	if _, ok := ret[statusKey]; !ok {
-		if cErr, ok := err.(v1alpha2.COAError); ok {
-			ret[statusKey] = cErr.State
-		} else {
-			ret[statusKey] = v1alpha2.InternalError
-		}
+	// always override status and error
+	if cErr, ok := err.(v1alpha2.COAError); ok {
+		ret[statusKey] = cErr.State
+	} else {
+		ret[statusKey] = v1alpha2.InternalError
 	}
-	if _, ok := ret[errorKey]; !ok {
-		ret[errorKey] = err.Error()
-	}
+	ret[errorKey] = err.Error()
 	return ret
 }
 
