@@ -286,15 +286,19 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 	if len(taskProcessor.TaskErrors) > 0 {
 		switch errorAction.Mode {
 		case model.ErrorActionMode_StopOnAnyFailure:
-			return taskProcessor.TaskResults, taskProcessor.TaskErrors[0]
+			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
+			return taskProcessor.TaskResults, v1alpha2.COAError{
+				State:   v1alpha2.InternalError,
+				Message: fmt.Sprintf("Task failed %d times, error action is stop on any failure", taskProcessor.ErrorCount),
+			}
 		case model.ErrorActionMode_StopOnNFailures:
+			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
 			if taskProcessor.ErrorCount > errorAction.MaxToleratedFailures {
 				return taskProcessor.TaskResults, v1alpha2.COAError{
 					State:   v1alpha2.InternalError,
-					Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", errorAction.MaxToleratedFailures),
+					Message: fmt.Sprintf("Task failed %d times, exceeded maximum tolerated failures (%d)", taskProcessor.ErrorCount, errorAction.MaxToleratedFailures),
 				}
 			}
-			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
 		default:
 			log.WarnfCtx(ctx, " M (Stage): unknown error mode, continuing")
 			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
@@ -949,6 +953,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					}
 
 					taskResults, err := s.processTasks(ctx, currentStage, inputCopy, triggerData, triggers, site)
+					// Merge task results with allOutputs
+					allOutputs = utils.MergeCollection_StringAny(allOutputs, taskResults)
+
 					if err != nil {
 						results <- StageResult{
 							Outputs: allOutputs,
@@ -957,9 +964,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						}
 						return
 					}
-
-					// Merge task results with allOutputs
-					allOutputs = utils.MergeCollection_StringAny(allOutputs, taskResults)
 				}
 
 				// 7. Merge results and return
