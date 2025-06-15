@@ -18,6 +18,7 @@ spec:
   selfDriving: true
   stages:
     stage1:
+      name: "stage1"
       taskOption:
         concurrency: 1
         errorAction:
