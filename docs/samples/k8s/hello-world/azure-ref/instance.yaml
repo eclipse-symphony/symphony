@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: sample-k8s-target-v-sample-prometheus-server-v-instance
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/sample-k8s-target/solutions/sample-prometheus-server/instances/instance"
+spec:
+  scope: sample-k8s-scope  
+  solution: "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/testrg/providers/microsoft.edge/targets/sample-k8s-target/solutions/sample-prometheus-server/versions/version1"
+  target: 
+    name: "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/testrg/providers/microsoft.edge/targets/sample-k8s-target"

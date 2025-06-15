@@ -1,0 +1,20 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: sample-k8s-target-v-sample-prometheus-server-v-version1
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/sample-k8s-target/solutions/sample-prometheus-server/versions/version1"
+spec:
+  rootResource: sample-k8s-target-v-sample-prometheus-server
+  metadata:
+    deployment.replicas: "#1"
+    service.ports: "[{\"name\":\"port9090\",\"port\": 9090}]"
+    service.type: "LoadBalancer"
+  components:
+  - name: sample-prometheus-server
+    type: container
+    properties:
+      container.ports: "[{\"containerPort\":9090,\"protocol\":\"TCP\"}]"
+      container.imagePullPolicy: "Always"
+      container.resources: "{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}"        
+      container.image: "prom/prometheus"
