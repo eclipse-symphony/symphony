@@ -42,11 +42,12 @@ RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
 fi
 
 # Install Rust and rustup, overriding any existing Rust installation
-RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
+RUN if [ "$BUILDFLAG" != "azure" ] && echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path \
     && . "$HOME/.cargo/env" \
     && rustup target add armv7-unknown-linux-gnueabihf aarch64-unknown-linux-gnu; \
-    fi
+fi
+
 # Set up Rust environment
 ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
@@ -57,12 +58,12 @@ ENV PROTOC=/usr/bin/protoc
 WORKDIR /workspace/api/pkg/apis/v1alpha1/providers/target/rust
 
 # Clean build artifacts from any previous build attempts
-RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
+RUN if [ "$BUILDFLAG" != "azure" ] && echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     cargo clean; \
-    fi
+fi
 
 # Clean previous build artifacts and build in one step
-RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
+RUN if [ "$BUILDFLAG" != "azure" ] && echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     cargo clean && \
     if [ "$TARGETARCH" = "arm" ]; then \
         CC=arm-linux-gnueabihf-gcc \
@@ -79,7 +80,7 @@ RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
         cargo build --release && \
         cp target/release/*.so /extensions/; \
     fi; \
-    fi
+fi
 
 WORKDIR /workspace/api
 
