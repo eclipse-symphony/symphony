@@ -603,19 +603,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		for _, site := range sites {
 			waitGroup.Add(1)
 			go func(wg *sync.WaitGroup, site string, results chan<- StageResult) {
-				// after introducing parallel workflow, we will have two phases to execute the stage.
-				// 1. if stage.Provider is defined, that means we have a prepare stage to be executed before all tasks.
-				// 2. if stage.tasks is defined, that means we have several tasks to be executed in parallel, concurrency will be controlled by taskOption.concurrency
-				//    each task will be executed in parallel and the results will be collected in a channel.
-				//    for each stage.task, we will create a goroutine to execute the task.
-				//        input will be stage.input + task.input
-				//		  output will be aggregated to stage.output.task.name
-				//    stage.status will be determined by prepare-stage and tasks's status + taskOption.errorAction
-				// TODO: remote stage provider cannot be worked with parallel tasks, so we will not support remote stage provider for now.
-				// TODO: we cannot run remote stage provider in tasks.
-				// TODO: In future, we will combine two parallel ways - remote stage provider (cross-cluster) and tasks (in-cluster).
-				// TODO: provide ways to parse task.Input accroding to prepare provider's output.
-
 				defer wg.Done()
 				inputCopy := make(map[string]interface{})
 				for k, v := range snapshotInputs {
@@ -753,7 +740,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 										case taskResultsChan <- StageTaskResult{
 											TaskName: task.Name,
 											Outputs:  nil,
-											Error:    fmt.Errorf("failed to evaluate input: %v", err),
+											Error:    err,
 										}:
 										case <-taskCtx.Done():
 										}
@@ -770,7 +757,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 									case taskResultsChan <- StageTaskResult{
 										TaskName: task.Name,
 										Outputs:  nil,
-										Error:    fmt.Errorf("failed to create task provider %s: %v", task.Name, err),
+										Error:    err,
 									}:
 									case <-taskCtx.Done():
 									}
@@ -778,11 +765,15 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 								}
 
 								if _, ok := provider.(*remote.RemoteStageProvider); ok {
+									err = v1alpha2.COAError{
+										State:   v1alpha2.BadConfig,
+										Message: fmt.Sprintf("remote stage provider cannot be used with tasks, skipping task %s for site %s", task.Name, site),
+									}
 									select {
 									case taskResultsChan <- StageTaskResult{
 										TaskName: task.Name,
 										Outputs:  nil,
-										Error:    fmt.Errorf("remote stage provider cannot be used with tasks, skipping task %s for site %s", task.Name, site),
+										Error:    err,
 									}:
 									case <-taskCtx.Done():
 									}
@@ -800,7 +791,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 									case taskResultsChan <- StageTaskResult{
 										TaskName: task.Name,
 										Outputs:  nil,
-										Error:    fmt.Errorf("task %s failed: %v", task.Name, err),
+										Error:    err,
 									}:
 									case <-taskCtx.Done():
 									}
@@ -857,30 +848,36 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					<-done
 
 					// Check final error state
-					var err error = nil
 					if len(taskErrors) > 0 {
 						if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
 							err = taskErrors[0] // Return the first error
 						} else if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnNFailures {
 							if errorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
-								err = fmt.Errorf("exceeded maximum tolerated failures (%d)", currentStage.TaskOption.ErrorAction.MaxToleratedFailures)
+								err = v1alpha2.COAError{
+									State:   v1alpha2.InternalError,
+									Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", currentStage.TaskOption.ErrorAction.MaxToleratedFailures),
+								}
 							} else {
-								err = fmt.Errorf("task errors: %v", taskErrors)
+								log.WarnfCtx(ctx, " M (Stage): did not exceed maximum tolerated failures (%d), continuing to process stage", currentStage.TaskOption.ErrorAction.MaxToleratedFailures)
+								log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskErrors))
+								err = nil
 							}
 						} else {
-							err = fmt.Errorf("task errors: %v", taskErrors)
+							log.WarnfCtx(ctx, " M (Stage): no error action mode is specified, continuing to process stage")
+							log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskErrors))
+							err = nil
 						}
 					}
 
-					// Merge results and return
+					// Merge task results with allOutputs
 					allOutputs = utils.MergeCollection_StringAny(allOutputs, taskResults)
-					results <- StageResult{
-						Outputs: allOutputs,
-						Error:   err,
-						Site:    site,
-					}
+				}
 
-					return
+				// 7. Merge results and return
+				results <- StageResult{
+					Outputs: allOutputs,
+					Error:   err,
+					Site:    site,
 				}
 			}(&waitGroup, site, results)
 		}

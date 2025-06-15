@@ -181,6 +181,14 @@ func DeepCopyCollectionWithPrefixExclude(originalCols map[string]interface{}, pr
 	return ret
 }
 
+func ToJsonString(obj interface{}) string {
+	json, err := json.Marshal(obj)
+	if err != nil {
+		return ""
+	}
+	return string(json)
+}
+
 func GenerateKeyLockName(strs ...string) string {
 	ret := ""
 	for i, str := range strs {
