@@ -50,6 +50,12 @@ type StageTaskResult struct {
 	TaskName string
 }
 
+type StageTaskProcessor struct {
+	TaskResults map[string]interface{}
+	TaskErrors  []error
+	ErrorCount  int
+}
+
 func (t *StageResult) GetError() error {
 	if t.Error != nil {
 		return t.Error
@@ -704,10 +710,11 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					taskWaitGroup := sync.WaitGroup{}
 
 					// Track errors and results
-					taskResults := make(map[string]interface{})
-					taskErrors := make([]error, 0)
-					errorCount := 0
-					var errorMutex sync.Mutex
+					taskProcessor := StageTaskProcessor{
+						TaskResults: make(map[string]interface{}),
+						TaskErrors:  make([]error, 0),
+						ErrorCount:  0,
+					}
 
 					// Queue all tasks
 					for _, task := range currentStage.Tasks {
@@ -715,8 +722,12 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					}
 					close(taskQueue)
 
-					// Start worker pool
-					for i := 0; i < currentStage.TaskOption.Concurrency; i++ {
+					// Start worker pool - use min of concurrency and number of tasks
+					numWorkers := currentStage.TaskOption.Concurrency
+					if numWorkers > len(currentStage.Tasks) {
+						numWorkers = len(currentStage.Tasks)
+					}
+					for i := 0; i < numWorkers; i++ {
 						taskWaitGroup.Add(1)
 						go func() {
 							defer taskWaitGroup.Done()
@@ -816,11 +827,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						defer close(done)
 						for result := range taskResultsChan {
 							if result.Error != nil {
-								errorMutex.Lock()
-								taskErrors = append(taskErrors, result.Error)
-								errorCount++
-								currentErrorCount := errorCount
-								errorMutex.Unlock()
+								taskProcessor.TaskErrors = append(taskProcessor.TaskErrors, result.Error)
+								taskProcessor.ErrorCount++
+								currentErrorCount := taskProcessor.ErrorCount
 
 								// Check error action conditions
 								if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
@@ -833,7 +842,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 									}
 								}
 							} else {
-								taskResults[result.TaskName] = result.Outputs
+								taskProcessor.TaskResults[result.TaskName] = result.Outputs
 							}
 						}
 					}()
@@ -848,29 +857,29 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					<-done
 
 					// Check final error state
-					if len(taskErrors) > 0 {
+					if len(taskProcessor.TaskErrors) > 0 {
 						if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-							err = taskErrors[0] // Return the first error
+							err = taskProcessor.TaskErrors[0] // Return the first error
 						} else if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnNFailures {
-							if errorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
+							if taskProcessor.ErrorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
 								err = v1alpha2.COAError{
 									State:   v1alpha2.InternalError,
 									Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", currentStage.TaskOption.ErrorAction.MaxToleratedFailures),
 								}
 							} else {
 								log.WarnfCtx(ctx, " M (Stage): did not exceed maximum tolerated failures (%d), continuing to process stage", currentStage.TaskOption.ErrorAction.MaxToleratedFailures)
-								log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskErrors))
+								log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
 								err = nil
 							}
 						} else {
 							log.WarnfCtx(ctx, " M (Stage): no error action mode is specified, continuing to process stage")
-							log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskErrors))
+							log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
 							err = nil
 						}
 					}
 
 					// Merge task results with allOutputs
-					allOutputs = utils.MergeCollection_StringAny(allOutputs, taskResults)
+					allOutputs = utils.MergeCollection_StringAny(allOutputs, taskProcessor.TaskResults)
 				}
 
 				// 7. Merge results and return
