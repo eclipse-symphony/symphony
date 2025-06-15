@@ -56,6 +56,248 @@ type StageTaskProcessor struct {
 	ErrorCount  int
 }
 
+// TaskHandler defines the interface for handling individual tasks
+type TaskHandler interface {
+	HandleTask(ctx context.Context, task model.TaskSpec, inputs map[string]interface{}, siteName string) (map[string]interface{}, error)
+}
+
+// CampaignTaskHandler implements TaskHandler for campaign-specific task processing
+type CampaignTaskHandler struct {
+	manager     *StageManager
+	triggerData v1alpha2.ActivationData
+	triggers    map[string]interface{}
+}
+
+func NewCampaignTaskHandler(manager *StageManager, triggerData v1alpha2.ActivationData, triggers map[string]interface{}) *CampaignTaskHandler {
+	return &CampaignTaskHandler{
+		manager:     manager,
+		triggerData: triggerData,
+		triggers:    triggers,
+	}
+}
+
+func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpec, inputs map[string]interface{}, siteName string) (map[string]interface{}, error) {
+	// Create task-specific inputs
+	taskInputs := utils.MergeCollection_StringAny(inputs, task.Inputs)
+
+	// Trace value on task inputs
+	for k, v := range taskInputs {
+		var val interface{}
+		val, err := h.manager.traceValue(ctx, v, h.triggerData.Namespace, taskInputs, h.triggers, h.triggerData.Outputs)
+		if err != nil {
+			return nil, err
+		}
+		taskInputs[k] = val
+	}
+
+	// Create task provider
+	factory := symproviders.SymphonyProviderFactory{}
+	taskProvider, err := factory.CreateProvider(task.Provider, task.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Remote provider is not allowed in tasks
+	if _, ok := taskProvider.(*remote.RemoteStageProvider); ok {
+		err = v1alpha2.COAError{
+			State:   v1alpha2.BadConfig,
+			Message: fmt.Sprintf("remote stage provider cannot be used with tasks, skipping task %s for site %s", task.Name, siteName),
+		}
+		return nil, err
+	}
+
+	if _, ok := taskProvider.(contexts.IWithManagerContext); ok {
+		taskProvider.(contexts.IWithManagerContext).SetContext(h.manager.Manager.Context)
+	}
+
+	// Process task
+	outputs, _, err := taskProvider.(stage.IStageProvider).Process(ctx, *h.manager.Manager.Context, taskInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	return outputs, nil
+}
+
+// TaskProcessor defines the interface for processing tasks
+type TaskProcessor interface {
+	Process(ctx context.Context, tasks []model.TaskSpec, inputs map[string]interface{}, handler TaskHandler, errorAction model.ErrorAction, concurrency int) (map[string]interface{}, error)
+}
+
+// GoRoutineTaskProcessor implements TaskProcessor using goroutines
+type GoRoutineTaskProcessor struct {
+	manager *StageManager
+	ctx     context.Context
+}
+
+func NewGoRoutineTaskProcessor(manager *StageManager, ctx context.Context) *GoRoutineTaskProcessor {
+	return &GoRoutineTaskProcessor{
+		manager: manager,
+		ctx:     ctx,
+	}
+}
+
+func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.TaskSpec, inputs map[string]interface{}, handler TaskHandler, errorAction model.ErrorAction, concurrency int, siteName string) (map[string]interface{}, error) {
+	// after introducing parallel workflow, we will have two phases to execute the stage.
+	// 1. if stage.Provider is defined, that means we have a prepare stage to be executed before all tasks.
+	// 2. if stage.tasks is defined, that means we have several tasks to be executed in parallel, concurrency will be controlled by taskOption.concurrency
+	//    each task will be executed in parallel and the results will be collected in a channel.
+	//    for each stage.task, we will create a goroutine to execute the task.
+	//        input will be stage.input + task.input
+	//		  output will be aggregated to stage.output.task.name
+	//    stage.status will be determined by prepare-stage and tasks's status + taskOption.errorAction
+	// TODO: remote stage provider cannot be worked with parallel tasks, so we will not support remote stage provider for now.
+	// TODO: we cannot run remote stage provider in tasks.
+	// TODO: In future, we will combine two parallel ways - remote stage provider (cross-cluster) and tasks (in-cluster).
+	// TODO: provide ways to parse task.Input accroding to prepare provider's output.
+
+	if len(tasks) == 0 {
+		return make(map[string]interface{}), nil
+	}
+
+	// Create a context with cancellation to handle early stop
+	taskCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Create channels for task coordination
+	taskResultsChan := make(chan StageTaskResult, len(tasks))
+	taskQueue := make(chan model.TaskSpec, len(tasks))
+
+	// Track task completion
+	taskWaitGroup := sync.WaitGroup{}
+
+	// Track errors and results
+	taskProcessor := StageTaskProcessor{
+		TaskResults: make(map[string]interface{}),
+		TaskErrors:  make([]error, 0),
+		ErrorCount:  0,
+	}
+
+	// Queue all tasks
+	for _, task := range tasks {
+		taskQueue <- task
+	}
+	close(taskQueue)
+
+	// Start worker pool - use min of concurrency and number of tasks
+	numWorkers := concurrency
+	if numWorkers > len(tasks) {
+		numWorkers = len(tasks)
+	}
+	for i := 0; i < numWorkers; i++ {
+		taskWaitGroup.Add(1)
+		go func() {
+			defer taskWaitGroup.Done()
+			for task := range taskQueue {
+				// Check if context is cancelled
+				select {
+				case <-taskCtx.Done():
+					return
+				default:
+				}
+
+				// Use the handler to process the task
+				outputs, err := handler.HandleTask(taskCtx, task, inputs, siteName)
+				if err != nil {
+					select {
+					case taskResultsChan <- StageTaskResult{
+						TaskName: task.Name,
+						Outputs:  nil,
+						Error:    err,
+					}:
+					case <-taskCtx.Done():
+					}
+					return
+				}
+
+				select {
+				case taskResultsChan <- StageTaskResult{
+					TaskName: task.Name,
+					Outputs:  outputs,
+					Error:    nil,
+				}:
+				case <-taskCtx.Done():
+				}
+			}
+		}()
+	}
+
+	// Start result monitor
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for result := range taskResultsChan {
+			if result.Error != nil {
+				taskProcessor.TaskErrors = append(taskProcessor.TaskErrors, result.Error)
+				taskProcessor.ErrorCount++
+				currentErrorCount := taskProcessor.ErrorCount
+
+				// Check error action conditions
+				if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
+					cancel() // Stop all tasks
+					return
+				} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
+					if currentErrorCount >= errorAction.MaxToleratedFailures {
+						cancel() // Stop all tasks
+						return
+					}
+				}
+			} else {
+				taskProcessor.TaskResults[result.TaskName] = result.Outputs
+			}
+		}
+	}()
+
+	// Wait for all tasks to complete
+	taskWaitGroup.Wait()
+
+	// Close results channel after all tasks are done
+	close(taskResultsChan)
+
+	// Wait for result monitor to finish processing
+	<-done
+
+	// Check final error state
+	var err error
+	if len(taskProcessor.TaskErrors) > 0 {
+		if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
+			err = taskProcessor.TaskErrors[0] // Return the first error
+		} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
+			if taskProcessor.ErrorCount >= errorAction.MaxToleratedFailures {
+				err = v1alpha2.COAError{
+					State:   v1alpha2.InternalError,
+					Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", errorAction.MaxToleratedFailures),
+				}
+			} else {
+				log.WarnfCtx(ctx, " M (Stage): did not exceed maximum tolerated failures (%d), continuing to process stage", errorAction.MaxToleratedFailures)
+				log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
+				err = nil
+			}
+		} else {
+			log.WarnfCtx(ctx, " M (Stage): no error action mode is specified, continuing to process stage")
+			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
+			err = nil
+		}
+	}
+
+	return taskProcessor.TaskResults, err
+}
+
+func (s *StageManager) processTasks(ctx context.Context, currentStage model.StageSpec, inputCopy map[string]interface{}, triggerData v1alpha2.ActivationData, triggers map[string]interface{}, siteName string) (map[string]interface{}, error) {
+	if len(currentStage.Tasks) == 0 {
+		return make(map[string]interface{}), nil
+	}
+
+	log.InfofCtx(ctx, " M (Stage): processing tasks for site %s", inputCopy["__site"])
+
+	// Create task processor and handler
+	processor := NewGoRoutineTaskProcessor(s, ctx)
+	handler := NewCampaignTaskHandler(s, triggerData, triggers)
+
+	// Process tasks using the processor
+	return processor.Process(ctx, currentStage.Tasks, inputCopy, handler, currentStage.TaskOption.ErrorAction, currentStage.TaskOption.Concurrency, siteName)
+}
+
 func (t *StageResult) GetError() error {
 	if t.Error != nil {
 		return t.Error
@@ -432,181 +674,6 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	return ret
 }
 
-func (s *StageManager) processTasks(ctx context.Context, currentStage model.StageSpec, inputCopy map[string]interface{}, triggerData v1alpha2.ActivationData, triggers map[string]interface{}) (map[string]interface{}, error) {
-	if len(currentStage.Tasks) == 0 {
-		return make(map[string]interface{}), nil
-	}
-
-	log.InfofCtx(ctx, " M (Stage): processing tasks for site %s", inputCopy["__site"])
-
-	// Create a context with cancellation to handle early stop
-	taskCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// Create channels for task coordination
-	taskResultsChan := make(chan StageTaskResult, len(currentStage.Tasks))
-	taskQueue := make(chan model.TaskSpec, len(currentStage.Tasks))
-
-	// Track task completion
-	taskWaitGroup := sync.WaitGroup{}
-
-	// Track errors and results
-	taskProcessor := StageTaskProcessor{
-		TaskResults: make(map[string]interface{}),
-		TaskErrors:  make([]error, 0),
-		ErrorCount:  0,
-	}
-
-	// Queue all tasks
-	for _, task := range currentStage.Tasks {
-		taskQueue <- task
-	}
-	close(taskQueue)
-
-	// Start worker pool - use min of concurrency and number of tasks
-	numWorkers := currentStage.TaskOption.Concurrency
-	if numWorkers > len(currentStage.Tasks) {
-		numWorkers = len(currentStage.Tasks)
-	}
-	for i := 0; i < numWorkers; i++ {
-		taskWaitGroup.Add(1)
-		go func() {
-			defer taskWaitGroup.Done()
-			for task := range taskQueue {
-				// Check if context is cancelled
-				select {
-				case <-taskCtx.Done():
-					return
-				default:
-				}
-
-				// Create task-specific inputs
-				taskInputs := utils.MergeCollection_StringAny(inputCopy, task.Inputs)
-
-				// Trace value on task inputs again
-				for k, v := range taskInputs {
-					var val interface{}
-					val, err := s.traceValue(ctx, v, triggerData.Namespace, taskInputs, triggers, triggerData.Outputs)
-					if err != nil {
-						select {
-						case taskResultsChan <- StageTaskResult{
-							TaskName: task.Name,
-							Outputs:  nil,
-							Error:    err,
-						}:
-						case <-taskCtx.Done():
-						}
-						return
-					}
-					taskInputs[k] = val
-				}
-
-				// Create task provider
-				factory := symproviders.SymphonyProviderFactory{}
-				taskProvider, err := factory.CreateProvider(task.Provider, task.Config)
-				if err != nil {
-					select {
-					case taskResultsChan <- StageTaskResult{
-						TaskName: task.Name,
-						Outputs:  nil,
-						Error:    err,
-					}:
-					case <-taskCtx.Done():
-					}
-					return
-				}
-
-				if _, ok := taskProvider.(contexts.IWithManagerContext); ok {
-					taskProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
-				}
-
-				// Process task
-				outputs, _, err := taskProvider.(stage.IStageProvider).Process(taskCtx, *s.Manager.Context, taskInputs)
-				if err != nil {
-					select {
-					case taskResultsChan <- StageTaskResult{
-						TaskName: task.Name,
-						Outputs:  nil,
-						Error:    err,
-					}:
-					case <-taskCtx.Done():
-					}
-					return
-				}
-
-				select {
-				case taskResultsChan <- StageTaskResult{
-					TaskName: task.Name,
-					Outputs:  outputs,
-					Error:    nil,
-				}:
-				case <-taskCtx.Done():
-				}
-			}
-		}()
-	}
-
-	// Start result monitor
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		for result := range taskResultsChan {
-			if result.Error != nil {
-				taskProcessor.TaskErrors = append(taskProcessor.TaskErrors, result.Error)
-				taskProcessor.ErrorCount++
-				currentErrorCount := taskProcessor.ErrorCount
-
-				// Check error action conditions
-				if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-					cancel() // Stop all tasks
-					return
-				} else if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnNFailures {
-					if currentErrorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
-						cancel() // Stop all tasks
-						return
-					}
-				}
-			} else {
-				taskProcessor.TaskResults[result.TaskName] = result.Outputs
-			}
-		}
-	}()
-
-	// Wait for all tasks to complete
-	taskWaitGroup.Wait()
-
-	// Close results channel after all tasks are done
-	close(taskResultsChan)
-
-	// Wait for result monitor to finish processing
-	<-done
-
-	// Check final error state
-	var err error
-	if len(taskProcessor.TaskErrors) > 0 {
-		if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-			err = taskProcessor.TaskErrors[0] // Return the first error
-		} else if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnNFailures {
-			if taskProcessor.ErrorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
-				err = v1alpha2.COAError{
-					State:   v1alpha2.InternalError,
-					Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", currentStage.TaskOption.ErrorAction.MaxToleratedFailures),
-				}
-			} else {
-				log.WarnfCtx(ctx, " M (Stage): did not exceed maximum tolerated failures (%d), continuing to process stage", currentStage.TaskOption.ErrorAction.MaxToleratedFailures)
-				log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
-				err = nil
-			}
-		} else {
-			log.WarnfCtx(ctx, " M (Stage): no error action mode is specified, continuing to process stage")
-			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
-			err = nil
-		}
-	}
-
-	return taskProcessor.TaskResults, err
-}
-
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
@@ -814,9 +881,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				var allOutputs map[string]interface{} = make(map[string]interface{})
 
 				if provider != nil {
-					if _, ok := provider.(*remote.RemoteStageProvider); ok {
+					if remoteStageProvider, ok := provider.(*remote.RemoteStageProvider); ok {
 						remoteStageProviderDefined = true
-						provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
+						remoteStageProvider.SetOutputsContext(triggerData.Outputs)
 					}
 				}
 
@@ -847,7 +914,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						return
 					}
 
-					taskResults, err := s.processTasks(ctx, currentStage, inputCopy, triggerData, triggers)
+					taskResults, err := s.processTasks(ctx, currentStage, inputCopy, triggerData, triggers, site)
 					if err != nil {
 						results <- StageResult{
 							Outputs: allOutputs,
