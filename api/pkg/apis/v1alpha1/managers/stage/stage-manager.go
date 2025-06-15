@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	symproviders "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
@@ -158,6 +157,17 @@ func NewGoRoutineTaskProcessor(manager *StageManager, ctx context.Context) *GoRo
 	}
 }
 
+func shouldStopDispatch(errorAction model.ErrorAction, errorCount int) bool {
+	switch errorAction.Mode {
+	case model.ErrorActionMode_StopOnAnyFailure:
+		return errorCount > 0
+	case model.ErrorActionMode_StopOnNFailures:
+		return errorCount > errorAction.MaxToleratedFailures
+	default:
+		return false
+	}
+}
+
 func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.TaskSpec, inputs map[string]interface{}, handler TaskHandler, errorAction model.ErrorAction, concurrency int, siteName string) (map[string]interface{}, error) {
 	// after introducing parallel workflow, we will have two phases to execute the stage.
 	// 1. if stage.Provider is defined, that means we have a prepare stage to be executed before all tasks.
@@ -176,141 +186,122 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 		return make(map[string]interface{}), nil
 	}
 
-	// TODO: currently there's no way to cancel in task provider, so we didn't cancel the ongoing tasks, instead we just stop new tasks from starting.
 	taskCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Create channels for task coordination
-	taskResultsChan := make(chan StageTaskResult, len(tasks))
-	taskQueue := make(chan model.TaskSpec, len(tasks))
-	stopNewTasks := make(chan struct{}) // New channel to signal stopping new tasks
-	var closeOnce sync.Once             // Add sync.Once to ensure channel is only closed once
+	taskQueue := make(chan model.TaskSpec)
+	taskResultsChan := make(chan StageTaskResult)
 
-	// Track task completion
+	// Track workers and result processor
 	taskWaitGroup := sync.WaitGroup{}
+	done := make(chan struct{})
 
-	// Track errors and results
-	taskProcessor := StageTaskProcessor{
+	// State
+	taskProcessor := &StageTaskProcessor{
 		TaskResults: make(map[string]interface{}),
-		TaskErrors:  make([]error, 0),
+		TaskErrors:  []error{},
 		ErrorCount:  0,
 	}
 
-	// Queue all tasks
-	for _, task := range tasks {
-		taskQueue <- task
-	}
-	close(taskQueue)
-
-	// Start worker pool - use min of concurrency and number of tasks
-	numWorkers := concurrency
-	if numWorkers > len(tasks) {
-		numWorkers = len(tasks)
-	}
-	for i := 0; i < numWorkers; i++ {
+	// Start worker pool
+	for i := 0; i < concurrency; i++ {
 		taskWaitGroup.Add(1)
 		go func() {
 			defer taskWaitGroup.Done()
 			for task := range taskQueue {
-				// Check if we should stop processing new tasks
-				time.Sleep(1 * time.Second) // waiting for result monitor to finish processing
-				select {
-				case <-stopNewTasks:
-					return
-				default:
-				}
-
-				// Use the handler to process the task
 				outputs, err := handler.HandleTask(taskCtx, task, inputs, siteName)
 				if err != nil {
 					outputs = carryOutPutsToErrorStatus(outputs, err, "")
-					select {
-					case taskResultsChan <- StageTaskResult{
-						TaskName: task.Name,
-						Outputs:  outputs,
-						Error:    err,
-					}:
-					case <-taskCtx.Done():
-					}
-					// Don't return, continue processing other tasks
-					continue
 				}
-
 				select {
 				case taskResultsChan <- StageTaskResult{
 					TaskName: task.Name,
 					Outputs:  outputs,
-					Error:    nil,
+					Error:    err,
 				}:
 				case <-taskCtx.Done():
+					return
 				}
 			}
 		}()
 	}
 
-	// Start result monitor
-	done := make(chan struct{})
+	// Result monitor and task dispatcher
 	go func() {
 		defer close(done)
-		for result := range taskResultsChan {
-			if result.Error != nil {
-				taskProcessor.TaskErrors = append(taskProcessor.TaskErrors, result.Error)
-				taskProcessor.ErrorCount++
-				currentErrorCount := taskProcessor.ErrorCount
 
-				// Check error action conditions
-				if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-					closeOnce.Do(func() {
-						close(stopNewTasks) // Stop new tasks from starting
-					})
-					// Don't return, continue processing existing results
-				} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
-					if currentErrorCount > errorAction.MaxToleratedFailures {
-						closeOnce.Do(func() {
-							close(stopNewTasks) // Stop new tasks from starting
-						})
-						// Don't return, continue processing existing results
-					}
+		taskIndex := 0
+		pendingTasks := 0
+
+		// Initially dispatch up to `concurrency` tasks
+		for i := 0; i < concurrency && i < len(tasks); i++ {
+			taskQueue <- tasks[taskIndex]
+			taskIndex++
+			pendingTasks++
+		}
+
+		for pendingTasks > 0 {
+			select {
+			case result := <-taskResultsChan:
+				pendingTasks--
+
+				// Track result
+				if result.Error != nil {
+					taskProcessor.TaskErrors = append(taskProcessor.TaskErrors, result.Error)
+					taskProcessor.ErrorCount++
 				}
+				taskProcessor.TaskResults[result.TaskName] = result.Outputs
+
+				// Check if we're allowed to dispatch more
+				if shouldStopDispatch(errorAction, taskProcessor.ErrorCount) {
+					continue
+				}
+
+				// Dispatch next task if available
+				if taskIndex < len(tasks) {
+					taskQueue <- tasks[taskIndex]
+					taskIndex++
+					pendingTasks++
+				}
+
+			case <-taskCtx.Done():
+				return
 			}
-			// populate task results even if there's an error
-			taskProcessor.TaskResults[result.TaskName] = result.Outputs
 		}
 	}()
 
-	// Wait for all tasks to complete
-	taskWaitGroup.Wait()
-
-	// Close results channel after all tasks are done
-	close(taskResultsChan)
-
-	// Wait for result monitor to finish processing
+	// Wait for result monitor to finish dispatching
 	<-done
 
-	// Check final error state
-	var err error
+	// No more tasks will be sent
+	close(taskQueue)
+
+	// Now wait for workers to finish
+	taskWaitGroup.Wait()
+
+	// Close the results channel
+	close(taskResultsChan)
+
+	// Final error decision
 	if len(taskProcessor.TaskErrors) > 0 {
-		if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-			err = taskProcessor.TaskErrors[0] // Return the first error
-		} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
+		switch errorAction.Mode {
+		case model.ErrorActionMode_StopOnAnyFailure:
+			return taskProcessor.TaskResults, taskProcessor.TaskErrors[0]
+		case model.ErrorActionMode_StopOnNFailures:
 			if taskProcessor.ErrorCount > errorAction.MaxToleratedFailures {
-				err = v1alpha2.COAError{
+				return taskProcessor.TaskResults, v1alpha2.COAError{
 					State:   v1alpha2.InternalError,
 					Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", errorAction.MaxToleratedFailures),
 				}
-			} else {
-				log.WarnfCtx(ctx, " M (Stage): did not exceed maximum tolerated failures (%d), continuing to process stage", errorAction.MaxToleratedFailures)
-				log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
-				err = nil
 			}
-		} else {
-			log.WarnfCtx(ctx, " M (Stage): no error action mode is specified, continuing to process stage")
 			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
-			err = nil
+		default:
+			log.WarnfCtx(ctx, " M (Stage): unknown error mode, continuing")
+			log.WarnfCtx(ctx, " M (Stage): task errors: %s", utils.ToJsonString(taskProcessor.TaskErrors))
 		}
 	}
 
-	return taskProcessor.TaskResults, err
+	return taskProcessor.TaskResults, nil
 }
 
 func (s *StageManager) processTasks(ctx context.Context, currentStage model.StageSpec, inputCopy map[string]interface{}, triggerData v1alpha2.ActivationData, triggers map[string]interface{}, siteName string) (map[string]interface{}, error) {
