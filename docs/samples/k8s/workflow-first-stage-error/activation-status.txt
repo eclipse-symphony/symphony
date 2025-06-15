@@ -7,15 +7,15 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-15T18:26:02Z"
+    creationTimestamp: "2025-06-15T19:55:56Z"
     generation: 1
     labels:
-      campaignUid: c21891e0-11c9-4ca3-ab8b-5934415fae75
+      campaignUid: 10018fde-3ad9-4599-a452-9832cf9531ac
       statusMessage: InternalError
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "21011"
-    uid: 4a6fceda-5798-4522-980f-25589f066361
+    resourceVersion: "30260"
+    uid: 469db80b-a328-405f-b3e7-cd920218d693
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
@@ -41,7 +41,7 @@ items:
       statusMessage: Internal Error
     status: 500
     statusMessage: Internal Error
-    updateTime: "2025-06-15T18:26:03Z"
+    updateTime: "2025-06-15T19:55:57Z"
 kind: List
 metadata:
   resourceVersion: ""

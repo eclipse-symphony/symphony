@@ -993,8 +993,8 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				if result.Site == s.Context.SiteInfo.SiteId {
 					site = ""
 				}
-				status.Outputs = carryOutPutsToErrorStatus(nil, err, site)
-				result.Outputs = carryOutPutsToErrorStatus(nil, err, site)
+				status.Outputs = carryOutPutsToErrorStatus(result.Outputs, err, site)
+				result.Outputs = carryOutPutsToErrorStatus(result.Outputs, err, site)
 				log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
 				hasStageError = true
 			}

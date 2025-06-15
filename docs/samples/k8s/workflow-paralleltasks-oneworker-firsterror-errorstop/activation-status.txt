@@ -7,15 +7,15 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-15T18:35:23Z"
+    creationTimestamp: "2025-06-15T19:52:17Z"
     generation: 1
     labels:
-      campaignUid: c21891e0-11c9-4ca3-ab8b-5934415fae75
+      campaignUid: 10018fde-3ad9-4599-a452-9832cf9531ac
       statusMessage: InternalError
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "22108"
-    uid: 796147b1-bb1e-4e92-a02a-849b41a2c1d7
+    resourceVersion: "29933"
+    uid: 4862cace-2b9f-44ae-8d91-dd1c432512bf
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
@@ -41,15 +41,19 @@ items:
           objectName: instance
           objectType: instance
       outputs:
-        __error: 'Bad Config: task provider providers.stage.invalid is not found,
-          skipping task task1 for site hq'
-        __status: 1000
+        __error: 'Internal Error: Task failed 1 times, error action is stop on any
+          failure'
+        __status: 500
+        task1:
+          __error: 'Bad Config: task provider providers.stage.invalid is not found,
+            skipping task task1 for site hq'
+          __status: 1000
       stage: stage1
       status: 500
       statusMessage: Internal Error
     status: 500
     statusMessage: Internal Error
-    updateTime: "2025-06-15T18:35:23Z"
+    updateTime: "2025-06-15T19:52:17Z"
 kind: List
 metadata:
   resourceVersion: ""
