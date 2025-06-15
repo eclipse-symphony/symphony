@@ -930,6 +930,19 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					return
 				}
 
+				// 6.1. If triggerData.provider exists, follow current flow to process, collect the output.
+				if provider != nil {
+					var outputs map[string]interface{}
+					var pause bool
+					outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+
+					if pause {
+						log.InfofCtx(ctx, " M (Stage): stage %s in activation %s for site %s get paused result from stage provider", triggerData.Stage, triggerData.Activation, site)
+						pauseRequested = true
+					}
+					allOutputs = utils.MergeCollection_StringAny(allOutputs, outputs)
+				}
+
 				// 6.2 & 6.3 If currentStage.task exists, process tasks with concurrency
 				if len(currentStage.Tasks) > 0 {
 					if remoteStageProviderDefined {
