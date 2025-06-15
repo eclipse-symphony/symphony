@@ -1571,6 +1571,41 @@ func TestTaskErrorHandling(t *testing.T) {
 	assert.Equal(t, 1, len(results))
 	assert.Contains(t, results, "task2")
 	assert.NotContains(t, results, "task1")
+
+	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 1
+	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode:                 model.ErrorActionMode_StopOnNFailures,
+		MaxToleratedFailures: 1,
+	}, 2, "test-site")
+
+	// Verify error handling
+	assert.NotNil(t, err)
+	assert.Equal(t, 1, len(results))
+	assert.Contains(t, results, "task2")
+	assert.NotContains(t, results, "task1")
+
+	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 2
+	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode:                 model.ErrorActionMode_StopOnNFailures,
+		MaxToleratedFailures: 2,
+	}, 2, "test-site")
+
+	// Verify error handling
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(results))
+	assert.Contains(t, results, "task2")
+	assert.NotContains(t, results, "task1")
+
+	// Test error handling with ErrorActionMode_SilentlyContinue
+	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode: model.ErrorActionMode_SilentlyContinue,
+	}, 2, "test-site")
+
+	// Verify error handling
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(results))
+	assert.Contains(t, results, "task2")
+	assert.NotContains(t, results, "task1")
 }
 
 func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
