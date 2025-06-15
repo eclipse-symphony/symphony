@@ -398,8 +398,20 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 		for k, v := range current.Outputs {
 			// remove outputs for internal tracking use
 			if !strings.HasPrefix(k, "__") {
-				output[k] = v
+				if taskResult, ok := v.(map[string]interface{}); ok {
+					// remove outputs for internal tracking use
+					newTaskResult := make(map[string]interface{})
+					for k, v := range taskResult {
+						if !strings.HasPrefix(k, "__") && (!strings.HasSuffix(k, "__status") || !strings.HasSuffix(k, "__error")) {
+							newTaskResult[k] = v
+						}
+					}
+					output[k] = newTaskResult
+				} else {
+					output[k] = v
+				}
 			}
+
 		}
 		outputBytes, _ := json.Marshal(output)
 		parentStageStatus.Outputs[fmt.Sprintf("%s.__output", site)] = string(outputBytes)

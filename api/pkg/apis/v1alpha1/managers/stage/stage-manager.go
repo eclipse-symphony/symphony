@@ -183,6 +183,7 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 	taskResultsChan := make(chan StageTaskResult, len(tasks))
 	taskQueue := make(chan model.TaskSpec, len(tasks))
 	stopNewTasks := make(chan struct{}) // New channel to signal stopping new tasks
+	var closeOnce sync.Once             // Add sync.Once to ensure channel is only closed once
 
 	// Track task completion
 	taskWaitGroup := sync.WaitGroup{}
@@ -220,7 +221,7 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 				// Use the handler to process the task
 				outputs, err := handler.HandleTask(taskCtx, task, inputs, siteName)
 				if err != nil {
-					outputs = carryOutPutsToErrorStatus(outputs, err, task.Target)
+					outputs = carryOutPutsToErrorStatus(outputs, err, "")
 					select {
 					case taskResultsChan <- StageTaskResult{
 						TaskName: task.Name,
@@ -257,11 +258,15 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 
 				// Check error action conditions
 				if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
-					close(stopNewTasks) // Stop new tasks from starting
+					closeOnce.Do(func() {
+						close(stopNewTasks) // Stop new tasks from starting
+					})
 					// Don't return, continue processing existing results
 				} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
-					if currentErrorCount >= errorAction.MaxToleratedFailures {
-						close(stopNewTasks) // Stop new tasks from starting
+					if currentErrorCount > errorAction.MaxToleratedFailures {
+						closeOnce.Do(func() {
+							close(stopNewTasks) // Stop new tasks from starting
+						})
 						// Don't return, continue processing existing results
 					}
 				}
@@ -286,7 +291,7 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 		if errorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
 			err = taskProcessor.TaskErrors[0] // Return the first error
 		} else if errorAction.Mode == model.ErrorActionMode_StopOnNFailures {
-			if taskProcessor.ErrorCount >= errorAction.MaxToleratedFailures {
+			if taskProcessor.ErrorCount > errorAction.MaxToleratedFailures {
 				err = v1alpha2.COAError{
 					State:   v1alpha2.InternalError,
 					Message: fmt.Sprintf("exceeded maximum tolerated failures (%d)", errorAction.MaxToleratedFailures),

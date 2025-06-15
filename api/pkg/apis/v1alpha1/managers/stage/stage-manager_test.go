@@ -1570,9 +1570,23 @@ func TestTaskErrorHandling(t *testing.T) {
 
 	// Verify error handling
 	assert.NotNil(t, err)
-	assert.Equal(t, 1, len(results))
-	assert.Contains(t, results, "task2")
-	assert.NotContains(t, results, "task1")
+	assert.Equal(t, 2, len(results))
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
+
+	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 0
+	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
+		Mode:                 model.ErrorActionMode_StopOnNFailures,
+		MaxToleratedFailures: 0,
+	}, 2, "test-site")
+
+	// Verify error handling
+	assert.NotNil(t, err)
+	assert.Equal(t, 2, len(results))
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 
 	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 1
 	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
@@ -1581,22 +1595,11 @@ func TestTaskErrorHandling(t *testing.T) {
 	}, 2, "test-site")
 
 	// Verify error handling
-	assert.NotNil(t, err)
-	assert.Equal(t, 1, len(results))
-	assert.Contains(t, results, "task2")
-	assert.NotContains(t, results, "task1")
-
-	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 2
-	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
-		Mode:                 model.ErrorActionMode_StopOnNFailures,
-		MaxToleratedFailures: 2,
-	}, 2, "test-site")
-
-	// Verify error handling
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(results))
-	assert.Contains(t, results, "task2")
-	assert.NotContains(t, results, "task1")
+	assert.Equal(t, 2, len(results))
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 
 	// Test error handling with ErrorActionMode_SilentlyContinue
 	results, err = processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
@@ -1605,9 +1608,10 @@ func TestTaskErrorHandling(t *testing.T) {
 
 	// Verify error handling
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(results))
-	assert.Contains(t, results, "task2")
-	assert.NotContains(t, results, "task1")
+	assert.Equal(t, 2, len(results))
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 }
 
 func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
@@ -1631,7 +1635,7 @@ func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
 		},
 		{
 			Name:     "task2",
-			Provider: "providers.stage.mock",
+			Provider: "providers.stage.invalid",
 			Config:   map[string]string{},
 		},
 		{
@@ -1648,12 +1652,22 @@ func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
 	// Test error handling with StopOnAnyFailure
 	results, err := processor.Process(ctx, tasks, triggerData.Inputs, handler, model.ErrorAction{
 		Mode: model.ErrorActionMode_StopOnAnyFailure,
-	}, 2, "test-site")
+	}, 1, "test-site")
 
 	// Verify error handling
 	assert.NotNil(t, err)
-	assert.NotContains(t, results, "task1")
-	assert.GreaterOrEqual(t, len(results), 1) // at least one task should be executed
+	assert.LessOrEqual(t, 2, len(results))
+	if results["task1"] != nil {
+		assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
+		assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	}
+	if results["task2"] != nil {
+		assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["__status"])
+		assert.NotNil(t, results["task2"].(map[string]interface{})["__error"])
+	}
+	if results["task3"] != nil {
+		assert.Nil(t, results["task3"].(map[string]interface{})["__error"])
+	}
 }
 
 func TestTaskConcurrencyControl(t *testing.T) {
