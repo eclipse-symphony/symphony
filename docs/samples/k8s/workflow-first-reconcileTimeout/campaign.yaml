@@ -1,0 +1,52 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: context1-v-bulk-campaign
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign"
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: context1-v-bulk-campaign-v-version1
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"
+spec:
+  rootResource: context1-v-bulk-campaign
+  firstStage: "stage1"
+  selfDriving: true
+  stages:
+    stage1:
+      name: "stage1"
+      provider: "providers.stage.create"      
+      stageSelector: "stage2"
+      target: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1"
+      config:
+        wait.count: 12
+        wait.interval: 5
+      inputs:
+        action: create
+        object:
+          metadata:
+            name: "instance"
+          spec:
+            solution: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1/versions/version1"
+        objectName: "instance"
+        objectType: "instance"
+    stage2:
+      name: "stage2"
+      provider: "providers.stage.create"
+      target: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target2"
+      config:
+        wait.count: 12
+        wait.interval: 5
+      inputs:
+        action: create
+        object:
+          metadata:
+            name: "instance"
+          spec:
+            solution: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target2/solutions/sol1/versions/version1"
+        objectName: "instance"
+        objectType: "instance"

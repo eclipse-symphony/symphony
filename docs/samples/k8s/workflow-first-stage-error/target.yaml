@@ -1,0 +1,31 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target1 
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1"
+spec:
+  solutionScope: "target1"
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: helm.v3
+      provider: providers.target.helm
+      config:
+        inCluster: "true"
+---
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: target2 
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target2"
+spec:
+  solutionScope: "target2"
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: helm.v3
+      provider: providers.target.helm
+      config:
+        inCluster: "true"

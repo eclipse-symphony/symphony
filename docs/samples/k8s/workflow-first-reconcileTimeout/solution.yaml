@@ -1,0 +1,35 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: target1-v-sol1-v-version1
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1/versions/version1"
+spec:
+  rootResource: target1-v-sol1
+  components:
+  - name: sol1
+    type: helm.v3
+    properties:
+      chart:
+        "repo": "ghcr.io/eclipse-symphony/tests/helm/invalid-chart"
+        "version": "0.3.0"
+        "wait": true
+        "timeout": "5m"
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: target2-v-sol1-v-version1
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target2/solutions/sol1/versions/version1"
+spec:
+  rootResource: target2-v-sol1
+  components:
+  - name: sol1
+    type: helm.v3
+    properties:
+      chart:
+        "repo": "ghcr.io/eclipse-symphony/tests/helm/simple-chart"
+        "version": "0.3.0"
+        "wait": true
+        "timeout": "5m"

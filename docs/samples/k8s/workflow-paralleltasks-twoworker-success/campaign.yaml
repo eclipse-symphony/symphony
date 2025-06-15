@@ -19,12 +19,13 @@ spec:
   stages:
     stage1:
       taskOption:
-        concurrency: 1
+        concurrency: 2
         errorAction:
-          mode: stopOnAnyFailure
+          mode: silentlyContinue
+          # maxToleratedFailures: 1
       tasks:
         - name: "task1"
-          provider: "providers.stage.invalid"
+          provider: "providers.stage.create"
           target: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1"
           config:
             wait.count: 12

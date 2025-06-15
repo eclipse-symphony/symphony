@@ -21,7 +21,8 @@ spec:
       taskOption:
         concurrency: 1
         errorAction:
-          mode: stopOnAnyFailure
+          mode: stopOnNFailures
+          maxToleratedFailures: 0
       tasks:
         - name: "task1"
           provider: "providers.stage.invalid"
