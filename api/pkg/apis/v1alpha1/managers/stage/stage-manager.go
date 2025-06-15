@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	symproviders "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
@@ -212,6 +213,7 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 			defer taskWaitGroup.Done()
 			for task := range taskQueue {
 				// Check if we should stop processing new tasks
+				time.Sleep(1 * time.Second) // waiting for result monitor to finish processing
 				select {
 				case <-stopNewTasks:
 					return
