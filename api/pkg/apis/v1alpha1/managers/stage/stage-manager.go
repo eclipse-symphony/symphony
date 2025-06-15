@@ -38,13 +38,19 @@ type StageManager struct {
 	apiClient     utils.ApiClient
 }
 
-type TaskResult struct {
+type StageResult struct {
 	Outputs map[string]interface{}
 	Site    string
 	Error   error
 }
 
-func (t *TaskResult) GetError() error {
+type StageTaskResult struct {
+	Outputs  map[string]interface{}
+	Error    error
+	TaskName string
+}
+
+func (t *StageResult) GetError() error {
 	if t.Error != nil {
 		return t.Error
 	}
@@ -366,7 +372,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	var outputs map[string]interface{}
 	outputs, _, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
 
-	result := TaskResult{
+	result := StageResult{
 		Outputs: outputs,
 		Error:   err,
 		Site:    s.VendorContext.SiteInfo.SiteId,
@@ -419,6 +425,7 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, site s
 	}
 	return ret
 }
+
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
@@ -440,6 +447,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	var activationData *v1alpha2.ActivationData
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
 		sites := make([]string, 0)
+		// 1. According to campaign.Contexts, find out which sites will be executed
 		if currentStage.Contexts != "" {
 			log.InfofCtx(ctx, " M (Stage): evaluating context %s", currentStage.Contexts)
 			parser := utils.NewParser(currentStage.Contexts)
@@ -485,7 +493,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		} else {
 			sites = append(sites, s.VendorContext.SiteInfo.SiteId)
 		}
+		log.DebugfCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s, executed on sites {%s}", triggerData.Campaign, triggerData.Activation, triggerData.Stage, strings.Join(sites, ", "))
 
+		// 2. According to triggerData.Inputs and currentStage.Inputs, together with default inputs to generate the runtime inputs
 		triggers := triggerData.Inputs
 		if triggers == nil {
 			triggers = make(map[string]interface{})
@@ -521,12 +531,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 			inputs[k] = val
 		}
-		status.Inputs = map[string]interface{}{}
-		for k, v := range inputs {
-			if !strings.HasPrefix(k, "__") {
-				status.Inputs[k] = v
-			}
-		}
 
 		if triggerData.Outputs != nil {
 			if v, ok := triggerData.Outputs[triggerData.Stage]; ok {
@@ -536,43 +540,85 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 		}
 
-		factory := symproviders.SymphonyProviderFactory{}
+		// 3. Snapshot the inputs from #2
+		snapshotInputs := utils.DeepCopyCollection(inputs)
+
+		// 4. Duplicate inputs from #2, then iterate campaign.task.inputs
+		inputsWithStageAndTasks := utils.DeepCopyCollectionWithPrefixExclude(inputs, "__")
+		if len(currentStage.Tasks) > 0 {
+			for _, task := range currentStage.Tasks {
+				for k, v := range task.Inputs {
+					if task.Name == "" {
+						log.ErrorfCtx(ctx, " M (Stage): task name is empty, cannot process inputs for task: %v", task)
+						status.Status = v1alpha2.BadConfig
+						status.StatusMessage = v1alpha2.BadConfig.String()
+						status.ErrorMessage = fmt.Sprintf("task name is empty for task: %v", task)
+						status.IsActive = false
+						return status, activationData
+					}
+					if _, ok := inputsWithStageAndTasks[task.Name]; !ok {
+						inputsWithStageAndTasks[task.Name] = make(map[string]interface{})
+					}
+					inputsWithStageAndTasks[task.Name].(map[string]interface{})[k] = v
+				}
+			}
+		}
+		status.Inputs = inputsWithStageAndTasks
+
+		// 5. If campaign.provider exists, initialize a provider
 		var provider providers.IProvider
-		provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
-		if err != nil {
-			status.Status = v1alpha2.InternalError
-			status.StatusMessage = v1alpha2.InternalError.String()
-			status.ErrorMessage = err.Error()
-			status.IsActive = false
-			log.ErrorfCtx(ctx, " M (Stage): failed to create provider: %v", err)
-			return status, activationData
-		}
-		if provider == nil {
-			status.Status = v1alpha2.BadRequest
-			status.StatusMessage = v1alpha2.BadRequest.String()
-			status.ErrorMessage = fmt.Sprintf("provider %s is not found", triggerData.Provider)
-			status.IsActive = false
-			log.ErrorfCtx(ctx, " M (Stage): failed to create provider: %v", err)
-			return status, activationData
+		if triggerData.Provider != "" {
+			factory := symproviders.SymphonyProviderFactory{}
+			provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
+			if err != nil {
+				status.Status = v1alpha2.InternalError
+				status.StatusMessage = v1alpha2.InternalError.String()
+				status.ErrorMessage = err.Error()
+				status.IsActive = false
+				log.ErrorfCtx(ctx, " M (Stage): failed to create provider: %v", err)
+				return status, activationData
+			}
+			if provider == nil {
+				status.Status = v1alpha2.BadRequest
+				status.StatusMessage = v1alpha2.BadRequest.String()
+				status.ErrorMessage = fmt.Sprintf("provider %s is not found", triggerData.Provider)
+				status.IsActive = false
+				log.ErrorfCtx(ctx, " M (Stage): failed to create provider: %v", err)
+				return status, activationData
+			}
+
+			if _, ok := provider.(contexts.IWithManagerContext); ok {
+				provider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+			} else {
+				log.ErrorfCtx(ctx, " M (Stage): provider %s does not implement IWithManagerContext", triggerData.Provider)
+			}
 		}
 
-		if _, ok := provider.(contexts.IWithManagerContext); ok {
-			provider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
-		} else {
-			log.ErrorfCtx(ctx, " M (Stage): provider %s does not implement IWithManagerContext", triggerData.Provider)
-		}
-
+		// 6. Iterate all sites, start multiple go routines
 		numTasks := len(sites)
 		waitGroup := sync.WaitGroup{}
-		results := make(chan TaskResult, numTasks)
+		results := make(chan StageResult, numTasks)
 		pauseRequested := false
 
 		for _, site := range sites {
 			waitGroup.Add(1)
-			go func(wg *sync.WaitGroup, site string, results chan<- TaskResult) {
+			go func(wg *sync.WaitGroup, site string, results chan<- StageResult) {
+				// after introducing parallel workflow, we will have two phases to execute the stage.
+				// 1. if stage.Provider is defined, that means we have a prepare stage to be executed before all tasks.
+				// 2. if stage.tasks is defined, that means we have several tasks to be executed in parallel, concurrency will be controlled by taskOption.concurrency
+				//    each task will be executed in parallel and the results will be collected in a channel.
+				//    for each stage.task, we will create a goroutine to execute the task.
+				//        input will be stage.input + task.input
+				//		  output will be aggregated to stage.output.task.name
+				//    stage.status will be determined by prepare-stage and tasks's status + taskOption.errorAction
+				// TODO: remote stage provider cannot be worked with parallel tasks, so we will not support remote stage provider for now.
+				// TODO: we cannot run remote stage provider in tasks.
+				// TODO: In future, we will combine two parallel ways - remote stage provider (cross-cluster) and tasks (in-cluster).
+				// TODO: provide ways to parse task.Input accroding to prepare provider's output.
+
 				defer wg.Done()
 				inputCopy := make(map[string]interface{})
-				for k, v := range inputs {
+				for k, v := range snapshotInputs {
 					inputCopy[k] = v
 				}
 				inputCopy["__site"] = site
@@ -586,7 +632,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						status.ErrorMessage = err.Error()
 						status.IsActive = false
 						log.ErrorfCtx(ctx, " M (Stage): failed to evaluate input: %v", err)
-						results <- TaskResult{
+						results <- StageResult{
 							Outputs: nil,
 							Error:   err,
 							Site:    site,
@@ -596,8 +642,14 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					inputCopy[k] = val
 				}
 
-				if _, ok := provider.(*remote.RemoteStageProvider); ok {
-					provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
+				var remoteStageProviderDefined bool = false
+				var allOutputs map[string]interface{} = make(map[string]interface{})
+
+				if provider != nil {
+					if _, ok := provider.(*remote.RemoteStageProvider); ok {
+						remoteStageProviderDefined = true
+						provider.(*remote.RemoteStageProvider).SetOutputsContext(triggerData.Outputs)
+					}
 				}
 
 				if triggerData.Schedule != "" {
@@ -607,25 +659,228 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						Context: ctx,
 					})
 					pauseRequested = true
-					results <- TaskResult{
+					results <- StageResult{
 						Outputs: nil,
 						Error:   nil,
 						Site:    site,
 					}
-				} else {
+					return
+				}
+
+				// 6.1 If triggerData.provider exists, process it
+				if provider != nil {
 					var outputs map[string]interface{}
 					var pause bool
 					outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
 
+					// parse == true only happens when the stage provider is remote and it returns a pause request
 					if pause {
 						log.InfofCtx(ctx, " M (Stage): stage %s in activation %s for site %s get paused result from stage provider", triggerData.Stage, triggerData.Activation, site)
 						pauseRequested = true
 					}
-					results <- TaskResult{
-						Outputs: outputs,
+					if err != nil {
+						results <- StageResult{
+							Outputs: outputs,
+							Error:   err,
+							Site:    site,
+						}
+						return
+					} else {
+						// will merge outputs and wait for currentStage.Tasks to finish
+						allOutputs = utils.MergeCollection_StringAny(allOutputs, outputs)
+					}
+				}
+
+				// 6.2 & 6.3 If currentStage.task exists, process tasks with concurrency
+				if len(currentStage.Tasks) > 0 {
+					if remoteStageProviderDefined {
+						log.ErrorfCtx(ctx, " M (Stage): remote stage provider cannot be used with parallel tasks, skipping tasks execution for site %s", site)
+						results <- StageResult{
+							Outputs: allOutputs,
+							Error:   nil,
+							Site:    site,
+						}
+						return
+					}
+
+					log.InfofCtx(ctx, " M (Stage): processing tasks for site %s", site)
+
+					// Create a context with cancellation to handle early stop
+					taskCtx, cancel := context.WithCancel(ctx)
+					defer cancel()
+
+					// Create channels for task coordination
+					taskResultsChan := make(chan StageTaskResult, len(currentStage.Tasks))
+					taskQueue := make(chan model.TaskSpec, len(currentStage.Tasks))
+
+					// Track task completion
+					taskWaitGroup := sync.WaitGroup{}
+
+					// Track errors and results
+					taskResults := make(map[string]interface{})
+					taskErrors := make([]error, 0)
+					errorCount := 0
+					var errorMutex sync.Mutex
+
+					// Queue all tasks
+					for _, task := range currentStage.Tasks {
+						taskQueue <- task
+					}
+					close(taskQueue)
+
+					// Start worker pool
+					for i := 0; i < currentStage.TaskOption.Concurrency; i++ {
+						taskWaitGroup.Add(1)
+						go func() {
+							defer taskWaitGroup.Done()
+							for task := range taskQueue {
+								// Check if context is cancelled
+								select {
+								case <-taskCtx.Done():
+									return
+								default:
+								}
+
+								// Create task-specific inputs
+								taskInputs := utils.MergeCollection_StringAny(inputCopy, task.Inputs)
+
+								// Trace value on task inputs again
+								for k, v := range taskInputs {
+									var val interface{}
+									val, err = s.traceValue(ctx, v, triggerData.Namespace, taskInputs, triggers, triggerData.Outputs)
+									if err != nil {
+										select {
+										case taskResultsChan <- StageTaskResult{
+											TaskName: task.Name,
+											Outputs:  nil,
+											Error:    fmt.Errorf("failed to evaluate input: %v", err),
+										}:
+										case <-taskCtx.Done():
+										}
+										return
+									}
+									taskInputs[k] = val
+								}
+
+								// Create task provider
+								factory := symproviders.SymphonyProviderFactory{}
+								taskProvider, err := factory.CreateProvider(task.Provider, task.Config)
+								if err != nil {
+									select {
+									case taskResultsChan <- StageTaskResult{
+										TaskName: task.Name,
+										Outputs:  nil,
+										Error:    fmt.Errorf("failed to create task provider %s: %v", task.Name, err),
+									}:
+									case <-taskCtx.Done():
+									}
+									return
+								}
+
+								if _, ok := provider.(*remote.RemoteStageProvider); ok {
+									select {
+									case taskResultsChan <- StageTaskResult{
+										TaskName: task.Name,
+										Outputs:  nil,
+										Error:    fmt.Errorf("remote stage provider cannot be used with tasks, skipping task %s for site %s", task.Name, site),
+									}:
+									case <-taskCtx.Done():
+									}
+									return
+								}
+
+								if _, ok := taskProvider.(contexts.IWithManagerContext); ok {
+									taskProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+								}
+
+								// Process task
+								outputs, _, err := taskProvider.(stage.IStageProvider).Process(taskCtx, *s.Manager.Context, taskInputs)
+								if err != nil {
+									select {
+									case taskResultsChan <- StageTaskResult{
+										TaskName: task.Name,
+										Outputs:  nil,
+										Error:    fmt.Errorf("task %s failed: %v", task.Name, err),
+									}:
+									case <-taskCtx.Done():
+									}
+									return
+								}
+
+								select {
+								case taskResultsChan <- StageTaskResult{
+									TaskName: task.Name,
+									Outputs:  outputs,
+									Error:    nil,
+								}:
+								case <-taskCtx.Done():
+								}
+							}
+						}()
+					}
+
+					// Start result monitor
+					done := make(chan struct{})
+					go func() {
+						defer close(done)
+						for result := range taskResultsChan {
+							if result.Error != nil {
+								errorMutex.Lock()
+								taskErrors = append(taskErrors, result.Error)
+								errorCount++
+								currentErrorCount := errorCount
+								errorMutex.Unlock()
+
+								// Check error action conditions
+								if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
+									cancel() // Stop all tasks
+									return
+								} else if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnNFailures {
+									if currentErrorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
+										cancel() // Stop all tasks
+										return
+									}
+								}
+							} else {
+								taskResults[result.TaskName] = result.Outputs
+							}
+						}
+					}()
+
+					// Wait for all tasks to complete
+					taskWaitGroup.Wait()
+
+					// Close results channel after all tasks are done
+					close(taskResultsChan)
+
+					// Wait for result monitor to finish processing
+					<-done
+
+					// Check final error state
+					var err error = nil
+					if len(taskErrors) > 0 {
+						if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnAnyFailure {
+							err = taskErrors[0] // Return the first error
+						} else if currentStage.TaskOption.ErrorAction.Mode == model.ErrorActionMode_StopOnNFailures {
+							if errorCount >= currentStage.TaskOption.ErrorAction.MaxToleratedFailures {
+								err = fmt.Errorf("exceeded maximum tolerated failures (%d)", currentStage.TaskOption.ErrorAction.MaxToleratedFailures)
+							} else {
+								err = fmt.Errorf("task errors: %v", taskErrors)
+							}
+						} else {
+							err = fmt.Errorf("task errors: %v", taskErrors)
+						}
+					}
+
+					// Merge results and return
+					allOutputs = utils.MergeCollection_StringAny(allOutputs, taskResults)
+					results <- StageResult{
+						Outputs: allOutputs,
 						Error:   err,
 						Site:    site,
 					}
+
+					return
 				}
 			}(&waitGroup, site, results)
 		}
@@ -681,6 +936,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			triggerData.Outputs = make(map[string]map[string]interface{})
 		}
 		triggerData.Outputs[triggerData.Stage] = outputs
+
 		// If stage is paused, save the pending task and return paused status
 		if pauseRequested {
 			pendingTask := PendingTask{
@@ -709,6 +965,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			status.IsActive = false
 			return status, activationData
 		}
+
 		if campaign.SelfDriving {
 			parser := utils.NewParser(currentStage.StageSelector)
 			eCtx := s.VendorContext.EvaluationContext.Clone()
