@@ -7,15 +7,15 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-17T10:57:46Z"
+    creationTimestamp: "2025-06-17T12:11:43Z"
     generation: 1
     labels:
-      campaignUid: 1cd822e4-4592-45ec-a795-83ba7c98c93e
+      campaignUid: 4e9e8e7d-d3d5-490e-a729-bf8625bac992
       statusMessage: Done
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "2350"
-    uid: b3103986-4ce3-4537-b313-8a9ad95de9a8
+    resourceVersion: "1634"
+    uid: 8837b910-ba6c-4958-bb0f-91d8f42e8794
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
@@ -42,10 +42,16 @@ items:
       outputs:
         status: 200
         task1:
-          failedDeploymentCount: 0
+          error: 'target1: "An error occurred in Target Update, err: Helm Action Failed:
+            P (Helm Target): failed to pull chart (caused by: failed to resolve ghcr.io/eclipse-symphony/tests/helm/invalid-chart:0.3.0:
+            GET "https://ghcr.io/v2/eclipse-symphony/tests/helm/invalid-chart/manifests/0.3.0":
+            GET "https://ghcr.io/token?scope=repository%3Aeclipse-symphony%2Ftests%2Fhelm%2Finvalid-chart%3Apull&service=ghcr.io":
+            response status code 403: denied: requested access to the resource is
+            denied)"'
+          failedDeploymentCount: 1
           objectName: target1-v-sol1-v-instance
           objectType: instance
-          status: 200
+          status: 400
         task2:
           failedDeploymentCount: 0
           objectName: target2-v-sol1-v-instance
@@ -56,7 +62,7 @@ items:
       statusMessage: Done
     status: 9996
     statusMessage: Done
-    updateTime: "2025-06-17T10:58:12Z"
+    updateTime: "2025-06-17T12:12:09Z"
 kind: List
 metadata:
   resourceVersion: ""

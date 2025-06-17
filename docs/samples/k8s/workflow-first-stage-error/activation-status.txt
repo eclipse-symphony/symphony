@@ -7,21 +7,20 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-15T19:55:56Z"
+    creationTimestamp: "2025-06-17T11:10:09Z"
     generation: 1
     labels:
-      campaignUid: 10018fde-3ad9-4599-a452-9832cf9531ac
-      statusMessage: InternalError
+      campaignUid: 1cd822e4-4592-45ec-a795-83ba7c98c93e
+      statusMessage: Done
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "30260"
-    uid: 469db80b-a328-405f-b3e7-cd920218d693
+    resourceVersion: "3680"
+    uid: 5d7c155c-43ae-41c7-8eb5-e32cc14063ca
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
     stageHistory:
-    - errorMessage: stage stage1 failed
-      inputs:
+    - inputs:
         action: create
         object:
           metadata:
@@ -30,18 +29,40 @@ items:
             solution: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1/versions/invalid
         objectName: instance
         objectType: instance
+      nextStage: stage2
       outputs:
-        __error: 'failed to invoke Symphony API: [Internal Error] - Symphony API:
-          admission webhook "vinstance.kb.io" denied the request: Instance.solution.symphony
-          "target1-v-sol1-v-instance" is invalid: spec.solution: Invalid value: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1/versions/invalid":
-          solution does not exist'
-        __status: 500
+        error: 'failed to invoke Symphony API: [Bad Request] - Symphony API: Unprocessable
+          Entity: failed to upsert state because of webhook error: admission webhook
+          "vinstance.kb.io" denied the request: Instance.solution.symphony "target1-v-sol1-v-instance"
+          is invalid: spec.solution: Invalid value: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1/versions/invalid":
+          solution does not exist (caused by: admission webhook "vinstance.kb.io"
+          denied the request: Instance.solution.symphony "target1-v-sol1-v-instance"
+          is invalid: spec.solution: Invalid value: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1/versions/invalid":
+          solution does not exist)'
+        status: 400
       stage: stage1
-      status: 500
-      statusMessage: Internal Error
-    status: 500
-    statusMessage: Internal Error
-    updateTime: "2025-06-15T19:55:57Z"
+      status: 9996
+      statusMessage: Done
+    - inputs:
+        action: create
+        object:
+          metadata:
+            name: instance
+          spec:
+            solution: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target2/solutions/sol1/versions/version1
+        objectName: instance
+        objectType: instance
+      outputs:
+        failedDeploymentCount: 0
+        objectName: target2-v-sol1-v-instance
+        objectType: instance
+        status: 200
+      stage: stage2
+      status: 9996
+      statusMessage: Done
+    status: 9996
+    statusMessage: Done
+    updateTime: "2025-06-17T11:10:26Z"
 kind: List
 metadata:
   resourceVersion: ""

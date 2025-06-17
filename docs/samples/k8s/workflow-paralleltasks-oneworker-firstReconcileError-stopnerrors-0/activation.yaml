@@ -1,0 +1,9 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: context1-v-bulk-campaign-v-version1-v-bulk-activation
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"
+spec:
+  # campaign: "context1-v-bulk-campaign-v-version1" 
+  campaign: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"

@@ -7,15 +7,15 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-15T18:33:13Z"
+    creationTimestamp: "2025-06-17T10:54:27Z"
     generation: 1
     labels:
-      campaignUid: c21891e0-11c9-4ca3-ab8b-5934415fae75
+      campaignUid: 1cd822e4-4592-45ec-a795-83ba7c98c93e
       statusMessage: Done
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "21902"
-    uid: ce0130a9-ff72-47c1-bbaa-3729564f7436
+    resourceVersion: "1953"
+    uid: 16ac098f-6fa4-4481-9edd-95531aefa9de
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
@@ -40,20 +40,23 @@ items:
           objectName: instance
           objectType: instance
       outputs:
+        status: 200
         task1:
           failedDeploymentCount: 0
           objectName: target1-v-sol1-v-instance
           objectType: instance
+          status: 200
         task2:
           failedDeploymentCount: 0
           objectName: target2-v-sol1-v-instance
           objectType: instance
+          status: 200
       stage: stage1
       status: 9996
       statusMessage: Done
     status: 9996
     statusMessage: Done
-    updateTime: "2025-06-15T18:33:28Z"
+    updateTime: "2025-06-17T10:54:48Z"
 kind: List
 metadata:
   resourceVersion: ""

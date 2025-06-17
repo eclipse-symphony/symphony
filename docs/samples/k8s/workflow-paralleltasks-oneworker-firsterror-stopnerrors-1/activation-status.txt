@@ -7,15 +7,15 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-15T19:59:26Z"
+    creationTimestamp: "2025-06-17T10:59:43Z"
     generation: 1
     labels:
-      campaignUid: 10018fde-3ad9-4599-a452-9832cf9531ac
+      campaignUid: 1cd822e4-4592-45ec-a795-83ba7c98c93e
       statusMessage: Done
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "30620"
-    uid: 8bc8d989-b6fe-4d66-b28d-54173321f2af
+    resourceVersion: "2572"
+    uid: 8a2dc49e-04f5-4f9a-924f-f0ec0630bfd5
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
@@ -40,20 +40,22 @@ items:
           objectName: instance
           objectType: instance
       outputs:
+        status: 200
         task1:
-          __error: 'Bad Config: task provider providers.stage.invalid is not found,
+          error: 'Bad Config: task provider providers.stage.invalid is not found,
             skipping task task1 for site hq'
-          __status: 1000
+          status: 1000
         task2:
           failedDeploymentCount: 0
           objectName: target2-v-sol1-v-instance
           objectType: instance
+          status: 200
       stage: stage1
       status: 9996
       statusMessage: Done
     status: 9996
     statusMessage: Done
-    updateTime: "2025-06-15T19:59:36Z"
+    updateTime: "2025-06-17T10:59:53Z"
 kind: List
 metadata:
   resourceVersion: ""

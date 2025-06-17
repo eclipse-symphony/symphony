@@ -1,0 +1,15 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: target1-v-sol1
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target1/solutions/sol1"  
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: target2-v-sol1
+  annotations:
+    "management.azure.com/resourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/target2/solutions/sol1"  
+spec:

@@ -7,15 +7,15 @@ items:
       kubectl.kubernetes.io/last-applied-configuration: |
         {"apiVersion":"workflow.symphony/v1","kind":"Activation","metadata":{"annotations":{"management.azure.com/resourceId":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation"},"name":"context1-v-bulk-campaign-v-version1-v-bulk-activation","namespace":"default"},"spec":{"campaign":"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1"}}
       management.azure.com/resourceId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1/executions/bulk-activation
-    creationTimestamp: "2025-06-15T19:54:00Z"
+    creationTimestamp: "2025-06-17T11:05:05Z"
     generation: 1
     labels:
-      campaignUid: 10018fde-3ad9-4599-a452-9832cf9531ac
+      campaignUid: 1cd822e4-4592-45ec-a795-83ba7c98c93e
       statusMessage: InternalError
     name: context1-v-bulk-campaign-v-version1-v-bulk-activation
     namespace: default
-    resourceVersion: "30086"
-    uid: 1dbc0016-17af-40ae-9ede-88620dc6a49d
+    resourceVersion: "3116"
+    uid: e2c6b330-2433-49a8-a8a4-7734866d84dd
   spec:
     campaign: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/bulk-campaign/versions/version1
   status:
@@ -41,19 +41,19 @@ items:
           objectName: instance
           objectType: instance
       outputs:
-        __error: 'Internal Error: Task failed 1 times, exceeded maximum tolerated
-          failures (0)'
-        __status: 500
+        error: 'Internal Error: Task failed 1 times, exceeded maximum tolerated failures
+          (0)'
+        status: 500
         task1:
-          __error: 'Bad Config: task provider providers.stage.invalid is not found,
+          error: 'Bad Config: task provider providers.stage.invalid is not found,
             skipping task task1 for site hq'
-          __status: 1000
+          status: 1000
       stage: stage1
       status: 500
       statusMessage: Internal Error
     status: 500
     statusMessage: Internal Error
-    updateTime: "2025-06-15T19:54:00Z"
+    updateTime: "2025-06-17T11:05:06Z"
 kind: List
 metadata:
   resourceVersion: ""
