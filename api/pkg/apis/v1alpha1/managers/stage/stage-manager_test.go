@@ -1571,8 +1571,8 @@ func TestTaskErrorHandling(t *testing.T) {
 	// Verify error handling
 	assert.NotNil(t, err)
 	assert.Equal(t, 2, len(results))
-	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
 	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 
 	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 0
@@ -1584,8 +1584,8 @@ func TestTaskErrorHandling(t *testing.T) {
 	// Verify error handling
 	assert.NotNil(t, err)
 	assert.Equal(t, 2, len(results))
-	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
 	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 
 	// Test error handling with ErrorActionMode_StopOnNFailures, maxToleratedFailures = 1
@@ -1597,8 +1597,8 @@ func TestTaskErrorHandling(t *testing.T) {
 	// Verify error handling
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(results))
-	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
 	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 
 	// Test error handling with ErrorActionMode_SilentlyContinue
@@ -1609,8 +1609,8 @@ func TestTaskErrorHandling(t *testing.T) {
 	// Verify error handling
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(results))
-	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
 	assert.Equal(t, "test-target2", results["task2"].(map[string]interface{})["__target"])
 }
 
@@ -1658,15 +1658,15 @@ func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.LessOrEqual(t, len(results), 2)
 	if results["task1"] != nil {
-		assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-		assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+		assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+		assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
 	}
 	if results["task2"] != nil {
-		assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["__status"])
-		assert.NotNil(t, results["task2"].(map[string]interface{})["__error"])
+		assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["status"])
+		assert.NotNil(t, results["task2"].(map[string]interface{})["error"])
 	}
 	if results["task3"] != nil {
-		assert.Nil(t, results["task3"].(map[string]interface{})["__error"])
+		assert.Nil(t, results["task3"].(map[string]interface{})["error"])
 	}
 
 	// Test error handling with StopOnNFailures
@@ -1679,15 +1679,15 @@ func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.GreaterOrEqual(t, len(results), 2)
 	if results["task1"] != nil {
-		assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-		assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
+		assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+		assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
 	}
 	if results["task2"] != nil {
-		assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["__status"])
-		assert.NotNil(t, results["task2"].(map[string]interface{})["__error"])
+		assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["status"])
+		assert.NotNil(t, results["task2"].(map[string]interface{})["error"])
 	}
 	if results["task3"] != nil {
-		assert.Nil(t, results["task3"].(map[string]interface{})["__error"])
+		assert.Nil(t, results["task3"].(map[string]interface{})["error"])
 	}
 
 	// Test error handling with SilentlyContinue
@@ -1698,11 +1698,11 @@ func TestTaskErrorHandling_TaskNumberExceedsConcurrency(t *testing.T) {
 	// Verify error handling
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(results))
-	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["__status"])
-	assert.NotNil(t, results["task1"].(map[string]interface{})["__error"])
-	assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["__status"])
-	assert.NotNil(t, results["task2"].(map[string]interface{})["__error"])
-	assert.Nil(t, results["task3"].(map[string]interface{})["__error"])
+	assert.Equal(t, v1alpha2.BadConfig, results["task1"].(map[string]interface{})["status"])
+	assert.NotNil(t, results["task1"].(map[string]interface{})["error"])
+	assert.Equal(t, v1alpha2.BadConfig, results["task2"].(map[string]interface{})["status"])
+	assert.NotNil(t, results["task2"].(map[string]interface{})["error"])
+	assert.Nil(t, results["task3"].(map[string]interface{})["error"])
 }
 
 func TestTaskConcurrencyControl(t *testing.T) {

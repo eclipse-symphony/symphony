@@ -402,7 +402,7 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 					// remove outputs for internal tracking use
 					newTaskResult := make(map[string]interface{})
 					for k, v := range taskResult {
-						if !strings.HasPrefix(k, "__") && (!strings.HasSuffix(k, "__status") || !strings.HasSuffix(k, "__error")) {
+						if !strings.HasSuffix(k, "status") && !strings.HasSuffix(k, "error") {
 							newTaskResult[k] = v
 						}
 					}
