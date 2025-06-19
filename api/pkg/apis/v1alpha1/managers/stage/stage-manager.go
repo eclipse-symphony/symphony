@@ -115,6 +115,7 @@ func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpe
 			State:   v1alpha2.BadConfig,
 			Message: fmt.Sprintf("non-stage provider cannot be used with tasks, skipping task %s for site %s", task.Name, siteName),
 		}
+		return nil, err
 	}
 
 	// Remote provider is not allowed in tasks
