@@ -115,7 +115,7 @@ spec:
       provider: providers.stage.mock
       stageSelector: ""
       inputs:
-        stcheck: "${{$output($input(__previousStage), __status)}}"
+        stcheck: "${{$output($input(__previousStage), status)}}"
         sttiket: "${{$output($input(__previousStage), ticket)}}"
         foo: "${{$trigger(foo, 0)}}"
   selfDriving: true

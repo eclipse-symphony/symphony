@@ -493,6 +493,102 @@ func TestMergeCollection(t *testing.T) {
 	assert.Equal(t, "def", merged["c"])
 	assert.Equal(t, "abc", merged["d"])
 }
+
+func TestDeepCopyCollection(t *testing.T) {
+	// Test 1: DeepCopy then modify original map
+	mapData := map[string]interface{}{
+		"a": "def",
+		"b": "abc",
+	}
+	copied := DeepCopyCollection(mapData)
+	assert.Equal(t, 2, len(copied))
+	assert.Equal(t, "def", copied["a"])
+	assert.Equal(t, "abc", copied["b"])
+	// Modify original map to ensure deep copy
+	mapData["c"] = "xyz"
+	assert.Equal(t, 2, len(copied)) // copied should not change
+	assert.NotContains(t, copied, "c")
+
+	// Test 2: DeepCopy with exclude key
+	copied_exclude := DeepCopyCollection(mapData, "b")
+	assert.Equal(t, 2, len(copied_exclude))
+	assert.Equal(t, "def", copied_exclude["a"])
+	assert.NotContains(t, copied_exclude, "b")
+
+	// Test 3: DeepCopy with multiple exclude keys
+	copied_exclude_multi := DeepCopyCollection(mapData, "b", "c")
+	assert.Equal(t, 1, len(copied_exclude_multi))
+	assert.Equal(t, "def", copied_exclude_multi["a"])
+	assert.NotContains(t, copied_exclude_multi, "b")
+	assert.NotContains(t, copied_exclude_multi, "c")
+
+	// Test 4: DeepCopy with nil map
+	copied_empty := DeepCopyCollection(nil)
+	assert.NotNil(t, copied_empty)
+	assert.Equal(t, 0, len(copied_empty)) // should be an empty map
+}
+
+func TestDeepCopyCollectionWithPrefixExclude(t *testing.T) {
+	mapData := map[string]interface{}{
+		"prefix_a": "def",
+		"prefix_b": "abc",
+		"c":        "xyz",
+	}
+
+	copied := DeepCopyCollectionWithPrefixExclude(mapData, "prefix")
+	assert.Equal(t, 1, len(copied))
+	assert.Equal(t, "xyz", copied["c"])
+	assert.NotContains(t, copied, "prefix_a")
+	assert.NotContains(t, copied, "prefix_b")
+
+	copied2 := DeepCopyCollectionWithPrefixExclude(mapData)
+	assert.Equal(t, 3, len(copied2))
+	assert.Equal(t, "def", copied2["prefix_a"])
+	assert.Equal(t, "abc", copied2["prefix_b"])
+	assert.Equal(t, "xyz", copied2["c"])
+	mapData["d"] = "new_value"
+	assert.Contains(t, mapData, "d")
+	assert.Equal(t, 3, len(copied2)) // copied2 should not change
+	assert.NotContains(t, copied2, "d")
+
+	copied3 := DeepCopyCollectionWithPrefixExclude(nil)
+	assert.NotNil(t, copied3)
+	assert.Equal(t, 0, len(copied3)) // should be an empty map
+}
+
+func TestMergeCollection_StringAny(t *testing.T) {
+	mapData := map[string]interface{}{
+		"a": "def",
+		"b": "abc",
+	}
+	mapData2 := map[string]interface{}{
+		"c": "def",
+		"d": "abc",
+	}
+	merged := MergeCollection_StringAny(mapData, mapData2)
+	assert.Equal(t, 4, len(merged))
+	assert.Equal(t, "def", merged["a"])
+	assert.Equal(t, "abc", merged["b"])
+	assert.Equal(t, "def", merged["c"])
+	assert.Equal(t, "abc", merged["d"])
+
+	merged2 := MergeCollection_StringAny(mapData, nil)
+	assert.Equal(t, 2, len(merged2))
+	assert.Equal(t, "def", merged2["a"])
+	assert.Equal(t, "abc", merged2["b"])
+
+	merged3 := MergeCollection_StringAny(nil)
+	assert.Equal(t, 0, len(merged3))
+
+	mapData3_override := map[string]interface{}{
+		"a": "xyz",
+	}
+	merged4 := MergeCollection_StringAny(mapData, mapData3_override)
+	assert.Equal(t, 2, len(merged4))
+	assert.Equal(t, "xyz", merged4["a"])
+	assert.Equal(t, "abc", merged4["b"])
+}
+
 func TestCollectStringMap(t *testing.T) {
 	mapData := map[string]string{
 		"a1": "def",

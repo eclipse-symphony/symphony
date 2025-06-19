@@ -23,8 +23,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
-	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -297,7 +297,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 		if foundCount == len(objects) {
 			outputs["objectType"] = objectType
-			outputs["status"] = "OK"
+			outputs["status"] = "200"
 			log.InfofCtx(ctx, "  P (Wait Processor): found %v %v", objectType, objects)
 			return outputs, false, nil
 		}
