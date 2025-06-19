@@ -63,7 +63,3 @@ func ConvertReferenceToObjectNameHelper(name string) string {
 func GenerateOperationId() string {
 	return uuid.New().String()
 }
-
-func IsLowSeverityError(statusCode int) bool {
-	return false
-}

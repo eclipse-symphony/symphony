@@ -248,14 +248,7 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 				// Track result
 				if result.Error != nil {
 					taskProcessor.TaskErrors = append(taskProcessor.TaskErrors, result.Error)
-					ignoreError, statusCode := shouldIgnoreStageProcessError(ctx, result.Error)
-
-					if ignoreError {
-						log.InfofCtx(ctx, " M (Stage): low severity error (status %d) in task %s for site %s: %v, won't count for the decisions of task error action",
-							statusCode, result.TaskName, siteName, result.Error)
-					} else {
-						taskProcessor.ErrorCount++
-					}
+					taskProcessor.ErrorCount++
 				}
 				taskProcessor.TaskResults[result.TaskName] = result.Outputs
 
@@ -706,28 +699,6 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, siteOr
 	return ret
 }
 
-func shouldIgnoreStageProcessError(ctx context.Context, err error) (bool, int) {
-	// Check if error is either an *apierrors.StatusError or a v1alpha2.COAError with status < 500
-	ignoreError := false
-	var statusCode int
-
-	// Check if it's a Kubernetes status error
-	if apiError, ok := err.(utils.APIError); ok {
-		log.InfofCtx(ctx, " M (Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
-
-		statusCode = int(apiError.Code)
-	}
-	// Check if it's a COA error
-	if coaErr, ok := err.(v1alpha2.COAError); ok {
-		log.InfofCtx(ctx, " M (Stage): This is a COA error with status: %d, message: %v", int(coaErr.State), coaErr)
-
-		statusCode = int(coaErr.State)
-	}
-
-	ignoreError = utils.IsLowSeverityError(statusCode)
-	return ignoreError, statusCode
-}
-
 func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
@@ -1016,7 +987,6 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 			if err != nil {
 				// Check if error is either an *apierrors.StatusError or a v1alpha2.COAError with status < 500
-				ignoreError, statusCode := shouldIgnoreStageProcessError(ctx, err)
 
 				// Set the common part regardless of the error type
 				site := result.Site
@@ -1025,19 +995,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				}
 				status.Outputs = carryOutPutsToErrorStatus(result.Outputs, err, site)
 				result.Outputs = carryOutPutsToErrorStatus(result.Outputs, err, site)
+				status.Status = v1alpha2.InternalError
+				status.StatusMessage = v1alpha2.InternalError.String()
+				status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
+				status.IsActive = false
+				log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
+				hasStageError = true
 
-				if ignoreError {
-					log.InfofCtx(ctx, " M (Stage): low severity error (status %d) in stage %s for site %s: %v",
-						statusCode, triggerData.Stage, result.Site, err)
-				} else {
-					// Handle as normal error
-					status.Status = v1alpha2.InternalError
-					status.StatusMessage = v1alpha2.InternalError.String()
-					status.ErrorMessage = fmt.Sprintf("%s: %s", result.Site, err.Error())
-					status.IsActive = false
-					log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s outputs: %v", triggerData.Stage, site, err)
-					hasStageError = true
-				}
 			}
 			for k, v := range result.Outputs {
 				if result.Site == s.Context.SiteInfo.SiteId {
