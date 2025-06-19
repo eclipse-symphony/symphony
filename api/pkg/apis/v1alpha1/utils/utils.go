@@ -136,6 +136,59 @@ func MergeCollection(cols ...map[string]string) map[string]string {
 	}
 	return ret
 }
+
+func MergeCollection_StringAny(cols ...map[string]interface{}) map[string]interface{} {
+	ret := make(map[string]interface{})
+	for _, col := range cols {
+		for k, v := range col {
+			ret[k] = v
+		}
+	}
+	return ret
+}
+
+func DeepCopyCollection(originalCols map[string]interface{}, excludeKeys ...string) map[string]interface{} {
+	ret := make(map[string]interface{})
+	if originalCols == nil {
+		return ret
+	}
+	for k, v := range originalCols {
+		if len(excludeKeys) > 0 && ContainsString(excludeKeys, k) {
+			continue
+		}
+		ret[k] = v
+	}
+	return ret
+}
+
+func DeepCopyCollectionWithPrefixExclude(originalCols map[string]interface{}, prefixExcludes ...string) map[string]interface{} {
+	ret := make(map[string]interface{})
+	if originalCols == nil {
+		return ret
+	}
+	for k, v := range originalCols {
+		exclude := false
+		for _, prefix := range prefixExcludes {
+			if strings.HasPrefix(k, prefix) {
+				exclude = true
+				break
+			}
+		}
+		if !exclude {
+			ret[k] = v
+		}
+	}
+	return ret
+}
+
+func ToJsonString(obj interface{}) string {
+	json, err := json.Marshal(obj)
+	if err != nil {
+		return ""
+	}
+	return string(json)
+}
+
 func GenerateKeyLockName(strs ...string) string {
 	ret := ""
 	for i, str := range strs {

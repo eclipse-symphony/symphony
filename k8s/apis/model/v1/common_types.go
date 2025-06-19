@@ -374,6 +374,19 @@ type SolutionContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type TaskSpec struct {
+	Name     string `json:"name,omitempty"`
+	Provider string `json:"provider,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Config runtime.RawExtension `json:"config,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Inputs runtime.RawExtension `json:"inputs,omitempty"`
+	Target string               `json:"target,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
 type StageSpec struct {
 	Name     string `json:"name,omitempty"`
 	Contexts string `json:"contexts,omitempty"`
@@ -388,6 +401,8 @@ type StageSpec struct {
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
 	Schedule        string               `json:"schedule,omitempty"`
 	Target          string               `json:"target,omitempty"`
+	Tasks           []TaskSpec           `json:"tasks,omitempty"`
+	TaskOption      model.TaskOption     `json:"taskOption,omitempty"`
 }
 
 // UnmarshalJSON customizes the JSON unmarshalling for StageSpec

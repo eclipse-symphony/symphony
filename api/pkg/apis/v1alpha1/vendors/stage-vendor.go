@@ -153,7 +153,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				// The actual error will be stored in Activation cr
 				return err
 			}
-			log.InfoCtx(ctx, "V (Stage): handling trigger event for activation %s stage %s in namespace %s",
+			log.InfofCtx(ctx, "V (Stage): handling trigger event for activation %s stage %s in namespace %s",
 				triggerData.Activation, triggerData.Stage, triggerData.Namespace)
 
 			status.Outputs["__namespace"] = triggerData.Namespace

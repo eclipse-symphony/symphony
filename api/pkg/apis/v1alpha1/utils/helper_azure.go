@@ -23,6 +23,7 @@ import (
 const (
 	AzureSolutionVersionIdPattern = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
 	AzureTargetIdPattern          = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
+	AzureWorkflowVersionIdPattern = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/contexts/([^/]+)/workflows/([^/]+)/versions/([^/]+)$"
 )
 
 func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool) {
@@ -41,6 +42,15 @@ func ConvertAzureTargetReferenceToObjectName(name string) (string, bool) {
 		return "", false
 	}
 	return r.ReplaceAllString(name, "$4"), true
+}
+
+func ConvertAzureWorkflowVersionReferenceToObjectName(name string) (string, bool) {
+	log.Infof("Azure: convert workflow version reference to object name: %s", name)
+	r := regexp.MustCompile(AzureWorkflowVersionIdPattern)
+	if !r.MatchString(name) {
+		return "", false
+	}
+	return r.ReplaceAllString(name, fmt.Sprintf("$4%s$5%s$6", constants.ResourceSeperator, constants.ResourceSeperator)), true
 }
 
 func GetInstanceName(solutionContainerName, objectName string) string {
@@ -130,6 +140,9 @@ func ConvertReferenceToObjectNameHelper(name string) string {
 		return n
 	}
 	if n, ok := ConvertAzureTargetReferenceToObjectName(name); ok {
+		return n
+	}
+	if n, ok := ConvertAzureWorkflowVersionReferenceToObjectName(name); ok {
 		return n
 	}
 	return name
