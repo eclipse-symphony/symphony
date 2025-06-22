@@ -98,5 +98,5 @@ func (summary SummarySpec) GenerateStatusMessage() string {
 		}
 		targetErrors = append(targetErrors, targetError)
 	}
-	return errorMessage + fmt.Sprintf("Target errors: %s", strings.Join(targetErrors, ", "))
+	return errorMessage + fmt.Sprintf("Detailed status: %s", strings.Join(targetErrors, ", "))
 }

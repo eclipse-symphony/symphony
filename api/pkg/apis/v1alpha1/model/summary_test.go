@@ -92,7 +92,7 @@ func TestGenerateStatusMessage(t *testing.T) {
 					},
 				},
 			},
-			expected: `Failed to deploy. Target errors: target1: "Target failed"`,
+			expected: `Failed to deploy. Detailed status: target1: "Target failed"`,
 		},
 		{
 			name: "Target list contains both OK and Failed status",
@@ -122,7 +122,7 @@ func TestGenerateStatusMessage(t *testing.T) {
 					},
 				},
 			},
-			expected: `Failed to deploy: Test message. Target errors: target1: "Deployment successful" (target1.comp1: Component OK), target2: "Deployment failed" (target2.comp1: Component failed)`,
+			expected: `Failed to deploy: Test message. Detailed status: target1: "Deployment successful" (target1.comp1: Component OK), target2: "Deployment failed" (target2.comp1: Component failed)`,
 		},
 		{
 			name: "Target with component errors",
@@ -142,7 +142,7 @@ func TestGenerateStatusMessage(t *testing.T) {
 					},
 				},
 			},
-			expected: `Failed to deploy: Test message. Target errors: target1: "Target failed" (target1.comp1: Component error)`,
+			expected: `Failed to deploy: Test message. Detailed status: target1: "Target failed" (target1.comp1: Component error)`,
 		},
 		{
 			name: "Empty summary message with multiple targets and components",
@@ -172,7 +172,7 @@ func TestGenerateStatusMessage(t *testing.T) {
 					},
 				},
 			},
-			expected: `Failed to deploy. Target errors: target1: "Success" (target1.comp1: OK), target2: "Failed" (target2.comp1: Component error)`,
+			expected: `Failed to deploy. Detailed status: target1: "Success" (target1.comp1: OK), target2: "Failed" (target2.comp1: Component error)`,
 		},
 	}
 
