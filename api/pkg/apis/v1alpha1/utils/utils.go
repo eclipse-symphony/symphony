@@ -608,12 +608,9 @@ func FilterIncompleteDeploymentUsingSummary(ctx context.Context, apiclient *ApiC
 
 		if err == nil && summary.State == model.SummaryStateDone && summaryJobIdInt > jobIdInt {
 			if !summary.Summary.AllAssignedDeployed {
-				targetErrors := make([]string, 0)
-				for target, result := range summary.Summary.TargetResults {
-					targetErrors = append(targetErrors, fmt.Sprintf("%s: \"%s\"", target, result.Message))
-				}
-				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, strings.Join(targetErrors, "; "))
-				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: strings.Join(targetErrors, "; ")})
+				errMsg := summary.Summary.GenerateErrorMessage()
+				log.DebugfCtx(ctx, "Summary for %s is not fully deployed with error %s", object.Name, errMsg)
+				failedDeployments = append(failedDeployments, FailedDeployment{Name: object.Name, Message: errMsg})
 			}
 			log.DebugfCtx(ctx, "Object for %s is done: with remainingObjects: %d and failedDeployments: %d.", object.Name, len(remainingObjects), len(failedDeployments))
 			continue
