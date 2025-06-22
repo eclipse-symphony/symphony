@@ -81,21 +81,20 @@ func (summary *SummaryResult) IsDeploymentFinished() bool {
 	return summary.State == SummaryStateDone
 }
 
-func (summary SummarySpec) GenerateErrorMessage() string {
+func (summary SummarySpec) GenerateStatusMessage() string {
 	if summary.AllAssignedDeployed {
 		return ""
 	}
-	errorMessage := fmt.Sprintf("Failed to deploy instance: %s. ", summary.SummaryMessage)
+	errorMessage := "Failed to deploy"
+	if summary.SummaryMessage != "" {
+		errorMessage += fmt.Sprintf(": %s", summary.SummaryMessage)
+	}
+	errorMessage += ". "
 	targetErrors := make([]string, 0)
 	for target, result := range summary.TargetResults {
-		if result.Status == v1alpha2.OK.String() {
-			continue
-		}
 		targetError := fmt.Sprintf("%s: \"%s\"", target, result.Message)
 		for component, componentResult := range result.ComponentResults {
-			if componentResult.Status != v1alpha2.OK {
-				targetError += fmt.Sprintf(" (%s.%s: %s)", target, component, componentResult.Message)
-			}
+			targetError += fmt.Sprintf(" (%s.%s: %s)", target, component, componentResult.Message)
 		}
 		targetErrors = append(targetErrors, targetError)
 	}
