@@ -11,6 +11,7 @@ Symphony is uniquely capable of providing consistency across the entire software
 
 With Symphony, users can benefit from a powerful and versatile platform that streamlines edge service orchestration and management, while also ensuring seamless integration with existing technology stacks. Whether you are a small business owner or a large enterprise, Symphony is an ideal solution for enhancing the efficiency and effectiveness of your edge computing initiatives.
 
+
 ## Symphony Characteristics
 
 * Standard-based
