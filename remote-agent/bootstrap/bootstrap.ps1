@@ -2,26 +2,30 @@
 param (
     [string]$endpoint,
     [string]$cert_path,
-    [SecureString]$cert_password,
+    [Parameter(Mandatory=$false)]
+    [System.Security.SecureString]$cert_password,
     [string]$target_name,
     [string]$namespace = "default",
     [string]$topology
 )
 
+if (-not $cert_password) {
+    $cert_password = Read-Host "Please enter the certificate password (input will be hidden)" -AsSecureString
+}
+$cert_password_plain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+    [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($cert_password)
+)
+
+[System.Environment]::SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_LOGFILE", "$pwd\http.log", "Process")
+[System.Environment]::SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_LOGLEVEL", "Debug", "Process")
 function usage {
     Write-Host "Usage: .\script.ps1 -endpoint <endpoint> -cert_path <cert_path>  -target_name <target_name> -namespace <namespace> -topology <topology> -config <config>"
     exit 1
 }
 
 # Check if the correct number of parameters are provided
-$requiredParams = @('endpoint', 'cert_path', 'cert_password', 'target_name', 'namespace', 'topology')
+$requiredParams = @('endpoint', 'cert_path', 'target_name', 'namespace', 'topology')
 $providedParams = $PSBoundParameters.Keys | Where-Object { $_ -in $requiredParams }
-Write-Verbose "Debug: Number of required parameters provided: $($providedParams.Count)"
-if ($providedParams.Count -ne 6) {
-    Write-Host "Error: Invalid number of parameters." -ForegroundColor Red
-    usage
-}
-
 # Validate the endpoint (basic URL validation)
 Write-Verbose "Debug: Endpoint: $endpoint"
 if ($endpoint -notmatch "^https?://") {
@@ -85,28 +89,54 @@ $configJson | Set-Content -Path $configFile
 $cert_path = Resolve-Path $cert_path
 $topology = Resolve-Path $topology
 $config = Resolve-Path $configFile
+$DebugPreference = "Continue"
+$VerbosePreference = "Continue"
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+# [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls, [Net.SecurityProtocolType]::Tls11, [Net.SecurityProtocolType]::Tls12, [Net.SecurityProtocolType]::Ssl3
+
 Write-Host "Successfully create config file" -ForegroundColor Yellow
 # for pfx verify
 Write-Host "Start to import pfx certificate" -ForegroundColor Blue
 try{
-    $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-    $cert.Import($cert_path, $cert_password, "Exportable, PersistKeySet")
+    $flags = $flags -bor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet 
+    $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
+        $cert_path, $cert_password_plain, $flags
+    )
     Write-Host "Successfully import pfx certificate" -ForegroundColor Blue
+    Write-Host "Cert Subject: $($cert.Subject)"
+    Write-Host "Cert Thumbprint: $($cert.Thumbprint)"
+    Write-Host "Has Private Key: $($cert.HasPrivateKey)"
 }
 catch {
-    Write-Host "Error: The certificate file is not a valid PFX file or the password is incorrect."  -ForegroundColor Red
+    Write-Host "Exception Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Exception Type: $($_.Exception.GetType().FullName)" -ForegroundColor Red
+    Write-Host "Stack Trace: $($_.Exception.StackTrace)" -ForegroundColor Red
+    if ($_.Exception.InnerException) {
+        Write-Host "Inner Exception: $($_.Exception.InnerException.Message)" -ForegroundColor Red
+        Write-Host "Inner Stack Trace: $($_.Exception.InnerException.StackTrace)" -ForegroundColor Red
+    }
+    Write-Host "Error: The certificate file is not a valid PFX file, or the password is incorrect, or the file is corrupt."  -ForegroundColor Red
     exit 1
 }
-Write-Host "Start to get working cert from symphony server" -ForegroundColor Blue
+
 try {
     $WebRequestParams = @{
         Uri = "$($endpoint)/targets/bootstrap/$($target_name)?namespace=$($namespace)&osPlatform=windows"
         Method = 'Post'
-        Certificate = $cert
+        Certificate = $cert  
+        Headers = @{ "Content-Type" = "application/json"; "User-Agent" = "PowerShell-Debug" }
+        Body = (Get-Content $topology -Raw)
     }
-    $response = Invoke-WebRequest @WebRequestParams -ErrorAction Stop
+    Write-Host "WebRequestParams:"
+    $WebRequestParams.GetEnumerator() | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Key, $_.Value) }
+    $response = Invoke-WebRequest @WebRequestParams -Verbose
     Write-Host "Successfully get working cert from symphony server" -ForegroundColor Yellow
 } catch {
+    Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
+    Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error Details: $($_ | Out-String)" -ForegroundColor Red
+    
     Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
     exit 1
 }
@@ -136,6 +166,12 @@ $corrected_private_content = "$header`n$base64_content`n$footer"
 # Write corrected_private_content to private.pem
 $corrected_private_content |  Set-Content -Path "private.pem" -Encoding ascii
 Write-Host "Successfully create private.pem file" -ForegroundColor Yellow
+# 确保 remote-agent.exe 可覆盖：停止服务并杀进程
+Stop-Service -Name symphony-service -Force -ErrorAction SilentlyContinue
+sc.exe delete symphony-service | Out-Null
+Start-Sleep -Seconds 2
+Get-Process remote-agent -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 1
 # Download remote-agent binary file
 Write-Host "Begin to download remote-agent binary file" -ForegroundColor Blue
 
@@ -156,14 +192,99 @@ try {
 
 Write-Host "Begin to start remote agent process" -ForegroundColor Blue
 
-# Convert public.pem, private.pem, remote-agent to absolute paths
+# 转换路径为绝对路径
 $public_path = Resolve-Path "./public.pem"
 $private_path = Resolve-Path "./private.pem"
 $agent_path = Resolve-Path "./remote-agent.exe"
+$config = Resolve-Path "./config.json"
+$topology = Resolve-Path $topology
+
 $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
-# Create remote agent process
-$processArgs = "-config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
-Write-Host "Process Args: $processArgs"
-Start-Process -FilePath $agent_path -ArgumentList $processArgs
-Write-Host "Successfully start remote agent process" -ForegroundColor Yellow
+
+#  compose the command line arguments for the remote agent
+$processArgs = "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"$private_path`" -target-name=`"$target_name`" -namespace=`"$namespace`" -topology=`"$topology`""
+$binPath = "`"$agent_path`" $processArgs"
+
+# Write-Host "Command to run remote-agent.exe: $binPath" -ForegroundColor Yellow
+# # check if the service already exists
+# if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+#     Write-Host "Service $serviceName already exists. Stopping and removing..." -ForegroundColor Yellow
+#     Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+#     sc.exe delete $serviceName | Out-Null
+#     Write-Host "Service $serviceName deleted." -ForegroundColor Yellow
+# } else {
+#     Write-Host "Service $serviceName does not exist, nothing to delete." -ForegroundColor Green
+# }
+
+# # register the service
+# Write-Host "Registering $serviceName as a Windows service..." -ForegroundColor Blue
+# New-Service -Name $serviceName -BinaryPathName $binPath -Description $serviceDescription -DisplayName $serviceName -StartupType Automatic
+# sc.exe config $serviceName obj="redmond\jiaxinyan" password="Ljj#1220"
+# # Start the service
+# try {
+#     Start-Service -Name $serviceName
+#     Write-Host "Successfully registered and started $serviceName as a Windows service" -ForegroundColor Yellow
+# } catch {
+#     Write-Host "Failed to start $serviceName. Please check the service logs and Windows Event Viewer." -ForegroundColor Red
+#     throw
+# }
+
+
+# & "D:\code4\symphony\remote-agent\bootstrap\remote-agent.exe" `
+#   -config="D:\code4\symphony\remote-agent\bootstrap\config.json" `
+#   -client-cert="D:\code4\symphony\remote-agent\bootstrap\public.pem" `
+#   -client-key="D:\code4\symphony\remote-agent\bootstrap\private.pem" `
+#   -target-name="windows-target" `
+#   -namespace="default" `
+#   -topology="D:\code4\symphony\remote-agent\bootstrap\topologies.json"
+
+
+# $Action = New-ScheduledTaskAction -Execute "$agent_path" -Argument "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"$private_path`" -target-name=`"$target_name`" -namespace=`"$namespace`" -topology=`"$topology`""
+# $Trigger = New-ScheduledTaskTrigger -AtStartup
+# $Settings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+# $TaskName = "RemoteAgentTask"
+
+# # If the task already exists, unregister it first
+# if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+#     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+# }
+
+# Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Settings $Settings -Description "Run remote-agent.exe at startup and auto-retry on failure" -User "redmond\jiaxinyan" -RunLevel Highest
+
+# Start-ScheduledTask -TaskName $TaskName
+# Write-Host "Already registered and started scheduled task $TaskName, set to run at startup and auto-retry on failure." -ForegroundColor Yellow
+
+$watchdogProcessName = "remote-agent"
+$watchdogLogPath = Join-Path (Split-Path $agent_path) "watchdog.log"
+$watchdogExePath = $agent_path
+$watchdogArgs = '-config="' + $config + '" -client-cert="' + $public_path + '" -client-key="' + $private_path + '" -target-name="' + $target_name + '" -namespace="' + $namespace + '" -topology="' + $topology + '"'
+
+$watchdogScript = @"
+try {
+    if (-not (Get-Process -Name $watchdogProcessName -ErrorAction SilentlyContinue)) {
+        Start-Process -FilePath '$watchdogExePath' -ArgumentList '$watchdogArgs' -WindowStyle Hidden
+    }
+} catch {
+    Write-Host "Error in watchdog: $_.Exception.Message" -ForegroundColor Red
+}
+"@
+
+Write-Host "script content for watchdog:"
+Write-Host $watchdogScript
+$watchdogPath = Join-Path (Split-Path $agent_path) "watchdog-remote-agent.ps1"
+$watchdogScript | Set-Content -Path $watchdogPath -Encoding UTF8
+
+# trigger every 5 minutes, start 1 minute later, repeat every 1 minute, for 10 years
+$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration  (New-TimeSpan -Days 3650) 
+
+# task action to run the watchdog script
+$Action = New-ScheduledTaskAction -Execute "pwsh.exe" -Argument "-NoProfile -WindowStyle Hidden -File `"$watchdogPath`""
+
+$TaskName = "RemoteAgentTask"
+if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+}
+Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Description "守护 remote-agent.exe，自动重启，无次数限制" -User "redmond\jiaxinyan" -RunLevel Highest
+Start-ScheduledTask -TaskName $TaskName
+Write-Host "Already registered and started scheduled task $TaskName, set to run at startup and auto-retry on failure." -ForegroundColor Yellow
