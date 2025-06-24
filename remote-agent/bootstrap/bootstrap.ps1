@@ -2,11 +2,10 @@
 param (
     [string]$endpoint,
     [string]$cert_path,
-    [Parameter(Mandatory=$false)]
-    [System.Security.SecureString]$cert_password,
     [string]$target_name,
     [string]$namespace = "default",
-    [string]$topology
+    [string]$topology,
+    [ValidateSet('service','schedule')][string]$run_mode = 'schedule'
 )
 
 if (-not $cert_password) {
@@ -24,8 +23,13 @@ function usage {
 }
 
 # Check if the correct number of parameters are provided
-$requiredParams = @('endpoint', 'cert_path', 'target_name', 'namespace', 'topology')
+$requiredParams = @('endpoint', 'cert_path', 'target_name', 'namespace', 'topology', 'run_mode')
 $providedParams = $PSBoundParameters.Keys | Where-Object { $_ -in $requiredParams }
+Write-Verbose "Debug: Number of required parameters provided: $($providedParams.Count)"
+if ($providedParams.Count -lt 5) {
+    Write-Host "Error: Invalid number of parameters." -ForegroundColor Red
+    usage
+}
 # Validate the endpoint (basic URL validation)
 Write-Verbose "Debug: Endpoint: $endpoint"
 if ($endpoint -notmatch "^https?://") {
@@ -166,7 +170,7 @@ $corrected_private_content = "$header`n$base64_content`n$footer"
 # Write corrected_private_content to private.pem
 $corrected_private_content |  Set-Content -Path "private.pem" -Encoding ascii
 Write-Host "Successfully create private.pem file" -ForegroundColor Yellow
-# 确保 remote-agent.exe 可覆盖：停止服务并杀进程
+# Ensure remote-agent.exe can be overwritten: stop service and kill process
 Stop-Service -Name symphony-service -Force -ErrorAction SilentlyContinue
 sc.exe delete symphony-service | Out-Null
 Start-Sleep -Seconds 2
@@ -192,13 +196,12 @@ try {
 
 Write-Host "Begin to start remote agent process" -ForegroundColor Blue
 
-# 转换路径为绝对路径
+# Set the paths to the public and private keys, agent binary, and topology file
 $public_path = Resolve-Path "./public.pem"
 $private_path = Resolve-Path "./private.pem"
 $agent_path = Resolve-Path "./remote-agent.exe"
 $config = Resolve-Path "./config.json"
 $topology = Resolve-Path $topology
-
 $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
 
@@ -206,61 +209,36 @@ $serviceDescription = "Remote Agent Service"
 $processArgs = "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"$private_path`" -target-name=`"$target_name`" -namespace=`"$namespace`" -topology=`"$topology`""
 $binPath = "`"$agent_path`" $processArgs"
 
-# Write-Host "Command to run remote-agent.exe: $binPath" -ForegroundColor Yellow
-# # check if the service already exists
-# if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
-#     Write-Host "Service $serviceName already exists. Stopping and removing..." -ForegroundColor Yellow
-#     Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-#     sc.exe delete $serviceName | Out-Null
-#     Write-Host "Service $serviceName deleted." -ForegroundColor Yellow
-# } else {
-#     Write-Host "Service $serviceName does not exist, nothing to delete." -ForegroundColor Green
-# }
+if ($run_mode -eq 'service') {
+    Write-Host "[run_mode=service] Register and start as Windows service..." -ForegroundColor Cyan
+    # check if the service already exists
+    if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
+        Write-Host "Service $serviceName already exists. Stopping and removing..." -ForegroundColor Yellow
+        Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+        sc.exe delete $serviceName | Out-Null
+        Write-Host "Service $serviceName deleted." -ForegroundColor Yellow
+    } else {
+        Write-Host "Service $serviceName does not exist, nothing to delete." -ForegroundColor Green
+    }
 
-# # register the service
-# Write-Host "Registering $serviceName as a Windows service..." -ForegroundColor Blue
-# New-Service -Name $serviceName -BinaryPathName $binPath -Description $serviceDescription -DisplayName $serviceName -StartupType Automatic
-# sc.exe config $serviceName obj="redmond\jiaxinyan" password="Ljj#1220"
-# # Start the service
-# try {
-#     Start-Service -Name $serviceName
-#     Write-Host "Successfully registered and started $serviceName as a Windows service" -ForegroundColor Yellow
-# } catch {
-#     Write-Host "Failed to start $serviceName. Please check the service logs and Windows Event Viewer." -ForegroundColor Red
-#     throw
-# }
-
-
-# & "D:\code4\symphony\remote-agent\bootstrap\remote-agent.exe" `
-#   -config="D:\code4\symphony\remote-agent\bootstrap\config.json" `
-#   -client-cert="D:\code4\symphony\remote-agent\bootstrap\public.pem" `
-#   -client-key="D:\code4\symphony\remote-agent\bootstrap\private.pem" `
-#   -target-name="windows-target" `
-#   -namespace="default" `
-#   -topology="D:\code4\symphony\remote-agent\bootstrap\topologies.json"
-
-
-# $Action = New-ScheduledTaskAction -Execute "$agent_path" -Argument "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"$private_path`" -target-name=`"$target_name`" -namespace=`"$namespace`" -topology=`"$topology`""
-# $Trigger = New-ScheduledTaskTrigger -AtStartup
-# $Settings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
-# $TaskName = "RemoteAgentTask"
-
-# # If the task already exists, unregister it first
-# if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
-#     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-# }
-
-# Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Settings $Settings -Description "Run remote-agent.exe at startup and auto-retry on failure" -User "redmond\jiaxinyan" -RunLevel Highest
-
-# Start-ScheduledTask -TaskName $TaskName
-# Write-Host "Already registered and started scheduled task $TaskName, set to run at startup and auto-retry on failure." -ForegroundColor Yellow
-
-$watchdogProcessName = "remote-agent"
-$watchdogLogPath = Join-Path (Split-Path $agent_path) "watchdog.log"
-$watchdogExePath = $agent_path
-$watchdogArgs = '-config="' + $config + '" -client-cert="' + $public_path + '" -client-key="' + $private_path + '" -target-name="' + $target_name + '" -namespace="' + $namespace + '" -topology="' + $topology + '"'
-
-$watchdogScript = @"
+    # register the service
+    Write-Host "Registering $serviceName as a Windows service..." -ForegroundColor Blue
+    New-Service -Name $serviceName -BinaryPathName $binPath -Description $serviceDescription -DisplayName $serviceName -StartupType Automatic
+    # Start the service
+    try {
+        Start-Service -Name $serviceName
+        Write-Host "Successfully registered and started $serviceName as a Windows service" -ForegroundColor Yellow
+    } catch {
+        Write-Host "Failed to start $serviceName. Please check the service logs and Windows Event Viewer." -ForegroundColor Red
+        throw
+    }
+} else {
+    Write-Host "[run_mode=schedule] Register and start as scheduled task..." -ForegroundColor Cyan
+    $watchdogProcessName = "remote-agent"
+    $watchdogLogPath = Join-Path (Split-Path $agent_path) "watchdog.log"
+    $watchdogExePath = $agent_path
+    $watchdogArgs = '-config="' + $config + '" -client-cert="' + $public_path + '" -client-key="' + $private_path + '" -target-name="' + $target_name + '" -namespace="' + $namespace + '" -topology="' + $topology + '"'
+    $watchdogScript = @"
 try {
     if (-not (Get-Process -Name $watchdogProcessName -ErrorAction SilentlyContinue)) {
         Start-Process -FilePath '$watchdogExePath' -ArgumentList '$watchdogArgs' -WindowStyle Hidden
@@ -270,21 +248,22 @@ try {
 }
 "@
 
-Write-Host "script content for watchdog:"
-Write-Host $watchdogScript
-$watchdogPath = Join-Path (Split-Path $agent_path) "watchdog-remote-agent.ps1"
-$watchdogScript | Set-Content -Path $watchdogPath -Encoding UTF8
+    Write-Host "script content for watchdog:"
+    Write-Host $watchdogScript
+    $watchdogPath = Join-Path (Split-Path $agent_path) "watchdog-remote-agent.ps1"
+    $watchdogScript | Set-Content -Path $watchdogPath -Encoding UTF8
 
-# trigger every 5 minutes, start 1 minute later, repeat every 1 minute, for 10 years
-$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration  (New-TimeSpan -Days 3650) 
+    # trigger every 1 minutes, start 1 minute later, repeat every 1 minute, for 10 years
+    $Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration  (New-TimeSpan -Days 3650) 
 
-# task action to run the watchdog script
-$Action = New-ScheduledTaskAction -Execute "pwsh.exe" -Argument "-NoProfile -WindowStyle Hidden -File `"$watchdogPath`""
+    # task action to run the watchdog script
+    $Action = New-ScheduledTaskAction -Execute "pwsh.exe" -Argument "-NoProfile -WindowStyle Hidden -File `"$watchdogPath`""
 
-$TaskName = "RemoteAgentTask"
-if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
-    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+    $TaskName = "RemoteAgentTask"
+    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+    }
+    Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Description "Guard remote-agent.exe, auto-restart, unlimited retries" -User "redmond\jiaxinyan" -RunLevel Highest
+    Start-ScheduledTask -TaskName $TaskName
+    Write-Host "Already registered and started scheduled task $TaskName, set to run at startup and auto-retry on failure." -ForegroundColor Yellow
 }
-Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Description "守护 remote-agent.exe，自动重启，无次数限制" -User "redmond\jiaxinyan" -RunLevel Highest
-Start-ScheduledTask -TaskName $TaskName
-Write-Host "Already registered and started scheduled task $TaskName, set to run at startup and auto-retry on failure." -ForegroundColor Yellow
