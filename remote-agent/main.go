@@ -66,7 +66,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// 支持 install/uninstall/start/stop 命令
+	// support command line arguments for install, uninstall, start, stop
 	if len(os.Args) > 1 {
 		cmd := os.Args[1]
 		switch cmd {
@@ -151,7 +151,7 @@ func mainLogic() error {
 		return fmt.Errorf("error launching HttpBinding: %v", err)
 	}
 
-	// block main thread
+	// keep the main function running
 	select {}
 }
 

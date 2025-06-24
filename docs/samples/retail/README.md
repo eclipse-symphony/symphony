@@ -82,11 +82,30 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
     minikube start
     ```
 2. Sign Your Client Public Key with Symphony:
-    1. Generate client cert.(Your can use demo cert in docs/samples/retail/templates/clientCA.pem)
+    1. Generate client cert.
+    ```
+    sudo apt update
+    sudo apt install openssl
+
+    # create a local CA
+    openssl genrsa -out ca.key 2048
+    openssl req -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=MyLocalCA" 
+
+    # create a client key and CSR
+    openssl genrsa -out client.key 2048
+    openssl req -new -key client.key -out client.csr -subj "/CN=target.symphony.microsoft.com"
+
+    # use ca to sign 
+    openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365 -sha256
+    # verify the client certificate
+    openssl verify -CAfile ca.crt client.crt
+    openssl pkcs12 -export -out client.pfx -inkey client.key -in client.crt -certfile ca.crt
+    ```
     2. Create Secret:
     ```
-    kubectl create secret generic <secret-name> --from-file=mycert.pem=<path-to-pem-file> -n <namespace>
-    eg: kubectl create secret generic client-secret --from-file=client-key=clientCA.pem
+    # create a client cert secret: secret name is client-cert-secret, key is client-cert-key, value is client.crt
+    kubectl create namespace cert-manager
+    kubectl create secret generic client-cert-secret --from-file=client-cert-key=ca.crt -n cert-manager
     ```
     Check Secret
     ```
@@ -94,27 +113,17 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
     ```
     Your should find the secret ：
     ```
-    NAME                               TYPE                 DATA   AGE
-    client-secret                      Opaque               1      9s
+    NAMESPACE      NAME                                    TYPE                            DATA   AGE
+    cert-manager   client-cert-secret                      Opaque                          1      3h23m
     ```
 
 2. Update parameter
-    1. Set secretName and secretKey in test\localenv\symphony-ghcr-values.yaml
-    Example: 
+    1. Start Symphony
     ```
-    clientCAs:
-      secretName:<Your Secret Name> (eg: client-secret)
-      secretKey:<Your Secret Key> (eg:client-key)
-    ```
-    2. Set `installServiceExt` as true in test\localenv\symphony-ghcr-values.yaml
-3. Refer to the [instruction](../../../test/localenv/README.md) to set up minikube to run symphony. Here are some command that can be useful:
-    ```bash
-    cd ~/symphony/test/localenv
-    mage build:all
-    mage cluster:up
+    mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true --set installServiceExt=true"  
     ```
     If you are using MiniKube, please run `minikube tunnel` in a single terminal windows and keep it open for the rest steps.
-    You need to run minikube tunnel after minikube start and before mage cluster:up done
+    You need to run minikube tunnel after minikube start and before mage cluster:deployWithSettings done
     ```bash
     minikube tunnel
     ```
@@ -147,9 +156,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
   Run bootstrap ps1
   ```bash
   # Set your pfx password as security password
-  $secure_cert_password = Read-Host -Prompt "Enter certificate password" -AsSecureString
-  remote-agent\bootstrap\bootstrap.ps1 <Your Endpoint> <path/to/pfx> secure_cert_password  <Target Name> default topologies.json 
-  #  eg: remote-agent\bootstrap\bootstrap.ps1 https://symphony-service:8081/v1alpha2 ..\client.pfx *** windows-target default topologies.json 
+  pwsh .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path .\client.pfx -target_name windows-target -namespace default -topology topologies.json -run_mode 'schedule'
   ```
   wait for remote-target ready
   ```bash
