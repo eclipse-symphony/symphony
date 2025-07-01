@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -18,8 +19,9 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
-	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
+	remoteMqtt "github.com/eclipse-symphony/symphony/remote-agent/bindings/mqtt"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/kardianos/service"
 )
 
@@ -108,6 +110,9 @@ func mainLogic() error {
 	flag.StringVar(&targetName, "target-name", "remote-target", "remote target name")
 	flag.StringVar(&namespace, "namespace", "default", "Namespace to use for the agent")
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
+	// 读取 CA 路径，可以通过命令行参数、环境变量或配置文件传入
+	caPath := "ca.crt" // 默认值，可根据实际情况修改
+	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
 	flag.Parse()
 
 	// read configuration
@@ -121,12 +126,36 @@ func mainLogic() error {
 
 	// load certificates
 	log.Printf("Loading client certificate from %s and key from %s", clientCertPath, clientKeyPath)
-	clientCert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
+	cert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
 	if err != nil {
-		return fmt.Errorf("error loading client certificate and key: %v", err)
+		return fmt.Errorf("failed to load client cert/key: %v", err)
 	}
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{clientCert}}
-	httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
+	// 加载 MQTT CA 证书
+	caCertPool := x509.NewCertPool()
+	caCert, err := os.ReadFile(caPath)
+	if err != nil {
+		return fmt.Errorf("failed to read MQTT CA file: %v", err)
+	}
+	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+		return fmt.Errorf("failed to append MQTT CA cert")
+	}
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+		ServerName:   "10.172.3.39", // 必须和证书CN/SAN一致
+		MinVersion:   tls.VersionTLS12,
+		MaxVersion:   tls.VersionTLS13,
+	}
+	for i, c := range tlsConfig.Certificates {
+		for _, cert := range c.Certificate {
+			parsed, err := x509.ParseCertificate(cert)
+			if err == nil {
+				fmt.Printf("Loaded client cert[%d]: Subject=%s, Issuer=%s, NotAfter=%s\n", i, parsed.Subject, parsed.Issuer, parsed.NotAfter)
+			}
+		}
+	}
+	fmt.Printf("TLS MinVersion: %v, MaxVersion: %v\n", tlsConfig.MinVersion, tlsConfig.MaxVersion)
+	// httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
 
 	// compose target providers
 	providers := composeTargetProviders(topologyFile)
@@ -134,23 +163,48 @@ func mainLogic() error {
 		return fmt.Errorf("failed to compose target providers")
 	}
 
-	// create HttpBinding
-	h := &remoteHttp.HttpBinding{
+	// // create HttpBinding
+	// h := &remoteHttp.HttpBinding{
+	// Agent: agent.Agent{
+	// 	Providers: providers,
+	// },
+	// }
+	// h.RequestUrl = symphonyEndpoints.RequestEndpoint
+	// h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
+	// h.Client = httpClient
+	// h.Target = targetName
+	// h.Namespace = namespace
+
+	// // start HttpBinding
+	// if err := h.Launch(); err != nil {
+	// 	return fmt.Errorf("error launching HttpBinding: %v", err)
+	// }
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker("tls://10.172.3.39:8883")
+	opts.SetTLSConfig(tlsConfig)
+	fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s\n", clientCertPath, clientKeyPath, caPath)
+	fmt.Printf("begin to connect to MQTT broker %s\n", "tls://10.172.3.39:8883")
+	mqttClient := mqtt.NewClient(opts)
+	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+		fmt.Printf("failed to connect to MQTT broker: %v\n", token.Error())
+		return fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
+	} else {
+		fmt.Println("Connected to MQTT broker")
+	}
+	fmt.Println("Begin to request topic", "ddc")
+	m := &remoteMqtt.MqttBinding{
 		Agent: agent.Agent{
 			Providers: providers,
 		},
+		Client:        mqttClient, // 这里要加上
+		Target:        targetName,
+		RequestTopic:  "symphony/request",
+		ResponseTopic: "symphony/response",
+		Namespace:     namespace,
 	}
-	h.RequestUrl = symphonyEndpoints.RequestEndpoint
-	h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
-	h.Client = httpClient
-	h.Target = targetName
-	h.Namespace = namespace
-
-	// start HttpBinding
-	if err := h.Launch(); err != nil {
-		return fmt.Errorf("error launching HttpBinding: %v", err)
+	if err := m.Launch(); err != nil {
+		return fmt.Errorf("failed to launch MQTT binding: %v", err)
 	}
-
 	// keep the main function running
 	select {}
 }

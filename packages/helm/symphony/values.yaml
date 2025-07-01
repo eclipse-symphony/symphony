@@ -65,7 +65,7 @@ parent:
 siteId: hq
 api:
   apiContainerPortHttp: 8080
-  apiContainerPortHttps: 8081
+  apiContainerPortHttps: 8082
   disableUserCreds:
   openHTTP:
   labelKey:
@@ -74,10 +74,10 @@ api:
 symphony:
   uniqueDisplayNameForSolution: false
   incluster:
-    httpsport: 8081
+    httpsport: 8082
     httpport: 8080
   extension:
-    httpsport: 8081
+    httpsport: 8082
     httpport: 8080
 # Turn on/off cleanup on finished activations
 ActivationCleanup:
@@ -107,9 +107,15 @@ otlpMetricsEndpointGrpc:
 otlpInsecureGrpc: true
 RemoteCert:
   ClientCAs: 
-    SecretName: 
-    SecretKey: 
-  Subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
+    SecretName: client-cert-secret
+    SecretKey: client-cert-key
+  Subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com:mqtt.example.com:MyRootCA
 remoteAgent:
   version: "0.0.0.1"
   used: false
+mqttClientCert:
+  enabled: true
+  secretName: my-mqtt-client-cert
+  crtKey: client.crt
+  keyKey: client.key
+  mountPath: /etc/mqtt-client

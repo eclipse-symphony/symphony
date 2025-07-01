@@ -896,6 +896,24 @@
             }
           ]
       }
+    },
+    {
+      "type": "bindings.mqtt",
+      "config":{
+        "brokerAddress": "tls://10.172.3.39:8883",
+        "clientID": "symphony",
+        "requestTopic": "symphony/request",
+        "responseTopic": "symphony/response",
+         "tls": true,
+          "certProvider": {
+            "type": "certs.localfile",
+            "config": {
+              "name": "symphony-serving-cert",
+              "cert": "{{ .Values.mqttClientCert.mountPath }}/client.crt",
+              "key": "{{ .Values.mqttClientCert.mountPath }}/client.key"
+            }
+          }
+      }
     }
   ]
 }

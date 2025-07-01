@@ -888,7 +888,7 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	log.InfofCtx(ctx, "M(SolutionVendor): getFromQueue %s queue length %s", queueName)
+	log.InfofCtx(ctx, "M(SolutionVendor): getFromQueue %s", queueName)
 	defer span.End()
 	var err error
 	queueElement, lastMessageID, err := s.QueueProvider.QueryByPaging(ctx, queueName, start, size)

@@ -149,6 +149,10 @@ Symphony API serving certs directory path
 {{- printf "/etc/%s-api/tls" (include "symphony.fullname" .) }}
 {{- end }}
 
+{{- define "symphony.mqttBrokerCA" -}}
+{{- printf "/etc/%s-api/mqttca/ca.crt" (include "symphony.fullname" .) }}
+{{- end }}
+
 {{/*
 Symphony API serving certificate path
 */}}
