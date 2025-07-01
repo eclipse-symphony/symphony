@@ -19,6 +19,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
+	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	remoteMqtt "github.com/eclipse-symphony/symphony/remote-agent/bindings/mqtt"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -113,6 +114,11 @@ func mainLogic() error {
 	// 读取 CA 路径，可以通过命令行参数、环境变量或配置文件传入
 	caPath := "ca.crt" // 默认值，可根据实际情况修改
 	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
+
+	// 新增：选择协议类型（mqtt 或 http）
+	var protocol string
+	flag.StringVar(&protocol, "protocol", "mqtt", "Protocol to use: mqtt or http")
+
 	flag.Parse()
 
 	// read configuration
@@ -177,51 +183,54 @@ func mainLogic() error {
 		return fmt.Errorf("failed to compose target providers")
 	}
 
-	// // create HttpBinding
-	// h := &remoteHttp.HttpBinding{
-	// Agent: agent.Agent{
-	// 	Providers: providers,
-	// },
-	// }
-	// h.RequestUrl = symphonyEndpoints.RequestEndpoint
-	// h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
-	// h.Client = httpClient
-	// h.Target = targetName
-	// h.Namespace = namespace
-
-	// // start HttpBinding
-	// if err := h.Launch(); err != nil {
-	// 	return fmt.Errorf("error launching HttpBinding: %v", err)
-	// }
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker("tls://10.172.3.39:8883")
-	opts.SetTLSConfig(tlsConfig)
-	// 设置 client id
-	fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n", clientCertPath, clientKeyPath, caPath)
-	fmt.Printf("begin to connect to MQTT broker %s\n", "tls://10.172.3.39:8883")
-	mqttClient := mqtt.NewClient(opts)
-	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		fmt.Printf("failed to connect to MQTT broker: %v\n", token.Error())
-		return fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
+	if protocol == "http" {
+		// create HttpBinding
+		// 需要 import remoteHttp
+		// remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
+		h := &remoteHttp.HttpBinding{
+			Agent: agent.Agent{
+				Providers: providers,
+			},
+		}
+		h.RequestUrl = symphonyEndpoints.RequestEndpoint
+		h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
+		h.Client = httpClient
+		h.Target = targetName
+		h.Namespace = namespace
+		if err := h.Launch(); err != nil {
+			return fmt.Errorf("error launching HttpBinding: %v", err)
+		}
+		select {}
 	} else {
-		fmt.Println("Connected to MQTT broker")
+		opts := mqtt.NewClientOptions()
+		opts.AddBroker("tls://10.172.3.39:8883")
+		opts.SetTLSConfig(tlsConfig)
+		// 设置 client id
+		fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n", clientCertPath, clientKeyPath, caPath)
+		fmt.Printf("begin to connect to MQTT broker %s\n", "tls://10.172.3.39:8883")
+		mqttClient := mqtt.NewClient(opts)
+		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+			fmt.Printf("failed to connect to MQTT broker: %v\n", token.Error())
+			return fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
+		} else {
+			fmt.Println("Connected to MQTT broker")
+		}
+		fmt.Println("Begin to request topic", "ddc")
+		m := &remoteMqtt.MqttBinding{
+			Agent: agent.Agent{
+				Providers: providers,
+			},
+			Client:        mqttClient,
+			Target:        targetName,
+			RequestTopic:  fmt.Sprintf("symphony/request/%s", subjectName),
+			ResponseTopic: fmt.Sprintf("symphony/response/%s", subjectName),
+			Namespace:     namespace,
+		}
+		if err := m.Launch(); err != nil {
+			return fmt.Errorf("failed to launch MQTT binding: %v", err)
+		}
+		select {}
 	}
-	fmt.Println("Begin to request topic", "ddc")
-	m := &remoteMqtt.MqttBinding{
-		Agent: agent.Agent{
-			Providers: providers,
-		},
-		Client:        mqttClient,
-		Target:        targetName,
-		RequestTopic:  fmt.Sprintf("symphony/request/%s", subjectName),
-		ResponseTopic: fmt.Sprintf("symphony/response/%s", subjectName),
-		Namespace:     namespace,
-	}
-	if err := m.Launch(); err != nil {
-		return fmt.Errorf("failed to launch MQTT binding: %v", err)
-	}
-	// keep the main function running
-	select {}
 }
 
 func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider {

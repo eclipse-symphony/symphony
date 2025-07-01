@@ -170,11 +170,11 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 					var targetName string
 					if request.Parameters != nil {
 						if t, ok := request.Parameters["target"]; ok {
-							// t 已经是 string 类型，无需类型断言
 							targetName = t
 						}
 					}
-					if targetName != "" && targetName != clientName {
+					// 比较前统一转小写
+					if targetName != "" && strings.ToLower(targetName) != strings.ToLower(clientName) {
 						log.InfofCtx(request.Context, "target mismatch: clientName=%s, target=%s", clientName, targetName)
 						errObj := map[string]interface{}{
 							"error":  fmt.Sprintf("this client can not handle '%s', this target", targetName),
