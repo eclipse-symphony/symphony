@@ -119,3 +119,9 @@ mqttClientCert:
   crtKey: client.crt
   keyKey: client.key
   mountPath: /etc/mqtt-client
+trustedClients:
+  - clientA
+  - clientB
+  - clientC
+mqtt:
+  brokerAddress: tls://10.172.3.39:8883

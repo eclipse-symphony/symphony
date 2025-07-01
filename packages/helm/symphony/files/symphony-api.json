@@ -900,7 +900,7 @@
     {
       "type": "bindings.mqtt",
       "config":{
-        "brokerAddress": "tls://10.172.3.39:8883",
+        "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
         "clientID": "symphony",
         "tls": true,
         "certProvider": {
@@ -911,16 +911,7 @@
             "key": "{{ .Values.mqttClientCert.mountPath }}/client.key"
           }
         },
-        "requestTopics": {
-          "clientA": "symphony/request/clientA",
-          "clientB": "symphony/request/clientB",
-          "clientC": "symphony/request/clientC"
-        },
-        "responseTopics": {
-          "clientA": "symphony/response/clientA",
-          "clientB": "symphony/response/clientB",
-          "clientC": "symphony/response/clientC"
-        }
+        "trustedClients": {{ toJson .Values.trustedClients }}
       }
     }
   ]

@@ -52,6 +52,7 @@ type MQTTBindingConfig struct {
 	ClientKey      string             `json:"clientKey,omitempty"`
 	CertProvider   CertProviderConfig `json:"certProvider,omitempty"`
 	TLS            bool               `json:"tls"`
+	TrustedClients []string           `json:"trustedClients,omitempty"` // 新增字段
 }
 
 type MQTTBinding struct {
@@ -72,6 +73,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		routeTable[route] = endpoint
 		log.InfofCtx(context.Background(), "Registering route: %s Endpoint: %s", route, endpoint)
 	}
+
 	cert := tls.Certificate{}
 	caCertPool := x509.NewCertPool()
 	if config.TLS {
@@ -113,15 +115,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client CA file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
 		}
-		log.InfofCtx(context.Background(), "Loaded CA PEM data (first 200 bytes): %s", string(pemData[:min(200, len(pemData))]))
-		certs, err := m.parseCertificates(pemData)
-		if err != nil {
-			log.Errorf("Failed to parse CA certificates: %v", err)
-		} else {
-			for i, cert := range certs {
-				log.InfofCtx(context.Background(), "CA Cert[%d] Subject: %s, Issuer: %s, NotAfter: %s", i, cert.Subject.String(), cert.Issuer.String(), cert.NotAfter)
-			}
-		}
 		if ok := caCertPool.AppendCertsFromPEM(pemData); !ok {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to append CA cert from file, %s", ClientCAFile), v1alpha2.BadConfig)
 		}
@@ -145,6 +138,18 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
+	// 新增：读取信任的 client list 并动态生成 requestTopics/responseTopics
+	// 假设 config 结构体新增 TrustedClients []string 字段
+	trustedClients := config.TrustedClients
+	if len(trustedClients) > 0 {
+		config.RequestTopics = make(map[string]string)
+		config.ResponseTopics = make(map[string]string)
+		for _, client := range trustedClients {
+			config.RequestTopics[client] = fmt.Sprintf("symphony/request/%s", client)
+			config.ResponseTopics[client] = fmt.Sprintf("symphony/response/%s", client)
+		}
+	}
+
 	// 支持多个 client 的 topic 订阅
 	if len(config.RequestTopics) > 0 && len(config.ResponseTopics) > 0 {
 		for client, reqTopic := range config.RequestTopics {
@@ -159,9 +164,30 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 					contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
 					err := json.Unmarshal(msg.Payload(), &request)
 					log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
-					log.InfofCtx(request.Context, "Received request: %s", request)
+					log.InfofCtx(request.Context, "Received request: %+v", request)
 					log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
-					if err != nil {
+					// 检查 target 字段
+					var targetName string
+					if request.Parameters != nil {
+						if t, ok := request.Parameters["target"]; ok {
+							// t 已经是 string 类型，无需类型断言
+							targetName = t
+						}
+					}
+					if targetName != "" && targetName != clientName {
+						log.InfofCtx(request.Context, "target mismatch: clientName=%s, target=%s", clientName, targetName)
+						errObj := map[string]interface{}{
+							"error":  fmt.Sprintf("this client can not handle '%s', this target", targetName),
+							"target": targetName,
+							"client": clientName,
+						}
+						errJson, _ := json.Marshal(errObj)
+						response = v1alpha2.COAResponse{
+							State:       v1alpha2.BadRequest,
+							ContentType: "application/json",
+							Body:        errJson,
+						}
+					} else if err != nil {
 						response = v1alpha2.COAResponse{
 							State:       v1alpha2.BadRequest,
 							ContentType: "text/plain",
@@ -209,9 +235,24 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
 			err := json.Unmarshal(msg.Payload(), &request)
 			log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
-			log.InfofCtx(request.Context, "Received request: %s", request)
+			log.InfofCtx(request.Context, "Received request: %+v", request)
 			log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
-			if err != nil {
+			// 检查 target 字段
+			var targetName string
+			if request.Parameters != nil {
+				if t, ok := request.Parameters["target"]; ok {
+					// t 已经是 string 类型，无需类型断言
+					targetName = t
+				}
+			}
+			if targetName != "" && targetName != config.ClientID {
+				log.InfofCtx(request.Context, "target mismatch: clientName=%s, target=%s", config.ClientID, targetName)
+				response = v1alpha2.COAResponse{
+					State:       v1alpha2.BadRequest,
+					ContentType: "application/json",
+					Body:        []byte(fmt.Sprintf("this client can not handle '%s', this target", targetName)),
+				}
+			} else if err != nil {
 				response = v1alpha2.COAResponse{
 					State:       v1alpha2.BadRequest,
 					ContentType: "text/plain",
@@ -276,11 +317,4 @@ func (m *MQTTBinding) parseCertificates(pemData []byte) ([]*x509.Certificate, er
 func (m *MQTTBinding) Shutdown(ctx context.Context) error {
 	m.MQTTClient.Disconnect(1000)
 	return nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
