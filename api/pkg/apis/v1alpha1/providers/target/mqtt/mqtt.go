@@ -7,7 +7,6 @@
 /*
 Client certificate authentication for secure MQTT connections.
 
-
 Basic MQTT settings:
 - brokerAddress: MQTT broker URL (required)
 - clientID: MQTT client identifier (required)
@@ -28,17 +27,6 @@ TLS/Certificate settings:
 - clientKeyPath: Path to client private key file for mutual TLS authentication
 - insecureSkipVerify: Skip TLS certificate verification (default: false, use with caution)
 
-Example configuration with client certificate authentication:
-{
-    "brokerAddress": "ssl://mqtt.example.com:8883",
-    "clientID": "symphony-client",
-    "requestTopic": "symphony_request",
-    "responseTopic": "symphony_response",
-    "useTLS": "true",
-    "caCertPath": "/path/to/ca.crt",
-    "clientCertPath": "/path/to/client.crt",
-    "clientKeyPath": "/path/to/client.key"
-}
 */
 
 package mqtt
@@ -48,9 +36,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -257,8 +247,23 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 
 	i.MQTTClient = gmqtt.NewClient(opts)
 	if token := i.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
-		sLog.ErrorfCtx(ctx, "  P (MQTT Target): faild to connect to MQTT broker - %+v", err)
-		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
+		connErr := token.Error()
+		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to connect to MQTT broker - %+v", connErr)
+		
+		// Provide specific guidance for common TLS errors
+		if strings.Contains(connErr.Error(), "certificate signed by unknown authority") {
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): TLS certificate verification failed. Common solutions:")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): 1. Set 'caCertPath' to the path of your broker's CA certificate")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): 2. Set 'insecureSkipVerify' to 'true' for testing (not recommended for production)")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): 3. Ensure your broker certificate is issued by a trusted CA")
+		} else if strings.Contains(connErr.Error(), "tls:") {
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): TLS connection error. Check your TLS configuration:")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Broker address should use 'ssl://' or 'tls://' prefix for TLS connections")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Verify CA certificate path and format")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Check client certificate and key paths if using mutual TLS")
+		}
+		
+		return v1alpha2.NewCOAError(connErr, "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
 	if token := i.MQTTClient.Subscribe(i.Config.ResponseTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
@@ -616,19 +621,39 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 
 	// Load CA certificate if provided
 	if i.Config.CACertPath != "" {
+		sLog.InfofCtx(ctx, "  P (MQTT Target): attempting to load CA certificate from %s", i.Config.CACertPath)
+
 		caCert, err := ioutil.ReadFile(i.Config.CACertPath)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to read CA certificate - %+v", err)
 			return nil, fmt.Errorf("failed to read CA certificate: %w", err)
 		}
 
+		// Verify the CA cert content
+		sLog.InfofCtx(ctx, "  P (MQTT Target): CA certificate file size: %d bytes", len(caCert))
+		if len(caCert) == 0 {
+			return nil, fmt.Errorf("CA certificate file is empty")
+		}
+
+		// Validate that the file contains valid PEM data
+		if !isCertificatePEM(caCert) {
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): CA certificate file does not contain valid PEM data")
+			return nil, fmt.Errorf("CA certificate file does not contain valid PEM data")
+		}
+
 		caCertPool := x509.NewCertPool()
 		if !caCertPool.AppendCertsFromPEM(caCert) {
-			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to parse CA certificate")
-			return nil, fmt.Errorf("failed to parse CA certificate")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to parse CA certificate - invalid PEM format or corrupted certificate")
+			return nil, fmt.Errorf("failed to parse CA certificate - invalid PEM format or corrupted certificate")
 		}
 		tlsConfig.RootCAs = caCertPool
-		sLog.InfofCtx(ctx, "  P (MQTT Target): loaded CA certificate from %s", i.Config.CACertPath)
+		sLog.InfofCtx(ctx, "  P (MQTT Target): successfully loaded CA certificate from %s", i.Config.CACertPath)
+	} else {
+		if !i.Config.InsecureSkipVerify {
+			sLog.WarnCtx(ctx, "  P (MQTT Target): no CA certificate path provided - using system CA pool. If connection fails with 'certificate signed by unknown authority', either provide a CA certificate or set insecureSkipVerify to true")
+		} else {
+			sLog.InfofCtx(ctx, "  P (MQTT Target): TLS certificate verification disabled (insecureSkipVerify=true)")
+		}
 	}
 
 	// Load client certificate and key if provided
@@ -647,6 +672,20 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 	}
 
 	return tlsConfig, nil
+}
+
+// isCertificatePEM checks if the given data contains valid PEM formatted certificate data
+func isCertificatePEM(data []byte) bool {
+	// Check if the data contains PEM headers
+	dataStr := string(data)
+	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") || 
+	   !strings.Contains(dataStr, "-----END CERTIFICATE-----") {
+		return false
+	}
+	
+	// Try to decode the PEM block
+	block, _ := pem.Decode(data)
+	return block != nil && block.Type == "CERTIFICATE"
 }
 
 func (*MQTTTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
