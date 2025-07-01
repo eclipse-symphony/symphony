@@ -41,15 +41,17 @@ type CertProviderConfig struct {
 }
 
 type MQTTBindingConfig struct {
-	BrokerAddress string             `json:"brokerAddress"`
-	ClientID      string             `json:"clientID"`
-	RequestTopic  string             `json:"requestTopic"`
-	ResponseTopic string             `json:"responseTopic"`
-	CACert        string             `json:"caCert,omitempty"`
-	ClientCert    string             `json:"clientCert,omitempty"`
-	ClientKey     string             `json:"clientKey,omitempty"`
-	CertProvider  CertProviderConfig `json:"certProvider,omitempty"`
-	TLS           bool               `json:"tls"`
+	BrokerAddress  string             `json:"brokerAddress"`
+	ClientID       string             `json:"clientID"`
+	RequestTopic   string             `json:"requestTopic"`
+	ResponseTopic  string             `json:"responseTopic"`
+	RequestTopics  map[string]string  `json:"requestTopics,omitempty"` // 新增，支持多个client
+	ResponseTopics map[string]string  `json:"responseTopics,omitempty"`
+	CACert         string             `json:"caCert,omitempty"`
+	ClientCert     string             `json:"clientCert,omitempty"`
+	ClientKey      string             `json:"clientKey,omitempty"`
+	CertProvider   CertProviderConfig `json:"certProvider,omitempty"`
+	TLS            bool               `json:"tls"`
 }
 
 type MQTTBinding struct {
@@ -111,6 +113,15 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client CA file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
 		}
+		log.InfofCtx(context.Background(), "Loaded CA PEM data (first 200 bytes): %s", string(pemData[:min(200, len(pemData))]))
+		certs, err := m.parseCertificates(pemData)
+		if err != nil {
+			log.Errorf("Failed to parse CA certificates: %v", err)
+		} else {
+			for i, cert := range certs {
+				log.InfofCtx(context.Background(), "CA Cert[%d] Subject: %s, Issuer: %s, NotAfter: %s", i, cert.Subject.String(), cert.Issuer.String(), cert.NotAfter)
+			}
+		}
 		if ok := caCertPool.AppendCertsFromPEM(pemData); !ok {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to append CA cert from file, %s", ClientCAFile), v1alpha2.BadConfig)
 		}
@@ -134,53 +145,104 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
-	if token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-		var request v1alpha2.COARequest
-		var response v1alpha2.COAResponse
-		if request.Context == nil {
-			request.Context = context.TODO()
-		}
-		// patch correlation id if missing
-
-		contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
-		err := json.Unmarshal(msg.Payload(), &request)
-		log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
-		log.InfofCtx(request.Context, "Received request: %s", request)
-		log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
-		if err != nil {
-			response = v1alpha2.COAResponse{
-				State:       v1alpha2.BadRequest,
-				ContentType: "text/plain",
-				Body:        []byte(err.Error()),
-			}
-		} else {
-			response = routeTable[request.Route].Handler(request)
-		}
-
-		// needs to carry request-id from request into response
-		if request.Metadata != nil {
-			if v, ok := request.Metadata["request-id"]; ok {
-				if response.Metadata == nil {
-					response.Metadata = make(map[string]string)
+	// 支持多个 client 的 topic 订阅
+	if len(config.RequestTopics) > 0 && len(config.ResponseTopics) > 0 {
+		for client, reqTopic := range config.RequestTopics {
+			respTopic := config.ResponseTopics[client]
+			token := m.MQTTClient.Subscribe(reqTopic, 0, func(clientName string, responseTopic string) func(client gmqtt.Client, msg gmqtt.Message) {
+				return func(client gmqtt.Client, msg gmqtt.Message) {
+					var request v1alpha2.COARequest
+					var response v1alpha2.COAResponse
+					if request.Context == nil {
+						request.Context = context.TODO()
+					}
+					contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
+					err := json.Unmarshal(msg.Payload(), &request)
+					log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
+					log.InfofCtx(request.Context, "Received request: %s", request)
+					log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
+					if err != nil {
+						response = v1alpha2.COAResponse{
+							State:       v1alpha2.BadRequest,
+							ContentType: "text/plain",
+							Body:        []byte(err.Error()),
+						}
+					} else {
+						response = routeTable[request.Route].Handler(request)
+					}
+					if request.Metadata != nil {
+						if v, ok := request.Metadata["request-id"]; ok {
+							if response.Metadata == nil {
+								response.Metadata = make(map[string]string)
+							}
+							response.Metadata["request-id"] = v
+						}
+					}
+					data, _ := json.Marshal(response)
+					go func() {
+						if token := client.Publish(responseTopic, 0, false, data); token.Wait() && token.Error() != nil {
+							time.Sleep(600 * time.Millisecond)
+							log.Errorf("failed to publish response to MQTT: %s", token.Error())
+						}
+					}()
 				}
-				response.Metadata["request-id"] = v
+			}(client, respTopic))
+			if token.Wait() && token.Error() != nil {
+				if token.Error().Error() != "subscription exists" {
+					log.Errorf("  P (MQTT Target): faild to connect to subscribe to request topic - %+v", token.Error())
+					log.Errorf("  P (MQTT Target): sleeping 600s for debug, you can exec into the container to check certs and state...")
+					time.Sleep(600 * time.Second)
+					return v1alpha2.NewCOAError(token.Error(), "failed to subscribe to request topic", v1alpha2.InternalError)
+				}
 			}
 		}
-
-		data, _ := json.Marshal(response)
-
-		go func() {
-			if token := client.Publish(config.ResponseTopic, 0, false, data); token.Wait() && token.Error() != nil {
-				time.Sleep(600 * time.Millisecond) // wait for 600ms before logging the error
-				log.Errorf("failed to handle request from MOTT: %s", token.Error())
+	} else {
+		// 兼容单 topic 配置
+		requestTopic := config.RequestTopic
+		responseTopic := config.ResponseTopic
+		token := m.MQTTClient.Subscribe(requestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+			var request v1alpha2.COARequest
+			var response v1alpha2.COAResponse
+			if request.Context == nil {
+				request.Context = context.TODO()
 			}
-		}()
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			log.Errorf("  P (MQTT Target): faild to connect to subscribe to request topic - %+v", token.Error())
-			log.Errorf("  P (MQTT Target): sleeping 600s for debug, you can exec into the container to check certs and state...")
-			time.Sleep(600 * time.Second)
-			return v1alpha2.NewCOAError(token.Error(), "failed to subscribe to request topic", v1alpha2.InternalError)
+			contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
+			err := json.Unmarshal(msg.Payload(), &request)
+			log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
+			log.InfofCtx(request.Context, "Received request: %s", request)
+			log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
+			if err != nil {
+				response = v1alpha2.COAResponse{
+					State:       v1alpha2.BadRequest,
+					ContentType: "text/plain",
+					Body:        []byte(err.Error()),
+				}
+			} else {
+				response = routeTable[request.Route].Handler(request)
+			}
+			if request.Metadata != nil {
+				if v, ok := request.Metadata["request-id"]; ok {
+					if response.Metadata == nil {
+						response.Metadata = make(map[string]string)
+					}
+					response.Metadata["request-id"] = v
+				}
+			}
+			data, _ := json.Marshal(response)
+			go func() {
+				if token := client.Publish(responseTopic, 0, false, data); token.Wait() && token.Error() != nil {
+					time.Sleep(600 * time.Millisecond)
+					log.Errorf("failed to publish response to MQTT: %s", token.Error())
+				}
+			}()
+		})
+		if token.Wait() && token.Error() != nil {
+			if token.Error().Error() != "subscription exists" {
+				log.Errorf("  P (MQTT Target): faild to connect to subscribe to request topic - %+v", token.Error())
+				log.Errorf("  P (MQTT Target): sleeping 600s for debug, you can exec into the container to check certs and state...")
+				time.Sleep(600 * time.Second)
+				return v1alpha2.NewCOAError(token.Error(), "failed to subscribe to request topic", v1alpha2.InternalError)
+			}
 		}
 	}
 
@@ -214,4 +276,11 @@ func (m *MQTTBinding) parseCertificates(pemData []byte) ([]*x509.Certificate, er
 func (m *MQTTBinding) Shutdown(ctx context.Context) error {
 	m.MQTTClient.Disconnect(1000)
 	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

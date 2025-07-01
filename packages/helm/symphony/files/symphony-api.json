@@ -902,17 +902,25 @@
       "config":{
         "brokerAddress": "tls://10.172.3.39:8883",
         "clientID": "symphony",
-        "requestTopic": "symphony/request",
-        "responseTopic": "symphony/response",
-         "tls": true,
-          "certProvider": {
-            "type": "certs.localfile",
-            "config": {
-              "name": "symphony-serving-cert",
-              "cert": "{{ .Values.mqttClientCert.mountPath }}/client.crt",
-              "key": "{{ .Values.mqttClientCert.mountPath }}/client.key"
-            }
+        "tls": true,
+        "certProvider": {
+          "type": "certs.localfile",
+          "config": {
+            "name": "symphony-serving-cert",
+            "cert": "{{ .Values.mqttClientCert.mountPath }}/client.crt",
+            "key": "{{ .Values.mqttClientCert.mountPath }}/client.key"
           }
+        },
+        "requestTopics": {
+          "clientA": "symphony/request/clientA",
+          "clientB": "symphony/request/clientB",
+          "clientC": "symphony/request/clientC"
+        },
+        "responseTopics": {
+          "clientA": "symphony/response/clientA",
+          "clientB": "symphony/response/clientB",
+          "clientC": "symphony/response/clientC"
+        }
       }
     }
   ]

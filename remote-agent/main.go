@@ -130,6 +130,20 @@ func mainLogic() error {
 	if err != nil {
 		return fmt.Errorf("failed to load client cert/key: %v", err)
 	}
+	// 打印 client cert 的 subject name，并用作 topic 前缀
+	subjectName := ""
+	if len(cert.Certificate) > 0 {
+		parsedCert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err == nil {
+			subjectName = parsedCert.Subject.CommonName
+			if subjectName == "" {
+				subjectName = parsedCert.Subject.String()
+			}
+			fmt.Printf("Client certificate subject: %s\n", subjectName)
+		} else {
+			fmt.Printf("Failed to parse client certificate for subject: %v\n", err)
+		}
+	}
 	// 加载 MQTT CA 证书
 	caCertPool := x509.NewCertPool()
 	caCert, err := os.ReadFile(caPath)
@@ -182,7 +196,8 @@ func mainLogic() error {
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker("tls://10.172.3.39:8883")
 	opts.SetTLSConfig(tlsConfig)
-	fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s\n", clientCertPath, clientKeyPath, caPath)
+	// 设置 client id
+	fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n", clientCertPath, clientKeyPath, caPath)
 	fmt.Printf("begin to connect to MQTT broker %s\n", "tls://10.172.3.39:8883")
 	mqttClient := mqtt.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
@@ -196,10 +211,10 @@ func mainLogic() error {
 		Agent: agent.Agent{
 			Providers: providers,
 		},
-		Client:        mqttClient, // 这里要加上
+		Client:        mqttClient,
 		Target:        targetName,
-		RequestTopic:  "symphony/request",
-		ResponseTopic: "symphony/response",
+		RequestTopic:  fmt.Sprintf("symphony/request/%s", subjectName),
+		ResponseTopic: fmt.Sprintf("symphony/response/%s", subjectName),
 		Namespace:     namespace,
 	}
 	if err := m.Launch(); err != nil {
