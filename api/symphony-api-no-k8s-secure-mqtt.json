@@ -1,0 +1,703 @@
+{
+  "siteInfo": {
+    "siteId": "laptop",
+    "properties": {
+      "name": "My Laptop",
+      "address": "1 Main Street",
+      "city": "Carnation",
+      "state": "WA",
+      "zip": "98014",
+      "country": "USA",
+      "phone": "425-555-1212",
+      "version": "0.45.1"
+    },
+    "currentSite": {
+      "baseUrl": "http://localhost:8082/v1alpha2/",
+      "username": "admin",
+      "password": ""
+    }
+  },
+  "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
+    "keylock": {
+      "shared": true,
+      "provider": {      
+        "type": "providers.keylock.memory",
+        "config": {
+          "mode": "Global",
+          "cleanInterval" : 30,
+          "purgeDuration" : 43200
+        }
+      }
+    },
+    "vendors": [
+      {
+        "type": "vendors.settings",
+        "managers": [
+          {
+            "name": "config-manager",
+            "type": "managers.symphony.configs",
+            "properties": {
+              "singleton": "true"
+            },
+            "providers": {
+              "catalog": {
+                "type": "providers.config.catalog",
+                "config": {
+                  "user": "admin",
+                  "password": ""
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.stage",
+        "route": "stage",
+        "managers": [
+          {
+            "name": "stage-manager",
+            "type": "managers.symphony.stage",
+            "properties": {   
+              "user": "admin",
+              "password": "",
+              "providers.volatilestate": "memory"        
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ],
+        "properties": {
+          "wait.user": "admin",
+          "wait.password": "",
+          "wait.wait.interval": "15",
+          "wait.wait.count": "10"
+        }
+      },
+      {
+        "type": "vendors.activations",
+        "route": "activations",
+        "managers": [
+          {
+            "name": "activations-manager",
+            "type": "managers.symphony.activations",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "useJobManager": "true",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.backgroundjob",
+        "route": "backgroundjob",
+        "loopInterval": 3600,
+        "managers": [
+          {
+            "name": "activations-cleanup-manager",
+            "type": "managers.symphony.activationscleanup",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true",
+              "RetentionDuration": "4320h"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.campaigns",
+        "route": "campaigns",
+        "managers": [
+          {
+            "name": "campaigns-manager",
+            "type": "managers.symphony.campaigns",
+            "properties": {
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.campaigncontainers",
+        "route": "campaigncontainers",
+        "managers": [
+          {
+            "name": "campaign-container-manager",
+            "type": "managers.symphony.campaigncontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.echo",
+        "route": "greetings",
+        "managers": []
+      },
+      {
+        "type": "vendors.jobs",
+        "route": "jobs",
+        "loopInterval": 15,
+        "managers": [
+          {
+            "name": "jobs-manager",
+            "type": "managers.symphony.jobs",
+            "properties": {
+              "providers.volatilestate": "mem-state",
+              "providers.persistentstate": "mem-state",
+              "user": "admin",
+              "password": "",
+              "interval": "#15",
+              "poll.enabled": "true",
+              "schedule.enabled": "true"                 
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.targets",
+        "loopInterval": 15,
+        "route": "targets",
+        "managers": [
+          {
+            "name": "targets-manager",
+            "type": "managers.symphony.targets",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
+      },
+      {
+        "type": "vendors.solutions",
+        "loopInterval": 15,
+        "route": "solutions",
+        "managers": [
+          {
+            "name": "solutions-manager",
+            "type": "managers.symphony.solutions",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.instances",
+        "loopInterval": 15,
+        "route": "instances",
+        "managers": [
+          {
+            "name": "instances-manager",
+            "type": "managers.symphony.instances",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
+      },
+	    {
+        "type": "vendors.solutioncontainers",
+        "route": "solutioncontainers",
+        "managers": [
+          {
+            "name": "solution-container-manager",
+            "type": "managers.symphony.solutioncontainers",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.devices",
+        "loopInterval": 15,
+        "route": "devices",
+        "managers": [
+          {
+            "name": "devices-manager",
+            "type": "managers.symphony.devices",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.models",
+        "loopInterval": 15,
+        "route": "models",
+        "managers": [
+          {
+            "name": "models-manager",
+            "type": "managers.symphony.models",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.skills",
+        "loopInterval": 15,
+        "route": "skills",
+        "managers": [
+          {
+            "name": "skills-manager",
+            "type": "managers.symphony.skills",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.users",
+        "loopInterval": 15,
+        "route": "users",
+        "properties": {
+          "test-users": "true"
+        },
+        "managers": [
+          {
+            "name": "users-manager",
+            "type": "managers.symphony.users",
+            "properties": {
+              "providers.volatilestate": "mem-state"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.solution",
+        "loopInterval": 15,
+        "route": "solution",
+        "managers": [
+          {
+            "name": "solution-manager",
+            "type": "managers.symphony.solution",
+            "properties": {
+              "providers.persistentstate": "mem-state",
+              "providers.config": "mock-config",
+              "providers.secret": "mock-secret",
+              "providers.keylock": "mem-keylock"
+            },
+            "providers": {
+              "mem-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "mem-keylock": {
+                "type": "providers.keylock.memory",
+                "config": {
+                  "mode" : "Shared"
+                }
+              },
+              "mock-config": {
+                "type": "providers.config.mock",
+                "config": {}
+              },
+              "mock-secret": {
+                "type": "providers.secret.mock",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.agent",
+        "loopInterval": 15,
+        "route": "agent",
+        "managers": [
+          {
+            "name": "reference-manager",
+            "type": "managers.symphony.reference",
+            "properties": {
+              "providers.reference": "http-reference",
+              "providers.volatilestate": "memory",
+              "providers.reporter": "http-reporter"
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "http-reference": {
+                "type": "providers.reference.http",
+                "config": {}
+              },
+              "http-reporter": {
+                "type": "providers.reporter.http",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.federation",
+        "route": "federation",
+        "loopInterval": 15,
+        "managers": [
+          {
+            "name": "trails-manager",
+            "type": "managers.symphony.trails",
+            "providers": {
+              "mock": {
+                "type": "providers.ledger.mock",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sites-manager",
+            "type": "managers.symphony.sites",
+            "properties": {
+              "providers.persistentstate": "memory"              
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.persistentstate": "memory",
+              "singleton": "true"              
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "staging-manager",
+            "type": "managers.symphony.staging",
+            "properties": {
+              "poll.enabled": "true",
+              "interval": "#15",
+              "providers.queue": "memory-queue",
+              "providers.volatilestate": "memory-state"              
+            },
+            "providers": {
+              "memory-queue": {
+                "type": "providers.queue.memory",
+                "config": {}
+              },
+              "memory-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          },
+          {
+            "name": "sync-manager",
+            "type": "managers.symphony.sync",
+            "properties": {
+              "baseUrl": "http://localhost:8080/v1alpha2/",
+              "user": "admin",
+              "password": "",
+              "interval": "#15",
+              "sync.enabled": "true"
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogs",
+        "route": "catalogs",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.persistentstate": "memory",
+              "singleton": "true"
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.catalogcontainers",
+        "route": "catalogcontainers",
+        "managers": [
+          {
+            "name": "catalog-container-manager",
+            "type": "managers.symphony.catalogcontainers",
+            "properties": {
+              "providers.persistentstate": "memory",
+              "singleton": "true" 
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "vendors.visualization",
+        "route": "visualization",
+        "managers": [
+          {
+            "name": "catalogs-manager",
+            "type": "managers.symphony.catalogs",
+            "properties": {
+              "providers.persistentstate": "memory",
+              "singleton": "true"
+            },
+            "providers": {
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
+              },
+              "graph": {
+                "type": "providers.graph.memory",
+                "config": {}
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "ssl://MQTT_BROKER_ADDRESS:8883",
+        "clientID": "symphony-client",
+        "requestTopic": "symphony-request",
+        "responseTopic": "symphony-response",
+        "useTLS": "true",
+        "caCertPath": "/path/to/ca/cert/ca.crt",
+        "clientCertPath": "/path/to/client/cert/client.crt",
+        "clientKeyPath": "/path/to/client/key/client.key"
+      }
+    }, 
+    {
+      "type": "bindings.http",
+      "config": {
+        "port": 8082,
+        "pipeline": [
+          {
+            "type": "middleware.http.cors",
+            "properties": {
+              "Access-Control-Allow-Headers": "authorization,Content-Type",
+              "Access-Control-Allow-Credentials": "true",
+              "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
+              "Access-Control-Allow-Origin": "*"
+            }
+          },
+          {
+            "type": "middleware.http.jwt",
+            "properties": {
+              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
+              "verifyKey": "SymphonyKey",
+              "enableRBAC": true,
+              "roles": [
+                {
+                  "role": "administrator",
+                  "claim": "user",
+                  "value": "admin"
+                },
+                {
+                  "role": "reader",
+                  "claim": "user",
+                  "value": "*"
+                },
+                {
+                  "role": "solution-creator",
+                  "claim": "user",
+                  "value": "developer"
+                },
+                {
+                  "role": "target-manager",
+                  "claim": "user",
+                  "value": "device-manager"
+                },
+                {
+                  "role": "operator",
+                  "claim": "user",
+                  "value": "solution-operator"
+                }
+              ],
+              "policy": {
+                "administrator": {
+                  "items": {
+                    "*": "*"
+                  }
+                },
+                "reader": {
+                  "items": {
+                    "*": "GET"
+                  }
+                },
+                "solution-creator": {
+                  "items": {
+                    "/v1alpha2/solutions": "*"
+                  }
+                },
+                "target-manager": {
+                  "items": {
+                    "/v1alpha2/targets": "*"
+                  }
+                },
+                "solution-operator": {
+                  "items": {
+                    "/v1alpha2/instances": "*"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
