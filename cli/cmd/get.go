@@ -178,7 +178,7 @@ func outputTarget(t table.Writer, data []byte) {
 	if err == nil {
 		row := table.Row{}
 		row = append(row, target.Metadata.Name)
-		row = append(row, target.Status.Properties["status"])
+		row = append(row, target.Status.Status)
 		t.AppendRow(row)
 	}
 }
@@ -216,9 +216,10 @@ func outputInstance(t table.Writer, data []byte) {
 	if err == nil {
 		row := table.Row{}
 		row = append(row, instance.Metadata.Name)
-		row = append(row, instance.Status.Properties["status"])
-		row = append(row, instance.Status.Properties["targets"])
-		row = append(row, instance.Status.Properties["deployed"])
+		row = append(row, instance.Status.Status)
+		// TODO: targets
+		row = append(row, instance.Status.Targets)
+		row = append(row, instance.Status.Deployed)
 		t.AppendRow(row)
 	}
 }

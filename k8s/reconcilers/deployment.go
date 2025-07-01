@@ -8,6 +8,7 @@ package reconcilers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -203,13 +204,13 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	// gofail: var beforeQueueJob string
 	if err := r.queueDeploymentJob(ctx, object, isRemoval, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to queue deployment job")
-		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, err, log)
+		return r.handleDeploymentError(ctx, object, nil, isRemoval, reconciliationInterval, operationStartTimeKey, err, log)
 	}
 	// DO NOT REMOVE THIS COMMENT
 	// gofail: var afterQueueJob string
 
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status with deployment queued")
-	if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{deploymentQueued: true}, log); err != nil {
+	if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{deploymentQueued: true}, log, isRemoval, operationStartTimeKey); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with deployment queued")
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
@@ -231,6 +232,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 
 	// populate diagnostics and activities from annotations
 	ctx = r.populateDiagnosticsAndActivitiesFromAnnotations(ctx, object, operationName, r.kubeClient, log)
+	diagnostic.InfoWithCtx(log, ctx, "Populated diagnostics and activities from annotations")
 	// Get reconciliation interval
 	reconciliationInterval, timeout := r.deriveReconcileInterval(log, ctx, object)
 
@@ -244,13 +246,14 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 			diagnostic.InfoWithCtx(log, ctx, "Operation timed out", "timeout", r.deleteTimeOut)
 			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
 				terminalErr: v1alpha2.NewCOAError(nil, "failed to completely delete the resource within the allocated time", v1alpha2.TimedOut),
-			}, log); err != nil {
+			}, log, isRemoval, operationStartTimeKey); err != nil {
 				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
 		}
 	} else {
 		if object.GetAnnotations()[operationStartTimeKey] == "" {
+			diagnostic.InfoWithCtx(log, ctx, "failed to get operation start time")
 			return metrics.DeploymentPolling, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 		}
 		// If the object hasn't reached a terminal state and the time since the operation started is greater than the
@@ -265,7 +268,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 			diagnostic.InfoWithCtx(log, ctx, "Failed to completely poll within the allocated time.", "timeout", timeout)
 			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
 				terminalErr: v1alpha2.NewCOAError(nil, "failed to completely reconcile within the allocated time", v1alpha2.TimedOut),
-			}, log); err != nil {
+			}, log, isRemoval, operationStartTimeKey); err != nil {
 				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
@@ -281,7 +284,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 			if !timeOverDue {
 				if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
 					nonTerminalErr: err,
-				}, log); err != nil {
+				}, log, isRemoval, operationStartTimeKey); err != nil {
 					diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with non-terminal error")
 					return metrics.StatusUpdateFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
 				}
@@ -312,7 +315,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		// we'll update the status and also the current progress. Either way, we'll check back in POLL seconds
 		diagnostic.InfoWithCtx(log, ctx, "Updating object status when deployment is running")
 		if !timeOverDue {
-			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
+			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log, isRemoval, operationStartTimeKey); err != nil {
 				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
@@ -321,7 +324,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		return metrics.DeploymentStatusPolled, ctrl.Result{RequeueAfter: r.pollInterval}, nil
 	case apimodel.SummaryStateDone:
 		diagnostic.InfoWithCtx(log, ctx, "Updating object status when deployment is done")
-		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log); err != nil {
+		if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{}, log, isRemoval, operationStartTimeKey); err != nil {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
@@ -349,7 +352,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 	}
 }
 
-func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, isRemoval bool, reconcileInterval time.Duration, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
+func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object Reconcilable, summary *model.SummaryResult, isRemoval bool, reconcileInterval time.Duration, operationStartTimeKey string, err error, log logr.Logger) (metrics.OperationStatus, ctrl.Result, error) {
 	patchOptions := patchStatusOptions{}
 	if isTermnalError(err, termialErrors) {
 		patchOptions.terminalErr = err
@@ -358,7 +361,7 @@ func (r *DeploymentReconciler) handleDeploymentError(ctx context.Context, object
 	}
 
 	// update the object status
-	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions, log); err != nil {
+	if _, err = r.updateObjectStatus(ctx, object, summary, patchOptions, log, isRemoval, operationStartTimeKey); err != nil {
 		return metrics.StatusUpdateFailed, ctrl.Result{}, err
 	}
 
@@ -385,11 +388,10 @@ func (r *DeploymentReconciler) hasParity(ctx context.Context, object Reconcilabl
 		return false
 	}
 	generationMatch := r.generationMatch(object, summary)
-	operationTypeMatch := r.operationTypeMatch(object, summary)
 	deploymentHashMatch := r.deploymentHashMatch(ctx, object, summary)
 	jobIDMatch := r.jobIDMatch(object, summary)
-	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "operationTypeMatch", operationTypeMatch, "deploymentHashMatch", deploymentHashMatch, "jobIDMatch", jobIDMatch)
-	return generationMatch && operationTypeMatch && deploymentHashMatch && jobIDMatch
+	diagnostic.InfoWithCtx(log, ctx, "Checking for parity", "generationMatch", generationMatch, "deploymentHashMatch", deploymentHashMatch, "jobIDMatch", jobIDMatch)
+	return generationMatch && deploymentHashMatch && jobIDMatch
 }
 
 func (r *DeploymentReconciler) jobIDMatch(object Reconcilable, summary *model.SummaryResult) bool {
@@ -404,16 +406,6 @@ func (r *DeploymentReconciler) generationMatch(object Reconcilable, summary *mod
 		return false
 	}
 	return summary.Generation == strconv.FormatInt(object.GetGeneration(), 10)
-}
-
-func (r *DeploymentReconciler) operationTypeMatch(object Reconcilable, summary *model.SummaryResult) bool {
-	if object == nil || summary == nil { // we don't expect any of these to be nil
-		return false
-	}
-	if summary.Summary.IsRemoval {
-		return object.GetDeletionTimestamp() != nil
-	}
-	return object.GetDeletionTimestamp() == nil
 }
 
 func (r *DeploymentReconciler) deploymentHashMatch(ctx context.Context, object Reconcilable, summary *model.SummaryResult) bool {
@@ -501,16 +493,56 @@ func (r *DeploymentReconciler) getCurJobIdInt64(object Reconcilable) int64 {
 	return intValue
 }
 
-func (r *DeploymentReconciler) ensureOperationState(annotations map[string]string, objectStatus *k8smodel.DeployableStatus, provisioningState string) {
+func (r *DeploymentReconciler) ensureOperationState(ctx context.Context, annotations map[string]string, objectStatus *k8smodel.DeployableStatusV2, provisioningState string, log logr.Logger) {
 	objectStatus.ProvisioningStatus.Status = provisioningState
-	objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
+	// Respect DeleteOperation if it exists, otherwise use OperationId
+	if val, ok := annotations[constants.AzureDeleteOperationKey]; ok {
+		var deleteOperation map[string]string
+		err := json.Unmarshal([]byte(val), &deleteOperation)
+		if err != nil || deleteOperation[constants.OperationId] == "" {
+			diagnostic.ErrorWithCtx(log, ctx, err, "Failed to get deleteOperationId")
+			objectStatus.ProvisioningStatus.OperationID = ""
+		}
+		objectStatus.ProvisioningStatus.OperationID = deleteOperation[constants.OperationId]
+	} else {
+		if annotations[constants.AzureOperationIdKey] == "" {
+			diagnostic.ErrorWithCtx(log, ctx, errors.New("operation ID is empty"), "Failed to get operationID")
+		}
+		objectStatus.ProvisioningStatus.OperationID = annotations[constants.AzureOperationIdKey]
+	}
 }
 
-func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) (provisioningState string, err error) {
+func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger, isRemoval bool, operationStartTimeKey string) (provisioningState string, err error) {
 	status := r.determineProvisioningStatus(ctx, object, summaryResult, opts, log)
 	originalStatus := object.GetStatus()
 	nextStatus := originalStatus.DeepCopy()
 	diagnostic.InfoWithCtx(log, ctx, "Updating object status", "status", status, "patchStatusOptions", opts)
+
+	// Check if the operation is in a final status
+	if status == utilsmodel.ProvisioningStatusSucceeded || status == utilsmodel.ProvisioningStatusFailed {
+		var latency time.Duration
+		var startTime, endTime time.Time
+		if isRemoval { // For delete operations
+			startTime = object.GetDeletionTimestamp().Time
+			endTime = time.Now()
+			latency = endTime.Sub(startTime)
+		} else { // For create or update operations
+			startTimeStr := object.GetAnnotations()[operationStartTimeKey]
+			parsedStartTime, parseErr := time.Parse(time.RFC3339, startTimeStr)
+			if parseErr != nil {
+				diagnostic.ErrorWithCtx(log, ctx, parseErr, "Failed to parse operation start time")
+			} else {
+				startTime = parsedStartTime
+				endTime = time.Now()
+				latency = endTime.Sub(startTime)
+			}
+		}
+		latencySeconds := int(latency.Seconds())
+		diagnostic.InfoWithCtx(log, ctx, fmt.Sprintf(
+			"Operation reached final status: status=%s, latency=%d seconds, startTime=%s, endTime=%s",
+			status, latencySeconds, startTime, endTime,
+		))
+	}
 
 	r.patchBasicStatusProps(ctx, object, summaryResult, status, nextStatus, opts, log)
 	r.patchComponentStatusReport(ctx, object, summaryResult, nextStatus, log)
@@ -527,7 +559,6 @@ func (r *DeploymentReconciler) updateObjectStatus(ctx context.Context, object Re
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status")
 	}
 	return string(status), err
-
 }
 
 func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, opts patchStatusOptions, log logr.Logger) utilsmodel.ProvisioningStatus {
@@ -555,72 +586,78 @@ func (r *DeploymentReconciler) determineProvisioningStatus(ctx context.Context, 
 	}
 }
 
-func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions, log logr.Logger) {
+func (r *DeploymentReconciler) patchBasicStatusProps(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, status utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatusV2, opts patchStatusOptions, log logr.Logger) {
 	if objectStatus.Properties == nil {
 		objectStatus.Properties = make(map[string]string)
 	}
-
 	annotations := object.GetAnnotations()
 	if annotations != nil {
-		objectStatus.Properties["expectedRunningJobId"] = annotations[constants.SummaryJobIdKey]
+		objectStatus.ExpectedRunningJobId, _ = strconv.Atoi(annotations[constants.SummaryJobIdKey])
 	}
 
 	defer func() { // keeping for backward compatibility. Ideally we should remove this and use the provisioning status and provisioning status output
-		objectStatus.Properties["status"] = string(status)
+		objectStatus.Status = string(status)
 		if opts.nonTerminalErr != nil {
-			objectStatus.Properties["status-details"] = fmt.Sprintf("%s: due to %s", status, opts.nonTerminalErr.Error())
+			objectStatus.StatusDetails = fmt.Sprintf("%s: due to %s", status, opts.nonTerminalErr.Error())
 		}
 	}()
 
 	if summaryResult != nil {
-		objectStatus.Properties[apiconstants.Generation] = summaryResult.Generation
+		objectStatus.Generation, _ = strconv.Atoi(summaryResult.Generation)
 	}
 
 	if opts.terminalErr != nil {
-		objectStatus.Properties["deployed"] = "failed"
-		objectStatus.Properties["targets"] = "failed"
-		objectStatus.Properties["status-details"] = opts.terminalErr.Error()
+		// TODO: deployed, targets need to be string
+		// objectStatus.Properties["deployed"] = "failed"
+		// objectStatus.Properties["targets"] = "failed"
+		objectStatus.Targets = 0
+		objectStatus.Deployed = 0
+		objectStatus.StatusDetails = opts.terminalErr.Error()
 		return
 	}
 
 	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
-		objectStatus.Properties["deployed"] = "pending"
-		objectStatus.Properties["targets"] = "pending"
-		objectStatus.Properties["status-details"] = ""
+		// TODO: deployed, targets need to be string
+		// objectStatus.Properties["deployed"] = "pending"
+		// objectStatus.Properties["targets"] = "pending"
+		objectStatus.Targets = 0
+		objectStatus.Deployed = 0
+		objectStatus.StatusDetails = "pending"
+		objectStatus.Properties["removed"] = ""
 		return
 	}
 
 	summary := summaryResult.Summary
-	targetCount := strconv.Itoa(summary.TargetCount)
-	successCount := strconv.Itoa(summary.SuccessCount)
+	// targetCount := strconv.Itoa(summary.TargetCount)
+	// successCount := strconv.Itoa(summary.SuccessCount)
 
-	objectStatus.Properties["deployed"] = successCount
-	objectStatus.Properties["targets"] = targetCount
+	objectStatus.Deployed = summary.SuccessCount
+	// objectStatus.Properties["targets"] = targetCount
+	objectStatus.Targets = summary.TargetCount
 
 	if status == utilsmodel.ProvisioningStatusReconciling {
-		objectStatus.Properties["status-details"] = fmt.Sprintf(
+		objectStatus.StatusDetails = fmt.Sprintf(
 			"%v total deployments on %v targets, current completed %v deployments.",
 			summary.PlannedDeployment,
 			summary.TargetCount,
 			summary.CurrentDeployed,
 		)
 	} else {
-		objectStatus.Properties["status-details"] = summary.SummaryMessage
+		objectStatus.StatusDetails = summary.SummaryMessage
 	}
-	objectStatus.Properties["runningJobId"] = summary.JobID
+	objectStatus.RunningJobId, _ = strconv.Atoi(summary.JobID)
+	objectStatus.Properties["removed"] = strconv.FormatBool(summary.IsRemoval)
 }
 
-func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatus, log logr.Logger) {
-	if objectStatus.Properties == nil {
-		return
-	}
+func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, objectStatus *k8smodel.DeployableStatusV2, log logr.Logger) {
 	// If a component is ever deployed, it will always show in Status.Properties
 	// If a component is not deleted, it will first be reset to Untouched and
 	// then changed to corresponding status later
-	for k, v := range objectStatus.Properties {
-		// Check status prefix (e.g. Deleted -) since status ends with a "-"
-		if utils.IsComponentKey(k) && !strings.HasPrefix(v, v1alpha2.Deleted.String()) {
-			objectStatus.Properties[k] = v1alpha2.Untouched.String()
+	for ti, _ := range objectStatus.TargetStatuses {
+		for _, c := range objectStatus.TargetStatuses[ti].ComponentStatuses {
+			if !strings.HasPrefix(c.Status, v1alpha2.Deleted.String()) {
+				c.Status = v1alpha2.Untouched.String()
+			}
 		}
 	}
 	if summaryResult == nil || !r.hasParity(ctx, object, summaryResult, log) {
@@ -630,20 +667,20 @@ func (r *DeploymentReconciler) patchComponentStatusReport(ctx context.Context, o
 	// Change to corresponding status
 	// TargetResults should be empty if there a successful deletion
 	for k, v := range summary.TargetResults {
-		objectStatus.Properties["targets."+k] = fmt.Sprintf("%s - %s", v.Status, v.Message)
+		objectStatus.SetTargetStatus(k, fmt.Sprintf("%s - %s", v.Status, v.Message))
 		for kc, c := range v.ComponentResults {
 			if c.Message == "" {
 				// Honor OSS changes: https://github.com/eclipse-symphony/symphony/pull/225
 				// If c.Message is empty, only show c.Status.
-				objectStatus.Properties["targets."+k+"."+kc] = c.Status.String()
+				objectStatus.SetComponentStatus(k, kc, c.Status.String())
 			} else {
-				objectStatus.Properties["targets."+k+"."+kc] = fmt.Sprintf("%s - %s", c.Status, c.Message)
+				objectStatus.SetComponentStatus(k, kc, fmt.Sprintf("%s - %s", c.Status, c.Message))
 			}
 		}
 	}
 }
 
-func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, provisioningStatus utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatus, opts patchStatusOptions, log logr.Logger) {
+func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, object Reconcilable, summaryResult *model.SummaryResult, provisioningStatus utilsmodel.ProvisioningStatus, objectStatus *k8smodel.DeployableStatusV2, opts patchStatusOptions, log logr.Logger) {
 	// THIS IS A HACK. to align with legacy expectations, we need to concatenate
 	// the status with the non-terminal error message. This is not ideal and should
 	// be removed in the future
@@ -651,7 +688,7 @@ func (r *DeploymentReconciler) updateProvisioningStatus(ctx context.Context, obj
 	if opts.nonTerminalErr != nil {
 		statusText = fmt.Sprintf("%s: due to %s", provisioningStatus, opts.nonTerminalErr.Error())
 	}
-	r.ensureOperationState(object.GetAnnotations(), objectStatus, statusText)
+	r.ensureOperationState(ctx, object.GetAnnotations(), objectStatus, statusText, log)
 
 	// Start with a clean Error object and update all the fields
 	objectStatus.ProvisioningStatus.Error = apimodel.ErrorType{}

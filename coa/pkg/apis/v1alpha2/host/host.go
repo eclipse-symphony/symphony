@@ -34,6 +34,21 @@ import (
 var log = logger.NewLogger("coa.runtime")
 var defaultShutdownGracePeriod = "30s"
 
+var hostIsReadyFlag bool = false
+var rwLock sync.RWMutex
+
+func IsHostReady() bool {
+	rwLock.RLock()
+	defer rwLock.RUnlock()
+	return hostIsReadyFlag
+}
+
+func SetHostReadyFlag(ready bool) {
+	rwLock.Lock()
+	defer rwLock.Unlock()
+	hostIsReadyFlag = ready
+}
+
 type HostConfig struct {
 	SiteInfo            v1alpha2.SiteInfo `json:"siteInfo"`
 	API                 APIConfig         `json:"api"`
@@ -114,6 +129,7 @@ func (h *APIHost) Launch(config HostConfig,
 	config.SiteInfo.ParentSite.Username = overrideWithEnvVariable(config.SiteInfo.ParentSite.Username, "PARENT_SYMPHONY_API_USER")
 	config.SiteInfo.ParentSite.Password = overrideWithEnvVariable(config.SiteInfo.ParentSite.Password, "PARENT_SYMPHONY_API_PASSWORD")
 
+	var pubsubProvider pv.IProvider
 	for _, v := range config.API.Vendors {
 		v.SiteInfo = config.SiteInfo
 		created := false
@@ -123,7 +139,6 @@ func (h *APIHost) Launch(config HostConfig,
 				return err
 			}
 			if vendor != nil {
-				var pubsubProvider pv.IProvider
 				// make pub/sub provider
 				if config.API.PubSub.Provider.Type != "" {
 					if config.API.PubSub.Shared && h.SharedPubSubProvider != nil {
@@ -218,6 +233,7 @@ func (h *APIHost) Launch(config HostConfig,
 			v.Vendor.SetEvaluationContext(evaluationContext)
 		}
 	}
+
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -278,6 +294,7 @@ func (h *APIHost) Launch(config HostConfig,
 			}
 		}
 	}
+	SetHostReadyFlag(true)
 	return h.WaitForShutdown(&wg, cancel)
 }
 

@@ -31,7 +31,7 @@ Create a kind cluster:
 
 ```bash
 kind create cluster --name symphony
-# Use --image switch to select a different node image version if needed, such as kindest/node:v1.21.1
+# Use --image switch to select a different node image version if needed, such as kindest/node:1.21.1
 # Use --name switch to choose a different name if desired.
 kubectl config use-context kind-symphony
 ```

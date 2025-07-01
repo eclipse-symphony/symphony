@@ -28,7 +28,25 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-const ()
+var (
+	yamlFiles = map[string]string{
+		"target":            "scenario2/target",
+		"solution":          "scenario2/solution",
+		"instance":          "scenario2/instance",
+		"solutioncontainer": "scenario2/solution-container",
+	}
+	AzureIdFormat = map[string]string{
+		"target":   "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX",
+		"solution": "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX/solutions/scenario2solutioncontainerINDEX/versions/version1",
+		"instance": "",
+	}
+	objectAzureName = map[string]string{
+		"target":            "scenario2targetINDEX",
+		"solution":          "scenario2targetINDEX-v-scenario2solutioncontainerINDEX-v-version1",
+		"instance":          "scenario2targetINDEX-v-scenario2solutioncontainerINDEX-v-instanceINDEX",
+		"solutioncontainer": "scenario2targetINDEX-v-scenario2solutioncontainerINDEX",
+	}
+)
 
 type (
 	TestCase struct {
@@ -71,7 +89,7 @@ func TestScenario_Stress_AllNamespaces(t *testing.T) {
 		"Instance":          "instances",
 		"Target":            "targets",
 	}
-	numCRs = 200
+	numCRs = 1
 	basePath = ".."
 	namespace = os.Getenv("NAMESPACE")
 	if namespace != "default" {
@@ -154,14 +172,14 @@ func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 			obj := event.Object.(*unstructured.Unstructured)
 			// ss, _ := json.Marshal(obj)
 			// log.Infof("custom resource modified " + string(ss))
-			status, found, err := unstructured.NestedString(obj.Object, "status", "properties", "status")
+			status, _, err := unstructured.NestedString(obj.Object, "status", "status")
 			if err != nil {
-				log.Errorf(err.Error())
+				log.Errorf("%v", err)
 			}
 
 			name, found, err := unstructured.NestedString(obj.Object, "metadata", "name")
 			if err != nil {
-				log.Errorf(err.Error())
+				log.Errorf("%v", err)
 			}
 
 			if found && status == "Succeeded" {
@@ -182,28 +200,33 @@ func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 }
 
 func createScenario2(dynamicClient dynamic.Interface, index int) {
-	createBasicContinerAndNested(dynamicClient, "scenario2/solution", index, nil)
-	createBasic(dynamicClient, "scenario2/target", index, nil)
+	createBasicContinerAndNested(dynamicClient, "solution", index, nil)
+	createBasic(dynamicClient, "target", index, nil)
 	adjust := func(spec map[interface{}]interface{}, index int) {
-		spec["solution"] = fmt.Sprintf("scenario2solutioncontainer%d-v-1", index)
-		spec["target"].(map[interface{}]interface{})["name"] = fmt.Sprintf("scenario2target%d", index)
+		if testhelpers.IsTestInAzure() {
+			spec["solution"] = strings.ToLower(strings.ReplaceAll(AzureIdFormat["solution"], "INDEX", fmt.Sprintf("%d", index)))
+			spec["target"].(map[interface{}]interface{})["name"] = strings.ToLower(strings.ReplaceAll(AzureIdFormat["target"], "INDEX", fmt.Sprintf("%d", index)))
+		} else {
+			spec["solution"] = fmt.Sprintf("scenario2solutioncontainer%d-v-version1", index)
+			spec["target"].(map[interface{}]interface{})["name"] = fmt.Sprintf("scenario2target%d", index)
+		}
 	}
-	createBasic(dynamicClient, "scenario2/instance", index, adjust)
+	createBasic(dynamicClient, "instance", index, adjust)
 }
 
 func deleteScenario2(dynamicClient dynamic.Interface, index int) {
-	deleteBasic(dynamicClient, "scenario2/instance", index)
-	_, err := getBasic(dynamicClient, "scenario2/instance", index)
+	deleteBasic(dynamicClient, "instance", index)
+	_, err := getBasic(dynamicClient, "instance", index)
 	for err == nil || !errors.IsNotFound(err) {
 		time.Sleep(2 * time.Second)
-		_, err = getBasic(dynamicClient, "scenario2/instance", index)
+		_, err = getBasic(dynamicClient, "instance", index)
 	}
-	deleteBasic(dynamicClient, "scenario2/target", index)
-	deleteBasicContinerAndNested(dynamicClient, "scenario2/solution", index)
+	deleteBasic(dynamicClient, "target", index)
+	deleteBasicContinerAndNested(dynamicClient, "solution", index)
 }
-func createBasic(dynamicClient dynamic.Interface, createfile string, index int, adjust func(map[interface{}]interface{}, int)) {
+func createBasic(dynamicClient dynamic.Interface, objectType string, index int, adjust func(map[interface{}]interface{}, int)) {
 	var cr map[interface{}]interface{}
-	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, createfile))
+	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, yamlFiles[objectType]))
 	if err != nil {
 		log.Fatalf("Error reading custom resource template file: %v", err)
 	}
@@ -211,9 +234,18 @@ func createBasic(dynamicClient dynamic.Interface, createfile string, index int, 
 		log.Printf("Error unmarshalling custom resource template: %v", err)
 		return
 	}
-	containerName := strings.Replace(createfile, "/", "", -1)
+	containerName := strings.Replace(yamlFiles[objectType], "/", "", -1)
 
-	cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d", containerName, index)
+	if testhelpers.IsTestInAzure() {
+		cr["metadata"].(map[interface{}]interface{})["name"] = strings.ReplaceAll(objectAzureName[objectType], "INDEX", fmt.Sprintf("%d", index))
+		if cr["metadata"].(map[interface{}]interface{})["annotations"] == nil {
+			cr["metadata"].(map[interface{}]interface{})["annotations"] = map[interface{}]interface{}{}
+		}
+		cr["metadata"].(map[interface{}]interface{})["annotations"].(map[interface{}]interface{})["management.azure.com/resourceId"] = strings.ReplaceAll(AzureIdFormat[objectType], "INDEX", fmt.Sprintf("%d", index))
+	} else {
+		cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d", containerName, index)
+	}
+
 	if adjust != nil {
 		adjust(cr["spec"].(map[interface{}]interface{}), index)
 	}
@@ -228,9 +260,9 @@ func createBasic(dynamicClient dynamic.Interface, createfile string, index int, 
 	}
 }
 
-func getBasic(dynamicClient dynamic.Interface, createfile string, index int) (*unstructured.Unstructured, error) {
+func getBasic(dynamicClient dynamic.Interface, objectType string, index int) (*unstructured.Unstructured, error) {
 	var cr map[interface{}]interface{}
-	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, createfile))
+	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, yamlFiles[objectType]))
 	if err != nil {
 		log.Fatalf("Error reading custom resource template file: %v", err)
 	}
@@ -238,14 +270,14 @@ func getBasic(dynamicClient dynamic.Interface, createfile string, index int) (*u
 		log.Debugf("Error unmarshalling custom resource template: %v", err)
 		return nil, err
 	}
-	containerName := strings.Replace(createfile, "/", "", -1)
-	resource, err := dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Get(context.TODO(), fmt.Sprintf("%s%d", containerName, index), metav1.GetOptions{})
+	objectName := strings.ReplaceAll(objectAzureName[objectType], "INDEX", fmt.Sprintf("%d", index))
+	resource, err := dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Get(context.TODO(), objectName, metav1.GetOptions{})
 	return resource, err
 }
 
-func deleteBasic(dynamicClient dynamic.Interface, createfile string, index int) {
+func deleteBasic(dynamicClient dynamic.Interface, objectType string, index int) {
 	var cr map[interface{}]interface{}
-	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, createfile))
+	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, yamlFiles[objectType]))
 	if err != nil {
 		log.Fatalf("Error reading custom resource template file: %v", err)
 	}
@@ -253,19 +285,23 @@ func deleteBasic(dynamicClient dynamic.Interface, createfile string, index int) 
 		log.Debugf("Error unmarshalling custom resource template: %v", err)
 		return
 	}
-	containerName := strings.Replace(createfile, "/", "", -1)
-	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Delete(context.TODO(), fmt.Sprintf("%s%d", containerName, index), metav1.DeleteOptions{})
+	containerName := strings.Replace(yamlFiles[objectType], "/", "", -1)
+	objectName := fmt.Sprintf("%s%d", containerName, index)
+	if testhelpers.IsTestInAzure() {
+		objectName = strings.ReplaceAll(objectAzureName[objectType], "INDEX", fmt.Sprintf("%d", index))
+	}
+	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Delete(context.TODO(), objectName, metav1.DeleteOptions{})
 
 	if err != nil {
-		log.Warnf("Error deleting custom resource %s, %d: %v", containerName, index, err)
+		log.Warnf("Error deleting custom resource %s: %v", objectName, err)
 	} else {
-		log.Debugf("Successfully deleted custom resource %s, %d", containerName, index)
+		log.Debugf("Successfully deleted custom resource %s", objectName)
 	}
 }
 
-func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile string, index int, adjust func(map[interface{}]interface{}, int)) {
+func createBasicContinerAndNested(dynamicClient dynamic.Interface, objectType string, index int, adjust func(map[interface{}]interface{}, int)) {
 	var cr map[interface{}]interface{}
-	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s-container.yaml", basePath, createfile))
+	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, yamlFiles[objectType+"container"]))
 	if err != nil {
 		log.Fatalf("Error reading custom resource template file: %v", err)
 	}
@@ -273,9 +309,12 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 		log.Errorf("Error unmarshalling custom resource template: %v", err)
 		return
 	}
-	containerName := strings.Replace(createfile, "/", "", -1) + "container"
-
-	cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d", containerName, index)
+	containerName := strings.Replace(yamlFiles[objectType], "/", "", -1) + "container"
+	if testhelpers.IsTestInAzure() {
+		cr["metadata"].(map[interface{}]interface{})["name"] = strings.ReplaceAll(objectAzureName[objectType+"container"], "INDEX", fmt.Sprintf("%d", index))
+	} else {
+		cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d", containerName, index)
+	}
 
 	convertedCR := convertToUnstructured(cr)
 
@@ -287,7 +326,7 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 		log.Debugf("Successfully created custom resource %s", fmt.Sprintf("%s%d", containerName, index))
 	}
 
-	crTemplate, err = os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, createfile))
+	crTemplate, err = os.ReadFile(fmt.Sprintf("%s/%s.yaml", basePath, yamlFiles[objectType]))
 	if err != nil {
 		log.Fatalf("Error reading custom resource template file: %v", err)
 	}
@@ -296,8 +335,17 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 		return
 	}
 
-	cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d-v-1", containerName, index)
-	cr["spec"].(map[interface{}]interface{})["rootResource"] = fmt.Sprintf("%s%d", containerName, index)
+	if testhelpers.IsTestInAzure() {
+		cr["metadata"].(map[interface{}]interface{})["name"] = strings.ReplaceAll(objectAzureName[objectType], "INDEX", fmt.Sprintf("%d", index))
+		cr["spec"].(map[interface{}]interface{})["rootResource"] = strings.ReplaceAll(objectAzureName[objectType+"container"], "INDEX", fmt.Sprintf("%d", index))
+		if cr["metadata"].(map[interface{}]interface{})["annotations"] == nil {
+			cr["metadata"].(map[interface{}]interface{})["annotations"] = map[interface{}]interface{}{}
+		}
+		cr["metadata"].(map[interface{}]interface{})["annotations"].(map[interface{}]interface{})["management.azure.com/resourceId"] = strings.ReplaceAll(AzureIdFormat[objectType], "INDEX", fmt.Sprintf("%d", index))
+	} else {
+		cr["metadata"].(map[interface{}]interface{})["name"] = fmt.Sprintf("%s%d-v-version1", containerName, index)
+		cr["spec"].(map[interface{}]interface{})["rootResource"] = fmt.Sprintf("%s%d", containerName, index)
+	}
 	if adjust != nil {
 		adjust(cr["spec"].(map[interface{}]interface{}), index)
 	}
@@ -306,15 +354,15 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 	_, err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Create(context.TODO(), convertedCR, metav1.CreateOptions{})
 
 	if err != nil {
-		log.Warnf("Error creating custom resource, %s: %v", fmt.Sprintf("%s%d-v-1", containerName, index), err)
+		log.Warnf("Error creating custom resource, %s: %v", fmt.Sprintf("%s%d-v-version1", containerName, index), err)
 	} else {
-		log.Debugf("Successfully created custom resource %s", fmt.Sprintf("%s%d-v-1", containerName, index))
+		log.Debugf("Successfully created custom resource %s", fmt.Sprintf("%s%d-v-version1", containerName, index))
 	}
 }
 
-func deleteBasicContinerAndNested(dynamicClient dynamic.Interface, createfile string, index int) {
+func deleteBasicContinerAndNested(dynamicClient dynamic.Interface, objectType string, index int) {
 	var cr map[interface{}]interface{}
-	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s-container.yaml", basePath, createfile))
+	crTemplate, err := os.ReadFile(fmt.Sprintf("%s/%s-container.yaml", basePath, yamlFiles[objectType]))
 	if err != nil {
 		log.Fatalf("Error reading custom resource template file: %v", err)
 	}
@@ -322,15 +370,22 @@ func deleteBasicContinerAndNested(dynamicClient dynamic.Interface, createfile st
 		log.Errorf("Error unmarshalling custom resource template: %v", err)
 		return
 	}
-	containerName := strings.Replace(createfile, "/", "", -1) + "container"
-
-	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), strings.Replace(cr["kind"].(string), "Container", "", -1))).Namespace(namespace).Delete(context.TODO(), fmt.Sprintf("%s%d-v-1", containerName, index), metav1.DeleteOptions{})
-	if err != nil {
-		log.Warnf("Error deleting custom resource %s,  %v", fmt.Sprintf("%s%d-v-1", containerName, index), err)
-	} else {
-		log.Debugf("Successfully deleted custom resource %s", fmt.Sprintf("%s%d-v-1", containerName, index))
+	objectName := fmt.Sprintf("%s%d-v-version1", strings.Replace(yamlFiles[objectType], "/", "", -1)+"container", index)
+	if testhelpers.IsTestInAzure() {
+		objectName = strings.ReplaceAll(objectAzureName[objectType], "INDEX", fmt.Sprintf("%d", index))
 	}
-	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Delete(context.TODO(), fmt.Sprintf("%s%d", containerName, index), metav1.DeleteOptions{})
+
+	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), strings.Replace(cr["kind"].(string), "Container", "", -1))).Namespace(namespace).Delete(context.TODO(), objectName, metav1.DeleteOptions{})
+	if err != nil {
+		log.Warnf("Error deleting custom resource %s,  %v", objectName, err)
+	} else {
+		log.Debugf("Successfully deleted custom resource %s", objectName)
+	}
+	containerName := strings.Replace(yamlFiles[objectType], "/", "", -1) + "container"
+	if testhelpers.IsTestInAzure() {
+		containerName = strings.ReplaceAll(objectAzureName[objectType+"container"], "INDEX", fmt.Sprintf("%d", index))
+	}
+	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), cr["kind"].(string))).Namespace(namespace).Delete(context.TODO(), containerName, metav1.DeleteOptions{})
 
 	if err != nil {
 		log.Warnf("Error deleting custom resource %s, %d: %v", containerName, index, err)

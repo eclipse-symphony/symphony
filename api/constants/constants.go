@@ -6,7 +6,11 @@
 
 package constants
 
-import _ "embed"
+import (
+	_ "embed"
+	"os"
+	"strconv"
+)
 
 // Eula Message
 var (
@@ -21,7 +25,9 @@ const (
 	// system annotations, reserved and should not be modified by client.
 	AzureCorrelationIdKey        = "management.azure.com/correlationId"
 	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	AzureCloudLocationKey        = "management.azure.com/location"
 	AzureOperationIdKey          = "management.azure.com/operationId"
+	AzureDeleteOperationKey      = "management.azure.com/deleteOperation"
 	AzureNameIdKey               = "management.azure.com/azureName"
 	AzureResourceIdKey           = "management.azure.com/resourceId"
 	AzureSystemDataKey           = "management.azure.com/systemData"
@@ -34,11 +40,24 @@ const (
 	ProviderName = "management.azure.com/provider-name"
 )
 
+var LabelLengthUpperLimit = 64 // Default value if environment variable is not set
+
+func init() {
+	// Convert LABEL_LENGTH_UPPER_LIMIT environment variable to int if provided
+	if envLimit := os.Getenv("LABEL_LENGTH_UPPER_LIMIT"); envLimit != "" {
+		if val, err := strconv.Atoi(envLimit); err == nil {
+			LabelLengthUpperLimit = val
+		}
+	}
+}
+
 func SystemReservedAnnotations() []string {
 	return []string{
 		AzureCorrelationIdKey,
+		AzureCloudLocationKey,
 		AzureEdgeLocationKey,
 		AzureOperationIdKey,
+		AzureDeleteOperationKey,
 		AzureNameIdKey,
 		AzureResourceIdKey,
 		AzureSystemDataKey,
@@ -46,6 +65,7 @@ func SystemReservedAnnotations() []string {
 		RunningAzureCorrelationIdKey,
 		SummaryJobIdKey,
 		OperationStartTimeKeyPostfix,
+		GuidKey,
 	}
 }
 
@@ -75,11 +95,15 @@ const (
 	ReferenceSeparator = ":"
 	DisplayName        = "displayName"
 	RootResource       = "rootResource"
+	RootResourceUid    = "rootResourceUid"
 	ParentName         = "parentName"
 	StatusMessage      = "statusMessage"
 	Solution           = "solution"
+	SolutionUid        = "solutionUid"
 	Target             = "target"
+	TargetUid          = "targetUid"
 	Campaign           = "campaign"
+	CampaignUid        = "campaignUid"
 	StagedTarget       = "staged_target"
 )
 

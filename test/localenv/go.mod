@@ -1,8 +1,8 @@
 module github.com/eclipse-symphony/symphony/test/localenv
 
-go 1.22.4
+go 1.24.0
 
-toolchain go1.22.6
+toolchain go1.24.4
 
 require (
 	github.com/magefile/mage v1.14.0
@@ -10,8 +10,8 @@ require (
 )
 
 require (
-	github.com/fatih/color v1.9.0 // indirect
-	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/mattn/go-isatty v0.0.12 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	github.com/fatih/color v1.13.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 )

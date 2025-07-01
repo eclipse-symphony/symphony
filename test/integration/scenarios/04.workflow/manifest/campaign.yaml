@@ -1,7 +1,7 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: 04campaign-v-v1
+  name: 04campaign-v-version1
 spec:  
   rootResource: 04campaign
   firstStage: wait
@@ -11,23 +11,21 @@ spec:
       provider: providers.stage.wait
       stageSelector: list
       config:
-        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
       inputs:
         objectType: catalogs
         names:
-        - sitecatalog:v1
-        - sitecatalog2:v1
-        - siteapp:v1
-        - sitek8starget:v1
-        - siteinstance:v1
+        - sitecatalog:version1
+        - sitecatalog2:version1
+        - siteapp:version1
+        - sitek8starget:version1
+        - siteinstance:version1
     list:
       name: list
       provider: providers.stage.list
       stageSelector: deploy
       config:
-        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
       inputs:
@@ -39,7 +37,6 @@ spec:
       stageSelector: ""
       schedule: "2020-10-31T12:00:00-07:00"
       config:
-        baseUrl: http://symphony-service:8080/v1alpha2/
         user: admin
         password: ""
         waitForDeployment: true

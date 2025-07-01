@@ -78,7 +78,7 @@ func Test_CatalogsEvals(t *testing.T) {
 	}, time.Minute*1)
 	resourceRef, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "spec", "resourceRef", "name")
 	require.NoError(t, err)
-	require.Equal(t, "evalcatalog-v-v1", resourceRef)
+	require.Equal(t, "evalcatalog-v-version1", resourceRef)
 
 	status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
 	require.NoError(t, err)

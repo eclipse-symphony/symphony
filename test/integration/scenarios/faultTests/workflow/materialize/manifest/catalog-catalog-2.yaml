@@ -1,15 +1,15 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: sitecatalog2-v-v1
+  name: sitecatalog2-v-version1
 spec:
   rootResource: sitecatalog2
   catalogType: catalog
   properties:
     metadata: 
-      name: webappconfig2:v1
+      name: webappconfig2:version1
     spec: 
-      type: config
+      catalogType: config
       properties:
         test.dot.serviceType: "NodePort"
         testA:

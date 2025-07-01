@@ -7,10 +7,10 @@ apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   annotations: {}
-  name: instance
+  name: instance01
 spec:
-  displayName: instance
+  displayName: instance01
   scope: test-scope
-  solution: mysol:v1
+  solution: solution01:version1
   target:
-    name: self
+    name: target01

@@ -83,7 +83,7 @@ kind: Activation
 metadata:
   name: workflow
 spec:
-  campaign: "campaign:v1"
+  campaign: "campaign:version1"
   inputs:
     foo: 1
 ```
@@ -99,7 +99,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: campaign-v-v1
+  name: campaign-v-version1
 spec:  
   rootResource: campaign
   firstStage: mock1
@@ -115,7 +115,7 @@ spec:
       provider: providers.stage.mock
       stageSelector: ""
       inputs:
-        stcheck: "${{$output($input(__previousStage), __status)}}"
+        stcheck: "${{$output($input(__previousStage), status)}}"
         sttiket: "${{$output($input(__previousStage), ticket)}}"
         foo: "${{$trigger(foo, 0)}}"
   selfDriving: true

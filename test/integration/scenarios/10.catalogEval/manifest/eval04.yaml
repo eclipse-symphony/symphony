@@ -8,5 +8,5 @@ spec:
   resourceRef:
     apiGroup: federation.symphony
     kind: Catalog
-    name: evalcatalog-v-v4
+    name: evalcatalog-v-version4
     namespace: default

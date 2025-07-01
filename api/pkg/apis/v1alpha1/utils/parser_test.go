@@ -2616,12 +2616,12 @@ func TestStringLiteral(t *testing.T) {
 	assert.Equal(t, "stage-1", val)
 }
 func TestStringLiteralDoubleUnderScore(t *testing.T) {
-	parser := NewParser("__status")
+	parser := NewParser("status")
 	val, err := parser.Eval(utils.EvaluationContext{
 		Context: ctx,
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "__status", val)
+	assert.Equal(t, "status", val)
 }
 func TestIf(t *testing.T) {
 	parser := NewParser("${{$if(true, stage-1, stage-2)}}")

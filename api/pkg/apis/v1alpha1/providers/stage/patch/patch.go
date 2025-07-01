@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -87,7 +88,7 @@ func toPatchStageProviderConfig(config providers.IProviderConfig) (PatchStagePro
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *PatchStageProvider) InitWithMap(properties map[string]string) error {
@@ -253,7 +254,7 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		} else {
 			var componentSpec model.ComponentSpec
 			jData, _ := json.Marshal(patchContent)
-			if err = json.Unmarshal(jData, &componentSpec); err != nil {
+			if err = utils2.UnmarshalJson(jData, &componentSpec); err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error unmarshalling componentSpec")
 				providerOperationMetrics.ProviderOperationErrors(
 					patch,

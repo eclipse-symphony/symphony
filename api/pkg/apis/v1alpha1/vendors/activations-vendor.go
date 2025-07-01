@@ -7,9 +7,6 @@
 package vendors
 
 import (
-	"encoding/json"
-	"time"
-
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -20,6 +17,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -97,7 +95,7 @@ func (c *ActivationsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COARe
 		ctx, span := observability.StartSpan("onStatus-POST", pCtx, nil)
 		id := request.Parameters["__name"]
 		var status model.ActivationStatus
-		err := json.Unmarshal(request.Body, &status)
+		err := utils2.UnmarshalJson(request.Body, &status)
 		if err != nil {
 			vLog.InfofCtx(ctx, "V (Activations Vendor): onStatus failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -178,7 +176,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 
 		var activation model.ActivationState
 
-		err := json.Unmarshal(request.Body, &activation)
+		err := utils2.UnmarshalJson(request.Body, &activation)
 		if err != nil {
 			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -196,32 +194,37 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		// TODO: this sleep is a hack and is not guaranteed to always work. When REST API is used against a K8s state provider, creating the activation object triggers
-		// the activation controller to raise the activation event as well. This is a workaround to avoid duplicated events. A proper
-		// implemenation probably needs to leverage a distributed lock - such leverage a Redis lock.
-		time.Sleep(1 * time.Second)
-
-		entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
-		if err != nil {
-			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.GetErrorState(err),
-				Body:  []byte(err.Error()),
-			})
-		}
-		// If the activation is new and has no status, publish an activation event
-		if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
-			c.Context.Publish("activation", v1alpha2.Event{
-				Body: v1alpha2.ActivationData{
-					Campaign:             activation.Spec.Campaign,
-					ActivationGeneration: entry.ObjectMeta.ETag,
-					Activation:           id,
-					Stage:                activation.Spec.Stage,
-					Inputs:               activation.Spec.Inputs,
-					Namespace:            activation.ObjectMeta.Namespace,
-				},
-				Context: ctx,
-			})
+		if c.Config.Properties["useJobManager"] == "true" {
+			entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
+			if err != nil {
+				vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.GetErrorState(err),
+					Body:  []byte(err.Error()),
+				})
+			}
+			// If the activation is new and has no status, publish an activation event
+			if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
+				err = c.Context.Publish("activation", v1alpha2.Event{
+					Body: v1alpha2.ActivationData{
+						Campaign:             activation.Spec.Campaign,
+						ActivationGeneration: entry.ObjectMeta.ETag,
+						Activation:           id,
+						Stage:                activation.Spec.Stage,
+						Inputs:               activation.Spec.Inputs,
+						Namespace:            activation.ObjectMeta.Namespace,
+					},
+					Context: ctx,
+				})
+				if err != nil {
+					vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
+					return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+						State:       v1alpha2.InternalError,
+						Body:        []byte(err.Error()),
+						ContentType: "application/json",
+					})
+				}
+			}
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

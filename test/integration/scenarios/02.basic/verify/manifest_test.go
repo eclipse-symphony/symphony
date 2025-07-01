@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -36,38 +36,48 @@ var (
 	}
 )
 
-func TestDryRun(t *testing.T) {
+func TestDryRunAndActiveState(t *testing.T) {
 	namespace := os.Getenv("NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
 	}
 	for _, manifest := range testManifests {
-		_, err := DeployManifests(manifest, namespace, "true")
+		_, err := DeployManifests(manifest, namespace, "true", "active")
 		require.NoError(t, err)
 	}
 	testBasic_InstanceStatus(t, "0")
 	testBasic_TargetStatus(t, "0")
 	testBasic_VerifyPodsExist(t, []string{}, []string{"nginx", "testapp", namespace + "instance"})
 
-	_, err := DeployManifests("../manifest/oss/target.yaml", namespace, "false")
+	_, err := DeployManifests("../manifest/oss/target.yaml", namespace, "false", "active")
 	require.NoError(t, err)
 	testBasic_InstanceStatus(t, "0")
 	testBasic_TargetStatus(t, "1")
 	testBasic_VerifyPodsExist(t, []string{"nginx"}, []string{"testapp", namespace + "instance"})
 
-	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false")
+	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false", "active")
 	require.NoError(t, err)
 	testBasic_InstanceStatus(t, "1")
 	testBasic_TargetStatus(t, "1")
 	testBasic_VerifyPodsExist(t, []string{"nginx", "testapp", namespace + "instance"}, []string{})
 
-	output, err := DeployManifests("../manifest/oss/instance.yaml", namespace, "true")
+	output, err := DeployManifests("../manifest/oss/instance.yaml", namespace, "true", "active")
 	require.Error(t, err)
 	require.Contains(t, string(output), "The instance is already deployed. Cannot change isDryRun from false to true.")
 
-	output, err = DeployManifests("../manifest/oss/target.yaml", namespace, "true")
+	output, err = DeployManifests("../manifest/oss/target.yaml", namespace, "true", "active")
 	require.Error(t, err)
 	require.Contains(t, string(output), "The target is already deployed. Cannot change isDryRun from false to true.")
+
+	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false", "inactive")
+	require.NoError(t, err)
+	testBasic_InstanceStatus(t, "0")
+	testBasic_VerifyPodsExist(t, []string{"nginx"}, []string{"testapp", namespace + "instance"})
+
+	_, err = DeployManifests("../manifest/oss/instance.yaml", namespace, "false", "active")
+	require.NoError(t, err)
+	testBasic_InstanceStatus(t, "1")
+	testBasic_VerifyPodsExist(t, []string{"nginx", "testapp", namespace + "instance"}, []string{})
 
 	err = CleanUpSymphonyObjects(namespace)
 	if err != nil {
@@ -111,7 +121,7 @@ func testBasic_TargetStatus(t *testing.T, successCount string) {
 		fmt.Printf("Current target status: %v\n", targetState)
 		require.NotEqual(t, "Failed", targetState.Status.ProvisioningStatus.Status, "target should not be in failed state")
 
-		if success, ok := targetState.Status.Properties["deployed"]; ok && targetState.Status.ProvisioningStatus.Status == "Succeeded" && success == successCount {
+		if success := targetState.Status.Deployed; targetState.Status.ProvisioningStatus.Status == "Succeeded" && strconv.FormatInt(int64(success), 10) == successCount {
 			break
 		}
 	}
@@ -145,7 +155,7 @@ func testBasic_InstanceStatus(t *testing.T, successCount string) {
 		fmt.Printf("Current instance status: %v\n", instance)
 		require.NotEqual(t, "Failed", instance.Status.ProvisioningStatus.Status, "instance should not be in failed state")
 		// TODO: check success count
-		if success, ok := instance.Status.Properties["deployed"]; ok && instance.Status.ProvisioningStatus.Status == "Succeeded" && success == successCount {
+		if success := instance.Status.Deployed; instance.Status.ProvisioningStatus.Status == "Succeeded" && strconv.FormatInt(int64(success), 10) == successCount {
 			break
 		}
 	}
@@ -172,7 +182,7 @@ func testBasic_VerifyPodsExist(t *testing.T, toFind []string, NotFound []string)
 		notFound := make(map[string]bool)
 		for _, s := range NotFound {
 			for _, pod := range pods.Items {
-				if strings.Contains(pod.Name, s) {
+				if strings.Contains(pod.Name, s) && pod.DeletionTimestamp == nil {
 					require.Fail(t, "Pod found that should not be created", "Pod: %v", pod.Name)
 				}
 			}
@@ -233,7 +243,7 @@ func getInstanceState(resource unstructured.Unstructured) model.InstanceState {
 	return instance
 }
 
-func DeployManifests(fileName string, namespace string, dryrun string) ([]byte, error) {
+func DeployManifests(fileName string, namespace string, dryrun string, activestate string) ([]byte, error) {
 	if namespace != "default" {
 		// Create non-default namespace if not exist
 		output, err := exec.Command("kubectl", "get", "namespace", namespace).CombinedOutput()
@@ -249,27 +259,17 @@ func DeployManifests(fileName string, namespace string, dryrun string) ([]byte, 
 			}
 		}
 	}
+	stringYaml, err := testhelpers.ReplacePlaceHolderInManifestWithString(fileName, namespace+"target", namespace+"solution", "version1", namespace+"instance", "")
 
-	fullPath, err := filepath.Abs(fileName)
 	if err != nil {
-		return []byte(fullPath), err
+		return []byte(stringYaml), err
 	}
 
-	data, err := os.ReadFile(fullPath)
-	if err != nil {
-		return data, err
-	}
-	stringYaml := string(data)
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", namespace+"solution")
-	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", namespace+"instance")
 	stringYaml = strings.ReplaceAll(stringYaml, "SCOPENAME", namespace+"scope")
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", namespace+"solution-v-v1")
-	stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", namespace+"target")
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME", namespace+"solution:v1")
 	stringYaml = strings.ReplaceAll(stringYaml, "DRYRUN", dryrun)
+	stringYaml = strings.ReplaceAll(stringYaml, "ACTIVESTATE", activestate)
 
-	err = writeYamlStringsToFile(stringYaml, "./test.yaml")
+	err = testhelpers.WriteYamlStringsToFile(stringYaml, "./test.yaml")
 	if err != nil {
 		return []byte{}, err
 	}
@@ -281,36 +281,57 @@ func DeployManifests(fileName string, namespace string, dryrun string) ([]byte, 
 	return []byte{}, nil
 }
 
-func writeYamlStringsToFile(yamlString string, filePath string) error {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write([]byte(yamlString))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func CleanUpSymphonyObjects(namespace string) error {
-	instanceName := namespace + "instance"
-	targetName := namespace + "target"
-	solutionName := namespace + "solution-v-v1"
-	err := shellcmd.Command(fmt.Sprintf("kubectl delete instances.solution.symphony %s -n %s", instanceName, namespace)).Run()
+	// Get all instances in the namespace
+	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solution.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list instances: %v", err)
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete targets.fabric.symphony %s -n %s", targetName, namespace)).Run()
-	if err != nil {
-		return err
+
+	// Split the output into individual instance names
+	instances := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, instance := range instances {
+		if instance == "" {
+			continue
+		}
+		// Delete each instance
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", instance, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete instance %s: %v", instance, err)
+		}
 	}
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete solutions.solution.symphony %s -n %s", solutionName, namespace)).Run()
+
+	// Repeat similar logic for targets and solutions if needed
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get targets.fabric.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list targets: %v", err)
+	}
+
+	targets := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, target := range targets {
+		if target == "" {
+			continue
+		}
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", target, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete target %s: %v", target, err)
+		}
+	}
+
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutions.solution.symphony -n %s -o name", namespace)).Output()
+	if err != nil {
+		return fmt.Errorf("failed to list solutions: %v", err)
+	}
+
+	solutions := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, solution := range solutions {
+		if solution == "" {
+			continue
+		}
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", solution, namespace)).Run()
+		if err != nil {
+			return fmt.Errorf("failed to delete solution %s: %v", solution, err)
+		}
 	}
 	return nil
 }

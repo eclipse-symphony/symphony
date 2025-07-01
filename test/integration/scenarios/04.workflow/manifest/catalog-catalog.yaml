@@ -1,18 +1,18 @@
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: sitecatalog-v-v1
+  name: sitecatalog-v-version1
 spec:
   rootResource: sitecatalog
   catalogType: catalog
   properties:
     metadata: 
-      name: webappconfig:v1
+      name: webappconfig:version1
     spec: 
-      type: config
+      catalogType: config
       properties:
         testA:
           testB:
             testC:
-              serviceType: "${{$config('webappconfig2:v1','test.dot.serviceType')}}"
-              image: "${{$config('webappconfig2:v1','`.testA.testB.images[] | select(.ver > 2) | .image`')}}"
+              serviceType: "${{$config('webappconfig2:version1','test.dot.serviceType')}}"
+              image: "${{$config('webappconfig2:version1','`.testA.testB.images[] | select(.ver > 2) | .image`')}}"

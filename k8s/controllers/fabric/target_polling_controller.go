@@ -12,6 +12,7 @@ import (
 	"time"
 
 	symphonyv1 "gopls-workspace/apis/fabric/v1"
+	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
@@ -19,6 +20,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -48,13 +50,23 @@ func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if err := r.Get(ctx, req.NamespacedName, target); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Skipping this reconcile, since the CR has been deleted")
+			diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since the CR has been deleted")
 			return ctrl.Result{}, nil
 		} else {
-			log.Error(err, "unable to fetch Target object")
+			diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Target object")
 			return ctrl.Result{}, err
 		}
 	}
+
+	// reform context with annotations
+	resourceK8SId := target.GetNamespace() + "/" + target.GetName()
+	operationName := constants.TargetOperationNamePrefix
+	if target.ObjectMeta.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(target.GetNamespace(), resourceK8SId, target.Annotations, operationName, r, ctx, log)
 
 	reconciliationType := metrics.CreateOperationType
 	resultType := metrics.ReconcileSuccessResult
@@ -64,14 +76,12 @@ func (r *TargetPollingReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if target.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Write)
 		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, target, false, log, targetOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.TargetOperationNamePrefix, constants.ActivityOperation_Delete)
 		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, target, true, log, targetOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
@@ -103,7 +113,11 @@ func (r *TargetPollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err != nil {
 		return err
 	}
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("TargetPolling").
+		WithOptions(controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: r.PollingConcurrentReconciles}).
 		WithEventFilter(jobIDPredicate).
 		For(&symphonyv1.Target{}).
 		Complete(r)
