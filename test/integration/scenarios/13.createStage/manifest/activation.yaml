@@ -1,0 +1,9 @@
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: ACTIVATIONNAME
+  annotations:
+    "management.azure.com/resourceId": ACTIVATIONNAME
+spec:
+  # campaign: "context1-v-bulk-campaign-v-version1" 
+  campaign: CAMPAIGNREFNAME
