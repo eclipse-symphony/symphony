@@ -99,7 +99,7 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			return err
 		}
 		currentTime := time.Now()
-		diagnostic.InfoWithCtx(instancelog, ctx, "Saving old instance history", "Current time", currentTime, "name", instance.Name, "instance", instance)
+		diagnostic.InfoWithCtx(instancelog, ctx, "Saving old instance history", "Current time", currentTime, "name", instance.Name)
 
 		// get solution spec
 		var solutionSpec k8smodel.SolutionSpec
@@ -198,7 +198,7 @@ var _ webhook.Defaulter = &Instance{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Instance) Default() {
 	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), instancelog)
-	diagnostic.InfoWithCtx(instancelog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status, "annotation", r.Annotations)
+	diagnostic.InfoWithCtx(instancelog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "status", r.Status)
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name
 	}
@@ -299,7 +299,7 @@ func (r *Instance) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 
 	// Save the old object
 	if !r.Spec.DeepEquals(oldInstance.Spec) {
-		diagnostic.InfoWithCtx(instancelog, ctx, "saving instance history", "oldInstance", oldInstance)
+		diagnostic.InfoWithCtx(instancelog, ctx, "saving old instance history", "name", oldInstance.Name)
 		err := instanceHistory.SaveInstanceHistoryFunc(ctx, oldInstance.Name, oldInstance)
 		if err != nil {
 			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to save Instance history", "name", r.Name, "namespace", r.Namespace)

@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	catalogMaxNameLength = 63
-	catalogMinNameLength = 3
+	catalogMaxNameLength = 61
+	catalogMinNameLength = 1
 )
 
 type CatalogValidator struct {

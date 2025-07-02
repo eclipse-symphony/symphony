@@ -17,6 +17,7 @@ ENV CGO_ENABLED=1
 ENV GO_VERSION=1.22.4
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+ENV PROTOC=/usr/bin/protoc
 
 RUN mkdir /workspace /extensions
 COPY ./packages /workspace/packages
@@ -30,7 +31,7 @@ RUN chmod +x pkg/apis/v1alpha1/providers/target/script/mock-*.sh
 RUN apt-get update && apt-get install -y \
     gcc g++ make curl wget git cargo \
     gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
-    libssl-dev pkg-config \
+    libssl-dev pkg-config protobuf-compiler \
     && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz

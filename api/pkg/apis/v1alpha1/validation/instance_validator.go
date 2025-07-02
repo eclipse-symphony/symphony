@@ -22,8 +22,8 @@ type InstanceValidator struct {
 }
 
 var (
-	instanceMaxNameLength = 63
-	instanceMinNameLength = 3
+	instanceMaxNameLength = 61
+	instanceMinNameLength = 1
 )
 
 func NewInstanceValidator(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) InstanceValidator {

@@ -21,8 +21,8 @@ type ActivationValidator struct {
 }
 
 var (
-	activationMaxNameLength = 63
-	activationMinNameLength = 3
+	activationMaxNameLength = 61
+	activationMinNameLength = 1
 )
 
 func NewActivationValidator(campaignLookupFunc ObjectLookupFunc) ActivationValidator {

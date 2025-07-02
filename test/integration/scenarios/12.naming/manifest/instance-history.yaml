@@ -1,22 +1,22 @@
 apiVersion: solution.symphony/v1
 kind: InstanceHistory
 metadata:
-  name: ${PLACEHOLDER_NAME}
+  name: INSTANCEHISTORYFULLNAME
 spec:
   displayName: history-instance
   reconciliationPolicy:
     interval: 30m
     state: active
-  rootResource: ${PLACEHOLDER_ROOT_RESOURCE}
+  rootResource: INSTANCEFULLNAME
   solution:
     components:
     - name: configmap
       properties:
         tags: test-history
       type: config
-    displayName: history-solution-v-version1
-    rootResource: history-solution
-  solutionId: history-solution:version1
+    displayName: SOLUTIONFULLNAME
+    rootResource: SOLUTIONCONTAINERFULLNAME
+  solutionId: SOLUTIONREFNAME
   target:
     displayName: history-target
     scope: default
@@ -26,4 +26,4 @@ spec:
           inCluster: "true"
         provider: providers.target.configmap
         role: config
-  targetId: history-target
+  targetId: TARGETREFNAME

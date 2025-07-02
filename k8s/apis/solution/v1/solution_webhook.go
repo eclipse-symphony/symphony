@@ -39,8 +39,8 @@ import (
 // log is for logging in this package.
 
 var (
-	solutionContainerMaxNameLength = 63
-	solutionContainerMinNameLength = 3
+	solutionContainerMaxNameLength = 61
+	solutionContainerMinNameLength = 1
 	solutionlog                    = logf.Log.WithName("solution-resource")
 	mySolutionReaderClient         client.Reader
 	projectConfig                  *configv1.ProjectConfig
@@ -107,7 +107,7 @@ var _ webhook.Defaulter = &Solution{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Solution) Default() {
 	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), solutionlog)
-	diagnostic.InfoWithCtx(solutionlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
+	diagnostic.InfoWithCtx(solutionlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "status", r.Status)
 
 	if r.Spec.DisplayName == "" {
 		r.Spec.DisplayName = r.ObjectMeta.Name

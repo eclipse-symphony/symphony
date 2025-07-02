@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	campaignMaxNameLength = 63
-	campaignMinNameLength = 3
+	campaignMaxNameLength = 61
+	campaignMinNameLength = 1
 )
 
 type CampaignValidator struct {

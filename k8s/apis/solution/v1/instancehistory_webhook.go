@@ -29,8 +29,8 @@ import (
 
 // log is for logging in this package.
 var (
-	iHistoryNameMin = 3
-	iHistoryNameMax = 63
+	iHistoryNameMin = 1
+	iHistoryNameMax = 61
 )
 var historyLog = logf.Log.WithName("instance-history-resource")
 
@@ -53,7 +53,7 @@ var _ webhook.Defaulter = &InstanceHistory{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *InstanceHistory) Default() {
 	ctx := diagnostic.ConstructDiagnosticContextFromAnnotations(r.Annotations, context.TODO(), historyLog)
-	diagnostic.InfoWithCtx(historyLog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec", r.Spec, "status", r.Status)
+	diagnostic.InfoWithCtx(historyLog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "status", r.Status)
 
 	// Set owner reference for the instance history
 	if r.Spec.RootResource != "" {

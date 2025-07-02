@@ -7,8 +7,6 @@
 package vendors
 
 import (
-	"time"
-
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -196,32 +194,29 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		// TODO: this sleep is a hack and is not guaranteed to always work. When REST API is used against a K8s state provider, creating the activation object triggers
-		// the activation controller to raise the activation event as well. This is a workaround to avoid duplicated events. A proper
-		// implemenation probably needs to leverage a distributed lock - such leverage a Redis lock.
-		time.Sleep(1 * time.Second)
-
-		entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
-		if err != nil {
-			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.GetErrorState(err),
-				Body:  []byte(err.Error()),
-			})
-		}
-		// If the activation is new and has no status, publish an activation event
-		if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
-			c.Context.Publish("activation", v1alpha2.Event{
-				Body: v1alpha2.ActivationData{
-					Campaign:             activation.Spec.Campaign,
-					ActivationGeneration: entry.ObjectMeta.ETag,
-					Activation:           id,
-					Stage:                activation.Spec.Stage,
-					Inputs:               activation.Spec.Inputs,
-					Namespace:            activation.ObjectMeta.Namespace,
-				},
-				Context: ctx,
-			})
+		if c.Config.Properties["useJobManager"] == "true" {
+			entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
+			if err != nil {
+				vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.GetErrorState(err),
+					Body:  []byte(err.Error()),
+				})
+			}
+			// If the activation is new and has no status, publish an activation event
+			if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
+				c.Context.Publish("activation", v1alpha2.Event{
+					Body: v1alpha2.ActivationData{
+						Campaign:             activation.Spec.Campaign,
+						ActivationGeneration: entry.ObjectMeta.ETag,
+						Activation:           id,
+						Stage:                activation.Spec.Stage,
+						Inputs:               activation.Spec.Inputs,
+						Namespace:            activation.ObjectMeta.Namespace,
+					},
+					Context: ctx,
+				})
+			}
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

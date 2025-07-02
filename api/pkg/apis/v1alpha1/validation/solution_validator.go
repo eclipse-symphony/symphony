@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	solutionMaxNameLength = 63
-	solutionMinNameLength = 7
+	solutionMaxNameLength = 61
+	solutionMinNameLength = 1
 )
 
 type SolutionValidator struct {
