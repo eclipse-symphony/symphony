@@ -42,11 +42,11 @@ Example:
 
 ```shell
 # Go installation
-curl -LO "https://go.dev/dl/go1.22.4.linux-amd64.tar.gz"
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.4.linux-amd64.tar.gz
+curl -LO "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
-rm go1.22.4.linux-amd64.tar.gz
+rm go1.24.0.linux-amd64.tar.gz
 mkdir -p $HOME/go/bin
 
 ```

@@ -9,7 +9,7 @@
 ##   docker build -f k8s/Dockerfile .
 ## Or build with docker-compose file of k8s
 
-ARG BUILD_BASE_IMAGE=golang:1.22.4-alpine
+ARG BUILD_BASE_IMAGE=golang:1.24.0-alpine
 ARG TARGET_BASE_IMAGE=mcr.microsoft.com/mirror/docker/library/alpine:3.16
 
 FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS builder
@@ -61,7 +61,7 @@ RUN if [ "$FAULT_INJECTION_ENABLED" = "true" ]; then \
 fi
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags "$BUILDFLAG" -o bin/manager
+RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -tags "$BUILDFLAG" -o bin/manager
 FROM ${TARGET_BASE_IMAGE} AS manager
 
 WORKDIR /

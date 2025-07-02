@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -26,6 +27,52 @@ type ActivationState struct {
 	Spec       *ActivationSpec   `json:"spec,omitempty"`
 	Status     *ActivationStatus `json:"status,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=stopOnAnyFailure;stopOnNFailures;silentlyContinue;
+type ErrorActionMode string
+
+const (
+	ErrorActionMode_StopOnAnyFailure ErrorActionMode = "stopOnAnyFailure"
+	ErrorActionMode_StopOnNFailures  ErrorActionMode = "stopOnNFailures"
+	ErrorActionMode_SilentlyContinue ErrorActionMode = "silentlyContinue"
+)
+
+func (e ErrorActionMode) String() string {
+	return string(e)
+}
+
+func (e ErrorActionMode) IsStopOnAnyFailure() bool {
+	return strings.EqualFold(e.String(), ErrorActionMode_StopOnAnyFailure.String())
+}
+
+func (e ErrorActionMode) IsStopOnNFailures() bool {
+	return strings.EqualFold(e.String(), ErrorActionMode_StopOnNFailures.String())
+}
+
+func (e ErrorActionMode) IsSilentlyContinue() bool {
+	return strings.EqualFold(e.String(), ErrorActionMode_SilentlyContinue.String())
+}
+
+// +kubebuilder:object:generate=true
+type ErrorAction struct {
+	Mode                 ErrorActionMode `json:"mode,omitempty"`
+	MaxToleratedFailures int             `json:"maxToleratedFailures,omitempty"`
+}
+
+// +Kubebuilder:object:generate=true
+type TaskOption struct {
+	Concurrency int         `json:"concurrency,omitempty"`
+	ErrorAction ErrorAction `json:"errorAction,omitempty"`
+}
+
+type TaskSpec struct {
+	Name     string                 `json:"name,omitempty"`
+	Provider string                 `json:"provider,omitempty"`
+	Config   interface{}            `json:"config,omitempty"`
+	Inputs   map[string]interface{} `json:"inputs,omitempty"`
+	Target   string                 `json:"target,omitempty"`
+}
+
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
 	Contexts      string                 `json:"contexts,omitempty"`
@@ -36,6 +83,8 @@ type StageSpec struct {
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
 	Target        string                 `json:"target,omitempty"`
+	Tasks         []TaskSpec             `json:"tasks,omitempty"`
+	TaskOption    TaskOption             `json:"taskOption,omitempty"`
 }
 
 // UnmarshalJSON customizes the JSON unmarshalling for StageSpec

@@ -65,6 +65,37 @@ spec:
                       type: string
                     target:
                       type: string
+                    taskOption:
+                      properties:
+                        concurrency:
+                          type: integer
+                        errorAction:
+                          properties:
+                            maxToleratedFailures:
+                              type: integer
+                            mode:
+                              enum:
+                              - stopOnAnyFailure
+                              - stopOnNFailures
+                              - silentlyContinue
+                              type: string
+                          type: object
+                      type: object
+                    tasks:
+                      items:
+                        properties:
+                          config:
+                            x-kubernetes-preserve-unknown-fields: true
+                          inputs:
+                            x-kubernetes-preserve-unknown-fields: true
+                          name:
+                            type: string
+                          provider:
+                            type: string
+                          target:
+                            type: string
+                        type: object
+                      type: array
                     triggeringStage:
                       type: string
                   type: object
