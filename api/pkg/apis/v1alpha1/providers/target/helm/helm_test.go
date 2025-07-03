@@ -1090,7 +1090,7 @@ func TestHelmTargetProviderPullChartUnauthorizedError(t *testing.T) {
 	assert.Nil(t, err)
 
 	chart := &HelmChartProperty{
-		Repo:    "oci://lytestcr.azurecr.io/helm/simple-chart-secure",
+		Repo:    "oci://symphonyprivate.azurecr.io/helm/simple-chart-secure",
 		Version: "0.1.0",
 	}
 
