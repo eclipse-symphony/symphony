@@ -1038,10 +1038,10 @@ func TestParallelReconcileStop(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
 	// This is an parallel execution with task1 failed with invalid chart repo and error mode as "stopOnNFailures", concurrency as 1, maxToleratedFailures as 0
-	// As a result, we should see overall activation status as "InternalServerError", stage status as "InternalServerError"
-	// The output status would be 500, task1 status would be 400
-	// However, the overall status is Done and stage status is also Done, output status is 200 and task2 is also executed
-	// I think this should be a bug
+	// As a result, we would see overall activation status as "Done", stage status as "Done"
+	// The output status would be 200, stage1 status would be 400 with error message and task2 status would be 200
+	// Task1 would have failedDeploymentCount as 1 as it is executed and failed
+	// Task2 would have failedDeploymentCount as 0 as it is executed successfully
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
