@@ -3,9 +3,10 @@ param (
     [string]$endpoint,
     [string]$cert_path,
     [string]$target_name,
-    [string]$namespace = "default",
+    [string]$namespace,
     [string]$topology,
-    [ValidateSet('service','schedule')][string]$run_mode = 'schedule'
+    [string]$run_mode,
+    [string]$protocol  # <--- 新增这一行
 )
 
 if (-not $cert_password) {
@@ -124,74 +125,100 @@ catch {
     exit 1
 }
 
-try {
-    $WebRequestParams = @{
-        Uri = "$($endpoint)/targets/bootstrap/$($target_name)?namespace=$($namespace)&osPlatform=windows"
-        Method = 'Post'
-        Certificate = $cert  
-        Headers = @{ "Content-Type" = "application/json"; "User-Agent" = "PowerShell-Debug" }
-        Body = (Get-Content $topology -Raw)
+if ($protocol -ne 'mqtt') {
+    try {
+        $WebRequestParams = @{
+            Uri = "$($endpoint)/targets/bootstrap/$($target_name)?namespace=$($namespace)&osPlatform=windows"
+            Method = 'Post'
+            Certificate = $cert  
+            Headers = @{ "Content-Type" = "application/json"; "User-Agent" = "PowerShell-Debug" }
+            Body = (Get-Content $topology -Raw)
+        }
+        Write-Host "WebRequestParams:"
+        $WebRequestParams.GetEnumerator() | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Key, $_.Value) }
+        $response = Invoke-WebRequest @WebRequestParams -Verbose
+        Write-Host "Successfully get working cert from symphony server" -ForegroundColor Yellow
+    } catch {
+        Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
+        Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Error Details: $($_ | Out-String)" -ForegroundColor Red
+        Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
+        exit 1
     }
-    Write-Host "WebRequestParams:"
-    $WebRequestParams.GetEnumerator() | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Key, $_.Value) }
-    $response = Invoke-WebRequest @WebRequestParams -Verbose
-    Write-Host "Successfully get working cert from symphony server" -ForegroundColor Yellow
-} catch {
-    Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
-    Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Error Details: $($_ | Out-String)" -ForegroundColor Red
-    
-    Write-Host "Error: Failed to send request to endpoint."  -ForegroundColor Red
-    exit 1
+    $jsonResponse = $response.Content | ConvertFrom-Json
+    # Parse JSON response and extract public field
+    $public = $jsonResponse.public
+    # Extract header and footer of the public field
+    $header = ($public -split ' ')[0..1] -join ' '
+    $footer = ($public -split ' ')[-3..-1] -join ' '
+    # Extract Base64 encoded content and replace spaces with newlines
+    $base64_content = ($public -split ' ')[2..(($public -split ' ').Length - 4)] -join "`n"
+    # Combine header, Base64 content, and footer
+    $corrected_public_content = "$header`n$base64_content`n$footer"
+    # Write corrected_public_content to public.pem
+    $corrected_public_content | Set-Content -Path "public.pem" -Encoding ascii
+    Write-Host "Successfully create public.pem file" -ForegroundColor Yellow
+    # Extract private field
+    $private = $response.Content | ConvertFrom-Json | Select-Object -ExpandProperty private
+    # Extract header and footer of the private field
+    $header = ($private -split ' ')[0..3] -join ' '
+    $footer = ($private -split ' ')[-5..-1] -join ' '
+    # Extract Base64 content and replace spaces with newlines
+    $base64_content = ($private -split ' ')[4..(($private -split ' ').Length - 6)] -join "`n"
+    # Combine header, Base64 content, and footer
+    $corrected_private_content = "$header`n$base64_content`n$footer"
+
+    # Write corrected_private_content to private.pem
+    $corrected_private_content |  Set-Content -Path "private.pem" -Encoding ascii
+    Write-Host "Successfully create private.pem file" -ForegroundColor Yellow
 }
-$jsonResponse = $response.Content | ConvertFrom-Json
-# Parse JSON response and extract public field
-$public = $jsonResponse.public
-# Extract header and footer of the public field
-$header = ($public -split ' ')[0..1] -join ' '
-$footer = ($public -split ' ')[-3..-1] -join ' '
-# Extract Base64 encoded content and replace spaces with newlines
-$base64_content = ($public -split ' ')[2..(($public -split ' ').Length - 4)] -join "`n"
-# Combine header, Base64 content, and footer
-$corrected_public_content = "$header`n$base64_content`n$footer"
-# Write corrected_public_content to public.pem
-$corrected_public_content | Set-Content -Path "public.pem" -Encoding ascii
-Write-Host "Successfully create public.pem file" -ForegroundColor Yellow
-# Extract private field
-$private = $response.Content | ConvertFrom-Json | Select-Object -ExpandProperty private
-# Extract header and footer of the private field
-$header = ($private -split ' ')[0..3] -join ' '
-$footer = ($private -split ' ')[-5..-1] -join ' '
-# Extract Base64 content and replace spaces with newlines
-$base64_content = ($private -split ' ')[4..(($private -split ' ').Length - 6)] -join "`n"
-# Combine header, Base64 content, and footer
-$corrected_private_content = "$header`n$base64_content`n$footer"
+if ($run_mode -eq 'service') {
+    Stop-Service -Name symphony-service -Force -ErrorAction SilentlyContinue
+    sc.exe delete symphony-service | Out-Null
+    Start-Sleep -Seconds 2
+    Get-Process remote-agent -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Seconds 1
+}
 
-# Write corrected_private_content to private.pem
-$corrected_private_content |  Set-Content -Path "private.pem" -Encoding ascii
-Write-Host "Successfully create private.pem file" -ForegroundColor Yellow
-# Ensure remote-agent.exe can be overwritten: stop service and kill process
-Stop-Service -Name symphony-service -Force -ErrorAction SilentlyContinue
-sc.exe delete symphony-service | Out-Null
-Start-Sleep -Seconds 2
-Get-Process remote-agent -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 1
-# Download remote-agent binary file
-Write-Host "Begin to download remote-agent binary file" -ForegroundColor Blue
-
-try {
-    $WebRequestParams = @{
-        Uri = "$($endpoint)/files/remote-agent.exe"
-        Method = 'Get'
-        Certificate = $cert
+if ($protocol -eq 'mqtt') {
+    # MQTT: prompt for binary path, skip endpoint call and download
+    $agent_path = Read-Host "Please input the full absolute path to your remote-agent.exe binary (e.g. C:\path\to\remote-agent.exe)"
+    $agent_path = $agent_path.Trim('"')
+    if (-not (Test-Path $agent_path)) {
+        Write-Host "Error: remote-agent.exe not found at $agent_path" -ForegroundColor Red
+        exit 1
     }
-    $result = Invoke-WebRequest @WebRequestParams -OutFile "remote-agent.exe" -ErrorAction Stop
-    Write-Host $result.Content
-} catch {
-    Write-Host "Error: Failed to download." -ForegroundColor Red
-    Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Error Details: $($_ | Out-String)" -ForegroundColor Red
-    exit 1
+    # Prompt for CA cert path and validate
+    do {
+        $ca_cert_path = Read-Host "Please input the full absolute path to your MQTT CA certificate file (e.g. C:\path\to\ca.pem)"
+        $ca_cert_path = $ca_cert_path.Trim('"')
+        if (-not (Test-Path $ca_cert_path)) {
+            Write-Host "Error: CA certificate file not found at $ca_cert_path" -ForegroundColor Red
+            $valid = $false
+        } else {
+            $valid = $true
+        }
+    } until ($valid)
+    Write-Host "Using user-supplied remote-agent binary: $agent_path" -ForegroundColor Yellow
+    Write-Host "Using user-supplied CA certificate: $ca_cert_path" -ForegroundColor Yellow
+} else {
+    # Download remote-agent binary file
+    Write-Host "Begin to download remote-agent binary file" -ForegroundColor Blue
+    try {
+        $WebRequestParams = @{
+            Uri = "$($endpoint)/files/remote-agent.exe"
+            Method = 'Get'
+            Certificate = $cert
+        }
+        $result = Invoke-WebRequest @WebRequestParams -OutFile "remote-agent.exe" -ErrorAction Stop
+        Write-Host $result.Content
+    } catch {
+        Write-Host "Error: Failed to download." -ForegroundColor Red
+        Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Error Details: $($_ | Out-String)" -ForegroundColor Red
+        exit 1
+    }
+    $agent_path = Resolve-Path "./remote-agent.exe"
 }
 
 Write-Host "Begin to start remote agent process" -ForegroundColor Blue
@@ -199,31 +226,34 @@ Write-Host "Begin to start remote agent process" -ForegroundColor Blue
 # Set the paths to the public and private keys, agent binary, and topology file
 $public_path = Resolve-Path "./public.pem"
 $private_path = Resolve-Path "./private.pem"
-$agent_path = Resolve-Path "./remote-agent.exe"
 $config = Resolve-Path "./config.json"
 $topology = Resolve-Path $topology
 $serviceName = "symphony-service"
 $serviceDescription = "Remote Agent Service"
 
 #  compose the command line arguments for the remote agent
-$processArgs = "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"$private_path`" -target-name=`"$target_name`" -namespace=`"$namespace`" -topology=`"$topology`""
+$processArgs = "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"$private_path`" -target-name=`"$target_name`" -namespace=`"$namespace`" -topology=`"$topology`" -protocol=`"$protocol`""
 $binPath = "`"$agent_path`" $processArgs"
 
 if ($run_mode -eq 'service') {
     Write-Host "[run_mode=service] Register and start as Windows service..." -ForegroundColor Cyan
     # check if the service already exists
     if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
-        Write-Host "Service $serviceName already exists. Stopping and removing..." -ForegroundColor Yellow
         Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
         sc.exe delete $serviceName | Out-Null
         Write-Host "Service $serviceName deleted." -ForegroundColor Yellow
-    } else {
-        Write-Host "Service $serviceName does not exist, nothing to delete." -ForegroundColor Green
+    }
+    # 删除 EventLog 注册表项，防止残留
+    $eventLogRegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\$serviceName"
+    Write-Host "Checking for existing EventLog registry key at $eventLogRegPath..." -ForegroundColor Blue
+    if (Test-Path $eventLogRegPath) {
+        Remove-Item -Path $eventLogRegPath -Recurse -Force
+        Write-Host "EventLog registry key $eventLogRegPath deleted." -ForegroundColor Yellow
     }
 
-    # register the service
+    # register the service using sc.exe
     Write-Host "Registering $serviceName as a Windows service..." -ForegroundColor Blue
-    New-Service -Name $serviceName -BinaryPathName $binPath -Description $serviceDescription -DisplayName $serviceName -StartupType Automatic
+    sc.exe create $serviceName binPath= "$binPath" DisplayName= "$serviceName" start= auto
     # Start the service
     try {
         Start-Service -Name $serviceName
@@ -233,11 +263,11 @@ if ($run_mode -eq 'service') {
         throw
     }
 } else {
-    Write-Host "[run_mode=schedule] Register and start as scheduled task..." -ForegroundColor Cyan
+     Write-Host "[run_mode=schedule] Register and start as scheduled task..." -ForegroundColor Cyan
     $watchdogProcessName = "remote-agent"
     $watchdogLogPath = Join-Path (Split-Path $agent_path) "watchdog.log"
     $watchdogExePath = $agent_path
-    $watchdogArgs = '-config="' + $config + '" -client-cert="' + $public_path + '" -client-key="' + $private_path + '" -target-name="' + $target_name + '" -namespace="' + $namespace + '" -topology="' + $topology + '"'
+    $watchdogArgs = '-config="' + $config + '" -client-cert="' + $public_path + '" -client-key="' + $private_path + '" -target-name="' + $target_name + '" -namespace="' + $namespace + '" -topology="' + $topology + '" -protocol="' + $protocol + '"'
     $watchdogScript = @"
 try {
     if (-not (Get-Process -Name $watchdogProcessName -ErrorAction SilentlyContinue)) {

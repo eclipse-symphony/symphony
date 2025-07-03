@@ -127,7 +127,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      caCertPool,
-		ServerName:   "10.172.3.39", // 必须和证书CN/SAN一致
+		ServerName:   "10.172.3.39",
 		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
 	}
@@ -138,19 +138,16 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
-	// 新增：读取信任的 client list 并动态生成 requestTopics/responseTopics
-	// 假设 config 结构体新增 TrustedClients []string 字段
 	trustedClients := config.TrustedClients
 	if len(trustedClients) > 0 {
 		config.RequestTopics = make(map[string]string)
 		config.ResponseTopics = make(map[string]string)
 		for _, client := range trustedClients {
-			config.RequestTopics[client] = fmt.Sprintf("symphony/request/%s", client)
-			config.ResponseTopics[client] = fmt.Sprintf("symphony/response/%s", client)
+			config.RequestTopics[client] = fmt.Sprintf("symphony/request/%s", strings.ToLower(client))
+			config.ResponseTopics[client] = fmt.Sprintf("symphony/response/%s", strings.ToLower(client))
 		}
 	}
 
-	// 支持多个 client 的 topic 订阅
 	if len(config.RequestTopics) > 0 && len(config.ResponseTopics) > 0 {
 		for client, reqTopic := range config.RequestTopics {
 			respTopic := config.ResponseTopics[client]
@@ -166,14 +163,12 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 					log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
 					log.InfofCtx(request.Context, "Received request: %+v", request)
 					log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
-					// 检查 target 字段
 					var targetName string
 					if request.Parameters != nil {
 						if t, ok := request.Parameters["target"]; ok {
 							targetName = t
 						}
 					}
-					// 比较前统一转小写
 					if targetName != "" && strings.ToLower(targetName) != strings.ToLower(clientName) {
 						log.InfofCtx(request.Context, "target mismatch: clientName=%s, target=%s", clientName, targetName)
 						errObj := map[string]interface{}{

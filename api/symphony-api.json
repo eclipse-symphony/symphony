@@ -731,6 +731,15 @@
           "config":{}
           }
       }
+    },
+   {
+      "type": "bindings.mqtt",
+     "config":{
+       "brokerAddress": "tcp://127.0.0.1:1883",
+       "clientID": "symphony",
+       "requestTopic": "symphony/request",
+       "responseTopic": "symphony/response"
+     }
     }
   ]
 }

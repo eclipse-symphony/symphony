@@ -5,7 +5,7 @@ This directory provides scripts to automate the deployment of the Symphony Remot
 ## Script Overview
 
 - **bootstrap.ps1**  
-  For Windows. Automates certificate import, configuration file generation, remote agent binary download, and registers/starts the agent as a Windows service or scheduled task.
+  For Windows. Automates certificate import, configuration file generation, remote agent binary download, and registers/starts the agent as a Windows service (using remote-agent.exe CLI) or scheduled task.
 
 - **bootstrap.sh**  
   For Linux. Automates certificate and key handling, configuration file generation, binary download, and registers/starts the agent as a systemd service.
@@ -22,7 +22,7 @@ This directory provides scripts to automate the deployment of the Symphony Remot
 - Imports client certificate (.pfx)
 - Generates configuration files
 - Downloads the remote agent binary
-- Registers and starts the agent as a Windows service or scheduled task
+- Registers and starts the agent as a Windows service (via `remote-agent.exe install/start`) or scheduled task
 
 #### Parameters (Windows)
 
@@ -34,17 +34,19 @@ This directory provides scripts to automate the deployment of the Symphony Remot
 | namespace     | K8s namespace, default is 'default'                      | Optional   |
 | topology      | Path to topology file (.json)                            | Yes        |
 | run_mode      | 'service' or 'schedule', default is 'schedule'           | Optional   |
+| protocol      | 'http' or 'mqtt', specify communication protocol         | Optional   |
 
 #### Example (Windows)
 
 ```powershell
 pwsh .\bootstrap.ps1 \
-  -endpoint "https://symphony-service:8081/v1alpha2" \
-  -cert_path ".\certfile\client.pfx" \
-  -target_name "windows-target" \
+  -endpoint "https://symphony-service:8082/v1alpha2" \
+  -cert_path "/path/to/client.pfx" \
+  -target_name "remote-demo" \
   -namespace "default" \
   -topology "topologies.json" \
-  -run_mode "service"
+  -run_mode "schedule" \
+  -protocol "mqtt"
 ```
 
 > The script will prompt for the certificate password interactively when needed.
@@ -53,11 +55,54 @@ pwsh .\bootstrap.ps1 \
 >
 > - Use `schedule` if you need to install apps that require UI interaction (e.g., UWP apps, retail demo scenarios). In this mode, remote-agent runs as a scheduled task and supports UI interaction.
 > - Use `service` if UI interaction is not needed. The agent runs as a Windows service in the background, which is recommended for most production scenarios.
+> - **Service mode now uses `remote-agent.exe install/start/stop/uninstall` for service management.**
 
 > **Administrator Privileges:**
 >
 > - Registering either a Windows service (`service` mode) or a scheduled task (`schedule` mode) requires running PowerShell as an administrator.
 > - Please ensure you launch your terminal or PowerShell session with elevated (administrator) privileges before running the script.
+
+---
+
+#### Using MQTT Protocol: Certificate Preparation
+
+1. **Prepare CA certificate for MQTT server**  
+   If your MQTT server's CA certificate is `ca.crt`, create the secret:
+
+   ```powershell
+   kubectl create namespace cert-manager
+   kubectl create secret generic mqtt-ca --from-file=ca.crt=./ca.crt -n cert-manager
+   ```
+
+2. **Prepare MQTT client certificate and key**  
+   If your client certificate is `client.crt` and key is `client.key`, create the secret:
+
+   ```powershell
+   kubectl create secret generic mqtt-client-cert --from-file=client.crt=./client.crt --from-file=client.key=./client.key -n default
+   ```
+
+   > Recommended naming:
+   > - CA Secret: `mqtt-ca`
+   > - Client Secret: `mqtt-client-cert`
+
+3. **values.yaml and deployment command**  
+   No need to manually edit values.yaml, just pass parameters via `--set` when deploying:
+
+   ```powershell
+   mage cluster:deployWithSettings \
+     "--set remoteAgent.used=true \
+     --set RemoteCert.ClientCAs.SecretName=mqtt-ca \
+     --set RemoteCert.ClientCAs.SecretKey=ca.crt \
+     --set mqttClientCert.enabled=true \
+     --set mqttClientCert.secretName=mqtt-client-cert \
+     --set mqttClientCert.crtKey=client.crt \
+     --set mqttClientCert.keyKey=client.key \
+     --set trustedClients={clientA,clientB,clientC} \
+     --set mqtt.brokerAddress=tls://your-mqtt-broker:port \
+     --set installServiceExt=true"
+   ```
+
+> Just pass these parameters at startup, no need to edit values.yaml manually.
 
 ---
 
@@ -72,30 +117,36 @@ pwsh .\bootstrap.ps1 \
 
 #### Parameters (Linux)
 
-| Position | Name        | Description                                 |
-| -------- | ----------- | ------------------------------------------- |
-| $1       | endpoint    | Symphony server API address                 |
-| $2       | cert_path   | Path to client certificate (.crt)           |
-| $3       | key_path    | Path to client private key (.key)           |
-| $4       | target_name | Target name (Remote Target Name)            |
-| $5       | namespace   | K8s namespace                               |
-| $6       | topology    | Path to topology file (.json)               |
-| $7       | user        | Linux user to run remote-agent              |
-| $8       | group       | Linux group to run remote-agent             |
+| Position | Name        | Description                                         |
+| -------- | ----------- | --------------------------------------------------- |
+| $1       | endpoint    | Symphony server API address                         |
+| $2       | cert_path   | Path to client certificate (.crt)                   |
+| $3       | key_path    | Path to client private key (.key)                   |
+| $4       | target_name | Target name (Remote Target Name)                    |
+| $5       | namespace   | K8s namespace                                       |
+| $6       | topology    | Path to topology file (.json)                       |
+| $7       | protocol    | 'http' or 'mqtt', specify communication protocol    |
+| $8       | user        | Linux user to run remote-agent                      |
+| $9       | group       | Linux group to run remote-agent                     |
 
 #### Example (Linux)
 
 ```bash
 sudo ./bootstrap.sh \
   https://symphony-service:8081/v1alpha2 \
-  certfile/client.crt \
-  certfile/client.key \
+  /absolute/path/to/client.crt \
+  /absolute/path/to/client.key \
   remote-demo \
   default \
-  topologies.json \
+  /absolute/path/to/topologies.json \
+  mqtt \
   <user> \
   <group>
 ```
+
+- When `protocol` is set to `mqtt`, the script will prompt you to enter the absolute path to your remote-agent binary (e.g., `/home/youruser/remote-agent`). Please ensure the binary exists at that path and is executable.
+- When `protocol` is set to `http`, the remote-agent binary will be downloaded automatically; no manual path input is required.
+- It is strongly recommended to use absolute paths for all file parameters to avoid issues with systemd not finding files at runtime.
 
 > Root privileges are required to register the systemd service.
 
@@ -126,6 +177,7 @@ sudo ./bootstrap.sh \
 
   ```powershell
   pwsh .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path .\certfile\client.pfx -target_name <target_name> -namespace default -topology topologies.json -run_mode <run mode>
+  pwsh .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path "/path/to/client.pfx" -target_name <target_name> -namespace default -topology topologies.json -run_mode <run mode> -protocol <http/mqtt>
   ```
 
 ---
@@ -156,10 +208,9 @@ This end-to-end process ensures a secure, reproducible, and automated setup for 
 
 - **Windows:**
   - If run_mode is `service` (Windows Service):
-    - Stop and remove the Windows service:
+    - Stop and remove the Windows service using the remote-agent CLI:
       ```powershell
-      Stop-Service -Name symphony-service -Force
-      sc.exe delete symphony-service
+      sc.exe delete  symphony-service
       ```
   - If run_mode is `schedule` (Scheduled Task):
     - Stopping involves two steps:

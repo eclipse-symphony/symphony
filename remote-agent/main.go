@@ -23,7 +23,6 @@ import (
 	remoteMqtt "github.com/eclipse-symphony/symphony/remote-agent/bindings/mqtt"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/kardianos/service"
 )
 
 const version = "0.0.0.1"
@@ -38,55 +37,12 @@ var (
 	topologyFile      string
 	httpClient        *http.Client
 	execDir           string
+	protocol          string = "http" // default protocol
+	caPath            string
 )
 
-type program struct{}
-
-func (p *program) Start(s service.Service) error {
-	go p.run()
-	return nil
-}
-
-func (p *program) run() {
-	if err := mainLogic(); err != nil {
-		log.Fatalf("Service run error: %v", err)
-	}
-}
-
-func (p *program) Stop(s service.Service) error {
-	log.Println("Service is stopping...")
-	return nil
-}
-
-func main() {
-	svcConfig := &service.Config{
-		Name:        "symphony-service",
-		DisplayName: "Remote Agent Service",
-		Description: "Remote Agent Service",
-	}
-	prg := &program{}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// support command line arguments for install, uninstall, start, stop
-	if len(os.Args) > 1 {
-		cmd := os.Args[1]
-		switch cmd {
-		case "install", "uninstall", "start", "stop":
-			err := service.Control(s, cmd)
-			if err != nil {
-				log.Fatalf("Service control error: %v", err)
-			}
-			return
-		}
-	}
-	if err := s.Run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func mainLogic() error {
+	log.Printf("mainLogic started, args: %v", os.Args)
 	// get executable path
 	execPath, err := os.Executable()
 	if err != nil {
@@ -111,15 +67,20 @@ func mainLogic() error {
 	flag.StringVar(&targetName, "target-name", "remote-target", "remote target name")
 	flag.StringVar(&namespace, "namespace", "default", "Namespace to use for the agent")
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
-	// 读取 CA 路径，可以通过命令行参数、环境变量或配置文件传入
-	caPath := "ca.crt" // 默认值，可根据实际情况修改
 	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
-
-	// 新增：选择协议类型（mqtt 或 http）
-	var protocol string
-	flag.StringVar(&protocol, "protocol", "mqtt", "Protocol to use: mqtt or http")
-
+	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
+	log.Printf("Using protocol: %s", protocol)
 	flag.Parse()
+
+	if protocol == "mqtt" && (caPath == "") {
+		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
+		var input string
+		fmt.Scanln(&input)
+		if input != "" {
+			caPath = input
+		}
+		fmt.Printf("Using CA certificate path: %s\n", caPath)
+	}
 
 	// read configuration
 	setting, err := ioutil.ReadFile(configPath)
@@ -150,31 +111,7 @@ func mainLogic() error {
 			fmt.Printf("Failed to parse client certificate for subject: %v\n", err)
 		}
 	}
-	// 加载 MQTT CA 证书
-	caCertPool := x509.NewCertPool()
-	caCert, err := os.ReadFile(caPath)
-	if err != nil {
-		return fmt.Errorf("failed to read MQTT CA file: %v", err)
-	}
-	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-		return fmt.Errorf("failed to append MQTT CA cert")
-	}
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-		ServerName:   "10.172.3.39", // 必须和证书CN/SAN一致
-		MinVersion:   tls.VersionTLS12,
-		MaxVersion:   tls.VersionTLS13,
-	}
-	for i, c := range tlsConfig.Certificates {
-		for _, cert := range c.Certificate {
-			parsed, err := x509.ParseCertificate(cert)
-			if err == nil {
-				fmt.Printf("Loaded client cert[%d]: Subject=%s, Issuer=%s, NotAfter=%s\n", i, parsed.Subject, parsed.Issuer, parsed.NotAfter)
-			}
-		}
-	}
-	fmt.Printf("TLS MinVersion: %v, MaxVersion: %v\n", tlsConfig.MinVersion, tlsConfig.MaxVersion)
+
 	// httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
 
 	// compose target providers
@@ -184,9 +121,11 @@ func mainLogic() error {
 	}
 
 	if protocol == "http" {
+		fmt.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", symphonyEndpoints.RequestEndpoint, symphonyEndpoints.ResponseEndpoint)
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
+
 		// create HttpBinding
-		// 需要 import remoteHttp
-		// remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 		h := &remoteHttp.HttpBinding{
 			Agent: agent.Agent{
 				Providers: providers,
@@ -202,6 +141,32 @@ func mainLogic() error {
 		}
 		select {}
 	} else {
+		// 加载 MQTT CA 证书
+		fmt.Printf("Loading CA certificate from %s\n", caPath)
+		caCertPool := x509.NewCertPool()
+		caCert, err := os.ReadFile(caPath)
+		if err != nil {
+			return fmt.Errorf("failed to read MQTT CA file: %v", err)
+		}
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			return fmt.Errorf("failed to append MQTT CA cert")
+		}
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			RootCAs:      caCertPool,
+			ServerName:   "10.172.3.39", // 必须和证书CN/SAN一致
+			MinVersion:   tls.VersionTLS12,
+			MaxVersion:   tls.VersionTLS13,
+		}
+		for i, c := range tlsConfig.Certificates {
+			for _, cert := range c.Certificate {
+				parsed, err := x509.ParseCertificate(cert)
+				if err == nil {
+					fmt.Printf("Loaded client cert[%d]: Subject=%s, Issuer=%s, NotAfter=%s\n", i, parsed.Subject, parsed.Issuer, parsed.NotAfter)
+				}
+			}
+		}
+		fmt.Printf("TLS MinVersion: %v, MaxVersion: %v\n", tlsConfig.MinVersion, tlsConfig.MaxVersion)
 		opts := mqtt.NewClientOptions()
 		opts.AddBroker("tls://10.172.3.39:8883")
 		opts.SetTLSConfig(tlsConfig)
