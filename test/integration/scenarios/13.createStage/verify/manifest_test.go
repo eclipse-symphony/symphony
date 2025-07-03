@@ -34,16 +34,11 @@ var (
 	dyn dynamic.Interface
 
 	// Sample workflow manifests to deploy
-	testCampaign = "../manifest/campaign.yaml"
-
-	campaigncontainer = "../manifest/campaign-container.yaml"
-
-	testActivation = "../manifest/activation.yaml"
-
-	helmTarget = "../manifest/target.yaml"
-
-	solutionContainer = "../manifest/solution-container.yaml"
-
+	testCampaign           = "../manifest/campaign.yaml"
+	campaigncontainer      = "../manifest/campaign-container.yaml"
+	testActivation         = "../manifest/activation.yaml"
+	helmTarget             = "../manifest/target.yaml"
+	solutionContainer      = "../manifest/solution-container.yaml"
 	solutionSuccess        = "../manifest/successSolution.yaml"
 	solutionReconcileError = "../manifest/reconcileErrorSolution.yaml"
 
@@ -413,6 +408,7 @@ func TestParallelErrorContinue(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -426,7 +422,8 @@ func TestParallelErrorContinue(t *testing.T) {
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
-	task1.Provider = "providers.stage.invalid" // Intentionally set to an invalid provider to test
+	// Intentionally set to an invalid provider to test
+	task1.Provider = "providers.stage.invalid"
 	task1.Inputs.Object.Metadata.Name = instanceName1
 	task1.Inputs.Object.Spec.Scope = instanceName1
 	task1.Inputs.ObjectName = instanceName1
@@ -437,6 +434,7 @@ func TestParallelErrorContinue(t *testing.T) {
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
 
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, stName1, solutionName1)
@@ -467,6 +465,7 @@ func TestParallelErrorContinue(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
@@ -475,6 +474,7 @@ func TestParallelErrorContinue(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -488,6 +488,11 @@ func TestParallelErrorContinue(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with task1 failed with invalid stage provider and error mode as "silentlyContinue"
+	// As a result, we would see overall activation status as "Done", stage status as "Done"
+	// The output status would be 200, task1 status would be 1000 with error message and task2 status would be 200
+	// Task1 would not have failedDeploymentCount as it is not executed
+	// Task2 would have failedDeploymentCount as 0 as it is executed successfully
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -587,6 +592,7 @@ func TestParallelErrorStop(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -600,7 +606,8 @@ func TestParallelErrorStop(t *testing.T) {
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
-	task1.Provider = "providers.stage.invalid" // Intentionally set to an invalid provider to test
+	// Intentionally set to an invalid provider to test
+	task1.Provider = "providers.stage.invalid"
 	task1.Inputs.Object.Metadata.Name = instanceName1
 	task1.Inputs.Object.Spec.Scope = instanceName1
 	task1.Inputs.ObjectName = instanceName1
@@ -611,6 +618,7 @@ func TestParallelErrorStop(t *testing.T) {
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
 
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -641,6 +649,7 @@ func TestParallelErrorStop(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
@@ -649,6 +658,7 @@ func TestParallelErrorStop(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -662,6 +672,10 @@ func TestParallelErrorStop(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with task1 failed with invalid stage provider and error mode as "stopOnAnyFailure", concurrency as 1, maxToleratedFailures as 0
+	// As a result, we would see overall activation status as "InternalError", stage status as "InternalError"
+	// The output status would be 500, task1 status would be 1000 with error message and task2 status would be nil
+	// Task1 would not have failedDeploymentCount as it is not executed
 	require.Equal(t, v1alpha2.InternalError, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -743,6 +757,7 @@ func TestParallelReconcileContinue(t *testing.T) {
 	os.Remove("./test.yaml")
 
 	// create solution
+	// solution 1 is with invalid chart repo
 	absSolution := filepath.Join(repoPath, solutionReconcileError)
 	output, err = readSolution(absSolution, solutionName1, targetName1, stName1)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read solution manifest %s: %s", absSolution, output))
@@ -761,6 +776,7 @@ func TestParallelReconcileContinue(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -782,6 +798,7 @@ func TestParallelReconcileContinue(t *testing.T) {
 	task2.Inputs.Object.Metadata.Name = instanceName2
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -813,6 +830,7 @@ func TestParallelReconcileContinue(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
@@ -821,6 +839,7 @@ func TestParallelReconcileContinue(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
 	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -834,6 +853,12 @@ func TestParallelReconcileContinue(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with task1 failed with invalid chart repo and error mode as "silentlyContinue", concurrency as 1, maxToleratedFailures as 1
+	// As a result, we would see overall activation status as "Done", stage status as "Done"
+	// The output status would be 200, task1 status would be 400
+	// with error message and task2 status would be 200
+	// Task1 would have failedDeploymentCount as 1 as it is executed and failed
+	// Task2 would have failedDeploymentCount as 0 as it is executed successfully
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -917,6 +942,7 @@ func TestParallelReconcileStop(t *testing.T) {
 	os.Remove("./test.yaml")
 
 	// create solution
+	// solution 1 is with invalid chart repo
 	absSolution := filepath.Join(repoPath, solutionReconcileError)
 	output, err = readSolution(absSolution, solutionName1, targetName1, stName1)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read solution manifest %s: %s", absSolution, output))
@@ -956,6 +982,7 @@ func TestParallelReconcileStop(t *testing.T) {
 	task2.Inputs.Object.Metadata.Name = instanceName2
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -987,14 +1014,16 @@ func TestParallelReconcileStop(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -1008,6 +1037,11 @@ func TestParallelReconcileStop(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with task1 failed with invalid chart repo and error mode as "stopOnNFailures", concurrency as 1, maxToleratedFailures as 0
+	// As a result, we should see overall activation status as "InternalServerError", stage status as "InternalServerError"
+	// The output status would be 500, task1 status would be 400
+	// However, the overall status is Done and stage status is also Done, output status is 200 and task2 is also executed
+	// I think this should be a bug
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -1109,6 +1143,7 @@ func TestParallelStopN(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -1122,6 +1157,7 @@ func TestParallelStopN(t *testing.T) {
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
+	// Set the provider to an invalid one to simulate a failure
 	task1.Provider = "providers.stage.invalid"
 	task1.Inputs.Object.Metadata.Name = instanceName1
 	task1.Inputs.Object.Spec.Scope = instanceName1
@@ -1131,6 +1167,7 @@ func TestParallelStopN(t *testing.T) {
 	task2.Inputs.Object.Metadata.Name = instanceName2
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -1162,14 +1199,16 @@ func TestParallelStopN(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -1183,6 +1222,10 @@ func TestParallelStopN(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with task1 failed with invalid stage provider and error mode as "stopOnNFailures", concurrency as 1, maxToleratedFailures as 0
+	// As a result, we would see overall activation status as "InternalServerError", stage status as "InternalServerError"
+	// The output status would be 500, task1 status would be 400
+	// with error message and task2 status would be nil
 	require.Equal(t, v1alpha2.InternalError, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -1264,6 +1307,7 @@ func TestParallelStopN1(t *testing.T) {
 	os.Remove("./test.yaml")
 
 	// create solution
+	// solution 1 is with invalid chart repo
 	absSolution := filepath.Join(repoPath, solutionReconcileError)
 	output, err = readSolution(absSolution, solutionName1, targetName1, stName1)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read solution manifest %s: %s", absSolution, output))
@@ -1282,6 +1326,7 @@ func TestParallelStopN1(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -1295,6 +1340,7 @@ func TestParallelStopN1(t *testing.T) {
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
+	// Set the provider to an invalid one to simulate a failure
 	task1.Provider = "providers.stage.invalid"
 	task1.Inputs.Object.Metadata.Name = instanceName1
 	task1.Inputs.Object.Spec.Scope = instanceName1
@@ -1304,6 +1350,7 @@ func TestParallelStopN1(t *testing.T) {
 	task2.Inputs.Object.Metadata.Name = instanceName2
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -1335,14 +1382,16 @@ func TestParallelStopN1(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -1356,6 +1405,10 @@ func TestParallelStopN1(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with task1 failed with invalid stage provider and error mode as "stopOnNFailures", concurrency as 1, maxToleratedFailures as 1
+	// As a result, we would see overall activation status as "Done", stage status as "Done"
+	// The output status would be 200, task1 status would be 1000 with error message and task2 status would be 200
+	// Task2 should be executed as maxToleratedFailures is 1 and faileDeploymentCount is 0
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -1477,6 +1530,7 @@ func TestParallelSuccess(t *testing.T) {
 	task2.Inputs.Object.Metadata.Name = instanceName2
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -1507,14 +1561,16 @@ func TestParallelSuccess(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -1528,6 +1584,11 @@ func TestParallelSuccess(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with both task1 and task2 executed successfully
+	// As a result, we would see overall activation status as "Done", stage status as "Done"
+	// The output status would be 200, task1 status would be 200
+	// and task2 status would be 200
+	// failedDeploymentCount would be 0 for both tasks
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -1628,6 +1689,7 @@ func TestParallel2Success(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -1649,6 +1711,7 @@ func TestParallel2Success(t *testing.T) {
 	task2.Inputs.Object.Metadata.Name = instanceName2
 	task2.Inputs.Object.Spec.Scope = instanceName2
 	task2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each task
 	if testhelpers.IsTestInAzure() {
 		task1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		task1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -1679,14 +1742,16 @@ func TestParallel2Success(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -1700,6 +1765,11 @@ func TestParallel2Success(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an parallel execution with both task1 and task2 executed successfully with concurrency as 2
+	// As a result, we would see overall activation status as "Done", stage status as "Done"
+	// The output status would be 200, task1 status would be 200
+	// and task2 status would be 200
+	// failedDeploymentCount would be 0 for both tasks
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -1781,6 +1851,7 @@ func TestStageReconcileTimeout(t *testing.T) {
 	os.Remove("./test.yaml")
 
 	// create solution
+	// This solution will have a reconcile error
 	absSolution := filepath.Join(repoPath, solutionReconcileError)
 	output, err = readSolution(absSolution, solutionName1, targetName1, stName1)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read solution manifest %s: %s", absSolution, output))
@@ -1799,6 +1870,7 @@ func TestStageReconcileTimeout(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -1821,6 +1893,7 @@ func TestStageReconcileTimeout(t *testing.T) {
 	stage2.Inputs.Object.Metadata.Name = instanceName2
 	stage2.Inputs.Object.Spec.Scope = instanceName2
 	stage2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each stage
 	if testhelpers.IsTestInAzure() {
 		stage1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		stage1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -1844,14 +1917,16 @@ func TestStageReconcileTimeout(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -1865,6 +1940,10 @@ func TestStageReconcileTimeout(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an sequential execution with stage1 and stage2 executed failed
+	// As a result, we would see overall activation status as "InternalError", stage1 status as "InternalError"
+	// The output status would be 500, stage1 status would be 400
+	// stage length should be 1 as stage 2 will not be executed
 	require.Equal(t, v1alpha2.InternalError, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -1962,6 +2041,7 @@ func TestStageError(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -1984,6 +2064,8 @@ func TestStageError(t *testing.T) {
 	stage2.Inputs.Object.Metadata.Name = instanceName2
 	stage2.Inputs.Object.Spec.Scope = instanceName2
 	stage2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each stage
+	// stage1 will fail with solution not found error as we are using an invalid solution version
 	if testhelpers.IsTestInAzure() {
 		stage1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		stage1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", "invalid")
@@ -2007,14 +2089,16 @@ func TestStageError(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -2028,6 +2112,10 @@ func TestStageError(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an sequential execution with stage1 and stage2 executed failed
+	// As a result, we would see overall activation status as "InternalError", stage1 status as "InternalError"
+	// The output status would be 500, stage1 status would be 400
+	// stage length should be 1 as stage 2 will not be executed
 	require.Equal(t, v1alpha2.InternalError, state.Status.Status)
 	require.Equal(t, 1, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
@@ -2124,6 +2212,7 @@ func TestStageSuccess(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolution, output))
 	os.Remove("./test.yaml")
 
+	// create campaign container
 	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
 	output, err = readCampaignContainer(absCampaignContainer, ccName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
@@ -2146,6 +2235,7 @@ func TestStageSuccess(t *testing.T) {
 	stage2.Inputs.Object.Metadata.Name = instanceName2
 	stage2.Inputs.Object.Spec.Scope = instanceName2
 	stage2.Inputs.ObjectName = instanceName2
+	// Set the target and solution for each stage
 	if testhelpers.IsTestInAzure() {
 		stage1.Target = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s", targetName1)
 		stage1.Inputs.Object.Spec.Solution = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/targets/%s/solutions/%s/versions/%s", targetName1, "scontainer", solutionName1)
@@ -2169,14 +2259,16 @@ func TestStageSuccess(t *testing.T) {
 		"stages":       stages,
 	}
 
+	// Create campaign
 	output, err = readCampaign(absCampaign, cName, ccName, spec)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
 	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	//os.Remove("./campaigntest.yaml")
+	os.Remove("./campaigntest.yaml")
 
+	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
 	output, err = readActivation(absActivation, aName, ccName, cName)
 	assert.Nil(t, err, fmt.Sprintf("Failed to read activation manifest %s: %s", absActivation, output))
@@ -2190,6 +2282,11 @@ func TestStageSuccess(t *testing.T) {
 	state, err := waitForActivationToComplete(namespace, fmt.Sprintf("%s-v-%s-v-%s-v-%s", "context1", ccName, cName, aName), 60*5)
 	assert.Nil(t, err, fmt.Sprintf("Failed to wait for activation to complete: %s", err))
 
+	// This is an sequential execution with stage1 and stage2 executed successfully
+	// As a result, we would see overall activation status as "Done", stage1 status as "Done"
+	// The output status would be 200, stage1 status would be 200
+	// stage length should be 2 as both stages are executed successfully
+	// failedDeploymentCount should be 0 as both stages are executed successfully
 	require.Equal(t, v1alpha2.Done, state.Status.Status)
 	require.Equal(t, 2, len(state.Status.StageHistory))
 	require.Equal(t, "stage1", state.Status.StageHistory[0].Stage)
