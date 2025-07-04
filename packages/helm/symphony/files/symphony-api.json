@@ -846,13 +846,21 @@
       }
     },
     {{- end }}  
-        {{- if .Values.mqttClientCert.enabled }}
+        {{- if .Values.mqtt.enabled }}
     {
       "type": "bindings.mqtt",
       "config":{
         "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
         "clientID": "symphony",
         "tls": true,
+        "autoDiscovery": {{ .Values.mqtt.autoDiscovery }},
+        "trustedClients": ["remote-demo"],
+        "stateProvider": {
+          "type": "providers.state.k8s",
+          "config": {
+            "inCluster": true
+          }
+        },
         "certProvider": {
           "type": "certs.localfile",
           "config": {
@@ -860,8 +868,7 @@
             "cert": "{{ .Values.mqttClientCert.mountPath }}/client.crt",
             "key": "{{ .Values.mqttClientCert.mountPath }}/client.key"
           }
-        },
-        "trustedClients": {{ toJson .Values.trustedClients }}
+        }
       }
     },
     {{- end }}

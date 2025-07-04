@@ -318,3 +318,17 @@ true
 {{- define "symphony.tls.caBundleLabelValue" -}}
 {{- default "false" .Values.observability.tls.caBundleLabelValue }}
 {{- end }}
+
+{{/* Generate environment variables */}}
+{{- define "symphony.environmentVariables" -}}
+- name: MQTT_ENABLED
+  value: "{{ .Values.mqtt.enabled }}"
+- name: SYMPHONY_SERVICE_NAME
+  value: "{{ .Values.symphony.serviceName | default "symphony-agent" }}"
+{{- if .Values.mqtt.enabled }}
+- name: MQTT_BROKER_ADDRESS
+  value: "{{ .Values.mqtt.brokerAddress }}"
+- name: MQTT_AUTO_DISCOVERY
+  value: "{{ .Values.mqtt.autoDiscovery }}"
+{{- end }}
+{{- end -}}

@@ -119,9 +119,14 @@ mqttClientCert:
   crtKey: client.crt
   keyKey: client.key
   mountPath: /etc/mqtt-client
-trustedClients:
-  - clientA
-  - clientB
-  - clientC
 mqtt:
+  enabled: true
   brokerAddress: tls://10.172.3.39:8883
+  autoDiscovery: true   
+# Environment variables configuration
+environment:
+  variables:
+    # Enable MQTT functionality (default to same value as mqtt.enabled)
+    MQTT_ENABLED: "{{ .Values.mqtt.enabled }}"
+    # Other environment variables can be added here
+    SYMPHONY_SERVICE_NAME: "symphony-agent"

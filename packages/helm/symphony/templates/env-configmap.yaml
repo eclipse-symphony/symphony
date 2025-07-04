@@ -3,12 +3,14 @@ kind: ConfigMap
 metadata:
   name: {{ include "symphony.envConfigName" . }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "symphony.labels" . | nindent 4 }}
 data:
   APP_VERSION: {{ .Chart.AppVersion }}
   CHART_VERSION: {{ .Chart.Version }}
   API_SERVING_CA: {{ include "symphony.apiServingCA" . }}
   SYMPHONY_API_URL: {{ include "symphony.httpsUrl" . }}
-  SYMPHONY_SERVICE_NAME: {{ include "symphony.serviceName" . }}
+  SYMPHONY_SERVICE_NAME: "{{ .Values.symphony.serviceName | default "symphony-agent" }}"
   USE_SERVICE_ACCOUNT_TOKENS: "true"
   DEPLOYMENT_FINALIZER: symphony.deploymentFinalizer
 {{- if and .Values.api.labelKey .Values.api.labelValue }}
@@ -30,3 +32,11 @@ data:
   AGENT_VERSION: {{ .Values.remoteAgent.version }}
   CLIENT_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
 {{- end }}
+  # 将MQTT启用状态转换为环境变量
+  MQTT_ENABLED: "{{ .Values.mqtt.enabled }}"
+  
+  # MQTT相关配置
+  {{- if .Values.mqtt.enabled }}
+  MQTT_BROKER_ADDRESS: "{{ .Values.mqtt.brokerAddress }}"
+  MQTT_AUTO_DISCOVERY: "{{ .Values.mqtt.autoDiscovery }}"
+  {{- end }}
