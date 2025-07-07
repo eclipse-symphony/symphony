@@ -81,17 +81,17 @@ func (summary *SummaryResult) IsDeploymentFinished() bool {
 	return summary.State == SummaryStateDone
 }
 
-func (summary SummarySpec) GenerateStatusMessage() string {
-	if summary.AllAssignedDeployed {
+func (s *SummarySpec) GenerateStatusMessage() string {
+	if s.AllAssignedDeployed {
 		return ""
 	}
 	errorMessage := "Failed to deploy"
-	if summary.SummaryMessage != "" {
-		errorMessage += fmt.Sprintf(": %s", summary.SummaryMessage)
+	if s.SummaryMessage != "" {
+		errorMessage += fmt.Sprintf(": %s", s.SummaryMessage)
 	}
 	errorMessage += ". "
 	targetErrors := make([]string, 0)
-	for target, result := range summary.TargetResults {
+	for target, result := range s.TargetResults {
 		targetError := fmt.Sprintf("%s: \"%s\"", target, result.Message)
 		for component, componentResult := range result.ComponentResults {
 			targetError += fmt.Sprintf(" (%s.%s: %s)", target, component, componentResult.Message)
