@@ -120,46 +120,47 @@ config=$(realpath $config_file)
 
 # Call the endpoint with targetName and cert
 if [ "$protocol" = "http" ]; then
-    bootstarpEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
-    echo -e "\e[32mCalling bootstrap endpoint: $bootstarpEndpoint\e[0m"
-    # Read the topology file and POST as the body
+    # HTTP mode: Call the certificate endpoint to get the public and private keys
+    bootstarpCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
+    echo -e "\e[32mCalling certificate endpoint: $bootstarpCertEndpoint\e[0m"
+    # Read the topology file content
     TOPOLOGY_DATA=$(cat "$topology")
 
-    result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpEndpoint" \
-            -H "Content-Type: application/json" \
-            -d "$TOPOLOGY_DATA")
+    # Get certificate
+    result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpCertEndpoint" \
+            -H "Content-Type: application/json" )
 
     if [ $? -ne 0 ]; then
-        echo -e "\e[31mError: Failed to call bootstrap endpoint. Please check the endpoint and try again.\e[0m"
+        echo -e "\e[31mError: Failed to call certificate endpoint. Please check the endpoint and try again.\e[0m"
         exit 1
     else
-        echo -e "\e[32mBootstrap endpoint response received\e[0m"
+        echo -e "\e[32mCertificate endpoint response received\e[0m"
     fi
 
-    # Parse the JSON response and extract the fields
+    # Parse JSON response and extract fields
     public=$(echo $result | jq -r '.public')
-    # Extract the header and footer
+    # Extract header and footer
     header=$(echo "$public" | awk '{print $1, $2}')
     footer=$(echo "$public" | awk '{print $(NF-1), $NF}')
 
-    # Extract the base64 content and replace spaces with newlines
+    # Extract base64 content and replace spaces with newlines
     base64_content=$(echo "$public" | awk '{for (i=3; i<=NF-2; i++) printf "%s\n", $i}')
 
-    # Combine the header, base64 content, and footer
+    # Combine header, base64 content and footer
     corrected_public_content="$header\n$base64_content\n$footer"
 
     private=$(echo $result | jq -r '.private')
-    # Extract the header and footer
+    # Extract header and footer
     header=$(echo "$private" | awk '{print $1, $2, $3, $4}')
     footer=$(echo "$private" | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}')
 
-    # Extract the base64 content and replace spaces with newlines
+    # Extract base64 content and replace spaces with newlines
     base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", $i}')
 
-    # Combine the header, base64 content, and footer
+    # Combine header, base64 content and footer
     corrected_private_content="$header\n$base64_content\n$footer"
 
-    # Save the public certificate to public.pem
+    # Save public key certificate to public.pem
     echo -e "$corrected_public_content" > public.pem
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to save public certificate to public.pem. Exiting...\e[0m"
@@ -168,7 +169,7 @@ if [ "$protocol" = "http" ]; then
         echo -e "\e[32mPublic certificate saved to public.pem\e[0m"
     fi
 
-    # Save the private key to private.pem
+    # Save private key to private.pem
     echo -e "$corrected_private_content" > private.pem
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to save private key to private.pem. Exiting...\e[0m"
@@ -176,6 +177,28 @@ if [ "$protocol" = "http" ]; then
     else
         echo -e "\e[32mPrivate key saved to private.pem\e[0m"
     fi
+
+    # No longer update the topology here, it's handled when remote-agent starts
+    echo -e "\e[32mCertificates prepared. Topology will be updated when remote-agent starts.\e[0m"
+    
+else
+    # MQTT mode: Only need to prepare certificate files, topology will be sent through MQTT communication when agent starts
+    echo -e "\e[32mMQTT mode: Topology will be sent via MQTT topic 'symphony/request/$target_name' after agent starts\e[0m"
+    
+    # For MQTT mode, directly use existing public and private key files
+    if [ ! -f "public.pem" ]; then
+        cp "$cert_path" "public.pem"
+        echo -e "\e[32mCopied certificate to public.pem\e[0m"
+    fi
+    
+    if [ ! -f "private.pem" ]; then
+        cp "$key_path" "private.pem" 
+        echo -e "\e[32mCopied key to private.pem\e[0m"
+    fi
+
+    # Remind user to provide CA certificate
+    echo -e "\e[33mNote: When starting the remote agent, you need to provide the MQTT server's CA certificate\e[0m"
+    echo -e "\e[33m      You can use the '-ca-cert' parameter to specify the CA certificate path\e[0m"
 fi
 
 # Download the remote-agent binary
@@ -218,12 +241,12 @@ echo -e "\e[32mremote-agent\e[0m"
 # Convert public.pem, private.pem, remote-agent to absolute paths
 public_path=$(realpath "./public.pem")
 private_path=$(realpath "./private.pem")
-# 优雅地设置 agent_path
+# Elegantly set agent_path
 if [ "$protocol" = "mqtt" ]; then
-    # MQTT 模式下，agent_path 已由用户输入并校验，无需更改
+    # In MQTT mode, agent_path is already entered and verified by the user, no change needed
     :
 else
-    # HTTP 模式下，使用下载的 remote-agent
+    # In HTTP mode, use the downloaded remote-agent
     agent_path=$(realpath "./remote-agent")
 fi
 

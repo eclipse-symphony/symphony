@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
@@ -97,7 +99,7 @@ func mainLogic() error {
 	if err != nil {
 		return fmt.Errorf("failed to load client cert/key: %v", err)
 	}
-	// 打印 client cert 的 subject name，并用作 topic 前缀
+	// Print client certificate subject name, use it as topic prefix
 	subjectName := ""
 	if len(cert.Certificate) > 0 {
 		parsedCert, err := x509.ParseCertificate(cert.Certificate[0])
@@ -120,6 +122,13 @@ func mainLogic() error {
 		return fmt.Errorf("failed to compose target providers")
 	}
 
+	// Read topology file content for later updates
+	topologyContent, err := os.ReadFile(topologyFile)
+	if err != nil {
+		log.Printf("Error reading topology file: %v", err)
+		return fmt.Errorf("failed to read topology file: %v", err)
+	}
+
 	if protocol == "http" {
 		fmt.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", symphonyEndpoints.RequestEndpoint, symphonyEndpoints.ResponseEndpoint)
 		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
@@ -136,12 +145,32 @@ func mainLogic() error {
 		h.Client = httpClient
 		h.Target = targetName
 		h.Namespace = namespace
+
+		// send topology update via HTTP
+		updateTopologyEndpoint := fmt.Sprintf("%s/targets/updatetopology/%s?namespace=%s",
+			symphonyEndpoints.BaseUrl, targetName, namespace)
+		log.Printf("Sending topology update via HTTP: %s", updateTopologyEndpoint)
+
+		resp, err := httpClient.Post(updateTopologyEndpoint, "application/json", bytes.NewBuffer(topologyContent))
+		if err != nil {
+			return fmt.Errorf("failed to update topology: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// check response status code
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			return fmt.Errorf("topology update failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		}
+
+		log.Printf("Topology updated successfully via HTTP")
+
 		if err := h.Launch(); err != nil {
 			return fmt.Errorf("error launching HttpBinding: %v", err)
 		}
 		select {}
 	} else {
-		// 加载 MQTT CA 证书
+		// Load MQTT CA certificate
 		fmt.Printf("Loading CA certificate from %s\n", caPath)
 		caCertPool := x509.NewCertPool()
 		caCert, err := os.ReadFile(caPath)
@@ -154,7 +183,7 @@ func mainLogic() error {
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			RootCAs:      caCertPool,
-			ServerName:   "10.172.3.39", // 必须和证书CN/SAN一致
+			ServerName:   "10.172.3.39", // Must match certificate CN/SAN
 			MinVersion:   tls.VersionTLS12,
 			MaxVersion:   tls.VersionTLS13,
 		}
@@ -170,10 +199,12 @@ func mainLogic() error {
 		opts := mqtt.NewClientOptions()
 		opts.AddBroker("tls://10.172.3.39:8883")
 		opts.SetTLSConfig(tlsConfig)
-		// 设置 client id
+		opts.SetClientID(strings.ToLower(targetName)) // Ensure lowercase is used
+		// Set client ID
 		fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n", clientCertPath, clientKeyPath, caPath)
 		fmt.Printf("begin to connect to MQTT broker %s\n", "tls://10.172.3.39:8883")
 		mqttClient := mqtt.NewClient(opts)
+		// Ensure lowercase is used
 		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 			fmt.Printf("failed to connect to MQTT broker: %v\n", token.Error())
 			return fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
@@ -187,13 +218,21 @@ func mainLogic() error {
 			},
 			Client:        mqttClient,
 			Target:        targetName,
-			RequestTopic:  fmt.Sprintf("symphony/request/%s", subjectName),
-			ResponseTopic: fmt.Sprintf("symphony/response/%s", subjectName),
+			RequestTopic:  fmt.Sprintf("symphony/request/%s", strings.ToLower(targetName)),
+			ResponseTopic: fmt.Sprintf("symphony/response/%s", strings.ToLower(targetName)),
 			Namespace:     namespace,
 		}
+
+		// Update topology configuration - this operation will first subscribe to the response topic
+		log.Printf("Sending topology update via MQTT and waiting for confirmation...")
+		if err := m.UpdateTopology(topologyContent); err != nil {
+			return fmt.Errorf("topology update failed: %v", err)
+		}
+		log.Printf("Topology update confirmed successful")
 		if err := m.Launch(); err != nil {
 			return fmt.Errorf("failed to launch MQTT binding: %v", err)
 		}
+
 		select {}
 	}
 }

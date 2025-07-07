@@ -32,8 +32,9 @@ import (
 
 var log = logger.NewLogger("coa.runtime")
 var (
-	ClientCAFile = os.Getenv("CLIENT_CA_FILE")
-	MQTTEnabled  = os.Getenv("MQTT_ENABLED") // New environment variable
+	// SERVER_CA_FILE is the file containing the CA cert that signed the MQTT broker's certificate
+	ServerCAFile = os.Getenv("CLIENT_CA_FILE") // Rename in code but keep env var name for backward compatibility
+	MQTTEnabled  = os.Getenv("MQTT_ENABLED")
 )
 
 // CertProviderConfig 用于兼容 http.go 的 certProvider 配置结构
@@ -56,12 +57,10 @@ type MQTTBindingConfig struct {
 	ClientKey      string             `json:"clientKey,omitempty"`
 	CertProvider   CertProviderConfig `json:"certProvider,omitempty"`
 	TLS            bool               `json:"tls"`
-	// TrustedClients 可以保留但不再使用，以保持向后兼容性
-	TrustedClients []string `json:"trustedClients,omitempty"`
-	TopicPrefix    string   `json:"topicPrefix,omitempty"`
-	AutoDiscovery  bool     `json:"autoDiscovery,omitempty"`
-	// 新增state provider配置
-	StateProvider struct {
+	TrustedClients []string           `json:"trustedClients,omitempty"`
+	TopicPrefix    string             `json:"topicPrefix,omitempty"`
+	AutoDiscovery  bool               `json:"autoDiscovery,omitempty"`
+	StateProvider  struct {
 		Type   string                 `json:"type"`
 		Config map[string]interface{} `json:"config"`
 	} `json:"stateProvider,omitempty"`
@@ -70,9 +69,9 @@ type MQTTBindingConfig struct {
 type MQTTBinding struct {
 	MQTTClient        gmqtt.Client
 	CertProvider      certs.ICertProvider
-	subscribedTargets sync.Map // Track subscribed targets
+	subscribedTargets sync.Map
 	config            MQTTBindingConfig
-	mu                sync.Mutex            // Mutex for subscription operations
+	mu                sync.Mutex
 	stateProvider     states.IStateProvider // Added for querying targets
 	enabled           bool                  // Whether MQTT is enabled
 }
@@ -83,6 +82,24 @@ var routeTable map[string]v1alpha2.Endpoint
 func (m *MQTTBinding) SetStateProvider(provider states.IStateProvider) {
 	m.stateProvider = provider
 	log.Info("State provider set for MQTT binding")
+}
+
+func PrintCertificateDetails(cert *x509.Certificate, certType string) {
+	log.Infof("=== %s Certificate Details ===", certType)
+	log.Infof("Subject: %s", cert.Subject.String())
+	log.Infof("Issuer: %s", cert.Issuer.String())
+	log.Infof("Serial Number: %s", cert.SerialNumber)
+	log.Infof("Not Before: %s", cert.NotBefore)
+	log.Infof("Not After: %s", cert.NotAfter)
+	log.Infof("DNS Names: %v", cert.DNSNames)
+	log.Infof("Is CA: %t", cert.IsCA)
+	if len(cert.SubjectKeyId) > 0 {
+		log.Infof("Subject Key ID: %x", cert.SubjectKeyId)
+	}
+	if len(cert.AuthorityKeyId) > 0 {
+		log.Infof("Authority Key ID: %x", cert.AuthorityKeyId)
+	}
+	log.Infof("==========================")
 }
 
 func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endpoint) error {
@@ -163,6 +180,21 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 				return v1alpha2.NewCOAError(err, fmt.Sprintf("B (MQTT): failed to load cert/key pair"), v1alpha2.BadConfig)
 
 			}
+
+			// Print client certificate details
+			log.Info("Examining client certificate details...")
+			if len(cert.Certificate) > 0 {
+				for i, certBytes := range cert.Certificate {
+					clientCert, err := x509.ParseCertificate(certBytes)
+					if err != nil {
+						log.Warnf("Failed to parse client cert #%d: %v", i, err)
+						continue
+					}
+					PrintCertificateDetails(clientCert, fmt.Sprintf("Client Certificate #%d", i+1))
+				}
+			} else {
+				log.Warn("No client certificates found in loaded key pair")
+			}
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("cert provider type '%s' is not recognized", config.CertProvider.Type), v1alpha2.BadConfig)
 		}
@@ -172,25 +204,55 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		}
 	}
 	log.InfoCtx(context.Background(), "MQTT binding is launching...")
-	if ClientCAFile != "" {
-		log.Info(fmt.Sprintf("Loading client CA file: %s", ClientCAFile))
-		pemData, err := ioutil.ReadFile(ClientCAFile)
+
+	// Load the MQTT server's CA certificate to validate the server
+	if ServerCAFile != "" {
+		log.Info(fmt.Sprintf("Loading MQTT server's CA certificate from: %s", ServerCAFile))
+		pemData, err := ioutil.ReadFile(ServerCAFile)
 		if err != nil {
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client CA file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("MQTT server CA file '%s' could not be read", ServerCAFile), v1alpha2.BadConfig)
 		}
+
+		// Print CA certificate details
+		log.Info("Examining server CA certificate details...")
+		caCerts, _ := x509.ParseCertificates(pemData)
+		if caCerts != nil && len(caCerts) > 0 {
+			for i, caCert := range caCerts {
+				PrintCertificateDetails(caCert, fmt.Sprintf("Server CA Certificate #%d", i+1))
+			}
+		} else {
+			// Attempt to parse PEM encoded cert
+			pemBlock, _ := pem.Decode(pemData)
+			if pemBlock != nil && pemBlock.Type == "CERTIFICATE" {
+				caCert, err := x509.ParseCertificate(pemBlock.Bytes)
+				if err != nil {
+					log.Warnf("Failed to parse CA certificate: %v", err)
+				} else {
+					PrintCertificateDetails(caCert, "Server CA Certificate")
+				}
+			} else {
+				log.Warn("Unable to parse CA certificate from file")
+			}
+		}
+
 		if ok := caCertPool.AppendCertsFromPEM(pemData); !ok {
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to append CA cert from file, %s", ClientCAFile), v1alpha2.BadConfig)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to append MQTT server CA cert from file %s", ServerCAFile), v1alpha2.BadConfig)
 		}
+		log.Info("Successfully loaded MQTT server's CA certificate")
+	} else {
+		log.Warn("No MQTT server CA certificate provided. TLS verification may fail if self-signed certificates are used.")
 	}
+
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID(config.ClientID)
 	opts.SetKeepAlive(200 * time.Second)
 	opts.SetPingTimeout(100 * time.Second)
 	opts.CleanSession = false
-	// TLS config end
+
+	// Configure TLS with the loaded certificates
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-		ServerName:   "10.172.3.39",
+		Certificates: []tls.Certificate{cert}, // Client certificate for client authentication
+		RootCAs:      caCertPool,              // Server CA certificate to validate the MQTT broker
+		ServerName:   "10.172.3.39",           // Must match the MQTT broker's certificate CN/SAN
 		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
 	}
@@ -451,8 +513,6 @@ func (m *MQTTBinding) reconcileSubscriptions() {
 		select {
 		case <-ticker.C:
 			log.InfofCtx(context.Background(), "Starting MQTT subscription reconciliation")
-
-			// 只使用自动发现，不再考虑 trustedClients
 			if m.stateProvider != nil && m.config.AutoDiscovery {
 				m.discoverAndReconcileTargets()
 			}
@@ -614,41 +674,9 @@ func (m *MQTTBinding) ReconcileWithTargets(targets []string) {
 				log.Errorf("Failed to subscribe to target %s: %v", target, err)
 			}
 		}
-	}subscription reconciliation completed")
-	var certs []*x509.Certificate}
-	var block *pem.Block
-	rest := pemDataficates(pemData []byte) ([]*x509.Certificate, error) {
-t.Background(), "Parsing certificates from PEM data")
-	for {oCtx(context.Background(), fmt.Sprintf("PEM data %+v", pemData))
-		block, rest = pem.Decode(rest)
-		if block == nil {	var certs []*x509.Certificate
-			break
-		}mData
-
-		if block.Type != "CERTIFICATE" {	for {
-			continue
-		} {
-
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, errTE" {
-		}	continue
-		}
-		certs = append(certs, cert)
-	}	cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-	return certs, nil
+	}
 }
 
-func (m *MQTTBinding) Shutdown(ctx context.Context) error {
-	// Shutdown stops the MQTT binding
-	if m.enabled && m.MQTTClient != nil {
-		m.MQTTClient.Disconnect(1000)return certs, nil
-	}}
-
-
-
-}	return nil
 func (m *MQTTBinding) Shutdown(ctx context.Context) error {
 	// Shutdown stops the MQTT binding
 	if m.enabled && m.MQTTClient != nil {
