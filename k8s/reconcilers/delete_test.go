@@ -103,7 +103,6 @@ var _ = Describe("Attempt Delete", func() {
 			By("setting the deletion timestamp to a time in the past")
 			jobID = uuid.New().String()
 			object.SetDeletionTimestamp(&metav1.Time{Time: time.Now().Add(-TestReconcileTimout)})
-			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
 		})
 
 		It("should have a status of failed", func() {
