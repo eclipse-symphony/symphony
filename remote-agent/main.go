@@ -20,7 +20,6 @@ import (
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
-	"github.com/kardianos/service"
 )
 
 const version = "0.0.0.1"
@@ -35,53 +34,9 @@ var (
 	topologyFile      string
 	httpClient        *http.Client
 	execDir           string
+	protocol          string
+	caPath            string
 )
-
-type program struct{}
-
-func (p *program) Start(s service.Service) error {
-	go p.run()
-	return nil
-}
-
-func (p *program) run() {
-	if err := mainLogic(); err != nil {
-		log.Fatalf("Service run error: %v", err)
-	}
-}
-
-func (p *program) Stop(s service.Service) error {
-	log.Println("Service is stopping...")
-	return nil
-}
-
-func main() {
-	svcConfig := &service.Config{
-		Name:        "symphony-service",
-		DisplayName: "Remote Agent Service",
-		Description: "Remote Agent Service",
-	}
-	prg := &program{}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// support command line arguments for install, uninstall, start, stop
-	if len(os.Args) > 1 {
-		cmd := os.Args[1]
-		switch cmd {
-		case "install", "uninstall", "start", "stop":
-			err := service.Control(s, cmd)
-			if err != nil {
-				log.Fatalf("Service control error: %v", err)
-			}
-			return
-		}
-	}
-	if err := s.Run(); err != nil {
-		log.Fatal(err)
-	}
-}
 
 func mainLogic() error {
 	// get executable path
