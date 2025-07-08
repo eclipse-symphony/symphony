@@ -375,7 +375,7 @@ func (m *MQTTBinding) SubscribeToTarget(targetName string) error {
 
 	log.Infof("Subscribing to target %s on topic %s", targetName, requestTopic)
 
-	token := m.MQTTClient.Subscribe(requestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+	token := m.MQTTClient.Subscribe(requestTopic, 2, func(client gmqtt.Client, msg gmqtt.Message) {
 		var request v1alpha2.COARequest
 		var response v1alpha2.COAResponse
 		if request.Context == nil {

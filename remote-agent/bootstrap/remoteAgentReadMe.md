@@ -170,14 +170,20 @@ sudo ./bootstrap.sh \
 - **Linux:**
 
   ```bash
-  sudo ./bootstrap.sh https://symphony-service:8081/v1alpha2 certfile/client.crt certfile/client.key <target_name> default topologies.json <user> <group>
+  For MQTT:
+ ./bootstrap.sh mqtt <server Ip> <server Port> /path/to/clientcrt/client.crt /path/to/clientkey/client.key <target_name> default topologies.json <user> <group> <binarypath> <ca crt>
+  For HTTP:
+  ./bootstrap.sh https://symphony-service:8081/v1alpha2 /path/to/clientcrt/client.crt /path/to/clientkey/client.key <target_name> default topologies.json http <user> <group>
   ```
 
 - **Windows:**
 
   ```powershell
-  pwsh .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path .\certfile\client.pfx -target_name <target_name> -namespace default -topology topologies.json -run_mode <run mode>
-  pwsh .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path "/path/to/client.pfx" -target_name <target_name> -namespace default -topology topologies.json -run_mode <run mode> -protocol <http/mqtt>
+  MQTT
+ .\bootstrap.ps1 -protocol mqtt -mqtt_broker <mqttserver Ip> -mqtt_port <MQTT port> -cert_path <cert_path> -key_path <key_path> -target_name <target_name> -namespace default -topology </path/to/topologies.json>  -run_mode <mode> -ca_cert_path <ca cert path>
+
+ HTTP
+  .\bootstrap.ps1 -protocol http -endpoint <endpoint> -cert_path <cert_path> -target_name <target_name> -namespace <namespace> -topology <topology> -run_mode <service|schedule>
   ```
 
 ---

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -39,9 +40,23 @@ var (
 	topologyFile      string
 	httpClient        *http.Client
 	execDir           string
-	protocol          string = "http" // default protocol
+	protocol          string
 	caPath            string
 )
+
+// Add this structure to handle MQTT configuration
+type SymphonyConfig struct {
+	// HTTP fields
+	RequestEndpoint  string `json:"requestEndpoint"`
+	ResponseEndpoint string `json:"responseEndpoint"`
+	BaseUrl          string `json:"baseUrl"`
+
+	// MQTT fields
+	MqttBroker string `json:"mqttBroker"`
+	MqttPort   int    `json:"mqttPort"`
+	TargetName string `json:"targetName"`
+	Namespace  string `json:"namespace"`
+}
 
 func mainLogic() error {
 	log.Printf("mainLogic started, args: %v", os.Args)
@@ -71,9 +86,7 @@ func mainLogic() error {
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
 	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
 	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
-	log.Printf("Using protocol: %s", protocol)
 	flag.Parse()
-
 	if protocol == "mqtt" && (caPath == "") {
 		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
 		var input string
@@ -83,13 +96,23 @@ func mainLogic() error {
 		}
 		fmt.Printf("Using CA certificate path: %s\n", caPath)
 	}
-
+	fmt.Printf("Using client certificate path: %s\n", clientCertPath)
 	// read configuration
 	setting, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("error reading configuration file: %v", err)
 	}
-	if err := json.Unmarshal(setting, &symphonyEndpoints); err != nil {
+
+	// Remove UTF-8 BOM if present
+	if len(setting) >= 3 && setting[0] == 0xEF && setting[1] == 0xBB && setting[2] == 0xBF {
+		fmt.Println("Removing UTF-8 BOM from config file")
+		setting = setting[3:]
+	}
+
+	// Use the new config structure
+	var config SymphonyConfig
+	if err := json.Unmarshal(setting, &config); err != nil {
+		fmt.Printf("Error unmarshalling config: %v\nContent: %s\n", err, string(setting))
 		return fmt.Errorf("error unmarshalling configuration file: %v", err)
 	}
 
@@ -114,8 +137,6 @@ func mainLogic() error {
 		}
 	}
 
-	// httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
-
 	// compose target providers
 	providers := composeTargetProviders(topologyFile)
 	if providers == nil {
@@ -130,25 +151,29 @@ func mainLogic() error {
 	}
 
 	if protocol == "http" {
-		fmt.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", symphonyEndpoints.RequestEndpoint, symphonyEndpoints.ResponseEndpoint)
+		if config.RequestEndpoint == "" || config.ResponseEndpoint == "" || config.BaseUrl == "" {
+			fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
+			return fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
+		}
+		fmt.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", config.RequestEndpoint, config.ResponseEndpoint)
 		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
 		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
-
+		symphonyEndpoints.RequestEndpoint = config.RequestEndpoint
 		// create HttpBinding
 		h := &remoteHttp.HttpBinding{
 			Agent: agent.Agent{
 				Providers: providers,
 			},
 		}
-		h.RequestUrl = symphonyEndpoints.RequestEndpoint
-		h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
+		h.RequestUrl = config.RequestEndpoint
+		h.ResponseUrl = config.ResponseEndpoint
 		h.Client = httpClient
 		h.Target = targetName
 		h.Namespace = namespace
 
 		// send topology update via HTTP
 		updateTopologyEndpoint := fmt.Sprintf("%s/targets/updatetopology/%s?namespace=%s",
-			symphonyEndpoints.BaseUrl, targetName, namespace)
+			config.BaseUrl, targetName, namespace)
 		log.Printf("Sending topology update via HTTP: %s", updateTopologyEndpoint)
 
 		resp, err := httpClient.Post(updateTopologyEndpoint, "application/json", bytes.NewBuffer(topologyContent))
@@ -180,29 +205,63 @@ func mainLogic() error {
 		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
 			return fmt.Errorf("failed to append MQTT CA cert")
 		}
+
+		// Use the configuration values from config.json
+		fmt.Printf("Config loaded: broker=%s, port=%d, target=%s\n",
+			config.MqttBroker, config.MqttPort, config.TargetName)
+		brokerAddr := config.MqttBroker
+		brokerPort := config.MqttPort
+
+		// If target name is specified in config and command line is empty, use the config value
+		if config.TargetName != "" {
+			targetName = config.TargetName
+			fmt.Printf("Using target name from config: %s\n", targetName)
+		}
+
+		// If namespace is specified in config and command line is empty, use the config value
+		if namespace == "default" && config.Namespace != "" {
+			namespace = config.Namespace
+			fmt.Printf("Using namespace from config: %s\n", namespace)
+		}
+
+		if brokerAddr == "" {
+			fmt.Print("MQTT broker address not found in config. Please enter MQTT broker address: ")
+			fmt.Scanln(&brokerAddr)
+			if brokerAddr == "" {
+				return fmt.Errorf("MQTT broker address is required")
+			}
+		}
+
+		if brokerPort == 0 {
+			fmt.Print("MQTT broker port not found in config. Please enter MQTT broker port: ")
+			var portStr string
+			fmt.Scanln(&portStr)
+			if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
+				brokerPort = p
+			} else {
+				fmt.Println("Using default MQTT TLS port 8883")
+				brokerPort = 8883 // Default MQTT TLS port
+			}
+		}
+
+		brokerUrl := fmt.Sprintf("tls://%s:%d", brokerAddr, brokerPort)
+		fmt.Printf("Using MQTT broker: %s\n", brokerUrl)
+
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			RootCAs:      caCertPool,
-			ServerName:   "10.172.3.39", // Must match certificate CN/SAN
+			ServerName:   brokerAddr, // Use broker address from config instead of hardcoded value
 			MinVersion:   tls.VersionTLS12,
 			MaxVersion:   tls.VersionTLS13,
 		}
-		for i, c := range tlsConfig.Certificates {
-			for _, cert := range c.Certificate {
-				parsed, err := x509.ParseCertificate(cert)
-				if err == nil {
-					fmt.Printf("Loaded client cert[%d]: Subject=%s, Issuer=%s, NotAfter=%s\n", i, parsed.Subject, parsed.Issuer, parsed.NotAfter)
-				}
-			}
-		}
-		fmt.Printf("TLS MinVersion: %v, MaxVersion: %v\n", tlsConfig.MinVersion, tlsConfig.MaxVersion)
 		opts := mqtt.NewClientOptions()
-		opts.AddBroker("tls://10.172.3.39:8883")
+		opts.AddBroker(brokerUrl)
 		opts.SetTLSConfig(tlsConfig)
 		opts.SetClientID(strings.ToLower(targetName)) // Ensure lowercase is used
 		// Set client ID
-		fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n", clientCertPath, clientKeyPath, caPath)
-		fmt.Printf("begin to connect to MQTT broker %s\n", "tls://10.172.3.39:8883")
+		fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n",
+			clientCertPath, clientKeyPath, caPath, strings.ToLower(targetName))
+		fmt.Printf("begin to connect to MQTT broker %s\n", brokerUrl)
 		mqttClient := mqtt.NewClient(opts)
 		// Ensure lowercase is used
 		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {

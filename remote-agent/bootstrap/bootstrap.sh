@@ -7,7 +7,11 @@
 
 # Function to print usage
 usage() {
-    echo -e "\e[31mUsage: $0 <endpoint> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group>\e[0m"
+    echo -e "\e[31mUsage for HTTP mode:\e[0m"
+    echo -e "\e[31m  $0 http <endpoint> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group>\e[0m"
+    echo -e "\e[31mUsage for MQTT mode:\e[0m"
+    echo -e "\e[31m  $0 mqtt <broker_address> <broker_port> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group> [binary_path] [ca_cert_path]\e[0m"
+    echo -e "\e[31mNote: binary_path is required when protocol is 'mqtt'\e[0m"
     exit 1
 }
 
@@ -23,31 +27,141 @@ if ! command -v jq &> /dev/null; then
     fi
 fi
 
-# Check if the correct number of parameters are provided
-if [ "$#" -ne 9 ]; then
-    echo -e "\e[31mError: Invalid number of parameters.\e[0m"
-    usage
-fi
-
 # Assign parameters to variables
-endpoint=$1
-cert_path=$2
-key_path=$3
-target_name=$4
-namespace=$5
-topology=$6
-protocol=$7
-user=$8
-group=$9
+protocol=$1
 
-# Validate the endpoint (basic URL validation)
 if [ "$protocol" = "http" ]; then
+    endpoint=$2
+    cert_path=$3
+    key_path=$4
+    target_name=$5
+    namespace=$6
+    topology=$7
+    user=$8
+    group=$9
+    
+    # Validate the endpoint (basic URL validation)
     if ! [[ $endpoint =~ ^https?:// ]]; then
         echo -e "\e[31mError: Invalid endpoint. Must be a valid URL starting with http:// or https://\e[0m"
         usage
     fi
+    
+    # Create the JSON configuration for HTTP
+    echo -e "\e[32mCreating JSON configuration for HTTP mode...\e[0m"
+    config_json=$(cat <<EOF
+{
+    "requestEndpoint": "$endpoint/solution/tasks",
+    "responseEndpoint": "$endpoint/solution/task/getResult",
+    "baseUrl": "$endpoint"
+}
+EOF
+    )
+elif [ "$protocol" = "mqtt" ]; then
+    broker_address=$2
+    broker_port=$3
+    cert_path=$4
+    key_path=$5
+    target_name=$6
+    namespace=$7
+    topology=$8
+    user=$9
+    group=${10}
+    binary_path=${11}
+    ca_cert_path=${12}
+    
+    # Validate MQTT broker address
+    if [ -z "$broker_address" ]; then
+        echo -e "\e[31mError: MQTT broker address cannot be empty\e[0m"
+        usage
+    fi
+    
+    # Validate MQTT broker port
+    if [ -z "$broker_port" ] || ! [[ "$broker_port" =~ ^[0-9]+$ ]]; then
+        echo -e "\e[31mError: MQTT broker port must be a valid number\e[0m"
+        usage
+    fi
+    
+    # Create the JSON configuration for MQTT
+    echo -e "\e[32mCreating JSON configuration for MQTT mode...\e[0m"
+    config_json=$(cat <<EOF
+{
+    "mqttBroker": "$broker_address",
+    "mqttPort": $broker_port
+}
+EOF
+    )
+    
+    # Check for CA certificate
+    if [ -z "$ca_cert_path" ]; then
+        echo -e "\e[33mWarning: CA certificate path not provided for MQTT. You may need this for secure MQTT connections.\e[0m"
+        read -p "Do you want to provide a CA certificate path? [y/N]: " provide_ca
+        if [[ "$provide_ca" =~ ^[Yy]$ ]]; then
+            read -p "Please enter the CA certificate path: " ca_cert_path
+        fi
+    fi
+    
+    if [ ! -z "$ca_cert_path" ] && [ ! -f "$ca_cert_path" ]; then
+        echo -e "\e[31mError: CA certificate file not found at path: $ca_cert_path\e[0m"
+        usage
+    fi
+    
+    # 修复MQTT证书格式化代码中的语法错误
+    # Check if certificate format needs correction (if it's in single line format)
+    if [ -f "$cert_path" ] && grep -q "BEGIN CERTIFICATE" "$cert_path" && ! grep -q "END CERTIFICATE" "$cert_path" ]; then
+        echo -e "\e[33mDetected certificate in single line format. Reformatting...\e[0m"
+        
+        # Extract certificate content
+        cert_content=$(cat "$cert_path")
+        
+        # Extract header and footer
+        header=$(echo "$cert_content" | grep -o "-----BEGIN CERTIFICATE-----")
+        footer=$(echo "$cert_content" | grep -o "-----END CERTIFICATE-----")
+        
+        # Extract base64 content between header and footer
+        base64_content=$(echo "$cert_content" | sed "s/$header//g" | sed "s/$footer//g")
+        
+        # Format certificate with proper line breaks
+        corrected_cert_content="$header\n$(echo "$base64_content" | fold -w 64)\n$footer"
+        
+        # Create backup of original certificate
+        cp "$cert_path" "${cert_path}.bak"
+        
+        # Save reformatted certificate
+        echo -e "$corrected_cert_content" > "$cert_path"
+        echo -e "\e[32mCertificate reformatted successfully. Original saved as ${cert_path}.bak\e[0m"
+    fi
+    
+    # Perform similar check and reformatting for key file if needed
+    if [ -f "$key_path" ] && grep -q "BEGIN PRIVATE KEY" "$key_path" && ! grep -q "END PRIVATE KEY" "$key_path" ]; then
+        echo -e "\e[33mDetected key file in single line format. Reformatting...\e[0m"
+        
+        # Extract key content
+        key_content=$(cat "$key_path")
+        
+        # Extract header and footer
+        header=$(echo "$key_content" | grep -o "-----BEGIN PRIVATE KEY-----")
+        footer=$(echo "$key_content" | grep -o "-----END PRIVATE KEY-----")
+        
+        # Extract base64 content between header and footer
+        base64_content=$(echo "$key_content" | sed "s/$header//g" | sed "s/$footer//g")
+        
+        # Format key with proper line breaks
+        corrected_key_content="$header\n$(echo "$base64_content" | fold -w 64)\n$footer"
+        
+        # Create backup of original key
+        cp "$key_path" "${key_path}.bak"
+        
+        # Save reformatted key
+        echo -e "$corrected_key_content" > "$key_path"
+        echo -e "\e[32mKey file reformatted successfully. Original saved as ${key_path}.bak\e[0m"
+    fi
+    
+else
+    echo -e "\e[31mError: Protocol must be either 'http' or 'mqtt'.\e[0m"
+    usage
 fi
 
+# Common validations regardless of protocol
 # Validate the certificate path (check if the file exists)
 if [ ! -f "$cert_path" ]; then
     echo -e "\e[31mError: Certificate file not found at path: $cert_path\e[0m"
@@ -90,23 +204,6 @@ if [ -z "$group" ]; then
     usage
 fi
 
-# Validate the protocol (default to http if not provided)
-if [ -z "$protocol" ]; then
-    echo -e "\e[31mError: Protocol must be either 'http' or 'mqtt'.\e[0m"
-    usage
-fi
-
-# Create the JSON configuration
-echo -e "\e[32mCreating JSON configuration...\e[0m"
-config_json=$(cat <<EOF
-{
-    "requestEndpoint": "$endpoint/solution/tasks",
-    "responseEndpoint": "$endpoint/solution/task/getResult",
-    "baseUrl": "$endpoint"
-}
-EOF
-)
-
 # Save the JSON configuration to a file
 config_file="config.json"
 echo "$config_json" > "$config_file"
@@ -118,8 +215,9 @@ key_path=$(realpath $key_path)
 topology=$(realpath $topology)
 config=$(realpath $config_file)
 
-# Call the endpoint with targetName and cert
+# Protocol-specific handling
 if [ "$protocol" = "http" ]; then
+    # HTTP模式证书处理代码 - 这部分代码保持不变
     # HTTP mode: Call the certificate endpoint to get the public and private keys
     bootstarpCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
     echo -e "\e[32mCalling certificate endpoint: $bootstarpCertEndpoint\e[0m"
@@ -182,46 +280,28 @@ if [ "$protocol" = "http" ]; then
     echo -e "\e[32mCertificates prepared. Topology will be updated when remote-agent starts.\e[0m"
     
 else
-    # MQTT mode: Only need to prepare certificate files, topology will be sent through MQTT communication when agent starts
-    echo -e "\e[32mMQTT mode: Topology will be sent via MQTT topic 'symphony/request/$target_name' after agent starts\e[0m"
+    # MQTT mode: Use original certificates and binary
+    echo -e "\e[32mMQTT mode: Using original certificates directly\e[0m"
+    echo -e "\e[32mCertificate path: $cert_path\e[0m"
+    echo -e "\e[32mKey path: $key_path\e[0m"
+    echo -e "\e[32mBroker: $broker_address:$broker_port\e[0m"
+    echo -e "\e[32mTopology will be sent via MQTT topic 'symphony/request/$target_name' after agent starts\e[0m"
     
-    # For MQTT mode, directly use existing public and private key files
-    if [ ! -f "public.pem" ]; then
-        cp "$cert_path" "public.pem"
-        echo -e "\e[32mCopied certificate to public.pem\e[0m"
+    # Handle binary path for MQTT mode
+    if [ -z "$binary_path" ]; then
+        read -p "Please input the full path to your remote-agent binary: " agent_path
+    else
+        agent_path="$binary_path"
+        echo -e "\e[32mUsing provided binary path: $agent_path\e[0m"
     fi
     
-    if [ ! -f "private.pem" ]; then
-        cp "$key_path" "private.pem" 
-        echo -e "\e[32mCopied key to private.pem\e[0m"
-    fi
-
-    # Remind user to provide CA certificate
-    echo -e "\e[33mNote: When starting the remote agent, you need to provide the MQTT server's CA certificate\e[0m"
-    echo -e "\e[33m      You can use the '-ca-cert' parameter to specify the CA certificate path\e[0m"
-fi
-
-# Download the remote-agent binary
-if [ "$protocol" = "mqtt" ]; then
-    read -p "Please input the full path to your remote-agent binary: " agent_path
     agent_path=$(realpath "$agent_path")
     if [ ! -f "$agent_path" ]; then
         echo -e "\e[31mError: remote-agent binary not found at $agent_path. Exiting...\e[0m"
         exit 1
     fi
     chmod +x "$agent_path"
-    echo -e "\e[32mUsing user-supplied remote-agent binary: $agent_path\e[0m"
-else
-    echo -e "\e[32mDownloading remote-agent binary...\e[0m"
-    curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
-    if [ $? -ne 0 ]; then
-        echo -e "\e[31mError: Failed to download remote-agent binary. Exiting...\e[0m"
-        exit 1
-    else
-        echo -e "\e[32mRemote-agent binary downloaded\e[0m"
-    fi
-    chmod +x remote-agent
-    agent_path=$(realpath ./remote-agent)
+    echo -e "\e[32mUsing remote-agent binary: $agent_path\e[0m"
 fi
 
 # Make the remote-agent binary executable
@@ -234,22 +314,34 @@ else
 fi
 
 echo -e "\e[32mFiles created successfully:\e[0m"
-echo -e "\e[32mpublic.pem\e[0m"
-echo -e "\e[32mprivate.pem\e[0m"
+if [ "$protocol" = "http" ]; then
+    echo -e "\e[32mpublic.pem\e[0m"
+    echo -e "\e[32mprivate.pem\e[0m"
+fi
 echo -e "\e[32mremote-agent\e[0m"
 
-# Convert public.pem, private.pem, remote-agent to absolute paths
-public_path=$(realpath "./public.pem")
-private_path=$(realpath "./private.pem")
-# Elegantly set agent_path
-if [ "$protocol" = "mqtt" ]; then
-    # In MQTT mode, agent_path is already entered and verified by the user, no change needed
-    :
+# Set certificate paths appropriately based on protocol
+if [ "$protocol" = "http" ]; then
+    # HTTP mode: Use the generated public.pem and private.pem
+    public_path=$(realpath "./public.pem")
+    private_path=$(realpath "./private.pem")
 else
-    # In HTTP mode, use the downloaded remote-agent
-    agent_path=$(realpath "./remote-agent")
+    # MQTT mode: Use the original certificate paths
+    public_path=$cert_path
+    private_path=$key_path
 fi
 
+# Build the service command
+service_command="$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology -protocol=$protocol"
+
+# Add CA certificate parameter if available
+if [ "$protocol" = "mqtt" ] && [ ! -z "$ca_cert_path" ]; then
+    ca_cert_path=$(realpath "$ca_cert_path")
+    service_command="$service_command -ca-cert=$ca_cert_path"
+    echo -e "\e[32mUsing CA certificate: $ca_cert_path\e[0m"
+fi
+
+echo -e "\e[32mService command: $service_command\e[0m"
 # Create the remote-agent.service file
 echo -e "\e[32mCreating remote-agent.service file...\e[0m"
 sudo bash -c "cat <<EOF > /etc/systemd/system/remote-agent.service
@@ -258,7 +350,7 @@ Description=Remote Agent Service
 After=network.target
 
 [Service]
-ExecStart=$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology -protocol=$protocol
+ExecStart=$service_command
 Restart=always
 User=$user
 Group=$group
@@ -301,4 +393,4 @@ else
 fi
 
 # Check the status of the service
-sudo systemctl status remote-agent.service
+sudo systemctl stop remote-agent.service
