@@ -7,6 +7,9 @@
 package model
 
 import (
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -77,4 +80,46 @@ func (s *SummarySpec) UpdateTargetResult(target string, spec TargetResultSpec) {
 
 func (summary *SummaryResult) IsDeploymentFinished() bool {
 	return summary.State == SummaryStateDone
+}
+
+func (s *SummarySpec) GenerateStatusMessage() string {
+	if s.AllAssignedDeployed {
+		return ""
+	}
+
+	errorMessage := "Failed to deploy"
+	if s.SummaryMessage != "" {
+		errorMessage += fmt.Sprintf(": %s", s.SummaryMessage)
+	}
+	errorMessage += ". "
+
+	// Get target names and sort them
+	targetNames := make([]string, 0, len(s.TargetResults))
+	for target := range s.TargetResults {
+		targetNames = append(targetNames, target)
+	}
+	sort.Strings(targetNames)
+
+	// Build target errors in sorted order
+	targetErrors := make([]string, 0, len(targetNames))
+	for _, target := range targetNames {
+		result := s.TargetResults[target]
+		targetError := fmt.Sprintf("%s: \"%s\"", target, result.Message)
+
+		// Get component names and sort them too for consistency
+		componentNames := make([]string, 0, len(result.ComponentResults))
+		for component := range result.ComponentResults {
+			componentNames = append(componentNames, component)
+		}
+		sort.Strings(componentNames)
+
+		// Add component results in sorted order
+		for _, component := range componentNames {
+			componentResult := result.ComponentResults[component]
+			targetError += fmt.Sprintf(" (%s.%s: %s)", target, component, componentResult.Message)
+		}
+		targetErrors = append(targetErrors, targetError)
+	}
+
+	return errorMessage + fmt.Sprintf("Detailed status: %s", strings.Join(targetErrors, ", "))
 }
