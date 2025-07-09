@@ -99,6 +99,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
     openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365 -sha256
     # verify the client certificate
     openssl verify -CAfile ca.crt client.crt
+    # (option)For windows Client You need to generate a .pfx from client cert
     openssl pkcs12 -export -out client.pfx -inkey client.key -in client.crt -certfile ca.crt
     ```
     2. Create Secret:
@@ -120,7 +121,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 2. Update parameter
     1. Start Symphony
     ```
-    mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true --set installServiceExt=true"  
+    mage cluster:deployWithSettings "--set remoteAgent.used=true --set remoteCert.remoteCAs.secretName=client-cert-secret --set remoteCert.remoteCAs.secretKey=client-cert-key  --set remoteCert.remoteCAs.secretKey=client-cert-key --set installServiceExt=true" 
     ```
     If you are using MiniKube, please run `minikube tunnel` in a single terminal windows and keep it open for the rest steps.
     You need to run minikube tunnel after minikube start and before mage cluster:deployWithSettings done
@@ -156,7 +157,8 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
   Run bootstrap ps1
   ```bash
   # Set your pfx password as security password
-  pwsh .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path .\client.pfx -target_name windows-target -namespace default -topology topologies.json -run_mode 'schedule'
+  HTTP
+  .\bootstrap.ps1 -endpoint https://symphony-service:8081/v1alpha2 -cert_path .\client.pfx -target_name windows-target -namespace default -topology topologies.json -run_mode 'schedule'
   ```
   wait for remote-target ready
   ```bash

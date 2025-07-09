@@ -37,9 +37,6 @@ var (
 	MQTTEnabled  = os.Getenv("MQTT_ENABLED")
 )
 
-// CertProviderConfig 用于兼容 http.go 的 certProvider 配置结构
-// 只实现 certs.localfile
-
 type CertProviderConfig struct {
 	Type   string                 `json:"type"`
 	Config map[string]interface{} `json:"config"`
@@ -50,16 +47,14 @@ type MQTTBindingConfig struct {
 	ClientID       string             `json:"clientID"`
 	RequestTopic   string             `json:"requestTopic"`
 	ResponseTopic  string             `json:"responseTopic"`
-	RequestTopics  map[string]string  `json:"requestTopics,omitempty"` // 支持多个client
+	RequestTopics  map[string]string  `json:"requestTopics,omitempty"`
 	ResponseTopics map[string]string  `json:"responseTopics,omitempty"`
 	CACert         string             `json:"caCert,omitempty"`
 	ClientCert     string             `json:"clientCert,omitempty"`
 	ClientKey      string             `json:"clientKey,omitempty"`
 	CertProvider   CertProviderConfig `json:"certProvider,omitempty"`
 	TLS            bool               `json:"tls"`
-	TrustedClients []string           `json:"trustedClients,omitempty"`
 	TopicPrefix    string             `json:"topicPrefix,omitempty"`
-	AutoDiscovery  bool               `json:"autoDiscovery,omitempty"`
 	StateProvider  struct {
 		Type   string                 `json:"type"`
 		Config map[string]interface{} `json:"config"`
@@ -114,19 +109,14 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		return nil // Skip initialization if MQTT is disabled
 	}
 
-	log.Infof("MQTT binding configuration: broker=%s, autoDiscovery=%t",
-		config.BrokerAddress, config.AutoDiscovery)
-
 	m.config = config
 
-	// 初始化state provider（如果配置了）
-	if config.AutoDiscovery && config.StateProvider.Type != "" {
+	if config.StateProvider.Type != "" {
 		log.Info("Initializing state provider from config for MQTT binding")
 		var stateProvider states.IStateProvider
 
 		switch config.StateProvider.Type {
 		case "providers.state.k8s":
-			// K8s state provider 初始化
 			k8sProvider := &k8s.K8sStateProvider{}
 			err := k8sProvider.Init(config.StateProvider.Config)
 			if err != nil {
@@ -272,16 +262,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		m.config.TopicPrefix = "symphony"
 	}
 
-	// 如果配置了TrustedClients，则进行订阅
-	if len(config.TrustedClients) > 0 {
-		log.Infof("Setting up MQTT subscriptions for %d trusted clients", len(config.TrustedClients))
-		for _, client := range config.TrustedClients {
-			if err := m.SubscribeToTarget(client); err != nil {
-				log.Errorf("Failed to subscribe to target %s: %v", client, err)
-			}
-		}
-	}
-
 	// Handle legacy single topic configuration
 	if config.RequestTopic != "" && config.ResponseTopic != "" {
 		token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
@@ -296,11 +276,9 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
 			log.InfofCtx(request.Context, "Received request: %+v", request)
 			log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
-			// 检查 target 字段
 			var targetName string
 			if request.Parameters != nil {
 				if t, ok := request.Parameters["target"]; ok {
-					// t 已经是 string 类型，无需类型断言
 					targetName = t
 				}
 			}
@@ -497,15 +475,12 @@ func (m *MQTTBinding) reconcileSubscriptions() {
 	log.InfofCtx(context.Background(), "Starting MQTT subscription reconciliation every 5 minutes")
 
 	// Run once immediately on startup, don't wait for the first tick
-	if m.stateProvider != nil && m.config.AutoDiscovery {
+	if m.stateProvider != nil {
 		log.Info("Running initial MQTT target discovery...")
 		m.discoverAndReconcileTargets()
 	} else {
 		if m.stateProvider == nil {
 			log.Warn("Cannot run MQTT auto-discovery: state provider is nil")
-		}
-		if !m.config.AutoDiscovery {
-			log.Info("MQTT auto-discovery is disabled in configuration")
 		}
 	}
 
@@ -513,7 +488,7 @@ func (m *MQTTBinding) reconcileSubscriptions() {
 		select {
 		case <-ticker.C:
 			log.InfofCtx(context.Background(), "Starting MQTT subscription reconciliation")
-			if m.stateProvider != nil && m.config.AutoDiscovery {
+			if m.stateProvider != nil {
 				m.discoverAndReconcileTargets()
 			}
 		}
@@ -531,30 +506,24 @@ func (m *MQTTBinding) discoverAndReconcileTargets() {
 		return
 	}
 
-	// 这是查询资源的标准模式 - 创建ListRequest指定要查询的资源类型
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
-			"kind":      "Target",          // 资源种类
-			"namespace": "",                // 空字符串表示查询所有命名空间
-			"group":     "fabric.symphony", // 资源组
-			"version":   "v1",              // API版本
-			"resource":  "targets",         // 资源类型
+			"kind":      "Target",
+			"namespace": "",
+			"group":     "fabric.symphony",
+			"version":   "v1",
+			"resource":  "targets",
 		},
 	}
 
 	log.Infof("Using state provider of type: %T", m.stateProvider)
 
-	// 调用List方法执行查询，返回三个值:
-	// - result: 包含匹配资源的数组
-	// - token: 通常是分页标记
-	// - err: 可能的错误
 	result, token, err := m.stateProvider.List(ctx, listRequest)
 	if err != nil {
-		// 处理"资源未找到"错误 - 这在CRD未安装时很常见
 		if strings.Contains(err.Error(), "could not find the requested resource") {
 			log.Warn("Failed to list targets: The Target CRD might not be installed in the cluster")
 			log.Info("MQTT binding will continue but no targets will be auto-discovered")
-			result = []states.StateEntry{} // 使用空结果集继续
+			result = []states.StateEntry{}
 		} else {
 			log.Errorf("Failed to list targets: %v", err)
 			return
@@ -566,12 +535,8 @@ func (m *MQTTBinding) discoverAndReconcileTargets() {
 	// Define remoteTargets variable
 	var remoteTargets []string
 
-	// 详细记录每个target
 	for _, entry := range result {
-		// 打印target信息
 		log.Infof("Target found: ID=%s, Type=%T", entry.ID, entry.Body)
-
-		// 检查是否是远程target - add type assertion for entry.Body
 		targetBody, ok := entry.Body.(map[string]interface{})
 		if !ok {
 			// Try to unmarshal if it's a byte array
@@ -614,7 +579,7 @@ func hasRemoteAgentComponent(target map[string]interface{}) bool {
 		return false
 	}
 
-	// 只检查Components中是否有remote-agent类型的组件
+	// Check if the target has a 'components' section
 	if components, ok := spec["components"].([]interface{}); ok {
 		for _, comp := range components {
 			if component, ok := comp.(map[string]interface{}); ok {
@@ -626,7 +591,6 @@ func hasRemoteAgentComponent(target map[string]interface{}) bool {
 		}
 	}
 
-	// 不再检查topologies部分
 	return false
 }
 
@@ -638,7 +602,6 @@ func (m *MQTTBinding) ReconcileWithTargets(targets []string) {
 
 	log.Info("Reconciling MQTT subscriptions with targets list", "targets", targets)
 
-	// 记录当前已订阅的目标
 	currentSubscriptions := []string{}
 	m.subscribedTargets.Range(func(key, value interface{}) bool {
 		targetName := key.(string)

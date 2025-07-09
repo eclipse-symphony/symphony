@@ -846,15 +846,16 @@
       }
     },
     {{- end }}  
-        {{- if .Values.mqtt.enabled }}
+    {{- if .Values.mqtt.enabled }}
+    {{- if or (ne .Values.api.openHTTP false) }}
+    ,
+    {{- end }}
     {
       "type": "bindings.mqtt",
       "config":{
         "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
         "clientID": "symphony",
-        "tls": true,
-        "autoDiscovery": {{ .Values.mqtt.autoDiscovery }},
-        "trustedClients": ["remote-demo"],
+        "tls": {{ .Values.mqtt.mqttClientCert.enabled }},
         "stateProvider": {
           "type": "providers.state.k8s",
           "config": {
@@ -865,12 +866,16 @@
           "type": "certs.localfile",
           "config": {
             "name": "symphony-serving-cert",
-            "cert": "{{ .Values.mqttClientCert.mountPath }}/client.crt",
-            "key": "{{ .Values.mqttClientCert.mountPath }}/client.key"
+            "cert": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
+            "key": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key"
           }
         }
       }
-    },
+    }
+    {{- end }}
+    {{- if .Values.http.enabled }}
+    {{- if or (ne .Values.api.openHTTP false) .Values.mqtt.enabled }}
+    ,
     {{- end }}
     {
       "type": "bindings.http",
@@ -923,5 +928,6 @@
           ]
       }
     }
+    {{- end }}
   ]
 }

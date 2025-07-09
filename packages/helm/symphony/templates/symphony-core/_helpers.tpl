@@ -324,11 +324,9 @@ true
 - name: MQTT_ENABLED
   value: "{{ .Values.mqtt.enabled }}"
 - name: SYMPHONY_SERVICE_NAME
-  value: "{{ .Values.symphony.serviceName | default "symphony-agent" }}"
+  value: {{ include "symphony.serviceName" . }}
 {{- if .Values.mqtt.enabled }}
 - name: MQTT_BROKER_ADDRESS
-  value: "{{ .Values.mqtt.brokerAddress }}"
-- name: MQTT_AUTO_DISCOVERY
-  value: "{{ .Values.mqtt.autoDiscovery }}"
+  value: {{ .Values.mqtt.brokerAddress }}
 {{- end }}
 {{- end -}}

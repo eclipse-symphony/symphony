@@ -90,9 +90,9 @@ spec:
           subPath: proxy-cert.crt
           name: proxy-certstore
         {{- end }}
-        {{- if .Values.mqttClientCert.enabled }}
+        {{- if .Values.mqtt.mqttClientCert.enabled }}
         - name: mqtt-client-cert
-          mountPath: {{ .Values.mqttClientCert.mountPath }}
+          mountPath: {{ .Values.mqtt.mqttClientCert.mountPath }}
           readOnly: true
         {{- end }}
       {{- if and .Values.redis.enabled .Values.redis.asSidecar }}
@@ -160,13 +160,13 @@ spec:
             claimName: redis-pvc
         {{- end }}
         {{- end }}
-        {{- if .Values.mqttClientCert.enabled }}
+        {{- if .Values.mqtt.mqttClientCert.enabled }}
         - name: mqtt-client-cert
           secret:
-            secretName: {{ .Values.mqttClientCert.secretName }}
+            secretName: {{ .Values.mqtt.mqttClientCert.secretName }}
             items:
-              - key: {{ .Values.mqttClientCert.crtKey }}
+              - key: {{ .Values.mqtt.mqttClientCert.crt }}
                 path: client.crt
-              - key: {{ .Values.mqttClientCert.keyKey }}
+              - key: {{ .Values.mqtt.mqttClientCert.key }}
                 path: client.key
         {{- end }}

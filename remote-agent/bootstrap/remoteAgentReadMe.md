@@ -91,15 +91,17 @@ pwsh .\bootstrap.ps1 \
    ```powershell
    mage cluster:deployWithSettings \
      "--set remoteAgent.used=true \
-     --set RemoteCert.ClientCAs.SecretName=mqtt-ca \
-     --set RemoteCert.ClientCAs.SecretKey=ca.crt \
-     --set mqttClientCert.enabled=true \
-     --set mqttClientCert.secretName=mqtt-client-cert \
-     --set mqttClientCert.crtKey=client.crt \
-     --set mqttClientCert.keyKey=client.key \
+     --set remoteCert.remoteCAs.secretName=mqtt-ca \
+     --set remoteCert.remoteCAs.secretKey=ca.crt \
+     --set remoteCert.subjects=MyRootCA \
+     --set mqtt.mqttClientCert.enabled=true \
+     --set mqtt.mqttClientCert.secretName=mqtt-client-cert \
+     --set mqtt.mqttClientCert.crtKey=client.crt \
+     --set mqtt.mqttClientCert.keyKey=client.key \
      --set trustedClients={clientA,clientB,clientC} \
      --set mqtt.brokerAddress=tls://your-mqtt-broker:port \
      --set installServiceExt=true"
+     
    ```
 
 > Just pass these parameters at startup, no need to edit values.yaml manually.

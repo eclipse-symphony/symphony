@@ -104,58 +104,6 @@ EOF
         echo -e "\e[31mError: CA certificate file not found at path: $ca_cert_path\e[0m"
         usage
     fi
-    
-    # 修复MQTT证书格式化代码中的语法错误
-    # Check if certificate format needs correction (if it's in single line format)
-    if [ -f "$cert_path" ] && grep -q "BEGIN CERTIFICATE" "$cert_path" && ! grep -q "END CERTIFICATE" "$cert_path" ]; then
-        echo -e "\e[33mDetected certificate in single line format. Reformatting...\e[0m"
-        
-        # Extract certificate content
-        cert_content=$(cat "$cert_path")
-        
-        # Extract header and footer
-        header=$(echo "$cert_content" | grep -o "-----BEGIN CERTIFICATE-----")
-        footer=$(echo "$cert_content" | grep -o "-----END CERTIFICATE-----")
-        
-        # Extract base64 content between header and footer
-        base64_content=$(echo "$cert_content" | sed "s/$header//g" | sed "s/$footer//g")
-        
-        # Format certificate with proper line breaks
-        corrected_cert_content="$header\n$(echo "$base64_content" | fold -w 64)\n$footer"
-        
-        # Create backup of original certificate
-        cp "$cert_path" "${cert_path}.bak"
-        
-        # Save reformatted certificate
-        echo -e "$corrected_cert_content" > "$cert_path"
-        echo -e "\e[32mCertificate reformatted successfully. Original saved as ${cert_path}.bak\e[0m"
-    fi
-    
-    # Perform similar check and reformatting for key file if needed
-    if [ -f "$key_path" ] && grep -q "BEGIN PRIVATE KEY" "$key_path" && ! grep -q "END PRIVATE KEY" "$key_path" ]; then
-        echo -e "\e[33mDetected key file in single line format. Reformatting...\e[0m"
-        
-        # Extract key content
-        key_content=$(cat "$key_path")
-        
-        # Extract header and footer
-        header=$(echo "$key_content" | grep -o "-----BEGIN PRIVATE KEY-----")
-        footer=$(echo "$key_content" | grep -o "-----END PRIVATE KEY-----")
-        
-        # Extract base64 content between header and footer
-        base64_content=$(echo "$key_content" | sed "s/$header//g" | sed "s/$footer//g")
-        
-        # Format key with proper line breaks
-        corrected_key_content="$header\n$(echo "$base64_content" | fold -w 64)\n$footer"
-        
-        # Create backup of original key
-        cp "$key_path" "${key_path}.bak"
-        
-        # Save reformatted key
-        echo -e "$corrected_key_content" > "$key_path"
-        echo -e "\e[32mKey file reformatted successfully. Original saved as ${key_path}.bak\e[0m"
-    fi
-    
 else
     echo -e "\e[31mError: Protocol must be either 'http' or 'mqtt'.\e[0m"
     usage
@@ -217,12 +165,9 @@ config=$(realpath $config_file)
 
 # Protocol-specific handling
 if [ "$protocol" = "http" ]; then
-    # HTTP模式证书处理代码 - 这部分代码保持不变
     # HTTP mode: Call the certificate endpoint to get the public and private keys
     bootstarpCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
     echo -e "\e[32mCalling certificate endpoint: $bootstarpCertEndpoint\e[0m"
-    # Read the topology file content
-    TOPOLOGY_DATA=$(cat "$topology")
 
     # Get certificate
     result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpCertEndpoint" \

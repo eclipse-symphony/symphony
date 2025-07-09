@@ -7,8 +7,8 @@ metadata:
 spec:
   sources:
     - secret: 
-        name: {{ .Values.RemoteCert.ClientCAs.SecretName }}
-        key: {{ .Values.RemoteCert.ClientCAs.SecretKey }}
+        name: {{ .Values.remoteCert.remoteCAs.secretName }}
+        key: {{ .Values.remoteCert.remoteCAs.secretKey }}
   target:
     configMap:
       key: {{ include "symphony.apiClientCATrustBundleKey" . }}
