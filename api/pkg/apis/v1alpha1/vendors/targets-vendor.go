@@ -96,13 +96,6 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 		{
 			Methods:    []string{fasthttp.MethodPost},
-			Route:      route + "/bootstrap",
-			Version:    o.Version,
-			Handler:    o.onBootstrap,
-			Parameters: []string{"name?"},
-		},
-		{
-			Methods:    []string{fasthttp.MethodPost},
 			Route:      route + "/getcert",
 			Version:    o.Version,
 			Handler:    o.onGetCert,
@@ -817,23 +810,4 @@ func (c *TargetsVendor) onUpdateTopology(request v1alpha2.COARequest) v1alpha2.C
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
-}
-
-func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
-		"method": "onBootstrap",
-	})
-	defer span.End()
-	tLog.InfofCtx(ctx, "V (Targets) : onBootstrap, method: %s", request.Method)
-	// generate worker certificate
-	certResponse := c.onGetCert(request)
-	if certResponse.State != v1alpha2.OK {
-		return certResponse
-	}
-	// update topology
-	topologyResponse := c.onUpdateTopology(request)
-	if topologyResponse.State != v1alpha2.OK {
-		return topologyResponse
-	}
-	return certResponse
 }
