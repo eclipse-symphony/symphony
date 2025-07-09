@@ -42,6 +42,7 @@ var (
 	execDir           string
 	protocol          string
 	caPath            string
+	useCertSubject    bool // 新增变量
 )
 
 // Add this structure to handle MQTT configuration
@@ -86,6 +87,7 @@ func mainLogic() error {
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
 	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
 	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
+	flag.BoolVar(&useCertSubject, "use-cert-subject", false, "Use certificate subject as topic suffix instead of target name") // 新增flag
 	flag.Parse()
 	if protocol == "mqtt" && (caPath == "") {
 		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
@@ -122,7 +124,6 @@ func mainLogic() error {
 	if err != nil {
 		return fmt.Errorf("failed to load client cert/key: %v", err)
 	}
-	// Print client certificate subject name, use it as topic prefix
 	subjectName := ""
 	if len(cert.Certificate) > 0 {
 		parsedCert, err := x509.ParseCertificate(cert.Certificate[0])
@@ -271,14 +272,22 @@ func mainLogic() error {
 			fmt.Println("Connected to MQTT broker")
 		}
 		fmt.Println("Begin to request topic", "ddc")
+		// 选择 topic 后缀
+		topicSuffix := strings.ToLower(targetName)
+		if useCertSubject && subjectName != "" {
+			topicSuffix = strings.ToLower(subjectName)
+			fmt.Printf("Using certificate subject as topic suffix: %s\n", topicSuffix)
+		} else {
+			fmt.Printf("Using target name as topic suffix: %s\n", topicSuffix)
+		}
 		m := &remoteMqtt.MqttBinding{
 			Agent: agent.Agent{
 				Providers: providers,
 			},
 			Client:        mqttClient,
 			Target:        targetName,
-			RequestTopic:  fmt.Sprintf("symphony/request/%s", strings.ToLower(targetName)),
-			ResponseTopic: fmt.Sprintf("symphony/response/%s", strings.ToLower(targetName)),
+			RequestTopic:  fmt.Sprintf("symphony/request/%s", topicSuffix),
+			ResponseTopic: fmt.Sprintf("symphony/response/%s", topicSuffix),
 			Namespace:     namespace,
 		}
 

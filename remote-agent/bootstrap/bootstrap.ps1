@@ -21,7 +21,9 @@ param (
     [Parameter(Mandatory=$false)]
     [string]$run_mode = "service",
     [Parameter(Mandatory=$false)]
-    [string]$ca_cert_path
+    [string]$ca_cert_path,
+    [Parameter(Mandatory=$false)]
+    [bool]$use_cert_subject = $false
 )
 
 [System.Environment]::SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_LOGFILE", "$pwd\http.log", "Process")
@@ -30,7 +32,7 @@ function usage {
     Write-Host "Usage for HTTP mode:" -ForegroundColor Yellow
     Write-Host ".\bootstrap.ps1 -protocol http -endpoint <endpoint> -cert_path <cert_path> -target_name <target_name> -namespace <namespace> -topology <topology> -run_mode <service|schedule>" -ForegroundColor Yellow
     Write-Host "Usage for MQTT mode:" -ForegroundColor Yellow
-    Write-Host ".\bootstrap.ps1 -protocol mqtt -mqtt_broker <broker_address> -mqtt_port <broker_port> -cert_path <cert_path> -key_path <key_path> -target_name <target_name> -namespace <namespace> -topology <topology> -run_mode <service|schedule> [-ca_cert_path <ca_cert_path>]" -ForegroundColor Yellow
+    Write-Host ".\bootstrap.ps1 -protocol mqtt -mqtt_broker <broker_address> -mqtt_port <broker_port> -cert_path <cert_path> -key_path <key_path> -target_name <target_name> -namespace <namespace> -topology <topology> -run_mode <service|schedule> [-ca_cert_path <ca_cert_path>] [-use_cert_subject <true|false>]" -ForegroundColor Yellow
     exit 1
 }
 
@@ -281,9 +283,11 @@ $processArgs = "-config=`"$config`" -client-cert=`"$public_path`" -client-key=`"
 
 # Add MQTT-specific parameters
 if ($protocol -eq 'mqtt') {
-
     if ($ca_cert_path) {
         $processArgs += " -ca-cert=`"$ca_cert_path`""
+    }
+    if ($use_cert_subject) {
+        $processArgs += " -use-cert-subject"
     }
 }
 

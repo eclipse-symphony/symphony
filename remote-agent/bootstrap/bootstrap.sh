@@ -10,8 +10,9 @@ usage() {
     echo -e "\e[31mUsage for HTTP mode:\e[0m"
     echo -e "\e[31m  $0 http <endpoint> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group>\e[0m"
     echo -e "\e[31mUsage for MQTT mode:\e[0m"
-    echo -e "\e[31m  $0 mqtt <broker_address> <broker_port> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group> [binary_path] [ca_cert_path]\e[0m"
+    echo -e "\e[31m  $0 mqtt <broker_address> <broker_port> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group> [binary_path] [ca_cert_path] [use_cert_subject]\e[0m"
     echo -e "\e[31mNote: binary_path is required when protocol is 'mqtt'\e[0m"
+    echo -e "\e[31m      use_cert_subject: true/false, optional, use cert subject as topic suffix for MQTT\e[0m"
     exit 1
 }
 
@@ -68,6 +69,7 @@ elif [ "$protocol" = "mqtt" ]; then
     group=${10}
     binary_path=${11}
     ca_cert_path=${12}
+    use_cert_subject=${13}
     
     # Validate MQTT broker address
     if [ -z "$broker_address" ]; then
@@ -284,6 +286,12 @@ if [ "$protocol" = "mqtt" ] && [ ! -z "$ca_cert_path" ]; then
     ca_cert_path=$(realpath "$ca_cert_path")
     service_command="$service_command -ca-cert=$ca_cert_path"
     echo -e "\e[32mUsing CA certificate: $ca_cert_path\e[0m"
+fi
+
+# Add use-cert-subject parameter if set
+if [ "$protocol" = "mqtt" ] && [ "$use_cert_subject" = "true" ]; then
+    service_command="$service_command -use-cert-subject=true"
+    echo -e "\e[32mUsing certificate subject as topic suffix for MQTT.\e[0m"
 fi
 
 echo -e "\e[32mService command: $service_command\e[0m"

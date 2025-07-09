@@ -246,6 +246,41 @@ This end-to-end process ensures a secure, reproducible, and automated setup for 
 
 ---
 
+## Using Certificate Subject as MQTT Topic Suffix
+
+By default, the remote agent uses the `targetName` as the suffix for MQTT topics (e.g., `symphony/request/<targetName>`).  
+You can force the agent to use the client certificate's subject (Common Name) as the topic suffix instead by enabling the `use-cert-subject` option.
+
+### How to Enable
+
+- **Linux (bootstrap.sh):**  
+  Add `true` as the last argument in MQTT mode:
+  ```bash
+  sudo ./bootstrap.sh mqtt <broker_address> <broker_port> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group> <binary_path> <ca_cert_path> true
+  ```
+- **Windows (bootstrap.ps1):**  
+  Add `-use_cert_subject $true` to your command:
+  ```powershell
+  .\bootstrap.ps1 -protocol mqtt -mqtt_broker <broker_address> -mqtt_port <broker_port> -cert_path <cert_path> -key_path <key_path> -target_name <target_name> -namespace <namespace> -topology <topology> -run_mode <service|schedule> -ca_cert_path <ca_cert_path> -use_cert_subject $true
+  ```
+
+### Behavior
+
+- If `use-cert-subject` is enabled, the MQTT topic suffix will be the subject (Common Name) from the client certificate, e.g.:
+  ```
+  symphony/request/<certificate_subject>
+  symphony/response/<certificate_subject>
+  ```
+- If not enabled (default), the topic suffix will be the `targetName`:
+  ```
+  symphony/request/<targetName>
+  symphony/response/<targetName>
+  ```
+
+This option is useful when you want to ensure topic uniqueness or align topic naming with certificate identity.
+
+---
+
 ### Notes
 
 - Adjust parameters (endpoint, target_name, user, group, etc.) as needed for your environment.
