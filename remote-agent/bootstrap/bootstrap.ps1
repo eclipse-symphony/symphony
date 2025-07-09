@@ -25,9 +25,6 @@ param (
     [Parameter(Mandatory=$false)]
     [bool]$use_cert_subject = $false
 )
-
-[System.Environment]::SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_LOGFILE", "$pwd\http.log", "Process")
-[System.Environment]::SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_LOGLEVEL", "Debug", "Process")
 function usage {
     Write-Host "Usage for HTTP mode:" -ForegroundColor Yellow
     Write-Host ".\bootstrap.ps1 -protocol http -endpoint <endpoint> -cert_path <cert_path> -target_name <target_name> -namespace <namespace> -topology <topology> -run_mode <service|schedule>" -ForegroundColor Yellow
