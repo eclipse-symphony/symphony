@@ -234,15 +234,15 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	}
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID(config.ClientID)
-	opts.SetKeepAlive(200 * time.Second)
-	opts.SetPingTimeout(100 * time.Second)
+	opts.SetKeepAlive(2 * time.Second)
+	opts.SetPingTimeout(1 * time.Second)
 	opts.CleanSession = false
 
 	// Configure TLS with the loaded certificates
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert}, // Client certificate for client authentication
 		RootCAs:      caCertPool,              // Server CA certificate to validate the MQTT broker
-		ServerName:   "10.172.3.39",           // Must match the MQTT broker's certificate CN/SAN
+		ServerName:   config.BrokerAddress,    // Must match the MQTT broker's certificate CN/SAN
 		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
 	}
