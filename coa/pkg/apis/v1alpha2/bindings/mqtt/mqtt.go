@@ -42,19 +42,17 @@ type CertProviderConfig struct {
 }
 
 type MQTTBindingConfig struct {
-	BrokerAddress  string             `json:"brokerAddress"`
-	ClientID       string             `json:"clientID"`
-	RequestTopic   string             `json:"requestTopic"`
-	ResponseTopic  string             `json:"responseTopic"`
-	RequestTopics  map[string]string  `json:"requestTopics,omitempty"`
-	ResponseTopics map[string]string  `json:"responseTopics,omitempty"`
-	CACert         string             `json:"caCert,omitempty"`
-	ClientCert     string             `json:"clientCert,omitempty"`
-	ClientKey      string             `json:"clientKey,omitempty"`
-	CertProvider   CertProviderConfig `json:"certProvider,omitempty"`
-	TLS            bool               `json:"tls"`
-	TopicPrefix    string             `json:"topicPrefix,omitempty"`
-	StateProvider  struct {
+	BrokerAddress string             `json:"brokerAddress"`
+	ClientID      string             `json:"clientID"`
+	RequestTopic  string             `json:"requestTopic,omitempty"`
+	ResponseTopic string             `json:"responseTopic,omitempty"`
+	CACert        string             `json:"caCert,omitempty"`
+	ClientCert    string             `json:"clientCert,omitempty"`
+	ClientKey     string             `json:"clientKey,omitempty"`
+	CertProvider  CertProviderConfig `json:"certProvider,omitempty"`
+	TLS           bool               `json:"tls"`
+	TopicPrefix   string             `json:"topicPrefix,omitempty"`
+	StateProvider struct {
 		Type   string                 `json:"type"`
 		Config map[string]interface{} `json:"config"`
 	} `json:"stateProvider,omitempty"`
