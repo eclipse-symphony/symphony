@@ -32,7 +32,7 @@ import (
 var log = logger.NewLogger("coa.runtime")
 var (
 	// SERVER_CA_FILE is the file containing the CA cert that signed the MQTT broker's certificate
-	ServerCAFile = os.Getenv("CLIENT_CA_FILE") // Rename in code but keep env var name for backward compatibility
+	ServerCAFile = os.Getenv("REMOTE_CA_FILE") // Rename in code but keep env var name for backward compatibility
 	MQTTEnabled  = os.Getenv("MQTT_ENABLED")
 )
 
@@ -168,15 +168,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("MQTT server CA file '%s' could not be read", ServerCAFile), v1alpha2.BadConfig)
 		}
-
-		caCerts, _ := x509.ParseCertificates(pemData)
-		if caCerts == nil || len(caCerts) == 0 {
-			pemBlock, _ := pem.Decode(pemData)
-			if pemBlock == nil || pemBlock.Type != "CERTIFICATE" {
-				log.Warn("Unable to parse CA certificate from file")
-			}
-		}
-
 		if ok := caCertPool.AppendCertsFromPEM(pemData); !ok {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to append MQTT server CA cert from file %s", ServerCAFile), v1alpha2.BadConfig)
 		}
