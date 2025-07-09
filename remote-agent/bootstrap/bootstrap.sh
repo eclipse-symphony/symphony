@@ -338,4 +338,4 @@ else
 fi
 
 # Check the status of the service
-sudo systemctl stop remote-agent.service
+sudo systemctl status remote-agent.service
