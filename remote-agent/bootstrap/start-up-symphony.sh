@@ -13,25 +13,25 @@ sudo apt install openssl
 
 # create a local CA
 openssl genrsa -out ca.key 2048
-openssl req -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=MyLocalCA"
+openssl req -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=MyLocalCA" 
 
 # create a client key and CSR
 openssl genrsa -out client.key 2048
 openssl req -new -key client.key -out client.csr -subj "/CN=target.symphony.microsoft.com"
 
 # use ca to sign 
+# openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365 -sha256 -extfile openssl.cnf -extensions v3_req
 openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365 -sha256
-
 # verify the client certificate
 openssl verify -CAfile ca.crt client.crt
-
+openssl pkcs12 -export -out client.pfx -inkey client.key -in client.crt -certfile ca.crt
 # create a client cert secret: secret name is client-cert-secret, key is client-cert-key, value is client.crt
 kubectl create namespace cert-manager
-kubectl create secret generic client-cert-secret --from-file=client-cert-key=client.crt -n cert-manager
+kubectl create secret generic client-cert-secret --from-file=client-cert-key=ca.crt -n cert-manager
 
 # judge if the secret public key is the same as the client.crt
 kubectl get secret client-cert-secret -n cert-manager -o jsonpath='{.data.client-cert-key}' | base64 -d > secret-client.crt
-diff client.crt secret-client.crt
+diff ca.crt secret-client.crt
 if [ $? -ne 0 ]; then
     echo "Error: client.crt and secret public key are different!"
 fi
@@ -79,4 +79,6 @@ kubectl apply -f ../../remote-agent/bootstrap/sample_target.yaml
 # call the bootstrap.sh script
 # sign bootstrap script
 # sign binary
-./bootstrap.sh https://symphony-service:8081/v1alpha2 ./client.crt ./client.key remote-demo default topologies.json <user> <group>
+sudo systemctl stop remote-agent.service
+./bootstrap.sh https://symphony-service:8081/v1alpha2 certfile/client.crt certfile/client.key remote-demo default topologies.json <user> <group>
+
