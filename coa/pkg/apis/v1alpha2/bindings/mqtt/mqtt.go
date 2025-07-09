@@ -180,19 +180,23 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	opts.CleanSession = false
 
 	// Configure TLS with the loaded certificates
+	serverHost := config.BrokerAddress
+	if strings.HasPrefix(serverHost, "tcp://") {
+		serverHost = strings.TrimPrefix(serverHost, "tcp://")
+	}
+	if idx := strings.Index(serverHost, ":"); idx > 0 {
+		serverHost = serverHost[:idx]
+	}
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{cert}, // Client certificate for client authentication
 		RootCAs:      caCertPool,              // Server CA certificate to validate the MQTT broker
-		ServerName:   config.BrokerAddress,    // Must match the MQTT broker's certificate CN/SAN
+		ServerName:   serverHost,              // Must match the MQTT broker's certificate CN/SAN (no port)
 		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
 	}
 	opts.SetTLSConfig(tlsConfig)
 	m.MQTTClient = gmqtt.NewClient(opts)
 	if token := m.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Errorf("Failed to connect to MQTT broker: %v", token.Error())
-		log.Errorf("MQTT broker address: %s", config.BrokerAddress)
-		log.Errorf("MQTT client ID: %s", config.ClientID)
 		return v1alpha2.NewCOAError(token.Error(), "failed to connect to MQTT broker", v1alpha2.InternalError)
 	} else {
 		log.Infof("Successfully connected to MQTT broker: %s", config.BrokerAddress)
@@ -205,7 +209,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 
 	// Handle legacy single topic configuration
 	if config.RequestTopic != "" && config.ResponseTopic != "" {
-		token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		if token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
 			// ...existing message handler...
 			var request v1alpha2.COARequest
 			var response v1alpha2.COAResponse
@@ -214,31 +218,15 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			}
 			contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
 			err := json.Unmarshal(msg.Payload(), &request)
-			log.InfofCtx(request.Context, "Received request payload: %s", string(msg.Payload()))
-			log.InfofCtx(request.Context, "Received request: %+v", request)
-			log.InfofCtx(request.Context, "Received request Route: %s", request.Route)
-			var targetName string
-			if request.Parameters != nil {
-				if t, ok := request.Parameters["target"]; ok {
-					targetName = t
-				}
-			}
-			if targetName != "" && targetName != config.ClientID {
-				log.InfofCtx(request.Context, "target mismatch: clientName=%s, target=%s", config.ClientID, targetName)
+			if err != nil {
+				log.Errorf("Failed to parse COARequest from MQTT message: %v", err)
 				response = v1alpha2.COAResponse{
 					State:       v1alpha2.BadRequest,
 					ContentType: "application/json",
-					Body:        []byte(fmt.Sprintf("this client can not handle '%s', this target", targetName)),
+					Body:        []byte(fmt.Sprintf("Failed to parse COARequest: %s", err.Error())),
 				}
-			} else if err != nil {
-				response = v1alpha2.COAResponse{
-					State:       v1alpha2.BadRequest,
-					ContentType: "text/plain",
-					Body:        []byte(err.Error()),
-				}
-			} else {
-				response = routeTable[request.Route].Handler(request)
 			}
+			response = routeTable[request.Route].Handler(request)
 			if request.Metadata != nil {
 				if v, ok := request.Metadata["request-id"]; ok {
 					if response.Metadata == nil {
@@ -250,18 +238,12 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			data, _ := json.Marshal(response)
 			go func() {
 				if token := client.Publish(config.ResponseTopic, 0, false, data); token.Wait() && token.Error() != nil {
-					time.Sleep(600 * time.Millisecond)
-					log.Errorf("failed to publish response to MQTT: %s", token.Error())
+					log.Errorf("failed to handle request from MOTT: %s", token.Error())
 				}
 			}()
-		})
-		if token.Wait() && token.Error() != nil {
-			if token.Error().Error() != "subscription exists" {
-				log.Errorf("  P (MQTT Target): faild to connect to subscribe to request topic - %+v", token.Error())
-				log.Errorf("  P (MQTT Target): sleeping 600s for debug, you can exec into the container to check certs and state...")
-				time.Sleep(600 * time.Second)
-				return v1alpha2.NewCOAError(token.Error(), "failed to subscribe to request topic", v1alpha2.InternalError)
-			}
+		}); token.Wait() && token.Error() != nil {
+			log.Errorf("Failed to subscribe to request topic '%s': %v", config.RequestTopic, token.Error())
+			return v1alpha2.NewCOAError(token.Error(), fmt.Sprintf("failed to subscribe to request topic '%s'", config.RequestTopic), v1alpha2.InternalError)
 		}
 	}
 	return nil
