@@ -11,7 +11,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -77,24 +76,6 @@ var routeTable map[string]v1alpha2.Endpoint
 func (m *MQTTBinding) SetStateProvider(provider states.IStateProvider) {
 	m.stateProvider = provider
 	log.Info("State provider set for MQTT binding")
-}
-
-func PrintCertificateDetails(cert *x509.Certificate, certType string) {
-	log.Infof("=== %s Certificate Details ===", certType)
-	log.Infof("Subject: %s", cert.Subject.String())
-	log.Infof("Issuer: %s", cert.Issuer.String())
-	log.Infof("Serial Number: %s", cert.SerialNumber)
-	log.Infof("Not Before: %s", cert.NotBefore)
-	log.Infof("Not After: %s", cert.NotAfter)
-	log.Infof("DNS Names: %v", cert.DNSNames)
-	log.Infof("Is CA: %t", cert.IsCA)
-	if len(cert.SubjectKeyId) > 0 {
-		log.Infof("Subject Key ID: %x", cert.SubjectKeyId)
-	}
-	if len(cert.AuthorityKeyId) > 0 {
-		log.Infof("Authority Key ID: %x", cert.AuthorityKeyId)
-	}
-	log.Infof("==========================")
 }
 
 func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endpoint) error {
@@ -170,21 +151,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 				return v1alpha2.NewCOAError(err, fmt.Sprintf("B (MQTT): failed to load cert/key pair"), v1alpha2.BadConfig)
 
 			}
-
-			// Print client certificate details
-			log.Info("Examining client certificate details...")
-			if len(cert.Certificate) > 0 {
-				for i, certBytes := range cert.Certificate {
-					clientCert, err := x509.ParseCertificate(certBytes)
-					if err != nil {
-						log.Warnf("Failed to parse client cert #%d: %v", i, err)
-						continue
-					}
-					PrintCertificateDetails(clientCert, fmt.Sprintf("Client Certificate #%d", i+1))
-				}
-			} else {
-				log.Warn("No client certificates found in loaded key pair")
-			}
 		default:
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("cert provider type '%s' is not recognized", config.CertProvider.Type), v1alpha2.BadConfig)
 		}
@@ -203,24 +169,10 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("MQTT server CA file '%s' could not be read", ServerCAFile), v1alpha2.BadConfig)
 		}
 
-		// Print CA certificate details
-		log.Info("Examining server CA certificate details...")
 		caCerts, _ := x509.ParseCertificates(pemData)
-		if caCerts != nil && len(caCerts) > 0 {
-			for i, caCert := range caCerts {
-				PrintCertificateDetails(caCert, fmt.Sprintf("Server CA Certificate #%d", i+1))
-			}
-		} else {
-			// Attempt to parse PEM encoded cert
+		if caCerts == nil || len(caCerts) == 0 {
 			pemBlock, _ := pem.Decode(pemData)
-			if pemBlock != nil && pemBlock.Type == "CERTIFICATE" {
-				caCert, err := x509.ParseCertificate(pemBlock.Bytes)
-				if err != nil {
-					log.Warnf("Failed to parse CA certificate: %v", err)
-				} else {
-					PrintCertificateDetails(caCert, "Server CA Certificate")
-				}
-			} else {
+			if pemBlock == nil || pemBlock.Type != "CERTIFICATE" {
 				log.Warn("Unable to parse CA certificate from file")
 			}
 		}

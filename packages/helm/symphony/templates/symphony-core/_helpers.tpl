@@ -322,11 +322,11 @@ true
 {{/* Generate environment variables */}}
 {{- define "symphony.environmentVariables" -}}
 - name: MQTT_ENABLED
-  value: "{{ .Values.mqtt.enabled }}"
+  value: "{{ .Values.remoteAgent.mqtt.enabled }}"
 - name: SYMPHONY_SERVICE_NAME
   value: {{ include "symphony.serviceName" . }}
-{{- if .Values.mqtt.enabled }}
+{{- if .Values.remoteAgent.mqtt.enabled }}
 - name: MQTT_BROKER_ADDRESS
-  value: {{ .Values.mqtt.brokerAddress }}
+  value: {{ .Values.remoteAgent.mqtt.brokerAddress }}
 {{- end }}
 {{- end -}}

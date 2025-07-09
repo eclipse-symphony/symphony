@@ -65,7 +65,7 @@ parent:
 siteId: hq
 api:
   apiContainerPortHttp: 8080
-  apiContainerPortHttps: 8082
+  apiContainerPortHttps: 8081
   disableUserCreds:
   openHTTP:
   labelKey:
@@ -74,10 +74,10 @@ api:
 symphony:
   uniqueDisplayNameForSolution: false
   incluster:
-    httpsport: 8082
+    httpsport: 8081
     httpport: 8080
   extension:
-    httpsport: 8082
+    httpsport: 8081
     httpport: 8080
 # Turn on/off cleanup on finished activations
 ActivationCleanup:
@@ -113,14 +113,14 @@ remoteCert:
 remoteAgent:
   version: "0.0.0.1"
   used: false
-http:
-  enabled: true
-mqtt:
-  enabled: false
-  brokerAddress: tls://10.172.3.39:8883
-  mqttClientCert:
+  http:
+    enabled: true
+  mqtt:
     enabled: false
-    secretName: mqtt-client-cert
-    crt: client.crt
-    key: client.key
-    mountPath: /etc/mqtt-client
+    brokerAddress: tls://10.172.3.39:8883
+    mqttClientCert:
+      enabled: false
+      secretName: mqtt-client-cert
+      crt: client.crt
+      key: client.key
+      mountPath: /etc/mqtt-client

@@ -40,7 +40,7 @@ This directory provides scripts to automate the deployment of the Symphony Remot
 
 ```powershell
 pwsh .\bootstrap.ps1 \
-  -endpoint "https://symphony-service:8082/v1alpha2" \
+  -endpoint "https://symphony-service:8081/v1alpha2" \
   -cert_path "/path/to/client.pfx" \
   -target_name "remote-demo" \
   -namespace "default" \
@@ -284,7 +284,6 @@ This option is useful when you want to ensure topic uniqueness or align topic na
 ### Notes
 
 - Adjust parameters (endpoint, target_name, user, group, etc.) as needed for your environment.
-- Ensure all dependencies are installed (e.g., jq, openssl, PowerShell 7+).
 - On Linux, root privileges are required to register the systemd service.
 - On Windows, running as a service requires administrator privileges.
 - The topology.json file must conform to the Symphony remote agent topology specification.

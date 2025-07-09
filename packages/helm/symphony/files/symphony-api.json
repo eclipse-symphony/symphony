@@ -844,18 +844,18 @@
           }
         ]
       }
-    },
+    }
     {{- end }}  
-    {{- if .Values.mqtt.enabled }}
+    {{- if .Values.remoteAgent.mqtt.enabled }}
     {{- if or (ne .Values.api.openHTTP false) }}
     ,
     {{- end }}
     {
       "type": "bindings.mqtt",
       "config":{
-        "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
+        "brokerAddress": "{{ .Values.remoteAgent.mqtt.brokerAddress }}",
         "clientID": "symphony",
-        "tls": {{ .Values.mqtt.mqttClientCert.enabled }},
+        "tls": {{ .Values.remoteAgent.mqtt.mqttClientCert.enabled }},
         "stateProvider": {
           "type": "providers.state.k8s",
           "config": {
@@ -866,15 +866,15 @@
           "type": "certs.localfile",
           "config": {
             "name": "symphony-serving-cert",
-            "cert": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
-            "key": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key"
+            "cert": "{{ .Values.remoteAgent.mqtt.mqttClientCert.mountPath }}/client.crt",
+            "key": "{{ .Values.remoteAgent.mqtt.mqttClientCert.mountPath }}/client.key"
           }
         }
       }
     }
     {{- end }}
-    {{- if .Values.http.enabled }}
-    {{- if or (ne .Values.api.openHTTP false) .Values.mqtt.enabled }}
+    {{- if .Values.remoteAgent.http.enabled }}
+    {{- if or (ne .Values.api.openHTTP false) .Values.remoteAgent.mqtt.enabled }}
     ,
     {{- end }}
     {

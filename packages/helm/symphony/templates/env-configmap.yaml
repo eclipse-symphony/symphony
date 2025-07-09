@@ -30,9 +30,9 @@ data:
 {{- if .Values.remoteAgent.used }}
   AGENT_PATH: "/remote-agent"
   AGENT_VERSION: {{ .Values.remoteAgent.version }}
-  CLIENT_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
+  REMOTE_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
 {{- end }}
-  MQTT_ENABLED: "{{ .Values.mqtt.enabled }}"
-  {{- if .Values.mqtt.enabled }}
-  MQTT_BROKER_ADDRESS: "{{ .Values.mqtt.brokerAddress }}"
+  MQTT_ENABLED: "{{ .Values.remoteAgent.mqtt.enabled }}"
+  {{- if .Values.remoteAgent.mqtt.enabled }}
+  MQTT_BROKER_ADDRESS: "{{ .Values.remoteAgent.mqtt.brokerAddress }}"
   {{- end }}

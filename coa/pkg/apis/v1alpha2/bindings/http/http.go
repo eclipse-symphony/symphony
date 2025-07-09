@@ -36,7 +36,7 @@ type MiddlewareConfig struct {
 }
 
 var (
-	ClientCAFile = os.Getenv("CLIENT_CA_FILE")
+	RemoteCAFile = os.Getenv("REMOTE_CA_FILE")
 )
 
 type CertProviderConfig struct {
@@ -114,16 +114,16 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 	}
 
 	// Load the PEM file
-	if ClientCAFile != "" {
-		pemData, err := ioutil.ReadFile(ClientCAFile)
+	if RemoteCAFile != "" {
+		pemData, err := ioutil.ReadFile(RemoteCAFile)
 		if err != nil {
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", RemoteCAFile), v1alpha2.BadConfig)
 		}
 
 		// Parse the certificates
 		certs, err := h.parseCertificates(pemData)
 		if err != nil {
-			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file, %s", ClientCAFile), v1alpha2.BadConfig)
+			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Failed to parse the client cert file, %s", RemoteCAFile), v1alpha2.BadConfig)
 		}
 		for _, cert := range certs {
 			caCertPool.AddCert(cert)

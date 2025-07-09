@@ -87,7 +87,7 @@ func mainLogic() error {
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
 	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
 	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
-	flag.BoolVar(&useCertSubject, "use-cert-subject", false, "Use certificate subject as topic suffix instead of target name") // 新增flag
+	flag.BoolVar(&useCertSubject, "use-cert-subject", false, "Use certificate subject as topic suffix instead of target name")
 	flag.Parse()
 	if protocol == "mqtt" && (caPath == "") {
 		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
