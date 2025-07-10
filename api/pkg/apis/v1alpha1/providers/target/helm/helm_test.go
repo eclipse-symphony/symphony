@@ -1082,3 +1082,19 @@ func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
 	assert.Equal(t, 1, len(components))
 	assert.Equal(t, customReleaseName, components[0].Properties["releaseName"])
 }
+
+func TestHelmTargetProviderPullChartUnauthorizedError(t *testing.T) {
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	chart := &HelmChartProperty{
+		Repo:    "oci://symphonyprivate.azurecr.io/helm/simple-chart-secure",
+		Version: "0.1.0",
+	}
+
+	_, err = pullOCIChart(context.Background(), chart.Repo, chart.Version)
+	assert.NotNil(t, err)
+	assert.True(t, isUnauthorized(err))
+}
