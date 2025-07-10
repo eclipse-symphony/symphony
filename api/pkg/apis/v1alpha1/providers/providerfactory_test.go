@@ -35,6 +35,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/k8s"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/kubectl"
 	tgtmock "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/piccolo"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
@@ -157,6 +158,10 @@ func TestCreateProvider(t *testing.T) {
 	provider, err = providerfactory.CreateProvider("providers.target.docker", docker.DockerTargetProviderConfig{})
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*docker.DockerTargetProvider))
+
+	provider, err = providerfactory.CreateProvider("providers.target.piccolo", piccolo.PiccoloTargetProviderConfig{})
+	assert.Nil(t, err)
+	assert.NotNil(t, *provider.(*piccolo.PiccoloTargetProvider))
 
 	if getTestMiniKubeEnabled == "" {
 		t.Log("Skipping providers.target.ingress test as TEST_MINIKUBE_ENABLED is not set")
@@ -346,6 +351,11 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 						{
 							Role:     "docker",
 							Provider: "providers.target.docker",
+							Config:   map[string]string{},
+						},
+						{
+							Role:     "piccolo",
+							Provider: "providers.target.piccolo",
 							Config:   map[string]string{},
 						},
 						{
@@ -633,6 +643,10 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	provider, err = CreateProviderForTargetRole(nil, "docker", targetState, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*docker.DockerTargetProvider))
+
+	provider, err = CreateProviderForTargetRole(nil, "piccolo", targetState, nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, *provider.(*piccolo.PiccoloTargetProvider))
 
 	if getTestMiniKubeEnabled == "" {
 		t.Log("Skipping ingress test as TEST_MINIKUBE_ENABLED is not set")
