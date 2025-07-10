@@ -113,31 +113,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	}
 	if config.RequestTopic != "" && config.ResponseTopic != "" {
 		if token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-			responseTopic := config.ResponseTopic
-			if strings.HasSuffix(config.RequestTopic, "+") {
-				// get the actual topic that matched
-				actualTopic := msg.Topic()
-				// get the base topic by removing the wildcard suffix
-				base := strings.TrimSuffix(config.RequestTopic, "+")
-				suffix := strings.TrimPrefix(actualTopic, base)
-				fmt.Printf("Matched topic suffix: %s\n", suffix)
-
-				// get the target from the payload
-				var request v1alpha2.COARequest
-				if err := json.Unmarshal(msg.Payload(), &request); err == nil {
-					fmt.Printf("Payload target: %s\n", request.Parameters["target"])
-				} else {
-					fmt.Printf("Failed to parse payload: %v\n", err)
-				}
-
-				// if the suffix is not match with the target, skip processing
-				if request.Parameters["target"] != suffix {
-					log.Infof("MQTT Binding: request target '%s' does not match topic suffix '%s', skipping processing", request.Parameters["target"], suffix)
-					return
-				} else {
-					responseTopic = strings.TrimSuffix(responseTopic, "+") + suffix
-				}
-			}
 			var request v1alpha2.COARequest
 			var response v1alpha2.COAResponse
 			if request.Context == nil {
@@ -169,7 +144,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 			data, _ := json.Marshal(response)
 
 			go func() {
-				if token := client.Publish(responseTopic, 0, false, data); token.Wait() && token.Error() != nil {
+				if token := client.Publish(config.ResponseTopic, 0, false, data); token.Wait() && token.Error() != nil {
 					log.Errorf("failed to handle request from MOTT: %s", token.Error())
 				}
 			}()

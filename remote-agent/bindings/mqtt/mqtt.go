@@ -70,9 +70,6 @@ func (m *MqttBinding) Launch() error {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
 			return
 		}
-		fmt.Printf("Sub topic: %s. \n", msg.Topic())
-		fmt.Printf("Sub topic coa: %s. \n", coaResponse.Body)
-		fmt.Printf("Sub topiccoa11: %+v. \n", coaResponse)
 		if coaResponse.State == v1alpha2.BadRequest {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
 			return
