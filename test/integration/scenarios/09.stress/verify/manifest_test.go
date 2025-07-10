@@ -89,7 +89,7 @@ func TestScenario_Stress_AllNamespaces(t *testing.T) {
 		"Instance":          "instances",
 		"Target":            "targets",
 	}
-	numCRs = 1
+	numCRs = 200
 	basePath = ".."
 	namespace = os.Getenv("NAMESPACE")
 	if namespace != "default" {
