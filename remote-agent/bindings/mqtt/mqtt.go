@@ -15,6 +15,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 )
 
 type MqttBinding struct {
@@ -40,6 +41,8 @@ type Result struct {
 
 var check_response = false
 var responseReceived = make(chan bool, 10) // Buffered channel to avoid blocking
+
+var myCorrelationIds sync.Map // store correlationId
 
 // Launch the polling agent
 func (m *MqttBinding) Launch() error {
@@ -69,6 +72,16 @@ func (m *MqttBinding) Launch() error {
 		if err != nil {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
 			return
+		}
+		// Parse correlationId
+		var respMap map[string]interface{}
+		_ = json.Unmarshal(coaResponse.Body, &respMap)
+		respCorrelationId, _ := respMap[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
+		if respCorrelationId != "" {
+			if _, ok := myCorrelationIds.Load(respCorrelationId); !ok {
+				// not my request, ignore it
+				return
+			}
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
@@ -170,14 +183,12 @@ func (m *MqttBinding) Launch() error {
 func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *MqttBinding) {
 	for _, request := range requests {
 		wg.Add(1)
-		fmt.Println("begin to handle request", request)
 		go func(req map[string]interface{}) {
 			defer wg.Done()
-			correlationId, ok := req[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
-			if !ok {
-				fmt.Println("error: correlationId not found or not a string. Using a mock one.")
-				correlationId = "00000000-0000-0000-0000-000000000000"
-			}
+			correlationId := uuid.New().String()
+			req["correlationId"] = correlationId
+			myCorrelationIds.Store(correlationId, true) // record correlationId
+
 			fmt.Println("correlationId: ", correlationId)
 			retCtx := context.TODO()
 			retCtx = context.WithValue(retCtx, contexts.Activity_CorrelationId, correlationId)
