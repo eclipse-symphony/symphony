@@ -674,23 +674,24 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 		// 2. without oci prefix, e.g. myregistry.azurecr.io/mychart:1.0.0 (backwards compatibility with existing symphony behavior)
 		// However, registry.Client doesn't like the reference to be prefixed with "oci://"
 		// so we trim it here if it exists
-		pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Helm Target): got error pulling chart from repo: %+v", err)
-			host, herr := getHostFromOCIRef(chart.Repo)
-			if herr != nil {
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref: %+v", herr)
-				return "", herr
+		if chart.Username != "" && chart.Password != "" {
+			sLog.InfoCtx(ctx, "  P (Helm Target): registry username and password provided. Attempting to pull using basic auth")
+			pullRes, err = pullOCIChartWithBasicAuth(ctx, chart.Repo, chart.Version, chart.Username, chart.Password)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo using basic auth: %+v", err)
+				return "", err
 			}
-			if isUnauthorized(err) {
-				if chart.Username != "" && chart.Password != "" {
-					sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in private CR. Attempting to pulling using basic auth")
-					pullRes, err = pullOCIChartWithBasicAuth(ctx, chart.Repo, chart.Version, chart.Username, chart.Password)
-					if err != nil {
-						sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to pull chart from repo using basic auth: %+v", err)
-						return "", err
-					}
-				} else {
+		} else {
+			pullRes, err = pullOCIChart(ctx, chart.Repo, chart.Version)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "  P (Helm Target): got error pulling chart from repo: %+v", err)
+				host, herr := getHostFromOCIRef(chart.Repo)
+				if herr != nil {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref: %+v", herr)
+					return "", herr
+				}
+				if isUnauthorized(err) {
+					sLog.InfoCtx(ctx, "  P (Helm Target): pulling chart from repo failed with unauthorized error.")
 					if isAzureContainerRegistry(host) {
 						sLog.InfoCtx(ctx, "  P (Helm Target): artifact is hosted in ACR. Attempting to login to ACR")
 						err = loginToACR(ctx, host)
@@ -706,10 +707,10 @@ func (i *HelmTargetProvider) pullChart(ctx context.Context, chart *HelmChartProp
 							return "", err
 						}
 					}
+				} else {
+					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref and it is not because of access issue: %+v", err)
+					return "", err
 				}
-			} else {
-				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get host from oci ref and it is not because of access issue: %+v", herr)
-				return "", err
 			}
 		}
 
