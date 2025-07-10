@@ -96,9 +96,16 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 		{
 			Methods:    []string{fasthttp.MethodPost},
-			Route:      route + "/bootstrap",
+			Route:      route + "/getcert",
 			Version:    o.Version,
-			Handler:    o.onBootstrap,
+			Handler:    o.onGetCert,
+			Parameters: []string{"name?"},
+		},
+		{
+			Methods:    []string{fasthttp.MethodPost},
+			Route:      route + "/updatetopology",
+			Version:    o.Version,
+			Handler:    o.onUpdateTopology,
 			Parameters: []string{"name?"},
 		},
 		{
@@ -311,169 +318,6 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 		})
 	}
 	tLog.ErrorCtx(pCtx, "V (Targets) : onRegistry failed - method not allowed")
-	resp := v1alpha2.COAResponse{
-		State:       v1alpha2.MethodNotAllowed,
-		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
-		ContentType: "application/json",
-	}
-	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
-	return resp
-}
-
-func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
-		"method": "onBootstrap",
-	})
-	defer span.End()
-	tLog.InfofCtx(ctx, "V (Targets) : onBootstrap, method: %s", request.Method)
-	id := request.Parameters["__name"]
-	namespace, exist := request.Parameters["namespace"]
-	if !exist {
-		namespace = constants.DefaultScope
-	}
-
-	switch request.Method {
-	case fasthttp.MethodPost:
-		subject := fmt.Sprintf("CN=%s-%s.%s", namespace, id, ServiceName)
-		target, err := c.TargetsManager.GetState(ctx, id, namespace)
-		if err != nil {
-			tLog.InfofCtx(ctx, "V (Targets) : onBootstrap target %s in namespace %s not found", id, namespace)
-			err := json.Unmarshal(request.Body, &target)
-			if err != nil {
-				tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
-			}
-			if target.ObjectMeta.Name == "" {
-				target.ObjectMeta.Name = id
-			}
-			err = c.TargetsManager.UpsertState(ctx, id, target)
-			if err != nil {
-				tLog.ErrorfCtx(ctx, "V (Targets) : onRegistry failed - %s", err.Error())
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
-			}
-		}
-		// create working cert
-		gvk := schema.GroupVersionKind{
-			Group:   "cert-manager.io",
-			Version: "v1",
-			Kind:    "Certificate",
-		}
-
-		// Create an unstructured object
-		cert := &unstructured.Unstructured{}
-		cert.SetGroupVersionKind(gvk)
-
-		// Set the metadata
-		cert.SetName(id)
-		cert.SetNamespace(namespace)
-
-		secretName := fmt.Sprintf("%s-tls", id)
-		// Set the spec fields
-		spec := map[string]interface{}{
-			"secretName":  secretName,
-			"duration":    "2160h", // 90 days
-			"renewBefore": "360h",  // 15 days
-			"commonName":  subject,
-			"dnsNames": []string{
-				subject,
-			},
-			"issuerRef": map[string]interface{}{
-				"name": CAIssuer,
-				"kind": "Issuer",
-			},
-			"subject": map[string]interface{}{
-				"organizations": []interface{}{
-					ServiceName,
-				},
-			},
-		}
-
-		// Set the spec in the unstructured object
-		cert.Object["spec"] = spec
-
-		upsertRequest := states.UpsertRequest{
-			Value: states.StateEntry{
-				ID:   id,
-				Body: cert.Object,
-			},
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     gvk.Group,
-				"version":   gvk.Version,
-				"resource":  "certificates",
-				"kind":      gvk.Kind,
-			},
-		}
-		jsonData, _ := json.Marshal(upsertRequest)
-		tLog.InfofCtx(ctx, "V (Targets) : create certificate object - %s", jsonData)
-		_, err = c.TargetsManager.StateProvider.Upsert(ctx, upsertRequest)
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-
-		// get secret
-		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-		private, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-
-		// remove the \n from the public and private cert
-		public = strings.ReplaceAll(public, "\n", " ")
-		private = strings.ReplaceAll(private, "\n", " ")
-
-		// Update the target topology
-		target, err = c.TargetsManager.GetState(ctx, id, namespace)
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte(fmt.Sprintf("Error reading target: %v", err)),
-				ContentType: "text/plain",
-			})
-		}
-		var topology model.TopologySpec
-		json.Unmarshal(request.Body, &topology)
-		topologies := []model.TopologySpec{topology}
-		target.Spec.Topologies = topologies
-		err = c.TargetsManager.UpsertState(ctx, id, target)
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State:       v1alpha2.InternalError,
-				Body:        []byte(fmt.Sprintf("Error updating target topology: %v", err)),
-				ContentType: "text/plain",
-			})
-		}
-
-		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-			State: v1alpha2.OK,
-			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
-		})
-
-	}
-	tLog.ErrorCtx(ctx, "V (Targets) : onRegistry failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
@@ -781,6 +625,184 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 		return resp
 	}
 	tLog.ErrorCtx(pCtx, "V (Targets) : onHeartBeat failed - method not allowed")
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+// getting a certificate for a target
+func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onGetCert",
+	})
+	defer span.End()
+	tLog.InfofCtx(ctx, "V (Targets) : onGetCert, method: %s", request.Method)
+	id := request.Parameters["__name"]
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		subject := fmt.Sprintf("CN=%s-%s.%s", namespace, id, ServiceName)
+		// create a new GroupVersionKind for the certificate
+		gvk := schema.GroupVersionKind{
+			Group:   "cert-manager.io",
+			Version: "v1",
+			Kind:    "Certificate",
+		}
+
+		// create a new unstructured object for the certificate
+		cert := &unstructured.Unstructured{}
+		cert.SetGroupVersionKind(gvk)
+
+		cert.SetName(id)
+		cert.SetNamespace(namespace)
+
+		secretName := fmt.Sprintf("%s-tls", id)
+		spec := map[string]interface{}{
+			"secretName":  secretName,
+			"duration":    "2160h",
+			"renewBefore": "360h",
+			"commonName":  subject,
+			"dnsNames": []string{
+				subject,
+			},
+			"issuerRef": map[string]interface{}{
+				"name": CAIssuer,
+				"kind": "Issuer",
+			},
+			"subject": map[string]interface{}{
+				"organizations": []interface{}{
+					ServiceName,
+				},
+			},
+		}
+
+		cert.Object["spec"] = spec
+
+		upsertRequest := states.UpsertRequest{
+			Value: states.StateEntry{
+				ID:   id,
+				Body: cert.Object,
+			},
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+				"group":     gvk.Group,
+				"version":   gvk.Version,
+				"resource":  "certificates",
+				"kind":      gvk.Kind,
+			},
+		}
+		jsonData, _ := json.Marshal(upsertRequest)
+		tLog.InfofCtx(ctx, "V (Targets) : create certificate object - %s", jsonData)
+		_, err := c.TargetsManager.StateProvider.Upsert(ctx, upsertRequest)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+
+		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		private, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+
+		public = strings.ReplaceAll(public, "\n", " ")
+		private = strings.ReplaceAll(private, "\n", " ")
+
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
+		})
+
+	}
+	tLog.ErrorCtx(ctx, "V (Targets) : onGetCert failed - method not allowed")
+	resp := v1alpha2.COAResponse{
+		State:       v1alpha2.MethodNotAllowed,
+		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	}
+	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
+	return resp
+}
+
+func (c *TargetsVendor) onUpdateTopology(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
+		"method": "onUpdateTopology",
+	})
+	defer span.End()
+	tLog.InfofCtx(ctx, "V (Targets) : onUpdateTopology, method: %s", request.Method)
+
+	id := request.Parameters["__name"]
+	if id == "" {
+		id = request.Parameters["target"]
+		tLog.InfofCtx(ctx, "V (Targets) : Using target parameter as ID: %s", id)
+	}
+
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
+	}
+
+	switch request.Method {
+	case fasthttp.MethodPost:
+		target, err := c.TargetsManager.GetState(ctx, id, namespace)
+		if err != nil {
+			// todo: target not found -> create a new target
+			tLog.ErrorfCtx(ctx, "V (Targets) : onUpdateTopology failed - target %s in namespace %s not found: %v", id, namespace, err)
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State:       v1alpha2.NotFound,
+				Body:        []byte(fmt.Sprintf("Target not found: %v", err)),
+				ContentType: "text/plain",
+			})
+		}
+
+		var topology model.TopologySpec
+		err = json.Unmarshal(request.Body, &topology)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onUpdateTopology failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		topologies := []model.TopologySpec{topology}
+		target.Spec.Topologies = topologies
+		err = c.TargetsManager.UpsertState(ctx, id, target)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onUpdateTopology failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(fmt.Sprintf("Error updating target topology: %v", err)),
+			})
+		}
+
+		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+			State: v1alpha2.OK,
+			Body:  []byte("{\"result\":\"topology updated successfully\"}"),
+		})
+	}
+	tLog.ErrorCtx(ctx, "V (Targets) : onUpdateTopology failed - method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

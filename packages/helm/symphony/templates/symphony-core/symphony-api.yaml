@@ -63,7 +63,6 @@ spec:
         {{ end }}
         - configMapRef:
             name: {{ include "symphony.envConfigName" . }}
-
         volumeMounts:
         {{- if (not .Values.otlpInsecureGrpc) }}
         - name: trust-bundle
@@ -89,6 +88,11 @@ spec:
         - mountPath: /etc/pki/ca-trust/source/anchors/proxy-cert.crt
           subPath: proxy-cert.crt
           name: proxy-certstore
+        {{- end }}
+        {{- if .Values.mqtt.mqttClientCert.enabled }}
+        - name: {{ .Values.mqtt.mqttClientCert.secretName }}
+          mountPath: {{ .Values.mqtt.mqttClientCert.mountPath }}
+          readOnly: true
         {{- end }}
       {{- if and .Values.redis.enabled .Values.redis.asSidecar }}
       - name: redis
@@ -154,4 +158,14 @@ spec:
           persistentVolumeClaim:
             claimName: redis-pvc
         {{- end }}
+        {{- end }}
+        {{- if .Values.mqtt.mqttClientCert.enabled }}
+        - name: {{ .Values.mqtt.mqttClientCert.secretName }}
+          secret:
+            secretName: {{ .Values.mqtt.mqttClientCert.secretName }}
+            items:
+              - key: {{ .Values.mqtt.mqttClientCert.crt }}
+                path: client.crt
+              - key: {{ .Values.mqtt.mqttClientCert.key }}
+                path: client.key
         {{- end }}

@@ -845,7 +845,7 @@
         ]
       }
     },
-    {{- end }}  
+    {{- end }}
     {
       "type": "bindings.http",
       "config": {
@@ -897,5 +897,27 @@
           ]
       }
     }
+    {{- if .Values.mqtt.enabled }},
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
+        "clientID": "{{ .Values.mqtt.clientID }}",
+        "clientID": "symphony",
+        "requestTopic": "{{ .Values.mqtt.requestTopic }}",
+        "responseTopic": "{{ .Values.mqtt.responseTopic }}",
+        "timeoutSeconds": {{ .Values.mqtt.timeoutSeconds | default 100 }},
+        "keepAliveSeconds": {{ .Values.mqtt.keepAliveSeconds | default 200 }},
+        "pingTimeoutSeconds": {{ .Values.mqtt.pingTimeoutSeconds | default 100 }},
+        "useTLS": "{{ .Values.mqtt.useTLS | default "false" }}",
+        "caCertPath": "{{ include "symphony.apiClientCAPem" . }}",
+        "clientCertPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
+        "clientKeyPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key",
+        "insecureSkipVerify": "{{ .Values.mqtt.insecureSkipVerify | default "false" }}",
+        "username": "{{ .Values.mqtt.username }}",
+        "password": "{{ .Values.mqtt.password }}"
+      }
+    }
+    {{- end }}
   ]
 }

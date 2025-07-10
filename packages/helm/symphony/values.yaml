@@ -112,4 +112,18 @@ RemoteCert:
   Subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
 remoteAgent:
   version: "0.0.0.1"
-  used: false
+  used: true
+http:
+  enabled: true
+mqtt:
+  enabled: false
+  useTLS: false
+  brokerAddress: ""
+  requestTopic: ""
+  responseTopic: ""
+  mqttClientCert:
+    enabled: false
+    secretName: ""
+    crt: client.crt
+    key: client.key
+    mountPath: /etc/mqtt-client
