@@ -350,14 +350,16 @@ func (m *MQTTBinding) EnsureSubscription(topic string, remove bool, isRemote boo
 			return token.Error()
 		}
 		m.subscribedTopic[topic] = struct{}{}
-	} else if remove && alreadySub {
-		log.Infof("MQTT Binding: unsubscribing from topic %s", topic)
-		token := m.MQTTClient.Unsubscribe(topic)
-		if token.Wait() && token.Error() != nil {
-			return token.Error()
-		}
-		delete(m.subscribedTopic, topic)
 	}
+	// todo: after the target is removed, we can unsubscribe from the topic
+	// } else if remove && alreadySub {
+	// 	log.Infof("MQTT Binding: unsubscribing from topic %s", topic)
+	// 	token := m.MQTTClient.Unsubscribe(topic)
+	// 	if token.Wait() && token.Error() != nil {
+	// 		return token.Error()
+	// 	}
+	// 	delete(m.subscribedTopic, topic)
+	// }
 	return nil
 }
 
