@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -44,10 +45,73 @@ type MQTTBindingConfig struct {
 }
 
 type MQTTBinding struct {
-	MQTTClient gmqtt.Client
+	MQTTClient      gmqtt.Client
+	subscribedTopic map[string]struct{}
+	lock            sync.Mutex
+	Handler         gmqtt.MessageHandler
+	config          MQTTBindingConfig
 }
 
 var routeTable map[string]v1alpha2.Endpoint
+
+func (m *MQTTBinding) createHandlerWithResponseTopic(responseTopic string) gmqtt.MessageHandler {
+	return func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		var response v1alpha2.COAResponse
+		if request.Context == nil {
+			request.Context = context.TODO()
+		}
+		// patch correlation id if missing
+		contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
+		err := json.Unmarshal(msg.Payload(), &request)
+		if err != nil {
+			response = v1alpha2.COAResponse{
+				State:       v1alpha2.BadRequest,
+				ContentType: "text/plain",
+				Body:        []byte(err.Error()),
+			}
+		} else {
+			response = routeTable[request.Route].Handler(request)
+		}
+
+		// needs to carry request-id from request into response
+		if request.Metadata != nil {
+			if v, ok := request.Metadata["request-id"]; ok {
+				if response.Metadata == nil {
+					response.Metadata = make(map[string]string)
+				}
+				response.Metadata["request-id"] = v
+			}
+		}
+
+		data, _ := json.Marshal(response)
+
+		go func() {
+			if token := client.Publish(responseTopic, 0, false, data); token.Wait() && token.Error() != nil {
+				log.Errorf("failed to handle request from MQTT: %s", token.Error())
+			}
+		}()
+	}
+}
+
+func (m *MQTTBinding) defaultHandler(client gmqtt.Client, msg gmqtt.Message) {
+	m.createHandlerWithResponseTopic(m.config.ResponseTopic)(client, msg)
+}
+
+// todo improve this function to handle more complex request/response patterns
+func (m *MQTTBinding) generateResponseTopic(requestTopic string) string {
+	// if requestTopic matches the expected format, generate a response topic
+	if strings.HasPrefix(requestTopic, "symphony/request/") {
+		targetName := strings.TrimPrefix(requestTopic, "symphony/request/")
+		return "symphony/response/" + targetName
+	}
+	// If it doesn't match the expected format, return the default response topic
+	if m.config.ResponseTopic != "" {
+		log.Infof("MQTT Binding: request topic '%s' does not match expected format, using default response topic '%s'", requestTopic, m.config.ResponseTopic)
+		return m.config.ResponseTopic
+	}
+	return ""
+}
 
 func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endpoint) error {
 	routeTable = make(map[string]v1alpha2.Endpoint)
@@ -67,6 +131,8 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	if config.PingTimeoutSeconds <= 0 {
 		config.PingTimeoutSeconds = 1
 	}
+
+	m.config = config
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID(config.ClientID)
 	opts.SetKeepAlive(time.Duration(config.KeepAliveSeconds) * time.Second)
@@ -111,46 +177,12 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 
 		return v1alpha2.NewCOAError(connErr, "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
+
+	m.Handler = m.defaultHandler
 	if config.RequestTopic != "" && config.ResponseTopic != "" {
-		if token := m.MQTTClient.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-			var request v1alpha2.COARequest
-			var response v1alpha2.COAResponse
-			if request.Context == nil {
-				request.Context = context.TODO()
-			}
-			// patch correlation id if missing
-			contexts.GenerateCorrelationIdToParentContextIfMissing(request.Context)
-			err := json.Unmarshal(msg.Payload(), &request)
-			if err != nil {
-				response = v1alpha2.COAResponse{
-					State:       v1alpha2.BadRequest,
-					ContentType: "text/plain",
-					Body:        []byte(err.Error()),
-				}
-			} else {
-				response = routeTable[request.Route].Handler(request)
-			}
-
-			// needs to carry request-id from request into response
-			if request.Metadata != nil {
-				if v, ok := request.Metadata["request-id"]; ok {
-					if response.Metadata == nil {
-						response.Metadata = make(map[string]string)
-					}
-					response.Metadata["request-id"] = v
-				}
-			}
-
-			data, _ := json.Marshal(response)
-
-			go func() {
-				if token := client.Publish(config.ResponseTopic, 0, false, data); token.Wait() && token.Error() != nil {
-					log.Errorf("failed to handle request from MOTT: %s", token.Error())
-				}
-			}()
-		}); token.Wait() && token.Error() != nil {
+		if token := m.MQTTClient.Subscribe(config.RequestTopic, 0, m.Handler); token.Wait() && token.Error() != nil {
 			if token.Error().Error() != "subscription exists" {
-				log.Errorf("  P (MQTT Target): faild to connect to subscribe to request topic - %+v", token.Error())
+				log.Errorf("  P (MQTT Target): failed to connect to subscribe to request topic - %+v", token.Error())
 				return v1alpha2.NewCOAError(token.Error(), "failed to subscribe to request topic", v1alpha2.InternalError)
 			}
 		}
@@ -247,6 +279,86 @@ func isCertificatePEM(data []byte) bool {
 	// Try to decode the PEM block
 	block, _ := pem.Decode(data)
 	return block != nil && block.Type == "CERTIFICATE"
+}
+
+// SubscribeTopic
+func (m *MQTTBinding) SubscribeTopic(topic string) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if m.subscribedTopic == nil {
+		m.subscribedTopic = make(map[string]struct{})
+	}
+	log.Infof("MQTT Binding: subscribing to topic %s", topic)
+
+	if _, ok := m.subscribedTopic[topic]; ok {
+		return nil
+	}
+
+	// generate response topic based on request topic
+	responseTopic := m.generateResponseTopic(topic)
+	if responseTopic == "" {
+		log.Warnf("MQTT Binding: no response topic generated for request topic %s", topic)
+		return nil
+	}
+	handler := m.createHandlerWithResponseTopic(responseTopic)
+
+	token := m.MQTTClient.Subscribe(topic, 0, handler)
+	if token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+	m.subscribedTopic[topic] = struct{}{}
+	return nil
+}
+
+// UnsubscribeTopic
+func (m *MQTTBinding) UnsubscribeTopic(topic string) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if m.subscribedTopic == nil {
+		return nil
+	}
+	if _, ok := m.subscribedTopic[topic]; !ok {
+		return nil
+	}
+	token := m.MQTTClient.Unsubscribe(topic)
+	if token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+	delete(m.subscribedTopic, topic)
+	return nil
+}
+
+// EnsureSubscription
+func (m *MQTTBinding) EnsureSubscription(topic string, remove bool, isRemote bool) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	if m.subscribedTopic == nil {
+		m.subscribedTopic = make(map[string]struct{})
+	}
+
+	_, alreadySub := m.subscribedTopic[topic]
+	if !remove && isRemote && !alreadySub {
+		log.Infof("MQTT Binding: subscribing to topic %s", topic)
+
+		// generate response topic based on request topic
+		responseTopic := m.generateResponseTopic(topic)
+		handler := m.createHandlerWithResponseTopic(responseTopic)
+
+		token := m.MQTTClient.Subscribe(topic, 0, handler)
+		if token.Wait() && token.Error() != nil {
+			return token.Error()
+		}
+		m.subscribedTopic[topic] = struct{}{}
+	} else if remove && alreadySub {
+		log.Infof("MQTT Binding: unsubscribing from topic %s", topic)
+		token := m.MQTTClient.Unsubscribe(topic)
+		if token.Wait() && token.Error() != nil {
+			return token.Error()
+		}
+		delete(m.subscribedTopic, topic)
+	}
+	return nil
 }
 
 // Shutdown stops the MQTT binding

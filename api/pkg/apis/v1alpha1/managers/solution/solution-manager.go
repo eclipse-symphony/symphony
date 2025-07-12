@@ -23,6 +23,7 @@ import (
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	mqttbinding "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings/mqtt"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -75,6 +76,7 @@ type SolutionManager struct {
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
+	MqttBinding     *mqttbinding.MQTTBinding
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -221,6 +223,13 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		}
 
 	}
+
+	// set MQTT binding
+	s.MqttBinding = s.VendorContext.GetMQTTBinding()
+
+	// check and subscribe all remote targets
+	s.ensureRemoteTargetSubscriptions(ctx, deployment, remove)
+
 	// Generate new deployment plan for deployment
 	initalPlan, err := PlanForDeployment(deployment, state)
 	if err != nil {
@@ -262,6 +271,30 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 	})
 	return summary, nil
 }
+
+// ensureRemoteTargetSubscriptions ensures that MQTT subscriptions for remote targets are created or removed as needed.
+func (s *SolutionManager) ensureRemoteTargetSubscriptions(ctx context.Context, deployment model.DeploymentSpec, remove bool) {
+	if s.MqttBinding == nil {
+		log.InfofCtx(ctx, " M (Solution): MQTT binding is not initialized, skipping remote target subscriptions")
+		return
+	}
+
+	// Iterate over all targets in the deployment
+	for targetName, _ := range deployment.Targets {
+		isRemote := stepTargetIsRemoteTarget(deployment, targetName)
+		if isRemote {
+			topic := fmt.Sprintf("symphony/request/%s", targetName)
+			log.InfofCtx(ctx, " M (Solution): ensure MQTT subscription for remote target %s, topic %s, remove: %t", targetName, topic, remove)
+
+			if err := s.MqttBinding.EnsureSubscription(topic, remove, true); err != nil {
+				log.ErrorfCtx(ctx, "Failed to ensure MQTT subscription for target %s: %v", targetName, err)
+			} else {
+				log.InfofCtx(ctx, " M (Solution): MQTT subscription ensured for remote target %s, topic %s", targetName, topic)
+			}
+		}
+	}
+}
+
 func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, namespace string) *model.SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
@@ -1583,6 +1616,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 			provider = override
 		}
 		var components []model.ComponentSpec
+
 		components, err = (provider.(tgt.ITargetProvider)).Get(ctx, deployment, step.Components)
 
 		if err != nil {
