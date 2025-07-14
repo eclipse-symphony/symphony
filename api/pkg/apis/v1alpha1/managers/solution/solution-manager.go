@@ -318,10 +318,13 @@ func (s *SolutionManager) cleanupRemoteTargetResourcesAfterDeletion(ctx context.
 			log.InfofCtx(ctx, " M (Solution): cleaning up MQTT subscription for deleted remote target %s, topic %s", targetName, topic)
 
 			// Unsubscribe from MQTT topic using the dedicated method
-			if err := s.MqttBinding.UnsubscribeTopic(topic); err != nil {
-				log.WarnfCtx(ctx, " M (Solution): failed to unsubscribe from MQTT topic %s for deleted target %s: %s", topic, targetName, err.Error())
-			} else {
-				log.InfofCtx(ctx, " M (Solution): successfully unsubscribed from MQTT topic %s for deleted target %s", topic, targetName)
+			s.MqttBinding = s.VendorContext.GetMQTTBinding()
+			if s.MqttBinding != nil {
+				if err := s.MqttBinding.UnsubscribeTopic(topic); err != nil {
+					log.WarnfCtx(ctx, " M (Solution): failed to unsubscribe from MQTT topic %s for deleted target %s: %s", topic, targetName, err.Error())
+				} else {
+					log.InfofCtx(ctx, " M (Solution): successfully unsubscribed from MQTT topic %s for deleted target %s", topic, targetName)
+				}
 			}
 
 			// Clean up Redis queue
@@ -514,7 +517,11 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 			})
 
 			// Cleanup MQTT subscriptions and Redis queues for deleted remote targets
-			s.cleanupRemoteTargetResourcesAfterDeletion(ctx, summary.PlanState.Deployment, summary.PlanState.Namespace)
+			// Only perform cleanup for target deletions specifically
+			if summary.PlanState.Deployment.IsTargetDeletion {
+				log.InfofCtx(ctx, " M (Solution): performing MQTT and Redis cleanup for target deletion")
+				s.cleanupRemoteTargetResourcesAfterDeletion(ctx, summary.PlanState.Deployment, summary.PlanState.Namespace)
+			}
 		} else {
 			s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
