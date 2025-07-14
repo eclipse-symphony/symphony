@@ -15,4 +15,5 @@ type IQueueProvider interface {
 	Size(context context.Context, queue string) int
 	RemoveFromQueue(context context.Context, queue string, messageID string) error
 	QueryByPaging(context context.Context, queueName string, start string, size int) ([][]byte, string, error)
+	DeleteQueue(context context.Context, queue string) error
 }

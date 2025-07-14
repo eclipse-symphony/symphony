@@ -328,41 +328,6 @@ func (m *MQTTBinding) UnsubscribeTopic(topic string) error {
 	return nil
 }
 
-// EnsureSubscription
-func (m *MQTTBinding) EnsureSubscription(topic string, remove bool, isRemote bool) error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	if m.subscribedTopic == nil {
-		m.subscribedTopic = make(map[string]struct{})
-	}
-
-	_, alreadySub := m.subscribedTopic[topic]
-	if !remove && isRemote && !alreadySub {
-		log.Infof("MQTT Binding: subscribing to topic %s", topic)
-
-		// generate response topic based on request topic
-		responseTopic := m.generateResponseTopic(topic)
-		handler := m.createHandlerWithResponseTopic(responseTopic)
-
-		token := m.MQTTClient.Subscribe(topic, 0, handler)
-		if token.Wait() && token.Error() != nil {
-			return token.Error()
-		}
-		m.subscribedTopic[topic] = struct{}{}
-	}
-	// todo: after the target is removed, we can unsubscribe from the topic
-	// } else if remove && alreadySub {
-	// 	log.Infof("MQTT Binding: unsubscribing from topic %s", topic)
-	// 	token := m.MQTTClient.Unsubscribe(topic)
-	// 	if token.Wait() && token.Error() != nil {
-	// 		return token.Error()
-	// 	}
-	// 	delete(m.subscribedTopic, topic)
-	// }
-	return nil
-}
-
 // Shutdown stops the MQTT binding
 func (m *MQTTBinding) Shutdown(ctx context.Context) error {
 	m.MQTTClient.Disconnect(1000)
