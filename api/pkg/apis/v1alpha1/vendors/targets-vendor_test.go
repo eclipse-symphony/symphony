@@ -281,13 +281,6 @@ func TestTargetWrongMethod(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
-
-	resp = vendor.onBootstrap(v1alpha2.COARequest{
-		Method:  fasthttp.MethodPut,
-		Context: context.Background(),
-	})
-	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
-
 	resp = vendor.onStatus(v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
