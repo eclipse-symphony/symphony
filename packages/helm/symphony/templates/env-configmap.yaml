@@ -18,8 +18,8 @@ data:
 {{- if .Values.api.annotationKey }}
   ANNOTATION_KEY: {{ .Values.api.annotationKey }}
 {{- end }}
-{{- if .Values.Cert.Subjects }}
-  CLIENT_SUBJECTS: {{ .Values.Cert.Subjects }}
+{{- if .Values.remoteAgent.remoteCert.subjects }}
+  CLIENT_SUBJECTS: {{ .Values.remoteAgent.remoteCert.subjects }}
 {{- end }}
   EXTENSION_RESOURCEID: {{ .Values.Azure.Extension.ResourceId }}
   EMIT_TIME_FIELD_IN_USER_LOGS: {{ include "symphony.emitTimeFieldInUserLogs" . }}
