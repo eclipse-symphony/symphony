@@ -272,7 +272,7 @@ func mainLogic() error {
 			fmt.Println("Connected to MQTT broker")
 		}
 		fmt.Println("Begin to request topic", "ddc")
-		// 选择 topic 后缀
+		// choose topic suffix
 		topicSuffix := strings.ToLower(targetName)
 		if useCertSubject && subjectName != "" {
 			topicSuffix = strings.ToLower(subjectName)
