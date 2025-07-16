@@ -29,7 +29,7 @@ func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
 	vendor.Route = "targets"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 7, len(endpoints))
+	assert.Equal(t, 8, len(endpoints))
 }
 
 func TestTargetsInfo(t *testing.T) {
@@ -274,6 +274,116 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	assert.NotNil(t, targetState.Status.Properties["ping"])
 }
+func TestTargetsOnGetCert(t *testing.T) {
+	vendor := createTargetsVendor()
+
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	data, _ := json.Marshal(target)
+	resp := vendor.onRegistry(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   data,
+		Parameters: map[string]string{
+			"__name":       "target1-v1",
+			"with-binding": "staging",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	resp = vendor.onGetCert(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Parameters: map[string]string{
+			"__name": "target1-v1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	var certResponse map[string]interface{}
+	json.Unmarshal(resp.Body, &certResponse)
+	assert.Contains(t, certResponse, "public")
+	assert.Contains(t, certResponse, "private")
+}
+
+func TestTargetsOnUpdateTopology(t *testing.T) {
+	vendor := createTargetsVendor()
+
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	data, _ := json.Marshal(target)
+	resp := vendor.onRegistry(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   data,
+		Parameters: map[string]string{
+			"__name":       "target1-v1",
+			"with-binding": "staging",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	topology := model.TopologySpec{
+		Bindings: []model.BindingSpec{
+			{
+				Role:     "updated-mock",
+				Provider: "providers.target.updated-mock",
+				Config: map[string]string{
+					"id":     uuid.New().String(),
+					"update": "true",
+				},
+			},
+		},
+	}
+	topologyData, _ := json.Marshal(topology)
+
+	resp = vendor.onUpdateTopology(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   topologyData,
+		Parameters: map[string]string{
+			"__name": "target1-v1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	var updateResponse map[string]interface{}
+	json.Unmarshal(resp.Body, &updateResponse)
+	assert.Equal(t, "topology updated successfully", updateResponse["result"])
+}
+
 func TestTargetWrongMethod(t *testing.T) {
 	vendor := createTargetsVendor()
 	resp := vendor.onRegistry(v1alpha2.COARequest{
@@ -289,6 +399,18 @@ func TestTargetWrongMethod(t *testing.T) {
 
 	resp = vendor.onHeartBeat(v1alpha2.COARequest{
 		Method:  fasthttp.MethodPut,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+
+	resp = vendor.onGetCert(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+
+	resp = vendor.onUpdateTopology(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
