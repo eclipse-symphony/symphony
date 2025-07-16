@@ -69,7 +69,7 @@ spec:
           mountPath: "/certs"
           readOnly: true
         {{- end }}
-        {{- if .Values.remoteAgent.used }}
+        {{- if .Values.remoteAgent.remoteCert.used }}
         - name: client-ca-bundle
           mountPath: {{ include "symphony.apiClientCAMountPath" . }}
           readOnly: true
@@ -121,7 +121,7 @@ spec:
           configMap:
             name: {{ .Values.observability.tls.caBundleConfigMap }}
         {{- end }}
-        {{- if .Values.remoteAgent.used }}
+        {{- if .Values.remoteAgent.remoteCert.used }}
         - name: client-ca-bundle
           configMap:
             name: {{ include "symphony.apiClientCATrustBundle" . }}

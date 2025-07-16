@@ -121,7 +121,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 2. Update parameter
     1. Start Symphony
     ```
-    mage cluster:deployWithSettings "--set remoteAgent.used=true --set remoteCert.remoteCAs.secretName=client-cert-secret --set remoteCert.remoteCAs.secretKey=client-cert-key  --set remoteCert.remoteCAs.secretKey=client-cert-key --set installServiceExt=true" 
+    mage cluster:deployWithSettings "--set remoteAgent.remoteCert.used=true --set remoteCert.remoteCAs.secretName=client-cert-secret --set remoteCert.remoteCAs.secretKey=client-cert-key  --set remoteCert.remoteCAs.secretKey=client-cert-key --set installServiceExt=true" 
     ```
     If you are using MiniKube, please run `minikube tunnel` in a single terminal windows and keep it open for the rest steps.
     You need to run minikube tunnel after minikube start and before mage cluster:deployWithSettings done

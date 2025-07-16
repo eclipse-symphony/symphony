@@ -902,8 +902,7 @@
       "type": "bindings.mqtt",
       "config": {
         "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
-        "clientID": "{{ .Values.mqtt.clientID }}",
-        "clientID": "symphony",
+        "clientID": "{{ .Values.mqtt.clientID | default "symphony-mqtt-client" }}",
         "requestTopic": "{{ .Values.mqtt.requestTopic }}",
         "responseTopic": "{{ .Values.mqtt.responseTopic }}",
         "timeoutSeconds": {{ .Values.mqtt.timeoutSeconds | default 100 }},

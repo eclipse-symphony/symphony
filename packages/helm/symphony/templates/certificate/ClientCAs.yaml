@@ -1,4 +1,4 @@
-{{- if .Values.remoteAgent.used }}
+{{- if .Values.remoteAgent.remoteCert.used }}
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
 metadata:

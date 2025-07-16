@@ -107,8 +107,8 @@ otlpMetricsEndpointGrpc:
 otlpInsecureGrpc: true
 remoteAgent:
   version: "0.0.0.1"
-  used: false
   remoteCert:
+    used: false
     trustCAs: 
       secretName: "mqtt-ca"
       secretKey: "ca.crt"

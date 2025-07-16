@@ -25,7 +25,7 @@ data:
   EMIT_TIME_FIELD_IN_USER_LOGS: {{ include "symphony.emitTimeFieldInUserLogs" . }}
   LABEL_LENGTH_UPPER_LIMIT: "64"
   ISSUER_NAME: {{ include "symphony.apiCAIssuerName" . }}
-{{- if .Values.remoteAgent.used }}
+{{- if .Values.remoteAgent.remoteCert.used }}
   AGENT_PATH: "/remote-agent"
   AGENT_VERSION: {{ .Values.remoteAgent.version }}
   CLIENT_CA_FILE: {{ include "symphony.apiClientCAPem" . }}
