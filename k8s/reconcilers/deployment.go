@@ -275,19 +275,23 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 		}
 	}
 
+	if timeOverDue {
+		// If the time is over due, we should not queue a new job and return
+		diagnostic.InfoWithCtx(log, ctx, "Failed to completely poll within the allocated time.", "isRemoval", isRemoval)
+		return metrics.DeploymentTimedOut, ctrl.Result{}, v1alpha2.NewCOAError(nil, "failed to completely reconcile within the allocated time", v1alpha2.TimedOut)
+	}
+
 	summary, err := r.getDeploymentSummary(ctx, object)
 	if err != nil {
 		// If the error is anything but 404, we should return the error so the reconciler can retry
 		if !api_utils.IsNotFound(err) {
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to get deployment summary")
 			// updates the object status to reconciling
-			if !timeOverDue {
-				if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
-					nonTerminalErr: err,
-				}, log, isRemoval, operationStartTimeKey); err != nil {
-					diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with non-terminal error")
-					return metrics.StatusUpdateFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
-				}
+			if _, err := r.updateObjectStatus(ctx, object, summary, patchStatusOptions{
+				nonTerminalErr: err,
+			}, log, isRemoval, operationStartTimeKey); err != nil {
+				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with non-terminal error")
+				return metrics.StatusUpdateFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
 			}
 			diagnostic.InfoWithCtx(log, ctx, "Repolling after failed to get deployment summary")
 			return metrics.GetDeploymentSummaryFailed, ctrl.Result{RequeueAfter: r.pollInterval}, err
