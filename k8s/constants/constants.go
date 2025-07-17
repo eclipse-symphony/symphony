@@ -24,6 +24,7 @@ const (
 	ActivityOperation_Read   = "Read"
 	ActivityOperation_Delete = "Delete"
 	OperationId              = "operationId"
+	DeleteTimeout            = "delete-timeout"
 
 	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
 	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
