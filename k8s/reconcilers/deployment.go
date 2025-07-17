@@ -186,8 +186,6 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		timeout = r.deriveDeletionTimeout(log, ctx, object)
 	}
 
-	// deletionTimestamp can only be set once. If we always use deletionTimestamp as the start time, the object can never be deleted after first timeout.
-	// fix: use operation start time as the start time for deletion.
 	if object.GetAnnotations()[operationStartTimeKey] == "" || utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
 		r.patchOperationStartTime(object, operationStartTimeKey)
 		if err := r.kubeClient.Update(ctx, object); err != nil {
