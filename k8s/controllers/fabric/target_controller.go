@@ -56,8 +56,9 @@ type TargetReconciler struct {
 }
 
 const (
-	targetFinalizerName         = "target.fabric." + constants.FinalizerPostfix
-	targetOperationStartTimeKey = "target.fabric." + constants.OperationStartTimeKeyPostfix
+	targetFinalizerName               = "target.fabric." + constants.FinalizerPostfix
+	targetOperationStartTimeKey       = "target.fabric." + constants.OperationStartTimeKeyPostfix
+	targetDeleteOperationStartTimeKey = "target.fabric." + constants.DeleteOperationStartTimeKeyPostfix
 )
 
 //+kubebuilder:rbac:groups=fabric.symphony,resources=targets,verbs=get;list;watch;create;update;patch;delete

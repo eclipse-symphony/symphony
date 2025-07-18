@@ -84,7 +84,7 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, true, log, instanceOperationStartTimeKey, operationName)
+		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, true, log, instanceDeleteOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
