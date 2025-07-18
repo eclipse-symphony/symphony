@@ -141,10 +141,9 @@ func TestPreserveSystemMetadata_AnnotationsByPostfixes(t *testing.T) {
 	source := ObjectMeta{
 		Name: "source-object",
 		Annotations: map[string]string{
-			"instance.symphony/started-at":        "2023-01-01T00:00:00Z",
-			"target.symphony/started-at":          "2023-01-02T00:00:00Z",
-			"instance.symphony/delete-started-at": "2023-01-03T00:00:00Z",
-			"custom-annotation":                   "should-not-be-preserved",
+			"instance.symphony/started-at": "2023-01-01T00:00:00Z",
+			"target.symphony/started-at":   "2023-01-02T00:00:00Z",
+			"custom-annotation":            "should-not-be-preserved",
 		},
 	}
 
@@ -153,7 +152,6 @@ func TestPreserveSystemMetadata_AnnotationsByPostfixes(t *testing.T) {
 	// Verify postfix annotations were preserved
 	assert.Equal(t, "2023-01-01T00:00:00Z", current.Annotations["instance.symphony/started-at"])
 	assert.Equal(t, "2023-01-02T00:00:00Z", current.Annotations["target.symphony/started-at"])
-	assert.Equal(t, "2023-01-03T00:00:00Z", current.Annotations["instance.symphony/delete-started-at"])
 	// Verify custom annotation was not preserved
 	assert.Empty(t, current.Annotations["custom-annotation"])
 }

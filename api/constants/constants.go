@@ -23,20 +23,19 @@ const (
 	TargetRuntimePrefix = "target-runtime"
 
 	// system annotations, reserved and should not be modified by client.
-	AzureCorrelationIdKey              = "management.azure.com/correlationId"
-	AzureEdgeLocationKey               = "management.azure.com/customLocation"
-	AzureCloudLocationKey              = "management.azure.com/location"
-	AzureOperationIdKey                = "management.azure.com/operationId"
-	AzureDeleteOperationKey            = "management.azure.com/deleteOperation"
-	AzureNameIdKey                     = "management.azure.com/azureName"
-	AzureResourceIdKey                 = "management.azure.com/resourceId"
-	AzureSystemDataKey                 = "management.azure.com/systemData"
-	AzureTenantIdKey                   = "management.azure.com/tenantId" // Not used
-	GuidKey                            = "Guid"
-	RunningAzureCorrelationIdKey       = "management.azure.com/runningCorrelationId"
-	SummaryJobIdKey                    = "SummaryJobIdKey"
-	OperationStartTimeKeyPostfix       = FullGroupName + "/started-at"        // instance/target
-	DeleteOperationStartTimeKeyPostfix = FullGroupName + "/delete-started-at" // instance/target
+	AzureCorrelationIdKey        = "management.azure.com/correlationId"
+	AzureEdgeLocationKey         = "management.azure.com/customLocation"
+	AzureCloudLocationKey        = "management.azure.com/location"
+	AzureOperationIdKey          = "management.azure.com/operationId"
+	AzureDeleteOperationKey      = "management.azure.com/deleteOperation"
+	AzureNameIdKey               = "management.azure.com/azureName"
+	AzureResourceIdKey           = "management.azure.com/resourceId"
+	AzureSystemDataKey           = "management.azure.com/systemData"
+	AzureTenantIdKey             = "management.azure.com/tenantId" // Not used
+	GuidKey                      = "Guid"
+	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
+	SummaryJobIdKey              = "SummaryJobIdKey"
+	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target
 
 	ProviderName = "management.azure.com/provider-name"
 )
@@ -72,7 +71,6 @@ func SystemReservedAnnotations() []string {
 func SystemReservedAnnotationsByPostfixes() []string {
 	return []string{
 		OperationStartTimeKeyPostfix,
-		DeleteOperationStartTimeKeyPostfix,
 	}
 }
 
