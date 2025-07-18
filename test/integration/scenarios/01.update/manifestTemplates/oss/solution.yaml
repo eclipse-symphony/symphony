@@ -7,8 +7,8 @@ apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   annotations: 
-    management.azure.com/resourceId: SOLUTIONREFNAME
-  name: SOLUTIONFULLNAME
+    management.azure.com/resourceId: solution01:version1
+  name: solution01-v-version1
 spec:
-  rootResource: SOLUTIONCONTAINERFULLNAME
-  displayName: SOLUTIONFULLNAME
+  rootResource: solution01
+  displayName: solution01-v-version1

@@ -1,0 +1,24 @@
+apiVersion: workflow.symphony/v1
+kind: CampaignContainer
+metadata:
+  name: hello-world-runner
+spec:  
+---
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: hello-world-runner-v-v1
+spec:
+  rootResource: hello-world-runner
+  firstStage: "mock"
+  selfDriving: true
+  stages:
+    mock:
+      name: "mock"
+      provider: "providers.stage.mock"      
+      proxy:
+        provider: providers.stage.proxy.http
+        config:
+          baseUrl: http://172.24.130.244:9082/v1alpha2/
+          user: admin
+          password: ""

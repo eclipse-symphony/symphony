@@ -374,6 +374,14 @@ type SolutionContainerSpec struct {
 }
 
 // +kubebuilder:object:generate=true
+type ProxySpec struct {
+	Provider string `json:"provider,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Config runtime.RawExtension `json:"config,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
 type TaskSpec struct {
 	Name     string `json:"name,omitempty"`
 	Provider string `json:"provider,omitempty"`
@@ -400,6 +408,7 @@ type StageSpec struct {
 	Inputs          runtime.RawExtension `json:"inputs,omitempty"`
 	TriggeringStage string               `json:"triggeringStage,omitempty"`
 	Schedule        string               `json:"schedule,omitempty"`
+	Proxy           *ProxySpec           `json:"proxy,omitempty"`
 	Target          string               `json:"target,omitempty"`
 	Tasks           []TaskSpec           `json:"tasks,omitempty"`
 	TaskOption      model.TaskOption     `json:"taskOption,omitempty"`
