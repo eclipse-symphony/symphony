@@ -144,7 +144,7 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 				Expect(reconcileError).To(HaveOccurred())
 			})
 
-			It("should return StatusUpdateFailed status", func() {
+			It("should return OperationStartTimeParseFailed status", func() {
 				Expect(reconcileResult).To(Equal(metrics.OperationStartTimeParseFailed))
 			})
 		})
