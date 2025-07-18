@@ -214,6 +214,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
 				terminalErr: v1alpha2.NewCOAError(nil, timeOutErrorMessage, v1alpha2.TimedOut),
 			}, log, isRemoval, operationStartTimeKey); err != nil {
+				// if update object status failed, we should return error to requeue the queue event to retry
 				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
 				return metrics.StatusUpdateFailed, ctrl.Result{}, err
 			}
@@ -221,7 +222,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 			diagnostic.InfoWithCtx(log, ctx, "Current object is not terminal state, there's another polling thread to update object status with timeout error")
 		}
 
-		// Requeue after reconciliation interval when delete timeout in AttemptUpdate
+		// Always requeue after reconciliation interval when delete timeout in AttemptUpdate
 		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 	}
