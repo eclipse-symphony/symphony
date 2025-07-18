@@ -64,8 +64,13 @@ func SystemReservedAnnotations() []string {
 		AzureTenantIdKey,
 		RunningAzureCorrelationIdKey,
 		SummaryJobIdKey,
-		OperationStartTimeKeyPostfix,
 		GuidKey,
+	}
+}
+
+func SystemReservedAnnotationsByPostfixes() []string {
+	return []string{
+		OperationStartTimeKeyPostfix,
 	}
 }
 
