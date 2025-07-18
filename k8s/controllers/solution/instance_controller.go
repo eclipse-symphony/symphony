@@ -62,8 +62,9 @@ type InstanceReconciler struct {
 }
 
 const (
-	instanceFinalizerName         = "instance.solution." + constants.FinalizerPostfix
-	instanceOperationStartTimeKey = "instance.solution." + constants.OperationStartTimeKeyPostfix
+	instanceFinalizerName               = "instance.solution." + constants.FinalizerPostfix
+	instanceOperationStartTimeKey       = "instance.solution." + constants.OperationStartTimeKeyPostfix
+	instanceDeleteOperationStartTimeKey = "instance.solution." + constants.DeleteOperationStartTimeKeyPostfix
 )
 
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances,verbs=get;list;watch;create;update;patch;delete
