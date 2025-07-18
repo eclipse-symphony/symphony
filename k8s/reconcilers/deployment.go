@@ -203,8 +203,12 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		return metrics.OperationStartTimeParseFailed, ctrl.Result{}, err
 	}
 	if time.Since(startTime) > timeout {
-		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
-		// need to mark operation status as timeout when no polling thread (not in reconciling state)
+		// Before updating jobID, there is no polling thread to handle timeouts and update the object status.
+		// If the current object is in a non-terminal state, it means another polling thread is already triggered and will deal with timeout in that thread.
+		// If the current object is in a terminal state and we detect a timeout during AttemptUpdate, it likely means either:
+		// - the queue thread experienced a long context switch, or
+		// - the timeout setting is too short.
+		// Since AttemptUpdate runs sequentially, there won’t be any polling thread (triggered by a previous AttemptUpdate) to handle the timeout error. We need to handle it here.
 		if utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
 			diagnostic.InfoWithCtx(log, ctx, "Current object is terminal state, there's no polling thread to deal with timeout case, update object status with timeout error")
 			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
@@ -216,6 +220,9 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 		} else {
 			diagnostic.InfoWithCtx(log, ctx, "Current object is not terminal state, there's another polling thread to update object status with timeout error")
 		}
+
+		// Requeue after reconciliation interval when delete timeout in AttemptUpdate
+		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 	}
 
