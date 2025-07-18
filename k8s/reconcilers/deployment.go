@@ -182,15 +182,17 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	}
 	// Get reconciliation interval
 	reconciliationInterval, timeout := r.deriveReconcileInterval(log, ctx, object)
+	timeOutErrorMessage := "failed to completely reconcile within the allocated time"
 	if isRemoval {
 		timeout = r.deriveDeletionTimeout(log, ctx, object)
+		timeOutErrorMessage = "failed to completely delete the resource within the allocated time"
 	}
 
 	if object.GetAnnotations()[operationStartTimeKey] == "" || utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
 		r.patchOperationStartTime(object, operationStartTimeKey)
 		if err := r.kubeClient.Update(ctx, object); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update operation start time")
+			return metrics.OperationStartTimeUpdateFailed, ctrl.Result{}, err
 		}
 	}
 	// If the object hasn't reached a terminal state and the time since the operation started is greater than the
@@ -198,9 +200,29 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
 	if err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
-		return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		return metrics.OperationStartTimeParseFailed, ctrl.Result{}, err
 	}
 	if time.Since(startTime) > timeout {
+		// Before updating jobID, there is no polling thread to handle timeouts and update the object status.
+		// If the current object is in a non-terminal state, it means another polling thread is already triggered and will deal with timeout in that thread.
+		// If the current object is in a terminal state and we detect a timeout during AttemptUpdate, it likely means either:
+		// - the queue thread experienced a long context switch, or
+		// - the timeout setting is too short.
+		// Since AttemptUpdate runs sequentially, there won’t be any polling thread (triggered by a previous AttemptUpdate) to handle the timeout error. We need to handle it here.
+		if utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
+			diagnostic.InfoWithCtx(log, ctx, "Current object is terminal state, there's no polling thread to deal with timeout case, update object status with timeout error")
+			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
+				terminalErr: v1alpha2.NewCOAError(nil, timeOutErrorMessage, v1alpha2.TimedOut),
+			}, log, isRemoval, operationStartTimeKey); err != nil {
+				// if update object status failed, we should return error to requeue the queue event to retry
+				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
+				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			}
+		} else {
+			diagnostic.InfoWithCtx(log, ctx, "Current object is not terminal state, there's another polling thread to update object status with timeout error")
+		}
+
+		// Always requeue after reconciliation interval when delete timeout in AttemptUpdate
 		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 	}
@@ -209,7 +231,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	r.updateJobID(object, strconv.FormatInt(r.getCurJobIdInt64(object)+1, 10))
 	if err := r.kubeClient.Update(ctx, object); err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to update jobid")
-		return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		return metrics.JobIDUpdateFailed, ctrl.Result{}, err
 	}
 	// DO NOT REMOVE THIS COMMENT
 	// gofail: var beforeQueueJob string
@@ -262,7 +284,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 	startTime, err := time.Parse(time.RFC3339, object.GetAnnotations()[operationStartTimeKey])
 	if err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to parse operation start time")
-		return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		return metrics.OperationStartTimeParseFailed, ctrl.Result{}, err
 	}
 	if time.Since(startTime) > timeout {
 		diagnostic.InfoWithCtx(log, ctx, "Failed to completely poll within the allocated time.", "timeout", timeout)
@@ -272,7 +294,7 @@ func (r *DeploymentReconciler) PollingResult(ctx context.Context, object Reconci
 			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
 			return metrics.StatusUpdateFailed, ctrl.Result{}, err
 		}
-		return metrics.DeploymentTimedOut, ctrl.Result{}, v1alpha2.NewCOAError(nil, timeOutErrorMessage, v1alpha2.TimedOut)
+		return metrics.DeploymentTimedOut, ctrl.Result{}, nil
 	}
 
 	summary, err := r.getDeploymentSummary(ctx, object)

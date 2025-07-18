@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,12 +81,8 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 				reconcileResult, _, reconcileError = reconciler.PollingResult(ctx, object, false, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Write)
 			})
 
-			It("should return TimedOut error", func() {
-				Expect(reconcileError).To(HaveOccurred())
-				coaError, ok := reconcileError.(v1alpha2.COAError)
-				Expect(ok).To(BeTrue())
-				Expect(coaError.State).To(Equal(v1alpha2.TimedOut))
-				Expect(coaError.Message).To(ContainSubstring("failed to completely reconcile within the allocated time"))
+			It("should not return error", func() {
+				Expect(reconcileError).NotTo(HaveOccurred())
 			})
 
 			It("should return DeploymentTimedOut status", func() {
@@ -149,8 +144,8 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 				Expect(reconcileError).To(HaveOccurred())
 			})
 
-			It("should return StatusUpdateFailed status", func() {
-				Expect(reconcileResult).To(Equal(metrics.StatusUpdateFailed))
+			It("should return OperationStartTimeParseFailed status", func() {
+				Expect(reconcileResult).To(Equal(metrics.OperationStartTimeParseFailed))
 			})
 		})
 	})
