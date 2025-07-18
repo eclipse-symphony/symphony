@@ -204,12 +204,17 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	}
 	if time.Since(startTime) > timeout {
 		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
-		// need to mark operation status as timeout
-		if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
-			terminalErr: v1alpha2.NewCOAError(nil, timeOutErrorMessage, v1alpha2.TimedOut),
-		}, log, isRemoval, operationStartTimeKey); err != nil {
-			diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
-			return metrics.StatusUpdateFailed, ctrl.Result{}, err
+		// need to mark operation status as timeout when no polling thread (reconciling)
+		if utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
+			diagnostic.InfoWithCtx(log, ctx, "Current object is terminal state, there's no polling thread to deal with timeout case, update object status with timeout error")
+			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
+				terminalErr: v1alpha2.NewCOAError(nil, timeOutErrorMessage, v1alpha2.TimedOut),
+			}, log, isRemoval, operationStartTimeKey); err != nil {
+				diagnostic.ErrorWithCtx(log, ctx, err, "failed to update object status with timeout error")
+				return metrics.StatusUpdateFailed, ctrl.Result{}, err
+			}
+		} else {
+			diagnostic.InfoWithCtx(log, ctx, "Current object is not terminal state, there's another polling thread to update object status with timeout error")
 		}
 		return metrics.DeploymentTimedOut, ctrl.Result{RequeueAfter: reconciliationInterval}, nil
 	}
