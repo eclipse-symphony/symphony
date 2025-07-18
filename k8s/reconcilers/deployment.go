@@ -204,7 +204,7 @@ func (r *DeploymentReconciler) AttemptUpdate(ctx context.Context, object Reconci
 	}
 	if time.Since(startTime) > timeout {
 		diagnostic.InfoWithCtx(log, ctx, "Requeueing after timeout", "requeueAfter", reconciliationInterval)
-		// need to mark operation status as timeout when no polling thread (reconciling)
+		// need to mark operation status as timeout when no polling thread (not in reconciling state)
 		if utilsmodel.IsTerminalState(object.GetStatus().ProvisioningStatus.Status) {
 			diagnostic.InfoWithCtx(log, ctx, "Current object is terminal state, there's no polling thread to deal with timeout case, update object status with timeout error")
 			if _, err := r.updateObjectStatus(ctx, object, nil, patchStatusOptions{
