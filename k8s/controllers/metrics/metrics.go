@@ -32,6 +32,11 @@ const (
 	// reconciliation result
 	ReconcileSuccessResult ReconciliationResult = "Succeeded"
 	ReconcileFailedResult  ReconciliationResult = "Failed"
+	// operation start time
+	OperationStartTimeUpdateFailed OperationStatus = "OperationStartTimeUpdateFailed"
+	OperationStartTimeParseFailed  OperationStatus = "OperationStartTimeParseFailed"
+	// job id
+	JobIDUpdateFailed OperationStatus = "JobIDUpdateFailed"
 	// operation status
 	StatusNoOp         OperationStatus = "NoOp"
 	StatusUpdateFailed OperationStatus = "StatusUpdateFailed"
