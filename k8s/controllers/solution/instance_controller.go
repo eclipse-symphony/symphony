@@ -134,18 +134,10 @@ func (r *InstanceReconciler) MatchTargetsForInstance(ctx context.Context, instan
 	if instance.Spec.Target.Name != "" {
 		// First try to get target directly with the full name
 		target := fabric_v1.Target{}
-		err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.Target.Name, Namespace: instance.Namespace}, &target)
+		targetName := api_utils.ConvertReferenceToObjectName(instance.Spec.Target.Name)
+		err := r.Get(ctx, types.NamespacedName{Name: targetName, Namespace: instance.Namespace}, &target)
 		if err == nil {
 			// Found directly
-			return []fabric_v1.Target{target}
-		}
-
-		// If not found, check if it's an ARM ID
-		parts := strings.Split(instance.Spec.Target.Name, "/")
-		targetName := parts[len(parts)-1]
-
-		// Try to get by extracted target name
-		if err := r.Get(ctx, types.NamespacedName{Name: targetName, Namespace: instance.Namespace}, &target); err == nil {
 			return []fabric_v1.Target{target}
 		}
 
