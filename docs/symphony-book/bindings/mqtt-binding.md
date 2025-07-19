@@ -86,8 +86,8 @@ mage cluster:deployWithSettings -f values-dev.yaml
   "bindings": [{
     "type": "bindings.mqtt",
     "config": {
-      "brokerAddress": "tcp://localhost:1883",
-      "clientID": "symphony-client",
+      "brokerAddress": "tcp://<IP of your MQTT broker>:1883",
+      "clientID": "<Client ID of your choice",
       "requestTopic": "coa-request",
       "responseTopic": "coa-response",
       "useTLS": "false"
@@ -390,5 +390,5 @@ kubectl logs deployment/symphony-api | grep -i mqtt
 
 ## Related Documentation
 
-- [Remote Agent Bootstrap](../../remote-agent/bootstrap/README-mqtt.md)
+- [Remote Agent Bootstrap](../../../remote-agent/bootstrap/README-mqtt.md)
 - [Security Configuration](../security/)

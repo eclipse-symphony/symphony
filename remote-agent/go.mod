@@ -14,6 +14,7 @@ require (
 	github.com/eclipse-symphony/symphony/api v0.0.0-20241129081400-5ea7d2a7ec27
 	github.com/eclipse-symphony/symphony/coa v0.0.0
 	github.com/eclipse/paho.mqtt.golang v1.4.2
+	github.com/google/uuid v1.6.0
 	golang.org/x/sys v0.29.0
 )
 
@@ -32,7 +33,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1 // indirect
 	github.com/itchyny/gojq v0.12.16 // indirect

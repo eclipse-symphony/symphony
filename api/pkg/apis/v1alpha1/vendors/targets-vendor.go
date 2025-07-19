@@ -96,7 +96,7 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 		{
 			Methods:    []string{fasthttp.MethodPost},
-			Route:      route + "/getcert",
+			Route:      route + "/bootstrap",
 			Version:    o.Version,
 			Handler:    o.onGetCert,
 			Parameters: []string{"name?"},
@@ -682,6 +682,10 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 					ServiceName,
 				},
 			},
+			"privateKey": map[string]interface{}{
+				"algorithm": "RSA",
+				"size":      2048,
+			},
 		}
 
 		cert.Object["spec"] = spec
@@ -699,16 +703,49 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 				"kind":      gvk.Kind,
 			},
 		}
-		jsonData, _ := json.Marshal(upsertRequest)
-		tLog.InfofCtx(ctx, "V (Targets) : create certificate object - %s", jsonData)
-		_, err := c.TargetsManager.StateProvider.Upsert(ctx, upsertRequest)
+
+		// Check if Certificate already exists to avoid concurrent creation
+		getRequest := states.GetRequest{
+			ID: id,
+			Metadata: map[string]interface{}{
+				"namespace": namespace,
+				"group":     gvk.Group,
+				"version":   gvk.Version,
+				"resource":  "certificates",
+				"kind":      gvk.Kind,
+			},
+		}
+
+		_, err := c.TargetsManager.StateProvider.Get(ctx, getRequest)
+		if err == nil {
+			// Certificate already exists, log and proceed to wait
+			tLog.InfofCtx(ctx, "V (Targets) : Certificate %s already exists, waiting for ready state", id)
+		} else {
+			// Certificate doesn't exist, create it
+			jsonData, _ := json.Marshal(upsertRequest)
+			tLog.InfofCtx(ctx, "V (Targets) : create certificate object - %s", jsonData)
+			_, err := c.TargetsManager.StateProvider.Upsert(ctx, upsertRequest)
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+		}
+
+		// Wait for Certificate to be ready and secret to be created with correct type
+		err = c.waitForCertificateReady(ctx, id, namespace, secretName)
 		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed waiting for certificate - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			})
 		}
+
+		// Use the fixed secret name directly
+		tLog.InfofCtx(ctx, "V (Targets) : Using fixed secret name: %s", secretName)
 
 		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
 		if err != nil {
@@ -744,6 +781,110 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
+}
+
+// waitForCertificateReady waits for Certificate to be ready and secret to have the correct type and content
+func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, namespace, secretName string) error {
+	const maxWaitTime = 120 * time.Second
+	const checkInterval = 5 * time.Second
+
+	tLog.InfofCtx(ctx, "V (Targets) : waiting for certificate %s to be ready in namespace %s", certName, namespace)
+
+	timeout := time.After(maxWaitTime)
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for certificate %s to be ready after %v", certName, maxWaitTime)
+		case <-ticker.C:
+			// Check Certificate status
+			ready, err := c.checkCertificateStatus(ctx, certName, namespace)
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : error checking certificate status: %v", err)
+				continue
+			}
+
+			if !ready {
+				tLog.InfofCtx(ctx, "V (Targets) : certificate %s not ready yet, waiting...", certName)
+				continue
+			}
+
+			// Check if secret exists and has correct type
+			secretReady, err := c.checkSecretReady(ctx, secretName, namespace)
+			if err != nil {
+				tLog.ErrorfCtx(ctx, "V (Targets) : error checking secret status: %v", err)
+				continue
+			}
+
+			if !secretReady {
+				tLog.InfofCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
+				continue
+			}
+
+			tLog.InfofCtx(ctx, "V (Targets) : certificate %s and secret %s are ready", certName, secretName)
+			return nil
+		}
+	}
+}
+
+// checkCertificateStatus checks if Certificate is ready
+func (c *TargetsVendor) checkCertificateStatus(ctx context.Context, certName, namespace string) (bool, error) {
+	getRequest := states.GetRequest{
+		ID: certName,
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     "cert-manager.io",
+			"version":   "v1",
+			"resource":  "certificates",
+			"kind":      "Certificate",
+		},
+	}
+
+	entry, err := c.TargetsManager.StateProvider.Get(ctx, getRequest)
+	if err != nil {
+		return false, fmt.Errorf("failed to get certificate: %w", err)
+	}
+
+	// Check Certificate status conditions
+	if status, found := entry.Body.(map[string]interface{})["status"]; found {
+		if statusMap, ok := status.(map[string]interface{}); ok {
+			if conditions, found := statusMap["conditions"]; found {
+				if conditionsArray, ok := conditions.([]interface{}); ok {
+					for _, condition := range conditionsArray {
+						if condMap, ok := condition.(map[string]interface{}); ok {
+							if condType, found := condMap["type"]; found && condType == "Ready" {
+								if condStatus, found := condMap["status"]; found && condStatus == "True" {
+									return true, nil
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false, nil
+}
+
+// checkSecretReady checks if secret exists and has the correct type and content
+func (c *TargetsVendor) checkSecretReady(ctx context.Context, secretName, namespace string) (bool, error) {
+	evalCtx := coa_utils.EvaluationContext{Namespace: namespace}
+
+	// Try to read both tls.crt and tls.key to verify secret is complete
+	_, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
+	if err != nil {
+		return false, nil // Secret not ready yet
+	}
+
+	_, err = c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
+	if err != nil {
+		return false, nil // Secret not complete yet
+	}
+
+	return true, nil
 }
 
 func (c *TargetsVendor) onUpdateTopology(request v1alpha2.COARequest) v1alpha2.COAResponse {

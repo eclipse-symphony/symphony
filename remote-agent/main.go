@@ -78,6 +78,14 @@ func mainLogic() error {
 		return fmt.Errorf("failed to open log file: %v", err)
 	}
 	log.SetOutput(logFile)
+
+	// Log the complete binary execution command
+	log.Printf("=== Binary Execution Command ===")
+	log.Printf("Executable: %s", execPath)
+	log.Printf("Working Directory: %s", execDir)
+	log.Printf("Command Line: %s %s", execPath, strings.Join(os.Args[1:], " "))
+	log.Printf("Full Args: %v", os.Args)
+	log.Printf("================================")
 	// extract command line arguments
 	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file")
 	flag.StringVar(&clientCertPath, "client-cert", "public.pem", "Path to the client certificate file")
@@ -85,7 +93,7 @@ func mainLogic() error {
 	flag.StringVar(&targetName, "target-name", "remote-target", "remote target name")
 	flag.StringVar(&namespace, "namespace", "default", "Namespace to use for the agent")
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
-	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file")
+	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file (for MQTT) or Symphony server CA (for HTTP)")
 	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
 	flag.BoolVar(&useCertSubject, "use-cert-subject", false, "Use certificate subject as topic suffix instead of target name")
 	flag.Parse()
@@ -158,6 +166,24 @@ func mainLogic() error {
 		}
 		fmt.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", config.RequestEndpoint, config.ResponseEndpoint)
 		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+
+		// If HTTP protocol and CA certificate is specified, add it to the trusted roots for Symphony server
+		if caPath != "" {
+			fmt.Printf("Loading Symphony server CA certificate from: %s\n", caPath)
+			serverCACert, err := ioutil.ReadFile(caPath)
+			if err != nil {
+				return fmt.Errorf("failed to read Symphony server CA certificate: %v", err)
+			}
+
+			serverCACertPool := x509.NewCertPool()
+			if !serverCACertPool.AppendCertsFromPEM(serverCACert) {
+				return fmt.Errorf("failed to parse Symphony server CA certificate")
+			}
+
+			tlsConfig.RootCAs = serverCACertPool
+			fmt.Printf("Successfully loaded Symphony server CA certificate\n")
+		}
+
 		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
 		symphonyEndpoints.RequestEndpoint = config.RequestEndpoint
 		// create HttpBinding
