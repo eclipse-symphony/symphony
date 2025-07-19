@@ -8,11 +8,12 @@
 # Function to print usage
 usage() {
     echo -e "\e[31mUsage for HTTP mode:\e[0m"
-    echo -e "\e[31m  $0 http <endpoint> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group>\e[0m"
+    echo -e "\e[31m  $0 http <endpoint> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group> [symphony_ca_cert_path]\e[0m"
     echo -e "\e[31mUsage for MQTT mode:\e[0m"
     echo -e "\e[31m  $0 mqtt <broker_address> <broker_port> <cert_path> <key_path> <target_name> <namespace> <topology> <user> <group> [binary_path] [ca_cert_path] [use_cert_subject]\e[0m"
     echo -e "\e[31mNote: binary_path is required when protocol is 'mqtt'\e[0m"
     echo -e "\e[31m      use_cert_subject: true/false, optional, use cert subject as topic suffix for MQTT\e[0m"
+    echo -e "\e[31m      symphony_ca_cert_path: optional, Symphony server CA certificate for HTTPS verification\e[0m"
     exit 1
 }
 
@@ -40,10 +41,17 @@ if [ "$protocol" = "http" ]; then
     topology=$7
     user=$8
     group=$9
+    symphony_ca_cert_path=${10}
     
     # Validate the endpoint (basic URL validation)
     if ! [[ $endpoint =~ ^https?:// ]]; then
         echo -e "\e[31mError: Invalid endpoint. Must be a valid URL starting with http:// or https://\e[0m"
+        usage
+    fi
+    
+    # Check for Symphony CA certificate
+    if [ ! -z "$symphony_ca_cert_path" ] && [ ! -f "$symphony_ca_cert_path" ]; then
+        echo -e "\e[31mError: Symphony CA certificate file not found at path: $symphony_ca_cert_path\e[0m"
         usage
     fi
     
@@ -168,12 +176,22 @@ config=$(realpath $config_file)
 # Protocol-specific handling
 if [ "$protocol" = "http" ]; then
     # HTTP mode: Call the certificate endpoint to get the public and private keys
-    bootstarpCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
+    bootstarpCertEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
     echo -e "\e[32mCalling certificate endpoint: $bootstarpCertEndpoint\e[0m"
 
+    # Build curl command with optional CA certificate
+    curl_cmd="curl --cert \"$cert_path\" --key \"$key_path\""
+    if [ ! -z "$symphony_ca_cert_path" ]; then
+        symphony_ca_cert_path=$(realpath "$symphony_ca_cert_path")
+        curl_cmd="$curl_cmd --cacert \"$symphony_ca_cert_path\""
+        echo -e "\e[32mUsing Symphony CA certificate: $symphony_ca_cert_path\e[0m"
+    else
+        echo -e "\e[33mWarning: No Symphony CA certificate provided. Using insecure mode for testing.\e[0m"
+        curl_cmd="$curl_cmd -k"
+    fi
+
     # Get certificate
-    result=$(curl --cert "$cert_path" --key "$key_path" -X POST "$bootstarpCertEndpoint" \
-            -H "Content-Type: application/json" )
+    result=$(eval "$curl_cmd -X POST \"$bootstarpCertEndpoint\" -H \"Content-Type: application/json\"")
 
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to call certificate endpoint. Please check the endpoint and try again.\e[0m"
@@ -182,31 +200,31 @@ if [ "$protocol" = "http" ]; then
         echo -e "\e[32mCertificate endpoint response received\e[0m"
     fi
 
-    # Parse JSON response and extract fields
+    # Parse JSON response and extract certificates
     public=$(echo $result | jq -r '.public')
-    # Extract header and footer
-    header=$(echo "$public" | awk '{print $1, $2}')
-    footer=$(echo "$public" | awk '{print $(NF-1), $NF}')
-
-    # Extract base64 content and replace spaces with newlines
-    base64_content=$(echo "$public" | awk '{for (i=3; i<=NF-2; i++) printf "%s\n", $i}')
-
-    # Combine header, base64 content and footer
-    corrected_public_content="$header\n$base64_content\n$footer"
-
     private=$(echo $result | jq -r '.private')
-    # Extract header and footer
-    header=$(echo "$private" | awk '{print $1, $2, $3, $4}')
-    footer=$(echo "$private" | awk '{print $(NF-3), $(NF-2), $(NF-1), $NF}')
 
-    # Extract base64 content and replace spaces with newlines
-    base64_content=$(echo "$private" | awk '{for (i=5; i<=NF-4; i++) printf "%s\n", $i}')
+    # Check if we got valid certificates
+    if [ "$public" = "null" ] || [ "$private" = "null" ] || [ -z "$public" ] || [ -z "$private" ]; then
+        echo -e "\e[31mError: Failed to extract certificates from response. Response: $result\e[0m"
+        exit 1
+    fi
 
-    # Combine header, base64 content and footer
-    corrected_private_content="$header\n$base64_content\n$footer"
-
-    # Save public key certificate to public.pem
-    echo -e "$corrected_public_content" > public.pem
+    # Reconstruct PEM format properly (Symphony converts \n to spaces for transmission)
+    # Convert to word arrays and reconstruct with proper headers/footers
+    public_words=($public)
+    private_words=($private)
+    
+    # Reconstruct public certificate
+    {
+        echo "-----BEGIN CERTIFICATE-----"
+        # Skip the header words (-----BEGIN CERTIFICATE-----) and footer words (-----END CERTIFICATE-----)
+        for ((i=2; i<${#public_words[@]}-2; i++)); do
+            echo "${public_words[i]}"
+        done
+        echo "-----END CERTIFICATE-----"
+    } > public.pem
+    
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to save public certificate to public.pem. Exiting...\e[0m"
         exit 1
@@ -214,8 +232,16 @@ if [ "$protocol" = "http" ]; then
         echo -e "\e[32mPublic certificate saved to public.pem\e[0m"
     fi
 
-    # Save private key to private.pem
-    echo -e "$corrected_private_content" > private.pem
+    # Reconstruct private key
+    {
+        echo "-----BEGIN RSA PRIVATE KEY-----"
+        # Skip the header words (-----BEGIN RSA PRIVATE KEY-----) and footer words (-----END RSA PRIVATE KEY-----)
+        for ((i=4; i<${#private_words[@]}-4; i++)); do
+            echo "${private_words[i]}"
+        done
+        echo "-----END RSA PRIVATE KEY-----"
+    } > private.pem
+    
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to save private key to private.pem. Exiting...\e[0m"
         exit 1
@@ -225,7 +251,19 @@ if [ "$protocol" = "http" ]; then
 
     # No longer update the topology here, it's handled when remote-agent starts
     echo -e "\e[32mCertificates prepared. Topology will be updated when remote-agent starts.\e[0m"
+    # Download the remote-agent binary
+    echo -e "\e[32mDownloading remote-agent binary...\e[0m"
+    download_result=$(eval "$curl_cmd -X GET \"$endpoint/files/remote-agent\" -o remote-agent")
+    if [ $? -ne 0 ]; then
+        echo -e "\e[31mError: Failed to download remote-agent binary. Exiting...\e[0m"
+        exit 1
+    else
+        echo -e "\e[32mRemote-agent binary downloaded successfully\e[0m"
+    fi
     
+    # Set the agent path for HTTP mode
+    agent_path=$(realpath "./remote-agent")
+    echo -e "\e[32mUsing remote-agent binary: $agent_path\e[0m"
 else
     # MQTT mode: Use original certificates and binary
     echo -e "\e[32mMQTT mode: Using original certificates directly\e[0m"
@@ -272,6 +310,7 @@ if [ "$protocol" = "http" ]; then
     # HTTP mode: Use the generated public.pem and private.pem
     public_path=$(realpath "./public.pem")
     private_path=$(realpath "./private.pem")
+    agent_path=$(realpath "./remote-agent")
 else
     # MQTT mode: Use the original certificate paths
     public_path=$cert_path
@@ -286,6 +325,10 @@ if [ "$protocol" = "mqtt" ] && [ ! -z "$ca_cert_path" ]; then
     ca_cert_path=$(realpath "$ca_cert_path")
     service_command="$service_command -ca-cert=$ca_cert_path"
     echo -e "\e[32mUsing CA certificate: $ca_cert_path\e[0m"
+elif [ "$protocol" = "http" ] && [ ! -z "$symphony_ca_cert_path" ]; then
+    symphony_ca_cert_path=$(realpath "$symphony_ca_cert_path")
+    service_command="$service_command -ca-cert=$symphony_ca_cert_path"
+    echo -e "\e[32mUsing Symphony CA certificate for remote-agent: $symphony_ca_cert_path\e[0m"
 fi
 
 # Add use-cert-subject parameter if set
