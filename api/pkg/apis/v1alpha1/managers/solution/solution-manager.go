@@ -971,7 +971,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target string, namespace string, start string, size int) v1alpha2.COAResponse {
+func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target string, namespace string, start string, size int, correlationId string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
@@ -990,6 +990,10 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 				State: v1alpha2.InternalError,
 				Body:  []byte(err.Error()),
 			}
+		}
+		// Add correlationId to each request
+		if correlationId != "" {
+			agentRequest["correlationId"] = correlationId
 		}
 		requestList = append(requestList, agentRequest)
 	}
@@ -1050,7 +1054,7 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, namespace string) v1alpha2.COAResponse {
+func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, namespace string, correlationId string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
@@ -1067,6 +1071,15 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 			Body:  []byte(err.Error()),
 		}
 	}
+
+	// Add correlationId to the response if provided
+	if correlationId != "" && queueElement != nil {
+		if agentRequest, ok := queueElement.(map[string]interface{}); ok {
+			agentRequest["correlationId"] = correlationId
+			queueElement = agentRequest
+		}
+	}
+
 	data, _ := json.Marshal(queueElement)
 	return v1alpha2.COAResponse{
 		State:       v1alpha2.OK,

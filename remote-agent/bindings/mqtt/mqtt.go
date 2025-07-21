@@ -49,11 +49,17 @@ func (m *MqttBinding) Launch() error {
 	// Start the agent by handling starter requests
 	var get_start = true
 	var requests []map[string]interface{}
+
+	// Generate correlationId for initial GET request
+	initialCorrelationId := uuid.New().String()
+	myCorrelationIds.Store(initialCorrelationId, true)
+
 	Parameters := map[string]string{
-		"target":    m.Target,
-		"namespace": m.Namespace,
-		"getAll":    "true",
-		"preindex":  "0",
+		"target":        m.Target,
+		"namespace":     m.Namespace,
+		"getAll":        "true",
+		"preindex":      "0",
+		"correlationId": initialCorrelationId,
 	}
 	request := v1alpha2.COARequest{
 		Route:      "tasks",
@@ -82,6 +88,9 @@ func (m *MqttBinding) Launch() error {
 				// not my request, ignore it
 				return
 			}
+		} else {
+			fmt.Printf("Warning: correlationId not found in response")
+			return
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
@@ -127,11 +136,16 @@ func (m *MqttBinding) Launch() error {
 					fmt.Println("Request length: ", len(requests))
 				} else {
 					fmt.Println("Request length: ", len(requests))
+					// Generate correlationId for continuation request
+					continueCorrelationId := uuid.New().String()
+					myCorrelationIds.Store(continueCorrelationId, true)
+
 					Parameters := map[string]string{
-						"target":    m.Target,
-						"namespace": m.Namespace,
-						"getAll":    "true",
-						"preindex":  allRequests.LastMessageID,
+						"target":        m.Target,
+						"namespace":     m.Namespace,
+						"getAll":        "true",
+						"preindex":      allRequests.LastMessageID,
+						"correlationId": continueCorrelationId,
 					}
 					request := v1alpha2.COARequest{
 						Route:      "tasks",
@@ -185,9 +199,12 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 		wg.Add(1)
 		go func(req map[string]interface{}) {
 			defer wg.Done()
-			correlationId := uuid.New().String()
-			req["correlationId"] = correlationId
-			myCorrelationIds.Store(correlationId, true) // record correlationId
+			// Extract correlationId from request parameters (sent from Symphony server)
+			correlationId, ok := req["correlationId"].(string)
+			if !ok {
+				fmt.Println("error: correlationId not found or not a string.")
+				return
+			}
 
 			fmt.Println("correlationId: ", correlationId)
 			retCtx := context.TODO()
@@ -248,10 +265,15 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 
 func (m *MqttBinding) pollRequests() {
 	for i := 0; i < ConcurrentJobs; i++ {
+		// Generate correlationId for polling request
+		pollCorrelationId := uuid.New().String()
+		myCorrelationIds.Store(pollCorrelationId, true)
+
 		// Publish request to get jobs
 		Parameters := map[string]string{
-			"target":    m.Target,
-			"namespace": m.Namespace,
+			"target":        m.Target,
+			"namespace":     m.Namespace,
+			"correlationId": pollCorrelationId,
 		}
 		request := v1alpha2.COARequest{
 			Route:      "tasks",
