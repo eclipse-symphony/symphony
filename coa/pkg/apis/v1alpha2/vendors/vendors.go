@@ -102,10 +102,6 @@ func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy,
 		v.Context = &contexts.VendorContext{}
 		v.Context.SiteInfo = config.SiteInfo
 	}
-	fmt.Printf("VendorContext SiteInfo: %+v\n", v.Context.SiteInfo)
-	fmt.Printf("VendorContext SiteInfo CurrentSite: %+v\n", config.SiteInfo)
-	fmt.Printf("VendorContext SiteInfo CurrentSite BaseUrl: %s\n", config.SiteInfo.CurrentSite.BaseUrl)
-	fmt.Printf("111mqttBinding: %v\n", v.Context.GetMQTTBinding())
 	// see issue #79 - the following needs to be updated to use Symphony expression
 	v.Context.SiteInfo.CurrentSite.BaseUrl = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.BaseUrl)
 	v.Context.SiteInfo.CurrentSite.Username = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.Username)
