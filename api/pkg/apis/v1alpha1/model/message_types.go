@@ -98,6 +98,7 @@ type ProviderGetRequest struct {
 type ProviderPagingRequest struct {
 	RequestList   []map[string]interface{} `json:"requestList"`
 	LastMessageID string                   `json:"lastMessageID"`
+	CorrelationID string                   `json:"X-Activity-correlationId,omitempty"`
 }
 type ProviderApplyRequest struct {
 	AgentRequest

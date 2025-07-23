@@ -79,15 +79,27 @@ func (m *MqttBinding) Launch() error {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
 			return
 		}
-		// Parse correlationId
+		// Parse correlationId from different response structures
 		var respMap map[string]interface{}
 		_ = json.Unmarshal(coaResponse.Body, &respMap)
-		respCorrelationId, _ := respMap[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
+		fmt.Printf("Received response: %s\n", string(coaResponse.Body))
+
+		var respCorrelationId string
+		correlationKey := contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)
+
+		// Try to get correlationId from top level first (for empty queue responses)
+		if topLevelId, ok := respMap[correlationKey].(string); ok && topLevelId != "" {
+			respCorrelationId = topLevelId
+		}
+
 		if respCorrelationId != "" {
+			fmt.Printf("Received response with correlationId: %s\n", respCorrelationId)
 			if _, ok := myCorrelationIds.Load(respCorrelationId); !ok {
 				// not my request, ignore it
+				fmt.Printf("Warning: correlationId is not in map")
 				return
 			}
+
 		} else {
 			fmt.Printf("Warning: correlationId not found in response")
 			return
@@ -126,6 +138,7 @@ func (m *MqttBinding) Launch() error {
 					fmt.Printf("Error unmarshalling response: %s", err.Error())
 					return
 				}
+
 				fmt.Println("Request length: ", len(requests))
 				requests = append(requests, allRequests.RequestList...)
 
@@ -199,17 +212,7 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 		wg.Add(1)
 		go func(req map[string]interface{}) {
 			defer wg.Done()
-			// Extract correlationId from request parameters (sent from Symphony server)
-			correlationId, ok := req["correlationId"].(string)
-			if !ok {
-				fmt.Println("error: correlationId not found or not a string.")
-				return
-			}
-
-			fmt.Println("correlationId: ", correlationId)
 			retCtx := context.TODO()
-			retCtx = context.WithValue(retCtx, contexts.Activity_CorrelationId, correlationId)
-
 			body, err := json.Marshal(req)
 			if err != nil {
 				fmt.Println("error marshalling request:", err)
@@ -223,8 +226,6 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 			if err != nil {
 				fmt.Println("error marshalling response:", err)
 			}
-			fmt.Println("Agent response2:", string(result))
-
 			response := v1alpha2.COARequest{
 				Route:       "getResult",
 				Method:      "POST",
