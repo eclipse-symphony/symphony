@@ -25,10 +25,14 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 		utils.StartFreshMinikube(t)
 	})
 
-	// Ensure minikube is cleaned up after test
-	t.Cleanup(func() {
-		utils.CleanupMinikube(t)
-	})
+	// Setup ordered cleanup to ensure minikube is deleted LAST
+	// Define all cleanup functions in the order they should execute (first to last)
+	var caSecretName, clientSecretName string
+	utils.SetupOrderedCleanup(t,
+		func() { utils.CleanupSymphony(t, "remote-agent-http-bootstrap-test") },
+		func() { utils.CleanupCASecret(t, caSecretName) },
+		func() { utils.CleanupClientSecret(t, namespace, clientSecretName) },
+	)
 
 	// Generate test certificates (with MyRootCA subject)
 	certs := utils.GenerateTestCertificates(t, testDir)
@@ -37,7 +41,6 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 	setupBootstrapNamespace(t, namespace)
 	defer utils.CleanupNamespace(t, namespace)
 
-	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
 	var symphonyCAPath, baseURL string
 
@@ -157,14 +160,7 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 		// Give some time for the service check, but continue regardless
 		time.Sleep(5 * time.Second)
 		t.Logf("Continuing with test - bootstrap.sh completed successfully")
-		testBootstrapDataInteraction(t, targetName, namespace, testDir)
-	})
-
-	// Cleanup
-	t.Cleanup(func() {
-		utils.CleanupSymphony(t, "remote-agent-http-bootstrap-test")
-		utils.CleanupCASecret(t, caSecretName)
-		utils.CleanupClientSecret(t, namespace, clientSecretName)
+		testBootstrapDataInteractionWithBootstrap(t, targetName, namespace, testDir)
 	})
 
 	t.Logf("HTTP communication test with bootstrap.sh completed successfully")
@@ -214,7 +210,7 @@ func verifyBootstrapTopologyUpdate(t *testing.T, targetName, namespace string) {
 	t.Logf("Bootstrap topology update verification completed")
 }
 
-func testBootstrapDataInteraction(t *testing.T, targetName, namespace, testDir string) {
+func testBootstrapDataInteractionWithBootstrap(t *testing.T, targetName, namespace, testDir string) {
 	// Step 1: Create a simple Solution first
 	solutionName := "test-bootstrap-solution"
 	solutionVersion := "test-bootstrap-solution-v-version1"
@@ -282,22 +278,34 @@ spec:
 	utils.WaitForInstanceReady(t, instanceName, namespace, 5*time.Minute)
 
 	t.Cleanup(func() {
-		// Delete in correct order: Instance -> Solution
-		// First delete Instance and wait for it to be completely removed
+		// Delete in correct order: Instance -> Solution -> Target
+		// Following the pattern from CleanUpSymphonyObjects function
+
+		// First delete Instance and ensure it's completely removed
 		t.Logf("Deleting Instance first...")
-		err := utils.DeleteKubernetesManifestWithTimeout(t, instancePath, 2*time.Minute)
+		err := utils.DeleteKubernetesResource(t, "instances.solution.symphony", instanceName, namespace, 2*time.Minute)
 		if err != nil {
 			t.Logf("Warning: Failed to delete instance: %v", err)
+		} else {
+			// Wait for Instance to be completely deleted before proceeding
+			utils.WaitForResourceDeleted(t, "instance", instanceName, namespace, 1*time.Minute)
 		}
 
-		// Wait for Instance to be completely deleted before deleting Solution
-		utils.WaitForResourceDeleted(t, "instance", instanceName, namespace, 1*time.Minute)
-
-		// Then delete Solution
+		// Then delete Solution and ensure it's completely removed
 		t.Logf("Deleting Solution...")
-		err = utils.DeleteKubernetesManifestWithTimeout(t, solutionPath, 2*time.Minute)
+		err = utils.DeleteSolutionManifestWithTimeout(t, solutionPath, 2*time.Minute)
 		if err != nil {
 			t.Logf("Warning: Failed to delete solution: %v", err)
+		} else {
+			// Wait for Solution to be completely deleted before proceeding
+			utils.WaitForResourceDeleted(t, "solution", solutionVersion, namespace, 1*time.Minute)
+		}
+
+		// Finally delete Target
+		t.Logf("Deleting Target...")
+		err = utils.DeleteKubernetesResource(t, "targets.fabric.symphony", targetName, namespace, 2*time.Minute)
+		if err != nil {
+			t.Logf("Warning: Failed to delete target: %v", err)
 		}
 
 		t.Logf("Cleanup completed")
