@@ -7,8 +7,6 @@
 package vendors
 
 import (
-	"encoding/json"
-
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/models"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -18,6 +16,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
@@ -125,7 +124,7 @@ func (c *ModelsVendor) onModels(request v1alpha2.COARequest) v1alpha2.COARespons
 
 		var model model.ModelState
 
-		err := json.Unmarshal(request.Body, &model)
+		err := utils2.UnmarshalJson(request.Body, &model)
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Models): onModels failed to pause model from request body, error: %v", err)
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{

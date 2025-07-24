@@ -132,7 +132,11 @@ func TestFederationOnRegister(t *testing.T) {
 	vendor := federationVendorInit()
 
 	SiteSpec.Name = "test1"
-	b, err := json.Marshal(SiteSpec)
+	siteState := model.SiteState{
+		Id:   SiteSpec.Name,
+		Spec: &SiteSpec,
+	}
+	b, err := json.Marshal(siteState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
@@ -300,7 +304,10 @@ func TestFederationOnSyncGet(t *testing.T) {
 	vendor := federationVendorInit()
 	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
 	SiteSpec.Name = "test1"
-	b, err := json.Marshal(SiteSpec)
+	SiteState := model.SiteState{
+		Spec: &SiteSpec,
+	}
+	b, err := json.Marshal(SiteState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
@@ -350,7 +357,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			"site": SiteSpec.Name,
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1-v-v1",
+			Id:     "catalog1-v-version1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
@@ -373,7 +380,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 
 	var catalogState = model.CatalogState{
 		ObjectMeta: model.ObjectMeta{
-			Name: "catalog1-v-v1",
+			Name: "catalog1-v-version1",
 		},
 		Spec: &model.CatalogSpec{
 			CatalogType: "catalog",
@@ -396,7 +403,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			"site": SiteSpec.Name,
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1-v-v1",
+			Id:     "catalog1-v-version1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})

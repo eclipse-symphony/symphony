@@ -28,11 +28,13 @@ func (d *ActivityLogContextDecorator) Decorate(entry *logrus.Entry, folding bool
 			if folding {
 				entry.Data[string(ActivityLogContextKey)] = ctx
 			} else {
-				// TODO resourceId
+				// TODO resourceId, location points to diagnostic resource
 				entry.Data[string(OTEL_Activity_DiagnosticResourceCloudId)] = strings.ToUpper(ctx.GetDiagnosticResourceCloudId())
+				entry.Data[string(OTEL_Activity_DiagnosticResourceLocation)] = ctx.GetDiagnosticResourceCloudLocation()
 				entry.Data[string(OTEL_Activity_ResourceCloudId)] = strings.ToUpper(ctx.GetResourceCloudId())
+				// TODO resourceCloudLocation (not needed, has populated operation resource id)
+				// entry.Data[string(OTEL_Activity_ResourceCloudLocation)] = ctx.GetResourceCloudLocation()
 				entry.Data[string(OTEL_Activity_OperationName)] = ctx.GetOperationName()
-				entry.Data[string(OTEL_Activity_Location)] = ctx.GetCloudLocation()
 				entry.Data[string(OTEL_Activity_Props_EdgeLocation)] = ctx.GetEdgeLocation()
 				entry.Data[string(OTEL_Activity_CorrelationId)] = ctx.GetCorrelationId()
 				entry.Data[string(OTEL_Activity_Props_CallerId)] = ctx.GetCallerId()

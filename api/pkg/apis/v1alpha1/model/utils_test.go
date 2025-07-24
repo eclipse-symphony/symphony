@@ -16,6 +16,10 @@ func TestStringMapsEqualCompareEmptyMaps(t *testing.T) {
 	assert.True(t, StringMapsEqual(nil, nil, nil))
 }
 
+func TestStringMapsEqualCompareNullVSEmptyMap(t *testing.T) {
+	assert.True(t, StringMapsEqual(nil, map[string]string{}, nil))
+}
+
 func TestStringMapsEqualCompareEmptyVSOne(t *testing.T) {
 	assert.False(t, StringMapsEqual(nil, map[string]string{
 		"A": "B",

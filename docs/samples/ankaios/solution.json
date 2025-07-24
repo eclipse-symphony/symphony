@@ -1,0 +1,20 @@
+{
+    "metadata": {
+        "name": "ankaios-app-v-v1"
+    },
+    "spec": {
+        "rootResource": "ankaios-app",
+        "components": [
+            {
+                "name": "ankaios-app",   
+                "type": "ankaios-workload",             
+                "properties": {
+                    "ankaios.runtime": "podman",
+                    "ankaios.agent": "agent_A",
+                    "ankaios.restartPolicy": "ALWAYS",
+                    "ankaios.runtimeConfig": "image: docker.io/library/nginx\ncommandOptions: [\"-p\", \"8080:80\"]"                   
+                }
+            }
+        ]
+    }
+}

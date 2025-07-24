@@ -1,7 +1,7 @@
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: 04campaign-v-v3
+  name: 04campaign-v-version3
 spec:  
   rootResource: 04campaign
   firstStage: wait

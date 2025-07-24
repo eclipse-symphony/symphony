@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -33,9 +34,9 @@ type ObjectMeta struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	UID types.UID `json:"uid,omitempty" protobuf:"bytes,5,opt,name=uid,casttype=k8s.io/kubernetes/pkg/types.UID"`
+	UID types.UID `json:"uid,omitempty"`
 
-	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty"`
 }
 
 // UnmarshalJSON custom unmarshaller to handle Generation field(accept both of number and string)
@@ -148,6 +149,14 @@ func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 		}
 	}
 
+	for _, key := range constants.SystemReservedAnnotationsByPostfixes() {
+		for annotationKey, annotationValue := range metadata.Annotations {
+			if strings.HasSuffix(annotationKey, key) {
+				c.Annotations[annotationKey] = annotationValue
+			}
+		}
+	}
+
 	if c.Labels == nil {
 		c.Labels = make(map[string]string)
 	}
@@ -180,4 +189,15 @@ func (c *ObjectMeta) SetGuid(guid string) {
 		c.Annotations = make(map[string]string)
 	}
 	c.Annotations[constants.GuidKey] = guid
+}
+
+func (c *ObjectMeta) GetSummaryJobId() string {
+	return c.Annotations[constants.SummaryJobIdKey]
+}
+
+func (c *ObjectMeta) SetSummaryJobId(jobId string) {
+	if c.Annotations == nil {
+		c.Annotations = make(map[string]string)
+	}
+	c.Annotations[constants.SummaryJobIdKey] = jobId
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -92,7 +93,7 @@ func toWaitStageProviderConfig(config providers.IProviderConfig) (WaitStageProvi
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	return ret, err
 }
 func (i *WaitStageProvider) InitWithMap(properties map[string]string) error {
@@ -296,7 +297,7 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		}
 		if foundCount == len(objects) {
 			outputs["objectType"] = objectType
-			outputs["status"] = "OK"
+			outputs["status"] = "200"
 			log.InfofCtx(ctx, "  P (Wait Processor): found %v %v", objectType, objects)
 			return outputs, false, nil
 		}

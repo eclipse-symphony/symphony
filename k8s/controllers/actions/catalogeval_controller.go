@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -162,7 +163,11 @@ func (r *CatalogEvalReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CatalogEvalReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("CatalogEval").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&federationv1.CatalogEvalExpression{}).
 		Complete(r)
 }

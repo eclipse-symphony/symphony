@@ -1,0 +1,14 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: ankaios-target
+spec:  
+  forceRedeploy: true
+  topologies:
+  - bindings:
+    - role: ankaios-worload
+      provider: providers.target.rust
+      config:
+        name: "rust-lib"
+        libFile: "/extensions/libmock.so"
+        libHash: "1f2823619bc486c9236b5b4600e521cd5cfe0087d063df66ede16dc3db592933"

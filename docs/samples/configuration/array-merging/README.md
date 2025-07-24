@@ -43,7 +43,7 @@ As a simple example of this problem, there are two regions which each have a "Ta
 
     ```yml
     spec:
-    type: config
+    catalogType: config
     properties:
         tags: [
         "Tag1",
@@ -58,7 +58,7 @@ As a simple example of this problem, there are two regions which each have a "Ta
 
     ```yml
         spec:
-        type: config
+        catalogType: config
         properties:
             tags: [
             "Tag4",
@@ -71,7 +71,7 @@ As a simple example of this problem, there are two regions which each have a "Ta
 
     ```yml
         spec:
-        type: config
+        catalogType: config
         properties:
             name: "tags-region1"
             # This will combine the two arrays of strings into one.  The double dollar sign on the second config object is required

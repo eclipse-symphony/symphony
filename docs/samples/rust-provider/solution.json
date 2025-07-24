@@ -1,0 +1,20 @@
+{
+    "metadata": {
+        "name": "ankaios-app-v-version1"
+    },
+    "spec": {
+        "rootResource": "ankaios-app",
+        "components": [
+            {
+                "name": "ankaios-app",
+                "type": "ankaios-worload",
+                "properties": {
+                    "ankaios.runtime": "podman",
+                    "ankaios.agent": "agent_A",
+                    "ankaios.restartPolicy": "NEVER",
+                    "ankaios.runtimeConfig": "image: localhost/app:0.1"
+                }
+            }
+        ]
+    }
+}

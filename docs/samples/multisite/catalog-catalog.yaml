@@ -7,15 +7,15 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-catalog-v-v1
+  name: site-catalog-v-version1
 spec:
   rootResource: site-catalog
   catalogType: catalog
   properties:
     metadata: 
-      name: web-app-config:v1
+      name: web-app-config:version1
     spec: 
-      type: config
+      catalogType: config
       properties:
         image: "ghcr.io/eclipse-symphony/sample-flask-app:latest"
         serviceType: "LoadBalancer"

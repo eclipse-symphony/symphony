@@ -1,7 +1,7 @@
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: solution03-v-v1
+  name: solution03-v-version1
 spec:
   rootResource: solution03
   metadata:
@@ -15,4 +15,4 @@ spec:
       container.ports: "[{\"containerPort\":${{$secret('container','port')}},\"protocol\":\"TCP\"}]"
       container.imagePullPolicy: "Always"
       container.resources: "{\"requests\":{\"cpu\":\"50m\",\"memory\":\"100Mi\"}}"        
-      container.image: "${{$config('config1:v1','image')}}"
+      container.image: "${{$config('config1:version1','image')}}"

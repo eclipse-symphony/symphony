@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	federationv1 "gopls-workspace/apis/federation/v1"
@@ -46,7 +47,11 @@ func (r *CatalogContainerReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CatalogContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("CatalogContainer").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&federationv1.CatalogContainer{}).
 		Complete(r)
 }

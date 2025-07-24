@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/helper"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
@@ -28,6 +27,7 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -79,6 +79,14 @@ func (s *CreateStageProvider) Init(config providers.IProviderConfig) error {
 	if err != nil {
 		return err
 	}
+	if mockConfig.WaitInterval == 0 {
+		mockConfig.WaitInterval = 20
+	}
+
+	if mockConfig.WaitCount == 0 {
+		mockConfig.WaitCount = 31 * 60 / mockConfig.WaitInterval
+	}
+
 	s.Config = mockConfig
 	s.ApiClient, err = api_utils.GetApiClient()
 	if err != nil {
@@ -182,7 +190,6 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		objectData, _ = json.Marshal(object)
 	}
 	objectName = api_utils.ConvertReferenceToObjectName(objectName)
-	lastSummaryMessage := ""
 	objectNamespace := stage.GetNamespace(inputs)
 	if objectNamespace == "" {
 		objectNamespace = "default"
@@ -211,7 +218,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			objectName := stage.ReadInputString(inputs, "objectName")
 			solutionName := api_utils.ConvertReferenceToObjectName(objectName)
 			var solutionState model.SolutionState
-			err = json.Unmarshal(objectData, &solutionState)
+			err = utils2.UnmarshalJson(objectData, &solutionState)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for input %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -263,8 +270,8 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 				// Set the owner reference
 				target := stage.ReadInputString(inputs, "__target")
-				target = helper.GetInstanceTargetName(target)
-				ownerReference, err := helper.GetSolutionContainerOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
+				target = api_utils.GetInstanceTargetName(target)
+				ownerReference, err := api_utils.GetSolutionContainerOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
 				if err != nil {
 					mLog.ErrorfCtx(ctx, "Failed to get owner reference for solution %s: %s", objectName, err.Error())
 					providerOperationMetrics.ProviderOperationErrors(
@@ -380,20 +387,39 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
-				return outputs, false, err
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid objectdata: %v", objectData), v1alpha2.BadRequest)
 			}
 
 			target := stage.ReadInputString(inputs, "__target")
 			if target != "" {
+				if instanceState.Spec == nil {
+					instanceState.Spec = &model.InstanceSpec{}
+				}
 				instanceState.Spec.Target = model.TargetSelector{
-					Name: helper.GetInstanceTargetName(target),
+					Name: target,
 				}
 			}
 
+			// Get the solution and container name
+			solutionContainer, solutionVersion := api_utils.GetSolutionAndContainerName(instanceState.Spec.Solution)
+			if solutionContainer == "" || solutionVersion == "" {
+				mLog.ErrorfCtx(ctx, "Invalid solution name: instance - %s", objectName)
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateInstanceFailed.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
+			}
+			// Get instanceName
+			instanceName := api_utils.GetInstanceName(solutionContainer, objectName)
+
 			// Set the owner reference
-			ownerReference, err := helper.GetInstanceOwnerReferences(i.ApiClient, ctx, objectName, objectNamespace, instanceState, i.Config.User, i.Config.Password)
+			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, solutionContainer, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", objectName, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", instanceName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -421,11 +447,26 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			if annotation_name != "" {
 				instanceState.ObjectMeta.UpdateAnnotation(annotation_name, objectName)
 			}
+
+			// Add annotation for Private.Edge provider resources
+			anno := api_utils.GenerateSystemDataAnnotations(ctx, instanceState.ObjectMeta.Annotations, target)
+			instanceState.ObjectMeta.Annotations = anno
+
+			// TODO: azure build flag
+			// TODO: also update in materialize stage provider
+			operationIdKey := api_utils.GenerateOperationId()
+			if operationIdKey != "" {
+				if instanceState.ObjectMeta.Annotations == nil {
+					instanceState.ObjectMeta.Annotations = make(map[string]string)
+				}
+				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
+				mLog.InfofCtx(ctx, "  P (Create Stage): update %s annotation: %s to %s", instanceName, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
+			}
 			instanceState.ObjectMeta.Namespace = objectNamespace
-			instanceState.ObjectMeta.Name = objectName
+			instanceState.ObjectMeta.Name = instanceName
 
 			if instanceState.ObjectMeta.Name == "" {
-				mLog.ErrorfCtx(ctx, "Instance name is empty: - %s", objectName)
+				mLog.ErrorfCtx(ctx, "Instance name is empty: - %s", instanceName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -433,12 +474,32 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: - %s", instanceName), v1alpha2.BadRequest)
+			}
+
+			// get instance first to get the previous jobid before update
+			previousJobId := "-1"
+			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil && !api_utils.IsNotFound(err) {
+				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					create,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InstanceGetFailed.String(),
+				)
+				return outputs, false, err
+			}
+			if err == nil {
+				// Get the previous job ID if instance exists
+				previousJobId = ret.ObjectMeta.GetSummaryJobId()
 			}
 
 			objectData, _ := json.Marshal(instanceState)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", objectName, objectNamespace)
-			err = i.ApiClient.CreateInstance(ctx, objectName, objectData, objectNamespace, i.Config.User, i.Config.Password)
+			mLog.InfofCtx(ctx, "  P (Create Stage): creating instance %s with state: %s", instanceName, objectData)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to create instance name %s namespace %s", instanceName, objectNamespace)
+			err = i.ApiClient.CreateInstance(ctx, instanceName, objectData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
@@ -448,11 +509,15 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					v1alpha2.CreateInstanceFailed.String(),
 				)
 				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to create instance: %+v", err)
+				if apiError, ok := err.(api_utils.APIError); ok {
+					mLog.InfofCtx(ctx, "  P (Create Stage): This is an webhook error with status: %d, message: %v", apiError.Code, apiError)
+				}
+
 				return nil, false, err
 			}
 
 			// check guid after instance created
-			ret, err := i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			ret, err = i.ApiClient.GetInstance(ctx, instanceState.ObjectMeta.Name, instanceState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get instance %s: %s", instanceState.ObjectMeta.Name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
@@ -466,7 +531,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			}
 			summaryId := ret.ObjectMeta.GetSummaryId()
 			if summaryId == "" {
-				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", objectName)
+				mLog.ErrorfCtx(ctx, "Instance GUID is empty: - %s", instanceName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -474,21 +539,27 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceName), v1alpha2.BadRequest)
 			}
-
+			var remaining []api_utils.ObjectInfo
+			var failed []api_utils.FailedDeployment
 			for ic := 0; ic < i.Config.WaitCount; ic++ {
 				obj := api_utils.ObjectInfo{
-					Name:      objectName,
-					SummaryId: summaryId,
+					Name:         instanceName,
+					SummaryId:    summaryId,
+					SummaryJobId: previousJobId,
 				}
-				remaining, failed := api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
+				remaining, failed = api_utils.FilterIncompleteDeploymentUsingSummary(ctx, &i.ApiClient, objectNamespace, []api_utils.ObjectInfo{obj}, true, i.Config.User, i.Config.Password)
 				if len(remaining) == 0 {
 					outputs["objectType"] = objectType
-					outputs["objectName"] = objectName
+					outputs["objectName"] = instanceName
 					mLog.InfofCtx(ctx, "  P (Create Stage) process completed with fail count is %d", len(failed))
+
+					outputs["failedDeploymentCount"] = len(failed)
+					outputs["status"] = 200
 					if len(failed) > 0 {
-						outputs["failedDeployment"] = failed
+						outputs["error"] = failed[0].Message
+						outputs["status"] = 400
 					}
 					return outputs, false, nil
 				}
@@ -501,9 +572,13 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				metrics.RunOperationType,
 				v1alpha2.DeploymentNotReached.String(),
 			)
-			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Instance creation reconcile failed: %s", lastSummaryMessage), v1alpha2.InternalError)
-			mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, error: %+v", err)
-			return nil, false, err
+			mLog.ErrorfCtx(ctx, "  P (Create Stage) Instance creation reconcile timeout.")
+			outputs["objectType"] = objectType
+			outputs["objectName"] = instanceName
+			outputs["failedDeploymentCount"] = len(remaining)
+			outputs["error"] = fmt.Sprintf("Instance creation reconcile timeout after %d seconds", i.Config.WaitCount*i.Config.WaitInterval)
+			outputs["status"] = 400
+			return outputs, false, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.BadRequest)
 			providerOperationMetrics.ProviderOperationErrors(

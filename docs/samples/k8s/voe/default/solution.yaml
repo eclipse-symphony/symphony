@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: voe-default-v-v1
+  name: voe-default-v-version1
 spec:
   rootResource: voe-default
   parameters:

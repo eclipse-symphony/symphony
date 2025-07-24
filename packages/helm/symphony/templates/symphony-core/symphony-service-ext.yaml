@@ -10,10 +10,12 @@ spec:
   externalTrafficPolicy: Local
   type: LoadBalancer
   ports:
+  {{- if ne .Values.api.openHTTP false }}
   - protocol: TCP
     port: {{ .Values.symphony.extension.httpport }}
     targetPort: {{ include "symphony.apiContainerPortHttp" . }}
     name: http
+  {{- end }}
   - protocol: TCP
     port: {{ .Values.symphony.extension.httpsport }}
     targetPort: {{ include "symphony.apiContainerPortHttps" . }}

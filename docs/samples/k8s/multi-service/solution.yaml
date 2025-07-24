@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: redis-server-v-v1
+  name: redis-server-v-version1
 spec:
     rootResource: redis-server
     components:

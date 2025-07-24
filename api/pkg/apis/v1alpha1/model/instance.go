@@ -11,7 +11,9 @@ import (
 )
 
 type (
-	InstanceStatus = DeployableStatus
+	InstanceStatus = DeployableStatusV2
+
+	ActiveState string
 
 	// InstanceState defines the current state of the instance
 	InstanceState struct {
@@ -32,6 +34,7 @@ type (
 		Topologies  []TopologySpec    `json:"topologies,omitempty"`
 		Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`
 		IsDryRun    bool              `json:"isDryRun,omitempty"`
+		ActiveState ActiveState       `json:"activeState,omitempty"`
 	}
 
 	// TargertRefSpec defines the target the instance will deploy to
@@ -48,6 +51,11 @@ type (
 		Skill      string            `json:"skill"`
 		Parameters map[string]string `json:"parameters,omitempty"`
 	}
+)
+
+const (
+	ActiveState_Active   ActiveState = "active"
+	ActiveState_Inactive ActiveState = "inactive"
 )
 
 func (c TargetSelector) DeepEquals(other IDeepEquals) (bool, error) {
@@ -120,6 +128,10 @@ func (c InstanceSpec) DeepEquals(other IDeepEquals) (bool, error) {
 	}
 
 	if c.Scope != otherC.Scope {
+		return false, nil
+	}
+
+	if c.ActiveState != otherC.ActiveState {
 		return false, nil
 	}
 

@@ -18,7 +18,15 @@ import (
 )
 
 func Build() error {
-	return shellcmd.Command("go build -o bin/symphony-api").Run()
+	cargoBuildCmd := "cargo build --release --manifest-path pkg/apis/v1alpha1/providers/target/rust/Cargo.toml"
+	goBuildCmd := "go build -o bin/symphony-api"
+	if err := shellcmd.RunAll(
+		shellcmd.Command(cargoBuildCmd),
+		shellcmd.Command(goBuildCmd),
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Runs both api unit tests as well as coa unit tests.

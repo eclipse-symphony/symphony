@@ -78,9 +78,15 @@ patch_finalizers() {
   local finalizer_value=$2
 
   # Fetch all resources of the given type and patch the finalizers
-  kubectl get "$resource_type" --all-namespaces -o jsonpath="{range .items[*]}{.metadata.namespace}{'\t'}{.metadata.name}{'\t'}{.metadata.finalizers}{'\n'}{end}" |
-    while read -r namespace name finalizers; do
-      if echo "$finalizers" | grep -q "$finalizer_value"; then
+  kubectl get "$resource_type" --all-namespaces -o jsonpath="{range .items[*]}{.metadata.namespace}{'\t'}{.metadata.name}{'\t'}{.metadata.finalizers}{'\t'}{.metadata.deletionTimestamp}{'\n'}{end}" |
+    while read -r namespace name finalizers deletionTimestamp; do
+      if [ -n "$deletionTimestamp" ]; then
+        echo "Resource $resource_type $name in namespace $namespace is being deleted, removing all finalizers"
+        kubectl patch "$resource_type" "$name" -n "$namespace" --type='merge' -p "{\"metadata\":{\"finalizers\":[]}}"
+        if [ $? -ne 0 ]; then
+          echo "Failed to remove finalizers from $resource_type $name in namespace $namespace"
+        fi
+      elif echo "$finalizers" | grep -q "$finalizer_value"; then
         echo "Finalizer $finalizer_value already present for $resource_type $name in namespace $namespace"
       else
         # Append the new finalizer to the existing finalizers

@@ -671,6 +671,54 @@ func TestGetComponentSliceWithValues(t *testing.T) {
 	assert.Equal(t, 1, len(res))
 }
 
+func TestGetDeploymentSpecForLog(t *testing.T) {
+	deployment := DeploymentSpec{
+		SolutionName: "SolutionName",
+		Solution: SolutionState{
+			ObjectMeta: ObjectMeta{
+				Name: "SolutionName",
+			},
+			Spec: &SolutionSpec{
+				DisplayName: "SolutionDisplayName",
+			},
+		},
+		Instance: InstanceState{
+			ObjectMeta: ObjectMeta{
+				Name: "InstanceName",
+			},
+			Spec: &InstanceSpec{
+				DisplayName: "InstanceDisplayName",
+			},
+		},
+		Targets: map[string]TargetState{
+			"foo": TargetState{
+				ObjectMeta: ObjectMeta{
+					Name: "TargetName",
+				},
+				Spec: &TargetSpec{
+					DisplayName: "TargetDisplayName",
+				},
+			},
+		},
+		Devices: []DeviceSpec{{
+			DisplayName: "DeviceName",
+		}},
+		Assignments: map[string]string{
+			"foo": "bar",
+		},
+		ComponentStartIndex: 0,
+		ComponentEndIndex:   0,
+		ActiveTarget:        "ActiveTarget",
+	}
+	output := GetDeploymentSpecForLog(&deployment)
+	assert.Contains(t, output, "SolutionName")
+	assert.Contains(t, output, "InstanceName")
+	assert.Contains(t, output, "TargetName")
+	assert.NotContains(t, output, "SolutionDisplayName")
+	assert.NotContains(t, output, "InstanceDisplayName")
+	assert.NotContains(t, output, "TargetDisplayName")
+}
+
 func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
 		SolutionName: "SolutionName",

@@ -8,10 +8,12 @@ spec:
     app: symphony-api
   type: ClusterIP
   ports:
+  {{- if ne .Values.api.openHTTP false }}
   - protocol: TCP
     port: {{ .Values.symphony.incluster.httpport }}
     targetPort: {{ include "symphony.apiContainerPortHttp" . }}
     name: http
+  {{- end }}
   - protocol: TCP
     port: {{ .Values.symphony.incluster.httpsport }}
     targetPort: {{ include "symphony.apiContainerPortHttps" . }}

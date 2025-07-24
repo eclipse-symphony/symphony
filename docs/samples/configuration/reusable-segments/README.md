@@ -16,7 +16,7 @@ Composition allows for a configuration object to be made of many other objects.
 
     ```yml
     spec:
-        type: config
+        catalogType: config
         properties:
             common-key1: "common-value1"
             common-key2: "common-value2"
@@ -26,7 +26,7 @@ Composition allows for a configuration object to be made of many other objects.
 
     ```yml
     spec:
-        type: config
+        catalogType: config
         properties:
             reusable-segment: ${{$config('segment', '')}}
             key1: "value1"

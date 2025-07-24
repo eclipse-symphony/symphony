@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: my-rtos-app
 spec:  
-  solution: rtos-app:v1
+  solution: rtos-app:version1
   target:
     selector: 
       app: rtos-demo

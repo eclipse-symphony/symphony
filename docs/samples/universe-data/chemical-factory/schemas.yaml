@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: sample-schema-v-v1
+  name: sample-schema-v-version1
 spec:
   rootResource: sample-schema
   catalogType: schema

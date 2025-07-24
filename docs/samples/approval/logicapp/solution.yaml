@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: gated-prometheus-server-v-v1
+  name: gated-prometheus-server-v-version1
 spec:  
   rootResource: gated-prometheus-server
   metadata:

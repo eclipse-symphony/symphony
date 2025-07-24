@@ -4,6 +4,6 @@ metadata:
   name: instance03
 spec:
   scope: k8s-scope  
-  solution: solution03:v1
+  solution: solution03:version1
   target: 
     name: target03

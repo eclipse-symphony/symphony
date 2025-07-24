@@ -225,8 +225,8 @@ type ActivationData struct {
 	Stage                string                            `json:"stage"`
 	Inputs               map[string]interface{}            `json:"inputs,omitempty"`
 	Outputs              map[string]map[string]interface{} `json:"outputs,omitempty"`
-	Provider             string                            `json:"provider,omitempty"`
-	Config               interface{}                       `json:"config,omitempty"`
+	Provider             string                            `json:"provider,omitempty"` // dup from campaign.currentStage
+	Config               interface{}                       `json:"config,omitempty"`   // dup from campaign.currentStage
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
 	Schedule             string                            `json:"schedule,omitempty"`
 	NeedsReport          bool                              `json:"needsReport,omitempty"`

@@ -1,0 +1,13 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: TARGETNAME
+  annotations: 
+    management.azure.com/resourceId: TARGETREFNAME
+spec:  
+  topologies:
+  - bindings:
+    - role: config
+      provider: providers.target.configmap
+      config:
+        inCluster: "true"

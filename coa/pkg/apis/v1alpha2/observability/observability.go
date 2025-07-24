@@ -183,7 +183,7 @@ func (o *Observability) createExporter(config ExporterConfig, serviceName string
 		sdktrace.WithSpanProcessor(batcher),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(serviceName),
+			populateServiceId(serviceName),
 			populateMicrosoftResourceId(),
 		))))
 	return nil
@@ -275,7 +275,7 @@ func (o *Observability) InitTrace(config ObservabilityConfig) error {
 		sdktrace.WithResource(
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
-				semconv.ServiceNameKey.String(config.ServiceName),
+				populateServiceId(config.ServiceName),
 				populateMicrosoftResourceId(),
 			),
 		),
@@ -413,7 +413,7 @@ func (o *Observability) InitLog(config ObservabilityConfig) error {
 		sdklog.WithResource(
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
-				semconv.ServiceNameKey.String(config.ServiceName),
+				populateServiceId(config.ServiceName),
 				populateMicrosoftResourceId(),
 			),
 		),
@@ -495,7 +495,7 @@ func (o *Observability) InitMetric(config ObservabilityConfig) error {
 		sdkmetric.WithResource(
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
-				semconv.ServiceNameKey.String(config.ServiceName),
+				populateServiceId(config.ServiceName),
 				populateMicrosoftResourceId(),
 				populateChartVersion(),
 			),
@@ -534,6 +534,13 @@ func genevaTemporality(ik sdkmetric.InstrumentKind) metricdata.Temporality {
 		return metricdata.CumulativeTemporality
 	default:
 		return metricdata.DeltaTemporality
+	}
+}
+
+func populateServiceId(serviceName string) attribute.KeyValue {
+	return attribute.KeyValue{
+		Key:   "serviceName",
+		Value: attribute.StringValue(serviceName),
 	}
 }
 

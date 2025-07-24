@@ -95,7 +95,7 @@ func TestWaitProcess(t *testing.T) {
 	}
 	output, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, input)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", output["status"])
+	assert.Equal(t, "200", output["status"])
 	assert.Equal(t, "instance", output["objectType"])
 
 	// instances not exist
@@ -116,7 +116,7 @@ func TestWaitProcess(t *testing.T) {
 	}
 	output, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, input)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", output["status"])
+	assert.Equal(t, "200", output["status"])
 	assert.Equal(t, "sites", output["objectType"])
 
 	// sites not exist
@@ -137,7 +137,7 @@ func TestWaitProcess(t *testing.T) {
 	}
 	output, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, input)
 	assert.Nil(t, err)
-	assert.Equal(t, "OK", output["status"])
+	assert.Equal(t, "200", output["status"])
 	assert.Equal(t, "catalogs", output["objectType"])
 
 	// catalogs not exist

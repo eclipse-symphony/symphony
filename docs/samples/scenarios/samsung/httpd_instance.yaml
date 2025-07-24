@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: myapplication-httpd
 spec:
-  solution: myapplication-httpd:v1
+  solution: myapplication-httpd:version1
   target: 
     selector:
       group: group-2

@@ -7,7 +7,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: rtos-app-v-v1
+  name: rtos-app-v-version1
 spec:
   rootResource: rtos-app
   components:

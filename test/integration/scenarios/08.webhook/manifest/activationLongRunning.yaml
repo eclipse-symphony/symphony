@@ -3,4 +3,4 @@ kind: Activation
 metadata:
   name: activationlongrunning
 spec:
-  campaign: "04campaign:v3"
+  campaign: "04campaign:version3"

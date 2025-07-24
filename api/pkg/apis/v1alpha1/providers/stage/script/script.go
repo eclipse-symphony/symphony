@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -168,7 +169,7 @@ func toScriptStageProviderConfig(config providers.IProviderConfig) (ScriptStageP
 	if err != nil {
 		return ret, err
 	}
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	return ret, err
 }
 
@@ -247,7 +248,7 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	defer os.Remove(abs_output)
 
 	ret := make(map[string]interface{})
-	err = json.Unmarshal(data, &ret)
+	err = utils2.UnmarshalJson(data, &ret)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Script Stage): failed to parse get script output (expected map[string]interface{}): %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(

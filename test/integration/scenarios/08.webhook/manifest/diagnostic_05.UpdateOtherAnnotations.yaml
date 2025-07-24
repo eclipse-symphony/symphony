@@ -2,7 +2,9 @@ apiVersion: monitor.symphony/v1
 kind: Diagnostic
 metadata:
   name: default
+  namespace: default2
   annotations:
     management.azure.com/customLocation: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fakeRG/providers/Microsoft.ExtendedLocation/customLocations/fakeedgelocation2
+    management.azure.com/operationId: 00000000-0000-0000-0000-000000000000
 spec:
   # TODO(user): Add fields here

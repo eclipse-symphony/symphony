@@ -23,16 +23,17 @@ import (
 )
 
 type JWT struct {
-	AuthHeader  string                 `json:"authHeader"`
-	VerifyKey   string                 `json:"verifyKey"`
-	MustHave    []string               `json:"mustHave,omitempty"`
-	MustMatch   map[string]interface{} `json:"mustMatch,omitempty"`
-	AuthServer  AuthServer             `json:"authServer,omitempty"`
-	verifyKey   *rsa.PublicKey
-	IgnorePaths []string          `json:"ignorePaths,omitempty"`
-	Roles       []ClaimRoleMap    `json:"roles,omitempty"`
-	EnableRBAC  bool              `json:"enableRBAC,omitempty"`
-	Policy      map[string]Policy `json:"policy,omitempty"`
+	AuthHeader       string                 `json:"authHeader"`
+	VerifyKey        string                 `json:"verifyKey"`
+	MustHave         []string               `json:"mustHave,omitempty"`
+	MustMatch        map[string]interface{} `json:"mustMatch,omitempty"`
+	AuthServer       AuthServer             `json:"authServer,omitempty"`
+	verifyKey        *rsa.PublicKey
+	IgnorePaths      []string          `json:"ignorePaths,omitempty"`
+	Roles            []ClaimRoleMap    `json:"roles,omitempty"`
+	EnableRBAC       bool              `json:"enableRBAC,omitempty"`
+	Policy           map[string]Policy `json:"policy,omitempty"`
+	DisableUserCreds bool              `json:"disableUserCreds,omitempty"`
 }
 
 // enum string for AuthServer
@@ -100,6 +101,11 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 				return
 			}
 			if issuer == SymphonyIssuer {
+				if j.DisableUserCreds == true {
+					log.Infof("JWT: Token with username plus pwd is not allowed.")
+					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+					return
+				}
 				log.Debugf("JWT: Validating token with username plus pwd.")
 				_, roles, err := j.validateToken(tokenStr)
 				if err != nil {

@@ -25,6 +25,11 @@ func IsComponentKey(key string) bool {
 	return targetKeyRegex.MatchString(key)
 }
 
+func ComponentKeyToTargetAndComponent(key string) (string, string) {
+	parts := targetKeyRegex.FindStringSubmatch(key)
+	return parts[1], parts[2]
+}
+
 func HashObjects(deploymentResources DeploymentResources) string {
 	hasher := md5.New()
 

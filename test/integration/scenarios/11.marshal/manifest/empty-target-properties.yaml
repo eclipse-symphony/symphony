@@ -1,0 +1,9 @@
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: empty-target
+spec:   
+  components:
+  - name: empty-component
+    type: fake-type
+    properties: null

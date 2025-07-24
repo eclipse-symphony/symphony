@@ -7,7 +7,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: hq-v-v1
+  name: hq-v-version1
 spec:
   rootResource: hq
   catalogType: asset
@@ -32,13 +32,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: infrastructure-v-v1
+  name: infrastructure-v-version1
 spec:
   rootResource: infrastructure
   catalogType: asset
   properties:
     name: "Infrastructure"    
-  parentName: hq-v-v1
+  parentName: hq-v-version1
 ---
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
@@ -55,7 +55,7 @@ spec:
   catalogType: asset
   properties:
     name: "Level 3"    
-  parentName: infrastructure-v-v1
+  parentName: infrastructure-v-version1
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
@@ -66,7 +66,7 @@ spec:
   catalogType: asset
   properties:
     name: "Level 4"    
-  parentName: infrastructure-v-v1
+  parentName: infrastructure-v-version1
 ---
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
@@ -83,7 +83,7 @@ spec:
   catalogType: asset
   properties:
     name: "Use Cases"    
-  parentName: hq-v-v1
+  parentName: hq-v-version1
 ---
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
@@ -94,7 +94,7 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: csad-v-v1
+  name: csad-v-version1
 spec: 
   rootResource: csad
   catalogType: asset
@@ -111,13 +111,13 @@ spec:
 apiVersion: federation.symphony/v1
 kind: Catalog
 metadata:
-  name: site-v-v1
+  name: site-v-version1
 spec: 
   rootResource: site
   catalogType: asset
   properties:
     name: "Site"    
-  parentName: csad-v-v1
+  parentName: csad-v-version1
 ---
 apiVersion: federation.symphony/v1
 kind: CatalogContainer
@@ -134,7 +134,7 @@ spec:
   catalogType: asset
   properties:
     name: "Line A"    
-  parentName: site-v-v1
+  parentName: site-v-version1
 ---
 apiVersion: federation.symphony/v1
 kind: Catalog
@@ -145,4 +145,4 @@ spec:
   catalogType: asset
   properties:
     name: "Line B"    
-  parentName: site-v-v1
+  parentName: site-v-version1

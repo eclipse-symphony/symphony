@@ -11,8 +11,8 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	cerrors "github.com/containerd/containerd/remotes/errors"
 	"helm.sh/helm/v3/pkg/registry"
+	"oras.land/oras-go/v2/registry/remote/errcode"
 )
 
 type (
@@ -70,9 +70,18 @@ func isUnauthorized(err error) bool {
 	if err == nil {
 		return false
 	}
-	var unexpectedStatusError = &cerrors.ErrUnexpectedStatus{}
-	if errors.As(err, unexpectedStatusError) {
-		return unexpectedStatusError.StatusCode == http.StatusUnauthorized
+	// In case the error is a wrapped error, unwrap completely to get the root error response.
+	rootErr := err
+	for {
+		if errResponse, ok := rootErr.(*errcode.ErrorResponse); ok {
+			return errResponse.StatusCode == http.StatusUnauthorized
+		}
+
+		if unwrapped := errors.Unwrap(rootErr); unwrapped != nil {
+			rootErr = unwrapped
+		} else {
+			break
+		}
 	}
 	return false
 }

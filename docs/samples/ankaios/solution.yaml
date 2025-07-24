@@ -1,0 +1,29 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: ankaios-app
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata: 
+  name: ankaios-app-v-v1
+spec:
+  rootResource: ankaios-app
+  components:
+  - name: ankaios-app
+    properties:
+      spec:
+        apiVersion: v1
+        workloads:
+          hello_ankaios:
+            runtime: podman
+            agent: agetn_Rust_SDK
+            controlInterfaceAccess:
+              allowRules:
+                - type: StateRule
+                  operation: ReadWrite
+                  filterMask:
+                    - "*"
+            runtimeConfig: |
+              image: localhost/app:0.1

@@ -52,7 +52,7 @@ redis:
     # whether to enable presistent volume for redis
     enabled: true
     # the storage class where the redis PV is provisioned. Default Sc is used if not specified
-    storageClass:
+    storageClass: ""
     accessMode: ReadWriteOnce
     size: 1Gi
 
@@ -66,6 +66,8 @@ siteId: hq
 api:
   apiContainerPortHttp: 8080
   apiContainerPortHttps: 8081
+  disableUserCreds: 
+  openHTTP: 
   labelKey:
   labelValue:
   annotationKey: 
@@ -83,6 +85,15 @@ ActivationCleanup:
   # Rentention duration for activations, default is 180days
   # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
   retentionDuration: "4320h"
+SummaryCleanup:
+  enabled: true
+  # Rentention duration for activations, default is 180days
+  # units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  retentionDuration: "4320h"
+K8sController:
+  limits:
+    memory: 128Mi
+    cpu: 500m
 Azure:
   proxySettings:
     isProxyEnabled: false

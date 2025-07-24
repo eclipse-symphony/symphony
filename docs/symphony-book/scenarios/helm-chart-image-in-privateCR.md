@@ -31,7 +31,7 @@ spec:
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata: 
-  name: test-app-v-v1
+  name: test-app-v-version1
 spec:
   rootResource: test-app
   components:
@@ -77,7 +77,7 @@ metadata:
 spec:
   displayName: test-instance
   scope: default
-  solution: test-app:v1
+  solution: test-app:version1
   target:
     name: test-target
 ```

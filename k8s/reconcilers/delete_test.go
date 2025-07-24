@@ -12,11 +12,8 @@ import (
 	v1 "gopls-workspace/apis/fabric/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/reconcilers"
-	"time"
 
 	. "gopls-workspace/testing"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/go-logr/logr"
@@ -98,26 +95,9 @@ var _ = Describe("Attempt Delete", func() {
 		_, reconcileResultPolling, reconcileErrorPolling = reconciler.PollingResult(ctx, object, true, logr.Discard(), targetOperationStartTimeKey, constants.ActivityOperation_Delete)
 	})
 
-	When("the delete timeout has elapsed elapsed", func() {
-		BeforeEach(func(ctx context.Context) {
-			By("setting the deletion timestamp to a time in the past")
-			jobID = uuid.New().String()
-			object.SetDeletionTimestamp(&metav1.Time{Time: time.Now().Add(-TestReconcileTimout)})
-			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockInProgressSummaryResult(object, "test-hash"), nil)
-		})
-
-		It("should have a status of failed", func() {
-			Expect(object.Status.ProvisioningStatus.Status).To(ContainSubstring("Failed"))
-		})
-
-		It("should return a result indicating that the object should not be requeued", func() {
-			Expect(reconcileResult.RequeueAfter).To(BeWithin("1s").Of(TestReconcileInterval))
-			Expect(reconcileError).NotTo(HaveOccurred())
-		})
-	})
-
 	When("the object has not been queued for deletion on the api but has been deployed", func() {
 		BeforeEach(func(ctx context.Context) {
+			jobID = uuid.New().String()
 			By("returning a summary of a deployed but not deleted object from the api")
 			apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResult(object, "test-hash"), nil)
 		})

@@ -1,4 +1,4 @@
-# Symphony
+# Eclipse Symphony
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![build](https://github.com/eclipse-symphony/symphony/actions/workflows/go.yml/badge.svg)
@@ -66,9 +66,14 @@ You can also install Symphony using Docker with the bundled `symphony-api.json` 
 docker run -d --name symphony-api -p 8080:8080 -e CONFIG=/symphony-api.json ghcr.io/eclipse-symphony/symphony-api:0.48.28
 ```
 ### Using symphony-api binary
+
+> **NOTE:** When you install maestro, it copies the `symphony-api` binary to your `$HOME/.symphony` folder. Or, you can follow the instructions [here](./docs/symphony-book/build_deployment/build.md) to build the binary yourself.
+
 You can also run Symphony in standalone mode as a single process by running the following command:
 ```Bash
-./symphony-api -c ./symphony-api-dev.json -l Debug
+export USE_SERVICE_ACCOUNT_TOKENS=false
+export SYMPHONY_API_URL=http://localhost:8082/v1alpha2/
+./symphony-api -c ./symphony-api-no-k8s.json -l Debug
 ```
 ## Provider Conformance Test Results
 Symphony is an extensible system with the concept of providers. For each provider types, we define one or multiple conformance test suites that ensure provider implementations behaves consistently and predictably.
@@ -129,20 +134,23 @@ You can always catch up offline by watching the recordings below.
 
 | Asset | Link        |
 |:-----------|:------------|
-| Meeting Link | [Teams Link](https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWE0MTE5YTItN2RlMy00ODFkLWFlNGQtOTUyM2YzNWMwNzg2%40thread.v2/0?context=%7b%22Tid%22%3a%2272f988bf-86f1-41af-91ab-2d7cd011db47%22%2c%22Oid%22%3a%2203d4b2ae-f8d5-463c-8a45-2a8fb04390b7%22%7d)
+| Meeting Link | [Teams Link](https://teams.microsoft.com/meet/267721771421?p=hyAHXrqsyVdDA0VAZQ)
 | Meeting Recordings | [YouTube](https://www.youtube.com/@Eclipse-Symphony/videos)
 
 ### Upcoming calls
 
 | Date & time |
 |-------------|
-| Wednesday January 15 <sup>th</sup>, 2025 8:00am Pacific Time (PST) |
+| Wednesday March 26 <sup>th</sup>, 2025 8:00am Pacific Time (PST) |
 
 ### Previous calls
 
 | Date & time | Link |
 |-------------|:-------------|
 | 12/11/2024 | [Recording Link](https://www.youtube.com/watch?v=0WEDia5JD-Y)|
+| 01/15/2025 | [Recording Link](https://youtu.be/8b4wc21eOjM)|
+| 02/26/2025 | [Recording Link](https://youtu.be/VAwGlObx0mQ)|
+| 04/23/2025 | [Recording Link](https://youtu.be/NMuvH6VxtNw)|
 
 
 ## Contributing

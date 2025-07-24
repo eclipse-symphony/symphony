@@ -1698,7 +1698,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaign\": \"test-campaign\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"__status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
+							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaign\": \"test-campaign\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"

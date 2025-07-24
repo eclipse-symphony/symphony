@@ -134,6 +134,7 @@ func TestCreateProcessCreate(t *testing.T) {
 	instance := model.InstanceState{
 		Spec: &model.InstanceSpec{
 			DisplayName: "instance1",
+			Solution:    "sample:version1",
 		},
 	}
 	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
@@ -161,16 +162,17 @@ func TestCreateProcessCreateFailedCase(t *testing.T) {
 	instance := model.InstanceState{
 		Spec: &model.InstanceSpec{
 			DisplayName: "instance1",
+			Solution:    "sample:version1",
 		},
 	}
-	_, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+	output, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "instance",
 		"objectName": "instance1",
 		"action":     "create",
 		"object":     instance,
 	})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Instance creation reconcile failed:")
+	assert.Nil(t, err)
+	assert.Contains(t, output["error"], "timeout")
 }
 
 func TestCreateProcessRemove(t *testing.T) {
@@ -248,12 +250,12 @@ func TestCreateSolutionCreate(t *testing.T) {
 	}
 	outpts, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"objectType": "solution",
-		"objectName": "sample:v1",
+		"objectName": "sample:version1",
 		"action":     "create",
 		"object":     solution,
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "sample-v-v1", outpts["objectName"])
+	assert.Equal(t, "sample-v-version1", outpts["objectName"])
 	assert.Equal(t, "solution", outpts["objectType"])
 }
 
@@ -294,20 +296,40 @@ func TestCreateProcessUnsupported(t *testing.T) {
 }
 
 func InitializeMockSymphonyAPI() *httptest.Server {
+	requestCounts := make(map[string]int)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		statuCode := 200
+
+		// Create counters to track request counts for endpoints
+		requestCounts[r.URL.Path]++
+		count := requestCounts[r.URL.Path]
 		switch r.URL.Path {
 		case "/instances/instance1":
-			response = model.InstanceState{
-				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
-					Annotations: map[string]string{
-						"Guid": "test-guid",
+			if count == 1 {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "1",
+						},
 					},
-				},
-				Spec:   &model.InstanceSpec{},
-				Status: model.InstanceStatus{},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
+			} else {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "2",
+						},
+					},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
 			}
 		case "/solution/queue":
 			response = model.SummaryResult{
@@ -315,10 +337,11 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					TargetCount:         1,
 					SuccessCount:        1,
 					AllAssignedDeployed: true,
+					JobID:               "3",
 				},
 				State: model.SummaryStateDone,
 			}
-		case "/solutions/sample-v-v1":
+		case "/solutions/sample-v-version1":
 			response = nil
 		case "/solutioncontainers/sample":
 			if r.Method == http.MethodGet {
@@ -341,25 +364,46 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 }
 
 func InitializeMockSymphonyAPIFailedCase() *httptest.Server {
+	requestCounts := make(map[string]int)
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
+		// Create counters to track request counts for endpoints
+		requestCounts[r.URL.Path]++
+		count := requestCounts[r.URL.Path]
 		switch r.URL.Path {
 		case "/instances/instance1":
-			response = model.InstanceState{
-				ObjectMeta: model.ObjectMeta{
-					Name: "instance1",
-					Annotations: map[string]string{
-						"Guid": "test-guid",
+			if count == 1 {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "1",
+						},
 					},
-				},
-				Spec:   &model.InstanceSpec{},
-				Status: model.InstanceStatus{},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
+			} else {
+				response = model.InstanceState{
+					ObjectMeta: model.ObjectMeta{
+						Name: "instance1",
+						Annotations: map[string]string{
+							"Guid":            "test-guid",
+							"SummaryJobIdKey": "2",
+						},
+					},
+					Spec:   &model.InstanceSpec{},
+					Status: model.InstanceStatus{},
+				}
 			}
 		case "/solution/queue":
 			response = model.SummaryResult{
 				Summary: model.SummarySpec{
 					TargetCount:  2,
 					SuccessCount: 1,
+					JobID:        "3",
 				},
 			}
 		default:

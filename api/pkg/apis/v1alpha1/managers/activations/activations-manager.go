@@ -393,19 +393,31 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 			return err
 		}
 		site := utils.FormatAsString(current.Outputs["__site"])
-		parentStageStatus.Outputs[fmt.Sprintf("%s.__status", site)] = current.Status.String()
+		parentStageStatus.Outputs[fmt.Sprintf("%s.status", site)] = current.Status.String()
 		output := map[string]interface{}{}
 		for k, v := range current.Outputs {
 			// remove outputs for internal tracking use
 			if !strings.HasPrefix(k, "__") {
-				output[k] = v
+				if taskResult, ok := v.(map[string]interface{}); ok {
+					// remove outputs for internal tracking use
+					newTaskResult := make(map[string]interface{})
+					for k, v := range taskResult {
+						if !strings.HasSuffix(k, "status") && !strings.HasSuffix(k, "error") {
+							newTaskResult[k] = v
+						}
+					}
+					output[k] = newTaskResult
+				} else {
+					output[k] = v
+				}
 			}
+
 		}
 		outputBytes, _ := json.Marshal(output)
 		parentStageStatus.Outputs[fmt.Sprintf("%s.__output", site)] = string(outputBytes)
 		parentStageStatus.Status = v1alpha2.Done
 		for k, v := range parentStageStatus.Outputs {
-			if strings.HasSuffix(k, "__status") {
+			if strings.HasSuffix(k, "status") {
 				if v != v1alpha2.Done.String() {
 					parentStageStatus.Status = v1alpha2.Paused
 					break

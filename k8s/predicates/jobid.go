@@ -40,3 +40,7 @@ func (JobIDPredicate) Update(e event.UpdateEvent) bool {
 	}
 	return oldJobId != newJobId
 }
+
+func (JobIDPredicate) Create(e event.CreateEvent) bool {
+	return false
+}

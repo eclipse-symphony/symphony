@@ -1,0 +1,12 @@
+{
+    "metadata":{
+        "name":"counter-campaign-activation"
+    },
+    "spec":{
+        "campaign": "counter-campaign:version1", 
+        "inputs": {
+            "val.init": "10",
+            "val": "2"
+        }
+    }
+}

@@ -12,7 +12,7 @@ Delay stage provider sleeps for the given duration. It runs its `stageSelector` 
 
 | Field | Value |
 |-------|-------|
-| `__status` | OK (200) |
+| `status` | OK (200) |
 
 ## Sample
 

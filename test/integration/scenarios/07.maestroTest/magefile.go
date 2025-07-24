@@ -52,7 +52,7 @@ func Test() error {
 
 	cancel, tunnelPid, err := testhelpers.SetupClusterWithTunnel()
 	defer testhelpers.CleanupWithTunnel(cancel, tunnelPid, TEST_NAME)
-	
+
 	if err != nil {
 		return err
 	}
