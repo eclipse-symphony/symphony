@@ -43,6 +43,9 @@ type TargetReconciler struct {
 	// PollInterval defines the poll interval
 	PollInterval time.Duration
 
+	// PollingConcurrentReconciles defines the number of concurrent reconciles
+	PollingConcurrentReconciles int
+
 	// Controller Metrics
 	m *metrics.Metrics
 
@@ -53,8 +56,9 @@ type TargetReconciler struct {
 }
 
 const (
-	targetFinalizerName         = "target.fabric." + constants.FinalizerPostfix
-	targetOperationStartTimeKey = "target.fabric." + constants.OperationStartTimeKeyPostfix
+	targetFinalizerName               = "target.fabric." + constants.FinalizerPostfix
+	targetOperationStartTimeKey       = "target.fabric." + constants.OperationStartTimeKeyPostfix
+	targetDeleteOperationStartTimeKey = "target.fabric." + constants.DeleteOperationStartTimeKeyPostfix
 )
 
 //+kubebuilder:rbac:groups=fabric.symphony,resources=targets,verbs=get;list;watch;create;update;patch;delete

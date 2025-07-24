@@ -11,15 +11,16 @@ import (
 	"fmt"
 	"time"
 
-	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
+	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/predicates"
+	"gopls-workspace/utils/diagnostic"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -39,7 +40,7 @@ type InstancePollingReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
-	log.Info("Reconcile Polling Instance " + req.Name + " in namespace " + req.Namespace)
+	diagnostic.InfoWithCtx(log, ctx, "Reconcile Polling Instance "+req.Name+" in namespace "+req.Namespace)
 
 	// DO NOT REMOVE THIS COMMENT
 	// gofail: var beforePollingResult string
@@ -51,13 +52,23 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	instance := &solution_v1.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Info("Skipping this reconcile, since this CR has been deleted")
+			diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since this CR has been deleted")
 			return ctrl.Result{}, nil
 		} else {
-			log.Error(err, "unable to fetch Instance object")
+			diagnostic.ErrorWithCtx(log, ctx, err, "unable to fetch Instance object")
 			return ctrl.Result{}, err
 		}
 	}
+
+	// reform context with annotations
+	resourceK8SId := instance.GetNamespace() + "/" + instance.GetName()
+	operationName := constants.InstanceOperationNamePrefix
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Write)
+	} else {
+		operationName = fmt.Sprintf("%s/%s", operationName, constants.ActivityOperation_Delete)
+	}
+	ctx = configutils.PopulateActivityAndDiagnosticsContextFromAnnotations(instance.GetNamespace(), resourceK8SId, instance.Annotations, operationName, r, ctx, log)
 
 	reconciliationType := metrics.CreateOperationType
 	resultType := metrics.ReconcileSuccessResult
@@ -67,15 +78,13 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() { // update
 		reconciliationType = metrics.UpdateOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Write)
 		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, false, log, instanceOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		operationName := fmt.Sprintf("%s/%s", constants.InstanceOperationNamePrefix, constants.ActivityOperation_Delete)
-		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, true, log, instanceOperationStartTimeKey, operationName)
+		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, true, log, instanceDeleteOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
@@ -105,12 +114,12 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	jobIDPredicate := predicates.JobIDPredicate{}
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("InstancePolling").
+		WithOptions(controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: r.PollingConcurrentReconciles}).
 		For(&solution_v1.Instance{}).
 		WithEventFilter(jobIDPredicate).
-		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
-			r.handleSolution)).
-		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
-			r.handleTarget)).
 		Complete(r)
 }

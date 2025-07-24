@@ -131,7 +131,9 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.persistentstate": "k8s-state"
+              "providers.persistentstate": "k8s-state",
+              "useJobManager": "true",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {

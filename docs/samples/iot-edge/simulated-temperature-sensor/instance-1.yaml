@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: sample-iot-edge-instance-1
 spec:
-  solution: sample-simulated-temperature-sensor:v1    
+  solution: sample-simulated-temperature-sensor:version1    
   target:
     name: sample-iot-edge-target

@@ -46,13 +46,13 @@ func TestCreateSolutionWithMissingContainer(t *testing.T) {
 		needValidate:  true,
 	}
 	manager.SolutionValidator = validation.NewSolutionValidator(nil, manager.solutionContainerLookup, nil)
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.SolutionSpec{
-			DisplayName:  "test-v-v1",
+			DisplayName:  "test-v-version1",
 			RootResource: "test",
 		},
 	})
@@ -92,13 +92,13 @@ func TestCreateSolutionWithMissingContainer(t *testing.T) {
 			},
 		})
 
-		err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
+		err := manager.UpsertState(context.Background(), "test-v-version1", model.SolutionState{
 			ObjectMeta: model.ObjectMeta{
-				Name:      "test-v-v1",
+				Name:      "test-v-version1",
 				Namespace: "default",
 			},
 			Spec: &model.SolutionSpec{
-				DisplayName:  "test-v-v1",
+				DisplayName:  "test-v-version1",
 				RootResource: "test",
 			},
 		})
@@ -113,25 +113,25 @@ func TestCreateSolutionWithSameDisplayName(t *testing.T) {
 		needValidate:  true,
 	}
 	manager.SolutionValidator = validation.NewSolutionValidator(nil, nil, manager.uniqueNameSolutionLookup)
-	err := manager.UpsertState(context.Background(), "test-v-v1", model.SolutionState{
+	err := manager.UpsertState(context.Background(), "test-v-version1", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v1",
+			Name:      "test-v-version1",
 			Namespace: "default",
 		},
 		Spec: &model.SolutionSpec{
-			DisplayName:  "test-v-v1",
+			DisplayName:  "test-v-version1",
 			RootResource: "test",
 		},
 	})
 	assert.Nil(t, err)
 
-	err = manager.UpsertState(context.Background(), "test-v-v2", model.SolutionState{
+	err = manager.UpsertState(context.Background(), "test-v-version2", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v2",
+			Name:      "test-v-version2",
 			Namespace: "default",
 		},
 		Spec: &model.SolutionSpec{
-			DisplayName:  "test-v-v1",
+			DisplayName:  "test-v-version1",
 			RootResource: "test",
 		},
 	})
@@ -158,12 +158,12 @@ func TestDeleteSolutionWithInstance(t *testing.T) {
 					Name:      "testinstance",
 					Namespace: "default",
 					Labels: map[string]string{
-						"solution": "test-v-v2",
+						"solution": "test-v-version2",
 					},
 				},
 				"spec": model.InstanceSpec{
 					DisplayName: "test",
-					Solution:    "test-v-v1",
+					Solution:    "test-v-version1",
 				},
 			},
 			ETag: "1",
@@ -177,18 +177,18 @@ func TestDeleteSolutionWithInstance(t *testing.T) {
 		},
 	})
 
-	err := manager.UpsertState(context.Background(), "test-v-v2", model.SolutionState{
+	err := manager.UpsertState(context.Background(), "test-v-version2", model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
-			Name:      "test-v-v2",
+			Name:      "test-v-version2",
 			Namespace: "default",
 		},
 		Spec: &model.SolutionSpec{
-			DisplayName:  "test-v-v2",
+			DisplayName:  "test-v-version2",
 			RootResource: "test",
 		},
 	})
 	assert.Nil(t, err)
-	err = manager.DeleteState(context.Background(), "test-v-v2", "default")
+	err = manager.DeleteState(context.Background(), "test-v-version2", "default")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Solution has one or more associated instances")
 }

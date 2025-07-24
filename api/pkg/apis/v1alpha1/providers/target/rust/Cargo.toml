@@ -1,0 +1,21 @@
+# Copyright (c) Microsoft Corporation and others.
+# Licensed under the MIT license.
+# SPDX-License-Identifier: MIT
+
+[workspace]
+resolver = "2"
+members = [
+    "symphony",
+    "rust_providers/mock",
+    # "rust_providers/ankaios" # disable Ankaios provider for now as it doesn't support Windows 
+]
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+symphony = { path = "./symphony" }
+serde = { version = "1.0", default-features = false }
+serde_json = "1.0"
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }

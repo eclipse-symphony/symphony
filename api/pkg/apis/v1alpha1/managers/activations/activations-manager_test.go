@@ -122,8 +122,8 @@ func TestUpdateStageStatusRemote(t *testing.T) {
 		Status:        v1alpha2.Running,
 		StatusMessage: v1alpha2.Running.String(),
 		Outputs: map[string]interface{}{
-			"child1.__status": v1alpha2.Untouched.String(),
-			"child2.__status": v1alpha2.Untouched.String(),
+			"child1.status": v1alpha2.Untouched.String(),
+			"child2.status": v1alpha2.Untouched.String(),
 		},
 	})
 	assert.Nil(t, err)
@@ -149,8 +149,8 @@ func TestUpdateStageStatusRemote(t *testing.T) {
 	assert.Equal(t, 1, len(state.Status.StageHistory))
 	assert.Equal(t, "test1", state.Status.StageHistory[0].Stage)
 	assert.Equal(t, v1alpha2.Paused, state.Status.StageHistory[0].Status)
-	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child1.__status"])
-	assert.Equal(t, v1alpha2.Untouched.String(), state.Status.StageHistory[0].Outputs["child2.__status"])
+	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child1.status"])
+	assert.Equal(t, v1alpha2.Untouched.String(), state.Status.StageHistory[0].Outputs["child2.status"])
 	err = manager.ReportStageStatus(context.Background(), "test", "default", model.StageStatus{
 		Stage:         "test1",
 		Status:        v1alpha2.Done,
@@ -167,8 +167,8 @@ func TestUpdateStageStatusRemote(t *testing.T) {
 	assert.Equal(t, 1, len(state.Status.StageHistory))
 	assert.Equal(t, "test1", state.Status.StageHistory[0].Stage)
 	assert.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
-	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child1.__status"])
-	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child2.__status"])
+	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child1.status"])
+	assert.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].Outputs["child2.status"])
 	assert.Nil(t, err)
 }
 

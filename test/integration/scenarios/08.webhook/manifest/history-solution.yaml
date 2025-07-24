@@ -1,0 +1,19 @@
+apiVersion: solution.symphony/v1
+kind: SolutionContainer
+metadata:
+  name: SOLUTIONCONTAINERFULLNAME
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: SOLUTIONFULLNAME
+  annotations: 
+    management.azure.com/resourceId: SOLUTIONREFNAME
+spec:
+  rootResource: SOLUTIONCONTAINERFULLNAME
+  components:
+    - name: configmap
+      type: config
+      properties: 
+        tags: "test-history"

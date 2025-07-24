@@ -32,8 +32,9 @@ const (
 	// NotFound = HTTP 404
 	NotFound State = 404
 	// MethodNotAllowed = HTTP 405
-	MethodNotAllowed State = 405
-	Conflict         State = 409
+	MethodNotAllowed          State = 405
+	Conflict                  State = 409
+	StatusUnprocessableEntity State = 422
 	// InternalError = HTTP 500
 	InternalError State = 500
 	// Config errors
@@ -194,6 +195,8 @@ func (s State) String() string {
 		return "Method Not Allowed"
 	case Conflict:
 		return "Conflict"
+	case StatusUnprocessableEntity:
+		return "Unprocessable Entity"
 	case InternalError:
 		return "Internal Error"
 	case BadConfig:
@@ -395,7 +398,7 @@ const (
 	ProviderQueue            = "providers.queue"
 	ProviderLedger           = "providers.ledger"
 	ProvidersKeyLock         = "providers.keylock"
-	StatusOutput             = "__status"
-	ErrorOutput              = "__error"
+	StatusOutput             = "status"
+	ErrorOutput              = "error"
 	StateOutput              = "__state"
 )

@@ -107,7 +107,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		scope = "default"
 	}
 	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
-	versionName := containerName + constants.ResourceSeperator + "v1"
+	versionName := containerName + constants.ResourceSeperator + "version1"
 
 	catalog, err := i.ApiClient.GetCatalog(
 		ctx,
@@ -153,7 +153,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	sLog.InfofCtx(ctx, "  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
 	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
-	versionName := containerName + constants.ResourceSeperator + "v1"
+	versionName := containerName + constants.ResourceSeperator + "version1"
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)

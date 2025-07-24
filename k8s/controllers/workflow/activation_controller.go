@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/configutils"
@@ -113,7 +114,11 @@ func convertRawExtensionToMap(raw *runtime.RawExtension) map[string]interface{} 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ActivationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("Activation").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
 		For(&workflowv1.Activation{}).
 		Complete(r)
 }

@@ -7,7 +7,7 @@ spec:
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: canary-v-v1
+  name: canary-v-version1
 spec:
   rootResource: canary
   firstStage: "deploy-v2"
@@ -22,7 +22,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: backend-v2
@@ -46,7 +46,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -104,7 +104,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -120,7 +120,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: backend-v2
@@ -136,7 +136,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: ingress
@@ -167,7 +167,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress
@@ -183,7 +183,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: backend-v1
@@ -199,7 +199,7 @@ spec:
         password: ""
       inputs:
         objectType: solution
-        objectName: test-app:v1
+        objectName: test-app:version1
         patchSource: inline
         patchContent:
           name: canary-ingress

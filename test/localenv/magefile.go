@@ -413,6 +413,12 @@ func (Build) All() error {
 	if err != nil {
 		return err
 	}
+
+	err = buildRustBinding()
+	if err != nil {
+		return err
+	}
+
 	err = buildAPI()
 	if err != nil {
 		return err
@@ -456,6 +462,13 @@ func saveDockerImageToTarFile(tarFilePath string, imageTag string) error {
 	return shellcmd.Command(fmt.Sprintf("docker image save -o %s %s", tarFilePath, imageTag)).Run()
 }
 
+func (Build) RustBinding() error {
+	return buildRustBinding()
+}
+func buildRustBinding() error {
+	return shellcmd.Command("cargo build --release --manifest-path ../../api/pkg/apis/v1alpha1/providers/target/rust/Cargo.toml").Run()
+}
+
 // Build api container
 func (Build) Api() error {
 	return buildAPI()
@@ -463,6 +476,14 @@ func (Build) Api() error {
 func buildAPI() error {
 	imageName := "ghcr.io/eclipse-symphony/symphony-api"
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
+}
+
+func (Build) ApiAzure() error {
+	return buildAPIAzure()
+}
+func buildAPIAzure() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-api"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../api/Dockerfile -t %s --build-arg BUILDFLAG=azure \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 func (Build) ApiFault() error {
@@ -490,6 +511,14 @@ func (Build) K8s() error {
 func buildK8s() error {
 	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
 	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s \"../..\" --load", platform, imageName)).Run() //oss
+}
+
+func (Build) K8sAzure() error {
+	return buildK8sAzure()
+}
+func buildK8sAzure() error {
+	imageName := "ghcr.io/eclipse-symphony/symphony-k8s"
+	return shellcmd.Command(fmt.Sprintf("docker buildx build --platform %s -f ../../k8s/Dockerfile -t %s --build-arg BUILDFLAG=azure \"../..\" --load", platform, imageName)).Run() //oss
 }
 
 func (Build) K8sFault() error {

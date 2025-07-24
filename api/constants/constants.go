@@ -6,7 +6,11 @@
 
 package constants
 
-import _ "embed"
+import (
+	_ "embed"
+	"os"
+	"strconv"
+)
 
 // Eula Message
 var (
@@ -19,33 +23,56 @@ const (
 	TargetRuntimePrefix = "target-runtime"
 
 	// system annotations, reserved and should not be modified by client.
-	AzureCorrelationIdKey        = "management.azure.com/correlationId"
-	AzureEdgeLocationKey         = "management.azure.com/customLocation"
-	AzureOperationIdKey          = "management.azure.com/operationId"
-	AzureNameIdKey               = "management.azure.com/azureName"
-	AzureResourceIdKey           = "management.azure.com/resourceId"
-	AzureSystemDataKey           = "management.azure.com/systemData"
-	AzureTenantIdKey             = "management.azure.com/tenantId" // Not used
-	GuidKey                      = "Guid"
-	RunningAzureCorrelationIdKey = "management.azure.com/runningCorrelationId"
-	SummaryJobIdKey              = "SummaryJobIdKey"
-	OperationStartTimeKeyPostfix = FullGroupName + "/started-at" // instance/target
+	AzureCorrelationIdKey              = "management.azure.com/correlationId"
+	AzureEdgeLocationKey               = "management.azure.com/customLocation"
+	AzureCloudLocationKey              = "management.azure.com/location"
+	AzureOperationIdKey                = "management.azure.com/operationId"
+	AzureDeleteOperationKey            = "management.azure.com/deleteOperation"
+	AzureNameIdKey                     = "management.azure.com/azureName"
+	AzureResourceIdKey                 = "management.azure.com/resourceId"
+	AzureSystemDataKey                 = "management.azure.com/systemData"
+	AzureTenantIdKey                   = "management.azure.com/tenantId" // Not used
+	GuidKey                            = "Guid"
+	RunningAzureCorrelationIdKey       = "management.azure.com/runningCorrelationId"
+	SummaryJobIdKey                    = "SummaryJobIdKey"
+	OperationStartTimeKeyPostfix       = FullGroupName + "/started-at"        // instance/target
+	DeleteOperationStartTimeKeyPostfix = FullGroupName + "/delete-started-at" // instance/target
 
 	ProviderName = "management.azure.com/provider-name"
 )
 
+var LabelLengthUpperLimit = 64 // Default value if environment variable is not set
+
+func init() {
+	// Convert LABEL_LENGTH_UPPER_LIMIT environment variable to int if provided
+	if envLimit := os.Getenv("LABEL_LENGTH_UPPER_LIMIT"); envLimit != "" {
+		if val, err := strconv.Atoi(envLimit); err == nil {
+			LabelLengthUpperLimit = val
+		}
+	}
+}
+
 func SystemReservedAnnotations() []string {
 	return []string{
 		AzureCorrelationIdKey,
+		AzureCloudLocationKey,
 		AzureEdgeLocationKey,
 		AzureOperationIdKey,
+		AzureDeleteOperationKey,
 		AzureNameIdKey,
 		AzureResourceIdKey,
 		AzureSystemDataKey,
 		AzureTenantIdKey,
 		RunningAzureCorrelationIdKey,
 		SummaryJobIdKey,
+		GuidKey,
+	}
+}
+
+func SystemReservedAnnotationsByPostfixes() []string {
+	return []string{
 		OperationStartTimeKeyPostfix,
+		DeleteOperationStartTimeKeyPostfix,
 	}
 }
 
@@ -75,11 +102,15 @@ const (
 	ReferenceSeparator = ":"
 	DisplayName        = "displayName"
 	RootResource       = "rootResource"
+	RootResourceUid    = "rootResourceUid"
 	ParentName         = "parentName"
 	StatusMessage      = "statusMessage"
 	Solution           = "solution"
+	SolutionUid        = "solutionUid"
 	Target             = "target"
+	TargetUid          = "targetUid"
 	Campaign           = "campaign"
+	CampaignUid        = "campaignUid"
 	StagedTarget       = "staged_target"
 )
 

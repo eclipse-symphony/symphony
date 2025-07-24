@@ -18,7 +18,11 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/postrender"
 	"k8s.io/client-go/rest"
 )
 
@@ -712,7 +716,6 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 }
 
 func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
-	os.Setenv("TEST_MINIKUBE_ENABLED", "yes")
 	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
 	if testEnabled == "" {
 		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
@@ -886,4 +889,212 @@ func TestPropChange(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.Changed, propChange(c.OldProp, c.NewProp), c.Name)
 	}
+}
+
+func TestConfigureInstallClient(t *testing.T) {
+	ctx := context.Background()
+	actionConfig := &action.Configuration{}
+	postRenderer := postrender.PostRenderer(nil)
+
+	tests := []struct {
+		name           string
+		releaseName    string
+		componentProps HelmChartProperty
+		deployment     model.DeploymentSpec
+		expectedName   string
+		expectedError  bool
+	}{
+		{
+			name:        "Custom release name provided",
+			releaseName: "custom-release",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "30s",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "custom-release",
+			expectedError: false,
+		},
+		{
+			name:        "Invalid timeout format",
+			releaseName: "invalid-timeout-release",
+			componentProps: HelmChartProperty{
+				Wait:    true,
+				Timeout: "invalid-timeout",
+			},
+			deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{
+						Scope: "test-namespace",
+					},
+				},
+			},
+			expectedName:  "",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			installClient, err := configureInstallClient(ctx, tt.releaseName, &tt.componentProps, &tt.deployment, actionConfig, postRenderer)
+			if tt.expectedError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedName, installClient.ReleaseName)
+				assert.Equal(t, tt.deployment.Instance.Spec.Scope, installClient.Namespace)
+				if tt.componentProps.Timeout != "" {
+					duration, _ := time.ParseDuration(tt.componentProps.Timeout)
+					assert.Equal(t, duration, installClient.Timeout)
+				}
+			}
+		})
+	}
+}
+
+func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED environment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	customReleaseName := "custom-release-name"
+	component := model.ComponentSpec{
+		Name: "kashti",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo": "https://brigadecore.github.io/charts",
+				"name": "kashti",
+			},
+			"releaseName": customReleaseName,
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: defaultTestScope,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	step := model.DeploymentStep{
+		Components: []model.ComponentStep{
+			{
+				Action:    model.ComponentUpdate,
+				Component: component,
+			},
+		},
+	}
+
+	// Apply the Helm chart with the custom release name
+	results, err := provider.Apply(context.Background(), deployment, step, false)
+	assert.Nil(t, err)
+	assert.Equal(t, v1alpha2.Updated, results[component.Name].Status)
+	assert.Contains(t, results[component.Name].Message, customReleaseName)
+
+	// Verify the release name using Helm client
+	settings := cli.New()
+	actionConfig := &action.Configuration{}
+	err = actionConfig.Init(settings.RESTClientGetter(), defaultTestScope, "secrets", func(format string, v ...interface{}) {})
+	assert.Nil(t, err)
+
+	listClient := action.NewList(actionConfig)
+	listClient.AllNamespaces = true
+	releases, err := listClient.Run()
+	assert.Nil(t, err)
+
+	found := false
+	for _, release := range releases {
+		if release.Name == customReleaseName {
+			fmt.Printf("Found release with custom name: %s\n", release.Name)
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Custom release name not found in Helm releases")
+}
+
+func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
+	testEnabled := os.Getenv("TEST_MINIKUBE_ENABLED")
+	if testEnabled == "" {
+		t.Skip("Skipping because TEST_MINIKUBE_ENABLED enviornment variable is not set")
+	}
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	customReleaseName := "custom-release-name"
+	component := model.ComponentSpec{
+		Name: "kashti",
+		Type: "helm.v3",
+		Properties: map[string]interface{}{
+			"chart": map[string]string{
+				"repo": "https://brigadecore.github.io/charts",
+				"name": "kashti",
+			},
+			"releaseName": customReleaseName,
+		},
+	}
+	deployment := model.DeploymentSpec{
+		Instance: model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: "test-instance",
+			},
+			Spec: &model.InstanceSpec{
+				Scope: defaultTestScope,
+			},
+		},
+		Solution: model.SolutionState{
+			Spec: &model.SolutionSpec{
+				Components: []model.ComponentSpec{component},
+			},
+		},
+	}
+	references := []model.ComponentStep{
+		{
+			Action:    model.ComponentUpdate,
+			Component: component,
+		},
+	}
+
+	// Get the Helm release with the custom release name
+	components, err := provider.Get(context.Background(), deployment, references)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(components))
+	assert.Equal(t, customReleaseName, components[0].Properties["releaseName"])
+}
+
+func TestHelmTargetProviderPullChartUnauthorizedError(t *testing.T) {
+	config := HelmTargetProviderConfig{InCluster: true}
+	provider := HelmTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+
+	chart := &HelmChartProperty{
+		Repo:    "oci://symphonyprivate.azurecr.io/helm/simple-chart-secure",
+		Version: "0.1.0",
+	}
+
+	_, err = pullOCIChart(context.Background(), chart.Repo, chart.Version)
+	assert.NotNil(t, err)
+	assert.True(t, isUnauthorized(err))
 }

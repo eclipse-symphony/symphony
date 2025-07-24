@@ -741,7 +741,7 @@ paths:
                   __previousStage: mock
                   __site: hq
                   __stage: mock
-                  __status: 200
+                  status: 200
                   foo: 5
                 status: 9996
       security:
