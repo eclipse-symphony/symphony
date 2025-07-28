@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -61,9 +62,9 @@ type TargetGroupProperty struct {
 	MinMatchCount          int                   `json:"minMatchCount"`
 	MaxMatchCount          int                   `json:"maxMatchCount"`
 	LowMatchAction         GroupPatchAction      `json:"lowMatchAction"`
-	HighMatchAction        GroupPatchAction      `json:"highMatchAction"`
-	SpareComponents        []model.ComponentSpec `json:"spareComponents"`
-	MemberComponents       []model.ComponentSpec `json:"memberComponents"`
+	HighMatchAction        GroupPatchAction      `json:"highMatchAction,omitempty"`
+	SpareComponents        []model.ComponentSpec `json:"spareComponents,omitempty"`
+	MemberComponents       []model.ComponentSpec `json:"memberComponents,omitempty"`
 }
 
 func getTargetGroupPropertyFromComponent(component model.ComponentSpec) (*TargetGroupProperty, error) {
@@ -184,7 +185,7 @@ func (i *GroupTargetProvider) matchTargets(ctx context.Context, namespace string
 	}
 	for _, target := range targets {
 		if isTargetMatch(target, propertySelector) {
-			if !matchState && isTargetStateMatch(target, stateSelector) {
+			if !matchState || isTargetStateMatch(target, stateSelector) {
 				matches = append(matches, target)
 			}
 		}
@@ -310,6 +311,14 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 }
 func (i *GroupTargetProvider) patchTargetProperty(target model.TargetState, patch map[string]string) (model.TargetState, error) {
 	for k, v := range patch {
+		if strings.HasPrefix(v, "~COPY_") {
+			copyKey := strings.TrimPrefix(v, "~COPY_")
+			if copyValue, ok := target.Spec.Properties[copyKey]; ok {
+				target.Spec.Properties[k] = copyValue
+				continue
+			}
+			return target, v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s not found", copyKey), v1alpha2.GroupActionFailed)
+		}
 		if v == "~REMOVE" {
 			delete(target.Spec.Properties, k)
 			continue
@@ -324,8 +333,8 @@ func (i *GroupTargetProvider) applyLowTrigger(ctx context.Context, namespace str
 		log.ErrorfCtx(ctx, "  P (Group Target): failed to get spares: %+v", err)
 		return err
 	}
-	sparsNeeded := int(math.Abs(float64(deficate)))
-	if len(spares) < sparsNeeded {
+	requiredSpareCount := int(math.Abs(float64(deficate)))
+	if len(spares) < requiredSpareCount {
 		log.ErrorfCtx(ctx, "  P (Group Target): not enough spares: %d", len(spares))
 		return v1alpha2.NewCOAError(nil, fmt.Sprintf("not enough spares: %d", len(spares)), v1alpha2.GroupActionFailed)
 	}
@@ -343,7 +352,7 @@ func (i *GroupTargetProvider) applyLowTrigger(ctx context.Context, namespace str
 			return err
 		}
 		spareCount++
-		if spareCount >= sparsNeeded {
+		if spareCount >= requiredSpareCount {
 			break
 		}
 	}
@@ -367,16 +376,16 @@ func (*GroupTargetProvider) GetValidationRule(ctx context.Context) model.Validat
 	return model.ValidationRule{
 		AllowSidecar: false,
 		ComponentValidationRule: model.ComponentValidationRule{
-			RequiredProperties:    []string{"targetSelector", "targetState", "spareSelector", "spareState", "minMatchCount", "lowMatchAction"},
+			RequiredProperties:    []string{"targetPropertySelector", "targetStateSelector", "sparePropertySelector", "spareStateSelector", "minMatchCount", "lowMatchAction"},
 			OptionalProperties:    []string{"maxMatchCount"},
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
 			ChangeDetectionProperties: []model.PropertyDesc{
-				{Name: "targetSelector", PropChanged: mapMatch},
-				{Name: "targetState", PropChanged: mapMatch},
-				{Name: "spareSelector", PropChanged: mapMatch},
-				{Name: "spareState", PropChanged: mapMatch},
+				{Name: "targetPropertySelector", PropChanged: mapMatch},
+				{Name: "targetStateSelector", PropChanged: mapMatch},
+				{Name: "sparePropertySelector", PropChanged: mapMatch},
+				{Name: "spareStateSelector", PropChanged: mapMatch},
 				{Name: "minMatchCount"},
 				//TODO: compare lowMatchAction as well
 			},
@@ -410,14 +419,36 @@ func toMap(a interface{}) (map[string]string, bool) {
 
 func isTargetMatch(target model.TargetState, propSelector map[string]string) bool {
 	for k, v := range propSelector {
-		if tv, ok := target.Spec.Properties[k]; !ok || (v != tv) {
-			return false
+		found := false
+
+		if k == "ha-set" {
+			if haSetsRaw, ok := target.Spec.Properties["ha-sets"]; ok {
+				sets := strings.Split(haSetsRaw, ",")
+				for _, haSet := range sets {
+					if strings.TrimSpace(haSet) == v {
+						found = true
+						break
+					}
+				}
+			}
+		}
+		if !found {
+			if tv, ok := target.Spec.Properties[k]; !ok || (v != tv) {
+				return false
+			}
 		}
 	}
 	return true
 }
+
 func isTargetStateMatch(target model.TargetState, propSelector map[string]string) bool {
 	for k, v := range propSelector {
+		if k == "status" {
+			if target.Status.Status != v {
+				return false
+			}
+			continue
+		}
 		if tv, ok := target.Status.Properties[k]; !ok || (v != tv) {
 			return false
 		}
