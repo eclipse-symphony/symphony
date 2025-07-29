@@ -6,7 +6,9 @@
 
 package v1alpha2
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type IRetriableError interface {
 	IsRetriableErr() bool
@@ -84,8 +86,10 @@ func FromHTTPResponseCode(code int, body []byte) COAError {
 	switch code {
 	case 400:
 		state = BadRequest
-	case 403:
+	case 401:
 		state = Unauthorized
+	case 403:
+		state = Forbidden
 	case 404:
 		state = NotFound
 	case 405:
