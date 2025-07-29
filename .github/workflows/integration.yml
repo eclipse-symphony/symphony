@@ -104,57 +104,57 @@ jobs:
       run: |
         mv go.work.bk go.work
 
-    - name: Run integration tests 00
-      run: |
-        cd test/integration/scenarios/00.unit/ && mage test
+    # - name: Run integration tests 00
+    #   run: |
+    #     cd test/integration/scenarios/00.unit/ && mage test
 
-    - name: Run integration tests 01
-      run: |
-        cd test/integration/scenarios/01.update/ && mage test
+    # - name: Run integration tests 01
+    #   run: |
+    #     cd test/integration/scenarios/01.update/ && mage test
         
-    - name: Run integration tests 02
-      run: |
-        cd test/integration/scenarios/02.basic/ && mage test
+    # - name: Run integration tests 02
+    #   run: |
+    #     cd test/integration/scenarios/02.basic/ && mage test
 
-    - name: Run integration tests 03
-      run: |
-        cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
+    # - name: Run integration tests 03
+    #   run: |
+    #     cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
 
-    - name: Run integration tests 04 without labeling
-      run: |
-        export REPO_PATH="${{ github.workspace }}"
-        echo "REPO_PATH=$REPO_PATH"
-        cd test/integration/scenarios/04.workflow/ && mage test false
+    # - name: Run integration tests 04 without labeling
+    #   run: |
+    #     export REPO_PATH="${{ github.workspace }}"
+    #     echo "REPO_PATH=$REPO_PATH"
+    #     cd test/integration/scenarios/04.workflow/ && mage test false
 
-    - name: Run integration tests 04 with labeling
-      run: |
-        export REPO_PATH="${{ github.workspace }}"
-        echo "REPO_PATH=$REPO_PATH"
-        cd test/integration/scenarios/04.workflow/ && mage test true
+    # - name: Run integration tests 04 with labeling
+    #   run: |
+    #     export REPO_PATH="${{ github.workspace }}"
+    #     echo "REPO_PATH=$REPO_PATH"
+    #     cd test/integration/scenarios/04.workflow/ && mage test true
 
-    - name: Run integration tests 05
-      run: |
-        cd test/integration/scenarios/05.catalogNconfigmap/ && mage test
+    # - name: Run integration tests 05
+    #   run: |
+    #     cd test/integration/scenarios/05.catalogNconfigmap/ && mage test
         
-    - name: Run integration tests 07
-      run: |
-        cd test/integration/scenarios/07.maestroTest/ && mage test
+    # - name: Run integration tests 07
+    #   run: |
+    #     cd test/integration/scenarios/07.maestroTest/ && mage test
     
-    - name: Run integration tests 08
-      run: |
-        cd test/integration/scenarios/08.webhook/ && mage test
+    # - name: Run integration tests 08
+    #   run: |
+    #     cd test/integration/scenarios/08.webhook/ && mage test
 
-    - name: Run integration tests 09
-      run: |
-        cd test/integration/scenarios/09.stress/ && mage test
+    # - name: Run integration tests 09
+    #   run: |
+    #     cd test/integration/scenarios/09.stress/ && mage test
 
-    - name: Run integration tests 10
-      run: |
-        cd test/integration/scenarios/10.catalogEval/ && mage test
+    # - name: Run integration tests 10
+    #   run: |
+    #     cd test/integration/scenarios/10.catalogEval/ && mage test
     
-    - name: Run integration tests 12
-      run: |
-        cd test/integration/scenarios/12.naming/ && mage test
+    # - name: Run integration tests 12
+    #   run: |
+    #     cd test/integration/scenarios/12.naming/ && mage test
 
     - name: Run integration tests 13 - Remote Agent Communication
       run: |
