@@ -27,7 +27,7 @@ openssl verify -CAfile ca.crt client.crt
 
 # create a client cert secret: secret name is client-cert-secret, key is client-cert-key, value is client.crt
 kubectl create namespace cert-manager
-kubectl create secret generic client-cert-secret --from-file=client-cert-key=client.crt -n cert-manager
+kubectl create secret generic  client-cert-secret --from-file=client-cert-key=client.crt -n cert-manager
 
 # judge if the secret public key is the same as the client.crt
 kubectl get secret client-cert-secret -n cert-manager -o jsonpath='{.data.client-cert-key}' | base64 -d > secret-client.crt
