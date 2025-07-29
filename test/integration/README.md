@@ -63,24 +63,23 @@ Compare the test with the state of the cluster using k9s of kubectl to track dow
 
 ## Remote Agent Tests
 
-Remote agent tests are located in `test/e2e/remote-agent-integration/` and test the communication between Symphony and remote agents using different protocols.
+Remote agent tests are located in `test/integration/scenarios/13.remoteAgent/` and test the communication between Symphony and remote agents using different protocols.
 
-### Running HTTP Communication Tests
+### Running Remote Agent Communication Tests
 
-To run the HTTP communication tests:
+To run both HTTP and MQTT communication tests:
 
 ```bash
-cd test/e2e/remote-agent-integration
-go test -v ./scenarios/http-communication/ -timeout 30m
+cd test/integration/scenarios/13.remoteAgent
+mage test
 ```
 
-### Running MQTT Communication Tests
-
-To run the MQTT communication tests:
+Or run them manually:
 
 ```bash
-cd test/e2e/remote-agent-integration
-go test -v ./scenarios/mqtt-communication -timeout 30m
+cd test/integration/scenarios/13.remoteAgent
+go test -v ./verify/ --timeout  30m --run TestE2EMQTTCommunication
+ go test -v ./verify/ --timeout  30m --run TestE2EHttpCommunication
 ```
 
 These tests verify:

@@ -137,7 +137,7 @@ kubectl create secret generic mqtt-client-secret \
 
 # Deploy with MQTT TLS configuration
 mage cluster:deployWithSettings \
-  "--set remoteAgent.used=true \
+  "--set remoteAgent.remoteCert.used=true \
   --set remoteAgent.remoteCert.used=true \
   --set remoteAgent.remoteCert.trustCAs.secretName=mqtt-ca \
   --set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt \
@@ -174,7 +174,7 @@ kubectl create secret generic remote-agent-client-secret \
 
 # Deploy with HTTP configuration
 mage cluster:deployWithSettings \
-  "--set remoteAgent.used=true \
+  "--set remoteAgent.remoteCert.used=true \
   --set remoteAgent.remoteCert.used=true \
   --set remoteAgent.remoteCert.trustCAs.secretName=remote-agent-ca \
   --set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt"

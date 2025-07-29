@@ -1763,10 +1763,8 @@ func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 		}
 	}()
 
-	// // Setup cleanup to stop and remove systemd service
-	t.Cleanup(func() {
-		CleanupSystemdService(t)
-	})
+	// Note: Cleanup should be handled by the calling test function, not here
+	// This allows the service to persist across multiple test steps
 
 	t.Logf("Bootstrap.sh started, systemd service should be created")
 	return cmd
@@ -2370,4 +2368,239 @@ func CleanupMQTTClientSecret(t *testing.T, namespace, secretName string) {
 	cmd := exec.Command("kubectl", "delete", "secret", secretName, "-n", namespace, "--ignore-not-found=true")
 	cmd.Run()
 	t.Logf("Cleaned up MQTT client secret %s from namespace %s", secretName, namespace)
+}
+
+// StartRemoteAgentProcessComplete starts remote agent as a complete process with full lifecycle management
+func StartRemoteAgentProcessComplete(t *testing.T, config TestConfig) *exec.Cmd {
+	// First build the binary
+	binaryPath := BuildRemoteAgentBinary(t, config)
+
+	// Phase 1: Get working certificates using bootstrap cert (HTTP protocol only)
+	var workingCertPath, workingKeyPath string
+	if config.Protocol == "http" {
+		t.Logf("Using HTTP protocol, obtaining working certificates...")
+		workingCertPath, workingKeyPath = GetWorkingCertificates(t, config.BaseURL, config.TargetName, config.Namespace,
+			config.ClientCertPath, config.ClientKeyPath, filepath.Dir(config.ConfigPath))
+	} else {
+		// For MQTT, use bootstrap certificates directly
+		workingCertPath = config.ClientCertPath
+		workingKeyPath = config.ClientKeyPath
+	}
+
+	// Phase 2: Start remote agent with working certificates
+	args := []string{
+		"-config", config.ConfigPath,
+		"-client-cert", workingCertPath,
+		"-client-key", workingKeyPath,
+		"-target-name", config.TargetName,
+		"-namespace", config.Namespace,
+		"-topology", config.TopologyPath,
+		"-protocol", config.Protocol,
+	}
+
+	if config.CACertPath != "" {
+		args = append(args, "-ca-cert", config.CACertPath)
+	}
+
+	// Log the complete binary execution command to test output
+	t.Logf("=== Remote Agent Process Execution Command ===")
+	t.Logf("Binary Path: %s", binaryPath)
+	t.Logf("Working Directory: %s", filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap"))
+	t.Logf("Command Line: %s %s", binaryPath, strings.Join(args, " "))
+	t.Logf("Full Arguments: %v", args)
+	t.Logf("===============================================")
+
+	t.Logf("Starting remote agent process with arguments: %v", args)
+	cmd := exec.Command(binaryPath, args...)
+	// Set working directory to where the binary is located
+	cmd.Dir = filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap")
+
+	// Create pipes for real-time log streaming
+	stdoutPipe, err := cmd.StdoutPipe()
+	require.NoError(t, err, "Failed to create stdout pipe")
+
+	stderrPipe, err := cmd.StderrPipe()
+	require.NoError(t, err, "Failed to create stderr pipe")
+
+	// Also capture to buffers for final output
+	var stdout, stderr bytes.Buffer
+	stdoutTee := io.TeeReader(stdoutPipe, &stdout)
+	stderrTee := io.TeeReader(stderrPipe, &stderr)
+
+	err = cmd.Start()
+	require.NoError(t, err, "Failed to start remote agent process")
+
+	// Start real-time log streaming in background goroutines
+	go streamProcessLogs(t, stdoutTee, "Process STDOUT")
+	go streamProcessLogs(t, stderrTee, "Process STDERR")
+
+	// Final output logging when process exits
+	go func() {
+		cmd.Wait()
+		if stdout.Len() > 0 {
+			t.Logf("Remote agent process final stdout: %s", stdout.String())
+		}
+		if stderr.Len() > 0 {
+			t.Logf("Remote agent process final stderr: %s", stderr.String())
+		}
+	}()
+
+	// Setup automatic cleanup
+	t.Cleanup(func() {
+		CleanupRemoteAgentProcess(t, cmd)
+	})
+
+	t.Logf("Started remote agent process with PID: %d using working certificates", cmd.Process.Pid)
+	t.Logf("Remote agent process logs will be shown in real-time with [Process STDOUT] and [Process STDERR] prefixes")
+	return cmd
+}
+
+// StartRemoteAgentProcessWithoutCleanup starts remote agent as a complete process but doesn't set up automatic cleanup
+// The caller is responsible for calling CleanupRemoteAgentProcess when needed
+func StartRemoteAgentProcessWithoutCleanup(t *testing.T, config TestConfig) *exec.Cmd {
+	// First build the binary
+	binaryPath := BuildRemoteAgentBinary(t, config)
+
+	// Phase 1: Get working certificates using bootstrap cert (HTTP protocol only)
+	var workingCertPath, workingKeyPath string
+	if config.Protocol == "http" {
+		t.Logf("Using HTTP protocol, obtaining working certificates...")
+		workingCertPath, workingKeyPath = GetWorkingCertificates(t, config.BaseURL, config.TargetName, config.Namespace,
+			config.ClientCertPath, config.ClientKeyPath, filepath.Dir(config.ConfigPath))
+	} else {
+		// For MQTT, use bootstrap certificates directly
+		workingCertPath = config.ClientCertPath
+		workingKeyPath = config.ClientKeyPath
+	}
+
+	// Phase 2: Start remote agent with working certificates
+	args := []string{
+		"-config", config.ConfigPath,
+		"-client-cert", workingCertPath,
+		"-client-key", workingKeyPath,
+		"-target-name", config.TargetName,
+		"-namespace", config.Namespace,
+		"-topology", config.TopologyPath,
+		"-protocol", config.Protocol,
+	}
+
+	if config.CACertPath != "" {
+		args = append(args, "-ca-cert", config.CACertPath)
+	}
+
+	// Log the complete binary execution command to test output
+	t.Logf("=== Remote Agent Process Execution Command ===")
+	t.Logf("Binary Path: %s", binaryPath)
+	t.Logf("Working Directory: %s", filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap"))
+	t.Logf("Command Line: %s %s", binaryPath, strings.Join(args, " "))
+	t.Logf("Full Arguments: %v", args)
+	t.Logf("===============================================")
+
+	t.Logf("Starting remote agent process with arguments: %v", args)
+	cmd := exec.Command(binaryPath, args...)
+	// Set working directory to where the binary is located
+	cmd.Dir = filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap")
+
+	// Create pipes for real-time log streaming
+	stdoutPipe, err := cmd.StdoutPipe()
+	require.NoError(t, err, "Failed to create stdout pipe")
+
+	stderrPipe, err := cmd.StderrPipe()
+	require.NoError(t, err, "Failed to create stderr pipe")
+
+	// Also capture to buffers for final output
+	var stdout, stderr bytes.Buffer
+	stdoutTee := io.TeeReader(stdoutPipe, &stdout)
+	stderrTee := io.TeeReader(stderrPipe, &stderr)
+
+	err = cmd.Start()
+	require.NoError(t, err, "Failed to start remote agent process")
+
+	// Start real-time log streaming in background goroutines
+	go streamProcessLogs(t, stdoutTee, "Process STDOUT")
+	go streamProcessLogs(t, stderrTee, "Process STDERR")
+
+	// Final output logging when process exits
+	go func() {
+		cmd.Wait()
+		if stdout.Len() > 0 {
+			t.Logf("Remote agent process final stdout: %s", stdout.String())
+		}
+		if stderr.Len() > 0 {
+			t.Logf("Remote agent process final stderr: %s", stderr.String())
+		}
+	}()
+
+	// NOTE: No automatic cleanup - caller must call CleanupRemoteAgentProcess manually
+
+	t.Logf("Started remote agent process with PID: %d using working certificates", cmd.Process.Pid)
+	t.Logf("Remote agent process logs will be shown in real-time with [Process STDOUT] and [Process STDERR] prefixes")
+	return cmd
+}
+
+// WaitForProcessHealthy waits for a process to be healthy and ready
+func WaitForProcessHealthy(t *testing.T, cmd *exec.Cmd, timeout time.Duration) {
+	t.Logf("Waiting for remote agent process to be healthy...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	startTime := time.Now()
+
+	for {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("Timeout waiting for process to be healthy after %v", timeout)
+		case <-ticker.C:
+			// Check if process is still running
+			if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+				t.Fatalf("Process exited unexpectedly: %s", cmd.ProcessState.String())
+			}
+
+			elapsed := time.Since(startTime)
+			t.Logf("Process health check: PID %d running for %v", cmd.Process.Pid, elapsed)
+
+			// Process is considered healthy if it's been running for at least 10 seconds
+			// without exiting (indicating successful startup and connection)
+			if elapsed >= 10*time.Second {
+				t.Logf("Process is healthy and ready (running for %v)", elapsed)
+				return
+			}
+		}
+	}
+}
+
+// CleanupRemoteAgentProcess cleans up the remote agent process
+func CleanupRemoteAgentProcess(t *testing.T, cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		t.Logf("No process to cleanup")
+		return
+	}
+
+	t.Logf("Cleaning up remote agent process with PID: %d", cmd.Process.Pid)
+
+	// First try graceful termination
+	if err := cmd.Process.Signal(os.Interrupt); err != nil {
+		t.Logf("Failed to send interrupt signal: %v", err)
+	}
+
+	// Wait a moment for graceful shutdown
+	time.Sleep(2 * time.Second)
+
+	// Check if process has exited
+	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
+		t.Logf("Process still running, force killing...")
+		if err := cmd.Process.Kill(); err != nil {
+			t.Logf("Failed to kill process: %v", err)
+		} else {
+			t.Logf("Process force killed")
+		}
+	}
+
+	// Wait for process to finish
+	cmd.Wait()
+	t.Logf("Remote agent process cleanup completed")
 }
