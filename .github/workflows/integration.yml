@@ -156,6 +156,10 @@ jobs:
       run: |
         cd test/integration/scenarios/12.naming/ && mage test
 
+    - name: Run integration tests 13 - Remote Agent Communication
+      run: |
+        cd test/integration/scenarios/13.remoteAgent/ && mage test
+
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v4
       with:
