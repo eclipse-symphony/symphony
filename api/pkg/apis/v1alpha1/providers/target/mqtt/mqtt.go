@@ -5,27 +5,57 @@
  */
 
 /*
-Client certificate authentication for secure MQTT connections.
+MQTT Target Provider - Secure MQTT connections with certificate authentication.
 
-Basic MQTT settings:
-- brokerAddress: MQTT broker URL (required)
-- clientID: MQTT client identifier (required)
-- requestTopic: Topic for sending requests (required)
-- responseTopic: Topic for receiving responses (required)
-- timeoutSeconds: Request timeout in seconds (default: 8)
-- keepAliveSeconds: Keep-alive interval in seconds (default: 2)
-- pingTimeoutSeconds: Ping timeout in seconds (default: 1)
+Configuration Reference (based on Helm Values):
+==============================================
 
-Authentication settings:
+Core MQTT Settings:
+- enabled: Enable MQTT binding (default: false)
+- brokerAddress: MQTT broker URL (e.g., "tcp://broker.example.com:1883" or "ssl://broker.example.com:8883")
+- clientID: MQTT client identifier (default: "symphony-mqtt-client")
+- requestTopic: Topic for sending API requests
+- responseTopic: Topic for receiving API responses
+
+Connection & Timeout Settings:
+- timeoutSeconds: Request timeout in seconds (default: 100)
+- keepAliveSeconds: Keep-alive interval in seconds (default: 200)
+- pingTimeoutSeconds: Ping timeout in seconds (default: 100)
+
+TLS Configuration:
+- useTLS: Enable TLS connection (default: "false")
+- insecureSkipVerify: Skip TLS certificate verification (default: "false", use with caution)
+
+Certificate Authentication:
+- caCertPath: Path to CA certificate file for server verification
+- mqttClientCert.enabled: Enable client certificate authentication (default: false)
+- mqttClientCert.secretName: Kubernetes secret containing client certificates (default: "mqtt-client-secret")
+- mqttClientCert.mountPath: Mount path for client certificates (default: "/etc/mqtt-client")
+- clientCertPath: Path to client certificate file (typically "{mountPath}/client.crt")
+- clientKeyPath: Path to client private key file (typically "{mountPath}/client.key")
+
+Basic Authentication:
 - username: MQTT username for basic authentication
 - password: MQTT password for basic authentication
 
-TLS/Certificate settings:
-- useTLS: Enable TLS connection (default: false)
-- caCertPath: Path to CA certificate file for server verification
-- clientCertPath: Path to client certificate file for mutual TLS authentication
-- clientKeyPath: Path to client private key file for mutual TLS authentication
-- insecureSkipVerify: Skip TLS certificate verification (default: false, use with caution)
+Example Helm Configuration:
+mqtt:
+  enabled: true
+  useTLS: true
+  brokerAddress: "ssl://mqtt.example.com:8883"
+  clientID: "symphony-api-client"
+  requestTopic: "symphony/requests"
+  responseTopic: "symphony/responses"
+  timeoutSeconds: 30
+  keepAliveSeconds: 60
+  pingTimeoutSeconds: 30
+  insecureSkipVerify: false
+  username: "api-user"
+  password: "secure-password"
+  mqttClientCert:
+    enabled: true
+    secretName: "mqtt-client-certs"
+    mountPath: "/etc/ssl/mqtt"
 
 */
 
@@ -249,7 +279,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	if token := i.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
 		connErr := token.Error()
 		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to connect to MQTT broker - %+v", connErr)
-		
+
 		// Provide specific guidance for common TLS errors
 		if strings.Contains(connErr.Error(), "certificate signed by unknown authority") {
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): TLS certificate verification failed. Common solutions:")
@@ -262,7 +292,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Verify CA certificate path and format")
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Check client certificate and key paths if using mutual TLS")
 		}
-		
+
 		return v1alpha2.NewCOAError(connErr, "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
@@ -678,11 +708,11 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 func isCertificatePEM(data []byte) bool {
 	// Check if the data contains PEM headers
 	dataStr := string(data)
-	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") || 
-	   !strings.Contains(dataStr, "-----END CERTIFICATE-----") {
+	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") ||
+		!strings.Contains(dataStr, "-----END CERTIFICATE-----") {
 		return false
 	}
-	
+
 	// Try to decode the PEM block
 	block, _ := pem.Decode(data)
 	return block != nil && block.Type == "CERTIFICATE"
