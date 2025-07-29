@@ -49,18 +49,51 @@ func SetupTestDirectory(t *testing.T) string {
 	testDir, err := ioutil.TempDir("", "symphony-e2e-test-")
 	require.NoError(t, err)
 
-	// Ensure the directory has full write permissions for testing
+	// Set full permissions for the test directory to avoid permission issues
 	err = os.Chmod(testDir, 0777)
-	if err != nil {
-		t.Logf("Warning: Failed to set directory permissions: %v", err)
-	}
-
-	t.Cleanup(func() {
-		os.RemoveAll(testDir)
-	})
+	require.NoError(t, err)
 
 	t.Logf("Created test directory with full permissions (0777): %s", testDir)
 	return testDir
+}
+
+// GetProjectRoot returns the project root directory by walking up from current working directory
+func GetProjectRoot(t *testing.T) string {
+	// Start from the current working directory (where the test is running)
+	currentDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	// Keep going up directories until we find the project root
+	for {
+		// Check if this directory contains the expected project structure
+		expectedDirs := []string{"api", "coa", "remote-agent", "test"}
+		isProjectRoot := true
+
+		for _, dir := range expectedDirs {
+			if _, err := os.Stat(filepath.Join(currentDir, dir)); os.IsNotExist(err) {
+				isProjectRoot = false
+				break
+			}
+		}
+
+		if isProjectRoot {
+			t.Logf("Project root detected: %s", currentDir)
+			return currentDir
+		}
+
+		// Move up one directory
+		parentDir := filepath.Dir(currentDir)
+
+		// Check if we've reached the filesystem root
+		if parentDir == currentDir {
+			t.Fatalf("Could not find Symphony project root. Started from: %s", func() string {
+				wd, _ := os.Getwd()
+				return wd
+			}())
+		}
+
+		currentDir = parentDir
+	}
 }
 
 // CreateHTTPConfig creates HTTP configuration file for remote agent
@@ -979,8 +1012,10 @@ func StartSymphonyWithRemoteAgentConfig(t *testing.T, protocol string) {
 	}
 
 	// Execute mage command from localenv directory
+	projectRoot := GetProjectRoot(t)
+	localenvDir := filepath.Join(projectRoot, "test", "localenv")
 	cmd := exec.Command("mage", "cluster:deploywithsettings", helmValues)
-	cmd.Dir = "/mnt/d/code3/symphony/test/localenv"
+	cmd.Dir = localenvDir
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -2291,8 +2326,10 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 	t.Logf("Command: mage cluster:deployWithSettings \"%s\"", helmValues)
 
 	// Execute mage command from localenv directory
+	projectRoot := GetProjectRoot(t)
+	localenvDir := filepath.Join(projectRoot, "test", "localenv")
 	cmd := exec.Command("mage", "cluster:deploywithsettings", helmValues)
-	cmd.Dir = "/mnt/d/code3/symphony/test/localenv"
+	cmd.Dir = localenvDir
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

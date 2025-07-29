@@ -13,8 +13,8 @@ import (
 )
 
 func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
-	// Test configuration
-	projectRoot := "/mnt/d/code3/symphony/" // Relative to test file location
+	// Test configuration - use relative path from test directory
+	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
 	targetName := "test-mqtt-process-target"
 	namespace := "default"
 	mqttBrokerAddress := "localhost"

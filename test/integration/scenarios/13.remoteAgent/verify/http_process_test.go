@@ -12,8 +12,8 @@ import (
 )
 
 func TestE2EHttpCommunicationWithProcess(t *testing.T) {
-	// Test configuration
-	projectRoot := "/mnt/d/code3/symphony/" // Adjust this path as needed
+	// Test configuration - use relative path from test directory
+	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
 	targetName := "test-http-process-target"
 	namespace := "default"
 
