@@ -239,31 +239,13 @@ func DeleteKubernetesManifestWithTimeout(t *testing.T, manifestPath string, time
 	cmd := exec.CommandContext(ctx, "kubectl", "delete", "-f", manifestPath, "--ignore-not-found=true", "--wait=true", "--timeout=60s")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		outputStr := string(output)
-		t.Logf("kubectl delete failed: %s", outputStr)
-		
-		// Check if the error is due to cluster being unavailable
-		if strings.Contains(outputStr, "connection refused") || 
-		   strings.Contains(outputStr, "server could not find the requested resource") ||
-		   strings.Contains(outputStr, "couldn't get current server API group list") {
-			t.Logf("Cluster appears to be unavailable, skipping deletion of manifest %s", manifestPath)
-			return nil // Don't treat cluster unavailability as an error during cleanup
-		}
-		
+		t.Logf("kubectl delete failed: %s", string(output))
 		// If normal delete fails, try force delete
 		t.Logf("Attempting force delete for: %s", manifestPath)
 		forceCmd := exec.CommandContext(ctx, "kubectl", "delete", "-f", manifestPath, "--ignore-not-found=true", "--force", "--grace-period=0")
 		forceOutput, forceErr := forceCmd.CombinedOutput()
 		if forceErr != nil {
-			forceOutputStr := string(forceOutput)
-			// Check again for cluster unavailability
-			if strings.Contains(forceOutputStr, "connection refused") || 
-			   strings.Contains(forceOutputStr, "server could not find the requested resource") ||
-			   strings.Contains(forceOutputStr, "couldn't get current server API group list") {
-				t.Logf("Cluster appears to be unavailable, skipping force deletion of manifest %s", manifestPath)
-				return nil
-			}
-			t.Logf("Force delete also failed: %s", forceOutputStr)
+			t.Logf("Force delete also failed: %s", string(forceOutput))
 			return forceErr
 		}
 		t.Logf("Force deleted manifest: %s", manifestPath)
@@ -342,15 +324,7 @@ func DeleteSolutionManifestWithTimeout(t *testing.T, manifestPath string, timeou
 
 			solutionOutput, solutionErr := solutionCmd.CombinedOutput()
 			if solutionErr != nil {
-				solutionOutputStr := string(solutionOutput)
-				// Check if the error is due to cluster being unavailable
-				if strings.Contains(solutionOutputStr, "connection refused") || 
-				   strings.Contains(solutionOutputStr, "server could not find the requested resource") ||
-				   strings.Contains(solutionOutputStr, "couldn't get current server API group list") {
-					t.Logf("Cluster appears to be unavailable, skipping deletion of Solution %s", solutionName)
-					return nil // Don't treat cluster unavailability as an error during cleanup
-				}
-				t.Logf("Failed to delete Solution: %s", solutionOutputStr)
+				t.Logf("Failed to delete Solution: %s", string(solutionOutput))
 				// Don't return error immediately, try to delete SolutionContainer anyway
 			} else {
 				t.Logf("Successfully deleted Solution: %s", solutionName)
@@ -369,15 +343,7 @@ func DeleteSolutionManifestWithTimeout(t *testing.T, manifestPath string, timeou
 
 			containerOutput, containerErr := containerCmd.CombinedOutput()
 			if containerErr != nil {
-				containerOutputStr := string(containerOutput)
-				// Check if the error is due to cluster being unavailable
-				if strings.Contains(containerOutputStr, "connection refused") || 
-				   strings.Contains(containerOutputStr, "server could not find the requested resource") ||
-				   strings.Contains(containerOutputStr, "couldn't get current server API group list") {
-					t.Logf("Cluster appears to be unavailable, skipping deletion of SolutionContainer %s", solutionContainerName)
-					return nil // Don't treat cluster unavailability as an error during cleanup
-				}
-				t.Logf("Failed to delete SolutionContainer: %s", containerOutputStr)
+				t.Logf("Failed to delete SolutionContainer: %s", string(containerOutput))
 				return containerErr
 			} else {
 				t.Logf("Successfully deleted SolutionContainer: %s", solutionContainerName)
@@ -409,15 +375,7 @@ func DeleteKubernetesResource(t *testing.T, resourceType, resourceName, namespac
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		outputStr := string(output)
-		// Check if the error is due to cluster being unavailable
-		if strings.Contains(outputStr, "connection refused") || 
-		   strings.Contains(outputStr, "server could not find the requested resource") ||
-		   strings.Contains(outputStr, "couldn't get current server API group list") {
-			t.Logf("Cluster appears to be unavailable, skipping deletion of %s %s: %v", resourceType, resourceName, err)
-			return nil // Don't treat cluster unavailability as an error during cleanup
-		}
-		t.Logf("Failed to delete %s %s: %s", resourceType, resourceName, outputStr)
+		t.Logf("Failed to delete %s %s: %s", resourceType, resourceName, string(output))
 		return err
 	} else {
 		t.Logf("Successfully deleted %s: %s", resourceType, resourceName)
@@ -1032,6 +990,30 @@ func StartSymphonyWithRemoteAgentConfig(t *testing.T, protocol string) {
 	if err != nil {
 		t.Logf("Symphony deployment stdout: %s", stdout.String())
 		t.Logf("Symphony deployment stderr: %s", stderr.String())
+
+		// Check if the error is related to cert-manager webhook
+		stderrStr := stderr.String()
+		if strings.Contains(stderrStr, "cert-manager-webhook") &&
+			strings.Contains(stderrStr, "x509: certificate signed by unknown authority") {
+			t.Logf("Detected cert-manager webhook certificate issue, attempting to fix...")
+			FixCertManagerWebhook(t)
+
+			// Retry the deployment after fixing cert-manager
+			t.Logf("Retrying Symphony deployment after cert-manager fix...")
+			var retryStdout, retryStderr bytes.Buffer
+			cmd.Stdout = &retryStdout
+			cmd.Stderr = &retryStderr
+
+			retryErr := cmd.Run()
+			if retryErr != nil {
+				t.Logf("Retry deployment stdout: %s", retryStdout.String())
+				t.Logf("Retry deployment stderr: %s", retryStderr.String())
+				require.NoError(t, retryErr)
+			} else {
+				t.Logf("Symphony deployment succeeded after cert-manager fix")
+				err = nil // Clear the original error since retry succeeded
+			}
+		}
 	}
 	require.NoError(t, err)
 
@@ -1195,36 +1177,54 @@ func CleanupMinikube(t *testing.T) {
 	}
 }
 
-// CleanupMinikubeWithDelay ensures cluster is deleted after testing with a delay
-// This function should be used when we need to ensure all other cleanup operations complete first
-func CleanupMinikubeWithDelay(t *testing.T, delay time.Duration) {
-	t.Logf("Waiting %v before cleaning up minikube cluster to ensure all other cleanup operations complete...", delay)
-	time.Sleep(delay)
-	
-	t.Logf("Cleaning up minikube cluster...")
-	cmd := exec.Command("minikube", "delete")
-	err := cmd.Run()
-	if err != nil {
-		t.Logf("Warning: Failed to delete minikube cluster: %v", err)
-	} else {
-		t.Logf("Minikube cluster deleted successfully")
-	}
-}
+// FixCertManagerWebhook fixes cert-manager webhook certificate issues
+func FixCertManagerWebhook(t *testing.T) {
+	t.Logf("Fixing cert-manager webhook certificate issues...")
 
-// SetupOrderedCleanup sets up cleanup functions in the correct order to ensure minikube is deleted last
-// This function should be called at the beginning of the test after starting minikube
-func SetupOrderedCleanup(t *testing.T, cleanupFuncs ...func()) {
-	// First register minikube cleanup - this will execute LAST due to LIFO order
-	t.Cleanup(func() {
-		CleanupMinikubeWithDelay(t, 10*time.Second) // Add delay to ensure other cleanups complete
-	})
-	
-	// Then register other cleanup functions in reverse order of how they should execute
-	for i := len(cleanupFuncs) - 1; i >= 0; i-- {
-		func(cleanup func()) {
-			t.Cleanup(cleanup)
-		}(cleanupFuncs[i])
+	// Delete webhook configurations to force recreation
+	webhookConfigs := []string{
+		"cert-manager-webhook",
+		"cert-manager-cainjector",
 	}
+
+	for _, config := range webhookConfigs {
+		t.Logf("Deleting validating webhook configuration: %s", config)
+		cmd := exec.Command("kubectl", "delete", "validatingwebhookconfiguration", config, "--ignore-not-found=true")
+		cmd.Run() // Ignore errors as the webhook might not exist
+
+		t.Logf("Deleting mutating webhook configuration: %s", config)
+		cmd = exec.Command("kubectl", "delete", "mutatingwebhookconfiguration", config, "--ignore-not-found=true")
+		cmd.Run() // Ignore errors as the webhook might not exist
+	}
+
+	// Restart cert-manager pods to regenerate certificates
+	t.Logf("Restarting cert-manager deployments...")
+	deployments := []string{
+		"cert-manager",
+		"cert-manager-webhook",
+		"cert-manager-cainjector",
+	}
+
+	for _, deployment := range deployments {
+		cmd := exec.Command("kubectl", "rollout", "restart", "deployment", deployment, "-n", "cert-manager")
+		if err := cmd.Run(); err != nil {
+			t.Logf("Warning: Failed to restart deployment %s: %v", deployment, err)
+		}
+	}
+
+	// Wait for cert-manager to be ready again
+	t.Logf("Waiting for cert-manager to be ready after restart...")
+	time.Sleep(10 * time.Second)
+
+	// Wait for deployments to be ready
+	for _, deployment := range deployments {
+		cmd := exec.Command("kubectl", "rollout", "status", "deployment", deployment, "-n", "cert-manager", "--timeout=120s")
+		if err := cmd.Run(); err != nil {
+			t.Logf("Warning: Deployment %s may not be ready: %v", deployment, err)
+		}
+	}
+
+	t.Logf("Cert-manager webhook fix completed")
 }
 
 // WaitForCertManagerReady waits for cert-manager and CA issuer to be ready
@@ -1438,12 +1438,87 @@ func StartPortForward(t *testing.T) *exec.Cmd {
 	return cmd
 }
 
+// IsGitHubActions checks if we're running in GitHub Actions environment specifically
+func IsGitHubActions() bool {
+	return os.Getenv("GITHUB_ACTIONS") != ""
+}
+
+// setupGitHubActionsSudo sets up passwordless sudo specifically for GitHub Actions environment
+func setupGitHubActionsSudo(t *testing.T) {
+	currentUser := GetCurrentUser(t)
+
+	// In GitHub Actions, we often need to add ourselves to sudoers or the user might already be root
+	if currentUser == "root" {
+		t.Logf("Running as root in GitHub Actions, sudo not needed")
+		return
+	}
+
+	t.Logf("Setting up passwordless sudo for GitHub Actions environment (user: %s)", currentUser)
+
+	// Create a more permissive sudo rule for GitHub Actions
+	githubActionsSudoRule := fmt.Sprintf("%s ALL=(ALL) NOPASSWD: ALL\n", currentUser)
+	tempSudoFile := "/etc/sudoers.d/github-actions-integration-test"
+
+	// Write the sudoers rule directly (in GitHub Actions we often have write access)
+	err := ioutil.WriteFile(tempSudoFile, []byte(githubActionsSudoRule), 0440)
+	if err != nil {
+		t.Logf("Failed to write sudo rule directly, trying with sudo...")
+
+		// Fallback: try to use sudo to write the file
+		tempFile := "/tmp/github-actions-sudo-rule"
+		err = ioutil.WriteFile(tempFile, []byte(githubActionsSudoRule), 0644)
+		if err != nil {
+			t.Skip("Failed to create GitHub Actions sudo rule file")
+		}
+
+		// Copy with sudo
+		cmd := exec.Command("sudo", "cp", tempFile, tempSudoFile)
+		if err := cmd.Run(); err != nil {
+			t.Skip("Failed to setup GitHub Actions sudo access")
+		}
+
+		// Set proper permissions
+		cmd = exec.Command("sudo", "chmod", "440", tempSudoFile)
+		cmd.Run()
+
+		// Clean up temp file
+		os.Remove(tempFile)
+	}
+
+	// Set up cleanup
+	t.Cleanup(func() {
+		cleanupCmd := exec.Command("sudo", "rm", "-f", tempSudoFile)
+		cleanupCmd.Run()
+		t.Logf("Cleaned up GitHub Actions sudo rule: %s", tempSudoFile)
+	})
+
+	// Give the system a moment to reload sudoers
+	time.Sleep(1 * time.Second)
+
+	// Verify the setup worked
+	cmd := exec.Command("sudo", "-n", "true")
+	if err := cmd.Run(); err != nil {
+		t.Logf("GitHub Actions sudo setup verification failed, but continuing...")
+		PrintSudoSetupInstructions(t)
+		// Don't skip in GitHub Actions, just warn and continue
+	} else {
+		t.Logf("GitHub Actions passwordless sudo configured successfully")
+	}
+}
+
 // CheckSudoAccess checks if sudo access is available and sets up temporary passwordless sudo if needed
 func CheckSudoAccess(t *testing.T) {
 	// First check if we already have passwordless sudo
 	cmd := exec.Command("sudo", "-n", "true")
 	if err := cmd.Run(); err == nil {
 		t.Logf("Sudo access confirmed for automated testing")
+		return
+	}
+
+	// Check if we're in GitHub Actions environment specifically
+	if IsGitHubActions() {
+		t.Logf("Detected GitHub Actions environment, attempting to setup passwordless sudo...")
+		setupGitHubActionsSudo(t)
 		return
 	}
 
@@ -1463,8 +1538,9 @@ func CheckSudoAccess(t *testing.T) {
 	currentUser := GetCurrentUser(t)
 	tempSudoFile := "/etc/sudoers.d/temp-integration-test"
 
-	// Create temporary sudo rule for systemd operations
-	sudoRule := fmt.Sprintf("%s ALL=(ALL) NOPASSWD: /bin/systemctl, /usr/bin/systemctl, /bin/mkdir, /usr/bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm\n", currentUser)
+	// Create comprehensive sudo rule for bootstrap.sh operations
+	// This covers: systemctl commands, file operations for service creation, package management, and shell execution
+	sudoRule := fmt.Sprintf("%s ALL=(ALL) NOPASSWD: /bin/systemctl *, /usr/bin/systemctl *, /bin/bash -c *, /usr/bin/bash -c *, /bin/apt-get *, /usr/bin/apt-get *, /usr/bin/apt *, /bin/apt *, /bin/chmod *, /usr/bin/chmod *, /bin/mkdir *, /usr/bin/mkdir *, /bin/cp *, /usr/bin/cp *, /bin/rm *, /usr/bin/rm *\n", currentUser)
 
 	t.Logf("Creating temporary sudo rule for user '%s'...", currentUser)
 	t.Logf("You may be prompted for your sudo password to set up passwordless access for this test.")
@@ -1498,12 +1574,12 @@ func CheckSudoAccess(t *testing.T) {
 	// Give the system a moment to reload sudoers
 	time.Sleep(1 * time.Second)
 
-	// // Set up cleanup to remove the temporary sudo rule
-	// t.Cleanup(func() {
-	// 	cleanupCmd := exec.Command("sudo", "rm", "-f", tempSudoFile)
-	// 	cleanupCmd.Run() // Ignore errors during cleanup
-	// 	t.Logf("Cleaned up temporary sudo rule: %s", tempSudoFile)
-	// })
+	// Set up cleanup to remove the temporary sudo rule
+	t.Cleanup(func() {
+		cleanupCmd := exec.Command("sudo", "rm", "-f", tempSudoFile)
+		cleanupCmd.Run() // Ignore errors during cleanup
+		t.Logf("Cleaned up temporary sudo rule: %s", tempSudoFile)
+	})
 
 	// Verify the setup worked
 	cmd = exec.Command("sudo", "-n", "true")
@@ -1562,7 +1638,7 @@ func PrintSudoSetupInstructions(t *testing.T) {
 	t.Logf("To enable passwordless sudo for testing, create a file:")
 	t.Logf("  sudo visudo -f /etc/sudoers.d/symphony-testing")
 	t.Logf("Add this line:")
-	t.Logf("  %s ALL=(ALL) NOPASSWD: /bin/systemctl, /usr/bin/systemctl, /bin/mkdir, /usr/bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm", currentUser)
+	t.Logf("  %s ALL=(ALL) NOPASSWD: /bin/systemctl *, /usr/bin/systemctl *, /bin/bash -c *, /usr/bin/bash -c *, /bin/apt-get *, /usr/bin/apt-get *, /usr/bin/apt *, /bin/apt *, /bin/chmod *, /usr/bin/chmod *, /bin/mkdir *, /usr/bin/mkdir *, /bin/cp *, /usr/bin/cp *, /bin/rm *, /usr/bin/rm *", currentUser)
 	t.Logf("Save and exit. Then re-run the test.")
 	t.Logf("===========================================")
 }
@@ -1601,7 +1677,8 @@ func GetCurrentGroup(t *testing.T) string {
 
 // StartRemoteAgentWithBootstrap starts remote agent using bootstrap.sh script
 func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
-	// Check sudo access first - use fallback version for better error handling
+	// Check sudo access first with improved command list
+	CheckSudoAccess(t)
 	hasSudo := CheckSudoAccessWithFallback(t)
 	if !hasSudo {
 		t.Skip("Sudo access is required for bootstrap testing but is not available")
@@ -1687,9 +1764,9 @@ func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 	}()
 
 	// // Setup cleanup to stop and remove systemd service
-	// t.Cleanup(func() {
-	// 	CleanupSystemdService(t)
-	// })
+	t.Cleanup(func() {
+		CleanupSystemdService(t)
+	})
 
 	t.Logf("Bootstrap.sh started, systemd service should be created")
 	return cmd
@@ -1700,16 +1777,32 @@ func CleanupSystemdService(t *testing.T) {
 	t.Logf("Cleaning up systemd remote-agent service...")
 
 	// Stop the service
-	exec.Command("sudo", "systemctl", "stop", "remote-agent.service").Run()
+	cmd := exec.Command("sudo", "systemctl", "stop", "remote-agent.service")
+	err := cmd.Run()
+	if err != nil {
+		t.Logf("Warning: Failed to stop service: %v", err)
+	}
 
 	// Disable the service
-	exec.Command("sudo", "systemctl", "disable", "remote-agent.service").Run()
+	cmd = exec.Command("sudo", "systemctl", "disable", "remote-agent.service")
+	err = cmd.Run()
+	if err != nil {
+		t.Logf("Warning: Failed to disable service: %v", err)
+	}
 
 	// Remove service file
-	exec.Command("sudo", "rm", "-f", "/etc/systemd/system/remote-agent.service").Run()
+	cmd = exec.Command("sudo", "rm", "-f", "/etc/systemd/system/remote-agent.service")
+	err = cmd.Run()
+	if err != nil {
+		t.Logf("Warning: Failed to remove service file: %v", err)
+	}
 
 	// Reload systemd daemon
-	exec.Command("sudo", "systemctl", "daemon-reload").Run()
+	cmd = exec.Command("sudo", "systemctl", "daemon-reload")
+	err = cmd.Run()
+	if err != nil {
+		t.Logf("Warning: Failed to reload systemd daemon: %v", err)
+	}
 
 	t.Logf("Systemd service cleanup completed")
 }
@@ -2211,6 +2304,30 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 	if err != nil {
 		t.Logf("Symphony MQTT deployment stdout: %s", stdout.String())
 		t.Logf("Symphony MQTT deployment stderr: %s", stderr.String())
+
+		// Check if the error is related to cert-manager webhook
+		stderrStr := stderr.String()
+		if strings.Contains(stderrStr, "cert-manager-webhook") &&
+			strings.Contains(stderrStr, "x509: certificate signed by unknown authority") {
+			t.Logf("Detected cert-manager webhook certificate issue, attempting to fix...")
+			FixCertManagerWebhook(t)
+
+			// Retry the deployment after fixing cert-manager
+			t.Logf("Retrying Symphony MQTT deployment after cert-manager fix...")
+			var retryStdout, retryStderr bytes.Buffer
+			cmd.Stdout = &retryStdout
+			cmd.Stderr = &retryStderr
+
+			retryErr := cmd.Run()
+			if retryErr != nil {
+				t.Logf("Retry MQTT deployment stdout: %s", retryStdout.String())
+				t.Logf("Retry MQTT deployment stderr: %s", retryStderr.String())
+				require.NoError(t, retryErr)
+			} else {
+				t.Logf("Symphony MQTT deployment succeeded after cert-manager fix")
+				err = nil // Clear the original error since retry succeeded
+			}
+		}
 	}
 	require.NoError(t, err)
 

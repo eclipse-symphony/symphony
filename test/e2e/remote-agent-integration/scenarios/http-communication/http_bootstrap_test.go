@@ -25,14 +25,10 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 		utils.StartFreshMinikube(t)
 	})
 
-	// Setup ordered cleanup to ensure minikube is deleted LAST
-	// Define all cleanup functions in the order they should execute (first to last)
-	var caSecretName, clientSecretName string
-	utils.SetupOrderedCleanup(t,
-		func() { utils.CleanupSymphony(t, "remote-agent-http-bootstrap-test") },
-		func() { utils.CleanupCASecret(t, caSecretName) },
-		func() { utils.CleanupClientSecret(t, namespace, clientSecretName) },
-	)
+	// Ensure minikube is cleaned up after test
+	t.Cleanup(func() {
+		utils.CleanupMinikube(t)
+	})
 
 	// Generate test certificates (with MyRootCA subject)
 	certs := utils.GenerateTestCertificates(t, testDir)
@@ -41,6 +37,7 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 	setupBootstrapNamespace(t, namespace)
 	defer utils.CleanupNamespace(t, namespace)
 
+	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
 	var symphonyCAPath, baseURL string
 
@@ -161,6 +158,13 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 		time.Sleep(5 * time.Second)
 		t.Logf("Continuing with test - bootstrap.sh completed successfully")
 		testBootstrapDataInteractionWithBootstrap(t, targetName, namespace, testDir)
+	})
+
+	// Cleanup
+	t.Cleanup(func() {
+		utils.CleanupSymphony(t, "remote-agent-http-bootstrap-test")
+		utils.CleanupCASecret(t, caSecretName)
+		utils.CleanupClientSecret(t, namespace, clientSecretName)
 	})
 
 	t.Logf("HTTP communication test with bootstrap.sh completed successfully")

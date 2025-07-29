@@ -18,6 +18,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/google/uuid"
@@ -42,6 +44,10 @@ func TestTargetsInfo(t *testing.T) {
 func createTargetsVendor() TargetsVendor {
 	stateProvider := memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+
+	secretProvider := mock.MockSecretProvider{}
+	secretProvider.Init(mock.MockSecretProviderConfig{Name: "test-secret"})
+
 	pubSubProvider := memory.InMemoryPubSubProvider{}
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor := TargetsVendor{}
@@ -73,6 +79,7 @@ func createTargetsVendor() TargetsVendor {
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
 	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
+	vendor.TargetsManager.SecretProvider = &secretProvider
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {
@@ -306,6 +313,41 @@ func TestTargetsOnGetCert(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	// Pre-create a mock certificate in ready state to simulate cert-manager behavior
+	certObj := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "target1-v1",
+			"namespace": "default",
+		},
+		"spec": map[string]interface{}{
+			"secretName": "target1-v1-tls",
+		},
+		"status": map[string]interface{}{
+			"conditions": []interface{}{
+				map[string]interface{}{
+					"type":   "Ready",
+					"status": "True",
+				},
+			},
+		},
+	}
+
+	// Store the mock certificate in state
+	upsertRequest := states.UpsertRequest{
+		Value: states.StateEntry{
+			ID:   "target1-v1",
+			Body: certObj,
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     "cert-manager.io",
+			"version":   "v1",
+			"resource":  "certificates",
+			"kind":      "Certificate",
+		},
+	}
+	vendor.TargetsManager.StateProvider.Upsert(context.Background(), upsertRequest)
 
 	resp = vendor.onGetCert(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
