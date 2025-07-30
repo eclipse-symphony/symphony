@@ -319,11 +319,15 @@ func (i *GroupTargetProvider) patchTargetProperty(target model.TargetState, patc
 			}
 			return target, v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s not found", copyKey), v1alpha2.GroupActionFailed)
 		}
-		if v == "~REMOVE" {
+		if !strings.HasPrefix(v, "~REMOVE") {
+			target.Spec.Properties[k] = v
+		}
+	}
+	for k, v := range patch {
+		if strings.HasPrefix(v, "~REMOVE") {
 			delete(target.Spec.Properties, k)
 			continue
 		}
-		target.Spec.Properties[k] = v
 	}
 	return target, nil
 }

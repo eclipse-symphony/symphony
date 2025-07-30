@@ -81,10 +81,10 @@ func TestGroupTargetProviderTargetSelector(t *testing.T) {
 			"targetPropertySelector": map[string]interface{}{
 				"ha-set": "ha-set1",
 				"role":   "member",
-				"test":   "valid",
 			},
 			"targetStateSelector": map[string]interface{}{
 				"status": "Succeeded",
+				"foo":    "barbar",
 			},
 			"sparePropertySelector": map[string]interface{}{
 				"ha-set": "ha-set1",
@@ -101,9 +101,9 @@ func TestGroupTargetProviderTargetSelector(t *testing.T) {
 					"role":    "member",
 				},
 				TargetPatch: map[string]string{
-					"ha-set":  "~REMOVE",
 					"ha-sets": "~COPY_ha-set",
-					"role":    "member",
+					"ha-set":  "~REMOVE",
+					"role":    "spare",
 				},
 			},
 		},
