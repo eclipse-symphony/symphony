@@ -37,7 +37,7 @@ func TestPatchTargetPropertyCopy(t *testing.T) {
 	patch := map[string]string{
 		"ha-set": "~COPY_ha-set",
 	}
-	patchedTarget, err := provider.patchTargetProperty(target, patch)
+	patchedTarget, err := provider.patchTargetProperty(target, patch, nil, nil, false)
 	assert.Nil(t, err)
 	assert.Equal(t, "ha-set1", patchedTarget.Spec.Properties["ha-set"])
 }
@@ -54,7 +54,7 @@ func TestPatchTargetPropertyRemove(t *testing.T) {
 	patch := map[string]string{
 		"ha-set": "~REMOVE",
 	}
-	patchedTarget, err := provider.patchTargetProperty(target, patch)
+	patchedTarget, err := provider.patchTargetProperty(target, patch, nil, nil, false)
 	assert.Nil(t, err)
 	assert.NotContains(t, patchedTarget.Spec.Properties, "ha-set")
 }
@@ -104,6 +104,22 @@ func TestGroupTargetProviderTargetSelector(t *testing.T) {
 					"ha-sets": "~COPY_ha-set",
 					"ha-set":  "~REMOVE",
 					"role":    "spare",
+				},
+			},
+			"spareComponents": []model.ComponentSpec{
+				{
+					Name: "spare-component",
+					Properties: map[string]interface{}{
+						"foo": "bar3",
+					},
+				},
+			},
+			"memberComponents": []model.ComponentSpec{
+				{
+					Name: "target-component",
+					Properties: map[string]interface{}{
+						"foo": "bar2",
+					},
 				},
 			},
 		},
