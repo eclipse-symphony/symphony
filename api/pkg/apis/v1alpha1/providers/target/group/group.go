@@ -309,7 +309,7 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 	}
 	return ret, nil
 }
-func (i *GroupTargetProvider) patchTargetProperty(target model.TargetState, patch map[string]string) (model.TargetState, error) {
+func (i *GroupTargetProvider) patchTargetProperty(target model.TargetState, patch map[string]string, memberComponents []model.ComponentSpec, spareComponents []model.ComponentSpec, isPromotion bool) (model.TargetState, error) {
 	for k, v := range patch {
 		if strings.HasPrefix(v, "~COPY_") {
 			copyKey := strings.TrimPrefix(v, "~COPY_")
@@ -329,7 +329,40 @@ func (i *GroupTargetProvider) patchTargetProperty(target model.TargetState, patc
 			continue
 		}
 	}
+	if isPromotion {
+		target = removeComponents(target, spareComponents)
+		target = addComponents(target, memberComponents)
+	} else {
+		target = removeComponents(target, memberComponents)
+		target = addComponents(target, spareComponents)
+	}
 	return target, nil
+}
+func removeComponents(target model.TargetState, components []model.ComponentSpec) model.TargetState {
+	for _, component := range components {
+		for i := len(target.Spec.Components) - 1; i >= 0; i-- {
+			if target.Spec.Components[i].Name == component.Name {
+				// Remove the component at index i
+				target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
+			}
+		}
+	}
+	return target
+}
+func addComponents(target model.TargetState, components []model.ComponentSpec) model.TargetState {
+	for _, component := range components {
+		found := false
+		for _, existingComponent := range target.Spec.Components {
+			if existingComponent.Name == component.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			target.Spec.Components = append(target.Spec.Components, component)
+		}
+	}
+	return target
 }
 func (i *GroupTargetProvider) applyLowTrigger(ctx context.Context, namespace string, groupProperty TargetGroupProperty, deficate int, failedTargets []model.TargetState) error {
 	spares, err := i.matchTargets(ctx, namespace, groupProperty.SparePropertySelector, groupProperty.SpareStateSelector, true)
@@ -344,7 +377,7 @@ func (i *GroupTargetProvider) applyLowTrigger(ctx context.Context, namespace str
 	}
 	spareCount := 0
 	for _, spare := range spares {
-		spare, err = i.patchTargetProperty(spare, groupProperty.LowMatchAction.SparePatch)
+		spare, err = i.patchTargetProperty(spare, groupProperty.LowMatchAction.SparePatch, groupProperty.MemberComponents, groupProperty.SpareComponents, true)
 		if err != nil {
 			log.ErrorfCtx(ctx, "  P (Group Target): failed to patch target: %+v", err)
 			return err
@@ -361,7 +394,7 @@ func (i *GroupTargetProvider) applyLowTrigger(ctx context.Context, namespace str
 		}
 	}
 	for _, target := range failedTargets {
-		target, err = i.patchTargetProperty(target, groupProperty.LowMatchAction.TargetPatch)
+		target, err = i.patchTargetProperty(target, groupProperty.LowMatchAction.TargetPatch, groupProperty.MemberComponents, groupProperty.SpareComponents, false)
 		if err != nil {
 			log.ErrorfCtx(ctx, "  P (Group Target): failed to patch target: %+v", err)
 			return err
