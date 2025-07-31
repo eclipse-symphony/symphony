@@ -52,6 +52,7 @@ type (
 	Dispatcher interface {
 		QueueJob(ctx context.Context, id string, namespace string, isDelete bool, isTarget bool, user string, password string) error
 		QueueDeploymentJob(ctx context.Context, namespace string, isDelete bool, deployment model.DeploymentSpec, user string, password string) error
+		CancelDeploymentJob(ctx context.Context, id string, jobId string, namespace string, user string, password string) error
 	}
 
 	ApiClient interface {
@@ -534,6 +535,28 @@ func (a *apiClient) QueueDeploymentJob(ctx context.Context, namespace string, is
 	}
 
 	_, err = a.callRestAPI(ctx, fmt.Sprintf("%s?%s", path, query.Encode()), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *apiClient) CancelDeploymentJob(ctx context.Context, id string, jobId string, namespace string, user string, password string) error {
+	// func (a *apiClient) CancelDeploymentJob(ctx context.Context, namespace string, deployment model.DeploymentSpec) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	path := "solution/cancel"
+	query := url.Values{
+		"namespace": []string{namespace},
+		"instance":  []string{id},
+		"jobid":     []string{jobId},
+	}
+
+	log.DebugfCtx(ctx, "apiClient.CancelDeploymentJob: Deployment id: %s, namespace: %v", id, namespace)
+	_, err = a.callRestAPI(ctx, fmt.Sprintf("%s?%s", path, query.Encode()), "POST", nil, token)
 	if err != nil {
 		return err
 	}
