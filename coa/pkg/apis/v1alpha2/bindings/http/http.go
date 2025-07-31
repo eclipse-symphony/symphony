@@ -219,6 +219,8 @@ func toHttpState(state v1alpha2.State) int {
 		return fasthttp.StatusBadRequest
 	case v1alpha2.Unauthorized:
 		return fasthttp.StatusUnauthorized
+	case v1alpha2.Forbidden:
+		return fasthttp.StatusForbidden
 	case v1alpha2.NotFound:
 		return fasthttp.StatusNotFound
 	case v1alpha2.MethodNotAllowed:

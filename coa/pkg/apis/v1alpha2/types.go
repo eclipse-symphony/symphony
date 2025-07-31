@@ -27,8 +27,10 @@ const (
 	Accepted State = 202
 	// BadRequest = HTTP 400
 	BadRequest State = 400
-	// Unauthorized = HTTP 403
-	Unauthorized State = 403
+	// Unauthorized = HTTP 401
+	Unauthorized State = 401
+	// Forbidden = HTTP 403
+	Forbidden State = 403
 	// NotFound = HTTP 404
 	NotFound State = 404
 	// MethodNotAllowed = HTTP 405
@@ -189,6 +191,8 @@ func (s State) String() string {
 		return "Bad Request"
 	case Unauthorized:
 		return "Unauthorized"
+	case Forbidden:
+		return "Forbidden"
 	case NotFound:
 		return "Not Found"
 	case MethodNotAllowed:

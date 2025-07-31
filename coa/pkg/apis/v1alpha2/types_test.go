@@ -18,6 +18,7 @@ func TestStateString(t *testing.T) {
 		Accepted:                      "Accepted",
 		BadRequest:                    "Bad Request",
 		Unauthorized:                  "Unauthorized",
+		Forbidden:                     "Forbidden",
 		NotFound:                      "Not Found",
 		MethodNotAllowed:              "Method Not Allowed",
 		Conflict:                      "Conflict",
