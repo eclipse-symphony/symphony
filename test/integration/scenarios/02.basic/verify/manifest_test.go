@@ -36,6 +36,53 @@ var (
 	}
 )
 
+func TestDeleteTimeout(t *testing.T) {
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	_, err := DeployManifests("../manifest/oss/delete-timeout/target-1s.yaml", namespace, "false", "active")
+	require.NoError(t, err)
+
+	// verify target is in succeeded state
+	testBasic_TargetStatus(t, "0")
+
+	// delete target without waiting for returning
+	cmd := exec.Command("kubectl", "delete", "targets.fabric.symphony", namespace+"target", "-n", namespace)
+	err = cmd.Start() // Start without waiting
+	require.NoError(t, err)
+
+	// wait and verify target is in Timeout state
+	testBasic_TargetStatusTimeout(t, namespace+"target")
+
+	_, err = DeployManifests("../manifest/oss/delete-timeout/target-defaultTimeout.yaml", namespace, "false", "active")
+
+	// delete target again - block until delete is complete
+	cmd = exec.Command("kubectl", "delete", "targets.fabric.symphony", namespace+"target", "-n", namespace)
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+
+	if err != nil {
+		// If there's an error, it should be because the target was not found
+		// The error message format is: "Error from server (NotFound): targets.fabric.symphony \"targetname\" not found"
+		outputStr := stdout.String() + stderr.String()
+		require.Contains(t, outputStr, "NotFound", "Expected NotFound error when target doesn't exist")
+		require.Contains(t, outputStr, "not found", "Expected 'not found' message in error output")
+	} else {
+		// If no error, the target was successfully deleted
+		// The output should contain a success message or be empty
+		outputStr := stdout.String()
+		if outputStr != "" {
+			require.Contains(t, outputStr, "deleted")
+		}
+	}
+
+	testBasic_TargetNotFound(t, namespace+"target")
+}
+
 func TestDryRunAndActiveState(t *testing.T) {
 	namespace := os.Getenv("NAMESPACE")
 	if namespace == "" {
@@ -82,6 +129,75 @@ func TestDryRunAndActiveState(t *testing.T) {
 	err = CleanUpSymphonyObjects(namespace)
 	if err != nil {
 		t.Errorf("Failed to clean up Symphony objects Error: %v", err)
+	}
+}
+
+func testBasic_TargetNotFound(t *testing.T, targetName string) {
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	crd := &unstructured.Unstructured{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "fabric.symphony",
+		Version: "v1",
+		Kind:    "Target",
+	})
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	resource, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "fabric.symphony",
+		Version:  "v1",
+		Resource: "targets",
+	}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
+	require.Error(t, err)
+	require.Nil(t, resource)
+}
+
+func testBasic_TargetStatusTimeout(t *testing.T, targetName string) {
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	crd := &unstructured.Unstructured{}
+	crd.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "fabric.symphony",
+		Version: "v1",
+		Kind:    "Target",
+	})
+
+	cfg, err := testhelpers.RestConfig()
+	require.NoError(t, err)
+
+	dyn, err := dynamic.NewForConfig(cfg)
+	require.NoError(t, err)
+
+	for {
+		sleepDuration, _ := time.ParseDuration("2s")
+		time.Sleep(sleepDuration)
+
+		fmt.Printf("Checking target status: %s\n", targetName)
+		resource, err := dyn.Resource(schema.GroupVersionResource{
+			Group:    "fabric.symphony",
+			Version:  "v1",
+			Resource: "targets",
+		}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
+		require.NoError(t, err)
+
+		targetState := getTargetState(*resource)
+		fmt.Printf("Current target status: %v\n", targetState)
+
+		if strings.Contains(targetState.Status.ProvisioningStatus.Error.Message, "Timed Out") {
+			require.Equal(t, "Failed", targetState.Status.ProvisioningStatus.Status, "target should be in failed state")
+			break
+		}
 	}
 }
 

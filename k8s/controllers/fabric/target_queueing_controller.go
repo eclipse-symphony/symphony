@@ -98,7 +98,7 @@ func (r *TargetQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				resultType = metrics.ReconcileSuccessResult
 			}
 		} else {
-			deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetOperationStartTimeKey, operationName)
+			deploymentOperationType, reconcileResult, err = r.dr.AttemptUpdate(ctx, target, true, log, targetDeleteOperationStartTimeKey, operationName)
 			if err != nil {
 				resultType = metrics.ReconcileFailedResult
 			}

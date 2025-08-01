@@ -1,0 +1,49 @@
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: CAMPAIGNFULLNAME
+  annotations:
+    "management.azure.com/resourceId": CAMPAIGNREFNAME
+spec:
+  rootResource: context1-v-bulk-campaign1
+  firstStage: "stage1"
+  selfDriving: true
+  stages:
+    stage1:
+      name: "stage1"
+      taskOption:
+        concurrency: 1
+        errorAction:
+          mode: silentlyContinue
+          maxToleratedFailures: 1
+      tasks:
+        - name: "task1"
+          provider: "providers.stage.invalid"
+          target: TARGETREFNAME
+          config:
+            wait.count: 12
+            wait.interval: 5
+          inputs:
+            action: create
+            object:
+              metadata:
+                name: "instance"
+              spec:
+                solution: SOLUTIONREFNAME
+            objectName: "instance"
+            objectType: "instance"
+        - name: "task2"
+          provider: "providers.stage.create"
+          target: TARGETREFNAME
+          config:
+            wait.count: 12
+            wait.interval: 5
+          inputs:
+            action: create
+            object:
+              metadata:
+                name: "instance"
+              spec:
+                solution: SOLUTIONREFNAME
+            objectName: "instance"
+            objectType: "instance"

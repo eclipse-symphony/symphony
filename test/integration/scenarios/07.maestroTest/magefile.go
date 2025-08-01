@@ -48,6 +48,8 @@ var (
 
 // Entry point for running the tests
 func Test() error {
+	fmt.Println("Running ", TEST_NAME)
+
 	cancel, tunnelPid, err := testhelpers.SetupClusterWithTunnel()
 	defer testhelpers.CleanupWithTunnel(cancel, tunnelPid, TEST_NAME)
 

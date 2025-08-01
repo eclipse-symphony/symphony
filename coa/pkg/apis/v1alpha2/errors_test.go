@@ -50,9 +50,13 @@ func TestFromHTTPResponseCode(t *testing.T) {
 			"state":   BadRequest,
 			"message": "Bad Request",
 		},
-		403: {
+		401: {
 			"state":   Unauthorized,
 			"message": "Unauthorized",
+		},
+		403: {
+			"state":   Forbidden,
+			"message": "Forbidden",
 		},
 		404: {
 			"state":   NotFound,

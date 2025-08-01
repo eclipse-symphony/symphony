@@ -62,8 +62,9 @@ type InstanceReconciler struct {
 }
 
 const (
-	instanceFinalizerName         = "instance.solution." + constants.FinalizerPostfix
-	instanceOperationStartTimeKey = "instance.solution." + constants.OperationStartTimeKeyPostfix
+	instanceFinalizerName               = "instance.solution." + constants.FinalizerPostfix
+	instanceOperationStartTimeKey       = "instance.solution." + constants.OperationStartTimeKeyPostfix
+	instanceDeleteOperationStartTimeKey = "instance.solution." + constants.DeleteOperationStartTimeKeyPostfix
 )
 
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -115,7 +116,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	}
 
 	// Get target candidates
-	deploymentResources.TargetCandidates = utils.MatchTargets(*instance, deploymentResources.TargetList)
+	deploymentResources.TargetCandidates = r.MatchTargetsForInstance(ctx, instance)
 	if len(deploymentResources.TargetCandidates) == 0 {
 		err := v1alpha2.NewCOAError(nil, "no target candidates found", v1alpha2.TargetCandidatesNotFound)
 		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no target candidates found")
@@ -128,6 +129,49 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		return nil, err
 	}
 	return &deployment, nil
+}
+
+func (r *InstanceReconciler) MatchTargetsForInstance(ctx context.Context, instance *solution_v1.Instance) []fabric_v1.Target {
+	if instance.Spec.Target.Name != "" {
+		// First try to get target directly with the full name
+		target := fabric_v1.Target{}
+		targetName := api_utils.ConvertReferenceToObjectName(instance.Spec.Target.Name)
+		err := r.Get(ctx, types.NamespacedName{Name: targetName, Namespace: instance.Namespace}, &target)
+		if err == nil {
+			// Found directly
+			return []fabric_v1.Target{target}
+		}
+
+		// No target found
+		return []fabric_v1.Target{}
+	}
+
+	if len(instance.Spec.Target.Selector) > 0 {
+		// List all targets in namespace
+		var targets fabric_v1.TargetList
+		if err := r.List(ctx, &targets, client.InNamespace(instance.Namespace)); err != nil {
+			return []fabric_v1.Target{}
+		}
+
+		// Filter targets based on selector
+		matchedTargets := []fabric_v1.Target{}
+		for _, t := range targets.Items {
+			fullMatch := true
+			for k, v := range instance.Spec.Target.Selector {
+				if tv, ok := t.Spec.Properties[k]; !ok || v != tv {
+					fullMatch = false
+					break
+				}
+			}
+			if fullMatch {
+				matchedTargets = append(matchedTargets, t)
+			}
+		}
+
+		return matchedTargets
+	}
+
+	return []fabric_v1.Target{}
 }
 
 func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, error) {

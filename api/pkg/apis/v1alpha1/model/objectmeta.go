@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -144,6 +145,14 @@ func (c *ObjectMeta) PreserveSystemMetadata(metadata ObjectMeta) {
 		if _, exists := c.Annotations[key]; !exists {
 			if value, ok := metadata.Annotations[key]; ok {
 				c.Annotations[key] = value
+			}
+		}
+	}
+
+	for _, key := range constants.SystemReservedAnnotationsByPostfixes() {
+		for annotationKey, annotationValue := range metadata.Annotations {
+			if strings.HasSuffix(annotationKey, key) {
+				c.Annotations[annotationKey] = annotationValue
 			}
 		}
 	}

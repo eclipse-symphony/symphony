@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"time"
 
-	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	solution_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
@@ -22,7 +21,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -86,7 +84,7 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	} else { // remove
 		reconciliationType = metrics.DeleteOperationType
-		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, true, log, instanceOperationStartTimeKey, operationName)
+		deploymentOperationType, reconcileResult, err = r.dr.PollingResult(ctx, instance, true, log, instanceDeleteOperationStartTimeKey, operationName)
 		if err != nil {
 			resultType = metrics.ReconcileFailedResult
 		}
@@ -123,9 +121,5 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithOptions(controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: r.PollingConcurrentReconciles}).
 		For(&solution_v1.Instance{}).
 		WithEventFilter(jobIDPredicate).
-		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
-			r.handleSolution)).
-		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
-			r.handleTarget)).
 		Complete(r)
 }
