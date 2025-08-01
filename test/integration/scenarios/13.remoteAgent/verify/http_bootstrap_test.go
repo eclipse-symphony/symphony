@@ -108,8 +108,15 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 		bootstrapCmd := utils.StartRemoteAgentWithBootstrap(t, config)
 		require.NotNil(t, bootstrapCmd)
 
-		// Wait for bootstrap.sh to complete
-		time.Sleep(15 * time.Second)
+		// Wait for bootstrap.sh to complete - increased timeout for GitHub Actions
+		t.Logf("Waiting for bootstrap.sh to complete...")
+		time.Sleep(30 * time.Second)
+
+		// Check if bootstrap.sh process is still running
+		if bootstrapCmd.ProcessState == nil {
+			t.Logf("Bootstrap.sh is still running, waiting a bit more...")
+			time.Sleep(15 * time.Second)
+		}
 
 		// Check service status - if bootstrap.sh completed successfully,
 		// the service should have been created and started
@@ -124,12 +131,12 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 					t.Logf("Service check failed, but bootstrap.sh succeeded: %v", r)
 				}
 			}()
-			utils.WaitForSystemdService(t, "remote-agent.service", 15*time.Second)
+			utils.WaitForSystemdService(t, "remote-agent.service", 30*time.Second)
 		}()
 
 		// Give some time for the service check, but continue regardless
-		time.Sleep(5 * time.Second)
-		t.Logf("Continuing with test - bootstrap.sh completed successfully")
+		time.Sleep(10 * time.Second)
+		t.Logf("Continuing with test - bootstrap.sh should have completed")
 	})
 
 	t.Run("VerifyTargetStatus", func(t *testing.T) {

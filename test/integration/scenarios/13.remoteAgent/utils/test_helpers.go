@@ -63,16 +63,24 @@ func GetProjectRoot(t *testing.T) string {
 	currentDir, err := os.Getwd()
 	require.NoError(t, err)
 
+	t.Logf("GetProjectRoot: Starting from directory: %s", currentDir)
+
 	// Keep going up directories until we find the project root
 	for {
+		t.Logf("GetProjectRoot: Checking directory: %s", currentDir)
+
 		// Check if this directory contains the expected project structure
 		expectedDirs := []string{"api", "coa", "remote-agent", "test"}
 		isProjectRoot := true
 
 		for _, dir := range expectedDirs {
-			if _, err := os.Stat(filepath.Join(currentDir, dir)); os.IsNotExist(err) {
+			fullPath := filepath.Join(currentDir, dir)
+			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+				t.Logf("GetProjectRoot: Directory %s not found at %s", dir, fullPath)
 				isProjectRoot = false
 				break
+			} else {
+				t.Logf("GetProjectRoot: Found directory %s at %s", dir, fullPath)
 			}
 		}
 
@@ -1014,6 +1022,15 @@ func StartSymphonyWithRemoteAgentConfig(t *testing.T, protocol string) {
 	// Execute mage command from localenv directory
 	projectRoot := GetProjectRoot(t)
 	localenvDir := filepath.Join(projectRoot, "test", "localenv")
+
+	t.Logf("StartSymphonyWithRemoteAgentConfig: Project root: %s", projectRoot)
+	t.Logf("StartSymphonyWithRemoteAgentConfig: Localenv dir: %s", localenvDir)
+
+	// Check if localenv directory exists
+	if _, err := os.Stat(localenvDir); os.IsNotExist(err) {
+		t.Fatalf("Localenv directory does not exist: %s", localenvDir)
+	}
+
 	cmd := exec.Command("mage", "cluster:deploywithsettings", helmValues)
 	cmd.Dir = localenvDir
 
@@ -1789,17 +1806,21 @@ func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 	err := cmd.Start()
 	require.NoError(t, err, "Failed to start bootstrap.sh")
 
-	// Wait for bootstrap.sh to complete
+	t.Logf("Bootstrap.sh started with PID: %d", cmd.Process.Pid)
+
+	// Wait for bootstrap.sh to complete - increased timeout for GitHub Actions
 	go func() {
-		cmd.Wait()
+		err := cmd.Wait()
+		if err != nil {
+			t.Logf("Bootstrap.sh exited with error: %v", err)
+		} else {
+			t.Logf("Bootstrap.sh completed successfully")
+		}
 		t.Logf("Bootstrap.sh stdout: %s", stdout.String())
 		if stderr.Len() > 0 {
 			t.Logf("Bootstrap.sh stderr: %s", stderr.String())
 		}
 	}()
-
-	// Note: Cleanup should be handled by the calling test function, not here
-	// This allows the service to persist across multiple test steps
 
 	t.Logf("Bootstrap.sh started, systemd service should be created")
 	return cmd
@@ -2328,6 +2349,15 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 	// Execute mage command from localenv directory
 	projectRoot := GetProjectRoot(t)
 	localenvDir := filepath.Join(projectRoot, "test", "localenv")
+
+	t.Logf("StartSymphonyWithMQTTConfig: Project root: %s", projectRoot)
+	t.Logf("StartSymphonyWithMQTTConfig: Localenv dir: %s", localenvDir)
+
+	// Check if localenv directory exists
+	if _, err := os.Stat(localenvDir); os.IsNotExist(err) {
+		t.Fatalf("Localenv directory does not exist: %s", localenvDir)
+	}
+
 	cmd := exec.Command("mage", "cluster:deploywithsettings", helmValues)
 	cmd.Dir = localenvDir
 
