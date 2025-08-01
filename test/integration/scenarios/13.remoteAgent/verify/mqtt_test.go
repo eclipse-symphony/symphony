@@ -3,13 +3,56 @@ package verify
 import (
 	"fmt"
 	"net"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/test/integration/scenarios/13.remoteAgent/utils"
 	"github.com/stretchr/testify/require"
 )
+
+// getHostIPForMinikube gets the host IP that minikube can access
+func getHostIPForMinikube(t *testing.T) string {
+	// For GitHub Actions and most environments, try to get the docker host IP
+	// This is the IP that containers can use to reach the host
+
+	// First try to get from minikube
+	cmd := exec.Command("minikube", "ssh", "route -n | grep '^0.0.0.0' | awk '{print $2}'")
+	if output, err := cmd.Output(); err == nil {
+		ip := strings.TrimSpace(string(output))
+		if ip != "" && net.ParseIP(ip) != nil {
+			t.Logf("Using minikube default gateway IP: %s", ip)
+			return ip
+		}
+	}
+
+	// Fallback: try to get the default network interface IP
+	cmd = exec.Command("ip", "route", "get", "8.8.8.8")
+	if output, err := cmd.Output(); err == nil {
+		// Parse the output to get the source IP
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "src") {
+				parts := strings.Fields(line)
+				for i, part := range parts {
+					if part == "src" && i+1 < len(parts) {
+						ip := parts[i+1]
+						if net.ParseIP(ip) != nil {
+							t.Logf("Using host default interface IP: %s", ip)
+							return ip
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Final fallback: use Docker's default bridge gateway (common in many setups)
+	t.Logf("Using Docker bridge gateway IP as fallback: 172.17.0.1")
+	return "172.17.0.1"
+}
 
 func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	// Test configuration - use relative path from test directory
@@ -18,6 +61,9 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	namespace := "default"
 	mqttBrokerAddress := "localhost"
 	mqttBrokerPort := 8883
+
+	// Get the host IP that minikube can access for the MQTT broker
+	hostIP := getHostIPForMinikube(t)
 
 	// Setup test environment
 	testDir := utils.SetupTestDirectory(t)
@@ -53,7 +99,7 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 
 		// Test connectivity to external broker
 		t.Logf("Testing external MQTT broker connectivity...")
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("172.22.111.41:%d", mqttBrokerPort), 10*time.Second)
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", hostIP, mqttBrokerPort), 10*time.Second)
 
 		if err == nil {
 			conn.Close()
@@ -66,7 +112,7 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
 		// Deploy Symphony with MQTT configuration
 		// Symphony runs inside minikube, needs to access external broker on host
-		brokerAddress := fmt.Sprintf("tls://172.22.111.41:%d", mqttBrokerPort)
+		brokerAddress := fmt.Sprintf("tls://%s:%d", hostIP, mqttBrokerPort)
 		fmt.Printf("Starting Symphony with MQTT broker address: %s\n", brokerAddress)
 		utils.StartSymphonyWithMQTTConfig(t, brokerAddress)
 
