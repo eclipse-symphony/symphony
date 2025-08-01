@@ -289,7 +289,6 @@ else
     echo -e "\e[32mUsing remote-agent binary: $agent_path\e[0m"
 fi
 
-<<<<<<< HEAD
 # Make the remote-agent binary executable (for HTTP mode, chmod was already done above)
 if [ "$protocol" = "http" ]; then
     chmod +x "./remote-agent"
@@ -299,14 +298,6 @@ if [ "$protocol" = "http" ]; then
     else
         echo -e "\e[32mRemote-agent binary made executable\e[0m"
     fi
-=======
-# Make the remote-agent binary executable
-if [ $? -ne 0 ]; then
-    echo -e "\e[31mError: Failed to make remote-agent binary executable. Exiting...\e[0m"
-    exit 1
-else
-    echo -e "\e[32mRemote-agent binary made executable\e[0m"
->>>>>>> 48c7b6d4 (add remote agent e2e test)
 fi
 
 echo -e "\e[32mFiles created successfully:\e[0m"

@@ -84,24 +84,17 @@ func (m *MqttBinding) Launch() error {
 		_ = json.Unmarshal(coaResponse.Body, &respMap)
 		fmt.Printf("Received response: %s\n", string(coaResponse.Body))
 
-		var respCorrelationId string
 		correlationKey := contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)
-
-		// Try to get correlationId from top level first (for empty queue responses)
-		if topLevelId, ok := respMap[correlationKey].(string); ok && topLevelId != "" {
-			respCorrelationId = topLevelId
+		respCorrelationId, _ := respMap[correlationKey].(string)
+		if respCorrelationId == "" {
+			fmt.Printf("Warning: correlationId not found in response")
+			return
 		}
 
-		if respCorrelationId != "" {
-			fmt.Printf("Received response with correlationId: %s\n", respCorrelationId)
-			if _, ok := myCorrelationIds.Load(respCorrelationId); !ok {
-				// not my request, ignore it
-				fmt.Printf("Warning: correlationId is not in map")
-				return
-			}
-
-		} else {
-			fmt.Printf("Warning: correlationId not found in response")
+		fmt.Printf("Received response with correlationId: %s\n", respCorrelationId)
+		if _, ok := myCorrelationIds.Load(respCorrelationId); !ok {
+			// not my request, ignore it
+			fmt.Printf("Warning: correlationId is not in map")
 			return
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
