@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/magefile/mage/mg"
+	"github.com/magefile/mage/sh"
 	"github.com/princjef/mageutil/bintool"
 	"github.com/princjef/mageutil/shellcmd"
 )
@@ -174,11 +175,19 @@ func TestRace() error {
 
 // CleanTest runs unit tests without the test cache.
 func CleanTest() error {
-	return shellcmd.RunAll(
-		`go clean -testcache`,
-		`LD_LIBRARY_PATH=$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release`,
-		shellcmd.Command(fmt.Sprintf(`CGO_LDFLAGS="-L$LD_LIBRARY_PATH" go test %s -timeout 5m -cover -coverprofile=coverage.out ./...`, raceOpt())),
-	)
+	ldPath := "./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"
+	env := map[string]string{
+		"LD_LIBRARY_PATH": ldPath,
+		"CGO_LDFLAGS":     "-L" + ldPath,
+	}
+
+	// Clean test cache
+	if err := sh.Run("go", "clean", "-testcache"); err != nil {
+		return err
+	}
+
+	// Run tests with env
+	return sh.RunWith(env, "go", "test", raceOpt(), "-timeout", "5m", "-cover", "-coverprofile=coverage.out", "./...")
 }
 
 // Retrieve the test coverage count from coverage.out file.
