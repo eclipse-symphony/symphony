@@ -2358,7 +2358,10 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 		t.Fatalf("Localenv directory does not exist: %s", localenvDir)
 	}
 
-	cmd := exec.Command("mage", "cluster:deploywithsettings", helmValues)
+	// Set a longer timeout for MQTT deployment as it's more complex
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "mage", "cluster:deploywithsettings", helmValues)
 	cmd.Dir = localenvDir
 
 	var stdout, stderr bytes.Buffer
