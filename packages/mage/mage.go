@@ -176,7 +176,8 @@ func TestRace() error {
 func CleanTest() error {
 	return shellcmd.RunAll(
 		`go clean -testcache`,
-		shellcmd.Command(fmt.Sprintf(`LD_LIBRARY_PATH=./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release CGO_LDFLAGS=-L./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release go test %s -timeout 5m -cover -coverprofile=coverage.out ./...`, raceOpt())),
+		`export LD_LIBRARY_PATH=$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release`,
+		shellcmd.Command(fmt.Sprintf(`CGO_LDFLAGS="-L$LD_LIBRARY_PATH" go test %s -timeout 5m -cover -coverprofile=coverage.out ./...`, raceOpt())),
 	)
 }
 
