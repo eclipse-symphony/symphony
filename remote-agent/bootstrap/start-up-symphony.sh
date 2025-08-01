@@ -36,13 +36,13 @@ if [ $? -ne 0 ]; then
     echo "Error: client.crt and secret public key are different!"
 fi
 
-cd test/localenv
+cd ../../test/localenv
 
-mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=<secret name> --set RemoteCert.ClientCAs.SecretKey=<secret key> --set installServiceExt=true"
+mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true"
 # default is : mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true --set installServiceExt=true"  
 
 # start a new terminal
-minikube tunnel
+# minikube tunnel
 
 # remove the localCA.crt from the system (optional)
 sudo rm /etc/ssl/certs/localCA.pem
@@ -70,7 +70,7 @@ ls -l /etc/ssl/certs | grep localCA
 # config client CA and subjects in values.yaml and use the client cert sample in sample folder
 # add symphony-service to DNS mapping
 # may not be able to modify host file but to add DNS record
-sudo vi /etc/hosts
+# sudo vi /etc/hosts
 # add the following line
 # 127.0.0.1 symphony-service
 
@@ -80,5 +80,5 @@ kubectl apply -f ../../remote-agent/bootstrap/sample_target.yaml
 # sign bootstrap script
 # sign binary
 sudo systemctl stop remote-agent.service
-./bootstrap.sh https://symphony-service:8081/v1alpha2 certfile/client.crt certfile/client.key remote-demo default topologies.json <user> <group>
-
+cd ../../remote-agent/bootstrap
+./bootstrap.sh http https://symphony-service:8081/v1alpha2 client.crt client.key remote-demo default topologies.json <user> <group>

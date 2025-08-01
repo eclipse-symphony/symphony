@@ -168,7 +168,7 @@ config=$(realpath $config_file)
 # Protocol-specific handling
 if [ "$protocol" = "http" ]; then
     # HTTP mode: Call the certificate endpoint to get the public and private keys
-    bootstarpCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
+    bootstarpCertEndpoint="$endpoint/targets/bootstrap/$target_name?namespace=$namespace&osPlatform=linux"
     echo -e "\e[32mCalling certificate endpoint: $bootstarpCertEndpoint\e[0m"
 
     # Get certificate
@@ -225,7 +225,16 @@ if [ "$protocol" = "http" ]; then
 
     # No longer update the topology here, it's handled when remote-agent starts
     echo -e "\e[32mCertificates prepared. Topology will be updated when remote-agent starts.\e[0m"
-    
+
+    # Download the remote-agent binary
+    echo -e "\e[32mDownloading remote-agent binary...\e[0m"
+    curl --cert $cert_path --key $key_path -X GET "$endpoint/files/remote-agent" -o remote-agent
+    if [ $? -ne 0 ]; then
+        echo -e "\e[31mError: Failed to download remote-agent binary. Exiting...\e[0m"
+        exit 1
+    else
+        echo -e "\e[32mRemote-agent binary downloaded\e[0m"
+    fi
 else
     # MQTT mode: Use original certificates and binary
     echo -e "\e[32mMQTT mode: Using original certificates directly\e[0m"
@@ -272,6 +281,7 @@ if [ "$protocol" = "http" ]; then
     # HTTP mode: Use the generated public.pem and private.pem
     public_path=$(realpath "./public.pem")
     private_path=$(realpath "./private.pem")
+    agent_path=$(realpath "./remote-agent")
 else
     # MQTT mode: Use the original certificate paths
     public_path=$cert_path
@@ -279,7 +289,7 @@ else
 fi
 
 # Build the service command
-service_command="$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology -protocol=$protocol"
+service_command="$agent_path -config=$config -client-cert=$public_path -client-key=$private_path -target-name=$target_name -namespace=$namespace -topology=$topology"
 
 # Add CA certificate parameter if available
 if [ "$protocol" = "mqtt" ] && [ ! -z "$ca_cert_path" ]; then
