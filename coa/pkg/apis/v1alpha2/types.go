@@ -191,6 +191,8 @@ func (s State) String() string {
 		return "Bad Request"
 	case Unauthorized:
 		return "Unauthorized"
+	case Forbidden:
+		return "Forbidden"
 	case NotFound:
 		return "Not Found"
 	case MethodNotAllowed:
