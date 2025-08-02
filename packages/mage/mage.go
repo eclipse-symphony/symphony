@@ -10,7 +10,6 @@ import (
 	"text/template"
 
 	"github.com/magefile/mage/mg"
-	"github.com/magefile/mage/sh"
 	"github.com/princjef/mageutil/bintool"
 	"github.com/princjef/mageutil/shellcmd"
 )
@@ -175,19 +174,24 @@ func TestRace() error {
 
 // CleanTest runs unit tests without the test cache.
 func CleanTest() error {
-	ldPath := "./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"
-	env := map[string]string{
-		"LD_LIBRARY_PATH": ldPath,
-		"CGO_LDFLAGS":     "-L" + ldPath,
-	}
+	libPath := "./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"
 
-	// Clean test cache
-	if err := sh.Run("go", "clean", "-testcache"); err != nil {
+	// First: clean test cache
+	if err := exec.Command("go", "clean", "-testcache").Run(); err != nil {
 		return err
 	}
 
-	// Run tests with env
-	return sh.RunWith(env, "go", "test", raceOpt(), "-timeout", "5m", "-cover", "-coverprofile=coverage.out", "./...")
+	// Second: run tests with environment
+	cmd := exec.Command("go", "test", raceOpt(), "-timeout", "5m", "-cover", "-coverprofile=coverage.out", "./...")
+	cmd.Env = append(os.Environ(),
+		"LD_LIBRARY_PATH="+libPath,
+		"CGO_LDFLAGS=-L"+libPath,
+	)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 // Retrieve the test coverage count from coverage.out file.
