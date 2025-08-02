@@ -177,7 +177,7 @@ if ($protocol -eq 'http') {
     # HTTP mode: Get certificates from server
     try {
         $WebRequestParams = @{
-            Uri = "$($endpoint)/targets/getcert/$($target_name)?namespace=$($namespace)&osPlatform=windows"
+            Uri = "$($endpoint)/targets/bootstrap/$($target_name)?namespace=$($namespace)&osPlatform=windows"
             Method = 'Post'
             Certificate = $cert  
             Headers = @{ "Content-Type" = "application/json"; "User-Agent" = "PowerShell-Debug" }

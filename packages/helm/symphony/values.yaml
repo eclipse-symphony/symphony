@@ -105,11 +105,25 @@ Azure:
 otlpLogsEndpointGrpc: 
 otlpMetricsEndpointGrpc: 
 otlpInsecureGrpc: true
-RemoteCert:
-  ClientCAs: 
-    SecretName: 
-    SecretKey: 
-  Subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
 remoteAgent:
   version: "0.0.0.1"
-  used: false
+  remoteCert:
+    used: false
+    trustCAs: 
+      secretName: "mqtt-ca"
+      secretKey: "ca.crt"
+    subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
+http:
+  enabled: true
+mqtt:
+  enabled: false
+  useTLS: false
+  brokerAddress: ""
+  requestTopic: ""
+  responseTopic: ""
+  mqttClientCert: 
+    enabled: false
+    secretName: "mqtt-client-secret"
+    crt: client.crt
+    key: client.key
+    mountPath: /etc/mqtt-client

@@ -136,3 +136,10 @@ func (s *MemoryQueueProvider) Size(ctx context.Context, queue string) int {
 	}
 	return len(s.Data[queue])
 }
+
+func (s *MemoryQueueProvider) DeleteQueue(ctx context.Context, queue string) error {
+	mLock.Lock()
+	defer mLock.Unlock()
+	delete(s.Data, queue)
+	return nil
+}

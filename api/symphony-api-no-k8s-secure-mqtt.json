@@ -1,51 +1,29 @@
 {
   "siteInfo": {
-    "siteId": "{{ .Values.siteId }}",
+    "siteId": "laptop",
     "properties": {
-      "address": "1 Microsoft Way",
-      "city": "Redmond",
+      "name": "My Laptop",
+      "address": "1 Main Street",
+      "city": "Carnation",
       "state": "WA",
-      "zip": "98052",
+      "zip": "98014",
       "country": "USA",
-      "phone": "425-882-8080",
-      "version": "0.45.1",
-      "lat": "43.67961",
-      "lng": "-122.12826"
+      "phone": "425-555-1212",
+      "version": "0.45.1"
     },
     "currentSite": {
-      "baseUrl": {{ include "symphony.httpsUrl" . | quote }},
+      "baseUrl": "http://localhost:8082/v1alpha2/",
       "username": "admin",
       "password": ""
     }
-    {{- if .Values.parent.url }}
-    ,
-    "parentSite": {
-      "baseUrl": "{{ .Values.parent.url }}",
-      "username": "{{ .Values.parent.username }}",
-      "password": "{{ .Values.parent.password }}"
-    }
-    {{- end }}  
   },
   "api": {
     "pubsub": {
       "shared": true,
-      {{- if .Values.redis.enabled }}
-      "provider": {
-        "type": "providers.pubsub.redis",
-        "config": {
-          "name": "redis",
-          "host": "{{ include "symphony.redisHost" . }}",
-          "requireTLS": false,
-          "password": "",
-          "numberOfWorkers": 20
-        }
-      }
-      {{- else }}
       "provider": {
         "type": "providers.pubsub.memory",
         "config": {}
       }
-      {{- end }}
     },
     "keylock": {
       "shared": true,
@@ -77,23 +55,8 @@
                 }
               }
             }
-          },
-          {
-            "name": "secret-manager",
-            "type": "managers.symphony.secrets",
-            "properties": {
-              "singleton": "true"
-            },
-            "providers": {
-              "secret": {
-                "type": "providers.secret.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
           }
-        ]        
+        ]
       },
       {
         "type": "vendors.stage",
@@ -102,10 +65,10 @@
           {
             "name": "stage-manager",
             "type": "managers.symphony.stage",
-            "properties": { 
+            "properties": {   
               "user": "admin",
-              "password": "",  
-              "providers.volatilestate": "memory"          
+              "password": "",
+              "providers.volatilestate": "memory"        
             },
             "providers": {
               "memory": {
@@ -123,10 +86,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           },
@@ -139,10 +100,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -162,14 +121,14 @@
             "name": "activations-manager",
             "type": "managers.symphony.activations",
             "properties": {
-              "providers.persistentstate": "k8s-state"
+              "providers.persistentstate": "k8s-state",
+              "useJobManager": "true",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -180,60 +139,18 @@
         "route": "backgroundjob",
         "loopInterval": 3600,
         "managers": [
-          {{- if .Values.ActivationCleanup.enabled }}
           {
             "name": "activations-cleanup-manager",
             "type": "managers.symphony.activationscleanup",
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true",
-              "RetentionDuration": "{{ .Values.ActivationCleanup.retentionDuration }}"
+              "RetentionDuration": "4320h"
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
-          },
-          {{- end }}
-          {
-            "name": "summary-cleanup-manager",
-            "type": "managers.symphony.summarycleanup",
-            "properties": {
-              "providers.persistentstate": "redis-state",
-              "RetentionDuration": "{{ .Values.SummaryCleanup.retentionDuration }}"                      
-            },
-            "providers": {
-              "redis-state": {
-                {{- if .Values.redis.enabled }}
-                "type": "providers.state.redis",
-                "config": {
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
-                }
-                {{- else }}
                 "type": "providers.state.memory",
                 "config": {}
-                {{- end }}
-              }
-            }
-          },
-          {
-            "name": "resource-count-manager",
-            "type": "managers.symphony.resourcecount",
-            "properties": {
-              "providers.persistentstate": "k8s-state"               
-            },
-            "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
               }
             }
           }
@@ -247,14 +164,13 @@
             "name": "campaigns-manager",
             "type": "managers.symphony.campaigns",
             "properties": {
-              "providers.persistentstate": "k8s-state"
+              "providers.persistentstate": "k8s-state",
+              "singleton": "true"
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -272,10 +188,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -296,30 +210,17 @@
             "type": "managers.symphony.jobs",
             "properties": {
               "providers.volatilestate": "mem-state",
-              "providers.persistentstate": "redis-state",
+              "providers.persistentstate": "mem-state",
               "user": "admin",
               "password": "",
               "interval": "#15",
-              "poll.enabled": "false",
-              "schedule.enabled": "true"                            
+              "poll.enabled": "true",
+              "schedule.enabled": "true"                 
             },
             "providers": {
               "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
-              },
-              "redis-state": {
-                {{- if .Values.redis.enabled }}
-                "type": "providers.state.redis",
-                "config": {
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
-                }
-                {{- else }}
-                "type": "providers.state.memory",
-                "config": {}
-                {{- end }}
               }
             }
           }
@@ -327,6 +228,7 @@
       },
       {
         "type": "vendors.targets",
+        "loopInterval": 15,
         "route": "targets",
         "managers": [
           {
@@ -337,43 +239,60 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              },
-              "secret": {
-                "type": "providers.secret.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
       },
       {
         "type": "vendors.solutions",
+        "loopInterval": 15,
         "route": "solutions",
         "managers": [
           {
             "name": "solutions-manager",
-            "type": "managers.symphony.solutions",                     
+            "type": "managers.symphony.solutions",
             "properties": {
-              "providers.persistentstate": "k8s-state"              
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
         ]
       },
       {
+        "type": "vendors.instances",
+        "loopInterval": 15,
+        "route": "instances",
+        "managers": [
+          {
+            "name": "instances-manager",
+            "type": "managers.symphony.instances",
+            "properties": {
+              "providers.persistentstate": "k8s-state"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.memory",
+                "config": {}
+              }
+            }
+          }
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
+      },
+	    {
         "type": "vendors.solutioncontainers",
         "route": "solutioncontainers",
         "managers": [
@@ -385,31 +304,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              }
-            }
-          }
-        ]
-      },
-      {
-        "type": "vendors.instances",
-        "route": "instances",
-        "managers": [
-          {
-            "name": "instances-manager",
-            "type": "managers.symphony.instances",
-            "properties": {
-              "providers.persistentstate": "k8s-state"              
-            },
-            "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -417,20 +313,19 @@
       },
       {
         "type": "vendors.devices",
+        "loopInterval": 15,
         "route": "devices",
         "managers": [
           {
             "name": "devices-manager",
             "type": "managers.symphony.devices",
             "properties": {
-              "providers.persistentstate": "k8s-state"              
+              "providers.persistentstate": "k8s-state"
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -449,10 +344,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -471,10 +364,8 @@
             },
             "providers": {
               "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -482,6 +373,7 @@
       },
       {
         "type": "vendors.users",
+        "loopInterval": 15,
         "route": "users",
         "properties": {
           "test-users": "true"
@@ -491,7 +383,7 @@
             "name": "users-manager",
             "type": "managers.symphony.users",
             "properties": {
-              "providers.volatilestate": "mem-state"              
+              "providers.volatilestate": "mem-state"
             },
             "providers": {
               "mem-state": {
@@ -511,39 +403,20 @@
             "name": "solution-manager",
             "type": "managers.symphony.solution",
             "properties": {
-              "providers.persistentstate": "redis-state",
-              "providers.config": "mock-config",  
-              "providers.queue": "redis-queue",
+              "providers.persistentstate": "mem-state",
+              "providers.config": "mock-config",
               "providers.secret": "mock-secret",
               "providers.keylock": "mem-keylock"
             },
             "providers": {
-              "redis-state": {
-                {{- if .Values.redis.enabled }}
-                "type": "providers.state.redis",
-                "config": {
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
-                }
-                {{- else }}
+              "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
-                {{- end }}
               },
               "mem-keylock": {
                 "type": "providers.keylock.memory",
                 "config": {
                   "mode" : "Shared"
-                }
-              },
-              "redis-queue": {
-                "type": "providers.queue.redis",
-                "config": {
-                  "name": "redis",
-                  "host": "{{ include "symphony.redisHost" . }}",
-                  "requireTLS": false,
-                  "password": ""
                 }
               },
               "mock-config": {
@@ -554,7 +427,7 @@
                 "type": "providers.secret.mock",
                 "config": {}
               }
-            }     
+            }
           }
         ]
       },
@@ -566,32 +439,23 @@
           {
             "name": "reference-manager",
             "type": "managers.symphony.reference",
-            "properties": {              
+            "properties": {
+              "providers.reference": "http-reference",
               "providers.volatilestate": "memory",
-              "providers.reporter": "k8s-reporter"
+              "providers.reporter": "http-reporter"
             },
             "providers": {
               "memory": {
                 "type": "providers.state.memory",
                 "config": {}
               },
-              "k8s-reference": {
-                "type": "providers.reference.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "http-reference": {
+                "type": "providers.reference.http",
+                "config": {}
               },
-              "cv-reference": {
-                "type": "providers.reference.customvision",
-                "config": {
-                  "key": "$env:CUSTOM_VISION_KEY"
-                }
-              },
-              "k8s-reporter": {
-                "type": "providers.reporter.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "http-reporter": {
+                "type": "providers.reporter.http",
+                "config": {}
               }
             }
           }
@@ -616,14 +480,12 @@
             "name": "sites-manager",
             "type": "managers.symphony.sites",
             "properties": {
-              "providers.persistentstate": "k8s-state"              
+              "providers.persistentstate": "memory"              
             },
             "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           },
@@ -631,15 +493,13 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.persistentstate": "k8s-state",
+              "providers.persistentstate": "memory",
               "singleton": "true"              
             },
             "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           },
@@ -667,10 +527,11 @@
             "name": "sync-manager",
             "type": "managers.symphony.sync",
             "properties": {
-              "interval": "#15",
-              "sync.enabled": "true"  ,
+              "baseUrl": "http://localhost:8080/v1alpha2/",
               "user": "admin",
-              "password": ""         
+              "password": "",
+              "interval": "#15",
+              "sync.enabled": "true"
             }
           }
         ]
@@ -683,15 +544,13 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.persistentstate": "k8s-state",
+              "providers.persistentstate": "memory",
               "singleton": "true"
             },
             "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
               },
               "graph": {
                 "type": "providers.graph.memory",
@@ -709,15 +568,13 @@
             "name": "catalog-container-manager",
             "type": "managers.symphony.catalogcontainers",
             "properties": {
-              "providers.persistentstate": "k8s-state",
-              "singleton": "true"
+              "providers.persistentstate": "memory",
+              "singleton": "true" 
             },
             "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
               }
             }
           }
@@ -731,15 +588,13 @@
             "name": "catalogs-manager",
             "type": "managers.symphony.catalogs",
             "properties": {
-              "providers.persistentstate": "k8s-state",
+              "providers.persistentstate": "memory",
               "singleton": "true"
             },
             "providers": {
-              "k8s-state": {
-                "type": "providers.state.k8s",
-                "config": {
-                  "inCluster": true
-                }
+              "memory": {
+                "type": "providers.state.memory",
+                "config": {}
               },
               "graph": {
                 "type": "providers.graph.memory",
@@ -752,16 +607,24 @@
     ]
   },
   "bindings": [
-    {{- if ne .Values.api.openHTTP false }}
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "ssl://MQTT_BROKER_ADDRESS:8883",
+        "clientID": "symphony-client",
+        "requestTopic": "symphony-request",
+        "responseTopic": "symphony-response",
+        "useTLS": "true",
+        "caCertPath": "/path/to/ca/cert/ca.crt",
+        "clientCertPath": "/path/to/client/cert/client.crt",
+        "clientKeyPath": "/path/to/client/key/client.key"
+      }
+    }, 
     {
       "type": "bindings.http",
       "config": {
-        "port": {{ include "symphony.apiContainerPortHttp" . }},
+        "port": 8082,
         "pipeline": [
-          {{- include "symphony.metricMiddleware" . | indent 10 }}
-          {{- include "symphony.logMiddleware" . | indent 10 }}
-          {{- include "symphony.traceMiddleware" . | indent 10 }}
-          {{- include "symphony.zipkinMiddleware" . | indent 10 }}
           {
             "type": "middleware.http.cors",
             "properties": {
@@ -772,10 +635,10 @@
             }
           },
           {
-            "type": "middleware.http.jwt",                   
+            "type": "middleware.http.jwt",
             "properties": {
-              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings", "/v1alpha2/agent/config"],
-              "verifyKey": "SymphonyKey",              
+              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
+              "verifyKey": "SymphonyKey",
               "enableRBAC": true,
               "roles": [
                 {
@@ -804,10 +667,10 @@
                   "value": "solution-operator"
                 }
               ],
-              "policy": {                
+              "policy": {
                 "administrator": {
                   "items": {
-                    "*": "*"                    
+                    "*": "*"
                   }
                 },
                 "reader": {
@@ -829,94 +692,12 @@
                   "items": {
                     "/v1alpha2/instances": "*"
                   }
-                }                
+                }
               }
-            }
-          },
-          {
-            "type": "middleware.http.telemetry",
-            "properties": {
-              "enabled": true,
-              "maxBatchSize": 8192,
-              "maxBatchIntervalSeconds": 2,
-              "client": "my-dev-machine"
             }
           }
         ]
       }
-    },
-    {{- end }}
-    {
-      "type": "bindings.http",
-      "config": {
-          "port": {{ include "symphony.apiContainerPortHttps" . }},
-          "tls": true,
-          "certProvider": {
-            "type": "certs.localfile",
-            "config": {
-              "name": "symphony-serving-cert",
-              "cert": "{{- include "symphony.apiServingCert" . -}}",
-              "key": "{{- include "symphony.apiServingKey" . -}}"
-            }
-          },
-          "pipeline": [
-            {{- include "symphony.metricMiddleware" . | indent 10 }}
-            {{- include "symphony.logMiddleware" . | indent 10 }}
-            {{- include "symphony.traceMiddleware" . | indent 10 }}
-            {{- include "symphony.zipkinMiddleware" . | indent 10 }}
-            {
-              "type": "middleware.http.cors",
-              "properties": {
-                "Access-Control-Allow-Headers": "authorization,Content-Type",
-                "Access-Control-Allow-Credentials": "true",
-                "Access-Control-Allow-Methods": "HEAD,GET,POST,PUT,DELETE,OPTIONS",
-                "Access-Control-Allow-Origin": "*"
-              }
-            },
-            {
-              "type": "middleware.http.jwt",
-              "properties": {
-                "ignorePaths": [],
-                "verifyKey": "SymphonyKey",
-                "authServer": "kubernetes",
-                {{- if .Values.api.disableUserCreds }}
-                "disableUserCreds": {{ .Values.api.disableUserCreds }},
-                {{- end }}
-                "enableRBAC": false
-              }
-            },
-            {
-              "type": "middleware.http.telemetry",
-              "properties": {
-                "enabled": true,
-                "maxBatchSize": 8192,
-                "maxBatchIntervalSeconds": 2,
-                "client": "my-dev-machine"
-              }
-            }
-          ]
-      }
     }
-    {{- if .Values.mqtt.enabled }},
-    {
-      "type": "bindings.mqtt",
-      "config": {
-        "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
-        "clientID": "{{ .Values.mqtt.clientID | default "symphony-mqtt-client" }}",
-        "requestTopic": "{{ .Values.mqtt.requestTopic }}",
-        "responseTopic": "{{ .Values.mqtt.responseTopic }}",
-        "timeoutSeconds": {{ .Values.mqtt.timeoutSeconds | default 100 }},
-        "keepAliveSeconds": {{ .Values.mqtt.keepAliveSeconds | default 200 }},
-        "pingTimeoutSeconds": {{ .Values.mqtt.pingTimeoutSeconds | default 100 }},
-        "useTLS": "{{ .Values.mqtt.useTLS | default "false" }}",
-        "caCertPath": "{{ include "symphony.apiClientCAPem" . }}",
-        "clientCertPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
-        "clientKeyPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key",
-        "insecureSkipVerify": "{{ .Values.mqtt.insecureSkipVerify | default "false" }}",
-        "username": "{{ .Values.mqtt.username }}",
-        "password": "{{ .Values.mqtt.password }}"
-      }
-    }
-    {{- end }}
   ]
 }
