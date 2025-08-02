@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -107,27 +108,111 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		}
 	})
 
+	// Add process monitoring to detect early exits
+	processExited := make(chan bool, 1)
+	go func() {
+		processCmd.Wait()
+		processExited <- true
+	}()
+
 	// Wait for process to be ready and healthy
 	utils.WaitForProcessHealthy(t, processCmd, 30*time.Second)
 	t.Logf("MQTT remote agent process started successfully and will persist across all subtests")
+
+	// Additional monitoring: check process didn't exit early
+	select {
+	case <-processExited:
+		t.Fatalf("Remote agent process exited unexpectedly during startup")
+	case <-time.After(2 * time.Second):
+		// Process is still running after health check + buffer time
+		t.Logf("Process stability confirmed - continuing with tests")
+	}
+
+	// Start continuous process monitoring throughout the test
+	processMonitoring := make(chan bool, 1)
+	go func() {
+		defer close(processMonitoring)
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-processExited:
+				t.Logf("WARNING: Remote agent process exited during test execution")
+				return
+			case <-ticker.C:
+				if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+					t.Logf("WARNING: Remote agent process has exited (state: %s)", processCmd.ProcessState.String())
+					return
+				}
+				t.Logf("Process monitoring: Remote agent PID %d is still running", processCmd.Process.Pid)
+			}
+		}
+	}()
+
+	// Set up cleanup for the monitoring goroutine
+	t.Cleanup(func() {
+		// Stop the monitoring
+		if processMonitoring != nil {
+			close(processMonitoring)
+		}
+	})
 
 	t.Run("VerifyProcessStarted", func(t *testing.T) {
 		// Just verify the process is running
 		require.NotNil(t, processCmd)
 		require.NotNil(t, processCmd.Process)
+
+		// Check if process has already exited
+		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+			t.Fatalf("Remote agent process has already exited: %s", processCmd.ProcessState.String())
+		}
+
+		// Additional check: try to send a harmless signal to verify process is alive
+		if err := processCmd.Process.Signal(syscall.Signal(0)); err != nil {
+			t.Fatalf("Process is not responding to signals (likely dead): %v", err)
+		}
+
 		t.Logf("MQTT remote agent process verified running with PID: %d", processCmd.Process.Pid)
+
+		// Log current process status for debugging
+		t.Logf("Process state: running=%t, exited=%t",
+			processCmd.ProcessState == nil,
+			processCmd.ProcessState != nil && processCmd.ProcessState.Exited())
 	})
 
 	t.Run("VerifyTargetStatus", func(t *testing.T) {
+		// First check if our process is still running
+		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+			t.Fatalf("Remote agent process exited before target verification: %s", processCmd.ProcessState.String())
+		}
+
 		// Wait for target to reach ready state
 		utils.WaitForTargetReady(t, targetName, namespace, 360*time.Second)
+
+		// Check again after waiting - process should still be running
+		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+			t.Logf("WARNING: Remote agent process exited during target status verification: %s", processCmd.ProcessState.String())
+		}
 	})
 
 	t.Run("VerifyMQTTProcessDataInteraction", func(t *testing.T) {
+		// Verify process is still running before starting data interaction test
+		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+			t.Fatalf("Remote agent process exited before data interaction test: %s", processCmd.ProcessState.String())
+		}
+
 		// Verify that data flows through MQTT correctly
 		// This would check that the remote agent successfully communicates
 		// with Symphony through the MQTT broker
 		testMQTTProcessDataInteraction(t, targetName, namespace, testDir)
+
+		// Final check - process should still be running after all tests
+		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+			t.Logf("WARNING: Remote agent process exited during data interaction test: %s", processCmd.ProcessState.String())
+		} else {
+			t.Logf("SUCCESS: Remote agent process survived all tests and is still running")
+		}
 	})
 
 	// Cleanup

@@ -3732,14 +3732,31 @@ func StartRemoteAgentProcessWithoutCleanup(t *testing.T, config TestConfig) *exe
 	go streamProcessLogs(t, stdoutTee, "Process STDOUT")
 	go streamProcessLogs(t, stderrTee, "Process STDERR")
 
-	// Final output logging when process exits
+	// Final output logging when process exits with enhanced error reporting
 	go func() {
-		cmd.Wait()
+		exitErr := cmd.Wait()
+		exitTime := time.Now()
+
+		if exitErr != nil {
+			t.Logf("Remote agent process exited with error at %v: %v", exitTime, exitErr)
+			if exitError, ok := exitErr.(*exec.ExitError); ok {
+				t.Logf("Process exit code: %d", exitError.ExitCode())
+			}
+		} else {
+			t.Logf("Remote agent process exited normally at %v", exitTime)
+		}
+
 		if stdout.Len() > 0 {
 			t.Logf("Remote agent process final stdout: %s", stdout.String())
 		}
 		if stderr.Len() > 0 {
 			t.Logf("Remote agent process final stderr: %s", stderr.String())
+		}
+
+		// Log process runtime information
+		if cmd.ProcessState != nil {
+			t.Logf("Process runtime information - PID: %d, System time: %v, User time: %v",
+				cmd.Process.Pid, cmd.ProcessState.SystemTime(), cmd.ProcessState.UserTime())
 		}
 	}()
 
