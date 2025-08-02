@@ -25,8 +25,8 @@ const (
 var (
 	// Tests to run - ordered to run sequentially to avoid file conflicts
 	testVerify = []string{
-		"./verify -run TestE2EHttpCommunicationWithBootstrap",
 		"./verify -run TestE2EMQTTCommunicationWithBootstrap",
+		"./verify -run TestE2EHttpCommunicationWithBootstrap",
 		"./verify -run TestE2EHttpCommunicationWithProcess",
 		"./verify -run TestE2EMQTTCommunicationWithProcess",
 	}

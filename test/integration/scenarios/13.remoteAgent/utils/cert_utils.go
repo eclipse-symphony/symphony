@@ -121,30 +121,71 @@ func generateServerCert(t *testing.T, caCert *x509.Certificate, caKey *rsa.Priva
 	require.NoError(t, err)
 
 	// Build comprehensive list of IP addresses to include in certificate
-	// This covers most common network scenarios for testing
+	// Start with standard localhost addresses
 	ipAddresses := []net.IP{
 		net.IPv4(127, 0, 0, 1), // localhost IPv4
 		net.IPv6loopback,       // localhost IPv6
 		net.IPv4zero,           // 0.0.0.0 - any IPv4
 	}
 
-	// Add common IP ranges that might be used in different environments
-	commonIPRanges := []string{
-		// Loopback
-		"127.0.0.1",
-		// Private networks (RFC 1918)
-		"10.0.0.1", "10.1.0.1", "10.1.0.141", "10.255.255.255",
-		"172.16.0.1", "172.22.111.41", "172.31.255.255",
-		"192.168.0.1", "192.168.1.1", "192.168.49.1", "192.168.255.255",
-		// Docker networks
-		"172.17.0.1", "172.18.0.1", "172.19.0.1", "172.20.0.1",
-		// Kubernetes service networks
-		"10.96.0.1", "10.107.0.1", "10.244.0.1",
-		// Other common test IPs
-		"192.168.99.1", "192.168.64.1",
+	// Dynamically detect all available network interfaces and their IPs
+	interfaces, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range interfaces {
+			// Skip loopback and down interfaces, but include all others
+			if iface.Flags&net.FlagUp == 0 {
+				continue
+			}
+
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				if ip != nil {
+					// Add both IPv4 and IPv6 addresses
+					ipAddresses = append(ipAddresses, ip)
+					t.Logf("Added detected IP to certificate: %s (interface: %s)", ip.String(), iface.Name)
+				}
+			}
+		}
+	} else {
+		t.Logf("Warning: Could not detect network interfaces: %v", err)
 	}
 
-	for _, ipStr := range commonIPRanges {
+	// Also try to detect common container/VM host IPs dynamically
+	commonHostIPs := []string{
+		"host.docker.internal",
+		"host.minikube.internal",
+		"gateway.docker.internal",
+	}
+
+	for _, hostname := range commonHostIPs {
+		if ips, err := net.LookupIP(hostname); err == nil {
+			for _, ip := range ips {
+				ipAddresses = append(ipAddresses, ip)
+				t.Logf("Added resolved IP to certificate: %s (from %s)", ip.String(), hostname)
+			}
+		}
+	}
+
+	// Add some fallback IPs for common scenarios (but fewer than before since we have dynamic detection)
+	fallbackIPs := []string{
+		"172.17.0.1",   // Docker bridge IP
+		"192.168.49.1", // Common minikube host IP
+		"10.0.2.2",     // VirtualBox host IP
+	}
+
+	for _, ipStr := range fallbackIPs {
 		if ip := net.ParseIP(ipStr); ip != nil {
 			ipAddresses = append(ipAddresses, ip)
 		}
@@ -156,11 +197,16 @@ func generateServerCert(t *testing.T, caCert *x509.Certificate, caKey *rsa.Priva
 		"localhost",
 		"127.0.0.1",
 		"0.0.0.0",
-		"*", // Wildcard - though this may not work for IP verification
 		"*.local",
 		"*.localhost",
 		"host.docker.internal",   // Docker Desktop
 		"host.minikube.internal", // Minikube
+	}
+
+	// Log the final list of IPs in the certificate for debugging
+	t.Logf("Certificate will be valid for %d IP addresses:", len(ipAddresses))
+	for i, ip := range ipAddresses {
+		t.Logf("  [%d] %s", i+1, ip.String())
 	}
 
 	// Create certificate template with very permissive settings for testing
