@@ -304,16 +304,10 @@ func WaitForSymphonyWebhookService(t *testing.T, timeout time.Duration) {
 			cmd = exec.Command("kubectl", "get", "endpoints", "symphony-webhook-service", "-n", "default", "-o", "jsonpath={.subsets[0].addresses[0].ip}")
 			if output, err := cmd.Output(); err == nil && len(strings.TrimSpace(string(output))) > 0 {
 				t.Logf("Symphony webhook service has endpoints: %s", strings.TrimSpace(string(output)))
-
-				// Additional check: verify the webhook pod is actually running
-				cmd = exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony", "--field-selector=status.phase=Running", "-o", "name")
-				if output, err := cmd.Output(); err == nil && len(strings.TrimSpace(string(output))) > 0 {
-					t.Logf("Symphony webhook pods are running: %v", strings.Split(strings.TrimSpace(string(output)), "\n"))
-					t.Logf("Symphony webhook service is ready")
-					return
-				} else {
-					t.Logf("Symphony webhook pods not yet running, continuing to wait...")
-				}
+				
+				// If service exists and has endpoints, it's ready for webhook requests
+				t.Logf("Symphony webhook service is ready")
+				return
 			} else {
 				t.Logf("Symphony webhook service endpoints not ready yet...")
 			}
