@@ -41,6 +41,7 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	var processCmd *exec.Cmd
 	var config utils.TestConfig
 	var detectedBrokerAddress string
+	var monitoringStop chan bool
 
 	// Use our new MQTT process test setup function with detected broker address
 	t.Run("SetupMQTTProcessTestWithDetectedAddress", func(t *testing.T) {
@@ -87,13 +88,17 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	require.NotNil(t, processCmd)
 
 	// Set up cleanup at main test level to ensure process runs for entire test
+	// This should be the FIRST cleanup registered so it runs LAST (LIFO order)
 	t.Cleanup(func() {
-		if processCmd != nil {
-			t.Logf("Cleaning up MQTT remote agent process from main test...")
+		t.Logf("=== STARTING PROCESS CLEANUP ===")
+		if processCmd != nil && processCmd.Process != nil {
+			t.Logf("Cleaning up MQTT remote agent process PID %d from main test...", processCmd.Process.Pid)
 			utils.CleanupRemoteAgentProcess(t, processCmd)
+			t.Logf("Process cleanup completed")
 		} else {
 			t.Logf("No process to cleanup (processCmd is nil)")
 		}
+		t.Logf("=== PROCESS CLEANUP FINISHED ===")
 	})
 
 	// Also set up a signal handler for immediate cleanup on test interruption
@@ -129,6 +134,8 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// Start continuous process monitoring throughout the test
 	processMonitoring := make(chan bool, 1)
+	monitoringStop = make(chan bool, 1)
+
 	go func() {
 		defer close(processMonitoring)
 		ticker := time.NewTicker(10 * time.Second)
@@ -138,6 +145,9 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 			select {
 			case <-processExited:
 				t.Logf("WARNING: Remote agent process exited during test execution")
+				return
+			case <-monitoringStop:
+				t.Logf("Process monitoring stopped by cleanup")
 				return
 			case <-ticker.C:
 				if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
@@ -149,12 +159,21 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		}
 	}()
 
-	// Set up cleanup for the monitoring goroutine
+	// Set up cleanup for the monitoring goroutine - this should run BEFORE process cleanup
 	t.Cleanup(func() {
-		// Stop the monitoring
-		if processMonitoring != nil {
-			close(processMonitoring)
+		t.Logf("Stopping process monitoring...")
+		select {
+		case monitoringStop <- true:
+			t.Logf("Process monitoring stop signal sent")
+		default:
+			t.Logf("Process monitoring stop signal channel full or closed")
 		}
+
+		// Wait a moment for monitoring to stop
+		time.Sleep(1 * time.Second)
+
+		// Close the monitoring stop channel
+		close(monitoringStop)
 	})
 
 	t.Run("VerifyProcessStarted", func(t *testing.T) {
@@ -214,13 +233,31 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		}
 	})
 
-	// Cleanup
+	// Infrastructure cleanup - this runs BEFORE process cleanup due to LIFO order
 	t.Cleanup(func() {
+		t.Logf("=== STARTING INFRASTRUCTURE CLEANUP ===")
 		utils.CleanupSymphony(t, "remote-agent-mqtt-process-test")
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
 		utils.CleanupMQTTCASecret(t, "mqtt-ca")
 		utils.CleanupMQTTClientSecret(t, namespace, "mqtt-client-secret")
+		t.Logf("=== INFRASTRUCTURE CLEANUP FINISHED ===")
 	})
+
+	// EXPLICIT CLEANUP BEFORE TEST ENDS - ensure process is stopped
+	t.Logf("=== EXPLICIT PROCESS CLEANUP BEFORE TEST END ===")
+	if processCmd != nil && processCmd.Process != nil {
+		t.Logf("Explicitly stopping remote agent process PID %d...", processCmd.Process.Pid)
+		utils.CleanupRemoteAgentProcess(t, processCmd)
+		t.Logf("Explicit process cleanup completed")
+	}
+
+	// Stop monitoring explicitly
+	select {
+	case monitoringStop <- true:
+		t.Logf("Process monitoring explicitly stopped")
+	default:
+		t.Logf("Process monitoring stop channel not available")
+	}
 
 	t.Logf("MQTT communication test with direct process completed successfully")
 }
