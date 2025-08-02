@@ -15,7 +15,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -3849,32 +3851,143 @@ func WaitForProcessHealthy(t *testing.T, cmd *exec.Cmd, timeout time.Duration) {
 
 // CleanupRemoteAgentProcess cleans up the remote agent process
 func CleanupRemoteAgentProcess(t *testing.T, cmd *exec.Cmd) {
-	if cmd == nil || cmd.Process == nil {
-		t.Logf("No process to cleanup")
+	if cmd == nil {
+		t.Logf("No process to cleanup (cmd is nil)")
 		return
 	}
 
-	t.Logf("Cleaning up remote agent process with PID: %d", cmd.Process.Pid)
-
-	// First try graceful termination
-	if err := cmd.Process.Signal(os.Interrupt); err != nil {
-		t.Logf("Failed to send interrupt signal: %v", err)
+	if cmd.Process == nil {
+		t.Logf("No process to cleanup (cmd.Process is nil)")
+		return
 	}
 
-	// Wait a moment for graceful shutdown
-	time.Sleep(2 * time.Second)
+	pid := cmd.Process.Pid
+	t.Logf("Cleaning up remote agent process with PID: %d", pid)
 
-	// Check if process has exited
-	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
-		t.Logf("Process still running, force killing...")
-		if err := cmd.Process.Kill(); err != nil {
-			t.Logf("Failed to kill process: %v", err)
+	// Check if process is already dead
+	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+		t.Logf("Process PID %d already exited: %s", pid, cmd.ProcessState.String())
+		return
+	}
+
+	// Try to check if process is still alive using signal 0
+	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
+		t.Logf("Process PID %d is not alive or not accessible: %v", pid, err)
+		return
+	}
+
+	t.Logf("Process PID %d is alive, attempting graceful termination...", pid)
+
+	// First try graceful termination with SIGTERM
+	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Logf("Failed to send SIGTERM to PID %d: %v", pid, err)
+	} else {
+		t.Logf("Sent SIGTERM to PID %d, waiting for graceful shutdown...", pid)
+	}
+
+	// Wait for graceful shutdown with timeout
+	gracefulTimeout := 5 * time.Second
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Logf("Process PID %d exited with error: %v", pid, err)
 		} else {
-			t.Logf("Process force killed")
+			t.Logf("Process PID %d exited gracefully", pid)
+		}
+		return
+	case <-time.After(gracefulTimeout):
+		t.Logf("Process PID %d did not exit gracefully within %v, force killing...", pid, gracefulTimeout)
+	}
+
+	// Force kill if graceful shutdown failed
+	if err := cmd.Process.Kill(); err != nil {
+		t.Logf("Failed to kill process PID %d: %v", pid, err)
+
+		// Last resort: try to kill using OS-specific methods
+		if runtime.GOOS == "windows" {
+			killCmd := exec.Command("taskkill", "/F", "/PID", fmt.Sprintf("%d", pid))
+			if killErr := killCmd.Run(); killErr != nil {
+				t.Logf("Failed to force kill process PID %d using taskkill: %v", pid, killErr)
+			} else {
+				t.Logf("Force killed process PID %d using taskkill", pid)
+			}
+		} else {
+			killCmd := exec.Command("kill", "-9", fmt.Sprintf("%d", pid))
+			if killErr := killCmd.Run(); killErr != nil {
+				t.Logf("Failed to force kill process PID %d using kill -9: %v", pid, killErr)
+			} else {
+				t.Logf("Force killed process PID %d using kill -9", pid)
+			}
+		}
+	} else {
+		t.Logf("Process PID %d force killed successfully", pid)
+	}
+
+	// Final wait with timeout
+	select {
+	case <-done:
+		t.Logf("Process PID %d cleanup completed", pid)
+	case <-time.After(3 * time.Second):
+		t.Logf("Warning: Process PID %d cleanup timed out, but continuing", pid)
+	}
+}
+
+// CleanupStaleRemoteAgentProcesses kills any stale remote-agent processes that might be left from previous test runs
+func CleanupStaleRemoteAgentProcesses(t *testing.T) {
+	t.Logf("Checking for stale remote-agent processes...")
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		// Windows: Use tasklist and taskkill
+		cmd = exec.Command("tasklist", "/FI", "IMAGENAME eq remote-agent*", "/FO", "CSV")
+	} else {
+		// Unix/Linux: Use ps and grep
+		cmd = exec.Command("ps", "aux")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		t.Logf("Could not list processes to check for stale remote-agent: %v", err)
+		return
+	}
+
+	outputStr := string(output)
+	if runtime.GOOS == "windows" {
+		// Windows: Look for remote-agent processes
+		if strings.Contains(strings.ToLower(outputStr), "remote-agent") {
+			t.Logf("Found potential stale remote-agent processes on Windows, attempting cleanup...")
+			killCmd := exec.Command("taskkill", "/F", "/IM", "remote-agent*")
+			if err := killCmd.Run(); err != nil {
+				t.Logf("Failed to kill stale remote-agent processes: %v", err)
+			} else {
+				t.Logf("Killed stale remote-agent processes")
+			}
+		}
+	} else {
+		// Unix/Linux: Look for remote-agent processes
+		lines := strings.Split(outputStr, "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "remote-agent") && !strings.Contains(line, "grep") {
+				t.Logf("Found stale remote-agent process: %s", line)
+				// Extract PID (second column in ps aux output)
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					pid := fields[1]
+					killCmd := exec.Command("kill", "-9", pid)
+					if err := killCmd.Run(); err != nil {
+						t.Logf("Failed to kill process PID %s: %v", pid, err)
+					} else {
+						t.Logf("Killed stale process PID %s", pid)
+					}
+				}
+			}
 		}
 	}
 
-	// Wait for process to finish
-	cmd.Wait()
-	t.Logf("Remote agent process cleanup completed")
+	t.Logf("Stale process cleanup completed")
 }

@@ -18,6 +18,9 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	namespace := "default"
 	mqttBrokerPort := 8883
 
+	// Clean up any stale processes from previous test runs
+	utils.CleanupStaleRemoteAgentProcesses(t)
+
 	// Setup test environment
 	testDir := utils.SetupTestDirectory(t)
 	t.Logf("Running MQTT process test in: %s", testDir)
@@ -88,8 +91,21 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		if processCmd != nil {
 			t.Logf("Cleaning up MQTT remote agent process from main test...")
 			utils.CleanupRemoteAgentProcess(t, processCmd)
+		} else {
+			t.Logf("No process to cleanup (processCmd is nil)")
 		}
 	})
+
+	// Also set up a signal handler for immediate cleanup on test interruption
+	defer func() {
+		if r := recover(); r != nil {
+			t.Logf("Test panicked, performing emergency cleanup: %v", r)
+			if processCmd != nil {
+				utils.CleanupRemoteAgentProcess(t, processCmd)
+			}
+			panic(r) // Re-panic after cleanup
+		}
+	}()
 
 	// Add process monitoring to detect early exits
 	processExited := make(chan bool, 1)
