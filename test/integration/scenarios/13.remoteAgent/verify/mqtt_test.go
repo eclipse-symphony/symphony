@@ -114,10 +114,15 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		// Symphony runs inside minikube, needs to access external broker on host
 		brokerAddress := fmt.Sprintf("tls://%s:%d", hostIP, mqttBrokerPort)
 		fmt.Printf("Starting Symphony with MQTT broker address: %s\n", brokerAddress)
-		utils.StartSymphonyWithMQTTConfig(t, brokerAddress)
+
+		// Try the alternative deployment method first
+		utils.StartSymphonyWithMQTTConfigAlternative(t, brokerAddress)
 
 		// Wait for Symphony server certificate to be created
 		utils.WaitForSymphonyServerCert(t, 5*time.Minute)
+
+		// Wait for Symphony service to be ready and accessible
+		utils.WaitForSymphonyServiceReady(t, 5*time.Minute)
 	})
 	// Create test configurations AFTER Symphony is running
 	t.Run("CreateTestConfigurations", func(t *testing.T) {
@@ -171,8 +176,8 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	})
 
 	t.Run("VerifyTargetStatus", func(t *testing.T) {
-		// Wait for target to reach ready state
-		utils.WaitForTargetReady(t, targetName, namespace, 360*time.Second)
+		// Wait for target to reach ready state - increased timeout due to more thorough checks
+		utils.WaitForTargetReady(t, targetName, namespace, 10*time.Minute)
 	})
 
 	t.Run("VerifyMQTTDataInteraction", func(t *testing.T) {

@@ -568,6 +568,29 @@ func WaitForTargetReady(t *testing.T, targetName, namespace string, timeout time
 	for {
 		select {
 		case <-ctx.Done():
+			// Before failing, let's check the current status one more time and provide better diagnostics
+			target, err := dyn.Resource(schema.GroupVersionResource{
+				Group:    "fabric.symphony",
+				Version:  "v1",
+				Resource: "targets",
+			}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
+
+			if err != nil {
+				t.Logf("Failed to get target %s/%s for final status check: %v", namespace, targetName, err)
+			} else {
+				status, found, err := unstructured.NestedMap(target.Object, "status")
+				if err == nil && found {
+					statusJSON, _ := json.MarshalIndent(status, "", "  ")
+					t.Logf("Final target %s/%s status: %s", namespace, targetName, string(statusJSON))
+				}
+			}
+
+			// Also check Symphony service status
+			cmd := exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony")
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Logf("Symphony pods at timeout:\n%s", string(output))
+			}
+
 			t.Fatalf("Timeout waiting for Target %s/%s to be ready", namespace, targetName)
 		case <-ticker.C:
 			target, err := dyn.Resource(schema.GroupVersionResource{
@@ -1392,7 +1415,155 @@ spec:
 	return nil
 }
 
-// WaitForSymphonyServerCert waits for Symphony API server certificate to be created
+// WaitForHelmDeploymentReady waits for all pods in a Helm release to be ready
+func WaitForHelmDeploymentReady(t *testing.T, releaseName, namespace string, timeout time.Duration) {
+	t.Logf("Waiting for Helm release %s in namespace %s to be ready...", releaseName, namespace)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Get final status before failing
+			cmd := exec.Command("helm", "status", releaseName, "-n", namespace)
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Logf("Final Helm release status:\n%s", string(output))
+			}
+
+			cmd = exec.Command("kubectl", "get", "pods", "-n", namespace, "-l", fmt.Sprintf("app.kubernetes.io/instance=%s", releaseName))
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Logf("Final pod status for release %s:\n%s", releaseName, string(output))
+			}
+
+			t.Fatalf("Timeout waiting for Helm release %s to be ready after %v", releaseName, timeout)
+		case <-ticker.C:
+			// Check Helm release status
+			cmd := exec.Command("helm", "status", releaseName, "-n", namespace, "-o", "json")
+			output, err := cmd.Output()
+			if err != nil {
+				t.Logf("Failed to get Helm release status: %v", err)
+				continue
+			}
+
+			var releaseStatus map[string]interface{}
+			if err := json.Unmarshal(output, &releaseStatus); err != nil {
+				t.Logf("Failed to parse Helm release status JSON: %v", err)
+				continue
+			}
+
+			info, ok := releaseStatus["info"].(map[string]interface{})
+			if !ok {
+				t.Logf("Invalid Helm release info structure")
+				continue
+			}
+
+			status, ok := info["status"].(string)
+			if !ok {
+				t.Logf("No status found in Helm release info")
+				continue
+			}
+
+			if status == "deployed" {
+				t.Logf("Helm release %s is deployed, checking pod readiness...", releaseName)
+
+				// Check if all pods are ready
+				cmd = exec.Command("kubectl", "get", "pods", "-n", namespace, "-l", fmt.Sprintf("app.kubernetes.io/instance=%s", releaseName), "-o", "jsonpath={.items[*].status.phase}")
+				output, err = cmd.Output()
+				if err != nil {
+					t.Logf("Failed to check pod phases: %v", err)
+					continue
+				}
+
+				phases := strings.Fields(string(output))
+				allRunning := true
+				for _, phase := range phases {
+					if phase != "Running" {
+						allRunning = false
+						break
+					}
+				}
+
+				if allRunning && len(phases) > 0 {
+					t.Logf("Helm release %s is fully ready with %d running pods", releaseName, len(phases))
+					return
+				} else {
+					t.Logf("Helm release %s deployed but pods not all running yet: %v", releaseName, phases)
+				}
+			} else {
+				t.Logf("Helm release %s status: %s", releaseName, status)
+			}
+		}
+	}
+}
+
+// WaitForSymphonyServiceReady waits for Symphony service to be ready and accessible
+func WaitForSymphonyServiceReady(t *testing.T, timeout time.Duration) {
+	t.Logf("Waiting for Symphony service to be ready...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Before failing, let's get some debug information
+			t.Logf("Timeout waiting for Symphony service. Getting debug information...")
+
+			// Check pod status
+			cmd := exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony")
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Logf("Symphony pods status:\n%s", string(output))
+			}
+
+			// Check service status
+			cmd = exec.Command("kubectl", "get", "svc", "symphony-service", "-n", "default")
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Logf("Symphony service status:\n%s", string(output))
+			}
+
+			// Check service logs
+			cmd = exec.Command("kubectl", "logs", "deployment/symphony-api", "-n", "default", "--tail=50")
+			if output, err := cmd.CombinedOutput(); err == nil {
+				t.Logf("Symphony API logs (last 50 lines):\n%s", string(output))
+			}
+
+			t.Fatalf("Timeout waiting for Symphony service to be ready after %v", timeout)
+		case <-ticker.C:
+			// Check if Symphony API deployment is ready
+			cmd := exec.Command("kubectl", "get", "deployment", "symphony-api", "-n", "default", "-o", "jsonpath={.status.readyReplicas}")
+			output, err := cmd.Output()
+			if err != nil {
+				t.Logf("Failed to check symphony-api deployment status: %v", err)
+				continue
+			}
+
+			readyReplicas := strings.TrimSpace(string(output))
+			if readyReplicas == "" || readyReplicas == "0" {
+				t.Logf("Symphony API deployment not ready yet (ready replicas: %s)", readyReplicas)
+				continue
+			}
+
+			// Check if symphony service is accessible
+			cmd = exec.Command("kubectl", "run", "curl-test", "--image=curlimages/curl:latest", "--rm", "-i", "--restart=Never", "--",
+				"curl", "-k", "-f", "https://symphony-service:8081/health", "--max-time", "10")
+			output, err = cmd.CombinedOutput()
+
+			if err == nil {
+				t.Logf("Symphony service is ready and accessible")
+				return
+			} else {
+				t.Logf("Symphony service not accessible yet: %v, output: %s", err, string(output))
+			}
+		}
+	}
+}
 func WaitForSymphonyServerCert(t *testing.T, timeout time.Duration) {
 	t.Logf("Waiting for Symphony API server certificate to be created...")
 
@@ -2327,6 +2498,126 @@ func TestMQTTConnectivity(t *testing.T, brokerAddress string, brokerPort int, ce
 	}
 }
 
+// StartSymphonyWithMQTTConfigAlternative starts Symphony with MQTT configuration using direct Helm commands
+func StartSymphonyWithMQTTConfigAlternative(t *testing.T, brokerAddress string) {
+	helmValues := fmt.Sprintf("--set remoteAgent.remoteCert.used=true "+
+		"--set remoteAgent.remoteCert.trustCAs.secretName=mqtt-ca "+
+		"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt "+
+		"--set remoteAgent.remoteCert.subjects=MyRootCA;localhost "+
+		"--set http.enabled=true "+
+		"--set mqtt.enabled=true "+
+		"--set mqtt.useTLS=true "+
+		"--set mqtt.mqttClientCert.enabled=true "+
+		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret "+
+		"--set mqtt.brokerAddress=%s "+
+		"--set certManager.enabled=true "+
+		"--set api.env.ISSUER_NAME=symphony-ca-issuer "+
+		"--set api.env.SYMPHONY_SERVICE_NAME=symphony-service", brokerAddress)
+
+	t.Logf("Deploying Symphony with MQTT configuration using direct Helm approach...")
+
+	projectRoot := GetProjectRoot(t)
+	localenvDir := filepath.Join(projectRoot, "test", "localenv")
+
+	// Step 1: Ensure minikube and prerequisites are ready
+	t.Logf("Step 1: Setting up minikube and prerequisites...")
+	cmd := exec.Command("mage", "cluster:ensureminikubeup")
+	cmd.Dir = localenvDir
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: ensureminikubeup failed: %v", err)
+	}
+
+	// Step 2: Load images with timeout
+	t.Logf("Step 2: Loading Docker images...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, "mage", "cluster:load")
+	cmd.Dir = localenvDir
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: image loading failed or timed out: %v", err)
+	}
+
+	// Step 3: Deploy cert-manager and trust-manager
+	t.Logf("Step 3: Setting up cert-manager and trust-manager...")
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, "kubectl", "apply", "-f", "https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.yaml", "--wait")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: cert-manager setup failed or timed out: %v", err)
+	}
+
+	// Wait for cert-manager webhook
+	cmd = exec.Command("kubectl", "wait", "--for=condition=ready", "pod", "-l", "app.kubernetes.io/component=webhook", "-n", "cert-manager", "--timeout=90s")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: cert-manager webhook not ready: %v", err)
+	}
+
+	// Step 3b: Set up trust-manager
+	t.Logf("Step 3b: Setting up trust-manager...")
+	cmd = exec.Command("helm", "repo", "add", "jetstack", "https://charts.jetstack.io", "--force-update")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: failed to add jetstack repo: %v", err)
+	}
+
+	cmd = exec.Command("helm", "upgrade", "trust-manager", "jetstack/trust-manager", "--install", "--namespace", "cert-manager", "--wait", "--set", "app.trust.namespace=cert-manager")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: trust-manager setup failed: %v", err)
+	}
+
+	// Step 4: Deploy Symphony with a shorter timeout and without hanging
+	t.Logf("Step 4: Deploying Symphony Helm chart...")
+	chartPath := "../../packages/helm/symphony"
+	valuesFile1 := "../../packages/helm/symphony/values.yaml"
+	valuesFile2 := "symphony-ghcr-values.yaml"
+
+	// Build the complete Helm command
+	helmCmd := []string{
+		"helm", "upgrade", "ecosystem", chartPath,
+		"--install", "-n", "default", "--create-namespace",
+		"-f", valuesFile1,
+		"-f", valuesFile2,
+		"--set", "symphonyImage.tag=latest",
+		"--set", "paiImage.tag=latest",
+		"--timeout", "8m0s",
+	}
+
+	// Add the MQTT-specific values
+	helmValuesList := strings.Split(helmValues, " ")
+	helmCmd = append(helmCmd, helmValuesList...)
+
+	t.Logf("Running Helm command: %v", helmCmd)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, helmCmd[0], helmCmd[1:]...)
+	cmd.Dir = localenvDir
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		t.Logf("Helm deployment stdout: %s", stdout.String())
+		t.Logf("Helm deployment stderr: %s", stderr.String())
+		t.Fatalf("Helm deployment failed: %v", err)
+	}
+
+	t.Logf("Helm deployment completed successfully")
+	t.Logf("Helm stdout: %s", stdout.String())
+
+	// Step 5: Wait for certificates manually
+	t.Logf("Step 5: Waiting for Symphony certificates...")
+	for _, cert := range []string{"symphony-api-serving-cert", "symphony-serving-cert"} {
+		cmd = exec.Command("kubectl", "wait", "--for=condition=ready", "certificates", cert, "-n", "default", "--timeout=90s")
+		if err := cmd.Run(); err != nil {
+			t.Logf("Warning: certificate %s not ready: %v", cert, err)
+		}
+	}
+
+	t.Logf("Symphony deployment with MQTT configuration completed successfully")
+}
+
 // StartSymphonyWithMQTTConfig starts Symphony with MQTT configuration
 func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 	helmValues := fmt.Sprintf("--set remoteAgent.remoteCert.used=true "+
@@ -2358,23 +2649,83 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 		t.Fatalf("Localenv directory does not exist: %s", localenvDir)
 	}
 
-	// Set a longer timeout for MQTT deployment as it's more complex
+	// Pre-deployment checks to ensure cluster is ready
+	t.Logf("Performing pre-deployment cluster readiness checks...")
+
+	// Check if required secrets exist
+	cmd := exec.Command("kubectl", "get", "secret", "mqtt-ca", "-n", "cert-manager")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: mqtt-ca secret not found in cert-manager namespace: %v", err)
+	} else {
+		t.Logf("mqtt-ca secret found in cert-manager namespace")
+	}
+
+	cmd = exec.Command("kubectl", "get", "secret", "mqtt-client-secret", "-n", "default")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: mqtt-client-secret not found in default namespace: %v", err)
+	} else {
+		t.Logf("mqtt-client-secret found in default namespace")
+	}
+
+	// Check cluster resource usage before deployment
+	cmd = exec.Command("kubectl", "top", "nodes")
+	if output, err := cmd.CombinedOutput(); err == nil {
+		t.Logf("Pre-deployment node resource usage:\n%s", string(output))
+	}
+
+	// Try to start the deployment without timeout first to see if it responds
+	t.Logf("Starting MQTT deployment with reduced timeout (10 minutes) and better error handling...")
+
+	// Reduce timeout back to 10 minutes but with better error handling
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "mage", "cluster:deploywithsettings", helmValues)
+	cmd = exec.CommandContext(ctx, "mage", "cluster:deploywithsettings", helmValues)
 	cmd.Dir = localenvDir
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err := cmd.Run()
+	// Start the command and monitor its progress
+	err := cmd.Start()
+	if err != nil {
+		t.Fatalf("Failed to start deployment command: %v", err)
+	}
+
+	// Monitor the deployment progress in background
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// Check if any pods are being created
+				monitorCmd := exec.Command("kubectl", "get", "pods", "-n", "default", "--no-headers")
+				if output, err := monitorCmd.Output(); err == nil {
+					podCount := len(strings.Split(strings.TrimSpace(string(output)), "\n"))
+					if string(output) != "" {
+						t.Logf("Deployment progress: %d pods in default namespace", podCount)
+					}
+				}
+			}
+		}
+	}()
+
+	// Wait for the command to complete
+	err = cmd.Wait()
+
 	if err != nil {
 		t.Logf("Symphony MQTT deployment stdout: %s", stdout.String())
 		t.Logf("Symphony MQTT deployment stderr: %s", stderr.String())
 
-		// Check if the error is related to cert-manager webhook
+		// Check for common deployment issues and provide more specific error handling
 		stderrStr := stderr.String()
+		stdoutStr := stdout.String()
+
+		// Check if the error is related to cert-manager webhook
 		if strings.Contains(stderrStr, "cert-manager-webhook") &&
 			strings.Contains(stderrStr, "x509: certificate signed by unknown authority") {
 			t.Logf("Detected cert-manager webhook certificate issue, attempting to fix...")
@@ -2382,11 +2733,17 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 
 			// Retry the deployment after fixing cert-manager
 			t.Logf("Retrying Symphony MQTT deployment after cert-manager fix...")
-			var retryStdout, retryStderr bytes.Buffer
-			cmd.Stdout = &retryStdout
-			cmd.Stderr = &retryStderr
+			retryCtx, retryCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer retryCancel()
 
-			retryErr := cmd.Run()
+			retryCmd := exec.CommandContext(retryCtx, "mage", "cluster:deploywithsettings", helmValues)
+			retryCmd.Dir = localenvDir
+
+			var retryStdout, retryStderr bytes.Buffer
+			retryCmd.Stdout = &retryStdout
+			retryCmd.Stderr = &retryStderr
+
+			retryErr := retryCmd.Run()
 			if retryErr != nil {
 				t.Logf("Retry MQTT deployment stdout: %s", retryStdout.String())
 				t.Logf("Retry MQTT deployment stderr: %s", retryStderr.String())
@@ -2395,10 +2752,39 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 				t.Logf("Symphony MQTT deployment succeeded after cert-manager fix")
 				err = nil // Clear the original error since retry succeeded
 			}
+		} else if strings.Contains(stderrStr, "context deadline exceeded") {
+			t.Logf("Deployment timed out after 10 minutes. This might indicate resource constraints or stuck resources.")
+			t.Logf("Checking cluster resources...")
+
+			// Log some debug information about cluster state
+			debugCmd := exec.Command("kubectl", "get", "pods", "--all-namespaces")
+			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
+				t.Logf("Current cluster pods:\n%s", string(debugOutput))
+			}
+
+			debugCmd = exec.Command("kubectl", "get", "pvc", "--all-namespaces")
+			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
+				t.Logf("Current PVCs:\n%s", string(debugOutput))
+			}
+
+			debugCmd = exec.Command("kubectl", "top", "nodes")
+			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
+				t.Logf("Node resource usage at timeout:\n%s", string(debugOutput))
+			}
+
+			// Check if helm is stuck
+			debugCmd = exec.Command("helm", "list", "-n", "default")
+			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
+				t.Logf("Helm releases in default namespace:\n%s", string(debugOutput))
+			}
+		} else if strings.Contains(stdoutStr, "Release \"ecosystem\" does not exist. Installing it now.") &&
+			strings.Contains(stderrStr, "Error: context deadline exceeded") {
+			t.Logf("Helm installation timed out. This is likely due to resource constraints or dependency issues.")
 		}
 	}
 	require.NoError(t, err)
 
+	t.Logf("Helm deployment command completed successfully")
 	t.Logf("Started Symphony with MQTT configuration")
 }
 
