@@ -2,7 +2,6 @@ package verify
 
 import (
 	"fmt"
-	"net"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -17,7 +16,6 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
 	targetName := "test-mqtt-process-target"
 	namespace := "default"
-	mqttBrokerAddress := "localhost"
 	mqttBrokerPort := 8883
 
 	// Setup test environment
@@ -32,6 +30,7 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		utils.CleanupMinikube(t)
 	})
 
+	// Generate MQTT certificates
 	mqttCerts := utils.GenerateMQTTCertificates(t, testDir)
 
 	// Setup test namespace
@@ -41,6 +40,15 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
 	var processCmd *exec.Cmd
+	var config utils.TestConfig
+	var brokerAddress string
+
+	// Use our new MQTT process test setup function with detected broker address
+	t.Run("SetupMQTTProcessTestWithDetectedAddress", func(t *testing.T) {
+		config, brokerAddress = utils.SetupMQTTProcessTestWithDetectedAddress(t, testDir, targetName, namespace)
+		t.Logf("MQTT process test setup completed with broker address: %s", brokerAddress)
+	})
+
 	t.Run("CreateCertificateSecrets", func(t *testing.T) {
 		// Create CA secret in cert-manager namespace (use MQTT certs for trust bundle)
 		caSecretName = utils.CreateMQTTCASecret(t, mqttCerts)
@@ -49,28 +57,11 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		clientSecretName = utils.CreateMQTTClientCertSecret(t, namespace, mqttCerts)
 	})
 
-	t.Run("SetupExternalMQTTBroker", func(t *testing.T) {
-		// Deploy MQTT broker on host machine using Docker with TLS
-		utils.SetupExternalMQTTBroker(t, mqttCerts, mqttBrokerPort)
-
-		// Test connectivity to external broker
-		t.Logf("Testing external MQTT broker connectivity...")
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("172.22.111.41:%d", mqttBrokerPort), 10*time.Second)
-
-		if err == nil {
-			conn.Close()
-			t.Logf("External MQTT broker connectivity test passed")
-		} else {
-			t.Fatalf("External MQTT broker connectivity test failed: %v", err)
-		}
-	})
-
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
-		// Deploy Symphony with MQTT configuration
-		// Symphony runs inside minikube, needs to access external broker on host
-		brokerAddress := fmt.Sprintf("tls://172.22.111.41:%d", mqttBrokerPort)
-		fmt.Printf("Starting Symphony with MQTT broker address: %s\n", brokerAddress)
-		utils.StartSymphonyWithMQTTConfig(t, brokerAddress)
+		// Deploy Symphony with MQTT configuration using detected broker address
+		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", brokerAddress, mqttBrokerPort)
+		t.Logf("Starting Symphony with MQTT broker address: %s", symphonyBrokerAddress)
+		utils.StartSymphonyWithMQTTConfig(t, symphonyBrokerAddress)
 
 		// Wait for Symphony server certificate to be created
 		utils.WaitForSymphonyServerCert(t, 5*time.Minute)
@@ -78,7 +69,7 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// Create test configurations AFTER Symphony is running
 	t.Run("CreateTestConfigurations", func(t *testing.T) {
-		configPath = utils.CreateMQTTConfig(t, testDir, mqttBrokerAddress, mqttBrokerPort, targetName, namespace)
+		configPath = utils.CreateMQTTConfig(t, testDir, brokerAddress, mqttBrokerPort, targetName, namespace)
 		topologyPath = utils.CreateTestTopology(t, testDir)
 		fmt.Printf("Topology path: %s", topologyPath)
 		targetYamlPath = utils.CreateTargetYAML(t, testDir, targetName, namespace)
@@ -93,17 +84,15 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// Start the remote agent process at main test level so it persists across subtests
 	t.Logf("Starting MQTT remote agent process...")
-	config := utils.TestConfig{
-		ProjectRoot:    projectRoot,
-		ConfigPath:     configPath,
-		ClientCertPath: mqttCerts.RemoteAgentCert, // Use standard test cert for remote agent
-		ClientKeyPath:  mqttCerts.RemoteAgentKey,  // Use standard test key for remote agent
-		CACertPath:     mqttCerts.CACert,          // Use MQTT CA for TLS trust
-		TargetName:     targetName,
-		Namespace:      namespace,
-		TopologyPath:   topologyPath,
-		Protocol:       "mqtt",
-	}
+	config.ProjectRoot = projectRoot
+	config.ConfigPath = configPath
+	config.ClientCertPath = mqttCerts.RemoteAgentCert // Use standard test cert for remote agent
+	config.ClientKeyPath = mqttCerts.RemoteAgentKey   // Use standard test key for remote agent
+	config.CACertPath = mqttCerts.CACert              // Use MQTT CA for TLS trust
+	config.TargetName = targetName
+	config.Namespace = namespace
+	config.TopologyPath = topologyPath
+	config.Protocol = "mqtt"
 	fmt.Printf("Starting remote agent process with config: %+v\n", config)
 
 	// Start remote agent using direct process (no systemd service) without automatic cleanup

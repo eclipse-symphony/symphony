@@ -2,10 +2,7 @@ package verify
 
 import (
 	"fmt"
-	"net"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,56 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// getHostIPForMinikube gets the host IP that minikube can access
-func getHostIPForMinikube(t *testing.T) string {
-	// For GitHub Actions and most environments, try to get the docker host IP
-	// This is the IP that containers can use to reach the host
-
-	// First try to get from minikube
-	cmd := exec.Command("minikube", "ssh", "route -n | grep '^0.0.0.0' | awk '{print $2}'")
-	if output, err := cmd.Output(); err == nil {
-		ip := strings.TrimSpace(string(output))
-		if ip != "" && net.ParseIP(ip) != nil {
-			t.Logf("Using minikube default gateway IP: %s", ip)
-			return ip
-		}
-	}
-
-	// Fallback: try to get the default network interface IP
-	cmd = exec.Command("ip", "route", "get", "8.8.8.8")
-	if output, err := cmd.Output(); err == nil {
-		// Parse the output to get the source IP
-		lines := strings.Split(string(output), "\n")
-		for _, line := range lines {
-			if strings.Contains(line, "src") {
-				parts := strings.Fields(line)
-				for i, part := range parts {
-					if part == "src" && i+1 < len(parts) {
-						ip := parts[i+1]
-						if net.ParseIP(ip) != nil {
-							t.Logf("Using host default interface IP: %s", ip)
-							return ip
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Final fallback: use Docker's default bridge gateway (common in many setups)
-	t.Logf("Using Docker bridge gateway IP as fallback: 172.17.0.1")
-	return "172.17.0.1"
-}
-
 func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	// Test configuration - use relative path from test directory
 	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
 	targetName := "test-mqtt-target"
 	namespace := "default"
 	mqttBrokerPort := 8883
-
-	// Get the host IP that minikube can access for the MQTT broker
-	hostIP := getHostIPForMinikube(t)
 
 	// Setup test environment
 	testDir := utils.SetupTestDirectory(t)
@@ -76,6 +29,7 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		utils.CleanupMinikube(t)
 	})
 
+	// Generate MQTT certificates
 	mqttCerts := utils.GenerateMQTTCertificates(t, testDir)
 
 	// Setup test namespace
@@ -84,6 +38,29 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 
 	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
+	var config utils.TestConfig
+	var brokerAddress string
+
+	// Set up initial config with certificate paths
+	t.Run("SetupInitialConfig", func(t *testing.T) {
+		config = utils.TestConfig{
+			ProjectRoot:    projectRoot,
+			TargetName:     targetName,
+			Namespace:      namespace,
+			Protocol:       "mqtt",
+			ClientCertPath: mqttCerts.RemoteAgentCert,
+			ClientKeyPath:  mqttCerts.RemoteAgentKey,
+			CACertPath:     mqttCerts.CACert,
+		}
+	})
+
+	// Use our bootstrap test setup function with detected broker address
+	t.Run("SetupMQTTBootstrapTestWithDetectedAddress", func(t *testing.T) {
+		utils.SetupMQTTBootstrapTestWithDetectedAddress(t, &config)
+		brokerAddress = config.BrokerAddress
+		t.Logf("MQTT bootstrap test setup completed with broker address: %s", brokerAddress)
+	})
+
 	t.Run("CreateCertificateSecrets", func(t *testing.T) {
 		// Create CA secret in cert-manager namespace (use MQTT certs for trust bundle)
 		caSecretName = utils.CreateMQTTCASecret(t, mqttCerts)
@@ -92,30 +69,13 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		clientSecretName = utils.CreateMQTTClientCertSecret(t, namespace, mqttCerts)
 	})
 
-	t.Run("SetupExternalMQTTBroker", func(t *testing.T) {
-		// Deploy MQTT broker on host machine using Docker with TLS
-		utils.SetupExternalMQTTBroker(t, mqttCerts, mqttBrokerPort)
-
-		// Test connectivity to external broker
-		t.Logf("Testing external MQTT broker connectivity...")
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", hostIP, mqttBrokerPort), 10*time.Second)
-
-		if err == nil {
-			conn.Close()
-			t.Logf("External MQTT broker connectivity test passed")
-		} else {
-			t.Fatalf("External MQTT broker connectivity test failed: %v", err)
-		}
-	})
-
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
-		// Deploy Symphony with MQTT configuration
-		// Symphony runs inside minikube, needs to access external broker on host
-		brokerAddress := fmt.Sprintf("tls://%s:%d", hostIP, mqttBrokerPort)
-		fmt.Printf("Starting Symphony with MQTT broker address: %s\n", brokerAddress)
+		// Deploy Symphony with MQTT configuration using detected broker address
+		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", brokerAddress, mqttBrokerPort)
+		t.Logf("Starting Symphony with MQTT broker address: %s", symphonyBrokerAddress)
 
 		// Try the alternative deployment method first
-		utils.StartSymphonyWithMQTTConfigAlternative(t, brokerAddress)
+		utils.StartSymphonyWithMQTTConfigAlternative(t, symphonyBrokerAddress)
 
 		// Wait for Symphony server certificate to be created
 		utils.WaitForSymphonyServerCert(t, 5*time.Minute)
@@ -125,8 +85,7 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	})
 	// Create test configurations AFTER Symphony is running
 	t.Run("CreateTestConfigurations", func(t *testing.T) {
-		// Use the same broker address for remote agent as Symphony uses
-		configPath = utils.CreateMQTTConfig(t, testDir, hostIP, mqttBrokerPort, targetName, namespace)
+		configPath = utils.CreateMQTTConfig(t, testDir, brokerAddress, mqttBrokerPort, targetName, namespace)
 		topologyPath = utils.CreateTestTopology(t, testDir)
 		fmt.Printf("Topology path: %s", topologyPath)
 		targetYamlPath = utils.CreateTargetYAML(t, testDir, targetName, namespace)
