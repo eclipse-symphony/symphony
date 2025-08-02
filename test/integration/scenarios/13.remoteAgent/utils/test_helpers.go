@@ -256,6 +256,38 @@ func ApplyKubernetesManifest(t *testing.T, manifestPath string) error {
 	return nil
 }
 
+// WaitForSymphonyWebhookService waits for the Symphony webhook service to be ready
+func WaitForSymphonyWebhookService(t *testing.T, timeout time.Duration) {
+	t.Logf("Waiting for Symphony webhook service to be ready...")
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		// Check if webhook service exists and has endpoints
+		cmd := exec.Command("kubectl", "get", "service", "symphony-webhook-service", "-n", "default", "-o", "jsonpath={.metadata.name}")
+		if output, err := cmd.Output(); err == nil && strings.TrimSpace(string(output)) == "symphony-webhook-service" {
+			t.Logf("Symphony webhook service exists")
+
+			// Check if webhook endpoints are ready
+			cmd = exec.Command("kubectl", "get", "endpoints", "symphony-webhook-service", "-n", "default", "-o", "jsonpath={.subsets[0].addresses[0].ip}")
+			if output, err := cmd.Output(); err == nil && len(strings.TrimSpace(string(output))) > 0 {
+				t.Logf("Symphony webhook service has endpoints: %s", strings.TrimSpace(string(output)))
+
+				// Additional check: try to validate webhook connectivity
+				cmd = exec.Command("kubectl", "get", "validatingwebhookconfiguration", "symphony-webhook-configuration", "-o", "jsonpath={.metadata.name}")
+				if output, err := cmd.Output(); err == nil && strings.TrimSpace(string(output)) == "symphony-webhook-configuration" {
+					t.Logf("Symphony webhook service is ready and accessible")
+					return
+				}
+			}
+		}
+
+		t.Logf("Symphony webhook service not ready yet, waiting...")
+		time.Sleep(5 * time.Second)
+	}
+
+	t.Logf("Warning: Symphony webhook service may not be fully ready after %v timeout", timeout)
+}
+
 // DeleteKubernetesManifest deletes a YAML manifest from the cluster
 func DeleteKubernetesManifest(t *testing.T, manifestPath string) error {
 	cmd := exec.Command("kubectl", "delete", "-f", manifestPath, "--ignore-not-found=true")
@@ -1550,8 +1582,11 @@ func WaitForSymphonyServiceReady(t *testing.T, timeout time.Duration) {
 				continue
 			}
 
-			// Deployment is ready - that's sufficient for our needs
+			// Deployment is ready, now wait for webhook service
 			t.Logf("Symphony API deployment is ready with %s replicas", readyReplicas)
+
+			// Wait for webhook service to be ready before returning
+			WaitForSymphonyWebhookService(t, 3*time.Minute)
 			return
 		}
 	}
