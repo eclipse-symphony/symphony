@@ -256,6 +256,39 @@ func ApplyKubernetesManifest(t *testing.T, manifestPath string) error {
 	return nil
 }
 
+// ApplyKubernetesManifestWithRetry applies a YAML manifest to the cluster with retry for webhook readiness
+func ApplyKubernetesManifestWithRetry(t *testing.T, manifestPath string, maxRetries int, retryDelay time.Duration) error {
+	var lastErr error
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		cmd := exec.Command("kubectl", "apply", "-f", manifestPath)
+		output, err := cmd.CombinedOutput()
+
+		if err == nil {
+			t.Logf("Applied manifest: %s (attempt %d)", manifestPath, attempt)
+			return nil
+		}
+
+		lastErr = err
+		outputStr := string(output)
+		t.Logf("kubectl apply attempt %d failed: %s", attempt, outputStr)
+
+		// Check if this is a webhook-related error that might resolve with retry
+		if strings.Contains(outputStr, "webhook") && strings.Contains(outputStr, "connection refused") {
+			if attempt < maxRetries {
+				t.Logf("Webhook connection issue detected, retrying in %v... (attempt %d/%d)", retryDelay, attempt, maxRetries)
+				time.Sleep(retryDelay)
+				continue
+			}
+		}
+
+		// For other errors, don't retry
+		break
+	}
+
+	return lastErr
+}
+
 // WaitForSymphonyWebhookService waits for the Symphony webhook service to be ready
 func WaitForSymphonyWebhookService(t *testing.T, timeout time.Duration) {
 	t.Logf("Waiting for Symphony webhook service to be ready...")
@@ -272,20 +305,28 @@ func WaitForSymphonyWebhookService(t *testing.T, timeout time.Duration) {
 			if output, err := cmd.Output(); err == nil && len(strings.TrimSpace(string(output))) > 0 {
 				t.Logf("Symphony webhook service has endpoints: %s", strings.TrimSpace(string(output)))
 
-				// Additional check: try to validate webhook connectivity
-				cmd = exec.Command("kubectl", "get", "validatingwebhookconfiguration", "symphony-webhook-configuration", "-o", "jsonpath={.metadata.name}")
-				if output, err := cmd.Output(); err == nil && strings.TrimSpace(string(output)) == "symphony-webhook-configuration" {
-					t.Logf("Symphony webhook service is ready and accessible")
+				// Additional check: verify the webhook pod is actually running
+				cmd = exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony", "--field-selector=status.phase=Running", "-o", "name")
+				if output, err := cmd.Output(); err == nil && len(strings.TrimSpace(string(output))) > 0 {
+					t.Logf("Symphony webhook pods are running: %v", strings.Split(strings.TrimSpace(string(output)), "\n"))
+					t.Logf("Symphony webhook service is ready")
 					return
+				} else {
+					t.Logf("Symphony webhook pods not yet running, continuing to wait...")
 				}
+			} else {
+				t.Logf("Symphony webhook service endpoints not ready yet...")
 			}
+		} else {
+			t.Logf("Symphony webhook service does not exist yet...")
 		}
 
-		t.Logf("Symphony webhook service not ready yet, waiting...")
 		time.Sleep(5 * time.Second)
 	}
 
-	t.Logf("Warning: Symphony webhook service may not be fully ready after %v timeout", timeout)
+	// Even if we timeout, don't fail the test - just warn and continue
+	// The ApplyKubernetesManifestWithRetry will handle webhook connectivity issues
+	t.Logf("Warning: Symphony webhook service may not be fully ready after %v timeout, but continuing test", timeout)
 }
 
 // DeleteKubernetesManifest deletes a YAML manifest from the cluster
@@ -1586,7 +1627,7 @@ func WaitForSymphonyServiceReady(t *testing.T, timeout time.Duration) {
 			t.Logf("Symphony API deployment is ready with %s replicas", readyReplicas)
 
 			// Wait for webhook service to be ready before returning
-			WaitForSymphonyWebhookService(t, 3*time.Minute)
+			WaitForSymphonyWebhookService(t, 1*time.Minute)
 			return
 		}
 	}

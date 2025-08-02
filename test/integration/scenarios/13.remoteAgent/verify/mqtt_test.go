@@ -131,8 +131,8 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		fmt.Printf("Topology path: %s", topologyPath)
 		targetYamlPath = utils.CreateTargetYAML(t, testDir, targetName, namespace)
 		fmt.Printf("Target YAML path: %s", targetYamlPath)
-		// Apply Target YAML to create the target resource
-		err := utils.ApplyKubernetesManifest(t, targetYamlPath)
+		// Apply Target YAML to create the target resource with retry for webhook readiness
+		err := utils.ApplyKubernetesManifestWithRetry(t, targetYamlPath, 5, 10*time.Second)
 		require.NoError(t, err)
 
 		// Wait for target to be created
