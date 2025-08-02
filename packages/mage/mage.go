@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -175,6 +176,11 @@ func TestRace() error {
 // CleanTest runs unit tests without the test cache.
 func CleanTest() error {
 	libPath := "./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"
+
+	libPath, err := filepath.Abs(libPath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
 
 	// First: clean test cache
 	if err := exec.Command("go", "clean", "-testcache").Run(); err != nil {
