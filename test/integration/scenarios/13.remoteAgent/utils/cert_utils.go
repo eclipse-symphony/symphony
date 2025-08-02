@@ -120,7 +120,50 @@ func generateServerCert(t *testing.T, caCert *x509.Certificate, caKey *rsa.Priva
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
 
-	// Create certificate template
+	// Build comprehensive list of IP addresses to include in certificate
+	// This covers most common network scenarios for testing
+	ipAddresses := []net.IP{
+		net.IPv4(127, 0, 0, 1), // localhost IPv4
+		net.IPv6loopback,       // localhost IPv6
+		net.IPv4zero,           // 0.0.0.0 - any IPv4
+	}
+
+	// Add common IP ranges that might be used in different environments
+	commonIPRanges := []string{
+		// Loopback
+		"127.0.0.1",
+		// Private networks (RFC 1918)
+		"10.0.0.1", "10.1.0.1", "10.1.0.141", "10.255.255.255",
+		"172.16.0.1", "172.22.111.41", "172.31.255.255",
+		"192.168.0.1", "192.168.1.1", "192.168.49.1", "192.168.255.255",
+		// Docker networks
+		"172.17.0.1", "172.18.0.1", "172.19.0.1", "172.20.0.1",
+		// Kubernetes service networks
+		"10.96.0.1", "10.107.0.1", "10.244.0.1",
+		// Other common test IPs
+		"192.168.99.1", "192.168.64.1",
+	}
+
+	for _, ipStr := range commonIPRanges {
+		if ip := net.ParseIP(ipStr); ip != nil {
+			ipAddresses = append(ipAddresses, ip)
+		}
+	}
+
+	// Add comprehensive DNS names for maximum compatibility
+	dnsNames := []string{
+		hostname,
+		"localhost",
+		"127.0.0.1",
+		"0.0.0.0",
+		"*", // Wildcard - though this may not work for IP verification
+		"*.local",
+		"*.localhost",
+		"host.docker.internal",   // Docker Desktop
+		"host.minikube.internal", // Minikube
+	}
+
+	// Create certificate template with very permissive settings for testing
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(2),
 		Subject: pkix.Name{
@@ -135,10 +178,11 @@ func generateServerCert(t *testing.T, caCert *x509.Certificate, caKey *rsa.Priva
 		NotBefore:   time.Now(),
 		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
 		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback, net.IPv4(172, 22, 111, 41)},
-		DNSNames:    []string{hostname, "localhost"},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}, // Allow both server and client auth
+		IPAddresses: ipAddresses,
+		DNSNames:    dnsNames,
 	}
+
 	// Create the certificate
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, caCert, &privateKey.PublicKey, caKey)
 	require.NoError(t, err)
