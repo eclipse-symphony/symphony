@@ -1,4 +1,5 @@
 //go:build azure
+// +build azure
 
 /*
  * Copyright (c) Microsoft Corporation.
