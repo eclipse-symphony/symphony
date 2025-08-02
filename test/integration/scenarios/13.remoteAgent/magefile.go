@@ -59,7 +59,7 @@ func Verify() error {
 
 	os.Setenv("SYMPHONY_FLAVOR", "oss")
 	for _, verify := range testVerify {
-		err := shellcmd.Command(fmt.Sprintf("go test -timeout %s %s", TEST_TIMEOUT, verify)).Run()
+		err := shellcmd.Command(fmt.Sprintf("go test -v -timeout %s %s", TEST_TIMEOUT, verify)).Run()
 		if err != nil {
 			return err
 		}
