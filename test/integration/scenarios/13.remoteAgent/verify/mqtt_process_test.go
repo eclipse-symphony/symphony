@@ -25,6 +25,30 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	testDir := utils.SetupTestDirectory(t)
 	t.Logf("Running MQTT process test in: %s", testDir)
 
+	// IMPORTANT: Register final process cleanup FIRST so it runs LAST (LIFO order)
+	var processCmd *exec.Cmd
+	t.Cleanup(func() {
+		t.Logf("=== FINAL EMERGENCY PROCESS CLEANUP ===")
+		if processCmd != nil && processCmd.Process != nil {
+			t.Logf("Emergency cleanup for process PID %d", processCmd.Process.Pid)
+
+			// Try graceful first
+			if err := processCmd.Process.Signal(syscall.SIGTERM); err == nil {
+				time.Sleep(2 * time.Second)
+			}
+
+			// Force kill if still running
+			if processState := processCmd.ProcessState; processState == nil || !processState.Exited() {
+				if err := processCmd.Process.Kill(); err != nil {
+					t.Logf("Failed to emergency kill process: %v", err)
+				} else {
+					t.Logf("Emergency killed process PID %d", processCmd.Process.Pid)
+				}
+			}
+		}
+		t.Logf("=== FINAL EMERGENCY CLEANUP FINISHED ===")
+	})
+
 	// Step 1: Start fresh minikube cluster
 	t.Run("SetupFreshMinikubeCluster", func(t *testing.T) {
 		utils.StartFreshMinikube(t)
@@ -38,7 +62,6 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	defer utils.CleanupNamespace(t, namespace)
 
 	var configPath, topologyPath, targetYamlPath string
-	var processCmd *exec.Cmd
 	var config utils.TestConfig
 	var detectedBrokerAddress string
 	var monitoringStop chan bool
@@ -236,7 +259,26 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	// Infrastructure cleanup - this runs BEFORE process cleanup due to LIFO order
 	t.Cleanup(func() {
 		t.Logf("=== STARTING INFRASTRUCTURE CLEANUP ===")
-		utils.CleanupSymphony(t, "remote-agent-mqtt-process-test")
+
+		// For MQTT process test, we don't use systemd service, so use individual cleanup functions
+		// instead of CleanupSymphony which includes systemd cleanup
+
+		// Dump logs first
+		projectRoot := utils.GetProjectRoot(t)
+		localenvDir := filepath.Join(projectRoot, "test", "localenv")
+		cmd := exec.Command("mage", "dumpSymphonyLogsForTest", fmt.Sprintf("'%s'", "remote-agent-mqtt-process-test"))
+		cmd.Dir = localenvDir
+		if err := cmd.Run(); err != nil {
+			t.Logf("Warning: Failed to dump Symphony logs: %v", err)
+		}
+
+		// Destroy symphony without systemd cleanup
+		cmd = exec.Command("mage", "destroy", "all,nowait")
+		cmd.Dir = localenvDir
+		if err := cmd.Run(); err != nil {
+			t.Logf("Warning: Failed to destroy Symphony: %v", err)
+		}
+
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
 		utils.CleanupMQTTCASecret(t, "mqtt-ca")
 		utils.CleanupMQTTClientSecret(t, namespace, "mqtt-client-secret")
@@ -245,19 +287,44 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// EXPLICIT CLEANUP BEFORE TEST ENDS - ensure process is stopped
 	t.Logf("=== EXPLICIT PROCESS CLEANUP BEFORE TEST END ===")
-	if processCmd != nil && processCmd.Process != nil {
-		t.Logf("Explicitly stopping remote agent process PID %d...", processCmd.Process.Pid)
-		utils.CleanupRemoteAgentProcess(t, processCmd)
-		t.Logf("Explicit process cleanup completed")
-	}
 
-	// Stop monitoring explicitly
+	// Stop monitoring first
 	select {
 	case monitoringStop <- true:
 		t.Logf("Process monitoring explicitly stopped")
 	default:
 		t.Logf("Process monitoring stop channel not available")
 	}
+
+	// Wait a moment for monitoring to stop
+	time.Sleep(1 * time.Second)
+
+	// Then cleanup the process with timeout protection
+	if processCmd != nil && processCmd.Process != nil {
+		t.Logf("Explicitly stopping remote agent process PID %d...", processCmd.Process.Pid)
+
+		// Run cleanup in a goroutine with timeout to prevent hanging
+		done := make(chan bool, 1)
+		go func() {
+			utils.CleanupRemoteAgentProcess(t, processCmd)
+			done <- true
+		}()
+
+		select {
+		case <-done:
+			t.Logf("Explicit process cleanup completed successfully")
+		case <-time.After(30 * time.Second):
+			t.Logf("WARNING: Process cleanup timed out after 30 seconds, force killing...")
+			// Force kill as last resort
+			if err := processCmd.Process.Kill(); err != nil {
+				t.Logf("Failed to force kill process: %v", err)
+			} else {
+				t.Logf("Process force killed due to cleanup timeout")
+			}
+		}
+	}
+
+	t.Logf("=== EXPLICIT CLEANUP COMPLETED ===")
 
 	t.Logf("MQTT communication test with direct process completed successfully")
 }
