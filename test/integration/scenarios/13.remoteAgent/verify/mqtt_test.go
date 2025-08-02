@@ -59,7 +59,6 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
 	targetName := "test-mqtt-target"
 	namespace := "default"
-	mqttBrokerAddress := "localhost"
 	mqttBrokerPort := 8883
 
 	// Get the host IP that minikube can access for the MQTT broker
@@ -126,7 +125,8 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	})
 	// Create test configurations AFTER Symphony is running
 	t.Run("CreateTestConfigurations", func(t *testing.T) {
-		configPath = utils.CreateMQTTConfig(t, testDir, mqttBrokerAddress, mqttBrokerPort, targetName, namespace)
+		// Use the same broker address for remote agent as Symphony uses
+		configPath = utils.CreateMQTTConfig(t, testDir, hostIP, mqttBrokerPort, targetName, namespace)
 		topologyPath = utils.CreateTestTopology(t, testDir)
 		fmt.Printf("Topology path: %s", topologyPath)
 		targetYamlPath = utils.CreateTargetYAML(t, testDir, targetName, namespace)
