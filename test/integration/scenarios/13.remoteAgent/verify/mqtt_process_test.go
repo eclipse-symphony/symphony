@@ -13,8 +13,7 @@ import (
 )
 
 func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
-	// Test configuration - use relative path from test directory
-	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
+	// Test configuration
 	targetName := "test-mqtt-process-target"
 	namespace := "default"
 	mqttBrokerPort := 8883
@@ -31,36 +30,24 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		utils.CleanupMinikube(t)
 	})
 
-	// Generate MQTT certificates
-	mqttCerts := utils.GenerateMQTTCertificates(t, testDir)
-
 	// Setup test namespace
 	setupMQTTProcessNamespace(t, namespace)
 	defer utils.CleanupNamespace(t, namespace)
 
-	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
 	var processCmd *exec.Cmd
 	var config utils.TestConfig
-	var brokerAddress string
+	var detectedBrokerAddress string
 
 	// Use our new MQTT process test setup function with detected broker address
 	t.Run("SetupMQTTProcessTestWithDetectedAddress", func(t *testing.T) {
-		config, brokerAddress = utils.SetupMQTTProcessTestWithDetectedAddress(t, testDir, targetName, namespace)
-		t.Logf("MQTT process test setup completed with broker address: %s", brokerAddress)
-	})
-
-	t.Run("CreateCertificateSecrets", func(t *testing.T) {
-		// Create CA secret in cert-manager namespace (use MQTT certs for trust bundle)
-		caSecretName = utils.CreateMQTTCASecret(t, mqttCerts)
-
-		// Create Symphony MQTT client certificate secret in default namespace
-		clientSecretName = utils.CreateMQTTClientCertSecret(t, namespace, mqttCerts)
+		config, detectedBrokerAddress = utils.SetupMQTTProcessTestWithDetectedAddress(t, testDir, targetName, namespace)
+		t.Logf("MQTT process test setup completed with broker address: %s", detectedBrokerAddress)
 	})
 
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
 		// Deploy Symphony with MQTT configuration using detected broker address
-		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", brokerAddress, mqttBrokerPort)
+		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", detectedBrokerAddress, mqttBrokerPort)
 		t.Logf("Starting Symphony with MQTT broker address: %s", symphonyBrokerAddress)
 		utils.StartSymphonyWithMQTTConfig(t, symphonyBrokerAddress)
 
@@ -70,8 +57,9 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// Create test configurations AFTER Symphony is running
 	t.Run("CreateTestConfigurations", func(t *testing.T) {
-		configPath = utils.CreateMQTTConfig(t, testDir, brokerAddress, mqttBrokerPort, targetName, namespace)
-		topologyPath = utils.CreateTestTopology(t, testDir)
+		// Use the config path that was already created with the correct broker address
+		configPath = config.ConfigPath
+		topologyPath = config.TopologyPath
 		fmt.Printf("Topology path: %s", topologyPath)
 		targetYamlPath = utils.CreateTargetYAML(t, testDir, targetName, namespace)
 		fmt.Printf("Target YAML path: %s", targetYamlPath)
@@ -85,15 +73,10 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// Start the remote agent process at main test level so it persists across subtests
 	t.Logf("Starting MQTT remote agent process...")
-	config.ProjectRoot = projectRoot
+	// The config was already properly set up in SetupMQTTProcessTestWithDetectedAddress
+	// Just update the paths that were created in CreateTestConfigurations
 	config.ConfigPath = configPath
-	config.ClientCertPath = mqttCerts.RemoteAgentCert // Use standard test cert for remote agent
-	config.ClientKeyPath = mqttCerts.RemoteAgentKey   // Use standard test key for remote agent
-	config.CACertPath = mqttCerts.CACert              // Use MQTT CA for TLS trust
-	config.TargetName = targetName
-	config.Namespace = namespace
 	config.TopologyPath = topologyPath
-	config.Protocol = "mqtt"
 	fmt.Printf("Starting remote agent process with config: %+v\n", config)
 
 	// Start remote agent using direct process (no systemd service) without automatic cleanup
@@ -219,8 +202,8 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	t.Cleanup(func() {
 		utils.CleanupSymphony(t, "remote-agent-mqtt-process-test")
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
-		utils.CleanupMQTTCASecret(t, caSecretName)
-		utils.CleanupMQTTClientSecret(t, namespace, clientSecretName)
+		utils.CleanupMQTTCASecret(t, "mqtt-ca")
+		utils.CleanupMQTTClientSecret(t, namespace, "mqtt-client-secret")
 	})
 
 	t.Logf("MQTT communication test with direct process completed successfully")

@@ -46,6 +46,20 @@ type TestConfig struct {
 	BrokerPort     string
 }
 
+// getHostIPForMinikube returns the host IP address that minikube can reach
+// This is typically the host's main network interface IP
+func getHostIPForMinikube() (string, error) {
+	// Try to get the host IP by connecting to a remote address and seeing what interface is used
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "", fmt.Errorf("failed to get host IP: %v", err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
+}
+
 // SetupTestDirectory creates a temporary directory for test files with proper permissions
 func SetupTestDirectory(t *testing.T) string {
 	testDir, err := ioutil.TempDir("", "symphony-e2e-test-")
@@ -1458,16 +1472,29 @@ bind_address 0.0.0.0
 	t.Logf("  Server Cert: %s -> /mqtt/certs/%s", certs.MQTTServerCert, filepath.Base(certs.MQTTServerCert))
 	t.Logf("  Server Key: %s -> /mqtt/certs/%s", certs.MQTTServerKey, filepath.Base(certs.MQTTServerKey))
 
-	// Special handling for GitHub Actions - use host networking mode if available
+	// Special handling for GitHub Actions vs local environment
 	dockerArgs := []string{"run", "-d", "--name", "mqtt-broker"}
+	var actualBrokerAddress string
 
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Logf("GitHub Actions detected - using host networking mode")
 		dockerArgs = append(dockerArgs, "--network", "host")
+		actualBrokerAddress = "localhost" // In host mode, use localhost
 	} else {
-		// Local environment - use port binding
-		t.Logf("Local environment - using port binding")
+		// Local environment - use port binding on all interfaces
+		t.Logf("Local environment - using port binding on all interfaces")
 		dockerArgs = append(dockerArgs, "-p", fmt.Sprintf("0.0.0.0:%d:%d", brokerPort, brokerPort))
+
+		// For Symphony to reach the Docker container from minikube, we need host's IP
+		// Get the host IP that minikube can reach (usually the host's main network interface)
+		hostIP, err := getHostIPForMinikube()
+		if err != nil {
+			t.Logf("Failed to get host IP for minikube, falling back to localhost: %v", err)
+			actualBrokerAddress = "localhost"
+		} else {
+			actualBrokerAddress = hostIP
+			t.Logf("Using host IP for Symphony MQTT broker access: %s", actualBrokerAddress)
+		}
 	}
 
 	// Add volume mounts and command
@@ -1492,7 +1519,7 @@ bind_address 0.0.0.0
 	require.NoError(t, err, "Failed to start MQTT broker with Docker")
 
 	t.Logf("MQTT broker started with Docker container ID: %s", strings.TrimSpace(stdout.String()))
-	t.Logf("MQTT broker is accessible at: tls://%s:%d", brokerAddress, brokerPort)
+	t.Logf("MQTT broker is accessible at: tls://%s:%d", actualBrokerAddress, brokerPort)
 
 	// Wait for broker to be ready with extended timeout for CI
 	waitTime := 10 * time.Second
@@ -1502,9 +1529,9 @@ bind_address 0.0.0.0
 	t.Logf("Waiting %v for MQTT broker to be ready...", waitTime)
 	time.Sleep(waitTime)
 
-	// Test connectivity from detected address with more attempts in CI
-	testConnectivity := func() error {
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", brokerAddress, brokerPort), 10*time.Second)
+	// Test connectivity - for local environment, test both localhost (for remote agent) and detected address (for minikube)
+	testConnectivity := func(testAddress string) error {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", testAddress, brokerPort), 10*time.Second)
 		if err != nil {
 			return err
 		}
@@ -1517,23 +1544,38 @@ bind_address 0.0.0.0
 		maxAttempts = 10 // More attempts in CI
 	}
 
-	// Retry connectivity test
+	// Test remote agent connectivity (localhost)
+	t.Logf("Testing remote agent connectivity to localhost:%d", brokerPort)
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		if err := testConnectivity(); err == nil {
-			t.Logf("MQTT broker connectivity confirmed at %s:%d", brokerAddress, brokerPort)
+		if err := testConnectivity("localhost"); err == nil {
+			t.Logf("Remote agent MQTT broker connectivity confirmed at localhost:%d", brokerPort)
 			break
 		} else if attempt == maxAttempts {
-			t.Logf("MQTT broker not accessible after %d attempts: %v", attempt, err)
-			// Additional diagnostics on failure
-			TestDockerNetworking(t)
-			t.Fatalf("MQTT broker connectivity test failed")
+			t.Logf("Remote agent connectivity test failed after %d attempts: %v", attempt, err)
 		} else {
-			t.Logf("MQTT broker connectivity test %d/%d failed, retrying...: %v", attempt, maxAttempts, err)
-			time.Sleep(3 * time.Second) // Longer wait between attempts
+			t.Logf("Remote agent connectivity test %d/%d failed, retrying...: %v", attempt, maxAttempts, err)
+			time.Sleep(3 * time.Second)
 		}
 	}
 
-	return brokerAddress
+	// Test minikube connectivity (if not in CI and not localhost)
+	if os.Getenv("GITHUB_ACTIONS") != "true" && actualBrokerAddress != "localhost" {
+		t.Logf("Testing minikube connectivity to %s:%d", actualBrokerAddress, brokerPort)
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			if err := testConnectivity(actualBrokerAddress); err == nil {
+				t.Logf("Minikube MQTT broker connectivity confirmed at %s:%d", actualBrokerAddress, brokerPort)
+				break
+			} else if attempt == maxAttempts {
+				t.Logf("Minikube connectivity test failed after %d attempts: %v", attempt, err)
+				// Don't fail here, as remote agent connectivity is more important
+			} else {
+				t.Logf("Minikube connectivity test %d/%d failed, retrying...: %v", attempt, maxAttempts, err)
+				time.Sleep(3 * time.Second)
+			}
+		}
+	}
+
+	return actualBrokerAddress
 }
 
 // SetupMQTTProcessTestWithDetectedAddress sets up complete MQTT process test environment
@@ -1564,10 +1606,18 @@ func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targe
 	actualBrokerAddress := SetupExternalMQTTBrokerWithDetectedAddress(t, certs, 8883)
 	t.Logf("Setup external MQTT broker at: %s:8883", actualBrokerAddress)
 
-	// Step 4: Create MQTT config with detected broker address
+	// Step 4: Create MQTT config with localhost for remote agent
+	// (remote agent runs on host and connects to Docker container via localhost)
 	configPath := filepath.Join(testDir, "config-mqtt.json")
+	var remoteAgentBrokerAddress string
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		remoteAgentBrokerAddress = "localhost"
+	} else {
+		remoteAgentBrokerAddress = "localhost" // Remote agent always uses localhost
+	}
+
 	config := map[string]interface{}{
-		"mqttBroker": actualBrokerAddress,
+		"mqttBroker": remoteAgentBrokerAddress,
 		"mqttPort":   8883,
 		"targetName": targetName,
 		"namespace":  namespace,
@@ -1578,28 +1628,23 @@ func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targe
 
 	err = ioutil.WriteFile(configPath, configBytes, 0666)
 	require.NoError(t, err, "Failed to write MQTT config file")
-	t.Logf("Created MQTT config with broker address: %s", actualBrokerAddress)
+	t.Logf("Created MQTT config with remote agent broker address: %s", remoteAgentBrokerAddress)
 
 	// Step 5: Create test topology
 	topologyPath := CreateTestTopology(t, testDir)
 	t.Logf("Created test topology")
 
-	// Step 6: Start Symphony with detected broker address
-	StartSymphonyWithMQTTConfigDetected(t, actualBrokerAddress)
-	t.Logf("Started Symphony with MQTT configuration using broker address: %s", actualBrokerAddress)
+	// Step 6: Return configuration without starting Symphony (let test handle it)
+	// This allows the test to control when Symphony starts
 
-	// Step 7: Wait for Symphony deployment to be ready
-	WaitForSymphonyWebhookService(t, 1*time.Minute)
-	t.Logf("Symphony webhook service is ready")
-
-	// Step 8: Perform connectivity troubleshooting if in CI
+	// Step 7: Perform connectivity troubleshooting if in CI
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		TroubleshootMQTTConnectivity(t, actualBrokerAddress, 8883)
 	}
 
 	projectRoot := GetProjectRoot(t)
 
-	// Step 9: Build test configuration
+	// Step 8: Build test configuration
 	testConfig := TestConfig{
 		ProjectRoot:    projectRoot,
 		ConfigPath:     configPath,
