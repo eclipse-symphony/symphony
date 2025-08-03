@@ -2718,25 +2718,26 @@ func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 			t.Logf("Adding Symphony CA certificate to bootstrap.sh: %s", config.CACertPath)
 		}
 	} else if config.Protocol == "mqtt" {
-		// Detect MQTT broker address based on environment
-		brokerAddress := DetectMQTTBrokerAddressForCI(t)
-		t.Logf("Using detected MQTT broker address for bootstrap: %s", brokerAddress)
+		// For remote agent (running on host), always use localhost to connect to MQTT broker
+		// The broker runs on the same host in Docker container with port mapping
+		remoteAgentBrokerAddress := "localhost"
+		t.Logf("Using localhost for remote agent MQTT broker address: %s", remoteAgentBrokerAddress)
 
 		// MQTT mode arguments
 		args = []string{
-			"mqtt",                // protocol
-			brokerAddress,         // broker_address (detected based on environment)
-			"8883",                // broker_port (will be from config)
-			config.ClientCertPath, // cert_path
-			config.ClientKeyPath,  // key_path
-			config.TargetName,     // target_name
-			config.Namespace,      // namespace
-			config.TopologyPath,   // topology
-			currentUser,           // user
-			currentGroup,          // group
-			config.BinaryPath,     // binary_path
-			config.CACertPath,     // ca_cert_path
-			"false",               // use_cert_subject
+			"mqtt",                   // protocol
+			remoteAgentBrokerAddress, // broker_address (localhost for remote agent)
+			"8883",                   // broker_port (will be from config)
+			config.ClientCertPath,    // cert_path
+			config.ClientKeyPath,     // key_path
+			config.TargetName,        // target_name
+			config.Namespace,         // namespace
+			config.TopologyPath,      // topology
+			currentUser,              // user
+			currentGroup,             // group
+			config.BinaryPath,        // binary_path
+			config.CACertPath,        // ca_cert_path
+			"false",                  // use_cert_subject
 		}
 	} else {
 		t.Fatalf("Unsupported protocol: %s", config.Protocol)
@@ -2778,22 +2779,25 @@ func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 }
 
 // SetupMQTTBootstrapTestWithDetectedAddress sets up MQTT broker for bootstrap tests using detected address
-func SetupMQTTBootstrapTestWithDetectedAddress(t *testing.T, config *TestConfig) {
+func SetupMQTTBootstrapTestWithDetectedAddress(t *testing.T, config *TestConfig, mqttCerts *MQTTCertificatePaths) {
 	t.Logf("Setting up MQTT bootstrap test with detected broker address...")
 
-	// Create certificate paths for MQTT broker
+	// For bootstrap test, we need to use the proper MQTT certificates
+	// The config contains remote agent certificates, but we need server certificates for MQTT broker
+
+	// Create certificate paths for MQTT broker using proper server certificates
 	certs := MQTTCertificatePaths{
-		CACert:         config.CACertPath,
-		MQTTServerCert: config.ClientCertPath, // Use client cert as server cert for testing
-		MQTTServerKey:  config.ClientKeyPath,  // Use client key as server key for testing
+		CACert:         mqttCerts.CACert,
+		MQTTServerCert: mqttCerts.MQTTServerCert, // Use proper MQTT server cert with IP SANs
+		MQTTServerKey:  mqttCerts.MQTTServerKey,  // Use proper MQTT server key
 	}
 
-	// Start external MQTT broker with detected address
-	brokerAddress := SetupExternalMQTTBrokerWithDetectedAddress(t, certs, 8883)
-	t.Logf("Started external MQTT broker with address: %s", brokerAddress)
+	// Start external MQTT broker with detected address and return the actual broker address
+	actualBrokerAddress := SetupExternalMQTTBrokerWithDetectedAddress(t, certs, 8883)
+	t.Logf("Started external MQTT broker with detected address: %s", actualBrokerAddress)
 
-	// Update config with detected broker address
-	config.BrokerAddress = brokerAddress
+	// Update config with detected broker address for Symphony
+	config.BrokerAddress = actualBrokerAddress
 	config.BrokerPort = "8883"
 
 	t.Logf("MQTT bootstrap test setup completed with broker address: %s:%s",

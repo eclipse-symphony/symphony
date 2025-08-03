@@ -56,7 +56,7 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 
 	// Use our bootstrap test setup function with detected broker address
 	t.Run("SetupMQTTBootstrapTestWithDetectedAddress", func(t *testing.T) {
-		utils.SetupMQTTBootstrapTestWithDetectedAddress(t, &config)
+		utils.SetupMQTTBootstrapTestWithDetectedAddress(t, &config, &mqttCerts)
 		brokerAddress = config.BrokerAddress
 		t.Logf("MQTT bootstrap test setup completed with broker address: %s", brokerAddress)
 	})
