@@ -1454,7 +1454,6 @@ use_identity_as_username false
 allow_anonymous true
 log_dest stdout
 log_type all
-bind_address 0.0.0.0
 `, brokerPort, filepath.Base(certs.CACert), filepath.Base(certs.MQTTServerCert), filepath.Base(certs.MQTTServerKey))
 
 	configPath := filepath.Join(filepath.Dir(certs.CACert), "mosquitto.conf")
@@ -1481,7 +1480,7 @@ bind_address 0.0.0.0
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Logf("GitHub Actions detected - using host networking mode")
 		dockerArgs = append(dockerArgs, "--network", "host")
-		actualBrokerAddress = "localhost" // In host mode, use localhost
+		actualBrokerAddress = "127.0.0.1" // Force IPv4 to avoid IPv6 localhost resolution
 	} else {
 		// Local environment - use port binding on all interfaces
 		t.Logf("Local environment - using port binding on all interfaces")
@@ -1546,11 +1545,11 @@ bind_address 0.0.0.0
 		maxAttempts = 10 // More attempts in CI
 	}
 
-	// Test remote agent connectivity (localhost)
-	t.Logf("Testing remote agent connectivity to localhost:%d", brokerPort)
+	// Test remote agent connectivity (127.0.0.1)
+	t.Logf("Testing remote agent connectivity to 127.0.0.1:%d", brokerPort)
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		if err := testConnectivity("localhost"); err == nil {
-			t.Logf("Remote agent MQTT broker connectivity confirmed at localhost:%d", brokerPort)
+		if err := testConnectivity("127.0.0.1"); err == nil {
+			t.Logf("Remote agent MQTT broker connectivity confirmed at 127.0.0.1:%d", brokerPort)
 			break
 		} else if attempt == maxAttempts {
 			t.Logf("Remote agent connectivity test failed after %d attempts: %v", attempt, err)
@@ -1613,9 +1612,9 @@ func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targe
 	configPath := filepath.Join(testDir, "config-mqtt.json")
 	var remoteAgentBrokerAddress string
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
-		remoteAgentBrokerAddress = "localhost"
+		remoteAgentBrokerAddress = "127.0.0.1" // Force IPv4 to avoid IPv6 localhost resolution
 	} else {
-		remoteAgentBrokerAddress = "localhost" // Remote agent always uses localhost
+		remoteAgentBrokerAddress = "127.0.0.1" // Remote agent always uses 127.0.0.1 for consistency
 	}
 
 	config := map[string]interface{}{
@@ -2718,15 +2717,15 @@ func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 			t.Logf("Adding Symphony CA certificate to bootstrap.sh: %s", config.CACertPath)
 		}
 	} else if config.Protocol == "mqtt" {
-		// For remote agent (running on host), always use localhost to connect to MQTT broker
+		// For remote agent (running on host), always use 127.0.0.1 to connect to MQTT broker
 		// The broker runs on the same host in Docker container with port mapping
-		remoteAgentBrokerAddress := "localhost"
-		t.Logf("Using localhost for remote agent MQTT broker address: %s", remoteAgentBrokerAddress)
+		remoteAgentBrokerAddress := "127.0.0.1"
+		t.Logf("Using 127.0.0.1 for remote agent MQTT broker address: %s", remoteAgentBrokerAddress)
 
 		// MQTT mode arguments
 		args = []string{
 			"mqtt",                   // protocol
-			remoteAgentBrokerAddress, // broker_address (localhost for remote agent)
+			remoteAgentBrokerAddress, // broker_address (127.0.0.1 for remote agent)
 			"8883",                   // broker_port (will be from config)
 			config.ClientCertPath,    // cert_path
 			config.ClientKeyPath,     // key_path
