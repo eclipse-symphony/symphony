@@ -526,37 +526,39 @@ func DetectMQTTBrokerAddressForCI(t *testing.T) string {
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Logf("GitHub Actions detected - using optimized address detection")
 
-		// In GitHub Actions, localhost often works better due to host networking
-		// Test if localhost is reachable from minikube
-		cmd := exec.Command("minikube", "ssh", "ping -c 1 host.docker.internal")
-		if cmd.Run() == nil {
-			t.Logf("Using host.docker.internal for GitHub Actions")
-			return "host.docker.internal"
+		// In GitHub Actions with minikube, Symphony needs to connect to the host IP
+		// Get the host IP from minikube's perspective (default gateway)
+		cmd := exec.Command("minikube", "ssh", "ip route show default | awk '/default/ { print $3 }'")
+		if output, err := cmd.Output(); err == nil {
+			hostIP := strings.TrimSpace(string(output))
+			if hostIP != "" && net.ParseIP(hostIP) != nil {
+				t.Logf("Using host IP from minikube for GitHub Actions: %s", hostIP)
+				return hostIP
+			}
 		}
 
-		// Try getting the default route IP
-		cmd = exec.Command("ip", "route", "get", "1.1.1.1")
+		// Fallback: try to get minikube IP and derive host IP
+		cmd = exec.Command("minikube", "ip")
 		if output, err := cmd.Output(); err == nil {
-			lines := strings.Split(string(output), "\n")
-			for _, line := range lines {
-				if strings.Contains(line, "src") {
-					parts := strings.Fields(line)
-					for i, part := range parts {
-						if part == "src" && i+1 < len(parts) {
-							ip := parts[i+1]
-							if parsedIP := net.ParseIP(ip); parsedIP != nil && !parsedIP.IsLoopback() {
-								t.Logf("Using default route source IP for CI: %s", ip)
-								return ip
-							}
-						}
+			minikubeIP := strings.TrimSpace(string(output))
+			if minikubeIP != "" && net.ParseIP(minikubeIP) != nil {
+				// Convert minikube IP to host IP (typically .1 of the same subnet)
+				ip := net.ParseIP(minikubeIP)
+				if ip != nil {
+					ip4 := ip.To4()
+					if ip4 != nil {
+						// Change last octet to .1 (typical host IP in minikube subnet)
+						hostIP := fmt.Sprintf("%d.%d.%d.1", ip4[0], ip4[1], ip4[2])
+						t.Logf("Using derived host IP for GitHub Actions: %s", hostIP)
+						return hostIP
 					}
 				}
 			}
 		}
 
-		// Fallback to localhost for GitHub Actions
-		t.Logf("Using localhost fallback for GitHub Actions")
-		return "localhost"
+		// Final fallback - try the standard detection
+		t.Logf("Falling back to standard detection for GitHub Actions")
+		return DetectMQTTBrokerAddress(t)
 	}
 
 	// For non-CI environments, use the standard detection
@@ -1480,7 +1482,22 @@ log_type all
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Logf("GitHub Actions detected - using host networking mode")
 		dockerArgs = append(dockerArgs, "--network", "host")
-		actualBrokerAddress = "127.0.0.1" // Force IPv4 to avoid IPv6 localhost resolution
+		// Symphony in minikube needs to connect to host IP, not localhost
+		// Get the host IP that minikube can reach
+		cmd := exec.Command("minikube", "ssh", "ip route show default | awk '/default/ { print $3 }'")
+		if output, err := cmd.Output(); err == nil {
+			hostIP := strings.TrimSpace(string(output))
+			if hostIP != "" && net.ParseIP(hostIP) != nil {
+				actualBrokerAddress = hostIP
+				t.Logf("Using host IP for Symphony-to-MQTT connection: %s", actualBrokerAddress)
+			} else {
+				t.Logf("Failed to parse host IP, falling back to detected address")
+				actualBrokerAddress = DetectMQTTBrokerAddress(t)
+			}
+		} else {
+			t.Logf("Failed to get host IP from minikube, using detected address: %v", err)
+			actualBrokerAddress = DetectMQTTBrokerAddress(t)
+		}
 	} else {
 		// Local environment - use port binding on all interfaces
 		t.Logf("Local environment - using port binding on all interfaces")

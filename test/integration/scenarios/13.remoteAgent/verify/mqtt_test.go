@@ -71,8 +71,9 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
 		// Deploy Symphony with MQTT configuration using detected broker address
+		// Use the broker address that was detected and configured for Symphony connectivity
 		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", brokerAddress, mqttBrokerPort)
-		t.Logf("Starting Symphony with MQTT broker address: %s", symphonyBrokerAddress)
+		t.Logf("Starting Symphony with MQTT broker address: %s (detected: %s)", symphonyBrokerAddress, brokerAddress)
 
 		// Try the alternative deployment method first
 		utils.StartSymphonyWithMQTTConfigAlternative(t, symphonyBrokerAddress)
