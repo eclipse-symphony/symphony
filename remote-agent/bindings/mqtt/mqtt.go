@@ -101,89 +101,67 @@ func (m *MqttBinding) Launch() error {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
 			return
 		}
-		var result Result
-		err = utils2.UnmarshalJson(coaResponse.Body, &result)
-		if result.Result != "" {
-			fmt.Print("handle respponse resultA: %s. \n", result.Result)
-			if strings.Contains(result.Result, "handle async result successfully") || strings.Contains(result.Result, "get response successfully") {
-				select {
-				case responseReceived <- true:
-					fmt.Println("Response received successfully")
-				default:
-					fmt.Println("Response channel is full, skipping")
-				}
+		fmt.Print("handle respponse B: %+v\n", coaResponse.Body)
+		if get_start {
+			var allRequests model.ProviderPagingRequest
+			err := utils2.UnmarshalJson(coaResponse.Body, &allRequests)
+			if err != nil {
+				fmt.Printf("Error unmarshalling response: %s", err.Error())
+				return
+			}
+
+			fmt.Println("Request length: ", len(requests))
+			requests = append(requests, allRequests.RequestList...)
+
+			if allRequests.LastMessageID == "" {
+				get_start = false
+				fmt.Println("get_start: %s", get_start)
+				handleRequests(requests, &wg, m)
+				fmt.Println("Request length: ", len(requests))
 			} else {
-				fmt.Printf("Response not as expected: %s\n", result.Result)
-				// Non-blocking send to responseReceived channel
-				select {
-				case responseReceived <- false:
-					fmt.Println("Response received with errors")
-				default:
-					fmt.Println("Response channel is full, skipping")
+				fmt.Println("Request length: ", len(requests))
+				// Generate correlationId for continuation request
+				continueCorrelationId := uuid.New().String()
+				myCorrelationIds.Store(continueCorrelationId, true)
+
+				Parameters := map[string]string{
+					"target":        m.Target,
+					"namespace":     m.Namespace,
+					"getAll":        "true",
+					"preindex":      allRequests.LastMessageID,
+					"correlationId": continueCorrelationId,
 				}
+				request := v1alpha2.COARequest{
+					Route:      "tasks",
+					Method:     "GET",
+					Parameters: Parameters,
+				}
+				data, _ := json.Marshal(request)
+				token := m.Client.Publish(m.RequestTopic, 1, false, data)
+				token.Wait()
 			}
 		} else {
-			fmt.Print("handle respponse B: %+v\n", coaResponse.Body)
-			if get_start {
-				var allRequests model.ProviderPagingRequest
-				err := utils2.UnmarshalJson(coaResponse.Body, &allRequests)
-				if err != nil {
-					fmt.Printf("Error unmarshalling response: %s", err.Error())
-					return
-				}
 
-				fmt.Println("Request length: ", len(requests))
-				requests = append(requests, allRequests.RequestList...)
-
-				if allRequests.LastMessageID == "" {
-					get_start = false
-					fmt.Println("get_start: %s", get_start)
-					handleRequests(requests, &wg, m)
-					fmt.Println("Request length: ", len(requests))
-				} else {
-					fmt.Println("Request length: ", len(requests))
-					// Generate correlationId for continuation request
-					continueCorrelationId := uuid.New().String()
-					myCorrelationIds.Store(continueCorrelationId, true)
-
-					Parameters := map[string]string{
-						"target":        m.Target,
-						"namespace":     m.Namespace,
-						"getAll":        "true",
-						"preindex":      allRequests.LastMessageID,
-						"correlationId": continueCorrelationId,
-					}
-					request := v1alpha2.COARequest{
-						Route:      "tasks",
-						Method:     "GET",
-						Parameters: Parameters,
-					}
-					data, _ := json.Marshal(request)
-					token := m.Client.Publish(m.RequestTopic, 1, false, data)
-					token.Wait()
-				}
-			} else {
-
-				var singleRequest map[string]interface{}
-				err := utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
-				fmt.Println("single request is here: ", singleRequest)
+			var singleRequest map[string]interface{}
+			err := utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
+			fmt.Println("single request is here: ", singleRequest)
+			if err != nil {
+				fmt.Printf("Error unmarshalling response body: %s", err.Error())
+				return
+			}
+			if strings.Contains(string(coaResponse.Body), m.Target) {
 				if err != nil {
 					fmt.Printf("Error unmarshalling response body: %s", err.Error())
 					return
 				}
-				if strings.Contains(string(coaResponse.Body), m.Target) {
-					if err != nil {
-						fmt.Printf("Error unmarshalling response body: %s", err.Error())
-						return
-					}
-					fmt.Printf("Sub topic00: %s. \n", singleRequest)
-					// handle request
-					requests = []map[string]interface{}{singleRequest}
-					handleRequests(requests, &wg, m)
-				}
-
+				fmt.Printf("Sub topic00: %s. \n", singleRequest)
+				// handle request
+				requests = []map[string]interface{}{singleRequest}
+				handleRequests(requests, &wg, m)
 			}
+
 		}
+		
 
 	})
 	token.Wait()
