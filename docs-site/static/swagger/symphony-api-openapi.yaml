@@ -3,15 +3,275 @@ info:
   title: Symphony REST API Queries
   version: 1.0.0
 servers:
-  - url: http://{{symphony_base_url}}
+  - url: http://localhost:8082/v1alpha2/
+security:
+  - bearerAuth: []  
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+      bearerFormat: JWT
     noauthAuth:
       type: http
-      scheme: noauth
+      scheme: noauth  
+  schemas:      
+    ObjectMeta:
+      type: object
+      description: Custom metadata structure for a Symphony resource
+      properties:
+        namespace:
+          type: string
+        name:
+          type: string
+        etag:
+          type: string
+          description: Version string of the object
+        objGeneraion:
+          type: integer
+          format: int64
+          description: Changes when spec changes
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        uid:
+          type: string
+          description: UID of the object (Kubernetes types.UID)
+        ownerReferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnerReference'
+    OwnerReference:
+      type: object
+      description: Reference to another Kubernetes object that owns this one
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+        uid:
+          type: string
+        controller:
+          type: boolean
+        blockOwnerDeletion:
+          type: boolean
+    TargetState:
+      type: object
+      description: Defines the current state of the target
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        status:
+          $ref: '#/components/schemas/DeployableStatusV2'
+        spec:
+          $ref: '#/components/schemas/TargetSpec'
+    TargetSpec:
+      type: object
+      properties:
+        displayName:
+          type: string
+        scope:
+          type: string
+        solutionScope:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentSpec'
+        constraints:
+          type: string
+        topologies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopologySpec'
+        forceRedeploy:
+          type: boolean
+        isDryRun:
+          type: boolean
+    DeployableStatusV2:
+      type: object
+      properties:
+        provisioningStatus:
+          $ref: '#/components/schemas/ProvisioningStatus'
+        lastModified:
+          type: string
+          format: date-time
+        deployed:
+          type: integer
+        targets:
+          type: integer
+        status:
+          type: string
+        statusDetails:
+          type: string
+        runningJobId:
+          type: integer
+        expectedRunningJobId:
+          type: integer
+        generation:
+          type: integer
+        targetStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetDeployableStatus'
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+    ProvisioningStatus:
+      type: object
+      properties:
+        operationId:
+          type: string
+        status:
+          type: string
+        percentComplete:
+          type: integer
+        failureCause:
+          type: string
+        logErrors:
+          type: boolean
+        error:
+          $ref: '#/components/schemas/ErrorType'
+        output:
+          type: object
+          additionalProperties:
+            type: string
+    ErrorType:
+      type: string
+      description: Enum or string describing error type
+    TargetDeployableStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        componentStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentDeployableStatus'
+    ComponentDeployableStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+    ComponentSpec:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        properties:
+          type: object
+          additionalProperties: true
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteSpec'
+        constraints:
+          type: string
+        dependencies:
+          type: array
+          items:
+            type: string
+        skills:
+          type: array
+          items:
+            type: string
+        sidecars:
+          type: array
+          items:
+            $ref: '#/components/schemas/SidecarSpec'
+    RouteSpec:
+      type: object
+      properties:
+        route:
+          type: string
+        type:
+          type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterSpec'
+    FilterSpec:
+      type: object
+      properties:
+        direction:
+          type: string
+        type:
+          type: string
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+    SidecarSpec:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        properties:
+          type: object
+          additionalProperties: true
+    TopologySpec:
+      type: object
+      properties:
+        device:
+          type: string
+        selector:
+          type: object
+          additionalProperties:
+            type: string
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BindingSpec'
+    BindingSpec:
+      type: object
+      required:
+        - role
+        - provider
+      properties:
+        role:
+          type: string
+        provider:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
 tags:
   - name: Solutions
   - name: Targets
@@ -30,6 +290,7 @@ tags:
   - name: Echo
   - name: Solution
   - name: Federation
+  - name: Hydra
 paths:
   /solutions/{SOLUTION_NAME}:
     post:
@@ -147,7 +408,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/TargetState'
               example:
                 displayName: '{{TARGET_NAME}}'
       security:
@@ -282,28 +543,55 @@ paths:
       tags:
         - Targets
       summary: Report Target status
+      description: >
+        Accepts a JSON object where each key-value pair represents a status property. The submitted properties are written to the target’s status.properties collection. Symphony does not require target provider implementations to report status through this endpoint—any on-device or external agent may optionally send live status updates via this channel.
       requestBody:
+        required: true
+        description: Status update as a key-value map of strings.
         content:
           application/json:
             schema:
               type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: object
+                  required:
+                    - properties
+                  properties:
+                    properties:
+                      type: object
+                      additionalProperties:
+                        type: string
               example:
                 status:
                   properties:
-                    foo: bar
+                    foo: "bar"
+                    uptime: "72h"
+                    health: "healthy"
       security:
         - bearerAuth: []
       parameters:
         - name: TARGET_NAME
           in: path
+          required: true
+          description: Name of the target to report status for.
           schema:
             type: string
-          required: true
+        - name: namespace
+          in: query
+          required: false
+          description: Optional namespace to scope the status update.
+          schema:
+            type: string
       responses:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetState'
   /instances/{INSTANCE_NAME}:
     post:
       tags:
@@ -544,20 +832,62 @@ paths:
     post:
       tags:
         - Users
-      summary: User Auth
+      summary: User authentication with password
+      description: >
+        Symphony supports both mutual certificate authentication and authentication via an external identity provider. When this route is enabled, users can also authenticate using pre-configured usernames and passwords. The obtained bearer token can then be attached to subsequent requests to access protected resources.
+      security: []
       requestBody:
         content:
           application/json:
             schema:
               type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
               example:
-                username: '{{SYMPHONY_USER}}'
-                password: '{{SYMPHONY_PASSWORD}}'
+                username: 'admin'
+                password: ''
       responses:
         '200':
-          description: Successful response
+          description: Successfully authenticated
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  tokenType:
+                    type: string
+                    example: Bearer
+                  username:
+                    type: string
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                example:
+                  accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  tokenType: Bearer
+                  username: admin
+                  roles:
+                    - admin
+                    - user
+        '403':
+          description: Authentication failed – unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid username or password
   /campaigns/{CAMPAIGN_NAME}:
     post:
       tags:
@@ -1571,6 +1901,64 @@ paths:
           schema:
             type: string
           example: catalog
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /hydra/{SYSTEM}/{OBJ_TYPE}/{KEY}:
+    get:
+      tags:
+        - Hydra
+      summary: Get Hydra object
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: SYSTEM
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: OBJ_TYPE
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: KEY
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Hydra
+      summary: Create or update Hydra object
+      parameters:
+        - name: SYSTEM
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: OBJ_TYPE
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: KEY
+          in: path
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
       responses:
         '200':
           description: Successful response
