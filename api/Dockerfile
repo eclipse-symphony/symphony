@@ -128,6 +128,7 @@ COPY --from=build /dist /
 COPY --from=build /extensions /extensions
 ADD ./api/symphony-api.json /
 ADD ./api/symphony-api-no-k8s.json /
+ADD ./api/symphony-api-no-k8s-hydra.json /
 EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL=Debug
