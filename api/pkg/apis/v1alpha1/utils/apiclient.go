@@ -67,6 +67,7 @@ type (
 		GetSolution(ctx context.Context, solution string, namespace string, user string, password string) (model.SolutionState, error)
 		CreateSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error
 		DeleteSolution(ctx context.Context, solution string, namespace string, user string, password string) error
+		GetHydraTargetsForAllNamespaces(ctx context.Context, user string, password string, system string, objType string, key string) ([]model.TargetState, error)
 		GetTargetsForAllNamespaces(ctx context.Context, user string, password string) ([]model.TargetState, error)
 		GetTarget(ctx context.Context, target string, namespace string, user string, password string) (model.TargetState, error)
 		GetTargets(ctx context.Context, namespace string, user string, password string) ([]model.TargetState, error)
@@ -445,6 +446,26 @@ func (a *apiClient) GetTargetsForAllNamespaces(ctx context.Context, user string,
 	}
 
 	response, err := a.callRestAPI(ctx, "targets/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) GetHydraTargetsForAllNamespaces(ctx context.Context, user string, password string, system string, objectType string, key string) ([]model.TargetState, error) {
+	ret := []model.TargetState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "hydra/"+url.QueryEscape(system)+"/"+url.QueryEscape(objectType)+"/"+url.QueryEscape(key), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}

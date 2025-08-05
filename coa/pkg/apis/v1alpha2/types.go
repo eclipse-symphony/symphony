@@ -398,6 +398,7 @@ const (
 	ProviderQueue            = "providers.queue"
 	ProviderLedger           = "providers.ledger"
 	ProvidersKeyLock         = "providers.keylock"
+	ProviderHydra            = "providers.hydra"
 	StatusOutput             = "status"
 	ErrorOutput              = "error"
 	StateOutput              = "__state"

@@ -12,8 +12,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/contexts"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -168,7 +168,7 @@ func toSEProviderConfig(config providers.IProviderConfig) (SEProviderConfig, err
 	return ret, err
 }
 
-func (i *SEProvider) GetArtifact(system string, artifacts model.ArtifactPack) (interface{}, error) {
+func (i *SEProvider) GetArtifact(system string, artifacts model.ArtifactPack) ([]byte, error) {
 	return nil, nil
 }
 
@@ -204,6 +204,7 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 			target.ObjectMeta.Labels[k] = v
 		}
 		target.ObjectMeta.Labels["kind"] = device.Kind
+		target.Spec.DisplayName = device.Metadata.Name
 		target.Spec.Properties = make(map[string]string)
 		err = setPropertyValue(target.Spec.Properties, "addresses", device.Spec.Addresses)
 		if err != nil {

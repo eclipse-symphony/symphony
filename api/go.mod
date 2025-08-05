@@ -29,6 +29,7 @@ require (
 	github.com/princjef/mageutil v1.0.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	helm.sh/helm/v3 v3.18.2
+	oras.land/oras-go/v2 v2.5.0
 )
 
 require (
@@ -87,7 +88,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
-	oras.land/oras-go/v2 v2.5.0 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 )
 
@@ -102,7 +102,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
-	github.com/containerd/containerd v1.7.27
+	github.com/containerd/containerd v1.7.27 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/docker/docker v27.1.1+incompatible
 	github.com/docker/go-connections v0.5.0 // indirect

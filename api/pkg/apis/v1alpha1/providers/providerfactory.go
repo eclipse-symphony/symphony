@@ -12,6 +12,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	catalogconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
+	hydrase "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/hydra/se"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/secret"
 	counterstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
@@ -390,6 +391,13 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.hydra.se":
+		mProvider := &hydrase.SEProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+
 	}
 	return nil, err //TODO: in current design, factory doesn't return errors on unrecognized provider types as there could be other factories. We may want to change this.
 }
@@ -773,6 +781,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.pubsub.redis":
 					provider := &reidspubsub.RedisPubSubProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.hydra.se":
+					provider := &hydrase.SEProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

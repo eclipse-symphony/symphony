@@ -562,6 +562,30 @@ func GetTargetsForAllNamespaces(context context.Context, baseUrl string, user st
 	return ret, nil
 }
 
+func GetHydraTargetsForAllNamespaces(context context.Context, baseUrl string, user string, password string, system string, objType string, key string) ([]model.TargetState, error) {
+	ret := []model.TargetState{}
+	token, err := auth(context, baseUrl, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := callRestAPI(context, baseUrl, "targets/registry", "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	annotation := fmt.Sprintf("hydra::%s::%s::%s", system, objType, key)
+	for i := len(ret) - 1; i >= 0; i-- {
+		if ret[i].ObjectMeta.Annotations == nil || ret[i].ObjectMeta.Annotations["hydra"] != annotation {
+			ret = append(ret[:i], ret[i+1:]...)
+		}
+	}
+	return ret, nil
+}
 func GetTargets(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.TargetState, error) {
 	ret := []model.TargetState{}
 	token, err := auth(context, baseUrl, user, password)

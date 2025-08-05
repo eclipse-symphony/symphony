@@ -110,7 +110,6 @@ func GetPersistentStateProvider(config ManagerConfig, providers map[string]provi
 	}
 	return stateProvider, nil
 }
-
 func GetKeyLockProvider(config ManagerConfig, providers map[string]providers.IProvider) (keylock.IKeyLockProvider, error) {
 	keyLockProviderName, ok := config.Properties[v1alpha2.ProvidersKeyLock]
 	if !ok {

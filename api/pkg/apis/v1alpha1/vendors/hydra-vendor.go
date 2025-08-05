@@ -7,6 +7,7 @@
 package vendors
 
 import (
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/hydra"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -20,7 +21,7 @@ import (
 
 type HydraVendor struct {
 	vendors.Vendor
-	HydraManager *managers.HydraManager
+	HydraManager *hydra.HydraManager
 }
 
 func (o *HydraVendor) GetInfo() vendors.VendorInfo {
@@ -37,7 +38,7 @@ func (e *HydraVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		return err
 	}
 	for _, m := range e.Managers {
-		if c, ok := m.(*managers.HydraManager); ok {
+		if c, ok := m.(*hydra.HydraManager); ok {
 			e.HydraManager = c
 		}
 	}
@@ -58,7 +59,7 @@ func (o *HydraVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Route:      route,
 			Version:    o.Version,
 			Handler:    o.onHydra,
-			Parameters: []string{"system"},
+			Parameters: []string{"system", "objType", "key"},
 		},
 	}
 }
@@ -71,6 +72,8 @@ func (c *HydraVendor) onHydra(request v1alpha2.COARequest) v1alpha2.COAResponse 
 	tLog.InfofCtx(pCtx, "V (Hydra) : onHydra, method: %s", request.Method)
 
 	system := request.Parameters["__system"]
+	objType := request.Parameters["__objType"]
+	key := request.Parameters["__key"]
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onHydra-GET", pCtx, nil)
@@ -83,7 +86,7 @@ func (c *HydraVendor) onHydra(request v1alpha2.COARequest) v1alpha2.COAResponse 
 				Body:  []byte(err.Error()),
 			})
 		}
-		symphonyObjects, err := c.HydraManager.GetArtifacts(system, artifacts)
+		payloads, err := c.HydraManager.GetArtifacts(pCtx, system, objType, key)
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Hydra) : onHydra failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -91,6 +94,30 @@ func (c *HydraVendor) onHydra(request v1alpha2.COARequest) v1alpha2.COAResponse 
 				Body:  []byte(err.Error()),
 			})
 		}
+		resp := v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        payloads,
+			ContentType: "application/json",
+		}
+		tLog.InfofCtx(pCtx, "V (Hydra) : onHydra succeeded")
+		return resp
+	case fasthttp.MethodPost:
+		ctx, span := observability.StartSpan("onHydra-POST", pCtx, nil)
+		err := c.HydraManager.SetArtifacts(system, request.Body)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Hydra) : onHydra failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		resp := v1alpha2.COAResponse{
+			State:       v1alpha2.OK,
+			Body:        []byte("{\"result\":\"200 - OK\"}"),
+			ContentType: "application/json",
+		}
+		tLog.InfofCtx(pCtx, "V (Hydra) : onHydra succeeded")
+		return resp
 	}
 	tLog.ErrorCtx(pCtx, "V (Hydra) : onHydra failed - method not allowed")
 	resp := v1alpha2.COAResponse{
