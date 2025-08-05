@@ -68,11 +68,11 @@ func (m *MqttBinding) Launch() error {
 	}
 	data, _ := json.Marshal(request)
 	// Change QoS from 0 to 1 for more reliable delivery
-	token := m.Client.Publish(m.RequestTopic, 2, false, data)
+	token := m.Client.Publish(m.RequestTopic, 1, false, data)
 	token.Wait()
 	var wg sync.WaitGroup
 	// subscribe the response topic with QoS 1 instead of 0
-	token = m.Client.Subscribe(m.ResponseTopic, 2, func(client mqtt.Client, msg mqtt.Message) {
+	token = m.Client.Subscribe(m.ResponseTopic, 1, func(client mqtt.Client, msg mqtt.Message) {
 		var coaResponse v1alpha2.COAResponse
 		err := utils2.UnmarshalJson(msg.Payload(), &coaResponse)
 		if err != nil {
@@ -101,7 +101,6 @@ func (m *MqttBinding) Launch() error {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
 			return
 		}
-		fmt.Print("handle respponse B: %+v\n", coaResponse.Body)
 		if get_start {
 			var allRequests model.ProviderPagingRequest
 			err := utils2.UnmarshalJson(coaResponse.Body, &allRequests)
@@ -113,12 +112,7 @@ func (m *MqttBinding) Launch() error {
 			fmt.Println("Request length: ", len(requests))
 			requests = append(requests, allRequests.RequestList...)
 
-			if allRequests.LastMessageID == "" {
-				get_start = false
-				fmt.Println("get_start: %s", get_start)
-				handleRequests(requests, &wg, m)
-				fmt.Println("Request length: ", len(requests))
-			} else {
+			if allRequests.LastMessageID != "" {
 				fmt.Println("Request length: ", len(requests))
 				// Generate correlationId for continuation request
 				continueCorrelationId := uuid.New().String()
@@ -141,7 +135,6 @@ func (m *MqttBinding) Launch() error {
 				token.Wait()
 			}
 		} else {
-
 			var singleRequest map[string]interface{}
 			err := utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
 			fmt.Println("single request is here: ", singleRequest)
@@ -154,22 +147,16 @@ func (m *MqttBinding) Launch() error {
 					fmt.Printf("Error unmarshalling response body: %s", err.Error())
 					return
 				}
-				fmt.Printf("Sub topic00: %s. \n", singleRequest)
 				// handle request
 				requests = []map[string]interface{}{singleRequest}
-				handleRequests(requests, &wg, m)
 			}
 
 		}
-		
 
 	})
 	token.Wait()
 	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
-
-	// handle request one by one
 	handleRequests(requests, &wg, m)
-
 	// get new request
 	for ShouldEnd == "false" {
 		fmt.Println("Begin to pollRequests")
