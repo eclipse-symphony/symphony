@@ -368,6 +368,37 @@ func FormatAsString(val interface{}) string {
 		return fmt.Sprintf("%v", tv)
 	}
 }
+func IsTargetMatch(target model.TargetState, selector model.TargetSelector, positiveState bool) bool {
+	if selector.Name != "" && target.ObjectMeta.Name != selector.Name {
+		return false
+	}
+	for k, v := range selector.PropertySelector {
+		if tv, ok := target.Spec.Properties[k]; !ok || !matchString(v, FormatAsString(tv)) {
+			return false
+		}
+	}
+	if target.ObjectMeta.Labels != nil {
+		for k, v := range selector.LabelSelector {
+			if tv, ok := target.ObjectMeta.Labels[k]; !ok || !matchString(v, FormatAsString(tv)) {
+				return false
+			}
+		}
+	}
+	if positiveState {
+		for k, v := range selector.StateSelector {
+			if tv, ok := target.Status.Properties[k]; !ok || !matchString(v, FormatAsString(tv)) {
+				return false
+			}
+		}
+	} else {
+		for k, v := range selector.StateSelector {
+			if tv, ok := target.Status.Properties[k]; ok && matchString(v, FormatAsString(tv)) {
+				return false
+			}
+		}
+	}
+	return true
+}
 func JsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	jPath := jsonPath
 	if !strings.HasPrefix(jPath, "{") {

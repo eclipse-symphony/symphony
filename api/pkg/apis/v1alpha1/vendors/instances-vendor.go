@@ -152,7 +152,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 					})
 				}
 				instance.Spec.Target = model.TargetSelector{
-					Selector: map[string]string{
+					PropertySelector: map[string]string{
 						parts[0]: parts[1],
 					},
 				}

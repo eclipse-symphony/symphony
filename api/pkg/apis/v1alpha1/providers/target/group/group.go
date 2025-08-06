@@ -10,8 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
-	"strings"
+	"sort"
 	"sync"
 	"time"
 
@@ -40,46 +39,15 @@ const (
 )
 
 type GroupTargetProviderConfig struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
+	User           string               `json:"user"`
+	Password       string               `json:"password"`
+	TargetSelector model.TargetSelector `json:"targetSelector"`
 }
 
 type GroupTargetProvider struct {
 	Config    GroupTargetProviderConfig
 	Context   *contexts.ManagerContext
 	ApiClient utils.ApiClient
-}
-
-type GroupPatchAction struct {
-	SparePatch  map[string]string `json:"sparePatch"`
-	TargetPatch map[string]string `json:"targetPatch"`
-}
-type TargetGroupProperty struct {
-	TargetPropertySelector map[string]string     `json:"targetPropertySelector"`
-	TargetStateSelector    map[string]string     `json:"targetStateSelector"`
-	SparePropertySelector  map[string]string     `json:"sparePropertySelector"`
-	SpareStateSelector     map[string]string     `json:"spareStateSelector"`
-	MinMatchCount          int                   `json:"minMatchCount"`
-	MaxMatchCount          int                   `json:"maxMatchCount"`
-	LowMatchAction         GroupPatchAction      `json:"lowMatchAction"`
-	HighMatchAction        GroupPatchAction      `json:"highMatchAction,omitempty"`
-	SpareComponents        []model.ComponentSpec `json:"spareComponents,omitempty"`
-	MemberComponents       []model.ComponentSpec `json:"memberComponents,omitempty"`
-}
-
-func getTargetGroupPropertyFromComponent(component model.ComponentSpec) (*TargetGroupProperty, error) {
-	ret := TargetGroupProperty{}
-	data, err := json.Marshal(component.Properties)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(data, &ret)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
 }
 
 func GroupTargetProviderConfigFromMap(properties map[string]string) (GroupTargetProviderConfig, error) {
@@ -99,6 +67,19 @@ func GroupTargetProviderConfigFromMap(properties map[string]string) (GroupTarget
 			return ret, err
 		}
 	}
+	var targetSelector model.TargetSelector
+	if _, ok := properties["targetSelector"]; !ok {
+		return ret, v1alpha2.NewCOAError(nil, "targetSelector is required", v1alpha2.BadConfig)
+	}
+	err := json.Unmarshal([]byte(properties["targetSelector"]), &targetSelector)
+	if err != nil {
+		return ret, v1alpha2.NewCOAError(err, fmt.Sprintf("expected targetSelector: %+v", err), v1alpha2.BadConfig)
+	}
+	if targetSelector.Name == "" && len(targetSelector.PropertySelector) == 0 && len(targetSelector.LabelSelector) == 0 {
+		return ret, v1alpha2.NewCOAError(nil, "targetSelector must have either name or propertySelector", v1alpha2.BadConfig)
+	}
+	ret.TargetSelector = targetSelector
+
 	return ret, nil
 }
 func (i *GroupTargetProvider) InitWithMap(properties map[string]string) error {
@@ -158,24 +139,30 @@ func (i *GroupTargetProvider) Get(ctx context.Context, deployment model.Deployme
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (Group Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
 
-	ret := make([]model.ComponentSpec, 0)
-	namespace := deployment.Instance.Spec.Scope
-	for _, component := range references {
+	targets, err := i.matchTargets(ctx, deployment.Instance.Spec.Scope, i.Config.TargetSelector, true)
 
-		lowDeficite, highDeficite, _, _, err := i.matchTriggers(ctx, namespace, component.Component)
-		if err != nil {
-			log.ErrorfCtx(ctx, "  P (Group Target): failed to match triggers: %+v", err)
-			return nil, err
-		}
-		if lowDeficite >= 0 || highDeficite >= 0 {
-			// Nothing to do, return the original compontn so no changes will be detected
-			ret = append(ret, component.Component)
+	if err != nil {
+		log.ErrorfCtx(ctx, "  P (Group Target): failed to get targets: %+v", err)
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get targets", providerName), v1alpha2.GroupActionFailed)
+		return nil, err
+	}
+
+	ret := make([]model.ComponentSpec, 0)
+
+	for _, target := range targets {
+		for _, component := range target.Spec.Components {
+			for _, ref := range references {
+				if ref.Component.Name == component.Name {
+					// If the component matches the reference, add it to the result
+					ret = append(ret, component)
+				}
+			}
 		}
 	}
 
 	return ret, nil
 }
-func (i *GroupTargetProvider) matchTargets(ctx context.Context, namespace string, propertySelector map[string]string, stateSelector map[string]string, matchState bool) ([]model.TargetState, error) {
+func (i *GroupTargetProvider) matchTargets(ctx context.Context, namespace string, targetSelector model.TargetSelector, checkState bool) ([]model.TargetState, error) {
 	matches := []model.TargetState{}
 	targets, err := i.ApiClient.GetTargets(ctx, namespace, i.Config.User, i.Config.Password)
 	if err != nil {
@@ -184,40 +171,13 @@ func (i *GroupTargetProvider) matchTargets(ctx context.Context, namespace string
 		return nil, err
 	}
 	for _, target := range targets {
-		if isTargetMatch(target, propertySelector) {
-			if !matchState || isTargetStateMatch(target, stateSelector) {
-				matches = append(matches, target)
-			}
+		if api_utils.IsTargetMatch(target, targetSelector, checkState) {
+			matches = append(matches, target)
 		}
 	}
 	return matches, nil
 }
-func (i *GroupTargetProvider) matchTriggers(ctx context.Context, namespace string, component model.ComponentSpec) (int, int, []model.TargetState, TargetGroupProperty, error) {
-	failedStateMatch := []model.TargetState{}
-	var groupProp *TargetGroupProperty
-	groupProp, err := getTargetGroupPropertyFromComponent(component)
-	if err != nil {
-		log.ErrorfCtx(ctx, "  P (Group Target): failed to get group properties: %+v", err)
-		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get group properties", providerName), v1alpha2.GroupActionFailed)
-		return 0, 0, failedStateMatch, *groupProp, err
-	}
-	targets, err := i.matchTargets(ctx, namespace, groupProp.TargetPropertySelector, groupProp.TargetStateSelector, false)
-	if err != nil {
-		log.ErrorfCtx(ctx, "  P (Group Target): failed to get targets: %+v", err)
-		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get targets", providerName), v1alpha2.GroupActionFailed)
-		return 0, 0, failedStateMatch, *groupProp, err
-	}
-	activeCount := 0
 
-	for _, target := range targets {
-		if isTargetStateMatch(target, groupProp.TargetStateSelector) {
-			activeCount += 1
-		} else {
-			failedStateMatch = append(failedStateMatch, target)
-		}
-	}
-	return activeCount - groupProp.MinMatchCount, groupProp.MaxMatchCount - activeCount, failedStateMatch, *groupProp, nil
-}
 func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Group Target Provider",
@@ -264,167 +224,106 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 
 	ret := step.PrepareResultMap()
 
-	for _, component := range step.Components {
-		if component.Action == model.ComponentUpdate {
-			overLowMark, _, failedStateTargets, groupProp, err := i.matchTriggers(ctx, deployment.Instance.Spec.Scope, component.Component)
+	targets, err := i.matchTargets(ctx, deployment.Instance.Spec.Scope, i.Config.TargetSelector, true)
+
+	if err != nil {
+		log.ErrorfCtx(ctx, "  P (Group Target): failed to get targets: %+v", err)
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get targets", providerName), v1alpha2.GroupActionFailed)
+		return nil, err
+	}
+
+	updatedComponents := step.GetUpdatedComponents()
+	assignments, err := i.assignComponents(updatedComponents, targets)
+	if err != nil {
+		log.ErrorfCtx(ctx, "  P (Group Target): failed to assign components: %+v", err)
+		providerOperationMetrics.ProviderOperationErrors(
+			group,
+			functionName,
+			metrics.ApplyOperation,
+			metrics.ApplyOperationType,
+			v1alpha2.GroupActionFailed.String(),
+		)
+		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to assign components", providerName), v1alpha2.GroupActionFailed)
+		return nil, err
+	}
+
+	for k, v := range assignments {
+		for _, target := range targets {
+			if target.ObjectMeta.Name == k {
+				// Assign the components to the target
+				for _, componentName := range v {
+					for _, component := range updatedComponents {
+						if component.Name == componentName {
+							target.Spec.Components = append(target.Spec.Components, component)
+
+						}
+					}
+				}
+				log.InfofCtx(ctx, "  P (Group Target): assigned %d components to target %s", i, target.ObjectMeta.Name)
+			}
+			targetData, _ := json.Marshal(target)
+			err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				log.ErrorfCtx(ctx, "  P (Group Target): failed to match triggers: %+v", err)
-				ret[component.Component.Name] = model.ComponentResultSpec{
+				log.ErrorfCtx(ctx, "  P (Group Target): failed to update target %s: %+v", target.ObjectMeta.Name, err)
+				ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
 					Status:  v1alpha2.UpdateFailed,
-					Message: err.Error(),
+					Message: fmt.Sprintf("failed to update target %s: %v", target.ObjectMeta.Name, err),
 				}
 				providerOperationMetrics.ProviderOperationErrors(
 					group,
 					functionName,
 					metrics.ApplyOperation,
 					metrics.ApplyOperationType,
-					v1alpha2.HelmChartPullFailed.String(),
+					v1alpha2.UpdateFailed.String(),
 				)
 				return ret, err
 			}
-			if overLowMark < 0 {
-				log.InfofCtx(ctx, "  P (Group Target): low trigger fired")
-				err = i.applyLowTrigger(ctx, deployment.Instance.Spec.Scope, groupProp, overLowMark, failedStateTargets)
-				if err != nil {
-					log.ErrorfCtx(ctx, "  P (Group Target): failed to apply low trigger: %+v", err)
-					ret[component.Component.Name] = model.ComponentResultSpec{
-						Status:  v1alpha2.UpdateFailed,
-						Message: err.Error(),
-					}
-					providerOperationMetrics.ProviderOperationErrors(
-						group,
-						functionName,
-						metrics.ApplyOperation,
-						metrics.ApplyOperationType,
-						v1alpha2.HelmChartPullFailed.String(),
-					)
-					return ret, err
-				}
-			}
-			ret[component.Component.Name] = model.ComponentResultSpec{
+			log.InfofCtx(ctx, "  P (Group Target): target %s has been updated", target.ObjectMeta.Name)
+			ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
-				Message: fmt.Sprintf("No error. %s has been updated", component.Component.Name),
+				Message: fmt.Sprintf("No error. %s has been updated", target.ObjectMeta.Name),
 			}
 		}
 	}
 	return ret, nil
 }
-func (i *GroupTargetProvider) patchTargetProperty(target model.TargetState, patch map[string]string, memberComponents []model.ComponentSpec, spareComponents []model.ComponentSpec, isPromotion bool) (model.TargetState, error) {
-	for k, v := range patch {
-		if strings.HasPrefix(v, "~COPY_") {
-			copyKey := strings.TrimPrefix(v, "~COPY_")
-			if copyValue, ok := target.Spec.Properties[copyKey]; ok {
-				target.Spec.Properties[k] = copyValue
-				continue
-			}
-			return target, v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s not found", copyKey), v1alpha2.GroupActionFailed)
-		}
-		if !strings.HasPrefix(v, "~REMOVE") {
-			target.Spec.Properties[k] = v
-		}
+
+func (i *GroupTargetProvider) assignComponents(components []model.ComponentSpec, targets []model.TargetState) (map[string][]string, error) {
+	assignments := make(map[string][]string)
+	for _, target := range targets {
+		assignments[target.ObjectMeta.Name] = []string{}
 	}
-	for k, v := range patch {
-		if strings.HasPrefix(v, "~REMOVE") {
-			delete(target.Spec.Properties, k)
-			continue
-		}
-	}
-	if isPromotion {
-		target = removeComponents(target, spareComponents)
-		target = addComponents(target, memberComponents)
-	} else {
-		target = removeComponents(target, memberComponents)
-		target = addComponents(target, spareComponents)
-	}
-	return target, nil
-}
-func removeComponents(target model.TargetState, components []model.ComponentSpec) model.TargetState {
 	for _, component := range components {
-		for i := len(target.Spec.Components) - 1; i >= 0; i-- {
-			if target.Spec.Components[i].Name == component.Name {
-				// Remove the component at index i
-				target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
-			}
-		}
-	}
-	return target
-}
-func addComponents(target model.TargetState, components []model.ComponentSpec) model.TargetState {
-	for _, component := range components {
-		found := false
-		for _, existingComponent := range target.Spec.Components {
-			if existingComponent.Name == component.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			target.Spec.Components = append(target.Spec.Components, component)
-		}
-	}
-	return target
-}
-func (i *GroupTargetProvider) applyLowTrigger(ctx context.Context, namespace string, groupProperty TargetGroupProperty, deficate int, failedTargets []model.TargetState) error {
-	spares, err := i.matchTargets(ctx, namespace, groupProperty.SparePropertySelector, groupProperty.SpareStateSelector, true)
-	if err != nil {
-		log.ErrorfCtx(ctx, "  P (Group Target): failed to get spares: %+v", err)
-		return err
-	}
-	requiredSpareCount := int(math.Abs(float64(deficate)))
-	if len(spares) < requiredSpareCount {
-		log.ErrorfCtx(ctx, "  P (Group Target): not enough spares: %d", len(spares))
-		return v1alpha2.NewCOAError(nil, fmt.Sprintf("not enough spares: %d", len(spares)), v1alpha2.GroupActionFailed)
-	}
-	spareCount := 0
-	for _, spare := range spares {
-		spare, err = i.patchTargetProperty(spare, groupProperty.LowMatchAction.SparePatch, groupProperty.MemberComponents, groupProperty.SpareComponents, true)
-		if err != nil {
-			log.ErrorfCtx(ctx, "  P (Group Target): failed to patch target: %+v", err)
-			return err
-		}
-		objectData, _ := json.Marshal(spare)
-		err = i.ApiClient.CreateTarget(ctx, spare.ObjectMeta.Name, objectData, spare.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-		if err != nil {
-			log.ErrorfCtx(ctx, "  P (Group Target): failed to update target: %+v", err)
-			return err
-		}
-		spareCount++
-		if spareCount >= requiredSpareCount {
+		sort.SliceStable(targets, func(i, j int) bool {
+			return len(assignments[targets[i].ObjectMeta.Name]) < len(assignments[targets[j].ObjectMeta.Name])
+		})
+		assigned := false
+		for _, target := range targets {
+			//check anti-affinity rule
+			assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
+			assigned = true
 			break
 		}
-	}
-	for _, target := range failedTargets {
-		target, err = i.patchTargetProperty(target, groupProperty.LowMatchAction.TargetPatch, groupProperty.MemberComponents, groupProperty.SpareComponents, false)
-		if err != nil {
-			log.ErrorfCtx(ctx, "  P (Group Target): failed to patch target: %+v", err)
-			return err
-		}
-		objectData, _ := json.Marshal(target)
-		err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, objectData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-		if err != nil {
-			log.ErrorfCtx(ctx, "  P (Group Target): failed to update target: %+v", err)
-			return err
+		if !assigned {
+			return nil, fmt.Errorf("no target available for component %s", component.Name)
 		}
 	}
-	return nil
+	return assignments, nil
 }
 
 func (*GroupTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {
 	return model.ValidationRule{
 		AllowSidecar: false,
 		ComponentValidationRule: model.ComponentValidationRule{
-			RequiredProperties:    []string{"targetPropertySelector", "targetStateSelector", "sparePropertySelector", "spareStateSelector", "minMatchCount", "lowMatchAction"},
-			OptionalProperties:    []string{"maxMatchCount"},
+			RequiredProperties:    []string{},
+			OptionalProperties:    []string{},
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
 			ChangeDetectionProperties: []model.PropertyDesc{
-				{Name: "targetPropertySelector", PropChanged: mapMatch},
-				{Name: "targetStateSelector", PropChanged: mapMatch},
-				{Name: "sparePropertySelector", PropChanged: mapMatch},
-				{Name: "spareStateSelector", PropChanged: mapMatch},
-				{Name: "minMatchCount"},
-				//TODO: compare lowMatchAction as well
+				{
+					Name: "*", //react to all property changes
+				},
 			},
 		},
 	}
@@ -452,45 +351,6 @@ func toMap(a interface{}) (map[string]string, bool) {
 	}
 	valueMap, ok := a.(map[string]string)
 	return valueMap, ok
-}
-
-func isTargetMatch(target model.TargetState, propSelector map[string]string) bool {
-	for k, v := range propSelector {
-		found := false
-
-		if k == "ha-set" {
-			if haSetsRaw, ok := target.Spec.Properties["ha-sets"]; ok {
-				sets := strings.Split(haSetsRaw, ",")
-				for _, haSet := range sets {
-					if strings.TrimSpace(haSet) == v {
-						found = true
-						break
-					}
-				}
-			}
-		}
-		if !found {
-			if tv, ok := target.Spec.Properties[k]; !ok || (v != tv) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func isTargetStateMatch(target model.TargetState, propSelector map[string]string) bool {
-	for k, v := range propSelector {
-		if k == "status" {
-			if target.Status.Status != v {
-				return false
-			}
-			continue
-		}
-		if tv, ok := target.Status.Properties[k]; !ok || (v != tv) {
-			return false
-		}
-	}
-	return true
 }
 
 func toGroupTargetProviderConfig(config providers.IProviderConfig) (GroupTargetProviderConfig, error) {

@@ -194,7 +194,7 @@ func (i *InstanceValidator) ValidateTargetExist(ctx context.Context, c model.Ins
 
 // Validate Target is valid, i.e. either name or selector is provided
 func (i *InstanceValidator) ValidateTargetValid(c model.InstanceState) *ErrorField {
-	if c.Spec.Target.Name == "" && (c.Spec.Target.Selector == nil || len(c.Spec.Target.Selector) == 0) {
+	if c.Spec.Target.Name == "" && len(c.Spec.Target.PropertySelector) == 0 && len(c.Spec.Target.LabelSelector) == 0 {
 		return &ErrorField{
 			FieldPath:       "spec.target",
 			Value:           c.Spec.Target,

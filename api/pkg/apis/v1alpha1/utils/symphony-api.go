@@ -24,6 +24,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 )
 
@@ -646,7 +647,7 @@ func CreateTarget(context context.Context, baseUrl string, target string, user s
 	return nil
 }
 
-func MatchTargets(instance model.InstanceState, targets []model.TargetState) []model.TargetState {
+func MatchTargets(instance model.InstanceState, targets []model.TargetState, positiveState bool) []model.TargetState {
 	ret := make(map[string]model.TargetState)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets {
@@ -657,18 +658,9 @@ func MatchTargets(instance model.InstanceState, targets []model.TargetState) []m
 		}
 	}
 
-	if len(instance.Spec.Target.Selector) > 0 {
-		for _, t := range targets {
-			fullMatch := true
-			for k, v := range instance.Spec.Target.Selector {
-				if tv, ok := t.Spec.Properties[k]; !ok || !matchString(v, tv) {
-					fullMatch = false
-				}
-			}
-
-			if fullMatch {
-				ret[t.ObjectMeta.Name] = t
-			}
+	for _, t := range targets {
+		if IsTargetMatch(t, instance.Spec.Target, positiveState) {
+			ret[t.ObjectMeta.Name] = t
 		}
 	}
 

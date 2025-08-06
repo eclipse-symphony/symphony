@@ -402,13 +402,13 @@ func TestTargetSelectorDeepEqualsOneEmpty(t *testing.T) {
 func TestTargetSelectorDeepEqualsSelectorNotMatch(t *testing.T) {
 	Target := TargetSelector{
 		Name: "TargetName",
-		Selector: map[string]string{
+		PropertySelector: map[string]string{
 			"foo": "bar",
 		},
 	}
 	other := TargetSelector{
 		Name: "TargetName",
-		Selector: map[string]string{
+		PropertySelector: map[string]string{
 			"foo1": "bar1",
 		},
 	}

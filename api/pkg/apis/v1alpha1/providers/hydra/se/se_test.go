@@ -7,8 +7,10 @@
 package se
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -225,5 +227,39 @@ func TestSetArtifact(t *testing.T) {
 	assert.Nil(t, err)
 	artifactPack, err := provider.SetArtifact("state", []byte(jsonData))
 	assert.NotNil(t, artifactPack)
+	// check targets
+	assert.Equal(t, 4, len(artifactPack.Targets))
+	assert.Equal(t, "ha-set1", artifactPack.Targets[0].ObjectMeta.Labels["haSet"])
+	assert.Equal(t, "ha-set1", artifactPack.Targets[1].ObjectMeta.Labels["haSet"])
+	assert.Equal(t, "ha-set1", artifactPack.Targets[2].ObjectMeta.Labels["haSet"])
+	assert.Equal(t, "ipc", artifactPack.Targets[0].ObjectMeta.Labels["kind"])
+	assert.Equal(t, "ipc", artifactPack.Targets[1].ObjectMeta.Labels["kind"])
+	assert.Equal(t, "ipc", artifactPack.Targets[2].ObjectMeta.Labels["kind"])
+	assert.Equal(t, "group", artifactPack.Targets[3].ObjectMeta.Labels["kind"])
+
+	var selector model.TargetSelector
+	err = json.Unmarshal([]byte(artifactPack.Targets[3].Spec.Topologies[0].Bindings[0].Config["targetSelector"]), &selector)
+	assert.Equal(t, "container", artifactPack.Targets[3].Spec.Topologies[0].Bindings[0].Role)
+	assert.Equal(t, "providers.target.group", artifactPack.Targets[3].Spec.Topologies[0].Bindings[0].Provider)
+	assert.Equal(t, "ha-set1", selector.LabelSelector["haSet"])
+	assert.Equal(t, "ipc", selector.LabelSelector["kind"])
+
+	// check solutioncontainers
+	assert.Equal(t, 1, len(artifactPack.SolutionContainers))
+
+	// check solutions
+	assert.Equal(t, 1, len(artifactPack.Solutions))
+	assert.Equal(t, 2, len(artifactPack.Solutions[0].Spec.Components))
+	assert.Equal(t, "container", artifactPack.Solutions[0].Spec.Components[0].Type)
+	assert.Equal(t, "container", artifactPack.Solutions[0].Spec.Components[1].Type)
+	assert.Equal(t, artifactPack.SolutionContainers[0].ObjectMeta.Name+"-v-v1", artifactPack.Solutions[0].ObjectMeta.Name)
+	assert.Equal(t, artifactPack.SolutionContainers[0].ObjectMeta.Name, artifactPack.Solutions[0].Spec.RootResource)
+
+	// check instances
+	assert.Equal(t, 1, len(artifactPack.Instances))
+	assert.Equal(t, "ha-set1:v1", artifactPack.Instances[0].Spec.Solution)
+	assert.Equal(t, "ha-set1", artifactPack.Instances[0].Spec.Target.LabelSelector["haSet"])
+	assert.Equal(t, "group", artifactPack.Instances[0].Spec.Target.LabelSelector["kind"])
+
 	assert.Nil(t, err)
 }

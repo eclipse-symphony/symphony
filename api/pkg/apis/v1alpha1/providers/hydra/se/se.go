@@ -10,9 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -187,10 +187,21 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 	}
 
 	ret := model.ArtifactPack{
-		Targets: []model.TargetState{},
+		Targets:            []model.TargetState{},
+		SolutionContainers: []model.SolutionContainerState{},
+		Solutions:          []model.SolutionState{},
+		Instances:          []model.InstanceState{},
 	}
 
+	lastSeenDeviceKind := ""
 	for _, device := range desiredState.Devices {
+		if lastSeenDeviceKind == "" {
+			lastSeenDeviceKind = device.Kind
+		} else if device.Kind != lastSeenDeviceKind {
+			err := v1alpha2.NewCOAError(nil, "devices must be of the same kind", v1alpha2.InvalidArgument)
+			aLog.ErrorfCtx(ctx, "  P (SE Hydra): SetArtifact failed - %s", err.Error())
+			return model.ArtifactPack{}, err
+		}
 		target := model.TargetState{
 			ObjectMeta: model.ObjectMeta{
 				Name: device.Metadata.Name,
@@ -204,6 +215,9 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 			target.ObjectMeta.Labels[k] = v
 		}
 		target.ObjectMeta.Labels["kind"] = device.Kind
+		if i.Config.HASet != "" {
+			target.ObjectMeta.Labels["haSet"] = i.Config.HASet
+		}
 		target.Spec.DisplayName = device.Metadata.Name
 		target.Spec.Properties = make(map[string]string)
 		err = setPropertyValue(target.Spec.Properties, "addresses", device.Spec.Addresses)
@@ -225,7 +239,7 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 			{
 				Bindings: []model.BindingSpec{
 					{
-						Role:     "instance",
+						Role:     "container",
 						Provider: "providers.target.se",
 						Config:   map[string]string{},
 					},
@@ -235,71 +249,36 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 		ret.Targets = append(ret.Targets, target)
 	}
 
+	selector := model.TargetSelector{
+		LabelSelector: map[string]string{
+			"haSet": i.Config.HASet,
+			"kind":  lastSeenDeviceKind,
+		},
+	}
+	selectorData, _ := json.Marshal(selector)
+
 	if i.Config.HASet != "" {
-		for _, target := range ret.Targets {
-			if target.Spec.Properties == nil {
-				target.Spec.Properties = make(map[string]string)
-			}
-			if strings.Contains(target.ObjectMeta.Name, "spare") {
-				if _, ok := target.Spec.Properties["ha-sets"]; !ok {
-					target.Spec.Properties["ha-sets"] = i.Config.HASet
-					target.Spec.Properties["role"] = "spare"
-				}
-			} else {
-				if _, ok := target.Spec.Properties["ha-set"]; !ok {
-					target.Spec.Properties["ha-set"] = i.Config.HASet
-					target.Spec.Properties["role"] = "member"
-				}
-			}
-		}
 		haTarget := model.TargetState{
 			ObjectMeta: model.ObjectMeta{
 				Name: i.Config.HASet,
+				Labels: map[string]string{
+					"haSet": i.Config.HASet,
+					"kind":  "group",
+				},
 			},
 			Spec: &model.TargetSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "ha-set",
-						Type: "group",
-						Properties: map[string]interface{}{
-							"targetPropertySelector": map[string]string{
-								"ha-set": i.Config.HASet,
-								"role":   "member",
-							},
-							"targetStateSelector": map[string]string{
-								"status": "Succeeded",
-							},
-							"sparePropertySelector": map[string]string{
-								"ha-set": i.Config.HASet,
-								"role":   "spare",
-							},
-							"spareStateSelector": map[string]string{
-								"status": "Succeeded",
-							},
-							"minMatchCount": 2,
-							"maxMatchCount": 2,
-							"lowMatchAction": map[string]interface{}{
-								"sparePatch": map[string]interface{}{
-									"ha-sets": "~REMOVE",
-									"ha-set":  i.Config.HASet,
-									"role":    "member",
-								},
-								"targetPatch": map[string]interface{}{
-									"ha-set":  "~REMOVE",
-									"ha-sets": "~COPY_ha-set",
-									"role":    "spare",
-								},
-							},
-						},
-					},
-				},
+				Components: []model.ComponentSpec{},
 				Topologies: []model.TopologySpec{
 					{
 						Bindings: []model.BindingSpec{
 							{
-								Role:     "group",
+								Role:     "instance",
 								Provider: "providers.target.group",
-								Config:   map[string]string{},
+								Config: map[string]string{
+									"user":           "admin",
+									"password":       "",
+									"targetSelector": string(selectorData),
+								},
 							},
 						},
 					},
@@ -307,6 +286,79 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 			},
 		}
 		ret.Targets = append(ret.Targets, haTarget)
+
+		solutionContainer := model.SolutionContainerState{
+			ObjectMeta: model.ObjectMeta{
+				Name: i.Config.HASet,
+				Labels: map[string]string{
+					"haSet": i.Config.HASet,
+					"kind":  "group",
+				},
+			},
+			Spec: &model.SolutionContainerSpec{},
+		}
+
+		ret.SolutionContainers = append(ret.SolutionContainers, solutionContainer)
+
+		solution := model.SolutionState{
+			ObjectMeta: model.ObjectMeta{
+				Name: i.Config.HASet + "-v-v1",
+			},
+			Spec: &model.SolutionSpec{
+				RootResource: i.Config.HASet,
+			},
+		}
+
+		for _, app := range desiredState.Apps {
+			component := model.ComponentSpec{
+				Name: app.Metadata.Name,
+				Type: app.Kind,
+				Metadata: map[string]string{
+					"name": app.Metadata.Name,
+				},
+				Properties: map[string]interface{}{
+					"version": app.Version,
+					"image":   app.Spec.Container.Image,
+					"affinity": map[string]interface{}{
+						"preferredHosts":  app.Spec.Affinity.PreferredHosts,
+						"appAntiAffinity": app.Spec.Affinity.AppAntiAffinity,
+					},
+					"containerNetworks": app.Spec.Container.Networks,
+					"resources": map[string]interface{}{
+						"limits": map[string]interface{}{
+							"memory": app.Spec.Container.Resources.Limits.Memory,
+							"cpus":   app.Spec.Container.Resources.Limits.CPUs,
+						},
+					},
+				},
+			}
+			for k, v := range app.Metadata.Labels {
+				if component.Metadata == nil {
+					component.Metadata = make(map[string]string)
+				}
+				component.Metadata["labels."+k] = v
+			}
+			solution.Spec.Components = append(solution.Spec.Components, component)
+		}
+
+		ret.Solutions = append(ret.Solutions, solution)
+
+		instance := model.InstanceState{
+			ObjectMeta: model.ObjectMeta{
+				Name: i.Config.HASet,
+			},
+			Spec: &model.InstanceSpec{
+				DisplayName: i.Config.HASet,
+				Solution:    i.Config.HASet + ":v1",
+				Target: model.TargetSelector{
+					LabelSelector: map[string]string{
+						"haSet": i.Config.HASet,
+						"kind":  "group",
+					},
+				},
+			},
+		}
+		ret.Instances = append(ret.Instances, instance)
 	}
 
 	return ret, nil

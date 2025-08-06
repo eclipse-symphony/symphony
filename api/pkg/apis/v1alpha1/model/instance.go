@@ -40,8 +40,10 @@ type (
 	// TargertRefSpec defines the target the instance will deploy to
 	// +kubebuilder:object:generate=true
 	TargetSelector struct {
-		Name     string            `json:"name,omitempty"`
-		Selector map[string]string `json:"selector,omitempty"`
+		Name             string            `json:"name,omitempty"`
+		PropertySelector map[string]string `json:"propertySelector,omitempty"`
+		StateSelector    map[string]string `json:"stateSelector,omitempty"`
+		LabelSelector    map[string]string `json:"labelSelector,omitempty"`
 	}
 
 	// PipelineSpec defines the desired pipeline of the instance
@@ -68,7 +70,15 @@ func (c TargetSelector) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, nil
 	}
 
-	if !StringMapsEqual(c.Selector, otherC.Selector, nil) {
+	if !StringMapsEqual(c.PropertySelector, otherC.PropertySelector, nil) {
+		return false, nil
+	}
+
+	if !StringMapsEqual(c.LabelSelector, otherC.LabelSelector, nil) {
+		return false, nil
+	}
+
+	if !StringMapsEqual(c.StateSelector, otherC.StateSelector, nil) {
 		return false, nil
 	}
 

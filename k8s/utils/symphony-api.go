@@ -221,11 +221,24 @@ func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) [
 			}
 		}
 	}
-	if len(instance.Spec.Target.Selector) > 0 {
+	if len(instance.Spec.Target.PropertySelector) > 0 {
 		for _, t := range targets.Items {
 			fullMatch := true
-			for k, v := range instance.Spec.Target.Selector {
+			for k, v := range instance.Spec.Target.PropertySelector {
 				if tv, ok := t.Spec.Properties[k]; !ok || !matchString(v, tv) {
+					fullMatch = false
+				}
+			}
+			if fullMatch {
+				ret[t.ObjectMeta.Name] = t
+			}
+		}
+	}
+	if len(instance.Spec.Target.LabelSelector) > 0 {
+		for _, t := range targets.Items {
+			fullMatch := true
+			for k, v := range instance.Spec.Target.LabelSelector {
+				if tv, ok := t.ObjectMeta.Labels[k]; !ok || !matchString(v, tv) {
 					fullMatch = false
 				}
 			}

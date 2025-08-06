@@ -143,8 +143,15 @@ func (s *HydraManager) ApplyArtifactPack(ctx context.Context, system string, art
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
+	for _, solution := range artifactPack.Solutions {
+		payload, _ := json.Marshal(solution)
+		err = s.apiClient.CreateSolution(ctx, solution.ObjectMeta.Name, payload, solution.ObjectMeta.Namespace, s.user, s.password)
+		if err != nil {
+			log.ErrorfCtx(ctx, "  M (Hydra): ApplyArtifactPack failed - %s", err.Error())
+			return err
+		}
+	}
 	for _, target := range artifactPack.Targets {
-		log.Infof("  M (Hydra): Applying target %s----------------------------------------------------", target.ObjectMeta.Name)
 		payload, _ := json.Marshal(target)
 		err = s.apiClient.CreateTarget(ctx, target.ObjectMeta.Name, payload, target.ObjectMeta.Namespace, s.user, s.password)
 		if err != nil {
@@ -152,5 +159,15 @@ func (s *HydraManager) ApplyArtifactPack(ctx context.Context, system string, art
 			return err
 		}
 	}
+
+	for _, instance := range artifactPack.Instances {
+		payload, _ := json.Marshal(instance)
+		err = s.apiClient.CreateInstance(ctx, instance.ObjectMeta.Name, payload, instance.ObjectMeta.Namespace, s.user, s.password)
+		if err != nil {
+			log.ErrorfCtx(ctx, "  M (Hydra): ApplyArtifactPack failed - %s", err.Error())
+			return err
+		}
+	}
+
 	return nil
 }

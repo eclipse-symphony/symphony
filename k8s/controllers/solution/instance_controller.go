@@ -145,33 +145,49 @@ func (r *InstanceReconciler) MatchTargetsForInstance(ctx context.Context, instan
 		// No target found
 		return []fabric_v1.Target{}
 	}
+	matchedTargets := []fabric_v1.Target{}
 
-	if len(instance.Spec.Target.Selector) > 0 {
+	if len(instance.Spec.Target.LabelSelector) > 0 || len(instance.Spec.Target.PropertySelector) > 0 {
 		// List all targets in namespace
 		var targets fabric_v1.TargetList
 		if err := r.List(ctx, &targets, client.InNamespace(instance.Namespace)); err != nil {
 			return []fabric_v1.Target{}
 		}
 
-		// Filter targets based on selector
-		matchedTargets := []fabric_v1.Target{}
-		for _, t := range targets.Items {
-			fullMatch := true
-			for k, v := range instance.Spec.Target.Selector {
-				if tv, ok := t.Spec.Properties[k]; !ok || v != tv {
-					fullMatch = false
-					break
+		if len(instance.Spec.Target.PropertySelector) > 0 {
+			// Filter targets based on selector
+			for _, t := range targets.Items {
+				fullMatch := true
+				for k, v := range instance.Spec.Target.PropertySelector {
+					if tv, ok := t.Spec.Properties[k]; !ok || v != tv {
+						fullMatch = false
+						break
+					}
 				}
-			}
-			if fullMatch {
-				matchedTargets = append(matchedTargets, t)
+				if fullMatch {
+					matchedTargets = append(matchedTargets, t)
+				}
 			}
 		}
 
-		return matchedTargets
+		// If label selector is provided, filter targets based on label selector
+		if len(instance.Spec.Target.LabelSelector) > 0 {
+			for _, t := range targets.Items {
+				fullMatch := true
+				for k, v := range instance.Spec.Target.LabelSelector {
+					if tv, ok := t.ObjectMeta.Labels[k]; !ok || v != tv {
+						fullMatch = false
+						break
+					}
+				}
+				if fullMatch {
+					matchedTargets = append(matchedTargets, t)
+				}
+			}
+		}
 	}
 
-	return []fabric_v1.Target{}
+	return matchedTargets
 }
 
 func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler, error) {

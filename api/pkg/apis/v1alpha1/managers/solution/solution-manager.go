@@ -320,6 +320,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 	mergedState := MergeDeploymentStates(&currentState, desiredState)
 	var plan model.DeploymentPlan
 	plan, err = PlanForDeployment(deployment, mergedState)
+
 	if err != nil {
 		summary.SummaryMessage = "failed to plan for deployment: " + err.Error()
 		log.ErrorfCtx(ctx, " M (Solution): failed to plan for deployment: %+v", err)
@@ -349,6 +350,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	plannedCount := 0
 	planSuccessCount := 0
+
 	for _, step := range plan.Steps {
 		log.DebugfCtx(ctx, " M (Solution): processing step with Role %s on target %s", step.Role, step.Target)
 		for _, component := range step.Components {
@@ -382,6 +384,7 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		var provider providers.IProvider
 		if override == nil {
 			targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
+
 			provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
 			if err != nil {
 				summary.SummaryMessage = "failed to create provider:" + err.Error()
@@ -609,6 +612,7 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 	}
 	var plan model.DeploymentPlan
 	plan, err = PlanForDeployment(deployment, state)
+
 	if err != nil {
 		log.ErrorfCtx(ctx, " M (Solution): failed to plan for deployment: %+v", err)
 		return ret, nil, err

@@ -58,9 +58,9 @@ func TestInstanceSpecDeepEquals(t *testing.T) {
 	spec_update.Solution = spec.Solution
 
 	// Test Target
-	spec_update.Target.Selector["group"] = "rtos-demo"
+	spec_update.Target.PropertySelector["group"] = "rtos-demo"
 	assert.False(t, spec.DeepEquals(spec_update))
-	spec_update.Target.Selector["group"] = spec.Target.Selector["group"]
+	spec_update.Target.PropertySelector["group"] = spec.Target.PropertySelector["group"]
 
 	// Test Topologies
 	spec_update.Topologies[0].Bindings[0].Role = "ingress"
@@ -94,7 +94,7 @@ func createDummyInstanceSpec(name string, interval string) InstanceSpec {
 		Solution: "solution:version1",
 		Target: model.TargetSelector{
 			Name: "target-1",
-			Selector: map[string]string{
+			PropertySelector: map[string]string{
 				"group": "demo",
 			},
 		},
