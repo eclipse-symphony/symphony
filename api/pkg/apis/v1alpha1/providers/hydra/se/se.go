@@ -23,87 +23,107 @@ import (
 var aLog = logger.NewLogger("coa.runtime")
 
 type DesiredState struct {
-	Apps    []App    `json:"apps"`
-	Devices []Device `json:"devices"`
+	Apps    []App    `json:"Apps"`
+	Devices []Device `json:"Devices"`
 }
 
 type App struct {
-	Version  string     `json:"version,omitempty"`
-	Kind     string     `json:"kind"`
-	Metadata Metadata   `json:"metadata"`
-	Spec     AppSpec    `json:"spec"`
-	Status   *AppStatus `json:"status,omitempty"`
+	Version  string     `json:"Version,omitempty"`
+	Kind     string     `json:"Kind"`
+	Metadata Metadata   `json:"Metadata"`
+	Spec     AppSpec    `json:"Spec"`
+	Status   *AppStatus `json:"Status,omitempty"`
+	Deleted  bool       `json:"Deleted,omitempty"`
 }
 
 type Metadata struct {
-	Name   string            `json:"name"`
-	Labels map[string]string `json:"labels"`
+	Name    string            `json:"Name"`
+	Labels  map[string]string `json:"Labels"`
+	Uuid    string            `json:"Uuid"`
+	OwnerId string            `json:"OwnerId"`
 }
 
 type AppSpec struct {
-	Container ContainerSpec `json:"container"`
-	Affinity  Affinity      `json:"affinity"`
+	Container ContainerSpec `json:"Container"`
+	Affinity  Affinity      `json:"Affinity"`
+	HasBlob   bool          `json:"HasBlob"`
+	Blob      []interface{} `json:"Blob"`
+	DataCase  int           `json:"DataCase"`
 }
 
 type ContainerSpec struct {
-	Name      string          `json:"name"`
-	Image     string          `json:"image"`
-	Networks  []Network       `json:"networks"`
-	Resources ContainerLimits `json:"resources"`
+	Name      string          `json:"Name"`
+	Image     string          `json:"Image"`
+	Networks  []Network       `json:"Networks"`
+	Resources ContainerLimits `json:"Resources"`
 }
 
 type Network struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
+	Ipv4      string `json:"Ipv4"`
+	Ipv6      string `json:"Ipv6"`
+	NetworkId string `json:"NetworkId"`
 }
 
 type ContainerLimits struct {
-	Limits ResourceLimits `json:"limits"`
+	Limits ResourceLimits `json:"Limits"`
 }
 
 type ResourceLimits struct {
-	Memory string `json:"memory"`
-	CPUs   string `json:"cpus"`
+	Memory string `json:"Memory"`
+	CPUs   string `json:"Cpus"`
 }
 
 type Affinity struct {
-	PreferredHosts  []string `json:"preferredHosts"`
-	AppAntiAffinity []string `json:"appAntiAffinity"`
+	PreferredHosts  []string `json:"PreferredHosts"`
+	AppAntiAffinity []string `json:"AppAntiAffinity"`
 }
 
 type AppStatus struct {
-	Status      string `json:"status"`
-	TimeStamp   string `json:"timeStamp"`
-	RunningHost string `json:"runningHost"`
+	Status          string `json:"Status"`
+	TimeStamp       string `json:"TimeStamp"`
+	RunningHost     string `json:"RunningHost"`
+	InterlinkStatus string `json:"InterlinkStatus"`
 }
 
 type Device struct {
-	Kind     string     `json:"kind"`
-	Metadata Metadata   `json:"metadata"`
-	Spec     DeviceSpec `json:"spec"`
+	Kind        string        `json:"Kind"`
+	Metadata    Metadata      `json:"Metadata"`
+	Spec        DeviceSpec    `json:"Spec"`
+	Status      *DeviceStatus `json:"Status,omitempty"`
+	TimeSetting interface{}   `json:"TimeSetting"`
+	Deleted     bool          `json:"Deleted"`
 }
 
 type DeviceSpec struct {
-	Addresses         []string           `json:"addresses"`
-	Networks          []DeviceNetwork    `json:"networks,omitempty"`
-	ContainerNetworks []ContainerNetwork `json:"containerNetworks"`
+	Addresses              []string           `json:"Addresses"`
+	Networks               []DeviceNetwork    `json:"Networks,omitempty"`
+	ContainerNetworks      []ContainerNetwork `json:"ContainerNetworks"`
+	ReservedAppInterlinkIp string             `json:"ReservedAppInterlinkIp"`
 }
 
 type DeviceNetwork struct {
-	NICList        []string `json:"nicList"`
-	NetName        string   `json:"netName"`
-	NICName        string   `json:"nicName"`
-	RedundancyMode string   `json:"redundancyMode"`
-	IPv4           string   `json:"ipv4"`
-	Gateway        string   `json:"gateway"`
+	NicList        []string `json:"NicList"`
+	NetName        string   `json:"NetName"`
+	NicName        string   `json:"NicName"`
+	RedundancyMode string   `json:"RedundancyMode"`
+	Ipv4           string   `json:"Ipv4"`
+	Gateway        string   `json:"Gateway"`
 }
 
 type ContainerNetwork struct {
-	Subnet    string `json:"subnet"`
-	Gateway   string `json:"gateway"`
-	NetworkID string `json:"networkId"`
-	NICName   string `json:"nicName"`
-	Type      string `json:"type"`
+	Subnet    string `json:"Subnet"`
+	Gateway   string `json:"Gateway"`
+	NetworkID string `json:"NetworkId"`
+	NicName   string `json:"NicName"`
+	Type      string `json:"Type"`
+}
+
+type DeviceStatus struct {
+	Status              string        `json:"Status"`
+	TimeStamp           string        `json:"TimeStamp"`
+	RunningAppInstances []interface{} `json:"RunningAppInstances"`
+	InterlinkStatus     string        `json:"InterlinkStatus"`
+	NtpStatus           string        `json:"NtpStatus"`
 }
 
 type SEProviderConfig struct {
@@ -253,6 +273,9 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 		LabelSelector: map[string]string{
 			"haSet": i.Config.HASet,
 			"kind":  lastSeenDeviceKind,
+		},
+		StateSelector: map[string]string{
+			"probed": "true",
 		},
 	}
 	selectorData, _ := json.Marshal(selector)

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,12 +151,15 @@ func (i *GroupTargetProvider) Get(ctx context.Context, deployment model.Deployme
 	ret := make([]model.ComponentSpec, 0)
 
 	for _, target := range targets {
-		for _, component := range target.Spec.Components {
-			for _, ref := range references {
-				if ref.Component.Name == component.Name {
-					// If the component matches the reference, add it to the result
-					ret = append(ret, component)
+		for k, prop := range target.Status.Properties {
+			if strings.HasPrefix(k, "component:") {
+				var component model.ComponentSpec
+				err = json.Unmarshal([]byte(prop), &component)
+				if err != nil {
+					log.ErrorfCtx(ctx, "  P (Group Target): failed to unmarshal component %+v: %s", err, prop)
+					continue
 				}
+				ret = append(ret, component)
 			}
 		}
 	}
@@ -255,7 +259,6 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 					for _, component := range updatedComponents {
 						if component.Name == componentName {
 							target.Spec.Components = append(target.Spec.Components, component)
-
 						}
 					}
 				}
@@ -299,10 +302,19 @@ func (i *GroupTargetProvider) assignComponents(components []model.ComponentSpec,
 		})
 		assigned := false
 		for _, target := range targets {
-			//check anti-affinity rule
-			assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
-			assigned = true
-			break
+			if target.Status.Properties != nil && target.Status.Properties["component:"+component.Name] != "" {
+				assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
+				assigned = true
+				break
+			}
+		}
+		if !assigned {
+			for _, target := range targets {
+				//check anti-affinity rule
+				assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
+				assigned = true
+				break
+			}
 		}
 		if !assigned {
 			return nil, fmt.Errorf("no target available for component %s", component.Name)
@@ -327,30 +339,6 @@ func (*GroupTargetProvider) GetValidationRule(ctx context.Context) model.Validat
 			},
 		},
 	}
-}
-
-func mapMatch(a interface{}, b interface{}) bool {
-	aMap, aOk := toMap(a)
-	bMap, bOK := toMap(b)
-	if !aOk || !bOK || aMap == nil || bMap == nil {
-		return false
-	}
-	if len(aMap) != len(bMap) {
-		return false
-	}
-	for k, v := range aMap {
-		if vb, ok := bMap[k]; !ok || (vb != v) {
-			return false
-		}
-	}
-	return true
-}
-func toMap(a interface{}) (map[string]string, bool) {
-	if a == nil {
-		return nil, false
-	}
-	valueMap, ok := a.(map[string]string)
-	return valueMap, ok
 }
 
 func toGroupTargetProviderConfig(config providers.IProviderConfig) (GroupTargetProviderConfig, error) {
