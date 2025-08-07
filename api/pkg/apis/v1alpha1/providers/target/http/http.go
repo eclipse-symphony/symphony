@@ -47,6 +47,7 @@ type HttpTargetProviderConfig struct {
 type HttpTargetProvider struct {
 	Config  HttpTargetProviderConfig
 	Context *contexts.ManagerContext
+	RLog    logger.Logger
 }
 
 func HttpTargetProviderConfigFromMap(properties map[string]string) (HttpTargetProviderConfig, error) {
@@ -74,6 +75,9 @@ func (i *HttpTargetProvider) Init(config providers.IProviderConfig) error {
 	ctx, span := observability.StartSpan("Http Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	if i.RLog != nil {
+		sLog = i.RLog
+	}
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)

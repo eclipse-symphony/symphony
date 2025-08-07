@@ -8,10 +8,13 @@ package logger
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/hooks"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -154,6 +157,34 @@ func NewLogger(name string) Logger {
 	}
 
 	return logger
+}
+
+func NewRemoteAgentLogger(name string) Logger {
+	newLogger := logrus.New()
+	newLogger.AddHook(hooks.NewContextHookWithOptions(hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false, Folding: true}))
+
+	dl := &CoaLogger{
+		name:   name,
+		logger: newLogger,
+		sharedFields: logrus.Fields{
+			logFieldScope: name,
+			logFieldType:  LogTypeLog,
+		},
+		callerSkip: 2, // skip 2 frames to get the caller of log functions
+	}
+
+	// Check if temp file logging is enabled
+	err := dl.enableTempFileLogging()
+	if err != nil {
+		// Fallback to stdout if temp file logging fails
+		fmt.Printf("Failed to enable temp file logging: %v, falling back to stdout\n", err)
+		newLogger.SetOutput(os.Stdout)
+	}
+
+	// Ensure JSON output and instance field are set
+	dl.EnableJSONOutput(true)
+
+	return dl
 }
 
 func getLoggers() map[string]Logger {

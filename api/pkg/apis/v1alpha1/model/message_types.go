@@ -129,10 +129,11 @@ type ProviderGetValidationRuleRequest struct {
 }
 
 type AsyncResult struct {
-	OperationID string `json:"operationID"`
-	Namespace   string `json:"namespace"`
-	Error       error  `json:"error,omitempty"`
-	Body        []byte `json:"body"`
+	OperationID string   `json:"operationID"`
+	Namespace   string   `json:"namespace"`
+	Error       error    `json:"error,omitempty"`
+	Body        []byte   `json:"body"`
+	Logs        []string `json:"logs,omitempty"`
 }
 
 type SymphonyEndpoint struct {
