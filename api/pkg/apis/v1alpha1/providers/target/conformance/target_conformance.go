@@ -61,7 +61,11 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 		ComponentStartIndex: 0,
 		ComponentEndIndex:   1,
 	}
-	_, err := p.Apply(context.Background(), deployment, step, true)
+	_, err := p.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   true,
+	})
 	assert.Nil(t, err)
 }
 func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
@@ -110,7 +114,11 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 			ComponentStartIndex: 0,
 			ComponentEndIndex:   1,
 		}
-		_, err := p.Apply(context.Background(), deployment, step, true)
+		_, err := p.Apply(context.Background(), model.TargetProviderApplyReference{
+			Deployment: deployment,
+			Step:       step,
+			IsDryRun:   true,
+		})
 		assert.NotNil(t, err)
 		coaErr := err.(v1alpha2.COAError)
 		condition := coaErr.State == v1alpha2.BadRequest || coaErr.State == v1alpha2.ValidateFailed

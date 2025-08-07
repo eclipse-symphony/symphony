@@ -30,35 +30,37 @@ func TestGet(t *testing.T) {
 		ServerURL: "http://localhost:8090/v1alpha2/solution/",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "HomeHub_1.0.4.0_x64",
-						Properties: map[string]interface{}{
-							"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "HomeHub_1.0.4.0_x64",
+							Properties: map[string]interface{}{
+								"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+							},
 						},
 					},
 				},
 			},
-		},
-		Assignments: map[string]string{
-			"target1": "{HomeHub_1.0.4.0_x64}",
-		},
-		Targets: map[string]model.TargetState{
-			"target1": {
-				Spec: &model.TargetSpec{
-					Topologies: []model.TopologySpec{
-						{
-							Bindings: []model.BindingSpec{
-								{
-									Role:     "instance",
-									Provider: "providers.target.win10.sideload",
-									Config: map[string]string{
-										"name":                "win10sideload",
-										"ipAddress":           "192.168.50.55",
-										"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+			Assignments: map[string]string{
+				"target1": "{HomeHub_1.0.4.0_x64}",
+			},
+			Targets: map[string]model.TargetState{
+				"target1": {
+					Spec: &model.TargetSpec{
+						Topologies: []model.TopologySpec{
+							{
+								Bindings: []model.BindingSpec{
+									{
+										Role:     "instance",
+										Provider: "providers.target.win10.sideload",
+										Config: map[string]string{
+											"name":                "win10sideload",
+											"ipAddress":           "192.168.50.55",
+											"winAppDeployCmdPath": "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
+										},
 									},
 								},
 							},
@@ -66,18 +68,17 @@ func TestGet(t *testing.T) {
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "HomeHub_1.0.4.0_x64",
-				Properties: map[string]interface{}{
-					"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "HomeHub_1.0.4.0_x64",
+					Properties: map[string]interface{}{
+						"app.package.path": "E:\\projects\\go\\github.com\\azure\\symphony-docs\\samples\\scenarios\\homehub\\HomeHub\\HomeHub.Package\\AppPackages\\HomeHub.Package_1.0.4.0_Debug_Test\\HomeHub.Package_1.0.4.0_x64_Debug.appxbundle",
+					},
 				},
 			},
-		},
-	})
+		}})
 	assert.Equal(t, 1, len(components))
 	assert.Nil(t, err)
 }
@@ -138,7 +139,7 @@ func TestRemove(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 func TestApply(t *testing.T) {
@@ -197,7 +198,7 @@ func TestApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -273,10 +274,10 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: components,
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
-	_, err = provider.Get(context.Background(), deployment, components)
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: components})
 	assert.Nil(t, err)
 
 	step = model.DeploymentStep{
@@ -287,7 +288,7 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 

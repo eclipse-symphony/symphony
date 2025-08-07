@@ -42,7 +42,9 @@ func TestGetEmptyDesired(t *testing.T) {
 		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{},
+	})
 	assert.Equal(t, 0, len(components))
 	assert.Nil(t, err)
 }
@@ -58,24 +60,28 @@ func TestGetOneDesired(t *testing.T) {
 		WinAppDeployCmdPath: "c:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.22621.0\\x64\\WinAppDeployCmd.exe",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
+	components, err := provider.Get(context.Background(),
+		model.TargetProviderGetReference{
+			Deployment: model.DeploymentSpec{
+				Solution: model.SolutionState{
+					Spec: &model.SolutionSpec{
+						Components: []model.ComponentSpec{
+							{
+								Name: "HomeHub_1.0.4.0_x64",
+							},
+						},
+					},
+				},
+			},
+			References: []model.ComponentStep{
+				{
+					Action: model.ComponentUpdate,
+					Component: model.ComponentSpec{
 						Name: "HomeHub_1.0.4.0_x64",
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "HomeHub_1.0.4.0_x64",
-			},
-		},
-	})
+		})
 	assert.Equal(t, 1, len(components))
 	assert.Nil(t, err)
 }
@@ -139,7 +145,11 @@ func TestRemove(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 func TestApply(t *testing.T) {
@@ -178,7 +188,11 @@ func TestApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 func TestApplyUpdateFailed(t *testing.T) {
@@ -215,7 +229,11 @@ func TestApplyUpdateFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.NotNil(t, err)
 }
 func TestApplySlientDelete(t *testing.T) {
@@ -253,7 +271,11 @@ func TestApplySlientDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 func TestGetUnknownPath(t *testing.T) {
@@ -287,7 +309,10 @@ func TestGetUnknownPath(t *testing.T) {
 		Action:    model.ComponentDelete,
 		Component: component,
 	}}
-	_, err = provider.Get(context.Background(), deployment, step)
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: deployment,
+		References: step,
+	})
 	assert.NotNil(t, err)
 }
 func TestConformanceSuite(t *testing.T) {

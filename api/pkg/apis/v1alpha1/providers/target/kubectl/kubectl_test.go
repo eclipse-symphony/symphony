@@ -189,7 +189,7 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	time.Sleep(3 * time.Second)
@@ -201,7 +201,7 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	// sleep 30s and wait for sufficient cleanup for gatekeeper
@@ -284,7 +284,7 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -368,7 +368,7 @@ func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	time.Sleep(3 * time.Second)
@@ -382,7 +382,7 @@ func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -473,7 +473,7 @@ func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	time.Sleep(3 * time.Second)
@@ -487,7 +487,7 @@ func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -580,7 +580,7 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -628,7 +628,7 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 }
 
@@ -709,7 +709,7 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -757,7 +757,7 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 }
 
@@ -833,7 +833,7 @@ func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 		},
 	}
 
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 
 	step = model.DeploymentStep{
@@ -844,7 +844,7 @@ func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -893,7 +893,7 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 			Component: component,
 		},
 	}
-	_, err = provider.Get(context.Background(), deployment, reference)
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: reference})
 	assert.NotNil(t, err)
 
 	component = model.ComponentSpec{
@@ -930,6 +930,6 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 			Component: component,
 		},
 	}
-	_, err = provider.Get(context.Background(), deployment, reference)
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: reference})
 	assert.Nil(t, err)
 }

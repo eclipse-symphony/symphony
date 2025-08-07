@@ -218,7 +218,7 @@ func toConfigMapTargetProviderConfig(config providers.IProviderConfig) (ConfigMa
 }
 
 // Get gets the artifacts for a configmap
-func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *ConfigMapTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		ctx, &map[string]string{
@@ -228,12 +228,12 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 	var err error = nil
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (ConfigMap Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range references {
+	for _, component := range reference.References {
 		var obj *corev1.ConfigMap
-		obj, err = i.Client.CoreV1().ConfigMaps(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		obj, err = i.Client.CoreV1().ConfigMaps(reference.Deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.InfofCtx(ctx, "  P (ConfigMap Target): resource not found: %s", err)
@@ -260,7 +260,7 @@ func (i *ConfigMapTargetProvider) Get(ctx context.Context, deployment model.Depl
 }
 
 // Apply applies the configmap artifacts
-func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *ConfigMapTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"ConfigMap Target Provider",
 		ctx,
@@ -272,7 +272,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (ConfigMap Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ConfigMap Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -284,7 +284,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		functionName,
 	)
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to validate components: %+v", err)
@@ -297,14 +297,14 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugCtx(ctx, "  P (ConfigMap Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
-	components = step.GetUpdatedComponents()
+	ret := reference.Step.PrepareResultMap()
+	components = reference.Step.GetUpdatedComponents()
 	// apply components
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (ConfigMap Target): get updated components: count - %d", len(components))
@@ -313,7 +313,7 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 				newConfigMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      component.Name,
-						Namespace: deployment.Instance.Spec.Scope,
+						Namespace: reference.Deployment.Instance.Spec.Scope,
 					},
 					Data: make(map[string]string),
 				}
@@ -325,8 +325,8 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 						newConfigMap.Data[key] = string(jData)
 					}
 				}
-				i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
-				err = i.applyConfigMap(ctx, newConfigMap, deployment.Instance.Spec.Scope)
+				i.ensureNamespace(ctx, reference.Deployment.Instance.Spec.Scope)
+				err = i.applyConfigMap(ctx, newConfigMap, reference.Deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to apply configmap: %+v", err)
 					providerOperationMetrics.ProviderOperationErrors(
@@ -342,13 +342,13 @@ func (i *ConfigMapTargetProvider) Apply(ctx context.Context, deployment model.De
 		}
 	}
 
-	components = step.GetDeletedComponents()
+	components = reference.Step.GetDeletedComponents()
 	// delete components
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (ConfigMap Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "config" {
-				err = i.deleteConfigMap(ctx, component.Name, deployment.Instance.Spec.Scope)
+				err = i.deleteConfigMap(ctx, component.Name, reference.Deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to delete configmap: %+v", err)
 					providerOperationMetrics.ProviderOperationErrors(

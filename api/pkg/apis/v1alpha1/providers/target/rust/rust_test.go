@@ -120,7 +120,7 @@ func TestMockRustProviderGet(t *testing.T) {
 	references := []model.ComponentStep{}
 
 	// Call the Get method
-	components, err := rustProvider.Get(context.Background(), deployment, references)
+	components, err := rustProvider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: references})
 	assert.Nil(t, err)
 
 	// Validate the returned component specifications
@@ -198,7 +198,7 @@ func TestMockRustProviderApply(t *testing.T) {
 	}
 
 	// Call the Apply method
-	result, err := rustProvider.Apply(context.Background(), deployment, step, false)
+	result, err := rustProvider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	// Validate the returned component result

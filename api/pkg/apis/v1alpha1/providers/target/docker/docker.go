@@ -90,7 +90,7 @@ func toDockerTargetProviderConfig(config providers.IProviderConfig) (DockerTarge
 	return ret, err
 }
 
-func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *DockerTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -98,7 +98,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (Docker Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Docker Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -107,7 +107,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	}
 
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range references {
+	for _, component := range reference.References {
 		var info types.ContainerJSON
 		info, err = cli.ContainerInspect(ctx, component.Component.Name)
 		if err == nil {
@@ -151,7 +151,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 				for _, e := range env {
 					pair := strings.Split(e, "=")
 					if len(pair) == 2 {
-						for _, s := range references {
+						for _, s := range reference.References {
 							if s.Component.Name == component.Name {
 								for k, _ := range s.Component.Properties {
 									if k == "env."+pair[0] {
@@ -173,7 +173,7 @@ func (i *DockerTargetProvider) Get(ctx context.Context, deployment model.Deploym
 	return ret, nil
 }
 
-func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *DockerTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Docker Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -181,27 +181,27 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (Docker Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Docker Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.ObjectMeta.Name,
-		SolutionId: deployment.Instance.Spec.Solution,
-		TargetId:   deployment.ActiveTarget,
+		InstanceId: reference.Deployment.Instance.ObjectMeta.Name,
+		SolutionId: reference.Deployment.Instance.Spec.Solution,
+		TargetId:   reference.Deployment.ActiveTarget,
 	}
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to validate components: %+v", err)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugCtx(ctx, "  P (Docker Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
+	ret := reference.Step.PrepareResultMap()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -209,7 +209,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 		return ret, err
 	}
 
-	for _, component := range step.Components {
+	for _, component := range reference.Step.Components {
 		if component.Action == model.ComponentUpdate {
 			containerImage := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)

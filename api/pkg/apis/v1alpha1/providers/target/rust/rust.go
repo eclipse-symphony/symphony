@@ -137,23 +137,23 @@ func (r *RustTargetProvider) GetValidationRule(ctx context.Context) model.Valida
 	return validationRule
 }
 
-func (r *RustTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (r *RustTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Rust Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (Rust Target Provider): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	log.InfofCtx(ctx, "  P (Rust Target Provider): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
-	deploymentJSON, err := json.Marshal(deployment)
+	deploymentJSON, err := json.Marshal(reference.Deployment)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal deployment - %+v", err)
 		err = v1alpha2.NewCOAError(err, "failed to marshal deployment", v1alpha2.BadRequest)
 		return nil, err
 	}
 
-	referencesJSON, err := json.Marshal(references)
+	referencesJSON, err := json.Marshal(reference.References)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal reference - %+v", err)
 		err = v1alpha2.NewCOAError(err, "failed to marshal reference", v1alpha2.BadRequest)
@@ -184,7 +184,7 @@ func (r *RustTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	return components, nil
 }
 
-func (r *RustTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (r *RustTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Rust Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -192,16 +192,16 @@ func (r *RustTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, "  P (Rust Target Provider): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	log.InfofCtx(ctx, "  P (Rust Target Provider): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
-	deploymentJSON, err := json.Marshal(deployment)
+	deploymentJSON, err := json.Marshal(reference.Deployment)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal deployment - %+v", err)
 		err = v1alpha2.NewCOAError(err, "failed to marshal deployment", v1alpha2.BadRequest)
 		return nil, err
 	}
 
-	stepJSON, err := json.Marshal(step)
+	stepJSON, err := json.Marshal(reference.Step)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Rust Target): failed to marshal step - %+v", err)
 		err = v1alpha2.NewCOAError(err, "failed to marshal step", v1alpha2.BadRequest)
@@ -215,7 +215,7 @@ func (r *RustTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	defer C.free(unsafe.Pointer(cStepJSON))
 
 	cIsDryRun := C.int(0)
-	if isDryRun {
+	if reference.IsDryRun {
 		cIsDryRun = 1
 	}
 

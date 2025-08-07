@@ -182,7 +182,7 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 					},
 				},
 			}
-			_, err = provider.Apply(context.Background(), deployment, step, false)
+			_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 			assert.Equal(t, tc.ExpectedError, err != nil, "[TestCase: %s] failed. ExpectedError: %s", tc.Name, tc.ExpectedError)
 		})
 	}
@@ -200,29 +200,31 @@ func TestHelmTargetProviderGet(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			ObjectMeta: model.ObjectMeta{
-				Name: "test-instance",
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "test-instance",
+				},
+				Spec: &model.InstanceSpec{
+					Scope: defaultTestScope,
+				},
 			},
-			Spec: &model.InstanceSpec{
-				Scope: defaultTestScope,
-			},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "odoo",
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "odoo",
+						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "odoo",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "odoo",
+				},
 			},
 		},
 	})
@@ -341,7 +343,7 @@ func TestHelmTargetProvider_NonOciChart(t *testing.T) {
 					},
 				},
 			}
-			_, err = provider.Apply(context.Background(), deployment, step, false)
+			_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 			assert.Equal(t, tc.ExpectedError, err != nil, "[chart %s]: %s failed. ExpectedError: %s", tc.Action, tc.Name, tc.ExpectedError)
 		})
 	}
@@ -412,7 +414,7 @@ func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	time.Sleep(3 * time.Second)
@@ -425,7 +427,7 @@ func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -473,7 +475,7 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -521,7 +523,7 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -560,7 +562,7 @@ func TestHelmTargetProviderGetAnotherCluster(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: model.DeploymentSpec{}, References: nil})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
 }
@@ -607,7 +609,7 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	step = model.DeploymentStep{
@@ -618,7 +620,7 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -661,7 +663,7 @@ func TestHelmTargetProviderWithNegativeTimeout(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	fmt.Printf("error timeout %v", err.Error())
 	if !strings.Contains(err.Error(), "timeout can not be negative") {
 		t.Errorf("expected error to contain 'timeout can not be negative', but got %s", err.Error())
@@ -708,7 +710,7 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	if !strings.Contains(err.Error(), "context deadline exceeded") {
 		t.Errorf("expected error to contain 'context deadline exceeded', but got %s", err.Error())
 	}
@@ -754,7 +756,7 @@ func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	if !strings.Contains(err.Error(), "time: unknown unit ") {
 		t.Errorf("expected error to contain 'time: unknown unit', but got %s", err.Error())
 	}
@@ -803,7 +805,7 @@ func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 }
 
@@ -816,24 +818,26 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 	provider := HelmTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "odoo",
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "odoo",
+						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "odoo",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "odoo",
+				},
 			},
 		},
 	})
@@ -1005,7 +1009,7 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 	}
 
 	// Apply the Helm chart with the custom release name
-	results, err := provider.Apply(context.Background(), deployment, step, false)
+	results, err := provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 	assert.Equal(t, v1alpha2.Updated, results[component.Name].Status)
 	assert.Contains(t, results[component.Name].Message, customReleaseName)
@@ -1077,7 +1081,7 @@ func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
 	}
 
 	// Get the Helm release with the custom release name
-	components, err := provider.Get(context.Background(), deployment, references)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: references})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
 	assert.Equal(t, customReleaseName, components[0].Properties["releaseName"])

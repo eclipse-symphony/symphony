@@ -224,7 +224,7 @@ func toIngressTargetProviderConfig(config providers.IProviderConfig) (IngressTar
 }
 
 // Get gets the artifacts for a ingress
-func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *IngressTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Ingress Target Provider",
 		ctx, &map[string]string{
@@ -234,12 +234,12 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Ingress Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Ingress Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range references {
+	for _, component := range reference.References {
 		var obj *networkingv1.Ingress
-		obj, err = i.Client.NetworkingV1().Ingresses(deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
+		obj, err = i.Client.NetworkingV1().Ingresses(reference.Deployment.Instance.Spec.Scope).Get(ctx, component.Component.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				sLog.InfofCtx(ctx, "  P (Ingress Target): resource %s not found: %v", component.Component.Name, err)
@@ -259,7 +259,7 @@ func (i *IngressTargetProvider) Get(ctx context.Context, deployment model.Deploy
 }
 
 // Apply applies the ingress artifacts
-func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *IngressTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Ingress Target Provider",
 		ctx,
@@ -270,7 +270,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Ingress Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Ingress Target):  applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -283,7 +283,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		functionName,
 	)
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to validate components: %+v", err)
@@ -297,13 +297,13 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugCtx(ctx, "  P (Ingress Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
-	components = step.GetUpdatedComponents()
+	ret := reference.Step.PrepareResultMap()
+	components = reference.Step.GetUpdatedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Ingress Target): get updated components: count - %d", len(components))
 		for _, component := range components {
@@ -311,7 +311,7 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 				newIngress := &networkingv1.Ingress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      component.Name,
-						Namespace: deployment.Instance.Spec.Scope,
+						Namespace: reference.Deployment.Instance.Spec.Scope,
 					},
 					Spec: networkingv1.IngressSpec{
 						Rules: make([]networkingv1.IngressRule, 0),
@@ -363,8 +363,8 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 					}
 				}
 
-				i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
-				err = i.applyIngress(ctx, newIngress, deployment.Instance.Spec.Scope)
+				i.ensureNamespace(ctx, reference.Deployment.Instance.Spec.Scope)
+				err = i.applyIngress(ctx, newIngress, reference.Deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to apply ingress: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply ingress", providerName), v1alpha2.IngressApplyFailed)
@@ -380,12 +380,12 @@ func (i *IngressTargetProvider) Apply(ctx context.Context, deployment model.Depl
 			}
 		}
 	}
-	components = step.GetDeletedComponents()
+	components = reference.Step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Ingress Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
 			if component.Type == "ingress" {
-				err = i.deleteIngress(ctx, component.Name, deployment.Instance.Spec.Scope)
+				err = i.deleteIngress(ctx, component.Name, reference.Deployment.Instance.Spec.Scope)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Ingress Target): failed to delete ingress: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to delete ingress", providerName), v1alpha2.IngressApplyFailed)

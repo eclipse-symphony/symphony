@@ -268,7 +268,7 @@ func toKubectlTargetProviderConfig(config providers.IProviderConfig) (KubectlTar
 }
 
 // Get gets the artifacts for a deployment
-func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *KubectlTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Kubectl Target Provider",
 		ctx, &map[string]string{
@@ -278,10 +278,10 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Kubectl Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Kubectl Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range references {
+	for _, component := range reference.References {
 		if v, ok := component.Component.Properties["yaml"].(string); ok {
 			chanMes, chanErr := readYaml(v)
 			stop := false
@@ -294,7 +294,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 						return nil, err
 					}
 
-					_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
+					_, err = i.getCustomResource(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope)
 					if err != nil {
 						if kerrors.IsNotFound(err) {
 							sLog.InfofCtx(ctx, "  P (Kubectl Target): custom resource not found: %+v", err)
@@ -334,7 +334,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 				return nil, err
 			}
 
-			_, err = i.getCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
+			_, err = i.getCustomResource(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
 					sLog.InfofCtx(ctx, "  P (Kubectl Target): custom resource not found: %+v", err)
@@ -357,7 +357,7 @@ func (i *KubectlTargetProvider) Get(ctx context.Context, deployment model.Deploy
 }
 
 // Apply applies the deployment artifacts
-func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *KubectlTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Kubectl Target Provider",
 		ctx,
@@ -368,7 +368,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Kubectl Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Kubectl Target):  applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -379,7 +379,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		metrics.ApplyOperationType,
 		functionName,
 	)
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		providerOperationMetrics.ProviderOperationErrors(
@@ -394,13 +394,13 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugfCtx(ctx, "  P (Kubectl Target): dryRun is enabled,, skipping apply")
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
-	components = step.GetUpdatedComponents()
+	ret := reference.Step.PrepareResultMap()
+	components = reference.Step.GetUpdatedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Kubectl Target): get updated components: count - %d", len(components))
 		for _, component := range components {
@@ -428,8 +428,8 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 								return ret, err
 							}
 
-							i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
-							err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope, deployment.Instance)
+							i.ensureNamespace(ctx, reference.Deployment.Instance.Spec.Scope)
+							err = i.applyCustomResource(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance)
 							if err != nil {
 								sLog.ErrorfCtx(ctx, "  P (Kubectl Target):  failed to apply Yaml: %+v", err)
 								err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply Yaml", providerName), v1alpha2.ApplyYamlFailed)
@@ -514,8 +514,8 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						return ret, err
 					}
 
-					i.ensureNamespace(ctx, deployment.Instance.Spec.Scope)
-					err = i.applyCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope, deployment.Instance)
+					i.ensureNamespace(ctx, reference.Deployment.Instance.Spec.Scope)
+					err = i.applyCustomResource(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance)
 					if err != nil {
 						sLog.ErrorfCtx(ctx, "  P (Kubectl Target):  failed to apply custom resource: %+v", err)
 						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to apply custom resource", providerName), v1alpha2.ApplyResourceFailed)
@@ -541,7 +541,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						if err != nil {
 							sLog.ErrorfCtx(ctx, "Status property is not correctly defined: +%v", err)
 						}
-						resourceStatus, err := i.checkResourceStatus(ctx, dataBytes, deployment.Instance.Spec.Scope, statusProbe, component.Name)
+						resourceStatus, err := i.checkResourceStatus(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope, statusProbe, component.Name)
 						if err != nil {
 							sLog.ErrorfCtx(ctx, "Failed to check resource status: +%v", err)
 						}
@@ -574,7 +574,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	components = step.GetDeletedComponents()
+	components = reference.Step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Kubectl Target): get deleted components: count - %d", len(components))
 		for _, component := range components {
@@ -603,7 +603,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 								return ret, err
 							}
 
-							err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
+							err = i.deleteCustomResource(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope)
 							if err != nil && !kerrors.IsNotFound(err) {
 								sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to read object: %+v", err)
 								err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to delete object from yaml property", providerName), v1alpha2.DeleteYamlFailed)
@@ -689,7 +689,7 @@ func (i *KubectlTargetProvider) Apply(ctx context.Context, deployment model.Depl
 						return ret, err
 					}
 
-					err = i.deleteCustomResource(ctx, dataBytes, deployment.Instance.Spec.Scope)
+					err = i.deleteCustomResource(ctx, dataBytes, reference.Deployment.Instance.Spec.Scope)
 					if err != nil && !kerrors.IsNotFound(err) {
 						sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to delete custom resource: %+v", err)
 						err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to delete custom resource", providerName), v1alpha2.DeleteResourceFailed)

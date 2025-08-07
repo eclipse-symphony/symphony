@@ -335,7 +335,7 @@ func TestMatchTargetsWithTargetName(t *testing.T) {
 				"key": "value",
 			},
 		},
-	}})
+	}}, true)
 
 	require.Equal(t, []model.TargetState{{
 		ObjectMeta: model.ObjectMeta{
@@ -365,7 +365,7 @@ func TestMatchTargetsWithUnmatchedName(t *testing.T) {
 			Name: "someDifferentTargetName",
 		},
 		Spec: &model.TargetSpec{},
-	}})
+	}}, true)
 
 	require.Equal(t, []model.TargetState{}, res)
 }
@@ -378,7 +378,7 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
-				Selector: map[string]string{
+				PropertySelector: map[string]string{
 					"OS": "windows",
 				},
 			},
@@ -394,7 +394,7 @@ func TestMatchTargetsWithSelectors(t *testing.T) {
 				"OS": "windows",
 			},
 		},
-	}})
+	}}, true)
 
 	require.Equal(t, []model.TargetState{{
 		ObjectMeta: model.ObjectMeta{
@@ -417,7 +417,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
-				Selector: map[string]string{
+				PropertySelector: map[string]string{
 					"OS": "windows",
 				},
 			},
@@ -432,7 +432,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 				"OS": "linux",
 			},
 		},
-	}})
+	}}, true)
 
 	require.Equal(t, []model.TargetState{}, res)
 
@@ -443,7 +443,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
-				Selector: map[string]string{
+				PropertySelector: map[string]string{
 					"OS": "windows",
 				},
 			},
@@ -458,7 +458,7 @@ func TestMatchTargetsWithUnmatchedSelectors(t *testing.T) {
 				"company": "linux",
 			},
 		},
-	}})
+	}}, true)
 
 	require.Equal(t, []model.TargetState{}, res)
 }
@@ -595,7 +595,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 		Spec: &model.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: "someTargetName",
-				Selector: map[string]string{
+				PropertySelector: map[string]string{
 					"OS": "windows",
 				},
 			},
@@ -704,7 +704,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				Solution: "",
 				Target: model.TargetSelector{
 					Name: "someTargetName",
-					Selector: map[string]string{
+					PropertySelector: map[string]string{
 						"OS": "windows",
 					},
 				},

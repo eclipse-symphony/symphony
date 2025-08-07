@@ -338,7 +338,7 @@ func TestDeployment(t *testing.T) {
 			Spec: &model.InstanceSpec{},
 		},
 	}
-	_, err = provider.Get(context.Background(), deployment, []model.ComponentStep{})
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: []model.ComponentStep{}})
 	assert.Nil(t, err)
 
 	provider.Init(K8sTargetProviderConfig{DeploymentStrategy: SERVICES, NoWait: true})
@@ -387,7 +387,7 @@ func TestDeployment(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Get(context.Background(), deployment, []model.ComponentStep{})
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: []model.ComponentStep{}})
 	assert.Nil(t, err)
 
 	err = provider.removeDeployment(context.Background(), "default", "name")
@@ -491,7 +491,7 @@ func TestApply(t *testing.T) {
 		},
 	}
 
-	_, err := provider.Apply(context.Background(), deployment, updateStep, false)
+	_, err := provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: updateStep, IsDryRun: false})
 	assert.Nil(t, err)
 
 	deleteStep := model.DeploymentStep{
@@ -512,7 +512,7 @@ func TestApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, deleteStep, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: deleteStep, IsDryRun: false})
 	assert.Nil(t, err)
 
 	provider.Init(K8sTargetProviderConfig{
@@ -520,9 +520,9 @@ func TestApply(t *testing.T) {
 		DeploymentStrategy:   "services",
 		NoWait:               true})
 
-	_, err = provider.Apply(context.Background(), deployment, updateStep, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: updateStep, IsDryRun: false})
 	assert.Nil(t, err)
-	_, err = provider.Apply(context.Background(), deployment, deleteStep, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: deleteStep, IsDryRun: false})
 	assert.Nil(t, err)
 }
 

@@ -41,7 +41,10 @@ func TestGetEmptyDesired(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{}, nil)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{},
+		References: nil,
+	})
 	assert.Equal(t, 0, len(components))
 	assert.Nil(t, err)
 }
@@ -56,30 +59,31 @@ func TestGetOneDesired(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "MyApp",
-						Properties: map[string]interface{}{
-							model.AppPackage: "com.sec.hiddenmenu",
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]interface{}{
+								model.AppPackage: "com.sec.hiddenmenu",
+							},
 						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "MyApp",
-				Properties: map[string]interface{}{
-					model.AppPackage: "com.sec.hiddenmenu",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "MyApp",
+					Properties: map[string]interface{}{
+						model.AppPackage: "com.sec.hiddenmenu",
+					},
 				},
 			},
-		},
-	})
+		}})
 	assert.Equal(t, 1, len(components))
 	assert.Nil(t, err)
 }
@@ -94,30 +98,31 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "MyApp",
-						Properties: map[string]interface{}{
-							model.AppPackage: "doesnt.exist",
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]interface{}{
+								model.AppPackage: "doesnt.exist",
+							},
 						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "MyApp",
-				Properties: map[string]interface{}{
-					model.AppPackage: "doesnt.exist",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "MyApp",
+					Properties: map[string]interface{}{
+						model.AppPackage: "doesnt.exist",
+					},
 				},
 			},
-		},
-	})
+		}})
 	assert.Equal(t, 0, len(components))
 	assert.Nil(t, err)
 }
@@ -154,7 +159,11 @@ func TestApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 
@@ -190,7 +199,11 @@ func TestRemove(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 
@@ -200,37 +213,38 @@ func TestGetFailed(t *testing.T) {
 		Name: "adb",
 	})
 	assert.Nil(t, err)
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: model.DeploymentSpec{
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-	}, nil)
+	}, References: nil})
 	assert.Nil(t, err)
 
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "MyApp",
-						Properties: map[string]interface{}{
-							model.AppPackage: "doesnt.exist",
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "MyApp",
+							Properties: map[string]interface{}{
+								model.AppPackage: "doesnt.exist",
+							},
 						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "MyApp",
-				Properties: map[string]interface{}{
-					model.AppPackage: "doesnt.exist",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "MyApp",
+					Properties: map[string]interface{}{
+						model.AppPackage: "doesnt.exist",
+					},
 				},
 			},
-		},
-	})
+		}})
 	assert.NotNil(t, err)
 }
 
@@ -265,7 +279,11 @@ func TestApplyFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.NotNil(t, err)
 
 	step = model.DeploymentStep{
@@ -276,7 +294,11 @@ func TestApplyFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.NotNil(t, err)
 }
 

@@ -80,7 +80,7 @@ func MockTargetProviderConfigFromMap(properties map[string]string) (MockTargetPr
 	ret.ID = properties["id"]
 	return ret, nil
 }
-func (m *MockTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (m *MockTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	mLock.Lock()
 	defer mLock.Unlock()
 
@@ -96,7 +96,7 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	ret := make([]model.ComponentSpec, 0)
 	for _, c := range cache[m.Config.ID] {
-		for _, r := range references {
+		for _, r := range reference.References {
 			if c.Name == r.Component.Name {
 				ret = append(ret, c)
 				break
@@ -105,7 +105,7 @@ func (m *MockTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	}
 	return ret, nil
 }
-func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (m *MockTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	_, span := observability.StartSpan(
 		"Mock Target Provider",
 		ctx,
@@ -122,7 +122,7 @@ func (m *MockTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	if cache[m.Config.ID] == nil {
 		cache[m.Config.ID] = make([]model.ComponentSpec, 0)
 	}
-	for _, c := range step.Components {
+	for _, c := range reference.Step.Components {
 		found := false
 		for i, _ := range cache[m.Config.ID] {
 			if cache[m.Config.ID][i].Name == c.Component.Name {

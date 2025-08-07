@@ -72,7 +72,11 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 
@@ -88,32 +92,34 @@ func TestDockerTargetProviderGet(t *testing.T) {
 	provider := DockerTargetProvider{}
 	err := provider.Init(config)
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "redis-test",
-						Type: "container",
-						Properties: map[string]interface{}{
-							model.ContainerImage: "redis:latest",
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "redis-test",
+							Type: "container",
+							Properties: map[string]interface{}{
+								model.ContainerImage: "redis:latest",
+							},
 						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "redis-test",
-				Type: "container",
-				Properties: map[string]interface{}{
-					model.ContainerImage: "redis:latest",
-					"env.REDIS_VERSION":  "7.0.12", // NOTE: Only environment variables passed in by the reference are returned.
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "redis-test",
+					Type: "container",
+					Properties: map[string]interface{}{
+						model.ContainerImage: "redis:latest",
+						"env.REDIS_VERSION":  "7.0.12", // NOTE: Only environment variables passed in by the reference are returned.
+					},
 				},
 			},
 		},
@@ -157,7 +163,11 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 
@@ -197,35 +207,41 @@ func TestUpdateGetDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 
 	// Get
-	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{
-					{
-						Name: "alpine-test",
-						Type: "container",
-						Properties: map[string]interface{}{
-							model.ContainerImage: "alpine:3.18",
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{
+						{
+							Name: "alpine-test",
+							Type: "container",
+							Properties: map[string]interface{}{
+								model.ContainerImage: "alpine:3.18",
+							},
 						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action: model.ComponentUpdate,
-			Component: model.ComponentSpec{
-				Name: "alpine-test",
-				Type: "container",
-				Properties: map[string]interface{}{
-					model.ContainerImage: "alpine:3.18",
+		}, References: []model.ComponentStep{
+			{
+				Action: model.ComponentUpdate,
+				Component: model.ComponentSpec{
+					Name: "alpine-test",
+					Type: "container",
+					Properties: map[string]interface{}{
+						model.ContainerImage: "alpine:3.18",
+					},
 				},
 			},
 		},
@@ -242,7 +258,11 @@ func TestUpdateGetDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 
@@ -280,7 +300,11 @@ func TestApplyFailed(t *testing.T) {
 		},
 	}
 
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.NotNil(t, err)
 
 	// unknown container image
@@ -309,7 +333,11 @@ func TestApplyFailed(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.NotNil(t, err)
 }
 
@@ -348,11 +376,19 @@ func TestApplyAlreadyRunning(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 
 	// already running
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }
 

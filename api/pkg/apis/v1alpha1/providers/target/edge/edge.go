@@ -122,7 +122,7 @@ func (h *EdgeProvider) establishConnection(ctx context.Context) error {
 	return nil
 }
 
-func (h *EdgeProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (h *EdgeProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Edge Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -130,7 +130,7 @@ func (h *EdgeProvider) Get(ctx context.Context, deployment model.DeploymentSpec,
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfoCtx(ctx, "  P (Edge Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfoCtx(ctx, "  P (Edge Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
 	defer cancelFunc()
@@ -141,15 +141,15 @@ func (h *EdgeProvider) Get(ctx context.Context, deployment model.DeploymentSpec,
 		return nil, err
 	}
 
-	app, err := h.SystemClient.GetAppInstanceById(ctx, wrapperspb.String(deployment.Instance.ObjectMeta.Name))
+	app, err := h.SystemClient.GetAppInstanceById(ctx, wrapperspb.String(reference.Deployment.Instance.ObjectMeta.Name))
 	if err != nil {
 		sLog.ErrorCtx(ctx, "Failed to get app by ID", "error", err)
 		return nil, err
 	}
 
 	if app == nil {
-		sLog.ErrorCtx(ctx, "App not found", "deviceName", deployment.Instance.ObjectMeta.Name)
-		return nil, fmt.Errorf("app %s not found", deployment.Instance.ObjectMeta.Name)
+		sLog.ErrorCtx(ctx, "App not found", "deviceName", reference.Deployment.Instance.ObjectMeta.Name)
+		return nil, fmt.Errorf("app %s not found", reference.Deployment.Instance.ObjectMeta.Name)
 	}
 
 	compSpec := appToComponentSpec(app)

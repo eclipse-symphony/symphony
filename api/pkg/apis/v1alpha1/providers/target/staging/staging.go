@@ -92,21 +92,21 @@ func toStagingTargetProviderConfig(config providers.IProviderConfig) (StagingTar
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *StagingTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
-	sLog.InfofCtx(ctx, "  P (Staging Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Staging Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	scope := deployment.Instance.Spec.Scope
+	scope := reference.Deployment.Instance.Spec.Scope
 	if scope == "" {
 		scope = "default"
 	}
-	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
+	containerName := reference.Deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
 	versionName := containerName + constants.ResourceSeperator + "version1"
 
 	catalog, err := i.ApiClient.GetCatalog(
@@ -133,8 +133,8 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 			sLog.ErrorfCtx(ctx, "  P (Staging Target): failed to get staged artifact: %v", err)
 			return nil, err
 		}
-		ret := make([]model.ComponentSpec, len(references))
-		for i, reference := range references {
+		ret := make([]model.ComponentSpec, len(reference.References))
+		for i, reference := range reference.References {
 			for _, component := range components {
 				if component.Name == reference.Component.Name {
 					ret[i] = component
@@ -146,13 +146,13 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	}
 	return nil, nil
 }
-func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *StagingTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Staging Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
-	sLog.InfofCtx(ctx, "  P (Staging Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Staging Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
-	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
+	containerName := reference.Deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
 	versionName := containerName + constants.ResourceSeperator + "version1"
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -163,13 +163,13 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		sLog.ErrorfCtx(ctx, "  P (Staging Target): failed to validate components: %v", err)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugfCtx(ctx, "  P (Staging Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
-	ret := step.PrepareResultMap()
+	ret := reference.Step.PrepareResultMap()
 
-	scope := deployment.Instance.Spec.Scope
+	scope := reference.Deployment.Instance.Spec.Scope
 	if scope == "" {
 		scope = "default"
 	}
@@ -229,7 +229,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	components := step.GetUpdatedComponents()
+	components := reference.Step.GetUpdatedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Staging Target): get updated components: count - %d", len(components))
 		for i, component := range components {
@@ -256,7 +256,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	components = step.GetDeletedComponents()
+	components = reference.Step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Staging Target): get deleted components: count - %d", len(components))
 		for i, component := range components {
@@ -278,7 +278,7 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	catalog.Spec.Properties["deployment"] = deployment
+	catalog.Spec.Properties["deployment"] = reference.Deployment
 	catalog.Spec.Properties["staged"] = map[string]interface{}{
 		"components":         existing,
 		"removed-components": deleted,

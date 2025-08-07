@@ -9,4 +9,5 @@ import (
 func TestEdgeTargetProviderConfigFromMapNil(t *testing.T) {
 	_, err := EdgeProviderConfigFromMap(nil)
 	assert.NotNil(t, err)
+
 }

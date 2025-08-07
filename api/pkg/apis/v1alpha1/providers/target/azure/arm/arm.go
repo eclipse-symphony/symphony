@@ -248,7 +248,7 @@ func (r *ArmTargetProvider) Init(config providers.IProviderConfig) error {
 	})
 	return err
 }
-func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (r *ArmTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"ARM Target Provider",
 		ctx,
@@ -259,12 +259,12 @@ func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.Deployment
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (ARM Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ARM Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range references {
+	for _, component := range reference.References {
 		deploymentProp, err := getArmDeploymentFromComponent(component.Component)
-		deploymentName := deployment.Instance.ObjectMeta.Name + "_" + component.Component.Name
+		deploymentName := reference.Deployment.Instance.ObjectMeta.Name + "_" + component.Component.Name
 		if err != nil {
 			return ret, err
 		}
@@ -281,7 +281,7 @@ func (r *ArmTargetProvider) Get(ctx context.Context, deployment model.Deployment
 	}
 	return ret, nil
 }
-func (r *ArmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (r *ArmTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"ARM Target Provider",
 		ctx,
@@ -292,7 +292,7 @@ func (r *ArmTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (ARM Target):  applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ARM Target):  applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -303,7 +303,7 @@ func (r *ArmTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 		metrics.ApplyOperationType,
 		functionName,
 	)
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = r.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		providerOperationMetrics.ProviderOperationErrors(
@@ -318,16 +318,16 @@ func (r *ArmTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 		err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: the rule validation failed", providerName), v1alpha2.ValidateFailed)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugfCtx(ctx, "  P (ARM Target): dryRun is enabled,, skipping apply")
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
+	ret := reference.Step.PrepareResultMap()
 
-	for _, component := range step.Components {
+	for _, component := range reference.Step.Components {
 		deploymentProp, err := getArmDeploymentFromComponent(component.Component)
-		deploymentName := deployment.Instance.ObjectMeta.Name + "_" + component.Component.Name
+		deploymentName := reference.Deployment.Instance.ObjectMeta.Name + "_" + component.Component.Name
 		if component.Action == model.ComponentUpdate {
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (ARM Target): failed to get ARM deployment: %+v", err)

@@ -128,7 +128,7 @@ func (i *GroupTargetProvider) Init(config providers.IProviderConfig) error {
 	return err
 }
 
-func (i *GroupTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *GroupTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Group Target Provider",
 		ctx, &map[string]string{
@@ -138,9 +138,9 @@ func (i *GroupTargetProvider) Get(ctx context.Context, deployment model.Deployme
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (Group Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	log.InfofCtx(ctx, "  P (Group Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
-	targets, err := i.matchTargets(ctx, deployment.Instance.Spec.Scope, i.Config.TargetSelector, true)
+	targets, err := i.matchTargets(ctx, reference.Deployment.Instance.Spec.Scope, i.Config.TargetSelector, true)
 
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Group Target): failed to get targets: %+v", err)
@@ -182,7 +182,7 @@ func (i *GroupTargetProvider) matchTargets(ctx context.Context, namespace string
 	return matches, nil
 }
 
-func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *GroupTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Group Target Provider",
 		ctx,
@@ -193,7 +193,7 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 	var err error
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	log.InfofCtx(ctx, "  P (Group Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	log.InfofCtx(ctx, "  P (Group Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := observ_utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -205,7 +205,7 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 		functionName,
 	)
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Group Target): failed to validate components: %+v", err)
@@ -221,14 +221,14 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 		return nil, err
 	}
 
-	if isDryRun {
+	if reference.IsDryRun {
 		log.DebugCtx(ctx, "  P (Group Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
+	ret := reference.Step.PrepareResultMap()
 
-	targets, err := i.matchTargets(ctx, deployment.Instance.Spec.Scope, i.Config.TargetSelector, true)
+	targets, err := i.matchTargets(ctx, reference.Deployment.Instance.Spec.Scope, i.Config.TargetSelector, true)
 
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Group Target): failed to get targets: %+v", err)
@@ -236,7 +236,7 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 		return nil, err
 	}
 
-	updatedComponents := step.GetUpdatedComponents()
+	updatedComponents := reference.Step.GetUpdatedComponents()
 	assignments, err := i.assignComponents(updatedComponents, targets)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (Group Target): failed to assign components: %+v", err)
@@ -258,12 +258,30 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 				for _, componentName := range v {
 					for _, component := range updatedComponents {
 						if component.Name == componentName {
-							target.Spec.Components = append(target.Spec.Components, component)
+							found := false
+							for _, existingComponent := range target.Spec.Components {
+								if existingComponent.Name == component.Name {
+									found = true
+									break
+								}
+							}
+							if !found {
+								target.Spec.Components = append(target.Spec.Components, component)
+							}
 						}
 					}
 				}
 				log.InfofCtx(ctx, "  P (Group Target): assigned %d components to target %s", i, target.ObjectMeta.Name)
 			}
+
+			if len(target.Spec.Components) > 1 {
+				for i, component := range target.Spec.Components {
+					if strings.HasPrefix(component.Name, "probe-") {
+						target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
+					}
+				}
+			}
+
 			targetData, _ := json.Marshal(target)
 			err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
@@ -285,6 +303,40 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, deployment model.Deploy
 			ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
 				Status:  v1alpha2.Updated,
 				Message: fmt.Sprintf("No error. %s has been updated", target.ObjectMeta.Name),
+			}
+		}
+	}
+
+	for _, target := range targets {
+		if len(target.Spec.Components) == 0 {
+			dummySpec := model.ComponentSpec{
+				Name: fmt.Sprintf("probe-%s", target.ObjectMeta.Name),
+				Type: "container",
+				Metadata: map[string]string{
+					"probe": "true",
+				},
+				Properties: map[string]interface{}{},
+			}
+			for _, component := range updatedComponents {
+				dummySpec.Properties[component.Name] = ""
+			}
+			target.Spec.Components = append(target.Spec.Components, dummySpec)
+			targetData, _ := json.Marshal(target)
+			err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				log.ErrorfCtx(ctx, "  P (Group Target): failed to update target %s: %+v", target.ObjectMeta.Name, err)
+				ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
+					Status:  v1alpha2.UpdateFailed,
+					Message: fmt.Sprintf("failed to update target %s: %v", target.ObjectMeta.Name, err),
+				}
+				providerOperationMetrics.ProviderOperationErrors(
+					group,
+					functionName,
+					metrics.ApplyOperation,
+					metrics.ApplyOperationType,
+					v1alpha2.UpdateFailed.String(),
+				)
+				return ret, err
 			}
 		}
 	}
@@ -310,10 +362,36 @@ func (i *GroupTargetProvider) assignComponents(components []model.ComponentSpec,
 		}
 		if !assigned {
 			for _, target := range targets {
-				//check anti-affinity rule
-				assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
-				assigned = true
-				break
+				for _, component := range target.Spec.Components {
+					if component.Name == component.Name {
+						assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
+						assigned = true
+						break
+					}
+				}
+				if assigned {
+					break
+				}
+			}
+		}
+		if !assigned {
+			for _, target := range targets {
+				if len(target.Spec.Components) != 0 {
+					continue // TODO: specific rule: skip targets that already have a component assigned. genearlize/externalize this
+				}
+				hasComponent := false
+				for k, _ := range target.Status.Properties {
+					if strings.HasPrefix(k, "component:") {
+						hasComponent = true //specific rule: skip targets that already have a component assigned. generalize/externalize this
+						break
+					}
+				}
+				if !hasComponent {
+					//check anti-affinity rule
+					assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
+					assigned = true
+					break
+				}
 			}
 		}
 		if !assigned {

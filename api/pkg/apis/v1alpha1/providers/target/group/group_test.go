@@ -322,6 +322,10 @@ func TestGroupTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deployment,
+		Step:       step,
+		IsDryRun:   false,
+	})
 	assert.Nil(t, err)
 }

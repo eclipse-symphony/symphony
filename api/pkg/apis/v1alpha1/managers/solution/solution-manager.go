@@ -440,7 +440,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		}()
 		for i := 0; i < retryCount; i++ {
 			deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, deployment.Instance, deployment.Targets[step.Target])
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
+			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, model.TargetProviderApplyReference{
+				Deployment: dep,
+				Step:       step,
+				IsDryRun:   deployment.IsDryRun,
+			})
 			if stepError == nil {
 				targetResult[step.Target] = 1
 				summary.AllAssignedDeployed = plannedCount == planSuccessCount
@@ -653,7 +657,10 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 			provider = override
 		}
 		var components []model.ComponentSpec
-		components, err = (provider.(tgt.ITargetProvider)).Get(ctx, deployment, step.Components)
+		components, err = (provider.(tgt.ITargetProvider)).Get(ctx, model.TargetProviderGetReference{
+			Deployment: deployment,
+			References: step.Components,
+		})
 
 		if err != nil {
 			log.WarnfCtx(ctx, " M (Solution): failed to get components: %+v", err)

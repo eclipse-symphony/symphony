@@ -127,7 +127,7 @@ func TestGetFailed(t *testing.T) {
 		},
 	}
 
-	_, err = provider.Get(context.Background(), deployment, steps)
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: steps})
 	assert.NotNil(t, err)
 }
 
@@ -180,7 +180,7 @@ func TestApplyFailed(t *testing.T) {
 		Components: components,
 	}
 
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 
 	components = []model.ComponentStep{
@@ -192,7 +192,7 @@ func TestApplyFailed(t *testing.T) {
 	step = model.DeploymentStep{
 		Components: components,
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 

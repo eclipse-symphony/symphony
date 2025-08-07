@@ -18,7 +18,7 @@ type ITargetProvider interface {
 	// get validation rules
 	GetValidationRule(ctx context.Context) model.ValidationRule
 	// get current component states from a target. The desired state is passed in as a reference
-	Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error)
+	Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error)
 	// apply components to a target
-	Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error)
+	Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error)
 }

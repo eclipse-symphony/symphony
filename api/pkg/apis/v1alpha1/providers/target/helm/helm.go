@@ -283,7 +283,7 @@ func toHelmTargetProviderConfig(config providers.IProviderConfig) (HelmTargetPro
 }
 
 // Get returns the list of components for a given deployment
-func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *HelmTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
@@ -295,8 +295,8 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	var actionConfig *action.Configuration
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Helm Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
-	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
+	sLog.InfofCtx(ctx, "  P (Helm Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
+	actionConfig, err = i.createActionConfig(ctx, reference.Deployment.Instance.Spec.Scope)
 	if err != nil {
 		sLog.ErrorCtx(ctx, err)
 		return nil, err
@@ -312,11 +312,11 @@ func (i *HelmTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	}
 
 	ret := make([]model.ComponentSpec, 0)
-	for _, component := range references {
+	for _, component := range reference.References {
 		helmProp, err := getHelmPropertyFromComponent(component.Component)
 		releaseName := GetReleaseName(component.Component, helmProp)
 		for _, res := range results {
-			if (deployment.Instance.Spec.Scope == "" || res.Namespace == deployment.Instance.Spec.Scope) && res.Name == releaseName {
+			if (reference.Deployment.Instance.Spec.Scope == "" || res.Namespace == reference.Deployment.Instance.Spec.Scope) && res.Name == releaseName {
 				repo := ""
 				name := ""
 				if strings.HasPrefix(res.Chart.Metadata.Tags, "SYM-REPO:") { //we use this special metadata tag to remember the chart URL
@@ -411,7 +411,7 @@ func downloadFile(url string, fileName string) error {
 }
 
 // Apply deploys the helm chart for a given deployment
-func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *HelmTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan(
 		"Helm Target Provider",
 		ctx,
@@ -422,7 +422,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	var err error
 	defer utils.CloseSpanWithError(span, &err)
 	defer utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Helm Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -434,7 +434,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		functionName,
 	)
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to validate components: %+v", err)
@@ -450,15 +450,15 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		return nil, err
 	}
 
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugCtx(ctx, "  P (Helm Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
+	ret := reference.Step.PrepareResultMap()
 
 	var actionConfig *action.Configuration
-	actionConfig, err = i.createActionConfig(ctx, deployment.Instance.Spec.Scope)
+	actionConfig, err = i.createActionConfig(ctx, reference.Deployment.Instance.Spec.Scope)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to create action config: %+v", err)
 		providerOperationMetrics.ProviderOperationErrors(
@@ -471,7 +471,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		return ret, err
 	}
 
-	for _, component := range step.Components {
+	for _, component := range reference.Step.Components {
 		var helmProp *HelmProperty
 		helmProp, err = getHelmPropertyFromComponent(component.Component)
 		releaseName := GetReleaseName(component.Component, helmProp)
@@ -538,15 +538,15 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 			chart.Metadata.Tags = "SYM-REPO:" + helmProp.Chart.Repo + ";SYM-NAME:" + helmProp.Chart.Name //this is not used by Helm SDK, we use this to carry repo info
 
 			postRender := &PostRenderer{
-				instance:  deployment.Instance,
+				instance:  reference.Deployment.Instance,
 				populator: i.MetaPopulator,
 			}
-			installClient, err := configureInstallClient(ctx, releaseName, &helmProp.Chart, &deployment, actionConfig, postRender)
+			installClient, err := configureInstallClient(ctx, releaseName, &helmProp.Chart, &reference.Deployment, actionConfig, postRender)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm install client: %+v", err)
 				return nil, err
 			}
-			upgradeClient, err := configureUpgradeClient(ctx, &helmProp.Chart, &deployment, actionConfig, postRender)
+			upgradeClient, err := configureUpgradeClient(ctx, &helmProp.Chart, &reference.Deployment, actionConfig, postRender)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to config helm upgrade client: %+v", err)
 				return nil, err
@@ -557,7 +557,7 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 				sLog.ErrorfCtx(ctx, "  P (Helm Target): Error checking if chart exists: %+v", err)
 				return nil, err
 			}
-			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart, releaseName: %s, defined in component: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", releaseName, component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, deployment.Instance.Spec.Scope)
+			utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Applying chart, releaseName: %s, defined in component: %s, chart: {repo: %s, name: %s, version: %s}, namespace: %s", releaseName, component.Component.Name, helmProp.Chart.Repo, helmProp.Chart.Name, helmProp.Chart.Version, reference.Deployment.Instance.Spec.Scope)
 			if releaseExists {
 				sLog.InfofCtx(ctx, "  P (Helm Target): Chart upgrade started. Details - Release Name: %s, Component Name: %s", releaseName, component.Component.Name)
 				if _, err = upgradeClient.Run(releaseName, chart, helmProp.Values); err != nil {
@@ -605,12 +605,12 @@ func (i *HelmTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		} else {
 			switch component.Component.Type {
 			case "helm.v3":
-				uninstallClient, err := configureUninstallClient(ctx, &helmProp.Chart, &deployment, actionConfig)
+				uninstallClient, err := configureUninstallClient(ctx, &helmProp.Chart, &reference.Deployment, actionConfig)
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to configure uninstall client: %+v", err)
 					return nil, err
 				}
-				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart, releaseName: %s, defined in component: %s, namespace: %s", releaseName, component.Component.Name, deployment.Instance.Spec.Scope)
+				utils.EmitUserAuditsLogs(ctx, "  P (Helm Target): Uninstalling chart, releaseName: %s, defined in component: %s, namespace: %s", releaseName, component.Component.Name, reference.Deployment.Instance.Spec.Scope)
 				_, err = uninstallClient.Run(releaseName)
 				if err != nil && !errors.Is(err, driver.ErrReleaseNotFound) {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to uninstall Helm chart: %+v", err)

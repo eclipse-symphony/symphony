@@ -117,7 +117,7 @@ func toWin10SideLoadProviderConfig(config providers.IProviderConfig) (Win10SideL
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *Win10SideLoadProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -125,7 +125,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	params := make([]string, 0)
 	params = append(params, "list")
@@ -145,7 +145,7 @@ func (i *Win10SideLoadProvider) Get(ctx context.Context, deployment model.Deploy
 	str := string(out)
 	lines := strings.Split(str, "\r\n")
 
-	desired := deployment.GetComponentSlice()
+	desired := reference.Deployment.GetComponentSlice()
 
 	re := regexp.MustCompile(`^(\w+\.)+\w+$`)
 	ret := make([]model.ComponentSpec, 0)
@@ -199,7 +199,7 @@ func (i *Win10SideLoadProvider) getPackageReferenceName(ctx context.Context, nam
 
 	return ""
 }
-func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *Win10SideLoadProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Win 10 Sideload Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -207,21 +207,21 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Win10Sideload Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Win10Sideload Target): failed to validate components, error: %+v", err)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugfCtx(ctx, "  P (Win10Sideload Target): dryRun is enabled, skipping apply")
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
-	components = step.GetUpdatedComponents()
+	ret := reference.Step.PrepareResultMap()
+	components = reference.Step.GetUpdatedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Win10Sideload Target): get updated components: count - %d", len(components))
 		for _, component := range components {
@@ -254,7 +254,7 @@ func (i *Win10SideLoadProvider) Apply(ctx context.Context, deployment model.Depl
 			}
 		}
 	}
-	components = step.GetDeletedComponents()
+	components = reference.Step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Win10Sideload Target): get deleted components: count - %d", len(components))
 		for _, component := range components {

@@ -169,7 +169,7 @@ func TestIngressTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -239,7 +239,7 @@ func TestIngressTargetProviderDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -284,7 +284,7 @@ func TestIngressTargetProviderGet(t *testing.T) {
 			},
 		},
 	}
-	components, err := provider.Get(context.Background(), deployment, step.Components)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: step.Components})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
 	assert.Equal(t, "/testpath", components[0].Properties["rules.0"].(networkingv1.IngressRule).HTTP.Paths[0].Path)
@@ -359,9 +359,9 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 
 	reference := []model.ComponentStep{
@@ -370,7 +370,7 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 			Component: component,
 		},
 	}
-	componentSpec, err := provider.Get(context.Background(), deployment, reference)
+	componentSpec, err := provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: reference})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(componentSpec))
 
@@ -382,6 +382,6 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }

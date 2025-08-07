@@ -182,7 +182,7 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -229,7 +229,7 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 			},
 		},
 	}
-	components, err := provider.Get(context.Background(), deployment, step.Components)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: step.Components})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(components))
 	assert.Equal(t, "bar", components[0].Properties["foo"])
@@ -288,7 +288,7 @@ func TestConfigMapTargetProviderDelete(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -341,11 +341,11 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 	}
 
 	// Create, update, get and delete
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
-	components, err := provider.Get(context.Background(), deployment, step.Components)
+	components, err := provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: step.Components})
 	assert.Equal(t, 1, len(components))
 	assert.Nil(t, err)
 	err = provider.deleteConfigMap(context.Background(), "test-config", "configs")

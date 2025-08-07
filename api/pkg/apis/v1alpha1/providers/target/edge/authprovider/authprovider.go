@@ -31,16 +31,16 @@ type AuthenticationService struct {
 }
 
 func ParseCertificatePEM(certPEM string) ([][]byte, error) {
-    var certs [][]byte
-    block, rest := pem.Decode([]byte(certPEM))
-    for block != nil {
-        certs = append(certs, block.Bytes)
-        block, rest = pem.Decode(rest)
-    }
-    if len(certs) == 0 {
-        return nil, fmt.Errorf("no certificates found")
-    }
-    return certs, nil
+	var certs [][]byte
+	block, rest := pem.Decode([]byte(certPEM))
+	for block != nil {
+		certs = append(certs, block.Bytes)
+		block, rest = pem.Decode(rest)
+	}
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("no certificates found")
+	}
+	return certs, nil
 }
 
 // NewAuthenticationService creates a new instance of AuthenticationService with TLS credentials.
@@ -192,10 +192,9 @@ func (s *AuthenticationService) SendTokenAsync(token string) (string, error) {
 
 var (
 	Username = "service"
-	Password = "Test@123"
+	Password = ""
 
-	Certificate string =
-	`-----BEGIN CERTIFICATE-----
+	Certificate string = `-----BEGIN CERTIFICATE-----
 	MIIFUjCCAzqgAwIBAgIUCwB/DBO6/7e92mjR7RFEYu/O9Q8wDQYJKoZIhvcNAQEL
 	BQAwQTElMCMGA1UECgwcU0NITkVJREVSIEVMRUNUUklDIFVTQSwgSU5DLjEYMBYG
 	A1UEAwwPREVTS1RPUC1VRDQ4NEMyMB4XDTI1MDIxMDEwMzI1NVoXDTI2MDIxMDEw
@@ -227,4 +226,3 @@ var (
 	VoWSq2KqQpZo9URVn4W9ookHRda9zA==
 	-----END CERTIFICATE-----'`
 )
-

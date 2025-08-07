@@ -86,7 +86,7 @@ func TestApply(t *testing.T) {
 	step := model.DeploymentStep{
 		Components: components,
 	}
-	result, err := provider.Apply(context.Background(), deployment, step, false)
+	result, err := provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 	assert.Equal(t, result["test"].Status, v1alpha2.Updated)
 
@@ -99,7 +99,7 @@ func TestApply(t *testing.T) {
 		},
 	}
 
-	result, err = provider.Apply(context.Background(), deployment, step, false)
+	result, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 	assert.Equal(t, result["test"].Status, v1alpha2.Deleted)
 }
@@ -165,6 +165,6 @@ func TestGet(t *testing.T) {
 		},
 	}
 
-	_, err = provider.Get(context.Background(), deployment, components)
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{Deployment: deployment, References: components})
 	assert.Nil(t, err)
 }

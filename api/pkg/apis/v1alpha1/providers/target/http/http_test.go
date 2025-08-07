@@ -100,7 +100,7 @@ func TestHttpTargetProviderApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -137,7 +137,7 @@ func TestHttpTargetProviderIncorrectApply(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 }
 
@@ -176,7 +176,7 @@ func TestHttpTargetProviderApplyWrongMethod(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 }
 
@@ -224,7 +224,7 @@ func TestHttpTargetProviderApplyInvalidStatusCode(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.NotNil(t, err)
 }
 
@@ -243,41 +243,42 @@ func TestHttpTargetProviderGet(t *testing.T) {
 			"http.method": "GET",
 		},
 	}
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
-				Components: []model.ComponentSpec{component},
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
 			},
-		},
-		Assignments: map[string]string{
-			"target-1": "{http-component}",
-		},
-		Targets: map[string]model.TargetState{
-			"target-1": {
-				Spec: &model.TargetSpec{
-					Topologies: []model.TopologySpec{
-						{
-							Bindings: []model.BindingSpec{
-								{
-									Role:     "instance",
-									Provider: "doesn't-matter",
-									Config:   map[string]string{},
+			Solution: model.SolutionState{
+				Spec: &model.SolutionSpec{
+					Components: []model.ComponentSpec{component},
+				},
+			},
+			Assignments: map[string]string{
+				"target-1": "{http-component}",
+			},
+			Targets: map[string]model.TargetState{
+				"target-1": {
+					Spec: &model.TargetSpec{
+						Topologies: []model.TopologySpec{
+							{
+								Bindings: []model.BindingSpec{
+									{
+										Role:     "instance",
+										Provider: "doesn't-matter",
+										Config:   map[string]string{},
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-		},
-	}, []model.ComponentStep{
-		{
-			Action:    "update",
-			Component: component,
-		},
-	})
+		}, References: []model.ComponentStep{
+			{
+				Action:    "update",
+				Component: component,
+			},
+		}})
 	assert.Nil(t, err)
 }
 
@@ -334,7 +335,7 @@ func TestHttpTargetProviderRemove(t *testing.T) {
 			},
 		},
 	}
-	_, err = provider.Apply(context.Background(), deployment, step, false)
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{Deployment: deployment, Step: step, IsDryRun: false})
 	assert.Nil(t, err)
 }
 

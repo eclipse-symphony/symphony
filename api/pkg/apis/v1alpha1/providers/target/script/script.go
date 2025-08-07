@@ -189,7 +189,7 @@ func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderCon
 	return ret, err
 }
 
-func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *ScriptProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -197,7 +197,7 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Script Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	id := uuid.New().String()
 	input := id + ".json"
@@ -205,11 +205,11 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	output := id + "-get-output.json"
 
 	staging := filepath.Join(i.Config.StagingFolder, input)
-	file, _ := json.MarshalIndent(deployment, "", " ")
+	file, _ := json.MarshalIndent(reference.Deployment, "", " ")
 	_ = os.WriteFile(staging, file, 0644)
 
 	staging_ref := filepath.Join(i.Config.StagingFolder, input_ref)
-	file_ref, _ := json.MarshalIndent(references, "", " ")
+	file_ref, _ := json.MarshalIndent(reference.References, "", " ")
 	_ = os.WriteFile(staging_ref, file_ref, 0644)
 
 	abs, _ := filepath.Abs(staging)
@@ -315,14 +315,14 @@ func (i *ScriptProvider) runScriptOnComponents(ctx context.Context, deployment m
 	}
 	return ret, nil
 }
-func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *ScriptProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Script Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-	sLog.InfofCtx(ctx, "  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (Script Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := observ_utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -346,18 +346,18 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.InfofCtx(ctx, "  P (Proxy Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
-	components := step.GetUpdatedComponents()
+	ret := reference.Step.PrepareResultMap()
+	components := reference.Step.GetUpdatedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Script Target): get updated components: count - %d", len(components))
 		var retU map[string]model.ComponentResultSpec
-		retU, err = i.runScriptOnComponents(ctx, deployment, components, false)
+		retU, err = i.runScriptOnComponents(ctx, reference.Deployment, components, false)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run apply script: %+v", err)
 			providerOperationMetrics.ProviderOperationErrors(
@@ -374,11 +374,11 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 		}
 	}
 
-	components = step.GetDeletedComponents()
+	components = reference.Step.GetDeletedComponents()
 	if len(components) > 0 {
 		sLog.InfofCtx(ctx, "  P (Script Target): get deleted components: count - %d", len(components))
 		var retU map[string]model.ComponentResultSpec
-		retU, err = i.runScriptOnComponents(ctx, deployment, components, true)
+		retU, err = i.runScriptOnComponents(ctx, reference.Deployment, components, true)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to run remove script: %+v", err)
 			providerOperationMetrics.ProviderOperationErrors(

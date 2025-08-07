@@ -107,7 +107,7 @@ func toHttpTargetProviderConfig(config providers.IProviderConfig) (HttpTargetPro
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
-func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *HttpTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -115,13 +115,13 @@ func (i *HttpTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (HTTP Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (HTTP Target): getting artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	// This provider doesn't remember what it does, so it always return nil when asked
 	return nil, nil
 }
 
-func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *HttpTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Http Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -129,7 +129,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (HTTP Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (HTTP Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
 	functionName := utils.GetFunctionName()
 	startTime := time.Now().UTC()
@@ -142,11 +142,11 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 	)
 
 	injections := &model.ValueInjections{
-		InstanceId: deployment.Instance.ObjectMeta.Name,
-		SolutionId: deployment.Instance.Spec.Solution,
-		TargetId:   deployment.ActiveTarget,
+		InstanceId: reference.Deployment.Instance.ObjectMeta.Name,
+		SolutionId: reference.Deployment.Instance.Spec.Solution,
+		TargetId:   reference.Deployment.ActiveTarget,
 	}
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (HTTP Target): failed to validate components: %+v", err)
@@ -160,14 +160,14 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugCtx(ctx, "  P (HTTP Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
-	for _, component := range step.Components {
+	ret := reference.Step.PrepareResultMap()
+	for _, component := range reference.Step.Components {
 		if component.Action == "update" {
 			body := model.ReadPropertyCompat(component.Component.Properties, "http.body", injections)
 			url := model.ReadPropertyCompat(component.Component.Properties, "http.url", injections)

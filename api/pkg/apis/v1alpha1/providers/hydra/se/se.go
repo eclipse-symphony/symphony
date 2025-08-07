@@ -274,9 +274,9 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 			"haSet": i.Config.HASet,
 			"kind":  lastSeenDeviceKind,
 		},
-		StateSelector: map[string]string{
-			"probed": "true",
-		},
+		// StateSelector: map[string]string{
+		// 	"probed": "true",
+		// },
 	}
 	selectorData, _ := json.Marshal(selector)
 
@@ -337,22 +337,12 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 				Name: app.Metadata.Name,
 				Type: app.Kind,
 				Metadata: map[string]string{
-					"name": app.Metadata.Name,
+					"name":    app.Metadata.Name,
+					"Uuid":    app.Metadata.Uuid,
+					"OnwerId": app.Metadata.OwnerId,
 				},
 				Properties: map[string]interface{}{
-					"version": app.Version,
-					"image":   app.Spec.Container.Image,
-					"affinity": map[string]interface{}{
-						"preferredHosts":  app.Spec.Affinity.PreferredHosts,
-						"appAntiAffinity": app.Spec.Affinity.AppAntiAffinity,
-					},
-					"containerNetworks": app.Spec.Container.Networks,
-					"resources": map[string]interface{}{
-						"limits": map[string]interface{}{
-							"memory": app.Spec.Container.Resources.Limits.Memory,
-							"cpus":   app.Spec.Container.Resources.Limits.CPUs,
-						},
-					},
+					"container": app.Spec.Container,
 				},
 			}
 			for k, v := range app.Metadata.Labels {

@@ -188,11 +188,15 @@ func TestGet(t *testing.T) {
 		}
 	}
 
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-	}, nil)
+	arr, err := provider.Get(context.Background(),
+		model.TargetProviderGetReference{
+			Deployment: model.DeploymentSpec{
+				Instance: model.InstanceState{
+					Spec: &model.InstanceSpec{},
+				},
+			},
+			References: nil,
+		})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(arr))
@@ -240,11 +244,14 @@ func TestGetBad(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
+	_, err = provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
 		},
-	}, nil)
+		References: nil,
+	})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "Internal Error: BAD!!", err.Error())
@@ -382,7 +389,11 @@ func TestApply(t *testing.T) {
 		}},
 	}
 
-	ret, err := provider.Apply(context.Background(), deploymentSpec, stepSpec, false)
+	ret, err := provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: deploymentSpec,
+		Step:       stepSpec,
+		IsDryRun:   false,
+	})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
@@ -433,20 +444,22 @@ func TestApplyBad(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-	}, model.DeploymentStep{
-		Target: "test-target",
-		Components: []model.ComponentStep{{
-			Action: "update",
-			Component: model.ComponentSpec{
-				Name: "test-component",
-				Type: "test-component",
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
 			},
-		}},
-	}, false)
+		},
+		Step: model.DeploymentStep{
+			Target: "test-target",
+			Components: []model.ComponentStep{{
+				Action: "update",
+				Component: model.ComponentSpec{
+					Name: "test-component",
+					Type: "test-component",
+				},
+			}},
+		}, IsDryRun: false})
 
 	assert.NotNil(t, err)
 }
@@ -493,20 +506,21 @@ func TestARemove(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-	}, model.DeploymentStep{
-		Target: "test-target",
-		Components: []model.ComponentStep{{
-			Action: "delete",
-			Component: model.ComponentSpec{
-				Name: "test-component",
-				Type: "test-component",
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
 			},
-		}},
-	}, false)
+		}, Step: model.DeploymentStep{
+			Target: "test-target",
+			Components: []model.ComponentStep{{
+				Action: "delete",
+				Component: model.ComponentSpec{
+					Name: "test-component",
+					Type: "test-component",
+				},
+			}},
+		}, IsDryRun: false})
 	assert.Nil(t, err)
 }
 func TestARemoveBad(t *testing.T) {
@@ -551,20 +565,21 @@ func TestARemoveBad(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-	}, model.DeploymentStep{
-		Target: "test-target",
-		Components: []model.ComponentStep{{
-			Action: "delete",
-			Component: model.ComponentSpec{
-				Name: "test-component",
-				Type: "test-component",
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
 			},
-		}},
-	}, false)
+		}, Step: model.DeploymentStep{
+			Target: "test-target",
+			Components: []model.ComponentStep{{
+				Action: "delete",
+				Component: model.ComponentSpec{
+					Name: "test-component",
+					Type: "test-component",
+				},
+			}},
+		}, IsDryRun: false})
 
 	assert.NotNil(t, err)
 }
@@ -617,11 +632,14 @@ func TestGetApply(t *testing.T) {
 		}
 	}
 
-	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
+	arr, err := provider.Get(context.Background(), model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
 		},
-	}, nil)
+		References: nil,
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(arr))
@@ -629,20 +647,21 @@ func TestGetApply(t *testing.T) {
 	err = provider.Init(config)
 	assert.Nil(t, err)
 
-	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-	}, model.DeploymentStep{
-		Target: "test-target",
-		Components: []model.ComponentStep{{
-			Action: "delete",
-			Component: model.ComponentSpec{
-				Name: "test-component",
-				Type: "test-component",
+	_, err = provider.Apply(context.Background(), model.TargetProviderApplyReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
 			},
-		}},
-	}, false)
+		}, Step: model.DeploymentStep{
+			Target: "test-target",
+			Components: []model.ComponentStep{{
+				Action: "delete",
+				Component: model.ComponentSpec{
+					Name: "test-component",
+					Type: "test-component",
+				},
+			}},
+		}, IsDryRun: false})
 	assert.Nil(t, err)
 }
 
@@ -709,17 +728,21 @@ func TestLocalApplyGet(t *testing.T) {
 		}
 	}
 
-	_, err = provider.Apply(ctx, model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
-		},
-	}, model.DeploymentStep{}, false)
+	_, err = provider.Apply(ctx, model.TargetProviderApplyReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
+		}, Step: model.DeploymentStep{}, IsDryRun: false})
 	assert.Nil(t, err)
-	arr, err := provider.Get(ctx, model.DeploymentSpec{
-		Instance: model.InstanceState{
-			Spec: &model.InstanceSpec{},
+	arr, err := provider.Get(ctx, model.TargetProviderGetReference{
+		Deployment: model.DeploymentSpec{
+			Instance: model.InstanceState{
+				Spec: &model.InstanceSpec{},
+			},
 		},
-	}, nil)
+		References: nil,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(arr))
 }

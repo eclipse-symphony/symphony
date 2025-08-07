@@ -126,7 +126,7 @@ func toADUTargetProviderConfig(config providers.IProviderConfig) (ADUTargetProvi
 	return ret, nil
 }
 
-func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, references []model.ComponentStep) ([]model.ComponentSpec, error) {
+func (i *ADUTargetProvider) Get(ctx context.Context, reference model.TargetProviderGetReference) ([]model.ComponentSpec, error) {
 	ctx, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Get",
 	})
@@ -134,13 +134,13 @@ func (i *ADUTargetProvider) Get(ctx context.Context, dep model.DeploymentSpec, r
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	if dep.Instance.Spec == nil {
+	if reference.Deployment.Instance.Spec == nil {
 		err = errors.New("deployment instance spec is nil")
 		sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to get deployment, error: %+v", err)
 		return nil, err
 	}
 
-	sLog.InfofCtx(ctx, "  P (ADU Target): getting components: %s - %s", dep.Instance.Spec.Scope, dep.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ADU Target): getting components: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 	deployment, err := i.getDeployment()
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (ADU Target): %+v", err)
@@ -188,7 +188,7 @@ func getDeploymentFromComponent(c model.ComponentSpec) (azureutils.ADUDeployment
 	return deployment, nil
 }
 
-func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.DeploymentSpec, step model.DeploymentStep, isDryRun bool) (map[string]model.ComponentResultSpec, error) {
+func (i *ADUTargetProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("ADU Target Provider", ctx, &map[string]string{
 		"method": "Apply",
 	})
@@ -196,23 +196,23 @@ func (i *ADUTargetProvider) Apply(ctx context.Context, deployment model.Deployme
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	sLog.InfofCtx(ctx, "  P (ADU Target): applying components: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+	sLog.InfofCtx(ctx, "  P (ADU Target): applying components: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
 
-	components := step.GetComponents()
+	components := reference.Step.GetComponents()
 	err = i.GetValidationRule(ctx).Validate(components)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (ADU Target): failed to validate components, error: %v", err)
 		return nil, err
 	}
-	if isDryRun {
+	if reference.IsDryRun {
 		sLog.DebugCtx(ctx, "  P (ADU Target): dryRun is enabled, skipping apply")
 		err = nil
 		return nil, nil
 	}
 
-	ret := step.PrepareResultMap()
+	ret := reference.Step.PrepareResultMap()
 
-	for _, c := range step.Components {
+	for _, c := range reference.Step.Components {
 		var deployment azureutils.ADUDeployment
 		deployment, err = getDeploymentFromComponent(c.Component)
 		if err != nil {
