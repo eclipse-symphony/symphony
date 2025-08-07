@@ -39,6 +39,7 @@ type DockerTargetProviderConfig struct {
 type DockerTargetProvider struct {
 	Config  DockerTargetProviderConfig
 	Context *contexts.ManagerContext
+	RLog    logger.Logger
 }
 
 func DockerTargetProviderConfigFromMap(properties map[string]string) (DockerTargetProviderConfig, error) {
@@ -64,6 +65,9 @@ func (d *DockerTargetProvider) Init(config providers.IProviderConfig) error {
 	ctx, span := observability.StartSpan("Docker Target Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
+	if d.RLog != nil {
+		sLog = d.RLog
+	}
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)

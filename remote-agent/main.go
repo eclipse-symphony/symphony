@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +15,7 @@ import (
 	targethttp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/http"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
@@ -36,6 +35,7 @@ var (
 	execDir           string
 	protocol          string
 	caPath            string
+	rLog              logger.Logger
 )
 
 func mainLogic() error {
@@ -51,11 +51,7 @@ func mainLogic() error {
 	execDir = filepath.Dir(execPath)
 
 	// log file
-	logFile, err := os.OpenFile(filepath.Join(execDir, "transcript.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %v", err)
-	}
-	log.SetOutput(logFile)
+	rLog = logger.NewRemoteAgentLogger("remote-agent")
 	// extract command line arguments
 	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file")
 	flag.StringVar(&clientCertPath, "client-cert", "public.pem", "Path to the client certificate file")
@@ -66,18 +62,21 @@ func mainLogic() error {
 	flag.Parse()
 
 	// read configuration
-	setting, err := ioutil.ReadFile(configPath)
+	setting, err := os.ReadFile(configPath)
 	if err != nil {
+		rLog.Errorf("error reading configuration file: %v", err)
 		return fmt.Errorf("error reading configuration file: %v", err)
 	}
 	if err := json.Unmarshal(setting, &symphonyEndpoints); err != nil {
+		rLog.Errorf("error unmarshalling configuration file: %v", err)
 		return fmt.Errorf("error unmarshalling configuration file: %v", err)
 	}
 
 	// load certificates
-	log.Printf("Loading client certificate from %s and key from %s", clientCertPath, clientKeyPath)
+	rLog.Infof("Loading client certificate from %s and key from %s", clientCertPath, clientKeyPath)
 	clientCert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
 	if err != nil {
+		rLog.Errorf("error loading client certificate and key: %v", err)
 		return fmt.Errorf("error loading client certificate and key: %v", err)
 	}
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{clientCert}}
@@ -86,6 +85,7 @@ func mainLogic() error {
 	// compose target providers
 	providers := composeTargetProviders(topologyFile)
 	if providers == nil {
+		rLog.Errorf("failed to compose target providers")
 		return fmt.Errorf("failed to compose target providers")
 	}
 
@@ -93,7 +93,9 @@ func mainLogic() error {
 	h := &remoteHttp.HttpBinding{
 		Agent: agent.Agent{
 			Providers: providers,
+			RLog:      rLog,
 		},
+		RLog: rLog,
 	}
 	h.RequestUrl = symphonyEndpoints.RequestEndpoint
 	h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
@@ -103,6 +105,7 @@ func mainLogic() error {
 
 	// start HttpBinding
 	if err := h.Launch(); err != nil {
+		rLog.Errorf("error launching HttpBinding: %v", err)
 		return fmt.Errorf("error launching HttpBinding: %v", err)
 	}
 
@@ -113,7 +116,7 @@ func mainLogic() error {
 func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider {
 	topologyContent, err := os.ReadFile(topologyPath)
 	if err != nil {
-		log.Printf("Error reading topology file: %v", err)
+		rLog.Errorf("Error reading topology file: %v", err)
 		return nil
 	}
 	var topology model.TopologySpec
@@ -123,13 +126,15 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 		switch binding.Provider {
 		case "providers.target.script":
 			provider := &script.ScriptProvider{}
+			provider.ProviderLog = rLog
 			if err := provider.Init(binding.Config); err != nil {
-				log.Printf("Error initializing script provider: %v", err)
+				rLog.Errorf("Error initializing script provider: %v", err)
 			}
 			providers[binding.Role] = provider
 		case "providers.target.remote-agent":
 			rProvider := &remoteProviders.RemoteAgentProvider{}
 			rProvider.Client = httpClient
+			rProvider.RLog = rLog
 			rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
 				PublicCertPath: clientCertPath,
 				PrivateKeyPath: clientKeyPath,
@@ -142,29 +147,32 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 				ExecDir:        execDir,
 			}
 			if err := rProvider.Init(rProviderConfig); err != nil {
-				log.Printf("Error remote agent provider: %v", err)
+				rLog.Errorf("Error remote agent provider: %v", err)
 			}
 			providers[binding.Role] = rProvider
 		case "providers.target.win10.sideload":
 			mProvider := &sideload.Win10SideLoadProvider{}
+			mProvider.RLog = rLog
 			if err := mProvider.Init(binding.Config); err != nil {
-				log.Printf("Error initializing win10.sideload provider: %v", err)
+				rLog.Errorf("Error initializing win10.sideload provider: %v", err)
 			}
 			providers[binding.Role] = mProvider
 		case "providers.target.docker":
 			mProvider := &docker.DockerTargetProvider{}
+			mProvider.RLog = rLog
 			if err := mProvider.Init(binding.Config); err != nil {
-				log.Printf("Error initializing docker provider: %v", err)
+				rLog.Errorf("Error initializing docker provider: %v", err)
 			}
 			providers[binding.Role] = mProvider
 		case "providers.target.http":
 			mProvider := &targethttp.HttpTargetProvider{}
+			mProvider.RLog = rLog
 			if err := mProvider.Init(binding.Config); err != nil {
-				log.Printf("Error initializing http provider: %v", err)
+				rLog.Errorf("Error initializing http provider: %v", err)
 			}
 			providers[binding.Role] = mProvider
 		default:
-			log.Printf("Unknown provider type: %s", binding.Role)
+			rLog.Errorf("Unknown provider type: %s", binding.Role)
 		}
 	}
 	return providers

@@ -67,14 +67,15 @@ const (
 
 type SolutionManager struct {
 	SummaryManager
-	TargetProviders map[string]tgt.ITargetProvider
-	ConfigProvider  config.IExtConfigProvider
-	SecretProvider  secret.ISecretProvider
-	KeyLockProvider keylock.IKeyLockProvider
-	QueueProvider   queue.IQueueProvider
-	IsTarget        bool
-	TargetNames     []string
-	ApiClientHttp   api_utils.ApiClient
+	TargetProviders         map[string]tgt.ITargetProvider
+	ConfigProvider          config.IExtConfigProvider
+	SecretProvider          secret.ISecretProvider
+	KeyLockProvider         keylock.IKeyLockProvider
+	QueueProvider           queue.IQueueProvider
+	IsTarget                bool
+	TargetNames             []string
+	ApiClientHttp           api_utils.ApiClient
+	RemoteAgentLogFormatter *logger.RemoteAgentLogFormatter
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -152,6 +153,10 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	if err != nil {
 		return err
 	}
+
+	// Initialize remote agent log formatter
+	s.RemoteAgentLogFormatter = logger.NewRemoteAgentLogFormatter()
+
 	return nil
 }
 func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
@@ -1416,6 +1421,15 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 	operationId := asyncResult.OperationID
 	// Get related info from redis - todo: timeout
 	log.InfoCtx(ctx, "M(SolutionVendor): handle remote agent request %+v", asyncResult)
+	// Enhanced log handling with proper formatting
+	if len(asyncResult.Logs) > 0 {
+		log.InfoCtx(ctx, "M(SolutionVendor): Processing %d remote agent logs for operationId: %s", len(asyncResult.Logs), operationId)
+		log.DebugfCtx(ctx, "M(SolutionVendor): Remote agent logs: %+v", asyncResult.Logs)
+		s.RemoteAgentLogFormatter.LogRemoteAgentLogs(operationId, asyncResult.Logs)
+	} else {
+		log.InfoCtx(ctx, "M(SolutionVendor): No logs received from remote agent for operationId: %s", operationId)
+	}
+
 	operationBody, err := s.getOperationState(ctx, operationId, asyncResult.Namespace)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(SolutionVendor): onGetResponse failed - %s", err.Error())
