@@ -7,6 +7,7 @@ package edge
 import (
 	"context"
 	"crypto/tls"
+	"os"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/edge/api/system_model"
 	"google.golang.org/grpc/credentials"
@@ -29,7 +30,7 @@ func (t tokenAuth) GetRequestMetadata(ctx context.Context, in ...string) (map[st
 }
 
 func NewSystemModelClient(ctx context.Context, token string, tlsCredentials *tls.Config) (system_model.SystemModelClient, error) {
-	addr := "eaep25:6201"
+	addr := os.Getenv("ADAPTER_URL")
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsCredentials)),

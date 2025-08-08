@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -57,7 +58,7 @@ func EdgeProviderConfigFromMap(properties map[string]string) (EdgeProviderConfig
 	if baseAddress, ok := properties["baseAddress"]; ok {
 		config.BaseAddress = baseAddress
 	} else {
-		config.BaseAddress = os.Getenv("ADAPTER_URL") //"https://EAEP25:6201"
+		config.BaseAddress = "https://" + os.Getenv("ADAPTER_URL") //"https://EAEP25:6201"
 	}
 
 	if api_utils.ShouldUseUserCreds() {
@@ -184,13 +185,14 @@ func (h *EdgeProvider) Get(ctx context.Context, reference model.TargetProviderGe
 	for _, c := range reference.References {
 		uuid := c.Component.Metadata["Uuid"]
 
-		app, err := h.SystemClient.GetAppInstanceById(requestCtxNew, wrapperspb.String(uuid))
+		app, err := safeCall(func() (*system_model.AppInstance, error) {
+			return h.SystemClient.GetAppInstanceById(requestCtxNew, wrapperspb.String(uuid))
+		})
 
 		if err != nil {
-			sLog.ErrorCtx(ctx, "Failed to probe app by ID", "error", err)
-			return nil, err
-		}
-		if app != nil {
+			sLog.WarnCtx(ctx, "Failed to probe app by ID", "uuid", uuid, "error", err)
+			continue
+		} else if app != nil {
 			host := app.Status.RunningHost
 			if host != "" && host == reference.TargetName {
 				compSpec := appToComponentSpec(app)
@@ -292,6 +294,15 @@ func (h *EdgeProvider) GetValidationRule(ctx context.Context) model.ValidationRu
 	}
 }
 
+func safeCall[T any](fn func() (T, error)) (out T, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic recovered: %v\n%s", r, debug.Stack())
+		}
+	}()
+	return fn()
+}
+
 func (h *EdgeProvider) Apply(ctx context.Context, reference model.TargetProviderApplyReference) (map[string]model.ComponentResultSpec, error) {
 	ctx, span := observability.StartSpan("Edge Target Provider", ctx, &map[string]string{
 		"method": "Apply",
@@ -330,7 +341,9 @@ func (h *EdgeProvider) Apply(ctx context.Context, reference model.TargetProvider
 
 	for _, componentStep := range reference.Step.Components {
 		if componentStep.Action == model.ComponentUpdate {
-			result, err := h.deployEdgeComponent(requestCtxNew, componentStep.Component, reference.TargetName)
+			result, err := safeCall(func() (model.ComponentResultSpec, error) {
+				return h.deployEdgeComponent(requestCtxNew, componentStep.Component, reference.TargetName)
+			})
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Edge Target): failed to deploy component %s: %+v", componentStep.Component.Name, err)
 				ret[componentStep.Component.Name] = model.ComponentResultSpec{

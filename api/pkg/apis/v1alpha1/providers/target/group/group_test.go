@@ -44,6 +44,9 @@ func TestAComponentAssignmentsSingle(t *testing.T) {
 				Name:      "target1",
 				Namespace: "default",
 			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
 		},
 	}
 	assignments, err := provider.assignComponents(components, targets)
@@ -76,6 +79,9 @@ func TestAComponentAssignmentsDouble(t *testing.T) {
 				Name:      "target1",
 				Namespace: "default",
 			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
 		},
 	}
 	assignments, err := provider.assignComponents(components, targets)
@@ -104,11 +110,17 @@ func TestAComponentAssignmentsSingleTwoTargets(t *testing.T) {
 				Name:      "target1",
 				Namespace: "default",
 			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
 		},
 		{
 			ObjectMeta: model.ObjectMeta{
 				Name:      "target2",
 				Namespace: "default",
+			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
 			},
 		},
 	}
@@ -143,11 +155,17 @@ func TestAComponentAssignmentsDoubleTwoTargets(t *testing.T) {
 				Name:      "target1",
 				Namespace: "default",
 			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
 		},
 		{
 			ObjectMeta: model.ObjectMeta{
 				Name:      "target2",
 				Namespace: "default",
+			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
 			},
 		},
 	}
@@ -183,11 +201,79 @@ func TestAComponentAssignmentsDoubleThreeTargets(t *testing.T) {
 				Name:      "target1",
 				Namespace: "default",
 			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
 		},
 		{
 			ObjectMeta: model.ObjectMeta{
 				Name:      "target2",
 				Namespace: "default",
+			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
+		},
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "target3",
+				Namespace: "default",
+			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
+		},
+	}
+	assignments, err := provider.assignComponents(components, targets)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(assignments))
+	assert.Equal(t, 1, len(assignments["target1"]))
+	assert.Equal(t, 1, len(assignments["target2"]))
+	assert.Equal(t, 0, len(assignments["target3"]))
+	assert.Equal(t, "component1", assignments["target1"][0])
+	assert.Equal(t, "component2", assignments["target2"][0])
+}
+
+func TestAComponentAssignmentsDoubleExisting(t *testing.T) {
+	config := GroupTargetProviderConfig{}
+	provider := GroupTargetProvider{}
+	err := provider.Init(config)
+	assert.Nil(t, err)
+	components := []model.ComponentSpec{
+		{
+			Name:       "component1",
+			Type:       "group",
+			Properties: map[string]interface{}{},
+		},
+		{
+			Name:       "component2",
+			Type:       "group",
+			Properties: map[string]interface{}{},
+		},
+	}
+	targets := []model.TargetState{
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "target1",
+				Namespace: "default",
+			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{},
+			},
+		},
+		{
+			ObjectMeta: model.ObjectMeta{
+				Name:      "target2",
+				Namespace: "default",
+			},
+			Spec: &model.TargetSpec{
+				Components: []model.ComponentSpec{
+					{
+						Name:       "component1",
+						Type:       "group",
+						Properties: map[string]interface{}{},
+					},
+				},
 			},
 		},
 		{
@@ -203,8 +289,8 @@ func TestAComponentAssignmentsDoubleThreeTargets(t *testing.T) {
 	assert.Equal(t, 1, len(assignments["target1"]))
 	assert.Equal(t, 1, len(assignments["target2"]))
 	assert.Equal(t, 0, len(assignments["target3"]))
-	assert.Equal(t, "component1", assignments["target1"][0])
-	assert.Equal(t, "component2", assignments["target2"][0])
+	assert.Equal(t, "component2", assignments["target1"][0])
+	assert.Equal(t, "component1", assignments["target2"][0])
 }
 
 func TestAComponentAssignmentsDoubleThreeTargetsExisting(t *testing.T) {

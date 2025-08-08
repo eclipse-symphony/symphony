@@ -60,7 +60,7 @@ func TestGet(t *testing.T) {
 					},
 				},
 			},
-		}})
+		}, TargetName: "22eb4ca1-3694-483d-a1c8-c188ec540377"})
 	assert.Equal(t, 1, len(components))
 }
 
