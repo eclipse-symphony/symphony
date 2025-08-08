@@ -441,9 +441,11 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 		for i := 0; i < retryCount; i++ {
 			deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, deployment.Instance, deployment.Targets[step.Target])
 			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, model.TargetProviderApplyReference{
-				Deployment: dep,
-				Step:       step,
-				IsDryRun:   deployment.IsDryRun,
+				Deployment:      dep,
+				Step:            step,
+				IsDryRun:        deployment.IsDryRun,
+				TargetName:      step.Target,
+				TargetNamespace: defaultScope,
 			})
 			if stepError == nil {
 				targetResult[step.Target] = 1
@@ -658,8 +660,10 @@ func (s *SolutionManager) Get(ctx context.Context, deployment model.DeploymentSp
 		}
 		var components []model.ComponentSpec
 		components, err = (provider.(tgt.ITargetProvider)).Get(ctx, model.TargetProviderGetReference{
-			Deployment: deployment,
-			References: step.Components,
+			Deployment:      deployment,
+			References:      step.Components,
+			TargetName:      step.Target,
+			TargetNamespace: defaultScope,
 		})
 
 		if err != nil {

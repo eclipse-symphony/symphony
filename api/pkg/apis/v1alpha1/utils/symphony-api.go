@@ -35,8 +35,9 @@ var (
 )
 
 type authRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	CsrfToken string `json:"csrfToken,omitempty"`
 }
 type authResponse struct {
 	AccessToken string   `json:"accessToken"`

@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -151,19 +150,10 @@ func (i *GroupTargetProvider) Get(ctx context.Context, reference model.TargetPro
 	ret := make([]model.ComponentSpec, 0)
 
 	for _, target := range targets {
-		for k, prop := range target.Status.Properties {
-			if strings.HasPrefix(k, "component:") {
-				var component model.ComponentSpec
-				err = json.Unmarshal([]byte(prop), &component)
-				if err != nil {
-					log.ErrorfCtx(ctx, "  P (Group Target): failed to unmarshal component %+v: %s", err, prop)
-					continue
-				}
-				ret = append(ret, component)
-			}
+		for _, component := range target.Spec.Components {
+			ret = append(ret, component)
 		}
 	}
-
 	return ret, nil
 }
 func (i *GroupTargetProvider) matchTargets(ctx context.Context, namespace string, targetSelector model.TargetSelector, checkState bool) ([]model.TargetState, error) {
@@ -194,7 +184,6 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, reference model.TargetP
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	log.InfofCtx(ctx, "  P (Group Target): applying artifacts: %s - %s", reference.Deployment.Instance.Spec.Scope, reference.Deployment.Instance.ObjectMeta.Name)
-
 	functionName := observ_utils.GetFunctionName()
 	startTime := time.Now().UTC()
 	defer providerOperationMetrics.ProviderOperationLatency(
@@ -254,6 +243,7 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, reference model.TargetP
 	for k, v := range assignments {
 		for _, target := range targets {
 			if target.ObjectMeta.Name == k {
+				targetChanged := false
 				// Assign the components to the target
 				for _, componentName := range v {
 					for _, component := range updatedComponents {
@@ -267,79 +257,80 @@ func (i *GroupTargetProvider) Apply(ctx context.Context, reference model.TargetP
 							}
 							if !found {
 								target.Spec.Components = append(target.Spec.Components, component)
+								targetChanged = true
 							}
 						}
 					}
 				}
 				log.InfofCtx(ctx, "  P (Group Target): assigned %d components to target %s", i, target.ObjectMeta.Name)
-			}
 
-			if len(target.Spec.Components) > 1 {
-				for i, component := range target.Spec.Components {
-					if strings.HasPrefix(component.Name, "probe-") {
-						target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
+				// if len(target.Spec.Components) > 1 {
+				// 	for i, component := range target.Spec.Components {
+				// 		if strings.HasPrefix(component.Name, "probe-") {
+				// 			target.Spec.Components = append(target.Spec.Components[:i], target.Spec.Components[i+1:]...)
+				// 		}
+				// 	}
+				// }
+				if targetChanged {
+					targetData, _ := json.Marshal(target)
+					err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+					if err != nil {
+						log.ErrorfCtx(ctx, "  P (Group Target): failed to update target %s: %+v", target.ObjectMeta.Name, err)
+						ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
+							Status:  v1alpha2.UpdateFailed,
+							Message: fmt.Sprintf("failed to update target %s: %v", target.ObjectMeta.Name, err),
+						}
+						providerOperationMetrics.ProviderOperationErrors(
+							group,
+							functionName,
+							metrics.ApplyOperation,
+							metrics.ApplyOperationType,
+							v1alpha2.UpdateFailed.String(),
+						)
+						return ret, err
 					}
+					log.InfofCtx(ctx, "  P (Group Target): target %s has been updated", target.ObjectMeta.Name)
 				}
-			}
-
-			targetData, _ := json.Marshal(target)
-			err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-			if err != nil {
-				log.ErrorfCtx(ctx, "  P (Group Target): failed to update target %s: %+v", target.ObjectMeta.Name, err)
 				ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.UpdateFailed,
-					Message: fmt.Sprintf("failed to update target %s: %v", target.ObjectMeta.Name, err),
+					Status:  v1alpha2.Updated,
+					Message: fmt.Sprintf("No error. %s has been updated", target.ObjectMeta.Name),
 				}
-				providerOperationMetrics.ProviderOperationErrors(
-					group,
-					functionName,
-					metrics.ApplyOperation,
-					metrics.ApplyOperationType,
-					v1alpha2.UpdateFailed.String(),
-				)
-				return ret, err
-			}
-			log.InfofCtx(ctx, "  P (Group Target): target %s has been updated", target.ObjectMeta.Name)
-			ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
-				Status:  v1alpha2.Updated,
-				Message: fmt.Sprintf("No error. %s has been updated", target.ObjectMeta.Name),
 			}
 		}
 	}
-
-	for _, target := range targets {
-		if len(target.Spec.Components) == 0 {
-			dummySpec := model.ComponentSpec{
-				Name: fmt.Sprintf("probe-%s", target.ObjectMeta.Name),
-				Type: "container",
-				Metadata: map[string]string{
-					"probe": "true",
-				},
-				Properties: map[string]interface{}{},
-			}
-			for _, component := range updatedComponents {
-				dummySpec.Properties[component.Name] = ""
-			}
-			target.Spec.Components = append(target.Spec.Components, dummySpec)
-			targetData, _ := json.Marshal(target)
-			err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
-			if err != nil {
-				log.ErrorfCtx(ctx, "  P (Group Target): failed to update target %s: %+v", target.ObjectMeta.Name, err)
-				ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
-					Status:  v1alpha2.UpdateFailed,
-					Message: fmt.Sprintf("failed to update target %s: %v", target.ObjectMeta.Name, err),
-				}
-				providerOperationMetrics.ProviderOperationErrors(
-					group,
-					functionName,
-					metrics.ApplyOperation,
-					metrics.ApplyOperationType,
-					v1alpha2.UpdateFailed.String(),
-				)
-				return ret, err
-			}
-		}
-	}
+	// for _, target := range targets {
+	// 	if len(target.Spec.Components) == 0 {
+	// 		dummySpec := model.ComponentSpec{
+	// 			Name: fmt.Sprintf("probe-%s", target.ObjectMeta.Name),
+	// 			Type: "container",
+	// 			Metadata: map[string]string{
+	// 				"probe": "true",
+	// 			},
+	// 			Properties: map[string]interface{}{},
+	// 		}
+	// 		for _, component := range updatedComponents {
+	// 			dummySpec.Properties[component.Name] = ""
+	// 		}
+	// 		target.Spec.Components = append(target.Spec.Components, dummySpec)
+	// 		targetData, _ := json.Marshal(target)
+	// 		err = i.ApiClient.CreateTarget(ctx, target.ObjectMeta.Name, targetData, target.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+	// 		if err != nil {
+	// 			log.ErrorfCtx(ctx, "  P (Group Target): failed to update target %s: %+v", target.ObjectMeta.Name, err)
+	// 			ret[target.ObjectMeta.Name] = model.ComponentResultSpec{
+	// 				Status:  v1alpha2.UpdateFailed,
+	// 				Message: fmt.Sprintf("failed to update target %s: %v", target.ObjectMeta.Name, err),
+	// 			}
+	// 			providerOperationMetrics.ProviderOperationErrors(
+	// 				group,
+	// 				functionName,
+	// 				metrics.ApplyOperation,
+	// 				metrics.ApplyOperationType,
+	// 				v1alpha2.UpdateFailed.String(),
+	// 			)
+	// 			return ret, err
+	// 		}
+	// 	}
+	// }
 	return ret, nil
 }
 
@@ -353,17 +344,17 @@ func (i *GroupTargetProvider) assignComponents(components []model.ComponentSpec,
 			return len(assignments[targets[i].ObjectMeta.Name]) < len(assignments[targets[j].ObjectMeta.Name])
 		})
 		assigned := false
-		for _, target := range targets {
-			if target.Status.Properties != nil && target.Status.Properties["component:"+component.Name] != "" {
-				assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
-				assigned = true
-				break
-			}
-		}
+		// for _, target := range targets {
+		// 	if target.Status.Properties != nil && target.Status.Properties["component:"+component.Name] != "" {
+		// 		assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
+		// 		assigned = true
+		// 		break
+		// 	}
+		// }
 		if !assigned {
 			for _, target := range targets {
-				for _, component := range target.Spec.Components {
-					if component.Name == component.Name {
+				for _, c := range target.Spec.Components {
+					if c.Name == component.Name {
 						assignments[target.ObjectMeta.Name] = append(assignments[target.ObjectMeta.Name], component.Name)
 						assigned = true
 						break
@@ -380,8 +371,8 @@ func (i *GroupTargetProvider) assignComponents(components []model.ComponentSpec,
 					continue // TODO: specific rule: skip targets that already have a component assigned. genearlize/externalize this
 				}
 				hasComponent := false
-				for k, _ := range target.Status.Properties {
-					if strings.HasPrefix(k, "component:") {
+				for _, c := range target.Spec.Components {
+					if c.Name == component.Name {
 						hasComponent = true //specific rule: skip targets that already have a component assigned. generalize/externalize this
 						break
 					}

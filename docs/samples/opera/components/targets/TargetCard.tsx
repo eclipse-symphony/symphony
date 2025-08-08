@@ -41,7 +41,7 @@ function TargetCard(props: TargetCardProps) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}>
             <CardHeader className="absolute z-10 top-0 flex-col !items-start bg-black/10">                
-               <div className="card_title">{target.metadata.name}</div>
+               <div className="card_title">{target.metadata.labels?.['Name']||target.metadata.name}</div>
                {isHovered && (
                 <Tabs color="secondary" radius="full" selectedKey={activeView} onSelectionChange={updateActiveView} size='sm' className='absolute right-5 top-5'>
                         <Tab key="properties" title="properties" />

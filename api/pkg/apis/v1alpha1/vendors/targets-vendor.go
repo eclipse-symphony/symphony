@@ -108,8 +108,9 @@ type MyCustomClaims struct {
 	jwt.RegisteredClaims
 }
 type AuthRequest struct {
-	UserName string `json:"username"`
-	Password string `json:"password"`
+	UserName  string `json:"username"`
+	Password  string `json:"password"`
+	CsrfToken string `json:"csrfToken,omitempty"`
 }
 
 func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResponse {

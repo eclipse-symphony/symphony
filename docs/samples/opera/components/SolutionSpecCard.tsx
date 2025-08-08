@@ -42,7 +42,7 @@ function SolutionSpecCard(props: SolutionSpecCardProps) {
                             </TableCell>
                             <TableCell style={{ whiteSpace: 'nowrap' }}>{component.name}</TableCell>
                             <TableCell>
-                                    {component.type === 'container' && (
+                                    {component.type === 'container' && component.properties?.['container.image'] &&  (
                                         <span style={{ whiteSpace: 'nowrap' }}>{component.properties['container.image'].split(':')[0]}</span>
                                     )}
                                     {component.type === 'helm.v3' && (
@@ -59,7 +59,7 @@ function SolutionSpecCard(props: SolutionSpecCardProps) {
                                     )}
                             </TableCell>
                             <TableCell>
-                                    {component.type === 'container' && (
+                                    {component.type === 'container' && component.properties?.['container.image'] &&  (
                                         <span>
                                             {component.properties['container.image'].includes(':')
                                             ? component.properties['container.image'].split(':')[1]

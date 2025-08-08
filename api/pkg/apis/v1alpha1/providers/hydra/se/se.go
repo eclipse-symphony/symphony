@@ -224,7 +224,7 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 		}
 		target := model.TargetState{
 			ObjectMeta: model.ObjectMeta{
-				Name: device.Metadata.Name,
+				Name: device.Metadata.Uuid,
 			},
 			Spec: &model.TargetSpec{},
 		}
@@ -232,9 +232,12 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 			if target.ObjectMeta.Labels == nil {
 				target.ObjectMeta.Labels = make(map[string]string)
 			}
-			target.ObjectMeta.Labels[k] = v
+			target.ObjectMeta.Labels["labels."+k] = v
 		}
 		target.ObjectMeta.Labels["kind"] = device.Kind
+		target.ObjectMeta.Labels["Name"] = device.Metadata.Name
+		target.ObjectMeta.Labels["Uuid"] = device.Metadata.Uuid
+		target.ObjectMeta.Labels["OwnerId"] = device.Metadata.OwnerId
 		if i.Config.HASet != "" {
 			target.ObjectMeta.Labels["haSet"] = i.Config.HASet
 		}
@@ -261,7 +264,10 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 					{
 						Role:     "container",
 						Provider: "providers.target.se",
-						Config:   map[string]string{},
+						Config: map[string]string{
+							"user":     "admin",
+							"password": "",
+						},
 					},
 				},
 			},
@@ -295,7 +301,7 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 					{
 						Bindings: []model.BindingSpec{
 							{
-								Role:     "instance",
+								Role:     "container",
 								Provider: "providers.target.group",
 								Config: map[string]string{
 									"user":           "admin",
@@ -352,6 +358,16 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 				component.Metadata["labels."+k] = v
 			}
 			solution.Spec.Components = append(solution.Spec.Components, component)
+
+			host := app.Status.RunningHost
+			if host != "" {
+				for _, target := range ret.Targets {
+					if target.ObjectMeta.Labels["Uuid"] == host {
+						target.Spec.Components = append(target.Spec.Components, component)
+						break
+					}
+				}
+			}
 		}
 
 		ret.Solutions = append(ret.Solutions, solution)
@@ -364,11 +380,14 @@ func (i *SEProvider) SetArtifact(system string, artifact []byte) (model.Artifact
 				DisplayName: i.Config.HASet,
 				Solution:    i.Config.HASet + ":v1",
 				Target: model.TargetSelector{
-					LabelSelector: map[string]string{
-						"haSet": i.Config.HASet,
-						"kind":  "group",
-					},
+					Name: i.Config.HASet,
 				},
+				// Target: model.TargetSelector{
+				// 	LabelSelector: map[string]string{
+				// 		"haSet": i.Config.HASet,
+				// 		"kind":  "group",
+				// 	},
+				// },
 			},
 		}
 		ret.Instances = append(ret.Instances, instance)

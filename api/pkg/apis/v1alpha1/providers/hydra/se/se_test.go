@@ -46,14 +46,15 @@ func TestSetArtifact(t *testing.T) {
             "partnerOwnerId": "4b0c5d10-fb9c-414b-a331-1859f778f1f4",
             "partnerName": "SoftdpacD_1",
             "partnerSoftdpacIP": "192.168.200.65",
-            "preferredPrimary": "true"
+            "preferredPrimary": "true",
+            "partnerInterlinkIP": "10.10.1.69"
           },
           "OwnerId": "4b0c5d10-fb9c-414b-a331-1859f778f1f4"
         },
         "Spec": {
           "Container": {
             "Name": "softdpacc-1",
-            "Image": "",
+            "Image": "softdpac-ha:v25.0.25148.23",
             "Networks": [
               {
                 "Ipv6": "",
@@ -83,8 +84,8 @@ func TestSetArtifact(t *testing.T) {
         },
         "Status": {
           "Status": "Primary",
-          "TimeStamp": "2025-08-05T22:37:48.8672836Z",
-          "RunningHost": "",
+          "TimeStamp": "2025-08-07T15:35:33.1489562Z",
+          "RunningHost": "22eb4ca1-3694-483d-a1c8-c188ec540377",
           "InterlinkStatus": "Ok"
         },
         "Deleted": true
@@ -103,14 +104,15 @@ func TestSetArtifact(t *testing.T) {
             "partnerOwnerId": "4b0c5d10-fb9c-414b-a331-1859f778f1f4",
             "partnerName": "SoftdpacC_1",
             "partnerSoftdpacIP": "192.168.200.63",
-            "preferredPrimary": "false"
+            "preferredPrimary": "false",
+            "partnerInterlinkIP": "10.10.1.65"
           },
           "OwnerId": "4b0c5d10-fb9c-414b-a331-1859f778f1f4"
         },
         "Spec": {
           "Container": {
             "Name": "softdpacd-1",
-            "Image": "",
+            "Image": "softdpac-ha:v25.0.25148.23",
             "Networks": [
               {
                 "Ipv6": "",
@@ -140,8 +142,8 @@ func TestSetArtifact(t *testing.T) {
         },
         "Status": {
           "Status": "Secondary",
-          "TimeStamp": "2025-08-05T22:37:48.8677331Z",
-          "RunningHost": "",
+          "TimeStamp": "2025-08-07T15:35:36.2212870Z",
+          "RunningHost": "81d4ecbd-36f9-46aa-b13b-f096dde17bc7",
           "InterlinkStatus": "Ok"
         },
         "Deleted": true
@@ -202,10 +204,13 @@ func TestSetArtifact(t *testing.T) {
         "TimeSetting": null,
         "Status": {
           "Status": "Reachable",
-          "TimeStamp": "2025-08-05T22:37:48.8765753Z",
-          "RunningAppInstances": [],
+          "TimeStamp": "2025-08-07T14:11:13.1628207Z",
+          "RunningAppInstances": [
+            "142292d7-dd0c-4a11-888e-3ad880ed4ce0"
+          ],
           "InterlinkStatus": "Ok",
-          "NtpStatus": "Ok"
+          "NtpStatus": "Ok",
+          "IsAuthenticated": true
         },
         "Deleted": false
       },
@@ -263,10 +268,11 @@ func TestSetArtifact(t *testing.T) {
         "TimeSetting": null,
         "Status": {
           "Status": "Reachable",
-          "TimeStamp": "2025-08-05T22:37:48.8896309Z",
+          "TimeStamp": "2025-08-07T14:11:13.1699453Z",
           "RunningAppInstances": [],
           "InterlinkStatus": "Ok",
-          "NtpStatus": "Ok"
+          "NtpStatus": "Ok",
+          "IsAuthenticated": true
         },
         "Deleted": false
       },
@@ -324,10 +330,13 @@ func TestSetArtifact(t *testing.T) {
         "TimeSetting": null,
         "Status": {
           "Status": "Reachable",
-          "TimeStamp": "2025-08-05T22:37:48.8827865Z",
-          "RunningAppInstances": [],
+          "TimeStamp": "2025-08-07T14:11:13.1651111Z",
+          "RunningAppInstances": [
+            "1c014c0b-9f8f-4251-b138-4fde88492a9b"
+          ],
           "InterlinkStatus": "Ok",
-          "NtpStatus": "Ok"
+          "NtpStatus": "Ok",
+          "IsAuthenticated": true
         },
         "Deleted": false
       },
@@ -385,10 +394,11 @@ func TestSetArtifact(t *testing.T) {
         "TimeSetting": null,
         "Status": {
           "Status": "Reachable",
-          "TimeStamp": "2025-08-05T22:37:48.8727949Z",
+          "TimeStamp": "2025-08-07T14:11:13.1595527Z",
           "RunningAppInstances": [],
           "InterlinkStatus": "Ok",
-          "NtpStatus": "Ok"
+          "NtpStatus": "Ok",
+          "IsAuthenticated": true
         },
         "Deleted": false
       }
@@ -408,6 +418,13 @@ func TestSetArtifact(t *testing.T) {
 	assert.Equal(t, "ha-set1", artifactPack.Targets[1].ObjectMeta.Labels["haSet"])
 	assert.Equal(t, "ha-set1", artifactPack.Targets[2].ObjectMeta.Labels["haSet"])
 	assert.Equal(t, "ha-set1", artifactPack.Targets[3].ObjectMeta.Labels["haSet"])
+	assert.Equal(t, 1, len(artifactPack.Targets[0].Spec.Components))
+	assert.Equal(t, 0, len(artifactPack.Targets[1].Spec.Components))
+	assert.Equal(t, 1, len(artifactPack.Targets[2].Spec.Components))
+	assert.Equal(t, 0, len(artifactPack.Targets[3].Spec.Components))
+	assert.Equal(t, "softdpacc-1", artifactPack.Targets[0].Spec.Components[0].Name)
+	assert.Equal(t, "softdpacd-1", artifactPack.Targets[2].Spec.Components[0].Name)
+
 	assert.Equal(t, "ipc", artifactPack.Targets[0].ObjectMeta.Labels["kind"])
 	assert.Equal(t, "ipc", artifactPack.Targets[1].ObjectMeta.Labels["kind"])
 	assert.Equal(t, "ipc", artifactPack.Targets[2].ObjectMeta.Labels["kind"])

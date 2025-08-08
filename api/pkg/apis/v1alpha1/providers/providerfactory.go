@@ -31,6 +31,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/azure/iotedge"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/configmap"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/docker"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/edge"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/group"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/helm"
 	targethttp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/http"
@@ -189,6 +190,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.target.azure.adu":
 		mProvider := &adu.ADUTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.target.se":
+		mProvider := &edge.EdgeProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -406,7 +413,7 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 	for _, topology := range target.Spec.Topologies {
 		for _, binding := range topology.Bindings {
 			testRole := role
-			if role == "" || role == "container" {
+			if role == "" {
 				testRole = "instance"
 			}
 			if binding.Role == testRole {
@@ -421,6 +428,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					return provider, nil
 				case "providers.target.group":
 					provider := &group.GroupTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.se":
+					provider := &edge.EdgeProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

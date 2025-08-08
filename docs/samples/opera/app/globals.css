@@ -81,7 +81,7 @@ body {
 }
 .card{
   min-width: 500px;
-  min-height: 300px;
+  min-height: 350px;
 }
 .card_title{
   font-size: 2.2rem;

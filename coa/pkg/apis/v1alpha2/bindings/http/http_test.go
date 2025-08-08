@@ -33,8 +33,9 @@ type TestCustomClaims struct {
 }
 
 type TestAuthRequest struct {
-	UserName string `json:"username"`
-	Password string `json:"password"`
+	UserName  string `json:"username"`
+	Password  string `json:"password"`
+	CsrfToken string `json:"csrfToken,omitempty"`
 }
 
 func testHttpRequestHelper(context context.Context, t *testing.T, method string, url string, body []byte, expectedStatusCode int, expectedBody string) {

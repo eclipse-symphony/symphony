@@ -19,9 +19,9 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
@@ -129,6 +129,7 @@ func (c *UsersVendor) onAuth(request v1alpha2.COARequest) v1alpha2.COAResponse {
 		Body:        []byte(fmt.Sprintf(`{"accessToken":"%s", "tokenType": "Bearer", "username": "%s", "roles": %s}`, ss, authRequest.UserName, rolesJSON)),
 		ContentType: "application/json",
 	}
+
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
 }
