@@ -12,7 +12,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
 	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
-	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
@@ -42,7 +41,7 @@ type Result struct {
 var check_response = false
 var responseReceived = make(chan bool, 10) // Buffered channel to avoid blocking
 
-var myCorrelationIds sync.Map // store correlationId
+var myRequestIds sync.Map // store request-id
 
 // Launch the polling agent
 func (m *MqttBinding) Launch() error {
@@ -50,21 +49,23 @@ func (m *MqttBinding) Launch() error {
 	var get_start = true
 	var requests []map[string]interface{}
 
-	// Generate correlationId for initial GET request
-	initialCorrelationId := uuid.New().String()
-	myCorrelationIds.Store(initialCorrelationId, true)
+	// Generate request-id for initial GET request
+	initialRequestId := uuid.New().String()
+	myRequestIds.Store(initialRequestId, true)
 
 	Parameters := map[string]string{
-		"target":        m.Target,
-		"namespace":     m.Namespace,
-		"getAll":        "true",
-		"preindex":      "0",
-		"correlationId": initialCorrelationId,
+		"target":     m.Target,
+		"namespace":  m.Namespace,
+		"getAll":     "true",
+		"preindex":   "0",
 	}
 	request := v1alpha2.COARequest{
 		Route:      "tasks",
 		Method:     "GET",
 		Parameters: Parameters,
+		Metadata: map[string]string{
+			"request-id": initialRequestId,
+		},
 	}
 	data, _ := json.Marshal(request)
 	// Change QoS from 0 to 1 for more reliable delivery
@@ -79,22 +80,26 @@ func (m *MqttBinding) Launch() error {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
 			return
 		}
-		// Parse correlationId from different response structures
+		// Parse request-id from response metadata
 		var respMap map[string]interface{}
 		_ = json.Unmarshal(coaResponse.Body, &respMap)
 		fmt.Printf("Received response: %s\n", string(coaResponse.Body))
 
-		correlationKey := contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)
-		respCorrelationId, _ := respMap[correlationKey].(string)
-		if respCorrelationId == "" {
-			fmt.Printf("Warning: correlationId not found in response")
+		// Check for request-id in response metadata
+		var respRequestId string
+		if coaResponse.Metadata != nil {
+			respRequestId = coaResponse.Metadata["request-id"]
+		}
+		
+		if respRequestId == "" {
+			fmt.Printf("Warning: request-id not found in response metadata")
 			return
 		}
 
-		fmt.Printf("Received response with correlationId: %s\n", respCorrelationId)
-		if _, ok := myCorrelationIds.Load(respCorrelationId); !ok {
+		fmt.Printf("Received response with request-id: %s\n", respRequestId)
+		if _, ok := myRequestIds.Load(respRequestId); !ok {
 			// not my request, ignore it
-			fmt.Printf("Warning: correlationId is not in map")
+			fmt.Printf("Warning: request-id is not in map")
 			return
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
@@ -114,21 +119,23 @@ func (m *MqttBinding) Launch() error {
 
 			if allRequests.LastMessageID != "" {
 				fmt.Println("Request length: ", len(requests))
-				// Generate correlationId for continuation request
-				continueCorrelationId := uuid.New().String()
-				myCorrelationIds.Store(continueCorrelationId, true)
+				// Generate request-id for continuation request
+				continueRequestId := uuid.New().String()
+				myRequestIds.Store(continueRequestId, true)
 
 				Parameters := map[string]string{
-					"target":        m.Target,
-					"namespace":     m.Namespace,
-					"getAll":        "true",
-					"preindex":      allRequests.LastMessageID,
-					"correlationId": continueCorrelationId,
+					"target":    m.Target,
+					"namespace": m.Namespace,
+					"getAll":    "true",
+					"preindex":  allRequests.LastMessageID,
 				}
 				request := v1alpha2.COARequest{
 					Route:      "tasks",
 					Method:     "GET",
 					Parameters: Parameters,
+					Metadata: map[string]string{
+						"request-id": continueRequestId,
+					},
 				}
 				data, _ := json.Marshal(request)
 				token := m.Client.Publish(m.RequestTopic, 1, false, data)
@@ -152,7 +159,6 @@ func (m *MqttBinding) Launch() error {
 				var newWg sync.WaitGroup
 				handleRequests(newRequests, &newWg, m)
 			}
-
 		}
 
 	})
@@ -226,20 +232,22 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 
 func (m *MqttBinding) pollRequests() {
 	for i := 0; i < ConcurrentJobs; i++ {
-		// Generate correlationId for polling request
-		pollCorrelationId := uuid.New().String()
-		myCorrelationIds.Store(pollCorrelationId, true)
+		// Generate request-id for polling request
+		pollRequestId := uuid.New().String()
+		myRequestIds.Store(pollRequestId, true)
 
 		// Publish request to get jobs
 		Parameters := map[string]string{
-			"target":        m.Target,
-			"namespace":     m.Namespace,
-			"correlationId": pollCorrelationId,
+			"target":    m.Target,
+			"namespace": m.Namespace,
 		}
 		request := v1alpha2.COARequest{
 			Route:      "tasks",
 			Method:     "GET",
 			Parameters: Parameters,
+			Metadata: map[string]string{
+				"request-id": pollRequestId,
+			},
 		}
 		fmt.Println("Begin to request topic Get task")
 		data, _ := json.Marshal(request)

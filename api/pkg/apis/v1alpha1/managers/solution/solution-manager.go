@@ -36,7 +36,6 @@ import (
 	states "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/google/uuid"
 )
 
@@ -972,7 +971,7 @@ func (s *SolutionManager) saveStepResult(ctx context.Context, summary model.Summ
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target string, namespace string, start string, size int, correlationId string) v1alpha2.COAResponse {
+func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target string, namespace string, start string, size int, requestId string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
@@ -981,6 +980,14 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 	defer span.End()
 	var err error
 	queueElement, lastMessageID, err := s.QueueProvider.QueryByPaging(ctx, queueName, start, size)
+	if err != nil {
+		log.ErrorfCtx(ctx, "M(SolutionVendor): getQueue failed - %s", err.Error())
+		return v1alpha2.COAResponse{
+			State: v1alpha2.InternalError,
+			Body:  []byte(err.Error()),
+		}
+	}
+
 	var requestList []map[string]interface{}
 	for _, element := range queueElement {
 		var agentRequest map[string]interface{}
@@ -992,39 +999,31 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 				Body:  []byte(err.Error()),
 			}
 		}
-		// Add correlationId to individual request for agent processing
-		if correlationId != "" {
-			agentRequest["correlationId"] = correlationId
-		}
 		requestList = append(requestList, agentRequest)
 	}
 
-	// Always create a response map with correlationId at top level for consistency
-	// Always use the response map structure with correlationId at top level
+	// Always create a response map with request list and last message ID
 	responseMap := map[string]interface{}{
 		"requestList":   requestList,
 		"lastMessageID": lastMessageID,
 	}
 
-	// Add correlationId if provided
-	if correlationId != "" {
-		responseMap[coalogcontexts.ConstructHttpHeaderKeyForActivityLogContext(coalogcontexts.Activity_CorrelationId)] = correlationId
-	}
-
-	if err != nil {
-		log.ErrorfCtx(ctx, "M(SolutionVendor): getQueue failed - %s", err.Error())
-		return v1alpha2.COAResponse{
-			State: v1alpha2.InternalError,
-			Body:  []byte(err.Error()),
-		}
-	}
-
 	data, _ := json.Marshal(responseMap)
-	return v1alpha2.COAResponse{
+	response := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
 		ContentType: "application/json",
 	}
+
+	// Add request-id to response metadata if provided
+	if requestId != "" {
+		if response.Metadata == nil {
+			response.Metadata = make(map[string]string)
+		}
+		response.Metadata["request-id"] = requestId
+	}
+
+	return response
 }
 
 func (s *SolutionManager) DeleteSummary(ctx context.Context, summaryId string, namespace string) error {
@@ -1065,7 +1064,7 @@ func (s *SolutionManager) sendHeartbeat(ctx context.Context, id string, namespac
 }
 
 // getTaskFromQueue retrieves a task from the queue for the specified target and namespace.
-func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, namespace string, correlationId string) v1alpha2.COAResponse {
+func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, namespace string, requestId string) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Solution Vendor", ctx, &map[string]string{
 		"method": "doGetFromQueue",
 	})
@@ -1083,27 +1082,22 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 		}
 	}
 
-	// Add correlationId to the response if provided
-	if correlationId != "" {
-		if queueElement != nil {
-			if agentRequest, ok := queueElement.(map[string]interface{}); ok {
-				agentRequest[coalogcontexts.ConstructHttpHeaderKeyForActivityLogContext(coalogcontexts.Activity_CorrelationId)] = correlationId
-				queueElement = agentRequest
-			}
-		} else {
-			// If queue is empty, create a response with correlationId
-			queueElement = map[string]interface{}{
-				coalogcontexts.ConstructHttpHeaderKeyForActivityLogContext(coalogcontexts.Activity_CorrelationId): correlationId,
-			}
-		}
-	}
-
 	data, _ := json.Marshal(queueElement)
-	return v1alpha2.COAResponse{
+	response := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
 		ContentType: "application/json",
 	}
+
+	// Add request-id to response metadata if provided
+	if requestId != "" {
+		if response.Metadata == nil {
+			response.Metadata = make(map[string]string)
+		}
+		response.Metadata["request-id"] = requestId
+	}
+
+	return response
 }
 
 func (s *SolutionManager) cleanupHeartbeat(ctx context.Context, id string, namespace string, remove bool) {
