@@ -7,6 +7,8 @@
 package vendors
 
 import (
+	"strings"
+
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -124,13 +126,21 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		var solution model.SolutionState
 
 		if embed_type != "" && embed_component != "" && embed_property != "" {
+
+			idx := strings.LastIndex(id, "-v-")
+			rootId := id
+			if idx > 0 {
+				rootId = id[:idx]
+			}
+
 			solution = model.SolutionState{
 				ObjectMeta: model.ObjectMeta{
 					Name:      id,
 					Namespace: namespace,
 				},
 				Spec: &model.SolutionSpec{
-					DisplayName: id,
+					RootResource: rootId,
+					DisplayName:  id,
 					Components: []model.ComponentSpec{
 						{
 							Name: embed_component,

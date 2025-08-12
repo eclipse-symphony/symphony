@@ -16,6 +16,28 @@ components:
       type: http
       scheme: noauth  
   schemas:      
+    SolutionContainerState:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/SolutionContainerSpec'
+        status:
+          $ref: '#/components/schemas/SolutionContainerStatus'
+      additionalProperties: false
+    SolutionContainerSpec:
+      type: object
+      description: Specification for the Solution Container.
+      additionalProperties: false
+    SolutionContainerStatus:
+      type: object
+      properties:
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+          description: Arbitrary key-value properties describing the solution container's status.
     ObjectMeta:
       type: object
       description: Custom metadata structure for a Symphony resource
@@ -46,6 +68,36 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OwnerReference'
+    SolutionState:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/SolutionSpec'
+      additionalProperties: false
+    SolutionSpec:
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: Display name of the solution
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Arbitrary key-value metadata
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentSpec'
+        version:
+          type: string
+          description: Version string of the solution
+        rootResource:
+          type: string
+          description: Root resource identifier
+      additionalProperties: false
     OwnerReference:
       type: object
       description: Reference to another Kubernetes object that owns this one
@@ -273,6 +325,7 @@ components:
           additionalProperties:
             type: string
 tags:
+  - name: SolutionContainers
   - name: Solutions
   - name: Targets
   - name: Instances
@@ -292,36 +345,78 @@ tags:
   - name: Federation
   - name: Hydra
 paths:
-  /solutions/{SOLUTION_NAME}:
-    post:
+  /solutioncontainers:
+    get:
       tags:
-        - Solutions
-      summary: Create Solution with embedded spec
-      requestBody:
-        content:
-          text/plain:
-            schema:
-              type: string
-              example: SOME RANDDOM TEXT
+        - SolutionContainers
+      summary: List Solution Containers
+      description: >
+        Returns all Solution Containers in the system. In Symphony, each Solution is contained within a Solution Container, but this query only retrieves the containers themselves—not their associated Solutions. Use the optional doc-type parameter to choose the output format (json by default or yaml), and the optional path parameter (JSONPath expression) to return only specific parts of each container. 
       security:
         - bearerAuth: []
       parameters:
-        - name: embed-type
+        - name: namespace
           in: query
           schema:
             type: string
-          example: some-type
-        - name: embed-component
+          description: Namespace used to filter Solution Containers. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
+        - name: path
+          in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
+          schema:
+            type: string
+          example: $
+      responses:
+        '200':
+          description: Return a list of Solution Containers
+          content:
+           application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SolutionContainerState'
+            example:
+              - metadata:
+                  namespace: 'default'
+                  name: 'my-solution'
+                spec: {}
+              - metadata:
+                  namespace: 'default'
+                  name: 'other-solution'
+                spec: {}
+  /solutioncontainers/{solutionContainerName}:
+    post:
+      tags:
+        - SolutionContainers
+      summary: Create Solution Container
+      description: >
+        Creates a new Solution Container with the specified name and namespace. The Solution Container is a logical grouping for Solutions in Symphony. The request metadata.name must match the solutionContainerName path parameter, and it must be unique within the specified namespace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolutionContainerState'
+            example:
+              metadata:
+                namespace: 'default'
+                name: 'my-solution'
+              spec: {}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
           in: query
           schema:
             type: string
-          example: some-component
-        - name: embed-property
-          in: query
-          schema:
-            type: string
-          example: some-property
-        - name: SOLUTION_NAME
+          description: Namespace of Solution Container. The default is an empty string (""), which is equivalent to 'default'.
+        - name: solutionContainerName
           in: path
           schema:
             type: string
@@ -333,22 +428,150 @@ paths:
             application/json: {}
     get:
       tags:
-        - Solutions
-      summary: Get Solution spec Yaml
+        - SolutionContainers
+      summary: Get Solution Container spec as either YAML or JSON
       security:
         - bearerAuth: []
       parameters:
-        - name: doc-type
+        - name: namespace
           in: query
           schema:
             type: string
-          example: yaml
+          description: Namespace of Solution Container. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
         - name: path
           in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
+          schema:
+            type: string
+          example: $.metadata
+        - name: solutionContainerName
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved Solution Container spec
+          content:
+            application/json: {}
+        '404':
+          description: Solution Container not found
+          content:
+            application/text:
+              schema:
+                type: string
+              example: "Not Found: entry 'my-solution' is not found in namespace default"
+    delete:
+      tags:
+        - SolutionContainers
+      summary: Delete Solution Container
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Solution Container. The default is an empty string (""), which is equivalent to 'default'.
+        - name: solutionContainerName
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful deletion
+        '404':
+          description: Solution Container not found
+          content:
+            application/text:
+              schema:
+                type: string
+              example: "Not Found: entry 'my-solution' is not found"
+  /solutions/{solutionName}:
+    post:
+      tags:
+        - Solutions
+      summary: Create Solution inside a Solution Container. 
+      description: >
+        Creates a new Solution within the specified Solution Container. The request body must contain the SolutionState object, and the solutionName path parameter must match the metadata.name field in the request body. The spec.rootResource of the Solution must reference an existing Solution Container, and the Solution name must follow the format <container>-v-<name>. For example, to add a v1 Solution to the my-solution container, the Solution name should be my-solution-v-v1. As a special case, you may create a Solution object that contains a single component with the name set to embed-component, the type set to embed-type, and a single property named embed-property whose value is the raw request body text.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolutionState'
+            example:
+              metadata:
+                name: 'my-solution-v-v1'
+              spec:
+                rootResource: 'my-solution'
+                components:
+                  - name: 'mock'
+                    type: 'mock'
+                    properties:
+                      foo: 'bar'
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Solution. The default is an empty string (""), which is equivalent to 'default'.
+        - name: embed-type
+          in: query
+          schema:
+            type: string
+          description: Type of the embedded component, e.g., 'mock'.
+        - name: embed-component
+          in: query
+          schema:
+            type: string
+          description: Name of the embedded component, e.g., 'mock'.
+        - name: embed-property
+          in: query
+          schema:
+            type: string
+          description: Name of the property in the embedded component, e.g., 'foo'.
+        - name: solutionName
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful creation of Solution
+    get:
+      tags:
+        - Solutions
+      summary: Get Solution spec as either YAML or JSON
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Solution. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
+        - name: path
+          in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
           schema:
             type: string
           example: $.spec
-        - name: SOLUTION_NAME
+        - name: solutionName
           in: path
           schema:
             type: string
@@ -357,7 +580,19 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SolutionState'
+              example:
+                metadata:
+                  name: 'my-solution-v-v1'
+                spec:
+                  rootResource: 'my-solution'
+                  components:
+                    - name: 'mock'
+                      type: 'mock'
+                      properties:
+                        foo: 'bar'
     delete:
       tags:
         - Solutions
@@ -365,28 +600,60 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: SOLUTION_NAME
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Solution. The default is an empty string (""), which is equivalent to 'default'.
+        - name: solutionName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful deletion
   /solutions:
     get:
       tags:
         - Solutions
       summary: List Solutions
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace used to filter Solutions. The default is an empty string (""), which is equivalent to 'default'.
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Successful response
+          description: List of Solutions
           content:
-            application/json: {}
+           application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SolutionState'
+            example:
+              - metadata:
+                  name: 'my-solution-v-v1'
+                spec:
+                  rootResource: 'my-solution'
+                  components:
+                    - name: 'mock1'
+                      type: 'mock'
+                      properties:
+                        foo: 'bar'
+              - metadata:
+                  name: 'my-solution-v-v2'
+                spec:
+                  rootResource: 'my-solution'
+                  components:
+                    - name: 'mock2'
+                      type: 'mock'
+                      properties:
+                        bar: 'baz'
   /targets/registry:
     get:
       tags:
