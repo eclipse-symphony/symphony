@@ -148,7 +148,9 @@ func (m *MqttBinding) Launch() error {
 					return
 				}
 				// handle request
-				requests = []map[string]interface{}{singleRequest}
+				newRequests := []map[string]interface{}{singleRequest}
+				var newWg sync.WaitGroup
+				handleRequests(newRequests, &newWg, m)
 			}
 
 		}
