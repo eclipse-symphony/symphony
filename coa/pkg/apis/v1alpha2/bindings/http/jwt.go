@@ -92,25 +92,25 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 		tokenStr := j.readAuthHeader(ctx)
 		if tokenStr == "" {
 			log.Errorf("JWT: Token is empty.\n")
-			ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+			ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 		} else {
 			issuer, err := decodeJWTTokenForIssuer(tokenStr)
 			if err != nil {
 				log.Errorf("JWT: Could not decode issuer from token. %s\n", err.Error())
-				ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+				ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 				return
 			}
 			if issuer == SymphonyIssuer {
 				if j.DisableUserCreds == true {
 					log.Infof("JWT: Token with username plus pwd is not allowed.")
-					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+					ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 					return
 				}
 				log.Debugf("JWT: Validating token with username plus pwd.")
 				_, roles, err := j.validateToken(tokenStr)
 				if err != nil {
 					log.Error("JWT: Validate token with user creds failed. %s\n", err.Error())
-					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+					ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 					return
 				} else {
 					if j.EnableRBAC {
@@ -128,7 +128,7 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 								}
 							}
 						}
-						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+						ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 						return
 					}
 					next(ctx)
@@ -139,13 +139,13 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 					err := j.validateServiceAccountToken(ctx, tokenStr)
 					if err != nil {
 						log.Errorf("JWT: Validate token with k8s failed. %s\n", err.Error())
-						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+						ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 						return
 					}
 					next(ctx)
 				} else {
 					log.Errorf("JWT: Not supported auth server, %s.\n", j.AuthServer)
-					ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
+					ctx.Response.SetStatusCode(fasthttp.StatusUnauthorized)
 					return
 				}
 			}
