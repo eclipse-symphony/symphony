@@ -30,8 +30,8 @@ var (
 	Interval       time.Duration = 10 * time.Second
 )
 
-// HttpBinding provides service endpoints as a fasthttp web server
-type HttpBinding struct {
+// HttpPoller provides service endpoints as a fasthttp web server
+type HttpPoller struct {
 	CertProvider certs.ICertProvider
 	Agent        agent.Agent
 	ResponseUrl  string
@@ -42,7 +42,7 @@ type HttpBinding struct {
 }
 
 // Launch the polling agent
-func (h *HttpBinding) Launch() error {
+func (h *HttpPoller) Launch() error {
 	// Start the agent by handling starter requests
 	var wg sync.WaitGroup
 	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s&getAll=%s&preindex=%s", h.RequestUrl, h.Target, h.Namespace, "true", "0")
@@ -172,7 +172,7 @@ func (h *HttpBinding) Launch() error {
 	return nil
 }
 
-func (h *HttpBinding) pollRequests() []map[string]interface{} {
+func (h *HttpPoller) pollRequests() []map[string]interface{} {
 	requests := []map[string]interface{}{}
 	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s", h.RequestUrl, h.Target, h.Namespace)
 

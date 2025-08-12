@@ -506,7 +506,7 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 	if !summary.PlanState.Deployment.IsDryRun {
 		if len(summary.PlanState.MergedState.TargetComponent) == 0 && summary.IsRemoval {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
-			s.StateProvider.Delete(ctx, states.DeleteRequest{
+			err := s.StateProvider.Delete(ctx, states.DeleteRequest{
 				ID: summary.PlanState.Deployment.Instance.ObjectMeta.Name,
 				Metadata: map[string]interface{}{
 					"namespace": summary.PlanState.Namespace,
@@ -518,8 +518,9 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 
 			// Cleanup MQTT subscriptions and Redis queues for deleted remote targets
 			// Only perform cleanup for target deletions specifically
-			if summary.PlanState.Deployment.IsTargetDeletion {
+			if err == nil && summary.PlanState.Deployment.IsTargetDeletion {
 				log.InfofCtx(ctx, " M (Solution): performing MQTT and Redis cleanup for target deletion")
+				// to do add target check before this, when delete succeed, then delete resource
 				s.cleanupRemoteTargetResourcesAfterDeletion(ctx, summary.PlanState.Deployment, summary.PlanState.Namespace)
 			}
 		} else {

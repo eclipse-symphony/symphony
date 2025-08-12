@@ -47,7 +47,7 @@ type MQTTBindingConfig struct {
 type MQTTBinding struct {
 	MQTTClient      gmqtt.Client
 	subscribedTopic map[string]struct{}
-	lock            sync.Mutex
+	lock            sync.RWMutex
 	Handler         gmqtt.MessageHandler
 	config          MQTTBindingConfig
 }
@@ -283,16 +283,29 @@ func isCertificatePEM(data []byte) bool {
 
 // SubscribeTopic
 func (m *MQTTBinding) SubscribeTopic(topic string) error {
+	// First, check if already subscribed using read lock for concurrency
+	m.lock.RLock()
+	if m.subscribedTopic != nil {
+		if _, ok := m.subscribedTopic[topic]; ok {
+			m.lock.RUnlock()
+			return nil
+		}
+	}
+	m.lock.RUnlock()
+
+	// Need to subscribe, acquire write lock
 	m.lock.Lock()
 	defer m.lock.Unlock()
+
+	// Double-check after acquiring write lock (in case another goroutine already subscribed)
 	if m.subscribedTopic == nil {
 		m.subscribedTopic = make(map[string]struct{})
 	}
-	log.Infof("MQTT Binding: subscribing to topic %s", topic)
-
 	if _, ok := m.subscribedTopic[topic]; ok {
 		return nil
 	}
+
+	log.Infof("MQTT Binding: subscribing to topic %s", topic)
 
 	// generate response topic based on request topic
 	responseTopic := m.generateResponseTopic(topic)
@@ -308,6 +321,31 @@ func (m *MQTTBinding) SubscribeTopic(topic string) error {
 	}
 	m.subscribedTopic[topic] = struct{}{}
 	return nil
+}
+
+// IsSubscribed checks if a topic is already subscribed (read-only operation)
+func (m *MQTTBinding) IsSubscribed(topic string) bool {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	if m.subscribedTopic == nil {
+		return false
+	}
+	_, ok := m.subscribedTopic[topic]
+	return ok
+}
+
+// GetSubscribedTopics returns a copy of all subscribed topics (read-only operation)
+func (m *MQTTBinding) GetSubscribedTopics() []string {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	if m.subscribedTopic == nil {
+		return nil
+	}
+	topics := make([]string, 0, len(m.subscribedTopic))
+	for topic := range m.subscribedTopic {
+		topics = append(topics, topic)
+	}
+	return topics
 }
 
 // UnsubscribeTopic

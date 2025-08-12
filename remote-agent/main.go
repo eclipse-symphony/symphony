@@ -22,8 +22,8 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
-	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
-	remoteMqtt "github.com/eclipse-symphony/symphony/remote-agent/bindings/mqtt"
+	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/pollers/http"
+	remoteMqtt "github.com/eclipse-symphony/symphony/remote-agent/pollers/mqtt"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -187,7 +187,7 @@ func mainLogic() error {
 		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
 		symphonyEndpoints.RequestEndpoint = config.RequestEndpoint
 		// create HttpBinding
-		h := &remoteHttp.HttpBinding{
+		h := &remoteHttp.HttpPoller{
 			Agent: agent.Agent{
 				Providers: providers,
 			},
@@ -306,7 +306,7 @@ func mainLogic() error {
 		} else {
 			fmt.Printf("Using target name as topic suffix: %s\n", topicSuffix)
 		}
-		m := &remoteMqtt.MqttBinding{
+		m := &remoteMqtt.MqttPoller{
 			Agent: agent.Agent{
 				Providers: providers,
 			},

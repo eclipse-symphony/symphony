@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type MqttBinding struct {
+type MqttPoller struct {
 	CertProvider       certs.ICertProvider
 	Agent              agent.Agent
 	Client             mqtt.Client
@@ -44,7 +44,7 @@ var responseReceived = make(chan bool, 10) // Buffered channel to avoid blocking
 var myRequestIds sync.Map // store request-id
 
 // Launch the polling agent
-func (m *MqttBinding) Launch() error {
+func (m *MqttPoller) Launch() error {
 	// Start the agent by handling starter requests
 	var get_start = true
 	var requests []map[string]interface{}
@@ -54,10 +54,10 @@ func (m *MqttBinding) Launch() error {
 	myRequestIds.Store(initialRequestId, true)
 
 	Parameters := map[string]string{
-		"target":     m.Target,
-		"namespace":  m.Namespace,
-		"getAll":     "true",
-		"preindex":   "0",
+		"target":    m.Target,
+		"namespace": m.Namespace,
+		"getAll":    "true",
+		"preindex":  "0",
 	}
 	request := v1alpha2.COARequest{
 		Route:      "tasks",
@@ -90,7 +90,7 @@ func (m *MqttBinding) Launch() error {
 		if coaResponse.Metadata != nil {
 			respRequestId = coaResponse.Metadata["request-id"]
 		}
-		
+
 		if respRequestId == "" {
 			fmt.Printf("Warning: request-id not found in response metadata")
 			return
@@ -173,7 +173,7 @@ func (m *MqttBinding) Launch() error {
 	return nil
 }
 
-func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *MqttBinding) {
+func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *MqttPoller) {
 	for _, request := range requests {
 		wg.Add(1)
 		go func(req map[string]interface{}) {
@@ -230,7 +230,7 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 	wg.Wait()
 }
 
-func (m *MqttBinding) pollRequests() {
+func (m *MqttPoller) pollRequests() {
 	for i := 0; i < ConcurrentJobs; i++ {
 		// Generate request-id for polling request
 		pollRequestId := uuid.New().String()
@@ -265,7 +265,7 @@ func (m *MqttBinding) pollRequests() {
 }
 
 // UpdateTopology sends topology update request and waits for response
-func (m *MqttBinding) UpdateTopology(topologyContent []byte) error {
+func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 	fmt.Printf("Updating topology via MQTT for target %s in namespace %s\n", m.Target, m.Namespace)
 	m.topologyUpdateChan = make(chan bool, 1)
 	responseTimeout := time.After(30 * time.Second)
