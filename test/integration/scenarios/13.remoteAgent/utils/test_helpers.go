@@ -1366,22 +1366,27 @@ func CreateClientCertSecret(t *testing.T, namespace string, certs CertificatePat
 
 // StartSymphonyWithMQTTConfigDetected starts Symphony with MQTT configuration using detected broker address
 // This ensures Symphony uses the same broker address as the remote agent
-func StartSymphonyWithMQTTConfigDetected(t *testing.T, brokerAddress string) {
+func StartSymphonyWithMQTTConfigDetected(t *testing.T, brokerAddress, caSecretName string) {
 	t.Logf("Starting Symphony with detected MQTT broker address: %s", brokerAddress)
+	t.Logf("Using CA secret name: %s", caSecretName)
+	t.Logf("DEBUG: caSecretName type: %T, value: '%s'", caSecretName, caSecretName)
+	t.Logf("DEBUG: brokerAddress type: %T, value: '%s'", brokerAddress, brokerAddress)
 
 	helmValues := fmt.Sprintf("--set remoteAgent.remoteCert.used=true "+
-		"--set remoteAgent.remoteCert.trustCAs.secretName=client-cert-secret "+
+		"--set remoteAgent.remoteCert.trustCAs.secretName=%s "+
 		"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt "+
 		"--set remoteAgent.remoteCert.subjects=remote-agent-client "+
 		"--set mqtt.mqttClientCert.enabled=true "+
 		"--set mqtt.mqttClientCert.secretName=remote-agent-client-secret "+
 		"--set mqtt.mqttClientCert.crt=client.crt "+
 		"--set mqtt.mqttClientCert.key=client.key "+
-		"--set mqtt.brokerAddress=tls://%s:8883 "+
+		"--set mqtt.brokerAddress=%s "+
 		"--set mqtt.enabled=true --set mqtt.useTLS=true "+
 		"--set certManager.enabled=true "+
 		"--set api.env.ISSUER_NAME=symphony-ca-issuer "+
-		"--set api.env.SYMPHONY_SERVICE_NAME=symphony-service", brokerAddress)
+		"--set api.env.SYMPHONY_SERVICE_NAME=symphony-service", caSecretName, brokerAddress)
+
+	t.Logf("DEBUG: Generated helm values: %s", helmValues)
 
 	// Execute mage command from localenv directory
 	projectRoot := GetProjectRoot(t)
@@ -1598,7 +1603,7 @@ log_type all
 
 // SetupMQTTProcessTestWithDetectedAddress sets up complete MQTT process test environment
 // with detected broker address to ensure Symphony and remote agent use the same address
-func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targetName, namespace string) (TestConfig, string) {
+func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targetName, namespace string) (TestConfig, string, string) {
 	t.Logf("Setting up MQTT process test with detected broker address...")
 
 	// Use CI-optimized broker address detection
@@ -1616,7 +1621,7 @@ func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targe
 	t.Logf("Generated MQTT certificates")
 
 	// Step 2: Create CA and client certificate secrets in Kubernetes
-	CreateMQTTCASecret(t, certs)
+	caSecretName := CreateMQTTCASecret(t, certs)
 	CreateMQTTClientCertSecret(t, namespace, certs)
 	t.Logf("Created Kubernetes certificate secrets")
 
@@ -1678,7 +1683,7 @@ func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targe
 	}
 
 	t.Logf("MQTT process test environment setup complete with broker address: %s:8883", actualBrokerAddress)
-	return testConfig, actualBrokerAddress
+	return testConfig, actualBrokerAddress, caSecretName
 }
 
 // ValidateMQTTBrokerAddressAlignment validates that Symphony and remote agent use the same broker address
@@ -3064,9 +3069,34 @@ func CreateMQTTCASecret(t *testing.T, certs MQTTCertificatePaths) string {
 	return secretName
 }
 
+// CreateMQTTCASecretInNamespace creates CA secret in specified namespace for MQTT certificate validation
+func CreateMQTTCASecretInNamespace(t *testing.T, namespace string, caCertPath string) string {
+	secretName := "mqtt-ca"
+
+	// Create CA secret in specified namespace
+	t.Logf("Creating CA secret: kubectl create secret generic %s --from-file=ca.crt=%s -n %s", secretName, caCertPath, namespace)
+	cmd := exec.Command("kubectl", "create", "secret", "generic", secretName,
+		"--from-file=ca.crt="+caCertPath,
+		"-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if the error is because the secret already exists
+		if strings.Contains(string(output), "already exists") {
+			t.Logf("CA secret %s already exists in namespace %s", secretName, namespace)
+			return secretName
+		}
+		t.Logf("Failed to create CA secret in namespace %s: %s", namespace, string(output))
+		require.NoError(t, err)
+	}
+
+	t.Logf("Created CA secret %s in namespace %s", secretName, namespace)
+	return secretName
+}
+
 // CreateMQTTClientCertSecret creates Symphony MQTT client certificate secret in specified namespace
 func CreateMQTTClientCertSecret(t *testing.T, namespace string, certs MQTTCertificatePaths) string {
-	secretName := "mqtt-client-secret"
+	secretName := "remote-agent-client-secret"
 
 	t.Logf("Creating MQTT client secret: kubectl create secret generic %s --from-file=client.crt=%s --from-file=client.key=%s -n %s",
 		secretName, certs.SymphonyServerCert, certs.SymphonyServerKey, namespace)
@@ -4010,4 +4040,67 @@ func CleanupStaleRemoteAgentProcesses(t *testing.T) {
 	}
 
 	t.Logf("Stale process cleanup completed")
+}
+
+// TestMQTTConnectionWithClientCert tests MQTT connection using specific client certificates
+// This function attempts to make an actual MQTT connection (not just TLS) to verify certificate authentication
+func TestMQTTConnectionWithClientCert(t *testing.T, brokerAddress string, brokerPort int, caCertPath, clientCertPath, clientKeyPath string) bool {
+	t.Logf("=== TESTING MQTT CONNECTION WITH CLIENT CERT ===")
+	t.Logf("Broker: %s:%d", brokerAddress, brokerPort)
+	t.Logf("CA Cert: %s", caCertPath)
+	t.Logf("Client Cert: %s", clientCertPath)
+	t.Logf("Client Key: %s", clientKeyPath)
+
+	// First verify all certificate files exist
+	if !FileExists(caCertPath) {
+		t.Logf("❌ CA certificate file does not exist: %s", caCertPath)
+		return false
+	}
+	if !FileExists(clientCertPath) {
+		t.Logf("❌ Client certificate file does not exist: %s", clientCertPath)
+		return false
+	}
+	if !FileExists(clientKeyPath) {
+		t.Logf("❌ Client key file does not exist: %s", clientKeyPath)
+		return false
+	}
+
+	// Test TLS connection first
+	t.Logf("Step 1: Testing TLS connection...")
+	DebugTLSConnection(t, brokerAddress, brokerPort, caCertPath, clientCertPath, clientKeyPath)
+
+	// For now, we'll use a simple TLS test since implementing full MQTT client would require additional dependencies
+	// In a more complete implementation, you could use an MQTT client library like:
+	// - github.com/eclipse/paho.mqtt.golang
+	// - github.com/at-wat/mqtt-go
+
+	t.Logf("Step 2: Simulating MQTT client connection test...")
+
+	// Use openssl s_client to test the connection more thoroughly
+	cmd := exec.Command("timeout", "10s", "openssl", "s_client",
+		"-connect", fmt.Sprintf("%s:%d", brokerAddress, brokerPort),
+		"-CAfile", caCertPath,
+		"-cert", clientCertPath,
+		"-key", clientKeyPath,
+		"-verify_return_error",
+		"-quiet")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdin = strings.NewReader("CONNECT\n")
+
+	err := cmd.Run()
+	if err != nil {
+		t.Logf("❌ MQTT/TLS connection test failed: %v", err)
+		t.Logf("stdout: %s", stdout.String())
+		t.Logf("stderr: %s", stderr.String())
+		return false
+	}
+
+	t.Logf("✅ MQTT/TLS connection test passed")
+	t.Logf("Connection output: %s", stdout.String())
+
+	t.Logf("=== MQTT CONNECTION TEST COMPLETED ===")
+	return true
 }

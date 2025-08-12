@@ -64,22 +64,97 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 	var configPath, topologyPath, targetYamlPath string
 	var config utils.TestConfig
 	var detectedBrokerAddress string
+	var caSecretName string
 	var monitoringStop chan bool
 
 	// Use our new MQTT process test setup function with detected broker address
 	t.Run("SetupMQTTProcessTestWithDetectedAddress", func(t *testing.T) {
-		config, detectedBrokerAddress = utils.SetupMQTTProcessTestWithDetectedAddress(t, testDir, targetName, namespace)
+		config, detectedBrokerAddress, caSecretName = utils.SetupMQTTProcessTestWithDetectedAddress(t, testDir, targetName, namespace)
 		t.Logf("MQTT process test setup completed with broker address: %s", detectedBrokerAddress)
+
+		// Debug certificate information
+		utils.DebugCertificateInfo(t, config.CACertPath, "CA Certificate")
+		utils.DebugCertificateInfo(t, config.ClientCertPath, "Client Certificate")
+		utils.DebugMQTTBrokerCertificates(t, testDir)
+
+		// Test TLS connection to MQTT broker with certificates
+		utils.DebugTLSConnection(t, detectedBrokerAddress, 8883, config.CACertPath, config.ClientCertPath, config.ClientKeyPath)
+
+		// CRITICAL FIX: Create CA secret in default namespace for Symphony MQTT client certificate validation
+		t.Logf("Creating CA secret in default namespace for Symphony MQTT client...")
+		utils.CreateMQTTCASecretInNamespace(t, namespace, config.CACertPath)
 	})
 
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
 		// Deploy Symphony with MQTT configuration using detected broker address
 		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", detectedBrokerAddress, mqttBrokerPort)
 		t.Logf("Starting Symphony with MQTT broker address: %s", symphonyBrokerAddress)
-		utils.StartSymphonyWithMQTTConfig(t, symphonyBrokerAddress)
+		t.Logf("Using CA secret name: %s", caSecretName)
+		utils.StartSymphonyWithMQTTConfigDetected(t, symphonyBrokerAddress, caSecretName)
 
 		// Wait for Symphony server certificate to be created
 		utils.WaitForSymphonyServerCert(t, 5*time.Minute)
+
+		// Debug MQTT secrets created in Kubernetes
+		utils.DebugMQTTSecrets(t, namespace)
+
+		// Debug certificates in Symphony pods
+		utils.DebugSymphonyPodCertificates(t)
+
+		// Test certificate chain validation
+		mqttServerCertPath := filepath.Join(testDir, "mqtt-server.crt")
+		if utils.FileExists(mqttServerCertPath) {
+			utils.TestMQTTCertificateChain(t, config.CACertPath, mqttServerCertPath)
+		}
+
+		// CRITICAL TEST: Verify Symphony client certificate can connect to MQTT broker
+		t.Logf("=== TESTING SYMPHONY CLIENT CERTIFICATE MQTT CONNECTION ===")
+		symphonyClientCertPath := filepath.Join(testDir, "symphony-server.crt")
+		symphonyClientKeyPath := filepath.Join(testDir, "symphony-server.key")
+
+		if utils.FileExists(symphonyClientCertPath) && utils.FileExists(symphonyClientKeyPath) {
+			t.Logf("Testing MQTT connection using Symphony client certificate...")
+
+			// Test connection from detected broker address (what Symphony will use)
+			t.Logf("Testing Symphony client cert to detected broker address: %s:%d", detectedBrokerAddress, mqttBrokerPort)
+			symphonyCanConnect := utils.TestMQTTConnectionWithClientCert(t, detectedBrokerAddress, mqttBrokerPort,
+				config.CACertPath, symphonyClientCertPath, symphonyClientKeyPath)
+
+			// Also test from localhost (fallback test)
+			t.Logf("Testing Symphony client cert to localhost: 127.0.0.1:%d", mqttBrokerPort)
+			symphonyCanConnectLocalhost := utils.TestMQTTConnectionWithClientCert(t, "127.0.0.1", mqttBrokerPort,
+				config.CACertPath, symphonyClientCertPath, symphonyClientKeyPath)
+
+			if symphonyCanConnect {
+				t.Logf("✅ SUCCESS: Symphony client certificate can connect to MQTT broker at %s:%d", detectedBrokerAddress, mqttBrokerPort)
+			} else if symphonyCanConnectLocalhost {
+				t.Logf("⚠️ WARNING: Symphony client certificate can only connect via localhost, not detected address")
+			} else {
+				t.Logf("❌ CRITICAL: Symphony client certificate cannot connect to MQTT broker")
+				t.Fatalf("Symphony client certificate MQTT connection failed - this will prevent Symphony from communicating with remote agent")
+			}
+
+		} else {
+			t.Logf("WARNING: Symphony client certificate files not found:")
+			t.Logf("  Expected cert: %s (exists: %t)", symphonyClientCertPath, utils.FileExists(symphonyClientCertPath))
+			t.Logf("  Expected key: %s (exists: %t)", symphonyClientKeyPath, utils.FileExists(symphonyClientKeyPath))
+		}
+
+		// Additional comparison: Test with remote agent certificates
+		t.Logf("=== COMPARISON: TESTING WITH REMOTE AGENT CERTIFICATES ===")
+		t.Logf("Testing remote agent certificates for comparison...")
+		remoteAgentCanConnect := utils.TestMQTTConnectionWithClientCert(t, detectedBrokerAddress, mqttBrokerPort,
+			config.CACertPath, config.ClientCertPath, config.ClientKeyPath)
+		remoteAgentCanConnectLocalhost := utils.TestMQTTConnectionWithClientCert(t, "127.0.0.1", mqttBrokerPort,
+			config.CACertPath, config.ClientCertPath, config.ClientKeyPath)
+
+		if remoteAgentCanConnect || remoteAgentCanConnectLocalhost {
+			t.Logf("✅ Remote agent certificates can connect to MQTT broker")
+		} else {
+			t.Logf("❌ WARNING: Remote agent certificates also cannot connect to MQTT broker")
+		}
+
+		t.Logf("=== END MQTT CONNECTION TESTING ===")
 	})
 
 	// Create test configurations AFTER Symphony is running
@@ -227,6 +302,13 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
 			t.Fatalf("Remote agent process exited before target verification: %s", processCmd.ProcessState.String())
 		}
+
+		// Debug MQTT connection before verifying target status
+		t.Logf("=== DEBUGGING MQTT CONNECTION BEFORE TARGET VERIFICATION ===")
+		utils.DebugTLSConnection(t, detectedBrokerAddress, mqttBrokerPort, config.CACertPath, config.ClientCertPath, config.ClientKeyPath)
+
+		// Also test from localhost (where remote agent runs)
+		utils.DebugTLSConnection(t, "127.0.0.1", mqttBrokerPort, config.CACertPath, config.ClientCertPath, config.ClientKeyPath)
 
 		// Wait for target to reach ready state
 		utils.WaitForTargetReady(t, targetName, namespace, 360*time.Second)
