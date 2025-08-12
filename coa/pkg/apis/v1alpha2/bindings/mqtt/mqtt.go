@@ -108,6 +108,8 @@ func (m *MQTTBinding) generateResponseTopic(requestTopic string) string {
 		log.Infof("MQTT Binding: request topic '%s' does not match expected format, using default response topic '%s'", requestTopic, m.config.ResponseTopic)
 		return m.config.ResponseTopic
 	}
+	// If no default response topic is configured, log an error and return empty string
+	log.Errorf("MQTT Binding: cannot generate response topic for '%s' - no default response topic configured and topic doesn't match 'symphony/request/' pattern", requestTopic)
 	return ""
 }
 
@@ -300,8 +302,8 @@ func (m *MQTTBinding) SubscribeTopic(topic string) error {
 	// generate response topic based on request topic
 	responseTopic := m.generateResponseTopic(topic)
 	if responseTopic == "" {
-		log.Warnf("MQTT Binding: no response topic generated for request topic %s", topic)
-		return nil
+		log.Errorf("MQTT Binding: no response topic generated for request topic %s, cannot subscribe", topic)
+		return fmt.Errorf("no response topic available for request topic %s", topic)
 	}
 	handler := m.createHandlerWithResponseTopic(responseTopic)
 
