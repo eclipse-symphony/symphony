@@ -912,9 +912,7 @@
         "caCertPath": "{{ include "symphony.apiClientCAPem" . }}",
         "clientCertPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
         "clientKeyPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key",
-        "insecureSkipVerify": "{{ .Values.mqtt.insecureSkipVerify | default "false" }}",
-        "username": "{{ .Values.mqtt.username }}",
-        "password": "{{ .Values.mqtt.password }}"
+        "insecureSkipVerify": "{{ .Values.mqtt.insecureSkipVerify | default "false" }}"
       }
     }
     {{- end }}

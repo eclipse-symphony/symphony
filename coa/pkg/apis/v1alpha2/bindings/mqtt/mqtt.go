@@ -40,8 +40,6 @@ type MQTTBindingConfig struct {
 	ClientCertPath     string `json:"clientCertPath,omitempty"`
 	ClientKeyPath      string `json:"clientKeyPath,omitempty"`
 	InsecureSkipVerify string `json:"insecureSkipVerify,omitempty"`
-	Username           string `json:"username,omitempty"`
-	Password           string `json:"password,omitempty"`
 }
 
 type MQTTBinding struct {
@@ -138,14 +136,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	opts.SetKeepAlive(time.Duration(config.KeepAliveSeconds) * time.Second)
 	opts.SetPingTimeout(time.Duration(config.PingTimeoutSeconds) * time.Second)
 	opts.CleanSession = false
-
-	// Configure authentication
-	if config.Username != "" {
-		opts.SetUsername(config.Username)
-	}
-	if config.Password != "" {
-		opts.SetPassword(config.Password)
-	}
 
 	// Configure TLS if enabled
 	if config.UseTLS == "true" {
