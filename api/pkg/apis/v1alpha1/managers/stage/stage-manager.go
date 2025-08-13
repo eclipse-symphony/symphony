@@ -592,6 +592,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 			"__activation":           triggerData.Activation,
 			"__activationGeneration": triggerData.ActivationGeneration,
 			"__stage":                triggerData.Stage,
+			"__previousStage":        triggerData.TriggeringStage,
 			"__site":                 s.VendorContext.SiteInfo.SiteId,
 		},
 		Status:        v1alpha2.Untouched,
@@ -962,6 +963,9 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						}
 						if _, ok := proxyProvider.(contexts.IWithManagerContext); ok {
 							proxyProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+						}
+						for k, v := range inputCopy {
+							triggerData.Inputs[k] = v
 						}
 						outputs, pause, iErr = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerData)
 					} else {
