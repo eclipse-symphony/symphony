@@ -47,7 +47,6 @@ var myRequestIds sync.Map // store request-id
 func (m *MqttPoller) Launch() error {
 	// Start the agent by handling starter requests
 	var get_start = true
-	var requests []map[string]interface{}
 
 	// Generate request-id for initial GET request
 	initialRequestId := uuid.New().String()
@@ -69,12 +68,12 @@ func (m *MqttPoller) Launch() error {
 	}
 	data, _ := json.Marshal(request)
 	// Change QoS from 0 to 1 for more reliable delivery
-	token := m.Client.Publish(m.RequestTopic, 1, false, data)
-	token.Wait()
+	m.Client.Publish(m.RequestTopic, 0, false, data)
 	var wg sync.WaitGroup
-	// subscribe the response topic with QoS 1 instead of 0
-	token = m.Client.Subscribe(m.ResponseTopic, 1, func(client mqtt.Client, msg mqtt.Message) {
+	// subscribe the response topic with QoS 2 instead of 0
+	m.Client.Subscribe(m.ResponseTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		var coaResponse v1alpha2.COAResponse
+		var requests []map[string]interface{}
 		err := utils2.UnmarshalJson(msg.Payload(), &coaResponse)
 		if err != nil {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
@@ -138,9 +137,11 @@ func (m *MqttPoller) Launch() error {
 					},
 				}
 				data, _ := json.Marshal(request)
-				token := m.Client.Publish(m.RequestTopic, 1, false, data)
+				token := m.Client.Publish(m.RequestTopic, 2, false, data)
 				token.Wait()
 			}
+			get_start = false
+			handleRequests(requests, &wg, m)
 		} else {
 			var singleRequest map[string]interface{}
 			err := utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
@@ -155,16 +156,14 @@ func (m *MqttPoller) Launch() error {
 					return
 				}
 				// handle request
-				newRequests := []map[string]interface{}{singleRequest}
-				var newWg sync.WaitGroup
-				handleRequests(newRequests, &newWg, m)
+				var wg sync.WaitGroup
+				handleRequests([]map[string]interface{}{singleRequest}, &wg, m)
 			}
 		}
 
 	})
-	token.Wait()
 	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
-	handleRequests(requests, &wg, m)
+
 	// get new request
 	for ShouldEnd == "false" {
 		fmt.Println("Begin to pollRequests")
