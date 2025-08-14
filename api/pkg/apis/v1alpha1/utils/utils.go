@@ -295,7 +295,10 @@ func FormatObject(obj interface{}, isArray bool, path string, format string) ([]
 				}
 			}
 		} else {
-			ob, _ := oJsonpath.JsonPathLookup(obj, path)
+			rawData, _ := json.Marshal(obj)
+			dict := make(map[string]interface{})
+			json.Unmarshal(rawData, &dict)
+			ob, _ := oJsonpath.JsonPathLookup(dict, path)
 			if format == "yaml" {
 				if s, ok := ob.(string); ok {
 					str, err := strconv.Unquote(strings.TrimSpace(s))
