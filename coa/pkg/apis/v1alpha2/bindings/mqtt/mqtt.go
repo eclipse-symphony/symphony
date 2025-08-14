@@ -140,7 +140,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	opts.CleanSession = false
 
 	// Configure TLS if enabled
-	if config.UseTLS == "true" {
+	if strings.ToLower(config.UseTLS) == "true" {
 		tlsConfig, err := m.createTLSConfig(config)
 		if err != nil {
 			log.Errorf("MQTT Binding: failed to create TLS config - %+v", err)
@@ -184,7 +184,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 
 // createTLSConfig creates a TLS configuration for MQTT client authentication
 func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, error) {
-	insecureSkipVerify := config.InsecureSkipVerify == "true"
+	insecureSkipVerify := strings.ToLower(config.InsecureSkipVerify) == "true"
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: insecureSkipVerify,
