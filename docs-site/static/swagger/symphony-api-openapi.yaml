@@ -68,6 +68,190 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OwnerReference'
+    CampaignContainerState:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/CampaignContainerSpec'
+        status:
+          $ref: '#/components/schemas/CampaignContainerStatus'
+      additionalProperties: false
+    CampaignContainerSpec:
+      type: object
+      description: Specification for the campaign container.
+      additionalProperties: false
+    CampaignContainerStatus:
+      type: object
+      properties:
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+          description: Key-value properties of the campaign container status.
+      required:
+        - properties
+      additionalProperties: false
+    CampaignState:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/CampaignSpec'
+      additionalProperties: false
+    CampaignSpec:
+      type: object
+      properties:
+        firstStage:
+          type: string
+        stages:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/StageSpec'
+        selfDriving:
+          type: boolean
+        version:
+          type: string
+        rootResource:
+          type: string
+      additionalProperties: false
+    StageSpec:
+      type: object
+      properties:
+        name:
+          type: string
+        contexts:
+          type: string
+        provider:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+          description: Arbitrary configuration (maps to Go interface{}).
+        stageSelector:
+          type: string
+        inputs:
+          type: object
+          additionalProperties: true
+          description: Free-form key/value inputs.
+        handleErrors:
+          type: boolean
+        schedule:
+          type: string
+        target:
+          type: string
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskSpec'
+        taskOption:
+          $ref: '#/components/schemas/TaskOption'
+      additionalProperties: false
+    TaskSpec:
+      type: object
+      properties:
+        name:
+          type: string
+        provider:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+          description: Arbitrary configuration (maps to Go interface{}).
+        inputs:
+          type: object
+          additionalProperties: true
+        target:
+          type: string
+      additionalProperties: false
+    TaskOption:
+      type: object
+      properties:
+        concurrency:
+          type: integer
+          format: int32
+        errorAction:
+          $ref: '#/components/schemas/ErrorAction'
+      additionalProperties: false
+    ErrorAction:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/ErrorActionMode'
+        maxToleratedFailures:
+          type: integer
+          format: int32
+      additionalProperties: false
+    ErrorActionMode:
+      type: string
+      description: Mode for handling task errors.
+    ActivationState:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ActivationSpec'
+        status:
+          $ref: '#/components/schemas/ActivationStatus'
+      additionalProperties: false
+    ActivationSpec:
+      type: object
+      properties:
+        campaign:
+          type: string
+        stage:
+          type: string
+        inputs:
+          type: object
+          additionalProperties: true
+          description: Free-form key/value inputs.
+      additionalProperties: false
+    ActivationStatus:
+      type: object
+      properties:
+        activationGeneration:
+          type: string
+        updateTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/State'
+        statusMessage:
+          type: string
+        stageHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageStatus'
+      additionalProperties: false
+    StageStatus:
+      type: object
+      properties:
+        stage:
+          type: string
+        nextStage:
+          type: string
+        inputs:
+          type: object
+          additionalProperties: true
+        outputs:
+          type: object
+          additionalProperties: true
+        status:
+          $ref: '#/components/schemas/State'
+        isActive:
+          type: boolean
+        statusMessage:
+          type: string
+        errorMessage:
+          type: string
+      additionalProperties: false
+    State:
+      type: integer
+      format: uint16
+      description: State code.
     SolutionState:
       type: object
       properties:
@@ -331,6 +515,7 @@ tags:
   - name: Instances
   - name: Catalogs
   - name: Users
+  - name: CampaignContainers
   - name: Campaigns
   - name: Activations
   - name: Agent
@@ -458,7 +643,14 @@ paths:
         '200':
           description: Successfully retrieved Solution Container spec
           content:
-            application/json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SolutionContainerState'
+              example:
+                metadata:
+                  namespace: 'default'
+                  name: 'my-solution'
+                spec: {}
         '404':
           description: Solution Container not found
           content:
@@ -659,25 +851,45 @@ paths:
       tags:
         - Targets
       summary: List Targets
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace used to filter Targets. The default is an empty string (""), which is equivalent to 'default'.             
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Successful response
+          description: List of Targets
           content:
-            application/json: {}
-  /targets/registry/{TARGET_NAME}:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TargetState'
+              example:
+                - metadata:
+                    name: 'target-1'
+                  spec:                
+                    properties:
+                      foo: 'bar'
+  /targets/registry/{targetName}:
     post:
       tags:
         - Targets
-      summary: Create Target with staging binding
+      summary: Create a Target. As a special case, you can create a Target with a providers.target.staging binding with a with-binding=staging parameter.
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/TargetState'
-              example:
-                displayName: '{{TARGET_NAME}}'
+            example:
+              metadata:
+                name: 'target-1'
+              spec:
+                properties:
+                  foo: 'bar'  
       security:
         - bearerAuth: []
       parameters:
@@ -686,34 +898,39 @@ paths:
           schema:
             type: string
           example: staging
-        - name: TARGET_NAME
+        - name: targetName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful creation of Target          
     get:
       tags:
         - Targets
-      summary: Get Target spec YAML
+      summary: Get Target spec as either YAML or JSON
       security:
         - bearerAuth: []
       parameters:
-        - name: doc-type
+        - name: namespace
           in: query
           schema:
             type: string
-          example: yaml
+          description: Namespace of Target. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
         - name: path
           in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
           schema:
             type: string
           example: $.spec
-        - name: TARGET_NAME
+        - name: targetName
           in: path
           schema:
             type: string
@@ -722,7 +939,15 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetState'
+              example:
+                metadata:
+                  name: 'target-1'
+                spec:
+                  properties:
+                    foo: 'bar'                
     delete:
       tags:
         - Targets
@@ -730,21 +955,24 @@ paths:
       security:
         - bearerAuth: []
       parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Target. The default is an empty string (""), which is equivalent to 'default'.       
         - name: direct
           in: query
           schema:
             type: boolean
           example: 'true'
-        - name: TARGET_NAME
+        - name: targetName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful response          
   /targets/bootstrap:
     post:
       tags:
@@ -764,7 +992,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /targets/download/yaml/{TARGET_NAME}:
+  /targets/download/yaml/{targetName}:
     get:
       tags:
         - Targets
@@ -777,7 +1005,7 @@ paths:
           schema:
             type: string
           example: $.spec
-        - name: TARGET_NAME
+        - name: targetName
           in: path
           schema:
             type: string
@@ -787,7 +1015,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /targets/ping/{TARGET_NAME}:
+  /targets/ping/{targetName}:
     get:
       tags:
         - Targets
@@ -795,7 +1023,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: TARGET_NAME
+        - name: targetName
           in: path
           schema:
             type: string
@@ -805,7 +1033,7 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /targets/status/{TARGET_NAME}:
+  /targets/status/{targetName}:
     put:
       tags:
         - Targets
@@ -840,7 +1068,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: TARGET_NAME
+        - name: targetName
           in: path
           required: true
           description: Name of the target to report status for.
@@ -1155,17 +1383,178 @@ paths:
                   error:
                     type: string
                     example: Invalid username or password
-  /campaigns/{CAMPAIGN_NAME}:
+  /campaigncontainers:
+     get:
+      tags:
+        - CampaignContainers
+      summary: List Campaign Containers
+      description: >
+        Returns all Campaign Containers in the system. In Symphony, each Campaign is contained within a Campaign Container, but this query only retrieves the containers themselves—not their associated Campaign. Use the optional doc-type parameter to choose the output format (json by default or yaml), and the optional path parameter (JSONPath expression) to return only specific parts of each container. 
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace used to filter Campaign Containers. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
+        - name: path
+          in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
+          schema:
+            type: string
+          example: $
+      responses:
+        '200':
+          description: Return a list of Campaign Containers
+          content:
+           application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CampaignContainerState'
+            example:
+              - metadata:
+                  namespace: 'default'
+                  name: 'campaign-1'
+                spec: {}
+              - metadata:
+                  namespace: 'default'
+                  name: 'campaign-2'
+                spec: {}
+  /campaigncontainers/{campaignContainerName}:
+    post:
+      tags:
+        - CampaignContainers
+      summary: Create Campaign Container
+      description: >
+        Creates a new Campaign Container with the specified name and namespace. The Campaign Container is a logical grouping for Campaigns in Symphony. The request metadata.name must match the campaignContainerName path parameter, and it must be unique within the specified namespace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignContainerState'
+            example:
+              metadata:
+                namespace: 'default'
+                name: 'campaign-1'
+              spec: {}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Campaign Container. The default is an empty string (""), which is equivalent to 'default'.
+        - name: campaignContainerName
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - CampaignContainers
+      summary: Get Campaign Container spec as either YAML or JSON
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Campaign Container. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
+        - name: path
+          in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
+          schema:
+            type: string
+          example: $.metadata
+        - name: campaignContainerName
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved Campaign Container spec
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignContainerState'
+              example:
+                metadata:
+                  namespace: 'default'
+                  name: 'campaign-1'
+                spec: {}
+        '404':
+          description: Campaign Container not found
+          content:
+            application/text:
+              schema:
+                type: string
+              example: "Not Found: entry 'campaign-1' is not found in namespace default"
+    delete:
+      tags:
+        - CampaignContainers
+      summary: Delete Campaign Container
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Campaign Container. The default is an empty string (""), which is equivalent to 'default'.
+        - name: campaignContainerName
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful deletion
+        '404':
+          description: Campaign Container not found
+          content:
+            application/text:
+              schema:
+                type: string
+              example: "Not Found: entry 'campaign-1' is not found"
+  /campaigns/{campaignName}:
     post:
       tags:
         - Campaigns
-      summary: Create Campaign
+      summary: Create Campaign inside a Campaign Container. 
+      description: >
+        Creates a new Campaign within the specified Campaign Container. The request body must contain the CampaignState object, and the campaignName path parameter must match the metadata.name field in the request body. The spec.rootResource of the Campaign must reference an existing Campaign Container, and the Campaign name must follow the format <container>-v-<name>. For example, to add a v1 Campaign to the campaign-1 container, the Campaign name should be campaign-1-v-v1. 
       requestBody:
         content:
           application/json:
             schema:
-              type: object
-              example:
+              $ref: '#/components/schemas/CampaignState'
+            example:
+              metadata:
+                name: 'campaign-1-v-v1'
+              spec:
+                rootResource: 'campaign-1'
                 firstStage: mock
                 selfDriving: true
                 stages:
@@ -1178,34 +1567,44 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: CAMPAIGN_NAME
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Campaign. The default is an empty string (""), which is equivalent to 'default'.      
+        - name: campaignName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful creation of Campaign
     get:
       tags:
         - Campaigns
-      summary: Get Campaign spec YAML
+      summary: Get Campaign spec as either YAML or JSON
       security:
         - bearerAuth: []
       parameters:
-        - name: doc-type
+        - name: namespace
           in: query
           schema:
             type: string
-          example: yaml
+          description: Namespace of Campaign. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
         - name: path
           in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
           schema:
             type: string
           example: $.spec
-        - name: CAMPAIGN_NAME
+        - name: campaignName
           in: path
           schema:
             type: string
@@ -1214,7 +1613,23 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignState'
+              example:
+                metadata:
+                  name: 'campaign-1-v-v1'
+                spec:
+                  rootResource: 'campaign-1'
+                  firstStage: mock
+                  selfDriving: true
+                  stages:
+                    mock:
+                      name: mock
+                      provider: providers.stage.mock
+                      inputs:
+                        foo: ${{$output(mock,foo)}}
+                      stageSelector: ${{$if($lt($output(mock,foo), 5), mock, '')}}
     delete:
       tags:
         - Campaigns
@@ -1222,65 +1637,114 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: CAMPAIGN_NAME
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Campaign. The default is an empty string (""), which is equivalent to 'default'.       
+        - name: campaignName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful response          
   /campaigns:
     get:
       tags:
         - Campaigns
       summary: List Campaigns
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace used to filter Campaigns. The default is an empty string (""), which is equivalent to 'default'.   
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Successful response
+          description: List of Campaigns
           content:
-            application/json: {}
-  /activations/registry/{ACTIVATION_NAME}:
+           application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CampaignState'
+            example:
+              - metadata:
+                  name: 'campaign-1-v-v1'
+                spec:
+                  rootResource: 'campaign-1'
+                  firstStage: mock
+                  selfDriving: true
+                  stages:
+                    mock:
+                      name: mock
+                      provider: providers.stage.mock
+                      inputs:
+                        foo: ${{$output(mock,foo)}}
+                      stageSelector: ${{$if($lt($output(mock,foo), 5), mock, '')}}
+  /activations/registry/{activationName}:
     post:
       tags:
         - Activations
-      summary: Create Activation
+      summary: Create Activation.
       requestBody:
         content:
           application/json:
             schema:
-              type: object
-              example:
-                campaign: '{{CAMPAIGN_NAME}}'
-                name: '{{ACTIVATION_NAME}}'
+              $ref: '#/components/schemas/ActivationState'
+            example:
+              metadata:
+                name: 'activation-1'
+              spec:                
+                campaign: 'campaign-1:v1'                
                 stage: ''
                 inputs:
                   foo: 0
       security:
         - bearerAuth: []
       parameters:
-        - name: ACTIVATION_NAME
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Activation. The default is an empty string (""), which is equivalent to 'default'.      
+        - name: activationName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful creation of Activation          
     get:
       tags:
         - Activations
-      summary: Get Activation
+      summary: Get Activation spec as either YAML or JSON
       security:
         - bearerAuth: []
       parameters:
-        - name: ACTIVATION_NAME
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Activation. The default is an empty string (""), which is equivalent to 'default'.
+        - name: doc-type
+          in: query
+          description: Returned document type, either 'yaml' or 'json'. Default is 'json'.
+          schema:
+            type: string
+          example: json
+        - name: path
+          in: query
+          description: JSONPath expression to specify the part of the spec to retrieve
+          schema:
+            type: string
+          example: $.spec
+        - name: activationName
           in: path
           schema:
             type: string
@@ -1289,7 +1753,17 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivationState'
+              example:
+                metadata:
+                name: 'activation-1'
+                spec:                
+                  campaign: 'campaign-1:v1'                  
+                  stage: ''
+                  inputs:
+                    foo: 0
     delete:
       tags:
         - Activations
@@ -1297,29 +1771,50 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: ACTIVATION_NAME
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace of Activation. The default is an empty string (""), which is equivalent to 'default'.  
+        - name: activationName
           in: path
           schema:
             type: string
           required: true
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json: {}
+          description: Successful response          
   /activations/registry:
     get:
       tags:
         - Activations
       summary: List Activations
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Namespace used to filter Activations. The default is an empty string (""), which is equivalent to 'default'.       
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Successful response
+          description: List of Activations
           content:
-            application/json: {}
-  /activations/status/{ACTIVATION_NAME}:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivationState'
+              example:
+                - metadata:
+                    name: 'activation-1'
+                  spec:                
+                    campaign: 'campaign-1:v1'                    
+                    stage: ''
+                    inputs:
+                      foo: 0
+  /activations/status/{activationName}:
     post:
       tags:
         - Activations
@@ -1328,23 +1823,23 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              example:
-                stage: mock
-                outputs:
-                  __activation: test-activation
-                  __activationGeneration: '1'
-                  __campaign: test-campaign
-                  __previousStage: mock
-                  __site: hq
-                  __stage: mock
-                  status: 200
-                  foo: 5
-                status: 9996
+               $ref: '#/components/schemas/ActivationStatus'
+            example:
+              stage: mock
+              outputs:
+                __activation: test-activation
+                __activationGeneration: '1'
+                __campaign: test-campaign
+                __previousStage: mock
+                __site: hq
+                __stage: mock
+                status: 200
+                foo: 5
+              status: 9996
       security:
         - bearerAuth: []
       parameters:
-        - name: ACTIVATION_NAME
+        - name: activationName
           in: path
           schema:
             type: string
