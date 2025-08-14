@@ -66,7 +66,10 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		caSecretName = utils.CreateMQTTCASecret(t, mqttCerts)
 
 		// Create Symphony MQTT client certificate secret in default namespace
-		clientSecretName = utils.CreateMQTTClientCertSecret(t, namespace, mqttCerts)
+		clientSecretName = utils.CreateSymphonyMQTTClientSecret(t, namespace, mqttCerts)
+
+		// Create Remote Agent MQTT client certificate secret in default namespace
+		utils.CreateRemoteAgentClientCertSecret(t, namespace, mqttCerts)
 	})
 
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
@@ -78,8 +81,13 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		// Try the alternative deployment method first
 		utils.StartSymphonyWithMQTTConfigAlternative(t, symphonyBrokerAddress)
 
-		// Wait for Symphony server certificate to be created
-		utils.WaitForSymphonyServerCert(t, 5*time.Minute)
+		// Wait longer for Symphony server certificate to be created - cert-manager needs time
+		t.Logf("Waiting for Symphony API server certificate creation...")
+		utils.WaitForSymphonyServerCert(t, 8*time.Minute)
+
+		// Additional wait to ensure certificate is fully propagated
+		t.Logf("Certificate ready, waiting additional time for propagation...")
+		time.Sleep(30 * time.Second)
 
 		// Wait for Symphony service to be ready and accessible
 		utils.WaitForSymphonyServiceReady(t, 5*time.Minute)
@@ -154,7 +162,8 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		utils.CleanupSymphony(t, "remote-agent-mqtt-test")
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
 		utils.CleanupMQTTCASecret(t, caSecretName)
-		utils.CleanupMQTTClientSecret(t, namespace, clientSecretName)
+		utils.CleanupMQTTClientSecret(t, namespace, clientSecretName)             // Symphony client cert
+		utils.CleanupMQTTClientSecret(t, namespace, "remote-agent-client-secret") // Remote Agent client cert
 	})
 
 	t.Logf("MQTT communication test completed successfully")

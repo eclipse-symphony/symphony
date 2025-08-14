@@ -195,8 +195,6 @@ func generateServerCert(t *testing.T, caCert *x509.Certificate, caKey *rsa.Priva
 	dnsNames := []string{
 		hostname,
 		"localhost",
-		"127.0.0.1",
-		"0.0.0.0",
 		"*.local",
 		"*.localhost",
 		"host.docker.internal",   // Docker Desktop
@@ -207,6 +205,12 @@ func generateServerCert(t *testing.T, caCert *x509.Certificate, caKey *rsa.Priva
 	t.Logf("Certificate will be valid for %d IP addresses:", len(ipAddresses))
 	for i, ip := range ipAddresses {
 		t.Logf("  [%d] %s", i+1, ip.String())
+	}
+
+	// Log DNS names for debugging
+	t.Logf("Certificate will be valid for %d DNS names:", len(dnsNames))
+	for i, name := range dnsNames {
+		t.Logf("  DNS[%d] %s", i+1, name)
 	}
 
 	// Create certificate template with very permissive settings for testing

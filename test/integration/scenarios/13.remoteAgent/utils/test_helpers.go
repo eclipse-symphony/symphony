@@ -1377,7 +1377,7 @@ func StartSymphonyWithMQTTConfigDetected(t *testing.T, brokerAddress, caSecretNa
 		"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt "+
 		"--set remoteAgent.remoteCert.subjects=remote-agent-client "+
 		"--set mqtt.mqttClientCert.enabled=true "+
-		"--set mqtt.mqttClientCert.secretName=remote-agent-client-secret "+
+		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret "+
 		"--set mqtt.mqttClientCert.crt=client.crt "+
 		"--set mqtt.mqttClientCert.key=client.key "+
 		"--set mqtt.brokerAddress=%s "+
@@ -1622,7 +1622,8 @@ func SetupMQTTProcessTestWithDetectedAddress(t *testing.T, testDir string, targe
 
 	// Step 2: Create CA and client certificate secrets in Kubernetes
 	caSecretName := CreateMQTTCASecret(t, certs)
-	CreateMQTTClientCertSecret(t, namespace, certs)
+	CreateSymphonyMQTTClientSecret(t, namespace, certs)
+	CreateRemoteAgentClientCertSecret(t, namespace, certs)
 	t.Logf("Created Kubernetes certificate secrets")
 
 	// Step 3: Setup external MQTT broker with detected address
@@ -1824,7 +1825,7 @@ func StartSymphonyWithRemoteAgentConfig(t *testing.T, protocol string) {
 			"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt " +
 			"--set remoteAgent.remoteCert.subjects=remote-agent-client " +
 			"--set mqtt.mqttClientCert.enabled=true " +
-			"--set mqtt.mqttClientCert.secretName=remote-agent-client-secret " +
+			"--set mqtt.mqttClientCert.secretName=mqtt-client-secret " +
 			"--set mqtt.mqttClientCert.crt=client.crt " +
 			"--set mqtt.mqttClientCert.key=client.key " +
 			"--set mqtt.brokerAddress=tls://localhost:8883 " +
@@ -3094,25 +3095,33 @@ func CreateMQTTCASecretInNamespace(t *testing.T, namespace string, caCertPath st
 	return secretName
 }
 
-// CreateMQTTClientCertSecret creates Symphony MQTT client certificate secret in specified namespace
-func CreateMQTTClientCertSecret(t *testing.T, namespace string, certs MQTTCertificatePaths) string {
-	secretName := "remote-agent-client-secret"
-
+// CreateMQTTClientCertSecret creates MQTT client certificate secret with specified name and certificates
+func CreateMQTTClientCertSecret(t *testing.T, namespace, secretName, certPath, keyPath string) string {
 	t.Logf("Creating MQTT client secret: kubectl create secret generic %s --from-file=client.crt=%s --from-file=client.key=%s -n %s",
-		secretName, certs.SymphonyServerCert, certs.SymphonyServerKey, namespace)
+		secretName, certPath, keyPath, namespace)
 	cmd := exec.Command("kubectl", "create", "secret", "generic", secretName,
-		"--from-file=client.crt="+certs.SymphonyServerCert,
-		"--from-file=client.key="+certs.SymphonyServerKey,
+		"--from-file=client.crt="+certPath,
+		"--from-file=client.key="+keyPath,
 		"-n", namespace)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Logf("Failed to create MQTT client secret: %s", string(output))
+		t.Logf("Failed to create MQTT client secret %s: %s", secretName, string(output))
 	}
 	require.NoError(t, err)
 
 	t.Logf("Created MQTT client cert secret %s in namespace %s", secretName, namespace)
 	return secretName
+}
+
+// CreateSymphonyMQTTClientSecret creates Symphony MQTT client certificate secret
+func CreateSymphonyMQTTClientSecret(t *testing.T, namespace string, certs MQTTCertificatePaths) string {
+	return CreateMQTTClientCertSecret(t, namespace, "mqtt-client-secret", certs.SymphonyServerCert, certs.SymphonyServerKey)
+}
+
+// CreateRemoteAgentClientCertSecret creates Remote Agent MQTT client certificate secret
+func CreateRemoteAgentClientCertSecret(t *testing.T, namespace string, certs MQTTCertificatePaths) string {
+	return CreateMQTTClientCertSecret(t, namespace, "remote-agent-client-secret", certs.RemoteAgentCert, certs.RemoteAgentKey)
 }
 
 // SetupExternalMQTTBroker sets up MQTT broker on host machine using Docker
@@ -3481,7 +3490,7 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 		"--set mqtt.enabled=true "+
 		"--set mqtt.useTLS=true "+
 		"--set mqtt.mqttClientCert.enabled=true "+
-		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret "+
+		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret"+
 		"--set mqtt.brokerAddress=%s "+
 		"--set certManager.enabled=true "+
 		"--set api.env.ISSUER_NAME=symphony-ca-issuer "+
@@ -3513,7 +3522,7 @@ func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
 		t.Logf("mqtt-ca secret found in cert-manager namespace")
 	}
 
-	cmd = exec.Command("kubectl", "get", "secret", "mqtt-client-secret", "-n", "default")
+	cmd = exec.Command("kubectl", "get", "secret", "remote-agent-client-secret", "-n", "default")
 	if err := cmd.Run(); err != nil {
 		t.Logf("Warning: mqtt-client-secret not found in default namespace: %v", err)
 	} else {
