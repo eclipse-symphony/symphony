@@ -400,15 +400,15 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 	// invalid token
 	testHttpRequestHelperWithHeaders(context.Background(), t, fasthttp.MethodGet, "http://localhost:8081/v1/greetings", nil, map[string]string{
 		"Authorization": "Bearer fake-token",
-	}, 403, "", nil)
+	}, 401, "", nil)
 
 	// empty token
-	testHttpRequestHelperWithHeaders(context.Background(), t, fasthttp.MethodGet, "http://localhost:8081/v1/greetings", nil, nil, 403, "", nil)
+	testHttpRequestHelperWithHeaders(context.Background(), t, fasthttp.MethodGet, "http://localhost:8081/v1/greetings", nil, nil, 401, "", nil)
 
 	// test valid token and wrong rbac (method not match)
 	testHttpRequestHelperWithHeaders(context.Background(), t, fasthttp.MethodPost, "http://localhost:8081/v1/greetings", []byte("John"), map[string]string{
 		"Authorization": "Bearer " + authHeader,
-	}, 403, "", nil)
+	}, 401, "", nil)
 
 	// test valid token and rbac with context
 	ctx, span := observability.StartSpan("HTTP-Test-Client", context.Background(), &map[string]string{
