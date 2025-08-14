@@ -1161,6 +1161,56 @@ func GetWorkingCertificates(t *testing.T, baseURL, targetName, namespace string,
 	return publicPath, privatePath
 }
 
+// GetRemoteAgentBinaryFromServer downloads the remote agent binary from the server endpoint
+func GetRemoteAgentBinaryFromServer(t *testing.T, config TestConfig) string {
+	t.Logf("Getting remote agent binary from server endpoint...")
+	binaryEndpoint := fmt.Sprintf("%s/files/remote-agent", config.BaseURL)
+	t.Logf("Calling binary endpoint: %s", binaryEndpoint)
+
+	// Load bootstrap certificate
+	cert, err := tls.LoadX509KeyPair(config.ClientCertPath, config.ClientKeyPath)
+	require.NoError(t, err, "Failed to load bootstrap cert/key")
+
+	// Create HTTP client with bootstrap certificate
+	tlsConfig := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: true, // Skip server cert verification for testing
+	}
+	client := &http.Client{
+		Transport: &http.Transport{TLSClientConfig: tlsConfig},
+	}
+
+	// Call binary download endpoint
+	resp, err := client.Get(binaryEndpoint)
+	require.NoError(t, err, "Failed to call binary endpoint")
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		t.Logf("Binary endpoint failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		require.Fail(t, "Binary endpoint failed", "Status: %d, Response: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Save binary to temporary file
+	binaryPath := filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap", "remote-agent")
+
+	// Create the binary file
+	binaryFile, err := os.Create(binaryPath)
+	require.NoError(t, err, "Failed to create binary file")
+	defer binaryFile.Close()
+
+	// Copy binary content from response
+	_, err = io.Copy(binaryFile, resp.Body)
+	require.NoError(t, err, "Failed to save binary content")
+
+	// Make binary executable
+	err = os.Chmod(binaryPath, 0755)
+	require.NoError(t, err, "Failed to make binary executable")
+
+	t.Logf("Remote agent binary downloaded and saved to: %s", binaryPath)
+	return binaryPath
+}
+
 // StartRemoteAgentProcess starts the remote agent as a background process using binary with two-phase auth
 func StartRemoteAgentProcess(t *testing.T, config TestConfig) *exec.Cmd {
 	// First build the binary
@@ -2697,6 +2747,9 @@ func GetCurrentGroup(t *testing.T) string {
 }
 
 // StartRemoteAgentWithBootstrap starts remote agent using bootstrap.sh script
+// This function is used for bootstrap testing where we test the complete bootstrap process.
+// For HTTP protocol: bootstrap.sh downloads the binary from server and sets up systemd service
+// For MQTT protocol: we build the binary locally and pass it to bootstrap.sh
 func StartRemoteAgentWithBootstrap(t *testing.T, config TestConfig) *exec.Cmd {
 	// Check sudo access first with improved command list
 	CheckSudoAccess(t)
@@ -3774,10 +3827,23 @@ func StartRemoteAgentProcessComplete(t *testing.T, config TestConfig) *exec.Cmd 
 }
 
 // StartRemoteAgentProcessWithoutCleanup starts remote agent as a complete process but doesn't set up automatic cleanup
+// This function is used for process testing where we test direct process communication.
+// For HTTP protocol: we get the binary from server endpoint and run it directly as a process
+// For other protocols: we build the binary locally and run it as a process
 // The caller is responsible for calling CleanupRemoteAgentProcess when needed
 func StartRemoteAgentProcessWithoutCleanup(t *testing.T, config TestConfig) *exec.Cmd {
-	// First build the binary
-	binaryPath := BuildRemoteAgentBinary(t, config)
+	var binaryPath string
+
+	// For HTTP protocol, get binary from server endpoint instead of building locally
+	if config.Protocol == "http" {
+		t.Logf("HTTP protocol detected - getting binary from server endpoint...")
+		// For HTTP process testing, get the binary from the server endpoint
+		binaryPath = GetRemoteAgentBinaryFromServer(t, config)
+	} else {
+		// For MQTT and other protocols, build the binary locally
+		t.Logf("Non-HTTP protocol (%s) detected - building binary locally...", config.Protocol)
+		binaryPath = BuildRemoteAgentBinary(t, config)
+	}
 
 	// Phase 1: Get working certificates using bootstrap cert (HTTP protocol only)
 	var workingCertPath, workingKeyPath string
