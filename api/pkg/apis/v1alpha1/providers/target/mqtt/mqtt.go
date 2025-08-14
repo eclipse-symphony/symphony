@@ -192,7 +192,7 @@ func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetPr
 
 	// Handle TLS/Certificate configuration
 	if v, ok := properties["useTLS"]; ok {
-		ret.UseTLS = v == "true"
+		ret.UseTLS = strings.ToLower(v) == "true"
 	}
 	if v, ok := properties["caCertPath"]; ok {
 		ret.CACertPath = v
@@ -204,13 +204,7 @@ func MQTTTargetProviderConfigFromMap(properties map[string]string) (MQTTTargetPr
 		ret.ClientKeyPath = v
 	}
 	if v, ok := properties["insecureSkipVerify"]; ok {
-		ret.InsecureSkipVerify = v == "true"
-	}
-	if v, ok := properties["username"]; ok {
-		ret.Username = v
-	}
-	if v, ok := properties["password"]; ok {
-		ret.Password = v
+		ret.InsecureSkipVerify = strings.ToLower(v) == "true"
 	}
 
 	return ret, nil
@@ -696,7 +690,7 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 		tlsConfig.Certificates = []tls.Certificate{clientCert}
 		sLog.InfofCtx(ctx, "  P (MQTT Target): loaded client certificate from %s and key from %s",
 			i.Config.ClientCertPath, i.Config.ClientKeyPath)
-	} else if i.Config.ClientCertPath != "" || i.Config.ClientKeyPath != "" {
+	} else {
 		// Both cert and key must be provided together
 		return nil, fmt.Errorf("both clientCertPath and clientKeyPath must be provided for client certificate authentication")
 	}
@@ -706,10 +700,10 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 
 // isCertificatePEM checks if the given data contains valid PEM formatted certificate data
 func isCertificatePEM(data []byte) bool {
-	// Check if the data contains PEM headers
-	dataStr := string(data)
-	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") ||
-		!strings.Contains(dataStr, "-----END CERTIFICATE-----") {
+	// Check if the data begins and ends with PEM headers
+	dataStr := strings.TrimSpace(string(data))
+	if !strings.HasPrefix(dataStr, "-----BEGIN CERTIFICATE-----") ||
+		!strings.HasSuffix(dataStr, "-----END CERTIFICATE-----") {
 		return false
 	}
 

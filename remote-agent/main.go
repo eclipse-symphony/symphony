@@ -274,10 +274,18 @@ func mainLogic() error {
 		brokerUrl := fmt.Sprintf("tls://%s:%d", brokerAddr, brokerPort)
 		fmt.Printf("Using MQTT broker: %s\n", brokerUrl)
 
+		// Determine the correct ServerName for TLS verification
+		// If connecting to 127.0.0.1 or localhost, use "localhost" as ServerName
+		serverName := brokerAddr
+		if brokerAddr == "127.0.0.1" || brokerAddr == "::1" {
+			serverName = "localhost"
+		}
+		fmt.Printf("Using ServerName '%s' for TLS verification (connecting to %s)\n", serverName, brokerAddr)
+
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			RootCAs:      caCertPool,
-			ServerName:   brokerAddr, // Use broker address from config instead of hardcoded value
+			ServerName:   serverName, // Use appropriate ServerName for certificate verification
 			MinVersion:   tls.VersionTLS12,
 			MaxVersion:   tls.VersionTLS13,
 		}
@@ -297,7 +305,6 @@ func mainLogic() error {
 		} else {
 			fmt.Println("Connected to MQTT broker")
 		}
-		fmt.Println("Begin to request topic", "ddc")
 		// choose topic suffix
 		topicSuffix := strings.ToLower(targetName)
 		if useCertSubject && subjectName != "" {
