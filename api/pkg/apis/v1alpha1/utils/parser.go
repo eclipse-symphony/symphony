@@ -935,6 +935,8 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 func newExpressionParser(text string) *ExpressionParser {
 	var s scanner.Scanner // TODO: this is mostly used to scan go code, we should use a custom scanner
 	s.Init(strings.NewReader(strings.TrimSpace(text)))
+	// Supress "invalid char literal" messages
+	s.Error = func(_ *scanner.Scanner, _ string) {} // no-op
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
 	p := &ExpressionParser{
 		s:    &s,

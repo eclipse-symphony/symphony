@@ -540,6 +540,7 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 						TriggeringStage:      stage,
 						Schedule:             cam.Stages[nextStage].Schedule,
 						Namespace:            namespace,
+						Proxy:                cam.Stages[nextStage].Proxy,
 					}
 					log.InfofCtx(ctx, " M (Stage): Activating next stage: %s\n", activationData.Stage)
 					return activationData, nil
@@ -580,7 +581,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfoCtx(ctx, " M (Stage): HandleDirectTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
+	log.InfofCtx(ctx, " M (Stage): HandleDirectTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
 
 	status := model.StageStatus{
 		Stage:     "",
@@ -591,6 +592,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 			"__activation":           triggerData.Activation,
 			"__activationGeneration": triggerData.ActivationGeneration,
 			"__stage":                triggerData.Stage,
+			"__previousStage":        triggerData.TriggeringStage,
 			"__site":                 s.VendorContext.SiteInfo.SiteId,
 		},
 		Status:        v1alpha2.Untouched,
@@ -644,7 +646,21 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	}
 
 	var outputs map[string]interface{}
-	outputs, _, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+	if triggerData.Proxy != nil {
+		proxyProvider, err := factory.CreateProvider(triggerData.Proxy.Provider, nil)
+		if err != nil {
+			status.Status = v1alpha2.InternalError
+			status.ErrorMessage = err.Error()
+			status.IsActive = false
+			return status
+		}
+		if _, ok := proxyProvider.(contexts.IWithManagerContext); ok {
+			proxyProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+		}
+		outputs, _, err = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerData)
+	} else {
+		outputs, _, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, triggerData.Inputs)
+	}
 
 	result := StageResult{
 		Outputs: outputs,
@@ -672,6 +688,7 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	status.Status = v1alpha2.Done
 	status.StatusMessage = v1alpha2.Done.String()
 	status.IsActive = false
+
 	return status
 }
 func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, siteOrTarget string) map[string]interface{} {
@@ -932,8 +949,37 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 				if provider != nil {
 					var outputs map[string]interface{}
 					var pause bool
-					outputs, pause, err = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
-
+					var iErr error = nil
+					if triggerData.Proxy != nil {
+						factory := symproviders.SymphonyProviderFactory{}
+						proxyProvider, pErr := factory.CreateProvider(triggerData.Proxy.Provider, nil)
+						if err != nil {
+							results <- StageResult{
+								Outputs: nil,
+								Error:   pErr,
+								Site:    site,
+							}
+							return
+						}
+						if _, ok := proxyProvider.(contexts.IWithManagerContext); ok {
+							proxyProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
+						}
+						for k, v := range inputCopy {
+							triggerData.Inputs[k] = v
+						}
+						outputs, pause, iErr = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerData)
+					} else {
+						outputs, pause, iErr = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+					}
+					if iErr != nil {
+						log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s: %v", triggerData.Stage, site, iErr)
+						results <- StageResult{
+							Outputs: nil,
+							Error:   iErr,
+							Site:    site,
+						}
+						return
+					}
 					if pause {
 						log.InfofCtx(ctx, " M (Stage): stage %s in activation %s for site %s get paused result from stage provider", triggerData.Stage, triggerData.Activation, site)
 						pauseRequested = true
@@ -1108,6 +1154,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 							TriggeringStage:      triggerData.Stage,
 							Schedule:             nextStage.Schedule,
 							Namespace:            triggerData.Namespace,
+							Proxy:                nextStage.Proxy,
 						}
 						s.setStageStatus(&status, nextStageName, v1alpha2.Done, "")
 						return status, activationData
@@ -1239,6 +1286,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 			TriggeringStage:      stage,
 			Schedule:             stageSpec.Schedule,
 			Namespace:            actData.Namespace,
+			Proxy:                stageSpec.Proxy,
 		}, nil
 	}
 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not found", stage), v1alpha2.BadRequest)

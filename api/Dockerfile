@@ -128,6 +128,11 @@ COPY --from=build /dist /
 COPY --from=build /extensions /extensions
 ADD ./api/symphony-api.json /
 ADD ./api/symphony-api-no-k8s.json /
+# --- in the RUNTIME stage, after copying /extensions ---
+RUN mkdir -p /usr/local/lib/symphony \
+ && cp -a /extensions/*.so /usr/local/lib/symphony/ \
+ && printf "/usr/local/lib/symphony\n" > /etc/ld.so.conf.d/symphony.conf \
+ && ldconfig
 EXPOSE 8080
 EXPOSE 8081
 ENV LOG_LEVEL=Debug

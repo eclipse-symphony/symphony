@@ -69,11 +69,26 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 				Body:        []byte(err.Error()),
 			}
 		} else {
-			response = routeTable[request.Route].Handler(request)
+			//check if the route is in the route table
+			if _, ok := routeTable[request.Route]; !ok {
+				response = v1alpha2.COAResponse{
+					State:       v1alpha2.NotFound,
+					ContentType: "text/plain",
+					Body:        []byte("route not found"),
+				}
+			} else {
+				response = routeTable[request.Route].Handler(request)
+			}
 		}
 
 		// needs to carry request-id from request into response
 		if request.Metadata != nil {
+			if v, ok := request.Metadata["request-id"]; ok {
+				if response.Metadata == nil {
+					response.Metadata = make(map[string]string)
+				}
+				response.Metadata["request-id"] = v
+			}
 			if v, ok := request.Metadata["request-id"]; ok {
 				if response.Metadata == nil {
 					response.Metadata = make(map[string]string)

@@ -12,7 +12,7 @@ repository = "https://github.com/eclipse-symphony/symphony.git"
 keywords = ["orchestration"]
 
 [lib]
-crate-type = ["staticlib", "rlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 libloading = { version = "0.8" }

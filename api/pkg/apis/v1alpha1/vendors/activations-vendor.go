@@ -175,7 +175,6 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 		id := request.Parameters["__name"]
 
 		var activation model.ActivationState
-
 		err := utils2.UnmarshalJson(request.Body, &activation)
 		if err != nil {
 			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
@@ -184,7 +183,6 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-
 		err = c.ActivationsManager.UpsertState(ctx, id, activation)
 		if err != nil {
 			vLog.ErrorfCtx(ctx, "V (Activations Vendor): onActivations failed - %s", err.Error())
@@ -193,7 +191,6 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 				Body:  []byte(err.Error()),
 			})
 		}
-
 		if c.Config.Properties["useJobManager"] == "true" {
 			entry, err := c.ActivationsManager.GetState(ctx, id, activation.ObjectMeta.Namespace)
 			if err != nil {
