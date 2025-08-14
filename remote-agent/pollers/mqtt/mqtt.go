@@ -39,7 +39,6 @@ type Result struct {
 }
 
 var check_response = false
-var responseReceived = make(chan bool, 10) // Buffered channel to avoid blocking
 
 var myRequestIds sync.Map // store request-id
 
@@ -162,6 +161,7 @@ func (m *MqttPoller) Launch() error {
 		}
 
 	})
+
 	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
 
 	// get new request
@@ -202,7 +202,7 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 				fmt.Printf("Error marshalling response: %s\n", err)
 				return
 			}
-			fmt.Println("Publishing response to MQTT %s", data)
+			fmt.Println("Publishing remote agent execute result to MQTT %s", data)
 			// Change QoS from 0 to 1
 			token := m.Client.Publish(m.RequestTopic, 1, false, data)
 			// Use WaitTimeout instead of Wait to prevent deadlock
@@ -212,17 +212,6 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 				fmt.Printf("Error publishing response: %s\n", token.Error())
 			} else {
 				fmt.Println("Response published successfully")
-
-				select {
-				case success := <-responseReceived:
-					if success {
-						fmt.Println("Response received successfully")
-					} else {
-						fmt.Println("Response not received successfully")
-					}
-				case <-time.After(10 * time.Second):
-					fmt.Println("Timeout waiting for response.")
-				}
 			}
 		}(request)
 	}
@@ -250,15 +239,7 @@ func (m *MqttPoller) pollRequests() {
 		}
 		fmt.Println("Begin to request topic Get task")
 		data, _ := json.Marshal(request)
-		token := m.Client.Publish(m.RequestTopic, 1, false, data)
-
-		// Use WaitTimeout instead of Wait to prevent deadlock
-		if !token.WaitTimeout(30 * time.Second) {
-			fmt.Println("Warning: MQTT publish timed out after 30 seconds")
-		} else if token.Error() != nil {
-			fmt.Printf("Error publishing to topic %s: %v\n", m.RequestTopic, token.Error())
-		}
-
+		m.Client.Publish(m.RequestTopic, 0, false, data)
 		time.Sleep(Interval)
 	}
 }
