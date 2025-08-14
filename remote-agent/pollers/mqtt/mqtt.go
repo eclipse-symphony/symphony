@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -147,15 +146,9 @@ func (m *MqttPoller) Launch() error {
 				fmt.Printf("Error unmarshalling response body: %s", err.Error())
 				return
 			}
-			if strings.Contains(string(coaResponse.Body), m.Target) {
-				if err != nil {
-					fmt.Printf("Error unmarshalling response body: %s", err.Error())
-					return
-				}
-				// handle request
-				var wg sync.WaitGroup
-				handleRequests([]map[string]interface{}{singleRequest}, &wg, m)
-			}
+			// handle request
+			var wg sync.WaitGroup
+			handleRequests([]map[string]interface{}{singleRequest}, &wg, m)
 		}
 
 	})
