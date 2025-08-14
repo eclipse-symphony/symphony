@@ -96,7 +96,7 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 		{
 			Methods:    []string{fasthttp.MethodPost},
-			Route:      route + "/bootstrap",
+			Route:      route + "/getcert",
 			Version:    o.Version,
 			Handler:    o.onGetCert,
 			Parameters: []string{"name?"},
