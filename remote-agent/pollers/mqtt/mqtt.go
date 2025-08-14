@@ -66,10 +66,8 @@ func (m *MqttPoller) Launch() error {
 		},
 	}
 	data, _ := json.Marshal(request)
-	// Change QoS from 0 to 1 for more reliable delivery
 	m.Client.Publish(m.RequestTopic, 0, false, data)
 	var wg sync.WaitGroup
-	// subscribe the response topic with QoS 2 instead of 0
 	m.Client.Subscribe(m.ResponseTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		var coaResponse v1alpha2.COAResponse
 		var requests []map[string]interface{}
@@ -203,7 +201,6 @@ func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *Mq
 				return
 			}
 			fmt.Println("Publishing remote agent execute result to MQTT %s", data)
-			// Change QoS from 0 to 1
 			token := m.Client.Publish(m.RequestTopic, 1, false, data)
 			// Use WaitTimeout instead of Wait to prevent deadlock
 			if !token.WaitTimeout(30 * time.Second) {
