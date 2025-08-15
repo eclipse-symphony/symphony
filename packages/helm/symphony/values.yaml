@@ -113,6 +113,10 @@ remoteAgent:
       secretName: "mqtt-ca"
       secretKey: "ca.crt"
     subjects: system:serviceaccount:default:symphony-api-sp;target.symphony.microsoft.com
+targets:
+  # Working certificate configuration for /targets/getcert API endpoint
+  workingCertDuration: "2160h"     # 90 days default
+  workingCertRenewBefore: "360h"   # 15 days default
 http:
   enabled: true
 mqtt:
