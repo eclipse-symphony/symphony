@@ -81,6 +81,40 @@ func (e *TargetsVendor) Init(config vendors.VendorConfig, factories []managers.I
 	return nil
 }
 
+// getCertificateDuration returns the configurable certificate duration with a default of 90 days (2160h)
+// This can be configured in the vendor properties with the key "certificateDuration"
+// Example configuration in symphony-api.json:
+//
+//	{
+//	  "type": "vendors.targets",
+//	  "properties": {
+//	    "certificateDuration": "4320h"  // 180 days
+//	  }
+//	}
+func (c *TargetsVendor) getCertificateDuration() string {
+	if duration, exists := c.Config.Properties["certificateDuration"]; exists && duration != "" {
+		return duration
+	}
+	return "2160h" // 90 days default
+}
+
+// getCertificateRenewBefore returns the configurable certificate renewBefore with a default of 15 days (360h)
+// This can be configured in the vendor properties with the key "certificateRenewBefore"
+// Example configuration in symphony-api.json:
+//
+//	{
+//	  "type": "vendors.targets",
+//	  "properties": {
+//	    "certificateRenewBefore": "720h"  // 30 days
+//	  }
+//	}
+func (c *TargetsVendor) getCertificateRenewBefore() string {
+	if renewBefore, exists := c.Config.Properties["certificateRenewBefore"]; exists && renewBefore != "" {
+		return renewBefore
+	}
+	return "360h" // 15 days default
+}
+
 func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 	route := "targets"
 	if o.Route != "" {
@@ -665,10 +699,15 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 		cert.SetNamespace(namespace)
 
 		secretName := fmt.Sprintf("%s-tls", id)
+
+		// Get configurable certificate duration and renewBefore values with defaults
+		duration := c.getCertificateDuration()
+		renewBefore := c.getCertificateRenewBefore()
+
 		spec := map[string]interface{}{
 			"secretName":  secretName,
-			"duration":    "2160h",
-			"renewBefore": "360h",
+			"duration":    duration,
+			"renewBefore": renewBefore,
 			"commonName":  subject,
 			"dnsNames": []string{
 				subject,

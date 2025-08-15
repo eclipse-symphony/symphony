@@ -328,6 +328,10 @@
       {
         "type": "vendors.targets",
         "route": "targets",
+        "properties": {
+          "certificateDuration": "{{ .Values.targets.certificateDuration | default "2160h" }}",
+          "certificateRenewBefore": "{{ .Values.targets.certificateRenewBefore | default "360h" }}"
+        },
         "managers": [
           {
             "name": "targets-manager",
