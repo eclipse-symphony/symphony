@@ -1,4 +1,4 @@
-{{- if .Values.remoteAgent.used }}
+{{- if .Values.remoteAgent.remoteCert.used }}
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
 metadata:
@@ -7,8 +7,8 @@ metadata:
 spec:
   sources:
     - secret: 
-        name: {{ .Values.RemoteCert.ClientCAs.SecretName }}
-        key: {{ .Values.RemoteCert.ClientCAs.SecretKey }}
+        name: {{ .Values.remoteAgent.remoteCert.trustCAs.secretName }}
+        key: {{ .Values.remoteAgent.remoteCert.trustCAs.secretKey }}
   target:
     configMap:
       key: {{ include "symphony.apiClientCATrustBundleKey" . }}

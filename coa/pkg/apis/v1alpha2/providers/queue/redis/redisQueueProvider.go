@@ -276,3 +276,17 @@ func (rq *RedisQueueProvider) QueryByPaging(context context.Context, queueName s
 	}
 	return results, lastMessageID, nil
 }
+
+func (rq *RedisQueueProvider) DeleteQueue(context context.Context, queue string) error {
+	// Delete the main stream
+	err := rq.client.Del(context, queue).Err()
+	if err != nil {
+		return fmt.Errorf("failed to delete Redis stream %s: %w", queue, err)
+	}
+
+	// Delete associated metadata (lastID key)
+	lastIDkey := fmt.Sprintf("%s:lastID", queue)
+	rq.client.Del(context, lastIDkey) // Ignore error for metadata cleanup
+
+	return nil
+}

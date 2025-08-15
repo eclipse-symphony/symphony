@@ -505,6 +505,12 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 	namespace := request.Parameters["namespace"]
 	getAll, exists := request.Parameters["getAll"]
 
+	// Extract request-id from request metadata
+	var requestId string
+	if request.Metadata != nil {
+		requestId = request.Metadata["request-id"]
+	}
+
 	if exists && getAll == "true" {
 		// Logic to handle getALL parameter
 		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
@@ -526,9 +532,9 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 			}
 		}
 
-		return c.SolutionManager.GetTaskFromQueueByPaging(ctx, target, namespace, start, size)
+		return c.SolutionManager.GetTaskFromQueueByPaging(ctx, target, namespace, start, size, requestId)
 	}
-	return c.SolutionManager.GetTaskFromQueue(ctx, target, namespace)
+	return c.SolutionManager.GetTaskFromQueue(ctx, target, namespace, requestId)
 }
 
 // onGetResponse handles the get response from the remote agent.
