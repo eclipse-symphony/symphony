@@ -167,10 +167,10 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 					return
 				} else {
 					uri := ctx.Request.URI().String()
-					if strings.Contains(uri, "/targets/bootstrap") || strings.Contains(uri, "/files") {
+					if strings.Contains(uri, "/targets/getcert") || strings.Contains(uri, "/files") {
 						next(ctx)
 					} else {
-						log.ErrorfCtx(ctx, "JWT: Bootstrap cert can only access bootstrap and files endpoints.")
+						log.ErrorfCtx(ctx, "JWT: Bootstrap cert can only access getcert, and files endpoints.")
 						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 						return
 					}

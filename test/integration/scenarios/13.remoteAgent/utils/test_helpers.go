@@ -1092,7 +1092,7 @@ func BuildRemoteAgentBinary(t *testing.T, config TestConfig) string {
 // GetWorkingCertificates calls the getcert endpoint with bootstrap cert to obtain working certificates
 func GetWorkingCertificates(t *testing.T, baseURL, targetName, namespace string, bootstrapCertPath, bootstrapKeyPath string, testDir string) (string, string) {
 	t.Logf("Getting working certificates using bootstrap cert...")
-	getCertEndpoint := fmt.Sprintf("%s/targets/bootstrap/%s?namespace=%s&osPlatform=linux", baseURL, targetName, namespace)
+	getCertEndpoint := fmt.Sprintf("%s/targets/getcert/%s?namespace=%s&osPlatform=linux", baseURL, targetName, namespace)
 	t.Logf("Calling certificate endpoint: %s", getCertEndpoint)
 
 	// Load bootstrap certificate
