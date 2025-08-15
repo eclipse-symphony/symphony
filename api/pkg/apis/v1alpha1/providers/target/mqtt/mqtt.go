@@ -691,8 +691,8 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 		sLog.InfofCtx(ctx, "  P (MQTT Target): loaded client certificate from %s and key from %s",
 			i.Config.ClientCertPath, i.Config.ClientKeyPath)
 	} else {
-		// Both cert and key must be provided together
-		return nil, fmt.Errorf("both clientCertPath and clientKeyPath must be provided for client certificate authentication")
+		// Neither cert nor key provided - TLS without client certificate authentication
+		sLog.InfofCtx(ctx, "  P (MQTT Target): no client certificate configured - using TLS without client authentication")
 	}
 
 	return tlsConfig, nil

@@ -881,6 +881,7 @@ func (c *TargetsVendor) checkSecretReady(ctx context.Context, secretName, namesp
 
 	_, err = c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
 	if err != nil {
+		tLog.InfofCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
 		return false, nil // Secret not complete yet
 	}
 

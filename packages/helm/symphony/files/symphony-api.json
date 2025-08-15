@@ -910,8 +910,10 @@
         "pingTimeoutSeconds": {{ .Values.mqtt.pingTimeoutSeconds | default 100 }},
         "useTLS": "{{ .Values.mqtt.useTLS | default "false" }}",
         "caCertPath": "{{ include "symphony.apiClientCAPem" . }}",
+        {{- if .Values.mqtt.mqttClientCert.enabled }}
         "clientCertPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
         "clientKeyPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key",
+        {{- end }}
         "insecureSkipVerify": "{{ .Values.mqtt.insecureSkipVerify | default "false" }}"
       }
     }
