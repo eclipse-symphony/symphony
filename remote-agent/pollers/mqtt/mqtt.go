@@ -92,6 +92,32 @@ func (m *MqttPoller) Launch() error {
 			fmt.Printf("Warning: request-id is not in map")
 			return
 		}
+
+		// Handle topology update responses
+		if m.topologyUpdateChan != nil {
+			fmt.Printf("Received topology update response: %s\n", string(msg.Payload()))
+			// Check response status
+			if coaResponse.State == v1alpha2.OK || coaResponse.State == v1alpha2.Accepted {
+				fmt.Printf("Topology update successful (status code: %d)\n", coaResponse.State)
+				select {
+				case m.topologyUpdateChan <- true:
+					fmt.Println("Success result sent to channel")
+				default:
+					fmt.Println("Channel is full or closed")
+				}
+			} else {
+				fmt.Printf("Topology update failed (status code: %d): %s\n", coaResponse.State, string(coaResponse.Body))
+				select {
+				case m.topologyUpdateChan <- false:
+					fmt.Println("Failure result sent to channel")
+				default:
+					fmt.Println("Channel is full or closed")
+				}
+			}
+			// Clean up the request-id from map
+			myRequestIds.Delete(respRequestId)
+			return
+		}
 		if coaResponse.State == v1alpha2.BadRequest {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
 			return
@@ -234,6 +260,11 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 	fmt.Printf("Updating topology via MQTT for target %s in namespace %s\n", m.Target, m.Namespace)
 	m.topologyUpdateChan = make(chan bool, 1)
 	responseTimeout := time.After(30 * time.Second)
+
+	// Generate request-id for topology update request
+	topologyRequestId := uuid.New().String()
+	myRequestIds.Store(topologyRequestId, true)
+
 	updateRequest := v1alpha2.COARequest{
 		Method: "POST",
 		Route:  "updatetopology",
@@ -242,6 +273,9 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 			"__name":    m.Target, // Explicitly set both target and __name
 			"namespace": m.Namespace,
 			"Component": "default",
+		},
+		Metadata: map[string]string{
+			"request-id": topologyRequestId,
 		},
 		ContentType: "application/json",
 		Body:        topologyContent,
@@ -256,53 +290,12 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 		return fmt.Errorf("MQTT client not connected")
 	}
 
-	// Subscribe to response topic to receive topology update results
-	token := m.Client.Subscribe(m.ResponseTopic, 1, func(client mqtt.Client, msg mqtt.Message) {
-		if m.topologyUpdateChan != nil {
-			fmt.Printf("Received topology update response: %s\n", string(msg.Payload()))
-
-			var coaResponse v1alpha2.COAResponse
-			if err := utils2.UnmarshalJson(msg.Payload(), &coaResponse); err == nil {
-				// Check response status
-				if coaResponse.State == v1alpha2.OK || coaResponse.State == v1alpha2.Accepted {
-					fmt.Printf("Topology update successful (status code: %d)\n", coaResponse.State)
-					select {
-					case m.topologyUpdateChan <- true:
-						fmt.Println("Success result sent to channel")
-					default:
-						fmt.Println("Channel is full or closed")
-					}
-				} else {
-					fmt.Printf("Topology update failed (status code: %d): %s\n", coaResponse.State, string(coaResponse.Body))
-					select {
-					case m.topologyUpdateChan <- false:
-						fmt.Println("Failure result sent to channel")
-					default:
-						fmt.Println("Channel is full or closed")
-					}
-				}
-			} else {
-				fmt.Printf("Unable to parse response: %v\n", err)
-				select {
-				case m.topologyUpdateChan <- false:
-					fmt.Println("Failure result sent to channel")
-				default:
-					fmt.Println("Channel is full or closed")
-				}
-			}
-		}
-	})
-
-	if token.Wait() && token.Error() != nil {
-		return fmt.Errorf("failed to subscribe to response topic: %v", token.Error())
-	}
-	fmt.Printf("Successfully subscribed to response topic: %s\n", m.ResponseTopic)
-
-	// Send topology update request
+	// Send topology update request without re-subscribing
+	// The Launch method's subscription will handle the response
 	fmt.Printf("Sending topology update request...\n")
 	fmt.Printf("Request topic: %s\n", m.RequestTopic)
 
-	token = m.Client.Publish(m.RequestTopic, 1, false, requestJSON)
+	token := m.Client.Publish(m.RequestTopic, 1, false, requestJSON)
 	if !token.WaitTimeout(30 * time.Second) {
 		return fmt.Errorf("topology update request timed out after 30 seconds")
 	}
@@ -322,7 +315,7 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 		return fmt.Errorf("timed out waiting for topology update response")
 	}
 
-	// Clear channel reference but don't unsubscribe - Launch method will reuse this subscription
+	// Clear channel reference
 	m.topologyUpdateChan = nil
 	return nil
 }
