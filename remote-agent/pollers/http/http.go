@@ -191,16 +191,19 @@ func (h *HttpPoller) pollRequests() []map[string]interface{} {
 			return requests
 		}
 
-		var req map[string]interface{}
-		err = json.Unmarshal(body, &req)
+		// Parse as unified paging format
+		var pagingResponse model.ProviderPagingRequest
+		err = json.Unmarshal(body, &pagingResponse)
 		if err != nil {
 			return requests
 		}
-		_, ok := req["operationID"].(string)
-		if !ok {
-			return requests
+
+		// Extract requests from requestList
+		for _, req := range pagingResponse.RequestList {
+			if _, ok := req["operationID"].(string); ok {
+				requests = append(requests, req)
+			}
 		}
-		requests = append(requests, req)
 	}
 	return requests
 }

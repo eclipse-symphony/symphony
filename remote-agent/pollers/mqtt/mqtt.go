@@ -43,7 +43,6 @@ var myRequestIds sync.Map // store request-id
 // Subscribe sets up MQTT response topic subscription
 func (m *MqttPoller) Subscribe() error {
 	fmt.Println("Setting up MQTT subscription for topic: ", m.ResponseTopic)
-	var wg sync.WaitGroup
 	m.Client.Subscribe(m.ResponseTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		var coaResponse v1alpha2.COAResponse
 		err := utils2.UnmarshalJson(msg.Payload(), &coaResponse)
@@ -100,14 +99,14 @@ func (m *MqttPoller) Subscribe() error {
 		}
 
 		// Handle regular task responses
-		m.handleTaskResponse(coaResponse, &wg)
+		m.handleTaskResponse(coaResponse)
 	})
 
 	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
 	return nil
 }
 
-func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, wg *sync.WaitGroup) {
+func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse) {
 	// This function handles task responses and continuation requests for paging
 	var requests []map[string]interface{}
 
@@ -119,54 +118,102 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, wg *sy
 		fmt.Printf("Received %d requests from paging response\n", len(allRequests.RequestList))
 		requests = append(requests, allRequests.RequestList...)
 
-		// Check if there are more pages to fetch
-		if allRequests.LastMessageID != "" {
-			fmt.Printf("More pages available, LastMessageID: %s, immediately fetching next page\n", allRequests.LastMessageID)
-			// Generate request-id for continuation request
-			continueRequestId := uuid.New().String()
-			myRequestIds.Store(continueRequestId, true)
-
-			Parameters := map[string]string{
-				"target":    m.Target,
-				"namespace": m.Namespace,
-				"getAll":    "true",
-				"preindex":  allRequests.LastMessageID,
-			}
-			request := v1alpha2.COARequest{
-				Route:      "tasks",
-				Method:     "GET",
-				Parameters: Parameters,
-				Metadata: map[string]string{
-					"request-id": continueRequestId,
-				},
-			}
-			data, _ := json.Marshal(request)
-			token := m.Client.Publish(m.RequestTopic, 1, false, data)
-			if !token.WaitTimeout(30 * time.Second) {
-				fmt.Println("Warning: Continuation request publish timed out")
-			} else if token.Error() != nil {
-				fmt.Printf("Error publishing continuation request: %s\n", token.Error())
-			}
-		}
-
-		// Process current batch of requests
+		// Process current batch of requests with correlation ID
 		if len(requests) > 0 {
-			handleRequests(requests, wg, m)
+			// Process requests sequentially
+			m.handleRequestsWithCorrelationID(requests, allRequests.CorrelationID)
+
+			// Check if there are more pages to fetch after current page is done
+			if allRequests.LastMessageID != "" {
+				fmt.Printf("Current page completed. Fetching next page with LastMessageID: %s\n", allRequests.LastMessageID)
+				// Generate request-id for continuation request
+				continueRequestId := uuid.New().String()
+				myRequestIds.Store(continueRequestId, true)
+
+				Parameters := map[string]string{
+					"target":    m.Target,
+					"namespace": m.Namespace,
+					"getAll":    "true",
+					"preindex":  allRequests.LastMessageID,
+				}
+				request := v1alpha2.COARequest{
+					Route:      "tasks",
+					Method:     "GET",
+					Parameters: Parameters,
+					Metadata: map[string]string{
+						"request-id": continueRequestId,
+					},
+				}
+				data, _ := json.Marshal(request)
+				token := m.Client.Publish(m.RequestTopic, 1, false, data)
+				if !token.WaitTimeout(30 * time.Second) {
+					fmt.Println("Warning: Continuation request publish timed out")
+				} else if token.Error() != nil {
+					fmt.Printf("Error publishing continuation request: %s\n", token.Error())
+				}
+			}
 		}
 		return
 	}
 
-	// Try to parse as a single request
-	var singleRequest map[string]interface{}
-	err = utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
-	if err == nil && singleRequest != nil {
-		fmt.Println("Received single request: ", singleRequest)
-		handleRequests([]map[string]interface{}{singleRequest}, wg, m)
-		return
-	}
-
-	// If neither parsing worked, it might be an empty response or error
+	// If parsing as paging request failed, it might be an empty response or error
 	fmt.Printf("No valid requests found in response body: %s\n", string(coaResponse.Body))
+}
+
+func (m *MqttPoller) handleRequestsWithCorrelationID(requests []map[string]interface{}, correlationID string) {
+	// Process requests sequentially, not concurrently
+	for _, request := range requests {
+		func(req map[string]interface{}, corrID string) {
+			retCtx := context.TODO()
+
+			// Set correlation ID if available, otherwise use mock value like HTTP poller
+			if corrID != "" {
+				retCtx = context.WithValue(retCtx, "X-Activity-correlationId", corrID)
+				fmt.Printf("Using correlation ID from paging request: %s\n", corrID)
+			} else {
+				// Use mock correlation ID like HTTP poller does
+				mockCorrelationID := "00000000-0000-0000-0000-000000000000"
+				retCtx = context.WithValue(retCtx, "X-Activity-correlationId", mockCorrelationID)
+				fmt.Printf("No correlation ID available, using mock: %s\n", mockCorrelationID)
+			}
+
+			body, err := json.Marshal(req)
+			if err != nil {
+				fmt.Println("error marshalling request:", err)
+				return
+			}
+			ret := m.Agent.Handle(body, retCtx)
+			ret.Namespace = m.Namespace
+
+			// Send response back
+			result, err := json.Marshal(ret)
+			if err != nil {
+				fmt.Println("error marshalling response:", err)
+			}
+			response := v1alpha2.COARequest{
+				Route:       "getResult",
+				Method:      "POST",
+				ContentType: "application/json",
+				Body:        result,
+			}
+			data, err := json.Marshal(response)
+			if err != nil {
+				fmt.Printf("Error marshalling response: %s\n", err)
+				return
+			}
+			fmt.Printf("Publishing remote agent execute result to MQTT %s\n", data)
+			token := m.Client.Publish(m.RequestTopic, 1, false, data)
+			// Use WaitTimeout instead of Wait to prevent deadlock
+			if !token.WaitTimeout(30 * time.Second) {
+				fmt.Println("Warning: MQTT response publish timed out after 30 seconds")
+			} else if token.Error() != nil {
+				fmt.Printf("Error publishing response: %s\n", token.Error())
+			} else {
+				fmt.Println("Response published successfully")
+			}
+		}(request, correlationID)
+		// Current request completed, continue to next request
+	}
 }
 
 // Launch the polling agent
@@ -203,51 +250,6 @@ func (m *MqttPoller) Launch() error {
 		fmt.Println("Begin to pollRequests")
 		m.pollRequests()
 	}
-}
-
-func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *MqttPoller) {
-	for _, request := range requests {
-		wg.Add(1)
-		go func(req map[string]interface{}) {
-			defer wg.Done()
-			retCtx := context.TODO()
-			body, err := json.Marshal(req)
-			if err != nil {
-				fmt.Println("error marshalling request:", err)
-				return
-			}
-			ret := m.Agent.Handle(body, retCtx)
-			ret.Namespace = m.Namespace
-
-			// Send response back
-			result, err := json.Marshal(ret)
-			if err != nil {
-				fmt.Println("error marshalling response:", err)
-			}
-			response := v1alpha2.COARequest{
-				Route:       "getResult",
-				Method:      "POST",
-				ContentType: "application/json",
-				Body:        result,
-			}
-			data, err := json.Marshal(response)
-			if err != nil {
-				fmt.Printf("Error marshalling response: %s\n", err)
-				return
-			}
-			fmt.Println("Publishing remote agent execute result to MQTT %s", data)
-			token := m.Client.Publish(m.RequestTopic, 1, false, data)
-			// Use WaitTimeout instead of Wait to prevent deadlock
-			if !token.WaitTimeout(30 * time.Second) {
-				fmt.Println("Warning: MQTT response publish timed out after 30 seconds")
-			} else if token.Error() != nil {
-				fmt.Printf("Error publishing response: %s\n", token.Error())
-			} else {
-				fmt.Println("Response published successfully")
-			}
-		}(request)
-	}
-	wg.Wait()
 }
 
 func (m *MqttPoller) pollRequests() {

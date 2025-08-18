@@ -1083,7 +1083,29 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 		}
 	}
 
-	data, _ := json.Marshal(queueElement)
+	// Convert single element to unified paging format
+	var requestList []map[string]interface{}
+	if queueElement != nil {
+		var agentRequest map[string]interface{}
+		jData, _ := json.Marshal(queueElement)
+		err = utils.UnmarshalJson(jData, &agentRequest)
+		if err != nil {
+			log.ErrorfCtx(ctx, "M(SolutionVendor): failed to unmarshal element - %s", err.Error())
+			return v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			}
+		}
+		requestList = append(requestList, agentRequest)
+	}
+
+	// Create unified response format with requestList and lastMessageID (empty for single request)
+	responseMap := map[string]interface{}{
+		"requestList":   requestList,
+		"lastMessageID": "", // Empty for single request since there's no paging
+	}
+
+	data, _ := json.Marshal(responseMap)
 	response := v1alpha2.COAResponse{
 		State:       v1alpha2.OK,
 		Body:        data,
