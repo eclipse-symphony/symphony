@@ -75,11 +75,6 @@ func (m *MqttPoller) Launch() error {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
 			return
 		}
-		// Parse request-id from response metadata
-		var respMap map[string]interface{}
-		_ = json.Unmarshal(coaResponse.Body, &respMap)
-		fmt.Printf("Received response: %s\n", string(coaResponse.Body))
-
 		// Check for request-id in response metadata
 		var respRequestId string
 		if coaResponse.Metadata != nil {
