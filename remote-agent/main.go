@@ -324,6 +324,12 @@ func mainLogic() error {
 			Namespace:     namespace,
 		}
 
+		// First establish MQTT subscription for responses
+		log.Printf("Setting up MQTT subscription for responses...")
+		if err := m.Subscribe(); err != nil {
+			return fmt.Errorf("failed to setup MQTT subscription: %v", err)
+		}
+
 		// Update topology configuration - this operation will first subscribe to the response topic
 		log.Printf("Sending topology update via MQTT and waiting for confirmation...")
 		if err := m.UpdateTopology(topologyContent); err != nil {

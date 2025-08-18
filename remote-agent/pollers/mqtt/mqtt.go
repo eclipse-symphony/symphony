@@ -28,7 +28,6 @@ type MqttPoller struct {
 }
 
 var (
-	ShouldEnd      string        = "false"
 	ConcurrentJobs int           = 3
 	Interval       time.Duration = 3 * time.Second
 )
@@ -41,35 +40,12 @@ var check_response = false
 
 var myRequestIds sync.Map // store request-id
 
-// Launch the polling agent
-func (m *MqttPoller) Launch() error {
-	// Start the agent by handling starter requests
-	var get_start = true
-
-	// Generate request-id for initial GET request
-	initialRequestId := uuid.New().String()
-	myRequestIds.Store(initialRequestId, true)
-
-	Parameters := map[string]string{
-		"target":    m.Target,
-		"namespace": m.Namespace,
-		"getAll":    "true",
-		"preindex":  "0",
-	}
-	request := v1alpha2.COARequest{
-		Route:      "tasks",
-		Method:     "GET",
-		Parameters: Parameters,
-		Metadata: map[string]string{
-			"request-id": initialRequestId,
-		},
-	}
-	data, _ := json.Marshal(request)
-	m.Client.Publish(m.RequestTopic, 0, false, data)
+// Subscribe sets up MQTT response topic subscription
+func (m *MqttPoller) Subscribe() error {
+	fmt.Println("Setting up MQTT subscription for topic: ", m.ResponseTopic)
 	var wg sync.WaitGroup
 	m.Client.Subscribe(m.ResponseTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		var coaResponse v1alpha2.COAResponse
-		var requests []map[string]interface{}
 		err := utils2.UnmarshalJson(msg.Payload(), &coaResponse)
 		if err != nil {
 			fmt.Printf("Error unmarshalling response: %s", err.Error())
@@ -122,66 +98,111 @@ func (m *MqttPoller) Launch() error {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
 			return
 		}
-		if get_start {
-			var allRequests model.ProviderPagingRequest
-			err := utils2.UnmarshalJson(coaResponse.Body, &allRequests)
-			if err != nil {
-				fmt.Printf("Error unmarshalling response: %s", err.Error())
-				return
-			}
 
-			fmt.Println("Request length: ", len(requests))
-			requests = append(requests, allRequests.RequestList...)
-
-			if allRequests.LastMessageID != "" {
-				fmt.Println("Request length: ", len(requests))
-				// Generate request-id for continuation request
-				continueRequestId := uuid.New().String()
-				myRequestIds.Store(continueRequestId, true)
-
-				Parameters := map[string]string{
-					"target":    m.Target,
-					"namespace": m.Namespace,
-					"getAll":    "true",
-					"preindex":  allRequests.LastMessageID,
-				}
-				request := v1alpha2.COARequest{
-					Route:      "tasks",
-					Method:     "GET",
-					Parameters: Parameters,
-					Metadata: map[string]string{
-						"request-id": continueRequestId,
-					},
-				}
-				data, _ := json.Marshal(request)
-				token := m.Client.Publish(m.RequestTopic, 2, false, data)
-				token.Wait()
-			}
-			get_start = false
-			handleRequests(requests, &wg, m)
-		} else {
-			var singleRequest map[string]interface{}
-			err := utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
-			fmt.Println("single request is here: ", singleRequest)
-			if err != nil {
-				fmt.Printf("Error unmarshalling response body: %s", err.Error())
-				return
-			}
-			// handle request
-			var wg sync.WaitGroup
-			handleRequests([]map[string]interface{}{singleRequest}, &wg, m)
-		}
-
+		// Handle regular task responses
+		m.handleTaskResponse(coaResponse, &wg)
 	})
 
 	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
+	return nil
+}
 
-	// get new request
-	for ShouldEnd == "false" {
+func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, wg *sync.WaitGroup) {
+	// This function handles task responses and continuation requests for paging
+	var requests []map[string]interface{}
+
+	// Try to parse as a paging request first
+	var allRequests model.ProviderPagingRequest
+	err := utils2.UnmarshalJson(coaResponse.Body, &allRequests)
+	if err == nil {
+		// Successfully parsed as paging request
+		fmt.Printf("Received %d requests from paging response\n", len(allRequests.RequestList))
+		requests = append(requests, allRequests.RequestList...)
+
+		// Check if there are more pages to fetch
+		if allRequests.LastMessageID != "" {
+			fmt.Printf("More pages available, LastMessageID: %s, immediately fetching next page\n", allRequests.LastMessageID)
+			// Generate request-id for continuation request
+			continueRequestId := uuid.New().String()
+			myRequestIds.Store(continueRequestId, true)
+
+			Parameters := map[string]string{
+				"target":    m.Target,
+				"namespace": m.Namespace,
+				"getAll":    "true",
+				"preindex":  allRequests.LastMessageID,
+			}
+			request := v1alpha2.COARequest{
+				Route:      "tasks",
+				Method:     "GET",
+				Parameters: Parameters,
+				Metadata: map[string]string{
+					"request-id": continueRequestId,
+				},
+			}
+			data, _ := json.Marshal(request)
+			token := m.Client.Publish(m.RequestTopic, 1, false, data)
+			if !token.WaitTimeout(30 * time.Second) {
+				fmt.Println("Warning: Continuation request publish timed out")
+			} else if token.Error() != nil {
+				fmt.Printf("Error publishing continuation request: %s\n", token.Error())
+			}
+		}
+
+		// Process current batch of requests
+		if len(requests) > 0 {
+			handleRequests(requests, wg, m)
+		}
+		return
+	}
+
+	// Try to parse as a single request
+	var singleRequest map[string]interface{}
+	err = utils2.UnmarshalJson(coaResponse.Body, &singleRequest)
+	if err == nil && singleRequest != nil {
+		fmt.Println("Received single request: ", singleRequest)
+		handleRequests([]map[string]interface{}{singleRequest}, wg, m)
+		return
+	}
+
+	// If neither parsing worked, it might be an empty response or error
+	fmt.Printf("No valid requests found in response body: %s\n", string(coaResponse.Body))
+}
+
+// Launch the polling agent
+func (m *MqttPoller) Launch() error {
+	// Start the agent by handling starter requests
+	// Generate request-id for initial GET request
+	initialRequestId := uuid.New().String()
+	myRequestIds.Store(initialRequestId, true)
+
+	Parameters := map[string]string{
+		"target":    m.Target,
+		"namespace": m.Namespace,
+		"getAll":    "true",
+		"preindex":  "0",
+	}
+	request := v1alpha2.COARequest{
+		Route:      "tasks",
+		Method:     "GET",
+		Parameters: Parameters,
+		Metadata: map[string]string{
+			"request-id": initialRequestId,
+		},
+	}
+	data, _ := json.Marshal(request)
+	m.Client.Publish(m.RequestTopic, 0, false, data)
+
+	// Create ticker for polling
+	ticker := time.NewTicker(Interval)
+	defer ticker.Stop()
+
+	// Main polling loop - run forever
+	for {
+		<-ticker.C
 		fmt.Println("Begin to pollRequests")
 		m.pollRequests()
 	}
-	return nil
 }
 
 func handleRequests(requests []map[string]interface{}, wg *sync.WaitGroup, m *MqttPoller) {
@@ -251,7 +272,6 @@ func (m *MqttPoller) pollRequests() {
 		fmt.Println("Begin to request topic Get task")
 		data, _ := json.Marshal(request)
 		m.Client.Publish(m.RequestTopic, 0, false, data)
-		time.Sleep(Interval)
 	}
 }
 
