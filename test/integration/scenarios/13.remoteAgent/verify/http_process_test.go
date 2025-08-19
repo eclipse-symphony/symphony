@@ -36,7 +36,6 @@ func TestE2EHttpCommunicationWithProcess(t *testing.T) {
 
 	// Setup test namespace
 	setupProcessNamespace(t, namespace)
-	defer utils.CleanupNamespace(t, namespace)
 
 	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string

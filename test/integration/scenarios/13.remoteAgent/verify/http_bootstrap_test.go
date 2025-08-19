@@ -35,7 +35,6 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 
 	// Setup test namespace
 	setupBootstrapNamespace(t, namespace)
-	defer utils.CleanupNamespace(t, namespace)
 
 	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
@@ -204,10 +203,6 @@ metadata:
 	if err == nil {
 		utils.ApplyKubernetesManifest(t, nsPath)
 	}
-
-	// t.Cleanup(func() {
-	// 	utils.DeleteKubernetesManifest(t, nsPath)
-	// })
 }
 
 func verifyBootstrapTopologyUpdate(t *testing.T, targetName, namespace string) {

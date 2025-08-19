@@ -1333,51 +1333,6 @@ func CreateYAMLFile(t *testing.T, filePath, content string) error {
 	return nil
 }
 
-// CleanupNamespace deletes all Symphony resources in a namespace
-func CleanupNamespace(t *testing.T, namespace string) {
-	dyn, err := GetDynamicClient()
-	if err != nil {
-		t.Logf("Failed to get dynamic client for cleanup: %v", err)
-		return
-	}
-
-	// Clean up Targets
-	targets, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "fabric.symphony",
-		Version:  "v1",
-		Resource: "targets",
-	}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
-
-	if err == nil {
-		for _, target := range targets.Items {
-			dyn.Resource(schema.GroupVersionResource{
-				Group:    "fabric.symphony",
-				Version:  "v1",
-				Resource: "targets",
-			}).Namespace(namespace).Delete(context.Background(), target.GetName(), metav1.DeleteOptions{})
-		}
-	}
-
-	// Clean up Instances
-	instances, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "solution.symphony",
-		Version:  "v1",
-		Resource: "instances",
-	}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
-
-	if err == nil {
-		for _, instance := range instances.Items {
-			dyn.Resource(schema.GroupVersionResource{
-				Group:    "solution.symphony",
-				Version:  "v1",
-				Resource: "instances",
-			}).Namespace(namespace).Delete(context.Background(), instance.GetName(), metav1.DeleteOptions{})
-		}
-	}
-
-	t.Logf("Cleaned up Symphony resources in namespace: %s", namespace)
-}
-
 // CreateCASecret creates CA secret in cert-manager namespace for trust bundle
 func CreateCASecret(t *testing.T, certs CertificatePaths) string {
 	secretName := "client-cert-secret"

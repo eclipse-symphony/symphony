@@ -59,7 +59,6 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 
 	// Setup test namespace
 	setupMQTTProcessNamespace(t, namespace)
-	defer utils.CleanupNamespace(t, namespace)
 
 	var configPath, topologyPath, targetYamlPath string
 	var config utils.TestConfig

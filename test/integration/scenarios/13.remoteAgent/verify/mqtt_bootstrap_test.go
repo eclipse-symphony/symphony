@@ -34,7 +34,6 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 
 	// Setup test namespace
 	setupNamespace(t, namespace)
-	defer utils.CleanupNamespace(t, namespace)
 
 	var caSecretName, clientSecretName, remoteAgentSecretName string
 	var configPath, topologyPath, targetYamlPath string
