@@ -95,18 +95,23 @@ func (m *MqttPoller) Subscribe() error {
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
+			// Clean up the request-id from map even on error
+			myRequestIds.Delete(respRequestId)
 			return
 		}
 
 		// Handle regular task responses
-		m.handleTaskResponse(coaResponse)
+		m.handleTaskResponse(coaResponse, respRequestId)
 	})
 
 	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
 	return nil
 }
 
-func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse) {
+func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, requestId string) {
+	// Clean up the request-id from map when function exits
+	defer myRequestIds.Delete(requestId)
+
 	// This function handles task responses and continuation requests for paging
 	var requests []map[string]interface{}
 
