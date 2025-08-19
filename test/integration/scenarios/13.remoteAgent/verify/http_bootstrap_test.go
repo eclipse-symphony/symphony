@@ -33,9 +33,6 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 	// Generate test certificates (with MyRootCA subject)
 	certs := utils.GenerateTestCertificates(t, testDir)
 
-	// Setup test namespace
-	setupBootstrapNamespace(t, namespace)
-
 	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
 	var symphonyCAPath, baseURL string
@@ -181,28 +178,6 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 	})
 
 	t.Logf("HTTP communication test with bootstrap.sh completed successfully")
-}
-
-func setupBootstrapNamespace(t *testing.T, namespace string) {
-	// Create namespace if it doesn't exist
-	_, err := utils.GetKubeClient()
-	if err != nil {
-		t.Logf("Warning: Could not get kube client to create namespace: %v", err)
-		return
-	}
-
-	nsYaml := fmt.Sprintf(`
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: %s
-`, namespace)
-
-	nsPath := filepath.Join(utils.SetupTestDirectory(t), "namespace.yaml")
-	err = utils.CreateYAMLFile(t, nsPath, nsYaml)
-	if err == nil {
-		utils.ApplyKubernetesManifest(t, nsPath)
-	}
 }
 
 func verifyBootstrapTopologyUpdate(t *testing.T, targetName, namespace string) {
