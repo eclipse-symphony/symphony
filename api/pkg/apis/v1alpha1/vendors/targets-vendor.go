@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -37,11 +38,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-)
-
-const (
-	maxRetries = 3
-	retryDelay = 5 * time.Second
 )
 
 var (
@@ -365,16 +361,34 @@ func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResp
 
 func readSecretWithRetry(ctx context.Context, secretProvider secret.ISecretProvider, secretName, key string, evalCtx coa_utils.EvaluationContext) (string, error) {
 	var data string
-	var err error
-	for i := 0; i < maxRetries; i++ {
+
+	operation := func() error {
+		var err error
 		data, err = secretProvider.Read(ctx, secretName, key, evalCtx)
-		if err == nil {
-			return data, nil
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : failed to read secret %s - %s", key, err.Error())
+			return err
 		}
-		tLog.ErrorfCtx(ctx, "V (Targets) : failed to read secret %s (attempt %d/%d) - %s", key, i+1, maxRetries, err.Error())
-		time.Sleep(retryDelay)
+		return nil
 	}
-	return "", fmt.Errorf("failed to read secret %s after %d attempts: %w", key, maxRetries, err)
+
+	// Configure exponential backoff with max 3 retries and initial delay of 1 second
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = 1 * time.Second
+	bo.MaxInterval = 10 * time.Second
+	bo.MaxElapsedTime = 30 * time.Second
+
+	retryBackoff := backoff.WithMaxRetries(bo, 3)
+
+	err := backoff.RetryNotify(operation, retryBackoff, func(err error, duration time.Duration) {
+		tLog.InfofCtx(ctx, "V (Targets) : retrying secret read for %s in %v due to: %v", key, duration, err)
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to read secret %s after retries: %w", key, err)
+	}
+
+	return data, nil
 }
 
 func (c *TargetsVendor) onSecretRotate(request v1alpha2.COARequest) v1alpha2.COAResponse {
@@ -826,48 +840,53 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 
 // waitForCertificateReady waits for Certificate to be ready and secret to have the correct type and content
 func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, namespace, secretName string) error {
-	const maxWaitTime = 120 * time.Second
-	const checkInterval = 5 * time.Second
-
 	tLog.InfofCtx(ctx, "V (Targets) : waiting for certificate %s to be ready in namespace %s", certName, namespace)
 
-	timeout := time.After(maxWaitTime)
-	ticker := time.NewTicker(checkInterval)
-	defer ticker.Stop()
+	// Create a context with timeout for the whole operation
+	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
 
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout waiting for certificate %s to be ready after %v", certName, maxWaitTime)
-		case <-ticker.C:
-			// Check Certificate status
-			ready, err := c.checkCertificateStatus(ctx, certName, namespace)
-			if err != nil {
-				tLog.ErrorfCtx(ctx, "V (Targets) : error checking certificate status: %v", err)
-				continue
-			}
-
-			if !ready {
-				tLog.InfofCtx(ctx, "V (Targets) : certificate %s not ready yet, waiting...", certName)
-				continue
-			}
-
-			// Check if secret exists and has correct type
-			secretReady, err := c.checkSecretReady(ctx, secretName, namespace)
-			if err != nil {
-				tLog.ErrorfCtx(ctx, "V (Targets) : error checking secret status: %v", err)
-				continue
-			}
-
-			if !secretReady {
-				tLog.InfofCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
-				continue
-			}
-
-			tLog.InfofCtx(ctx, "V (Targets) : certificate %s and secret %s are ready", certName, secretName)
-			return nil
+	operation := func() error {
+		// Check Certificate status
+		ready, err := c.checkCertificateStatus(timeoutCtx, certName, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : error checking certificate status: %v", err)
+			return err
 		}
+
+		if !ready {
+			tLog.InfofCtx(timeoutCtx, "V (Targets) : certificate %s not ready yet, waiting...", certName)
+			return fmt.Errorf("certificate %s not ready", certName)
+		}
+
+		// Check if secret exists and has correct type
+		secretReady, err := c.checkSecretReady(timeoutCtx, secretName, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : error checking secret status: %v", err)
+			return err
+		}
+
+		if !secretReady {
+			tLog.InfofCtx(timeoutCtx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
+			return fmt.Errorf("secret %s not ready", secretName)
+		}
+
+		tLog.InfofCtx(timeoutCtx, "V (Targets) : certificate %s and secret %s are ready", certName, secretName)
+		return nil
 	}
+
+	// Configure constant backoff for polling (5 second intervals)
+	bo := backoff.NewConstantBackOff(5 * time.Second)
+
+	err := backoff.RetryNotify(operation, backoff.WithContext(bo, timeoutCtx), func(err error, duration time.Duration) {
+		tLog.InfofCtx(timeoutCtx, "V (Targets) : retrying certificate check in %v due to: %v", duration, err)
+	})
+
+	if err != nil {
+		return fmt.Errorf("timeout waiting for certificate %s to be ready: %w", certName, err)
+	}
+
+	return nil
 }
 
 // checkCertificateStatus checks if Certificate is ready
