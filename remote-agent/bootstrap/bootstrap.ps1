@@ -322,7 +322,7 @@ if ($run_mode -eq 'service') {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
         # Continue execution rather than throwing
     }
-} else {
+} elseif ($run_mode -eq 'schedule') {
     # Setup as a scheduled task
     Write-Host "[run_mode=schedule] Register and start as scheduled task..." -ForegroundColor Cyan
     
@@ -354,6 +354,9 @@ try {
     Start-ScheduledTask -TaskName $TaskName
     
     Write-Host "Registered and started scheduled task $TaskName" -ForegroundColor Green
+} else {
+    Write-Host "Error: Invalid run_mode '$run_mode'. Must be either 'service' or 'schedule'." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "Setup complete!" -ForegroundColor Green

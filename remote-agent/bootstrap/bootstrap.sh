@@ -312,7 +312,6 @@ if [ "$protocol" = "http" ]; then
     # HTTP mode: Use the generated public.pem and private.pem
     public_path=$(realpath "./public.pem")
     private_path=$(realpath "./private.pem")
-    # agent_path was already set above for HTTP mode, no need to reset it
 else
     # MQTT mode: Use the original certificate paths
     public_path=$cert_path
