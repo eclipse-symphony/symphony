@@ -147,6 +147,13 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		utils.WaitForTargetReady(t, targetName, namespace, 10*time.Minute)
 	})
 
+	t.Run("VerifyTopologyUpdate", func(t *testing.T) {
+		// Verify that topology was successfully updated
+		// This would check that the remote agent successfully called
+		// the topology update endpoint via MQTT
+		utils.VerifyTargetTopologyUpdate(t, targetName, namespace, "MQTT bootstrap")
+	})
+
 	t.Run("VerifyMQTTDataInteraction", func(t *testing.T) {
 		// Verify that data flows through MQTT correctly
 		// This would check that the remote agent successfully communicates

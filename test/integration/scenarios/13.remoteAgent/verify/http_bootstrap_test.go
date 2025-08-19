@@ -144,7 +144,7 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 		// Verify that topology was successfully updated
 		// This would check that the remote agent successfully called
 		// the /targets/updatetopology endpoint
-		verifyBootstrapTopologyUpdate(t, targetName, namespace)
+		utils.VerifyTargetTopologyUpdate(t, targetName, namespace, "HTTP bootstrap")
 	})
 
 	t.Run("TestDataInteraction", func(t *testing.T) {
@@ -178,24 +178,6 @@ func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 	})
 
 	t.Logf("HTTP communication test with bootstrap.sh completed successfully")
-}
-
-func verifyBootstrapTopologyUpdate(t *testing.T, targetName, namespace string) {
-	// Get the target and check its topology status
-	_, err := utils.GetDynamicClient()
-	require.NoError(t, err)
-
-	// Check that target has topology information
-	// This is a placeholder - you would implement actual topology verification
-	t.Logf("Verifying bootstrap topology update for target %s/%s", namespace, targetName)
-
-	// In a real implementation, you would:
-	// 1. Get the Target resource
-	// 2. Check its status for topology information
-	// 3. Verify that the remote agent successfully updated the topology
-	// 4. Check Symphony server logs for topology update calls
-
-	t.Logf("Bootstrap topology update verification completed")
 }
 
 func testBootstrapDataInteractionWithBootstrap(t *testing.T, targetName, namespace, testDir string) {

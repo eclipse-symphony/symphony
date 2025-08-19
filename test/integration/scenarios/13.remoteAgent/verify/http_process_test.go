@@ -133,7 +133,7 @@ func TestE2EHttpCommunicationWithProcess(t *testing.T) {
 		// Verify that topology was successfully updated
 		// This would check that the remote agent successfully called
 		// the /targets/updatetopology endpoint
-		verifyProcessTopologyUpdate(t, targetName, namespace)
+		utils.VerifyTargetTopologyUpdate(t, targetName, namespace, "HTTP process")
 	})
 
 	t.Run("TestDataInteraction", func(t *testing.T) {
@@ -175,24 +175,6 @@ metadata:
 		utils.ApplyKubernetesManifest(t, nsPath)
 	}
 
-}
-
-func verifyProcessTopologyUpdate(t *testing.T, targetName, namespace string) {
-	// Get the target and check its topology status
-	_, err := utils.GetDynamicClient()
-	require.NoError(t, err)
-
-	// Check that target has topology information
-	// This is a placeholder - you would implement actual topology verification
-	t.Logf("Verifying process topology update for target %s/%s", namespace, targetName)
-
-	// In a real implementation, you would:
-	// 1. Get the Target resource
-	// 2. Check its status for topology information
-	// 3. Verify that the remote agent successfully updated the topology
-	// 4. Check Symphony server logs for topology update calls
-
-	t.Logf("Process topology update verification completed")
 }
 
 func testProcessDataInteraction(t *testing.T, targetName, namespace, testDir string) {

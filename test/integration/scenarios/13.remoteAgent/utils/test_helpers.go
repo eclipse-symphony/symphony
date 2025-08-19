@@ -1873,11 +1873,16 @@ func StartSymphonyWithRemoteAgentConfig(t *testing.T, protocol string) {
 
 			// Retry the deployment after fixing cert-manager
 			t.Logf("Retrying Symphony deployment after cert-manager fix...")
-			var retryStdout, retryStderr bytes.Buffer
-			cmd.Stdout = &retryStdout
-			cmd.Stderr = &retryStderr
 
-			retryErr := cmd.Run()
+			// Create a new command for retry (cannot reuse the same exec.Cmd)
+			retryCmd := exec.Command("mage", "cluster:deploywithsettings", helmValues)
+			retryCmd.Dir = localenvDir
+
+			var retryStdout, retryStderr bytes.Buffer
+			retryCmd.Stdout = &retryStdout
+			retryCmd.Stderr = &retryStderr
+
+			retryErr := retryCmd.Run()
 			if retryErr != nil {
 				t.Logf("Retry deployment stdout: %s", retryStdout.String())
 				t.Logf("Retry deployment stderr: %s", retryStderr.String())
@@ -2399,10 +2404,33 @@ func DownloadSymphonyCA(t *testing.T, testDir string) string {
 	caPath := filepath.Join(testDir, "symphony-server-ca.crt")
 
 	t.Logf("Downloading Symphony server CA certificate...")
-	cmd := exec.Command("kubectl", "get", "secret", "symphony-api-serving-cert", "-n", "default",
-		"-o", "jsonpath={.data.ca\\.crt}")
-	output, err := cmd.Output()
-	require.NoError(t, err, "Failed to get Symphony server CA certificate")
+
+	// Retry logic to wait for the certificate to be available
+	maxRetries := 30
+	retryInterval := 5 * time.Second
+
+	var output []byte
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		cmd := exec.Command("kubectl", "get", "secret", "symphony-api-serving-cert", "-n", "default",
+			"-o", "jsonpath={.data.ca\\.crt}")
+		output, err = cmd.Output()
+
+		if err == nil && len(output) > 0 {
+			// Success - certificate is available
+			break
+		}
+
+		if i < maxRetries-1 {
+			t.Logf("Symphony server CA certificate not available yet (attempt %d/%d), retrying in %v...",
+				i+1, maxRetries, retryInterval)
+			time.Sleep(retryInterval)
+		}
+	}
+
+	require.NoError(t, err, "Failed to get Symphony server CA certificate after %d attempts", maxRetries)
+	require.NotEmpty(t, output, "Symphony server CA certificate is empty")
 
 	// Decode base64
 	caData, err := base64.StdEncoding.DecodeString(string(output))
@@ -4133,4 +4161,85 @@ func TestMQTTConnectionWithClientCert(t *testing.T, brokerAddress string, broker
 
 	t.Logf("=== MQTT CONNECTION TEST COMPLETED ===")
 	return true
+}
+
+// VerifyTargetTopologyUpdate verifies that a target has been updated with topology information
+// This is a common function used by all topology verification tests
+func VerifyTargetTopologyUpdate(t *testing.T, targetName, namespace, testType string) {
+	// Get the dynamic client to access Kubernetes resources
+	dyn, err := GetDynamicClient()
+	require.NoError(t, err)
+
+	t.Logf("Verifying %s topology update for target %s/%s", testType, namespace, targetName)
+
+	// Get the Target resource from Kubernetes
+	target, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "fabric.symphony",
+		Version:  "v1",
+		Resource: "targets",
+	}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
+	require.NoError(t, err, "Failed to get Target resource")
+
+	// Extract the spec.topologies field from the target
+	spec, found, err := unstructured.NestedMap(target.Object, "spec")
+	require.NoError(t, err, "Failed to get target spec")
+	require.True(t, found, "Target spec not found")
+
+	topologies, found, err := unstructured.NestedSlice(spec, "topologies")
+	require.NoError(t, err, "Failed to get topologies from target spec")
+	require.True(t, found, "Topologies field not found in target spec")
+	require.NotEmpty(t, topologies, "Target topologies should not be empty after topology update")
+
+	t.Logf("Found %d topology entries in target", len(topologies))
+
+	// Verify the topology contains expected bindings
+	// The test topology should contain bindings with providers like:
+	// - providers.target.script
+	// - providers.target.remote-agent
+	// - providers.target.http
+	// - providers.target.docker
+	expectedProviders := []string{
+		"providers.target.script",
+		"providers.target.remote-agent",
+		"providers.target.http",
+		"providers.target.docker",
+	}
+
+	// Check the first topology (there should be one from the remote agent)
+	require.Len(t, topologies, 1, "Expected exactly one topology entry")
+
+	topologyMap, ok := topologies[0].(map[string]interface{})
+	require.True(t, ok, "Topology should be a map")
+
+	bindings, found, err := unstructured.NestedSlice(topologyMap, "bindings")
+	require.NoError(t, err, "Failed to get bindings from topology")
+	require.True(t, found, "Bindings field not found in topology")
+	require.NotEmpty(t, bindings, "Topology bindings should not be empty")
+
+	t.Logf("Found %d bindings in topology", len(bindings))
+
+	// Verify all expected providers are present
+	foundProviders := make(map[string]bool)
+	for _, binding := range bindings {
+		bindingMap, ok := binding.(map[string]interface{})
+		require.True(t, ok, "Binding should be a map")
+
+		provider, found, err := unstructured.NestedString(bindingMap, "provider")
+		require.NoError(t, err, "Failed to get provider from binding")
+		require.True(t, found, "Provider field not found in binding")
+
+		foundProviders[provider] = true
+		t.Logf("Found provider: %s", provider)
+	}
+
+	// Check that all expected providers were found
+	for _, expectedProvider := range expectedProviders {
+		require.True(t, foundProviders[expectedProvider],
+			"Expected provider %s not found in topology bindings", expectedProvider)
+	}
+
+	t.Logf("%s topology update verification completed successfully", testType)
+	t.Logf("✓ Target has topology information")
+	t.Logf("✓ Topology contains expected bindings")
+	t.Logf("✓ All expected providers are present")
 }

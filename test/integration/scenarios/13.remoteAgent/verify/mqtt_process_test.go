@@ -318,6 +318,18 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		}
 	})
 
+	t.Run("VerifyTopologyUpdate", func(t *testing.T) {
+		// Verify process is still running before topology verification
+		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
+			t.Fatalf("Remote agent process exited before topology verification: %s", processCmd.ProcessState.String())
+		}
+
+		// Verify that topology was successfully updated
+		// This would check that the remote agent successfully called
+		// the topology update endpoint via MQTT
+		utils.VerifyTargetTopologyUpdate(t, targetName, namespace, "MQTT process")
+	})
+
 	t.Run("VerifyMQTTProcessDataInteraction", func(t *testing.T) {
 		// Verify process is still running before starting data interaction test
 		if processCmd.ProcessState != nil && processCmd.ProcessState.Exited() {
