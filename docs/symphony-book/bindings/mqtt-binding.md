@@ -229,8 +229,6 @@ mosquitto_sub \
 ### Optional Parameters (Connection)
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `username` | MQTT username | - |
-| `password` | MQTT password | - |
 | `timeoutSeconds` | Connection timeout | 100 |
 | `keepAliveSeconds` | Keep-alive interval | 200 |
 | `pingTimeoutSeconds` | Ping timeout | 100 |

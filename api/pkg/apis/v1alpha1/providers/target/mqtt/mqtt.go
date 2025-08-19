@@ -34,10 +34,6 @@ Certificate Authentication:
 - clientCertPath: Path to client certificate file (typically "{mountPath}/client.crt")
 - clientKeyPath: Path to client private key file (typically "{mountPath}/client.key")
 
-Basic Authentication:
-- username: MQTT username for basic authentication
-- password: MQTT password for basic authentication
-
 Example Helm Configuration:
 mqtt:
   enabled: true
