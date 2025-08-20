@@ -71,15 +71,18 @@ To run both HTTP and MQTT communication tests:
 
 ```bash
 cd test/integration/scenarios/13.remoteAgent
-mage test
-```
+# Run HTTP bootstrap test only
+go test -v ./verify -run TestE2EHttpCommunicationWithBootstrap -timeout 30m
 
-Or run them manually:
+# Run MQTT bootstrap test only
+go test -v ./verify -run TestE2EMQTTCommunicationWithBootstrap -timeout 30m
 
-```bash
-cd test/integration/scenarios/13.remoteAgent
-go test -v ./verify/ --timeout  30m --run TestE2EMQTTCommunication
- go test -v ./verify/ --timeout  30m --run TestE2EHttpCommunication
+# Run HTTP process test only
+go test -v ./verify -run TestE2EHttpCommunicationWithProcess -timeout 30m
+
+# Run MQTT process test only
+go test -v ./verify -run TestE2EMQTTCommunicationWithProcess -timeout 30m
+
 ```
 
 These tests verify:
