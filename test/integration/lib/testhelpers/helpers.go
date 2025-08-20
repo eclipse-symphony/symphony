@@ -92,17 +92,8 @@ func SetupCluster() error {
 
 // Clean up
 func Cleanup(testName string) {
-	// Always try to dump logs first, even if it fails
-	err := localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", testName), "")
-	if err != nil {
-		fmt.Printf("Warning: Failed to dump logs: %v\n", err)
-	}
-
-	// Try to destroy resources, but don't fail if cluster is unreachable
-	err = localenvCmd("destroy all,nowait", "")
-	if err != nil {
-		fmt.Printf("Warning: Failed to destroy resources: %v\n", err)
-	}
+	localenvCmd(fmt.Sprintf("dumpSymphonyLogsForTest '%s'", testName), "")
+	localenvCmd("destroy all,nowait", "")
 }
 
 func CleanupWithTunnel(cancel context.CancelFunc, tunnelPid int, testName string) {
