@@ -11,6 +11,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
 	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
@@ -126,7 +127,7 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 		// Process current batch of requests with correlation ID
 		if len(requests) > 0 {
 			// Process requests sequentially
-			m.handleRequestsWithCorrelationID(requests, allRequests.CorrelationID)
+			m.handleRequests(requests)
 
 			// Check if there are more pages to fetch after current page is done
 			if allRequests.LastMessageID != "" {
@@ -165,22 +166,19 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 	fmt.Printf("No valid requests found in response body: %s\n", string(coaResponse.Body))
 }
 
-func (m *MqttPoller) handleRequestsWithCorrelationID(requests []map[string]interface{}, correlationID string) {
+func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 	// Process requests sequentially, not concurrently
 	for _, request := range requests {
-		func(req map[string]interface{}, corrID string) {
+		func(req map[string]interface{}) {
 			retCtx := context.TODO()
-
-			// Set correlation ID if available, otherwise use mock value like HTTP poller
-			if corrID != "" {
-				retCtx = context.WithValue(retCtx, "X-Activity-correlationId", corrID)
-				fmt.Printf("Using correlation ID from paging request: %s\n", corrID)
-			} else {
-				// Use mock correlation ID like HTTP poller does
-				mockCorrelationID := "00000000-0000-0000-0000-000000000000"
-				retCtx = context.WithValue(retCtx, "X-Activity-correlationId", mockCorrelationID)
-				fmt.Printf("No correlation ID available, using mock: %s\n", mockCorrelationID)
+			// Extract correlation ID from individual request, similar to HTTP poller
+			correlationId, ok := req[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
+			if !ok {
+				fmt.Println("error: correlationId not found in request or not a string. Using a mock one.")
+				correlationId = "00000000-0000-0000-0000-000000000000"
 			}
+			retCtx = context.WithValue(retCtx, contexts.Activity_CorrelationId, correlationId)
+			fmt.Printf("Using correlation ID from request: %s\n", correlationId)
 
 			body, err := json.Marshal(req)
 			if err != nil {
@@ -216,7 +214,7 @@ func (m *MqttPoller) handleRequestsWithCorrelationID(requests []map[string]inter
 			} else {
 				fmt.Println("Response published successfully")
 			}
-		}(request, correlationID)
+		}(request)
 		// Current request completed, continue to next request
 	}
 }

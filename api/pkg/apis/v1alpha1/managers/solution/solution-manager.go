@@ -745,6 +745,7 @@ func (s *SolutionManager) enqueueRequest(ctx context.Context, stepEnvelope model
 		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
 		return err
 	}
+	// todo: add correlation id to the message later
 	err = s.upsertOperationState(ctx, operationId, stepEnvelope.StepId, stepEnvelope.PlanState.PlanId, stepEnvelope.PlanState.PlanName, stepEnvelope.Step.Target, stepEnvelope.PlanState.Phase, stepEnvelope.PlanState.Namespace, stepEnvelope.Remove, messageID)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(Solution) Error in insert operation Id %s", operationId)

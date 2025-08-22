@@ -104,9 +104,9 @@ func mainLogic() error {
 		if input != "" {
 			caPath = input
 		}
-		fmt.Printf("Using CA certificate path: %s\n", caPath)
+		log.Printf("Using CA certificate path: %s\n", caPath)
 	}
-	fmt.Printf("Using client certificate path: %s\n", clientCertPath)
+	log.Printf("Using client certificate path: %s\n", clientCertPath)
 	// read configuration
 	setting, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -122,7 +122,7 @@ func mainLogic() error {
 	// Use the new config structure
 	var config SymphonyConfig
 	if err := json.Unmarshal(setting, &config); err != nil {
-		fmt.Printf("Error unmarshalling config: %v\nContent: %s\n", err, string(setting))
+		log.Printf("Error unmarshalling config: %v\nContent: %s\n", err, string(setting))
 		return fmt.Errorf("error unmarshalling configuration file: %v", err)
 	}
 
@@ -140,9 +140,9 @@ func mainLogic() error {
 			if subjectName == "" {
 				subjectName = parsedCert.Subject.String()
 			}
-			fmt.Printf("Client certificate subject: %s\n", subjectName)
+			log.Printf("Client certificate subject: %s\n", subjectName)
 		} else {
-			fmt.Printf("Failed to parse client certificate for subject: %v\n", err)
+			log.Printf("Failed to parse client certificate for subject: %v\n", err)
 		}
 	}
 
@@ -164,13 +164,13 @@ func mainLogic() error {
 			fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
 			return fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
 		}
-		fmt.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", config.RequestEndpoint, config.ResponseEndpoint)
+		log.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", config.RequestEndpoint, config.ResponseEndpoint)
 		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
 
 		// If HTTP protocol and CA certificate is specified, add it to the trusted roots for Symphony server
 		if caPath != "" {
-			fmt.Printf("Loading Symphony server CA certificate from: %s\n", caPath)
-			serverCACert, err := ioutil.ReadFile(caPath)
+			log.Printf("Loading Symphony server CA certificate from: %s\n", caPath)
+			serverCACert, err := os.ReadFile(caPath)
 			if err != nil {
 				return fmt.Errorf("failed to read Symphony server CA certificate: %v", err)
 			}
@@ -181,7 +181,7 @@ func mainLogic() error {
 			}
 
 			tlsConfig.RootCAs = serverCACertPool
-			fmt.Printf("Successfully loaded Symphony server CA certificate\n")
+			log.Printf("Successfully loaded Symphony server CA certificate\n")
 		}
 
 		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
@@ -223,7 +223,7 @@ func mainLogic() error {
 		select {}
 	} else {
 		// Load MQTT CA certificate
-		fmt.Printf("Loading CA certificate from %s\n", caPath)
+		log.Printf("Loading CA certificate from %s\n", caPath)
 		caCertPool := x509.NewCertPool()
 		caCert, err := os.ReadFile(caPath)
 		if err != nil {
@@ -234,7 +234,7 @@ func mainLogic() error {
 		}
 
 		// Use the configuration values from config.json
-		fmt.Printf("Config loaded: broker=%s, port=%d, target=%s\n",
+		log.Printf("Config loaded: broker=%s, port=%d, target=%s\n",
 			config.MqttBroker, config.MqttPort, config.TargetName)
 		brokerAddr := config.MqttBroker
 		brokerPort := config.MqttPort
@@ -242,13 +242,13 @@ func mainLogic() error {
 		// If target name is specified in config and command line is empty, use the config value
 		if config.TargetName != "" {
 			targetName = config.TargetName
-			fmt.Printf("Using target name from config: %s\n", targetName)
+			log.Printf("Using target name from config: %s\n", targetName)
 		}
 
 		// If namespace is specified in config and command line is empty, use the config value
 		if namespace == "default" && config.Namespace != "" {
 			namespace = config.Namespace
-			fmt.Printf("Using namespace from config: %s\n", namespace)
+			log.Printf("Using namespace from config: %s\n", namespace)
 		}
 
 		if brokerAddr == "" {
@@ -272,7 +272,7 @@ func mainLogic() error {
 		}
 
 		brokerUrl := fmt.Sprintf("tls://%s:%d", brokerAddr, brokerPort)
-		fmt.Printf("Using MQTT broker: %s\n", brokerUrl)
+		log.Printf("Using MQTT broker: %s\n", brokerUrl)
 
 		// Determine the correct ServerName for TLS verification
 		// If connecting to 127.0.0.1 or localhost, use "localhost" as ServerName
@@ -280,7 +280,7 @@ func mainLogic() error {
 		if brokerAddr == "127.0.0.1" || brokerAddr == "::1" {
 			serverName = "localhost"
 		}
-		fmt.Printf("Using ServerName '%s' for TLS verification (connecting to %s)\n", serverName, brokerAddr)
+		log.Printf("Using ServerName '%s' for TLS verification (connecting to %s)\n", serverName, brokerAddr)
 
 		tlsConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
@@ -294,13 +294,13 @@ func mainLogic() error {
 		opts.SetTLSConfig(tlsConfig)
 		opts.SetClientID(strings.ToLower(targetName)) // Ensure lowercase is used
 		// Set client ID
-		fmt.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n",
+		log.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n",
 			clientCertPath, clientKeyPath, caPath, strings.ToLower(targetName))
-		fmt.Printf("begin to connect to MQTT broker %s\n", brokerUrl)
+		log.Printf("begin to connect to MQTT broker %s\n", brokerUrl)
 		mqttClient := mqtt.NewClient(opts)
 		// Ensure lowercase is used
 		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-			fmt.Printf("failed to connect to MQTT broker: %v\n", token.Error())
+			log.Printf("failed to connect to MQTT broker: %v\n", token.Error())
 			return fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
 		} else {
 			fmt.Println("Connected to MQTT broker")
@@ -309,9 +309,9 @@ func mainLogic() error {
 		topicSuffix := strings.ToLower(targetName)
 		if useCertSubject && subjectName != "" {
 			topicSuffix = strings.ToLower(subjectName)
-			fmt.Printf("Using certificate subject as topic suffix: %s\n", topicSuffix)
+			log.Printf("Using certificate subject as topic suffix: %s\n", topicSuffix)
 		} else {
-			fmt.Printf("Using target name as topic suffix: %s\n", topicSuffix)
+			log.Printf("Using target name as topic suffix: %s\n", topicSuffix)
 		}
 		m := &remoteMqtt.MqttPoller{
 			Agent: agent.Agent{
