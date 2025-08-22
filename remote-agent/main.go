@@ -33,8 +33,6 @@ var (
 	topologyFile      string
 	httpClient        *http.Client
 	execDir           string
-	protocol          string
-	caPath            string
 	rLog              logger.Logger
 )
 
@@ -49,9 +47,9 @@ func mainLogic() error {
 		return fmt.Errorf("failed to get absolute path: %v", err)
 	}
 	execDir = filepath.Dir(execPath)
-
+	os.Setenv("SYMPHONY_REMOTE_AGENT", "true")
 	// log file
-	rLog = logger.NewRemoteAgentLogger("remote-agent")
+	rLog = logger.NewLogger("remote-agent")
 	// extract command line arguments
 	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file")
 	flag.StringVar(&clientCertPath, "client-cert", "public.pem", "Path to the client certificate file")
@@ -126,7 +124,6 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 		switch binding.Provider {
 		case "providers.target.script":
 			provider := &script.ScriptProvider{}
-			provider.ProviderLog = rLog
 			if err := provider.Init(binding.Config); err != nil {
 				rLog.Errorf("Error initializing script provider: %v", err)
 			}
@@ -134,7 +131,6 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 		case "providers.target.remote-agent":
 			rProvider := &remoteProviders.RemoteAgentProvider{}
 			rProvider.Client = httpClient
-			rProvider.RLog = rLog
 			rProviderConfig := remoteProviders.RemoteAgentProviderConfig{
 				PublicCertPath: clientCertPath,
 				PrivateKeyPath: clientKeyPath,
@@ -152,21 +148,18 @@ func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider 
 			providers[binding.Role] = rProvider
 		case "providers.target.win10.sideload":
 			mProvider := &sideload.Win10SideLoadProvider{}
-			mProvider.RLog = rLog
 			if err := mProvider.Init(binding.Config); err != nil {
 				rLog.Errorf("Error initializing win10.sideload provider: %v", err)
 			}
 			providers[binding.Role] = mProvider
 		case "providers.target.docker":
 			mProvider := &docker.DockerTargetProvider{}
-			mProvider.RLog = rLog
 			if err := mProvider.Init(binding.Config); err != nil {
 				rLog.Errorf("Error initializing docker provider: %v", err)
 			}
 			providers[binding.Role] = mProvider
 		case "providers.target.http":
 			mProvider := &targethttp.HttpTargetProvider{}
-			mProvider.RLog = rLog
 			if err := mProvider.Init(binding.Config); err != nil {
 				rLog.Errorf("Error initializing http provider: %v", err)
 			}

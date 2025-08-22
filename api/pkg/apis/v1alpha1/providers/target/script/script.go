@@ -51,9 +51,8 @@ type ScriptProviderConfig struct {
 }
 
 type ScriptProvider struct {
-	Config      ScriptProviderConfig
-	Context     *contexts.ManagerContext
-	ProviderLog logger.Logger
+	Config  ScriptProviderConfig
+	Context *contexts.ManagerContext
 }
 
 func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderConfig, error) {
@@ -77,9 +76,6 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	ctx, span := observability.StartSpan("Script Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
-	if i.ProviderLog != nil {
-		sLog = i.ProviderLog
-	}
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)

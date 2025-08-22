@@ -39,7 +39,6 @@ type Win10SideLoadProviderConfig struct {
 type Win10SideLoadProvider struct {
 	Config  Win10SideLoadProviderConfig
 	Context *contexts.ManagerContext
-	RLog    logger.Logger
 }
 
 func Win10SideLoadProviderConfigFromMap(properties map[string]string) (Win10SideLoadProviderConfig, error) {
@@ -93,9 +92,6 @@ func (i *Win10SideLoadProvider) Init(config providers.IProviderConfig) error {
 	ctx, span := observability.StartSpan("Win 10 Sideload Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
-	if i.RLog != nil {
-		sLog = i.RLog
-	}
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)

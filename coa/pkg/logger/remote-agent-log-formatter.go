@@ -79,9 +79,6 @@ func (r *RemoteAgentLogFormatter) parseStructuredLog(message string) *LogEntry {
 			if inst, ok := jsonLog["instance"].(string); ok {
 				entry.Instance = inst
 			}
-			if corr, ok := jsonLog["correlationId"].(string); ok {
-				entry.CorrelationId = corr
-			}
 			return entry
 		}
 	}

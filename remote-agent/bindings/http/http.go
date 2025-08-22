@@ -93,7 +93,7 @@ func (h *HttpBinding) Launch() error {
 			ret := h.Agent.Handle(body, retCtx)
 			ret.Namespace = h.Namespace
 			h.RLog.InfofCtx(retCtx, "Agent response: %v", ret)
-			logs, _, err := h.RLog.(*logger.CoaLogger).GetLogsFromOffset(h.RLog.(*logger.CoaLogger).GetLogOffset())
+			logs, _, err := h.RLog.(*logger.FileLogger).GetLogsFromOffset(h.RLog.(*logger.FileLogger).GetLogOffset())
 			if err != nil {
 				h.RLog.ErrorfCtx(retCtx, "error getting logs: %v", err)
 			}
@@ -156,7 +156,7 @@ func (h *HttpBinding) Launch() error {
 					ret.Namespace = h.Namespace
 					h.RLog.InfofCtx(retCtx, "Agent response: %v", ret)
 
-					logs, _, err := h.RLog.(*logger.CoaLogger).GetLogsFromOffset(h.RLog.(*logger.CoaLogger).GetLogOffset())
+					logs, _, err := h.RLog.(*logger.FileLogger).GetLogsFromOffset(h.RLog.(*logger.FileLogger).GetLogOffset())
 					if err != nil {
 						h.RLog.ErrorfCtx(retCtx, "error getting logs: %v", err)
 					}

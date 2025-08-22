@@ -23,11 +23,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -43,10 +41,8 @@ const (
 )
 
 var (
-	sLog                     = logger.NewLogger(loggerName)
-	providerOperationMetrics *metrics.Metrics
-	once                     sync.Once
-	state                    = "active"
+	sLog  = logger.NewLogger(loggerName)
+	state = "active"
 )
 
 type RemoteAgentProviderConfig struct {
@@ -64,7 +60,6 @@ type RemoteAgentProviderConfig struct {
 type RemoteAgentProvider struct {
 	Config RemoteAgentProviderConfig
 	Client *http.Client
-	RLog   logger.Logger
 }
 
 func RemoteAgentProviderConfigFromMap(properties map[string]string) (RemoteAgentProviderConfig, error) {
@@ -109,9 +104,6 @@ func (i *RemoteAgentProvider) Init(config providers.IProviderConfig) error {
 	ctx, span := observability.StartSpan("Remote Agent Provider", context.TODO(), &map[string]string{
 		"method": "Init",
 	})
-	if i.RLog != nil {
-		sLog = i.RLog
-	}
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
