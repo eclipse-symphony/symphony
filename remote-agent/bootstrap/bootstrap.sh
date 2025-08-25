@@ -176,8 +176,8 @@ config=$(realpath $config_file)
 # Protocol-specific handling
 if [ "$protocol" = "http" ]; then
     # HTTP mode: Call the certificate endpoint to get the public and private keys
-    bootstarpCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
-    echo -e "\e[32mCalling certificate endpoint: $bootstarpCertEndpoint\e[0m"
+    bootstrapCertEndpoint="$endpoint/targets/getcert/$target_name?namespace=$namespace&osPlatform=linux"
+    echo -e "\e[32mCalling certificate endpoint: $bootstrapCertEndpoint\e[0m"
 
     # Build curl command with optional CA certificate
     curl_cmd="curl --cert \"$cert_path\" --key \"$key_path\""
@@ -191,7 +191,7 @@ if [ "$protocol" = "http" ]; then
     fi
 
     # Get certificate
-    result=$(eval "$curl_cmd -X POST \"$bootstarpCertEndpoint\" -H \"Content-Type: application/json\"")
+    result=$(eval "$curl_cmd -X POST \"$bootstrapCertEndpoint\" -H \"Content-Type: application/json\"")
 
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to call certificate endpoint. Please check the endpoint and try again.\e[0m"
