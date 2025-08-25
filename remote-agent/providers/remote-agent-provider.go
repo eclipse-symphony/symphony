@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -407,7 +408,7 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 				continue
 			}
 			// parse resp body to get the new cert
-			body, err := os.ReadAll(resp.Body)
+			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to read response body: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
@@ -444,14 +445,14 @@ func (i *RemoteAgentProvider) Apply(ctx context.Context, deployment model.Deploy
 			}
 
 			// write the new cert to the cert file
-			err = os.WriteFile(i.Config.PublicCertPath, []byte(formatPEM(public, "public")), 0644)
+			err = ioutil.WriteFile(i.Config.PublicCertPath, []byte(formatPEM(public, "public")), 0644)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to write new cert to file: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
 				continue
 			}
 
-			err = os.WriteFile(i.Config.PrivateKeyPath, []byte(formatPEM(private, "private")), 0644)
+			err = ioutil.WriteFile(i.Config.PrivateKeyPath, []byte(formatPEM(private, "private")), 0644)
 			if err != nil {
 				sLog.ErrorfCtx(ctx, "  P (Remote Agent Provider): failed to write new key to file: %+v", err)
 				ret[c.Name] = i.composeComponentResultSpec(v1alpha2.UpdateFailed, err)
