@@ -8,7 +8,6 @@ package configutils
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -85,7 +84,7 @@ func GetProjectConfig() (*configv1.ProjectConfig, error) {
 
 func getNamespace() (string, error) {
 	// read the namespace from the file
-	data, err := ioutil.ReadFile(namespaceFile)
+	data, err := os.ReadFile(namespaceFile)
 	if err != nil {
 		return "", err
 	}

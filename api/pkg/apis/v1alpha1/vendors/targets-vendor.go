@@ -11,7 +11,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -487,7 +486,7 @@ func (c *TargetsVendor) onUpgrade(request v1alpha2.COARequest) v1alpha2.COARespo
 			filePath = fmt.Sprintf("%s/%s", AgentPath, "remote-agent.exe")
 		}
 
-		fileContent, err := ioutil.ReadFile(filePath)
+		fileContent, err := os.ReadFile(filePath)
 		if err != nil {
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State:       v1alpha2.InternalError,

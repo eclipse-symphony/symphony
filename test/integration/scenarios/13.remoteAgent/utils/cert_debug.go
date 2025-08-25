@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -17,7 +17,7 @@ import (
 func DebugCertificateInfo(t *testing.T, certPath, certType string) {
 	t.Logf("=== DEBUG %s at %s ===", certType, certPath)
 
-	certBytes, err := ioutil.ReadFile(certPath)
+	certBytes, err := os.ReadFile(certPath)
 	if err != nil {
 		t.Logf("ERROR: Failed to read certificate file %s: %v", certPath, err)
 		return
@@ -99,7 +99,7 @@ func DebugTLSConnection(t *testing.T, brokerAddress string, port int, caCertPath
 	// Load CA certificate
 	var caCertPool *x509.CertPool
 	if caCertPath != "" {
-		caCertBytes, err := ioutil.ReadFile(caCertPath)
+		caCertBytes, err := os.ReadFile(caCertPath)
 		if err != nil {
 			t.Logf("ERROR: Failed to read CA certificate: %v", err)
 			return
@@ -272,7 +272,7 @@ func executeCommand(cmd string) (string, error) {
 
 // FileExists checks if a file exists
 func FileExists(filename string) bool {
-	_, err := ioutil.ReadFile(filename)
+	_, err := os.ReadFile(filename)
 	return err == nil
 }
 
@@ -281,7 +281,7 @@ func TestMQTTCertificateChain(t *testing.T, caCertPath, serverCertPath string) {
 	t.Logf("=== TESTING MQTT CERTIFICATE CHAIN ===")
 
 	// Load CA certificate
-	caCertBytes, err := ioutil.ReadFile(caCertPath)
+	caCertBytes, err := os.ReadFile(caCertPath)
 	if err != nil {
 		t.Logf("ERROR: Failed to read CA certificate: %v", err)
 		return
@@ -294,7 +294,7 @@ func TestMQTTCertificateChain(t *testing.T, caCertPath, serverCertPath string) {
 	}
 
 	// Load server certificate
-	serverCertBytes, err := ioutil.ReadFile(serverCertPath)
+	serverCertBytes, err := os.ReadFile(serverCertPath)
 	if err != nil {
 		t.Logf("ERROR: Failed to read server certificate: %v", err)
 		return

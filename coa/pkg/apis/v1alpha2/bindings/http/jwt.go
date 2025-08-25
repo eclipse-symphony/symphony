@@ -13,7 +13,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -78,7 +77,7 @@ func isSubjectValid(subject string) bool {
 }
 func loadCACertPool(caFile string) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(caFile)
+	caCert, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA file %s: %v", caFile, err)
 	}

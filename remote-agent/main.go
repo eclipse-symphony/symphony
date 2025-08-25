@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -108,7 +107,7 @@ func mainLogic() error {
 	}
 	log.Printf("Using client certificate path: %s\n", clientCertPath)
 	// read configuration
-	setting, err := ioutil.ReadFile(configPath)
+	setting, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("error reading configuration file: %v", err)
 	}
