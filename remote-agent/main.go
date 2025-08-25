@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -210,7 +211,7 @@ func mainLogic() error {
 
 		// check response status code
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			bodyBytes, _ := io.ReadAll(resp.Body)
 			return fmt.Errorf("topology update failed with status %d: %s", resp.StatusCode, string(bodyBytes))
 		}
 
