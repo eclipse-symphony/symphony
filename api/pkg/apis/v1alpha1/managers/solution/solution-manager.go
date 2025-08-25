@@ -1005,9 +1005,9 @@ func (s *SolutionManager) GetTaskFromQueueByPaging(ctx context.Context, target s
 	}
 
 	// Always create a response map with request list and last message ID
-	responseMap := map[string]interface{}{
-		"requestList":   requestList,
-		"lastMessageID": lastMessageID,
+	responseMap := &model.ProviderPagingRequest{
+		RequestList:   requestList,
+		LastMessageID: lastMessageID,
 	}
 
 	data, _ := json.Marshal(responseMap)
