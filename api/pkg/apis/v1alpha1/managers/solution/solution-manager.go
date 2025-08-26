@@ -1419,15 +1419,12 @@ func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string
 func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, asyncResult model.AsyncResult) v1alpha2.COAResponse {
 	// Get operation ID
 	operationId := asyncResult.OperationID
-	// Get related info from redis - todo: timeout
-	log.InfoCtx(ctx, "M(SolutionVendor): handle remote agent request %+v", asyncResult)
 	// Enhanced log handling with proper formatting
 	if len(asyncResult.Logs) > 0 {
-		log.InfoCtx(ctx, "M(SolutionVendor): Processing %d remote agent logs for operationId: %s", len(asyncResult.Logs), operationId)
-		log.DebugfCtx(ctx, "M(SolutionVendor): Remote agent logs: %+v", asyncResult.Logs)
+		log.InfofCtx(ctx, "M(SolutionVendor): Processing %d remote agent logs for operationId: %s", len(asyncResult.Logs), operationId)
 		s.RemoteAgentLogFormatter.LogRemoteAgentLogs(operationId, asyncResult.Logs)
 	} else {
-		log.InfoCtx(ctx, "M(SolutionVendor): No logs received from remote agent for operationId: %s", operationId)
+		log.InfofCtx(ctx, "M(SolutionVendor): No logs received from remote agent for operationId: %s", operationId)
 	}
 
 	operationBody, err := s.getOperationState(ctx, operationId, asyncResult.Namespace)
@@ -1477,7 +1474,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		s.publishStepResult(ctx, operationBody.Target, operationBody.PlanId, operationBody.PlanName, operationBody.StepId, asyncResult.Error, []model.ComponentSpec{}, response, operationBody.NameSpace)
-		log.InfofCtx(ctx, "M(SolutionVendor):  delete operation ID", operationId)
+		log.InfofCtx(ctx, "M(SolutionVendor):  delete operation ID: %s", operationId)
 		s.deleteOperationState(ctx, operationId)
 		// delete from queue
 		s.QueueProvider.RemoveFromQueue(ctx, queueName, operationBody.MessageId)

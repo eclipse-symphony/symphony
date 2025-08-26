@@ -547,6 +547,5 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 			Body:  []byte(err.Error()),
 		}
 	}
-	sLog.InfoCtx(ctx, "V(Solution): get async result from remote agent %+v", asyncResult)
 	return c.SolutionManager.HandleRemoteAgentExecuteResult(ctx, asyncResult)
 }

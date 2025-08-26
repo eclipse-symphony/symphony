@@ -255,7 +255,7 @@ processors:
       - key: log.file.path
         action: delete
   transform/timestamp:
-    error_mode: propagate
+    error_mode: ignore
     log_statements:
       - context: log
         statements:

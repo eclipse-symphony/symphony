@@ -33,12 +33,16 @@ type CoaLogger struct {
 	callerSkip uint
 }
 
-const (
-	// Default log file name
-	defaultLogFileName = "symphony-remote-agent.log"
-	// Environment variable for custom log file path
-	envLogFilePath = "SYMPHONY_REMOTE_AGENT_LOG_FILE_PATH"
-)
+// Force UTC timestamps regardless of system timezone.
+type utcFormatter struct {
+	inner logrus.Formatter
+}
+
+func (f utcFormatter) Format(e *logrus.Entry) ([]byte, error) {
+	// Ensure the timestamp is UTC so RFC3339Nano ends with Z.
+	e.Time = e.Time.UTC()
+	return f.inner.Format(e)
+}
 
 var CoaVersion string = "unknown"
 
@@ -92,15 +96,15 @@ func (l *CoaLogger) EnableJSONOutput(enabled bool) {
 	l.sharedFieldsLock.Unlock()
 
 	if enabled {
-		formatter = &logrus.JSONFormatter{
+		formatter = utcFormatter{inner: &logrus.JSONFormatter{
 			TimestampFormat: time.RFC3339Nano,
 			FieldMap:        fieldMap,
-		}
+		}}
 	} else {
-		formatter = &logrus.TextFormatter{
+		formatter = utcFormatter{inner: &logrus.TextFormatter{
 			TimestampFormat: time.RFC3339Nano,
 			FieldMap:        fieldMap,
-		}
+		}}
 	}
 
 	l.logger.SetFormatter(formatter)

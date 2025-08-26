@@ -18,7 +18,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/hooks"
 )
 
-const maxHTTPBodySize = 1024 * 1024 // 1MB
+const (
+	// Default log file name
+	defaultLogFileName = "symphony-remote-agent.log"
+	// Environment variable for custom log file path
+	envLogFilePath  = "SYMPHONY_REMOTE_AGENT_LOG_FILE_PATH"
+	maxHTTPBodySize = 1024 * 1024 // 1MB
+)
 
 type FileLogger struct {
 	*CoaLogger
