@@ -58,8 +58,8 @@ func (l *FileLogger) enableTempFileLogging() error {
 	}
 	l.tempFile = file
 
-	// Create ti-writer (temp file)
-	l.tempFileWriter = io.Writer(file)
+	// Create multi-writer (stdout + temp file)
+	l.tempFileWriter = io.MultiWriter(os.Stdout, file)
 	l.logger.SetOutput(l.tempFileWriter)
 
 	return nil
