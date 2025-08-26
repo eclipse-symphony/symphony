@@ -153,20 +153,6 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	if token := m.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
 		connErr := token.Error()
 		log.Errorf("MQTT Binding: failed to connect to MQTT broker - %+v", connErr)
-
-		// Provide specific guidance for common TLS errors
-		if strings.Contains(connErr.Error(), "certificate signed by unknown authority") {
-			log.Errorf("MQTT Binding: TLS certificate verification failed. Common solutions:")
-			log.Errorf("MQTT Binding: 1. Set 'caCertPath' to the path of your broker's CA certificate")
-			log.Errorf("MQTT Binding: 2. Set 'insecureSkipVerify' to 'true' for testing (not recommended for production)")
-			log.Errorf("MQTT Binding: 3. Ensure your broker certificate is issued by a trusted CA")
-		} else if strings.Contains(connErr.Error(), "tls:") {
-			log.Errorf("MQTT Binding: TLS connection error. Check your TLS configuration:")
-			log.Errorf("MQTT Binding: - Broker address should use 'ssl://' or 'tls://' prefix for TLS connections")
-			log.Errorf("MQTT Binding: - Verify CA certificate path and format")
-			log.Errorf("MQTT Binding: - Check client certificate and key paths if using mutual TLS")
-		}
-
 		return v1alpha2.NewCOAError(connErr, "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
@@ -206,10 +192,26 @@ func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, er
 			return nil, fmt.Errorf("CA certificate file is empty")
 		}
 
-		// Validate that the file contains valid PEM data
-		if !isCertificatePEM(caCert) {
-			log.Errorf("MQTT Binding: CA certificate file does not contain valid PEM data")
-			return nil, fmt.Errorf("CA certificate file does not contain valid PEM data")
+		// Strictly validate PEM blocks contain at least one valid X.509 certificate
+		rest := caCert
+		foundValid := false
+		for {
+			var block *pem.Block
+			block, rest = pem.Decode(rest)
+			if block == nil {
+				break
+			}
+			if block.Type != "CERTIFICATE" {
+				continue
+			}
+			if _, err := x509.ParseCertificate(block.Bytes); err == nil {
+				foundValid = true
+				break
+			}
+		}
+		if !foundValid {
+			log.Errorf("MQTT Binding: CA certificate file does not contain a valid X.509 certificate")
+			return nil, fmt.Errorf("CA certificate file does not contain a valid X.509 certificate")
 		}
 
 		caCertPool := x509.NewCertPool()
@@ -257,20 +259,6 @@ func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, er
 	}
 
 	return tlsConfig, nil
-}
-
-// isCertificatePEM checks if the given data contains valid PEM formatted certificate data
-func isCertificatePEM(data []byte) bool {
-	// Check if the data contains PEM headers
-	dataStr := string(data)
-	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") ||
-		!strings.Contains(dataStr, "-----END CERTIFICATE-----") {
-		return false
-	}
-
-	// Try to decode the PEM block
-	block, _ := pem.Decode(data)
-	return block != nil && block.Type == "CERTIFICATE"
 }
 
 // SubscribeTopic
