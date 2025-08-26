@@ -24,6 +24,8 @@ spec:
     metadata:
       labels:
         app: {{ include "symphony.appSelector" . }}-otel-forwarder
+      annotations:
+        checksum/otel-forwarder-config: {{ tpl (.Files.Get "files/otel-forwarder-config.yaml") . | sha256sum }}
     spec:
       # read prometheus metrics from manager and exports to mdm
       containers:
