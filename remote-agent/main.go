@@ -97,15 +97,8 @@ func mainLogic() error {
 	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
 	flag.BoolVar(&useCertSubject, "use-cert-subject", false, "Use certificate subject as topic suffix instead of target name")
 	flag.Parse()
-	if protocol == "mqtt" && (caPath == "") {
-		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
-		var input string
-		fmt.Scanln(&input)
-		if input != "" {
-			caPath = input
-		}
-		log.Printf("Using CA certificate path: %s\n", caPath)
-	}
+	caPath = promptForMqttCaCertIfNeeded(protocol, caPath)
+
 	log.Printf("Using client certificate path: %s\n", clientCertPath)
 	// read configuration
 	setting, err := os.ReadFile(configPath)
@@ -161,7 +154,6 @@ func mainLogic() error {
 
 	if protocol == "http" {
 		if config.RequestEndpoint == "" || config.ResponseEndpoint == "" || config.BaseUrl == "" {
-			fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
 			return fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
 		}
 		log.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", config.RequestEndpoint, config.ResponseEndpoint)
@@ -342,6 +334,19 @@ func mainLogic() error {
 
 		select {}
 	}
+}
+
+func promptForMqttCaCertIfNeeded(protocol string, caPath string) string {
+	if protocol == "mqtt" && caPath == "" {
+		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
+		var input string
+		fmt.Scanln(&input)
+		if input != "" {
+			caPath = input
+		}
+		log.Printf("Using CA certificate path: %s\n", caPath)
+	}
+	return caPath
 }
 
 func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider {
