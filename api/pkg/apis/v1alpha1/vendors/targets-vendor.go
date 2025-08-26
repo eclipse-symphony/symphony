@@ -845,7 +845,7 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
-	operation := func() error {
+	op := func() error {
 		// Check Certificate status
 		ready, err := c.checkCertificateStatus(timeoutCtx, certName, namespace)
 		if err != nil {
@@ -854,7 +854,7 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 		}
 
 		if !ready {
-			tLog.InfofCtx(timeoutCtx, "V (Targets) : certificate %s not ready yet, waiting...", certName)
+			tLog.InfofCtx(timeoutCtx, "V (Targets) : certificate %s not ready yet", certName)
 			return fmt.Errorf("certificate %s not ready", certName)
 		}
 
@@ -866,7 +866,7 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 		}
 
 		if !secretReady {
-			tLog.InfofCtx(timeoutCtx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
+			tLog.InfofCtx(timeoutCtx, "V (Targets) : secret %s not ready yet", secretName)
 			return fmt.Errorf("secret %s not ready", secretName)
 		}
 
@@ -874,15 +874,17 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 		return nil
 	}
 
-	// Configure constant backoff for polling (5 second intervals)
-	bo := backoff.NewConstantBackOff(5 * time.Second)
-
-	err := backoff.RetryNotify(operation, backoff.WithContext(bo, timeoutCtx), func(err error, duration time.Duration) {
+	// Use exponential backoff with the timeout context for cancellation
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = 2 * time.Second
+	bo.MaxInterval = 10 * time.Second
+	// Respect the outer timeout via WithContext
+	err := backoff.RetryNotify(op, backoff.WithContext(bo, timeoutCtx), func(err error, duration time.Duration) {
 		tLog.InfofCtx(timeoutCtx, "V (Targets) : retrying certificate check in %v due to: %v", duration, err)
 	})
 
 	if err != nil {
-		return fmt.Errorf("timeout waiting for certificate %s to be ready: %w", certName, err)
+		return fmt.Errorf("timeout waiting for certificate %s to be ready: %s", certName, err.Error())
 	}
 
 	return nil
