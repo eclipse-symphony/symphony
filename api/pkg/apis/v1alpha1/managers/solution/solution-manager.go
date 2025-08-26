@@ -739,7 +739,6 @@ func (s *SolutionManager) enqueueProviderGetRequest(ctx context.Context, stepEnv
 
 func (s *SolutionManager) enqueueRequest(ctx context.Context, stepEnvelope model.StepEnvelope, reuqest interface{}, operationId string) error {
 	log.InfofCtx(ctx, "M(Solution): Enqueue message %s-%s with operation ID %+v", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace, reuqest)
-	// if target is remote, we need to subscribe the topic
 	messageID, err := s.QueueProvider.Enqueue(ctx, fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace), reuqest)
 	if err != nil {
 		log.ErrorfCtx(ctx, "M(Solution): Error in enqueue message %s", fmt.Sprintf("%s-%s", stepEnvelope.Step.Target, stepEnvelope.PlanState.Namespace))
@@ -1101,9 +1100,9 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 	}
 
 	// Create unified response format with requestList and lastMessageID (empty for single request)
-	responseMap := map[string]interface{}{
-		"requestList":   requestList,
-		"lastMessageID": "", // Empty for single request since there's no paging
+	responseMap := &model.ProviderPagingRequest{
+		RequestList:   requestList,
+		LastMessageID: "", // Empty for single request since there's no paging
 	}
 
 	data, _ := json.Marshal(responseMap)
