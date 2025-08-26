@@ -937,6 +937,7 @@ func (c *TargetsVendor) checkSecretReady(ctx context.Context, secretName, namesp
 	// Try to read both tls.crt and tls.key to verify secret is complete
 	_, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
 	if err != nil {
+		tLog.InfofCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
 		return false, nil // Secret not ready yet
 	}
 
