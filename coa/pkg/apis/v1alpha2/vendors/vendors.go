@@ -112,7 +112,6 @@ func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy,
 		return err
 	}
 	v.Context.Logger.Debugf("V (%s): initialize at route '%s'", config.Type, config.Route)
-	fmt.Printf("MQTTBinding: %v\n", v.Context.GetMQTTBinding())
 	v.Managers = []managers.IManager{}
 	for _, m := range config.Managers {
 		created := false
