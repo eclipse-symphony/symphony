@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -39,7 +40,115 @@ type Result struct {
 
 var check_response = false
 
-var myRequestIds sync.Map // store request-id
+// Replace unbounded global sync.Map with a bounded RequestIDCache that supports TTL and periodic cleanup
+var requestIDCache *RequestIDCache
+
+// RequestIDCache provides a simple thread-safe cache with TTL and max entries
+type RequestIDCache struct {
+	mu         sync.RWMutex
+	items      map[string]time.Time
+	maxEntries int
+	ttl        time.Duration
+}
+
+const (
+	defaultRequestIDTTL        = 5 * time.Minute
+	defaultCleanupInterval     = 1 * time.Minute
+	defaultMaxRequestIDEntries = 10000
+)
+
+func NewRequestIDCache(maxEntries int, ttl time.Duration, cleanupInterval time.Duration) *RequestIDCache {
+	c := &RequestIDCache{
+		items:      make(map[string]time.Time),
+		maxEntries: maxEntries,
+		ttl:        ttl,
+	}
+	// start background cleanup
+	go c.cleanupLoop(cleanupInterval)
+	return c
+}
+
+func (c *RequestIDCache) Store(id string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items[id] = time.Now()
+	// enforce maxEntries by removing the oldest entry if exceeded
+	if c.maxEntries > 0 && len(c.items) > c.maxEntries {
+		var oldestKey string
+		var oldest time.Time
+		first := true
+		for k, t := range c.items {
+			if first || t.Before(oldest) {
+				oldest = t
+				oldestKey = k
+				first = false
+			}
+		}
+		delete(c.items, oldestKey)
+	}
+}
+
+func (c *RequestIDCache) Exists(id string) bool {
+	c.mu.RLock()
+	t, ok := c.items[id]
+	c.mu.RUnlock()
+	if !ok {
+		return false
+	}
+	// expire if older than TTL
+	if time.Since(t) > c.ttl {
+		c.mu.Lock()
+		delete(c.items, id)
+		c.mu.Unlock()
+		return false
+	}
+	return true
+}
+
+func (c *RequestIDCache) Delete(id string) {
+	c.mu.Lock()
+	delete(c.items, id)
+	c.mu.Unlock()
+}
+
+func (c *RequestIDCache) PurgeExpired() {
+	cutoff := time.Now().Add(-c.ttl)
+	c.mu.Lock()
+	for k, v := range c.items {
+		if v.Before(cutoff) {
+			delete(c.items, k)
+		}
+	}
+	// enforce max entries by removing oldest entries if still exceeded
+	if c.maxEntries > 0 && len(c.items) > c.maxEntries {
+		type kv struct {
+			k string
+			t time.Time
+		}
+		arr := make([]kv, 0, len(c.items))
+		for k, t := range c.items {
+			arr = append(arr, kv{k, t})
+		}
+		sort.Slice(arr, func(i, j int) bool { return arr[i].t.Before(arr[j].t) })
+		over := len(arr) - c.maxEntries
+		for i := 0; i < over; i++ {
+			delete(c.items, arr[i].k)
+		}
+	}
+	c.mu.Unlock()
+}
+
+func (c *RequestIDCache) cleanupLoop(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for range ticker.C {
+		c.PurgeExpired()
+	}
+}
+
+func init() {
+	requestIDCache = NewRequestIDCache(defaultMaxRequestIDEntries, defaultRequestIDTTL, defaultCleanupInterval)
+}
 
 // Subscribe sets up MQTT response topic subscription
 func (m *MqttPoller) Subscribe() error {
@@ -63,9 +172,9 @@ func (m *MqttPoller) Subscribe() error {
 		}
 
 		fmt.Printf("Received response with request-id: %s\n", respRequestId)
-		if _, ok := myRequestIds.Load(respRequestId); !ok {
+		if !requestIDCache.Exists(respRequestId) {
 			// not my request, ignore it
-			fmt.Printf("Warning: request-id is not in map")
+			fmt.Printf("Warning: request-id is not in cache")
 			return
 		}
 
@@ -90,14 +199,14 @@ func (m *MqttPoller) Subscribe() error {
 					fmt.Println("Channel is full or closed")
 				}
 			}
-			// Clean up the request-id from map
-			myRequestIds.Delete(respRequestId)
+			// Clean up the request-id from cache
+			requestIDCache.Delete(respRequestId)
 			return
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
 			fmt.Printf("Error: %s\n", string(coaResponse.Body))
-			// Clean up the request-id from map even on error
-			myRequestIds.Delete(respRequestId)
+			// Clean up the request-id from cache even on error
+			requestIDCache.Delete(respRequestId)
 			return
 		}
 
@@ -110,8 +219,8 @@ func (m *MqttPoller) Subscribe() error {
 }
 
 func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, requestId string) {
-	// Clean up the request-id from map when function exits
-	defer myRequestIds.Delete(requestId)
+	// Clean up the request-id from cache when function exits
+	defer requestIDCache.Delete(requestId)
 
 	// This function handles task responses and continuation requests for paging
 	var requests []map[string]interface{}
@@ -134,7 +243,7 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 				fmt.Printf("Current page completed. Fetching next page with LastMessageID: %s\n", allRequests.LastMessageID)
 				// Generate request-id for continuation request
 				continueRequestId := uuid.New().String()
-				myRequestIds.Store(continueRequestId, true)
+				requestIDCache.Store(continueRequestId)
 
 				Parameters := map[string]string{
 					"target":    m.Target,
@@ -224,7 +333,7 @@ func (m *MqttPoller) Launch() error {
 	// Start the agent by handling starter requests
 	// Generate request-id for initial GET request
 	initialRequestId := uuid.New().String()
-	myRequestIds.Store(initialRequestId, true)
+	requestIDCache.Store(initialRequestId)
 
 	Parameters := map[string]string{
 		"target":    m.Target,
@@ -259,7 +368,7 @@ func (m *MqttPoller) pollRequests() {
 	for i := 0; i < ConcurrentJobs; i++ {
 		// Generate request-id for polling request
 		pollRequestId := uuid.New().String()
-		myRequestIds.Store(pollRequestId, true)
+		requestIDCache.Store(pollRequestId)
 
 		// Publish request to get jobs
 		Parameters := map[string]string{
@@ -288,7 +397,7 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 
 	// Generate request-id for topology update request
 	topologyRequestId := uuid.New().String()
-	myRequestIds.Store(topologyRequestId, true)
+	requestIDCache.Store(topologyRequestId)
 
 	updateRequest := v1alpha2.COARequest{
 		Method: "POST",
