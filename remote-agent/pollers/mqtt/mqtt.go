@@ -38,8 +38,6 @@ type Result struct {
 	Result string `json:"result"`
 }
 
-var check_response = false
-
 // Replace unbounded global sync.Map with a bounded RequestIDCache that supports TTL and periodic cleanup
 var requestIDCache *RequestIDCache
 
