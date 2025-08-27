@@ -300,17 +300,12 @@ func mainLogic() error {
 			return fmt.Errorf("failed to setup MQTT subscription: %v", err)
 		}
 
-		// Keep retrying until the topology update is confirmed. Use exponential backoff to avoid tight retry loops.
+		// Keep retrying until the topology update is confirmed.
 		retryInterval := 2 * time.Minute
-		maxInterval := 30 * time.Minute
 		for {
 			if err := m.UpdateTopology(topologyContent); err != nil {
 				log.Printf("Topology update failed: %v. Retrying in %s", err, retryInterval)
 				time.Sleep(retryInterval)
-				retryInterval *= 2
-				if retryInterval > maxInterval {
-					retryInterval = maxInterval
-				}
 				continue
 			}
 			log.Printf("Topology update confirmed successful")

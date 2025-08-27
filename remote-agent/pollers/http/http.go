@@ -30,7 +30,7 @@ var (
 	Interval       time.Duration = 10 * time.Second
 )
 
-// HttpPoller provides service endpoints as a fasthttp web server
+// HttpPoller provides service endpoints using the standard net/http client
 type HttpPoller struct {
 	CertProvider certs.ICertProvider
 	Agent        agent.Agent
