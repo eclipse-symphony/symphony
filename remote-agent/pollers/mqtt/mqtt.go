@@ -260,12 +260,7 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 					},
 				}
 				data, _ := json.Marshal(request)
-				token := m.Client.Publish(m.RequestTopic, 1, false, data)
-				if !token.WaitTimeout(30 * time.Second) {
-					fmt.Println("Warning: Continuation request publish timed out")
-				} else if token.Error() != nil {
-					fmt.Printf("Error publishing continuation request: %s\n", token.Error())
-				}
+				m.Client.Publish(m.RequestTopic, 0, false, data)
 			}
 		}
 		return
@@ -314,15 +309,7 @@ func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 				return
 			}
 			fmt.Printf("Publishing remote agent execute result to MQTT %s\n", data)
-			token := m.Client.Publish(m.RequestTopic, 1, false, data)
-			// Use WaitTimeout instead of Wait to prevent deadlock
-			if !token.WaitTimeout(30 * time.Second) {
-				fmt.Println("Warning: MQTT response publish timed out after 30 seconds")
-			} else if token.Error() != nil {
-				fmt.Printf("Error publishing response: %s\n", token.Error())
-			} else {
-				fmt.Println("Response published successfully")
-			}
+			m.Client.Publish(m.RequestTopic, 0, false, data)
 		}(request)
 		// Current request completed, continue to next request
 	}
@@ -429,13 +416,7 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 	fmt.Printf("Sending topology update request...\n")
 	fmt.Printf("Request topic: %s\n", m.RequestTopic)
 
-	token := m.Client.Publish(m.RequestTopic, 1, false, requestJSON)
-	if !token.WaitTimeout(30 * time.Second) {
-		return fmt.Errorf("topology update request timed out after 30 seconds")
-	}
-	if token.Error() != nil {
-		return fmt.Errorf("failed to send topology update request: %v", token.Error())
-	}
+	m.Client.Publish(m.RequestTopic, 0, false, requestJSON)
 
 	// Wait for response or timeout
 	select {
