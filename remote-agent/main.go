@@ -299,13 +299,7 @@ func mainLogic() error {
 			fmt.Println("Connected to MQTT broker")
 		}
 		// choose topic suffix
-		topicSuffix := strings.ToLower(targetName)
-		if useCertSubject && subjectName != "" {
-			topicSuffix = strings.ToLower(subjectName)
-			log.Printf("Using certificate subject as topic suffix: %s\n", topicSuffix)
-		} else {
-			log.Printf("Using target name as topic suffix: %s\n", topicSuffix)
-		}
+		topicSuffix := getTopicSuffix(targetName, subjectName, useCertSubject)
 		m := &remoteMqtt.MqttPoller{
 			Agent: agent.Agent{
 				Providers: providers,
@@ -360,6 +354,17 @@ func promptForMqttCaCertIfNeeded(protocol string, caPath string) string {
 		log.Printf("Using CA certificate path: %s\n", caPath)
 	}
 	return caPath
+}
+
+func getTopicSuffix(targetName, subjectName string, useCertSubject bool) string {
+	if useCertSubject && subjectName != "" {
+		s := strings.ToLower(subjectName)
+		log.Printf("Using certificate subject as topic suffix: %s\n", s)
+		return s
+	}
+	s := strings.ToLower(targetName)
+	log.Printf("Using target name as topic suffix: %s\n", s)
+	return s
 }
 
 func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider {
