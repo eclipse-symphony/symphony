@@ -61,7 +61,7 @@ type SymphonyConfig struct {
 }
 
 func mainLogic() error {
-	log.Printf("mainLogic started")
+	log.Printf("mainLogic started, args: %v", os.Args)
 	// get executable path
 	execPath, err := os.Executable()
 	if err != nil {
@@ -243,27 +243,10 @@ func mainLogic() error {
 			namespace = config.Namespace
 			log.Printf("Using namespace from config: %s\n", namespace)
 		}
-
-		if brokerAddr == "" {
-			fmt.Print("MQTT broker address not found in config. Please enter MQTT broker address: ")
-			fmt.Scanln(&brokerAddr)
-			if brokerAddr == "" {
-				return fmt.Errorf("MQTT broker address is required")
-			}
+		brokerAddr, brokerPort, err = getBrokerAddressAndPort(brokerAddr, brokerPort)
+		if err != nil {
+			return err
 		}
-
-		if brokerPort == 0 {
-			fmt.Print("MQTT broker port not found in config. Please enter MQTT broker port: ")
-			var portStr string
-			fmt.Scanln(&portStr)
-			if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
-				brokerPort = p
-			} else {
-				fmt.Println("Using default MQTT TLS port 8883")
-				brokerPort = 8883 // Default MQTT TLS port
-			}
-		}
-
 		brokerUrl := fmt.Sprintf("tls://%s:%d", brokerAddr, brokerPort)
 		log.Printf("Using MQTT broker: %s\n", brokerUrl)
 
@@ -341,6 +324,29 @@ func mainLogic() error {
 
 		select {}
 	}
+}
+
+func getBrokerAddressAndPort(brokerAddr string, brokerPort int) (string, int, error) {
+	if brokerAddr == "" {
+		fmt.Print("MQTT broker address not found in config. Please enter MQTT broker address: ")
+		fmt.Scanln(&brokerAddr)
+		if brokerAddr == "" {
+			return "", 0, fmt.Errorf("MQTT broker address is required")
+		}
+	}
+
+	if brokerPort == 0 {
+		fmt.Print("MQTT broker port not found in config. Please enter MQTT broker port: ")
+		var portStr string
+		fmt.Scanln(&portStr)
+		if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
+			brokerPort = p
+		} else {
+			fmt.Println("Using default MQTT TLS port 8883")
+			brokerPort = 8883 // Default MQTT TLS port
+		}
+	}
+	return brokerAddr, brokerPort, nil
 }
 
 func promptForMqttCaCertIfNeeded(protocol string, caPath string) string {

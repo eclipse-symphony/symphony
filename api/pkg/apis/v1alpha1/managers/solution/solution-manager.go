@@ -23,7 +23,6 @@ import (
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
-	mqttbinding "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings/mqtt"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -76,7 +75,6 @@ type SolutionManager struct {
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
-	MqttBinding     *mqttbinding.MQTTBinding
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -224,9 +222,6 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 
 	}
 
-	// set MQTT binding
-	s.MqttBinding = s.VendorContext.GetMQTTBinding()
-
 	// check and subscribe all remote targets
 	s.ensureRemoteTargetSubscriptions(ctx, deployment, remove)
 
@@ -275,7 +270,8 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 // ensureRemoteTargetSubscriptions ensures that MQTT subscriptions for remote targets are created during deployment setup.
 // Note: Unsubscription is handled separately after successful deletion completion.
 func (s *SolutionManager) ensureRemoteTargetSubscriptions(ctx context.Context, deployment model.DeploymentSpec, remove bool) {
-	if s.MqttBinding == nil {
+	mqttBinding := s.VendorContext.GetMQTTBinding()
+	if mqttBinding == nil {
 		log.InfofCtx(ctx, " M (Solution): MQTT binding is not initialized, skipping remote target subscriptions")
 		return
 	}
@@ -294,7 +290,7 @@ func (s *SolutionManager) ensureRemoteTargetSubscriptions(ctx context.Context, d
 			topic := fmt.Sprintf("symphony/request/%s", targetName)
 			log.InfofCtx(ctx, " M (Solution): subscribing to MQTT topic for remote target %s, topic %s", targetName, topic)
 
-			if err := s.MqttBinding.SubscribeTopic(topic); err != nil {
+			if err := mqttBinding.SubscribeTopic(topic); err != nil {
 				log.ErrorfCtx(ctx, " M (Solution): failed to subscribe to MQTT topic for target %s: %v", targetName, err)
 			} else {
 				log.InfofCtx(ctx, " M (Solution): successfully subscribed to MQTT topic %s for remote target %s", topic, targetName)
@@ -305,7 +301,8 @@ func (s *SolutionManager) ensureRemoteTargetSubscriptions(ctx context.Context, d
 
 // cleanupRemoteTargetResourcesAfterDeletion cleans up MQTT subscriptions and Redis queues for deleted remote targets after successful deletion
 func (s *SolutionManager) cleanupRemoteTargetResourcesAfterDeletion(ctx context.Context, deployment model.DeploymentSpec, namespace string) {
-	if s.MqttBinding == nil {
+	mqttBinding := s.VendorContext.GetMQTTBinding()
+	if mqttBinding == nil {
 		log.InfofCtx(ctx, " M (Solution): MQTT binding is not initialized, skipping remote target cleanup")
 		return
 	}
@@ -318,9 +315,8 @@ func (s *SolutionManager) cleanupRemoteTargetResourcesAfterDeletion(ctx context.
 			log.InfofCtx(ctx, " M (Solution): cleaning up MQTT subscription for deleted remote target %s, topic %s", targetName, topic)
 
 			// Unsubscribe from MQTT topic using the dedicated method
-			s.MqttBinding = s.VendorContext.GetMQTTBinding()
-			if s.MqttBinding != nil {
-				if err := s.MqttBinding.UnsubscribeTopic(topic); err != nil {
+			if mqttBinding != nil {
+				if err := mqttBinding.UnsubscribeTopic(topic); err != nil {
 					log.WarnfCtx(ctx, " M (Solution): failed to unsubscribe from MQTT topic %s for deleted target %s: %s", topic, targetName, err.Error())
 				} else {
 					log.InfofCtx(ctx, " M (Solution): successfully unsubscribed from MQTT topic %s for deleted target %s", topic, targetName)
