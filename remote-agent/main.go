@@ -61,7 +61,7 @@ type SymphonyConfig struct {
 }
 
 func mainLogic() error {
-	log.Printf("mainLogic started, args: %v", os.Args)
+	log.Printf("mainLogic started")
 	// get executable path
 	execPath, err := os.Executable()
 	if err != nil {
