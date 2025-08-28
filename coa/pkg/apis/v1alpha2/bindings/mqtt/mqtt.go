@@ -263,15 +263,10 @@ func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, er
 
 // SubscribeTopic
 func (m *MQTTBinding) SubscribeTopic(topic string) error {
-	// First, check if already subscribed using read lock for concurrency
-	m.lock.RLock()
-	if m.subscribedTopic != nil {
-		if _, ok := m.subscribedTopic[topic]; ok {
-			m.lock.RUnlock()
-			return nil
-		}
+	// 优先用 IsSubscribed 检查是否已订阅
+	if m.IsSubscribed(topic) {
+		return nil
 	}
-	m.lock.RUnlock()
 
 	// Need to subscribe, acquire write lock
 	m.lock.Lock()
@@ -303,7 +298,7 @@ func (m *MQTTBinding) SubscribeTopic(topic string) error {
 	return nil
 }
 
-// IsSubscribed checks if a topic is already subscribed (read-only operation)
+// IsSubscribed returns true if the topic is already subscribed (thread-safe, read-only operation)
 func (m *MQTTBinding) IsSubscribed(topic string) bool {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
