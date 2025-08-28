@@ -9,16 +9,14 @@ package mqtt
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	gmqtt "github.com/eclipse/paho.mqtt.golang"
@@ -180,44 +178,10 @@ func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, er
 	if config.CACertPath != "" {
 		log.Infof("MQTT Binding: attempting to load CA certificate from %s", config.CACertPath)
 
-		caCert, err := os.ReadFile(config.CACertPath)
+		caCertPool, err := bindings.LoadCACertPool(config.CACertPath)
 		if err != nil {
-			log.Errorf("MQTT Binding: failed to read CA certificate - %+v", err)
-			return nil, fmt.Errorf("failed to read CA certificate: %w", err)
-		}
-
-		// Verify the CA cert content
-		log.Infof("MQTT Binding: CA certificate file size: %d bytes", len(caCert))
-		if len(caCert) == 0 {
-			return nil, fmt.Errorf("CA certificate file is empty")
-		}
-
-		// Strictly validate PEM blocks contain at least one valid X.509 certificate
-		rest := caCert
-		foundValid := false
-		for {
-			var block *pem.Block
-			block, rest = pem.Decode(rest)
-			if block == nil {
-				break
-			}
-			if block.Type != "CERTIFICATE" {
-				continue
-			}
-			if _, err := x509.ParseCertificate(block.Bytes); err == nil {
-				foundValid = true
-				break
-			}
-		}
-		if !foundValid {
-			log.Errorf("MQTT Binding: CA certificate file does not contain a valid X.509 certificate")
-			return nil, fmt.Errorf("CA certificate file does not contain a valid X.509 certificate")
-		}
-
-		caCertPool := x509.NewCertPool()
-		if !caCertPool.AppendCertsFromPEM(caCert) {
-			log.Errorf("MQTT Binding: failed to parse CA certificate - invalid PEM format or corrupted certificate")
-			return nil, fmt.Errorf("failed to parse CA certificate - invalid PEM format or corrupted certificate")
+			log.Errorf("MQTT Binding: failed to load/validate CA certificate - %+v", err)
+			return nil, err
 		}
 		tlsConfig.RootCAs = caCertPool
 		log.Infof("MQTT Binding: successfully loaded CA certificate from %s", config.CACertPath)
