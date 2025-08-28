@@ -227,7 +227,6 @@ func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, er
 
 // SubscribeTopic
 func (m *MQTTBinding) SubscribeTopic(topic string) error {
-	// 优先用 IsSubscribed 检查是否已订阅
 	if m.IsSubscribed(topic) {
 		return nil
 	}
