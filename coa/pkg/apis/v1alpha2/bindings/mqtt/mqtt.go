@@ -309,20 +309,6 @@ func (m *MQTTBinding) IsSubscribed(topic string) bool {
 	return ok
 }
 
-// GetSubscribedTopics returns a copy of all subscribed topics (read-only operation)
-func (m *MQTTBinding) GetSubscribedTopics() []string {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-	if m.subscribedTopic == nil {
-		return nil
-	}
-	topics := make([]string, 0, len(m.subscribedTopic))
-	for topic := range m.subscribedTopic {
-		topics = append(topics, topic)
-	}
-	return topics
-}
-
 // UnsubscribeTopic
 func (m *MQTTBinding) UnsubscribeTopic(topic string) error {
 	m.lock.Lock()
