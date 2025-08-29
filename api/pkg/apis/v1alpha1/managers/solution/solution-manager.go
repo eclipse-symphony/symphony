@@ -1066,7 +1066,7 @@ func (c *SolutionManager) GetTaskFromQueue(ctx context.Context, target string, n
 		"method": "doGetFromQueue",
 	})
 	queueName := fmt.Sprintf("%s-%s", target, namespace)
-	log.InfofCtx(ctx, " M(Solution): getFromQueue %s queue length %s", queueName)
+	log.InfofCtx(ctx, " M(Solution): getFromQueue %s", queueName)
 	defer span.End()
 	var queueElement interface{}
 	var err error
