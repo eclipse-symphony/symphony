@@ -854,7 +854,7 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 		}
 
 		if !ready {
-			tLog.InfofCtx(timeoutCtx, "V (Targets) : certificate %s not ready yet", certName)
+			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : certificate %s not ready yet", certName)
 			return fmt.Errorf("certificate %s not ready", certName)
 		}
 
@@ -866,7 +866,7 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 		}
 
 		if !secretReady {
-			tLog.InfofCtx(timeoutCtx, "V (Targets) : secret %s not ready yet", secretName)
+			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : secret %s not ready yet", secretName)
 			return fmt.Errorf("secret %s not ready", secretName)
 		}
 
@@ -938,13 +938,13 @@ func (c *TargetsVendor) checkSecretReady(ctx context.Context, secretName, namesp
 	_, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
 	if err != nil {
 		tLog.ErrorfCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
-		return false, nil // Secret not ready yet
+		return false, err // Secret not ready yet
 	}
 
 	_, err = c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
 	if err != nil {
 		tLog.ErrorCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
-		return false, nil // Secret not complete yet
+		return false, err // Secret not complete yet
 	}
 
 	return true, nil
