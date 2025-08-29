@@ -281,12 +281,14 @@ func (rq *RedisQueueProvider) DeleteQueue(context context.Context, queue string)
 	// Delete the main stream
 	err := rq.client.Del(context, queue).Err()
 	if err != nil {
-		return fmt.Errorf("failed to delete Redis stream %s: %w", queue, err)
+		return fmt.Errorf("failed to delete Redis stream %s: %s", queue, err.Error())
 	}
 
 	// Delete associated metadata (lastID key)
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
-	rq.client.Del(context, lastIDkey) // Ignore error for metadata cleanup
-
+	err = rq.client.Del(context, lastIDkey).Err()
+	if err != nil {
+		return fmt.Errorf("failed to delete metadata for Redis stream %s: %s", queue, err.Error())
+	}
 	return nil
 }

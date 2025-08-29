@@ -905,7 +905,7 @@ func (c *TargetsVendor) checkCertificateStatus(ctx context.Context, certName, na
 
 	entry, err := c.TargetsManager.StateProvider.Get(ctx, getRequest)
 	if err != nil {
-		return false, fmt.Errorf("failed to get certificate: %w", err)
+		return false, fmt.Errorf("failed to get certificate: %s", err.Error())
 	}
 
 	// Check Certificate status conditions
@@ -937,13 +937,13 @@ func (c *TargetsVendor) checkSecretReady(ctx context.Context, secretName, namesp
 	// Try to read both tls.crt and tls.key to verify secret is complete
 	_, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
 	if err != nil {
-		tLog.InfofCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
+		tLog.ErrorfCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
 		return false, nil // Secret not ready yet
 	}
 
 	_, err = c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
 	if err != nil {
-		tLog.InfofCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
+		tLog.ErrorCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
 		return false, nil // Secret not complete yet
 	}
 
