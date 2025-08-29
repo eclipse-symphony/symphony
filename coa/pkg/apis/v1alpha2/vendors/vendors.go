@@ -97,11 +97,8 @@ func (v *Vendor) Shutdown(ctx context.Context) error {
 }
 
 func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
-	if v.Context == nil {
-		fmt.Printf("Initializing VendorContext for %s\n", config.Type)
-		v.Context = &contexts.VendorContext{}
-		v.Context.SiteInfo = config.SiteInfo
-	}
+	v.Context = &contexts.VendorContext{}
+	v.Context.SiteInfo = config.SiteInfo
 	// see issue #79 - the following needs to be updated to use Symphony expression
 	v.Context.SiteInfo.CurrentSite.BaseUrl = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.BaseUrl)
 	v.Context.SiteInfo.CurrentSite.Username = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.Username)
