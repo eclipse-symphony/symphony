@@ -915,8 +915,8 @@ func (c *TargetsVendor) checkCertificateStatus(ctx context.Context, certName, na
 				if conditionsArray, ok := conditions.([]interface{}); ok {
 					for _, condition := range conditionsArray {
 						if condMap, ok := condition.(map[string]interface{}); ok {
-							if condType, found := condMap["type"]; found && condType == "Ready" {
-								if condStatus, found := condMap["status"]; found && condStatus == "True" {
+							if condType, found := condMap["type"]; found && strings.ToLower(condType.(string)) == "ready" {
+								if condStatus, found := condMap["status"]; found && strings.ToLower(condStatus.(string)) == "true" {
 									return true, nil
 								}
 							}

@@ -263,17 +263,7 @@ mqtt:
   brokerAddress: "tcp://localhost:1883"
 ```
 
-### 2. Username/Password
-```yaml
-mqtt:
-  enabled: true
-  useTLS: false
-  brokerAddress: "tcp://<broker-ip>:1883"
-  username: "symphony-user"
-  password: "your-password"
-```
-
-### 3. TLS with Client Certificates (Production)
+### 2. TLS with Client Certificates (Production)
 ```yaml
 mqtt:
   enabled: true
