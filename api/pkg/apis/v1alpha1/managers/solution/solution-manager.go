@@ -317,7 +317,7 @@ func (s *SolutionManager) cleanupRemoteTargetResourcesAfterDeletion(ctx context.
 			// Unsubscribe from MQTT topic using the dedicated method
 			if mqttBinding != nil {
 				if err := mqttBinding.UnsubscribeTopic(topic); err != nil {
-					log.WarnfCtx(ctx, " M (Solution): failed to unsubscribe from MQTT topic %s for deleted target %s: %s", topic, targetName, err.Error())
+					log.ErrorCtx(ctx, " M (Solution): failed to unsubscribe from MQTT topic %s for deleted target %s: %s", topic, targetName, err.Error())
 				} else {
 					log.InfofCtx(ctx, " M (Solution): successfully unsubscribed from MQTT topic %s for deleted target %s", topic, targetName)
 				}
@@ -327,12 +327,12 @@ func (s *SolutionManager) cleanupRemoteTargetResourcesAfterDeletion(ctx context.
 			if s.QueueProvider != nil {
 				queueName := fmt.Sprintf("%s-%s", targetName, namespace)
 				if queueErr := s.QueueProvider.DeleteQueue(ctx, queueName); queueErr != nil {
-					log.WarnfCtx(ctx, " M (Solution): failed to delete Redis queue %s for deleted target %s: %s", queueName, targetName, queueErr.Error())
+					log.ErrorCtx(ctx, " M (Solution): failed to delete Redis queue %s for deleted target %s: %s", queueName, targetName, queueErr.Error())
 				} else {
 					log.InfofCtx(ctx, " M (Solution): successfully deleted Redis queue %s for deleted target %s", queueName, targetName)
 				}
 			} else {
-				log.WarnfCtx(ctx, " M (Solution): Queue provider not available, skipping queue cleanup for deleted target %s", targetName)
+				log.ErrorCtx(ctx, " M (Solution): Queue provider not available, skipping queue cleanup for deleted target %s", targetName)
 			}
 		}
 	}
