@@ -29,7 +29,6 @@ type DeploymentSpec struct {
 	Hash                string                 `json:"hash,omitempty"`
 	IsDryRun            bool                   `json:"isDryRun,omitempty"`
 	IsInActive          bool                   `json:"isInActive,omitempty"`
-	IsTargetDeletion    bool                   `json:"isTargetDeletion,omitempty"`
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
@@ -175,7 +174,6 @@ func GetDeploymentSpecForLog(d *DeploymentSpec) string {
 		Hash:                d.Hash,
 		IsDryRun:            d.IsDryRun,
 		IsInActive:          d.IsInActive,
-		IsTargetDeletion:    d.IsTargetDeletion,
 	}
 	payload, err := json.Marshal(deployment)
 	if err != nil {
