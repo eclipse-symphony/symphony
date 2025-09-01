@@ -55,7 +55,7 @@ const (
 	maxHTTPBodySize = 1024 * 1024 // 1MB
 
 	// Rolling defaults and env keys
-	defaultMaxSizeMB  = 1
+	defaultMaxSizeMB  = 10
 	defaultMaxBackups = 5
 	defaultMaxAgeDays = 7
 
