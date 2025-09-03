@@ -29,6 +29,7 @@ type DeploymentSpec struct {
 	Hash                string                 `json:"hash,omitempty"`
 	IsDryRun            bool                   `json:"isDryRun,omitempty"`
 	IsInActive          bool                   `json:"isInActive,omitempty"`
+	RemoteTargetName    string                 `json:"remoteTargetName,omitempty"`
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {

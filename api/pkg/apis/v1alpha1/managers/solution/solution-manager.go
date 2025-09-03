@@ -299,6 +299,36 @@ func (s *SolutionManager) ensureRemoteTargetSubscriptions(ctx context.Context, d
 	}
 }
 
+// cleanupRemoteTargetResourcesAfterDeletion cleans up MQTT subscriptions and Redis queues for deleted remote targets after successful deletion
+func (s *SolutionManager) cleanupRemoteTargetResourcesAfterDeletion(ctx context.Context, targetName string, namespace string) {
+	mqttBinding := s.VendorContext.GetMQTTBinding()
+	if mqttBinding != nil {
+		topic := fmt.Sprintf("symphony/request/%s", targetName)
+		log.InfofCtx(ctx, " M (Solution): cleaning up MQTT subscription for deleted remote target %s, topic %s", targetName, topic)
+
+		// Unsubscribe from MQTT topic using the dedicated method
+		if mqttBinding != nil {
+			if err := mqttBinding.UnsubscribeTopic(topic); err != nil {
+				log.WarnfCtx(ctx, " M (Solution): failed to unsubscribe from MQTT topic %s for deleted target %s: %s", topic, targetName, err.Error())
+			} else {
+				log.InfofCtx(ctx, " M (Solution): successfully unsubscribed from MQTT topic %s for deleted target %s", topic, targetName)
+			}
+		}
+
+		// Clean up Redis queue
+		if s.QueueProvider != nil {
+			queueName := fmt.Sprintf("%s-%s", targetName, namespace)
+			if queueErr := s.QueueProvider.DeleteQueue(ctx, queueName); queueErr != nil {
+				log.WarnfCtx(ctx, " M (Solution): failed to delete Redis queue %s for deleted target %s: %s", queueName, targetName, queueErr.Error())
+			} else {
+				log.InfofCtx(ctx, " M (Solution): successfully deleted Redis queue %s for deleted target %s", queueName, targetName)
+			}
+		} else {
+			log.WarnfCtx(ctx, " M (Solution): Queue provider not available, skipping queue cleanup for deleted target %s", targetName)
+		}
+	}
+}
+
 func (s *SolutionManager) getPreviousState(ctx context.Context, instance string, namespace string) *model.SolutionManagerDeploymentState {
 	state, err := s.StateProvider.Get(ctx, states.GetRequest{
 		ID: instance,
@@ -463,7 +493,7 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 	if !summary.PlanState.Deployment.IsDryRun {
 		if len(summary.PlanState.MergedState.TargetComponent) == 0 && summary.IsRemoval {
 			log.DebugfCtx(ctx, " M (Solution): no assigned components to manage, deleting state")
-			s.StateProvider.Delete(ctx, states.DeleteRequest{
+			err := s.StateProvider.Delete(ctx, states.DeleteRequest{
 				ID: summary.PlanState.Deployment.Instance.ObjectMeta.Name,
 				Metadata: map[string]interface{}{
 					"namespace": summary.PlanState.Namespace,
@@ -472,6 +502,13 @@ func (s *SolutionManager) handleAllPlanCompletetion(ctx context.Context, summary
 					"resource":  DeploymentState,
 				},
 			})
+			if err != nil {
+				log.ErrorCtx(ctx, " M (Solution): failed to delete state for deployment %+v: %s", summary.PlanState.Deployment, err.Error())
+			}
+			// Only cleanup remote target resources after successful deletion
+			if err == nil && summary.PlanState.Deployment.RemoteTargetName != "" {
+				s.cleanupRemoteTargetResourcesAfterDeletion(ctx, summary.PlanState.Deployment.RemoteTargetName, summary.PlanState.Namespace)
+			}
 		} else {
 			s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{

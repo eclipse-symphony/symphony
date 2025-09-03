@@ -559,6 +559,32 @@
                 "config": {}
               }
             }     
+          },
+          {
+            "name": "cert-manager",
+            "type": "managers.symphony.cert",
+            "properties": {
+              "caIssuer": "{{ .Values.cert.caIssuer | default "symphony-issuer" }}",
+              "serviceName": "{{ .Values.cert.serviceName | default "symphony-service" }}",
+              "workingCertDuration": "{{ .Values.cert.workingCertDuration | default "2160h" }}",
+              "workingCertRenewBefore": "{{ .Values.cert.workingCertRenewBefore | default "360h" }}",
+              "providers.persistentstate": "k8s-state",
+              "providers.secret": "k8s-secret"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "k8s-secret": {
+                "type": "providers.secret.k8s", 
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
           }
         ]
       },
