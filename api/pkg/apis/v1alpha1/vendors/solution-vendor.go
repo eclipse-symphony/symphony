@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -511,7 +512,7 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 		requestId = request.Metadata["request-id"]
 	}
 
-	if exists && getAll == "true" {
+	if exists && strings.EqualFold(getAll, "true") {
 		// Logic to handle getALL parameter
 		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
 
