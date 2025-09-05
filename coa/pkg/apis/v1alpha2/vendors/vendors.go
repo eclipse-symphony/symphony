@@ -35,6 +35,9 @@ type IVendor interface {
 	GetEndpoints() []v1alpha2.Endpoint
 	GetInfo() VendorInfo
 	SetEvaluationContext(context *utils.EvaluationContext)
+	GetContext() *contexts.VendorContext
+	SetContext(context *contexts.VendorContext)
+	GetManagers() []managers.IManager
 }
 
 type IEvaluationContextVendor interface {
@@ -96,7 +99,6 @@ func (v *Vendor) Shutdown(ctx context.Context) error {
 func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy, providers map[string]map[string]providers.IProvider, pubsubProvider pubsub.IPubSubProvider) error {
 	v.Context = &contexts.VendorContext{}
 	v.Context.SiteInfo = config.SiteInfo
-
 	// see issue #79 - the following needs to be updated to use Symphony expression
 	v.Context.SiteInfo.CurrentSite.BaseUrl = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.BaseUrl)
 	v.Context.SiteInfo.CurrentSite.Username = utils.ParseProperty(v.Context.SiteInfo.CurrentSite.Username)
@@ -138,4 +140,17 @@ func (v *Vendor) Init(config VendorConfig, factories []managers.IManagerFactroy,
 	v.Route = config.Route
 	v.Config = config
 	return nil
+}
+
+func (v *Vendor) GetContext() *contexts.VendorContext {
+	return v.Context
+}
+
+func (v *Vendor) SetContext(context *contexts.VendorContext) {
+
+	v.Context = context
+}
+
+func (v *Vendor) GetManagers() []managers.IManager {
+	return v.Managers
 }

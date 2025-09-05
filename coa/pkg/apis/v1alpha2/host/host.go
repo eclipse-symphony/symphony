@@ -293,6 +293,17 @@ func (h *APIHost) Launch(config HostConfig,
 				return v1alpha2.NewCOAError(nil, fmt.Sprintf("binding type '%s' is not recognized", b.Type), v1alpha2.BadConfig)
 			}
 		}
+
+		if len(config.Bindings) > 0 {
+			for _, binding := range h.Bindings {
+				if mqttBinding, ok := binding.(*mqtt.MQTTBinding); ok {
+					for _, v := range h.Vendors {
+						// set MQTT binding to VendorContext
+						v.Vendor.GetContext().SetMQTTBinding(mqttBinding)
+					}
+				}
+			}
+		}
 	}
 	SetHostReadyFlag(true)
 	return h.WaitForShutdown(&wg, cancel)

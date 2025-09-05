@@ -7,8 +7,15 @@
 package mqtt
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
+	"math/big"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -209,4 +216,89 @@ func TestMQTTEchoWithCallContext(t *testing.T) {
 	token := c.Publish(config.RequestTopic, 0, false, data) //sending COARequest directly doesn't seem to work
 	token.Wait()
 	<-sig
+}
+
+// Tests for invalid CA certificate handling
+func TestCreateTLSConfig_InvalidCA_NoPEMHeader(t *testing.T) {
+	t.Parallel()
+	path := createTempFile(t, "not a certificate")
+	defer os.Remove(path)
+
+	m := &MQTTBinding{}
+	cfg := MQTTBindingConfig{CACertPath: path, UseTLS: "true"}
+	if _, err := m.createTLSConfig(cfg); err == nil {
+		t.Fatalf("expected error for invalid CA without PEM header, got nil")
+	}
+}
+
+func TestCreateTLSConfig_InvalidCA_BadPEM(t *testing.T) {
+	t.Parallel()
+	// use an empty PEM block so x509.ParseCertificate will definitely fail
+	badPEM := "-----BEGIN CERTIFICATE-----\n\n-----END CERTIFICATE-----\n"
+	path := createTempFile(t, badPEM)
+	defer os.Remove(path)
+
+	m := &MQTTBinding{}
+	cfg := MQTTBindingConfig{CACertPath: path, UseTLS: "true"}
+	_, err := m.createTLSConfig(cfg)
+	if err == nil {
+		t.Fatalf("expected error for invalid PEM CA, got nil")
+	}
+	if !strings.Contains(err.Error(), "does not contain a valid X.509 certificate") {
+		t.Fatalf("expected X.509 certificate error, got: %v", err)
+	}
+}
+
+func TestCreateTLSConfig_ValidCA_ReturnsTLSConfig(t *testing.T) {
+	t.Parallel()
+	// generate a self-signed CA certificate
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+	tmpl := x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "Test CA"},
+		NotBefore:             time.Now().Add(-1 * time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &priv.PublicKey, priv)
+	if err != nil {
+		t.Fatalf("failed to create certificate: %v", err)
+	}
+	pemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+
+	path := createTempFile(t, string(pemBytes))
+	defer os.Remove(path)
+
+	m := &MQTTBinding{}
+	cfg := MQTTBindingConfig{CACertPath: path, UseTLS: "true"}
+	tlsCfg, err := m.createTLSConfig(cfg)
+	if err != nil {
+		t.Fatalf("expected no error for valid CA, got %v", err)
+	}
+	if tlsCfg == nil || tlsCfg.RootCAs == nil {
+		t.Fatalf("expected non-nil TLS config with RootCAs")
+	}
+	if len(tlsCfg.RootCAs.Subjects()) == 0 {
+		t.Fatalf("expected RootCAs to contain at least one certificate")
+	}
+}
+
+func createTempFile(t *testing.T, content string) string {
+	t.Helper()
+	tmpFile, err := os.CreateTemp("", "mqtt-test-ca-*.pem")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+		t.Fatalf("failed to write temp file: %v", err)
+	}
+	tmpFile.Close()
+	return tmpFile.Name()
 }

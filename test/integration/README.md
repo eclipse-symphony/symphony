@@ -61,13 +61,47 @@ If a test is failing you can debug it in VS Code.
 
 Compare the test with the state of the cluster using k9s of kubectl to track down the problem.
 
+## Remote Agent Tests
+
+Remote agent tests are located in `test/integration/scenarios/13.remoteAgent/` and test the communication between Symphony and remote agents using different protocols.
+
+### Running Remote Agent Communication Tests
+
+To run both HTTP and MQTT communication tests:
+
+```bash
+cd test/integration/scenarios/13.remoteAgent
+# Run HTTP bootstrap test only
+go test -v ./verify -run TestE2EHttpCommunicationWithBootstrap -timeout 30m
+
+# Run MQTT bootstrap test only
+go test -v ./verify -run TestE2EMQTTCommunicationWithBootstrap -timeout 30m
+
+# Run HTTP process test only
+go test -v ./verify -run TestE2EHttpCommunicationWithProcess -timeout 30m
+
+# Run MQTT process test only
+go test -v ./verify -run TestE2EMQTTCommunicationWithProcess -timeout 30m
+
+```
+
+These tests verify:
+
+- Remote agent bootstrap process
+- HTTP/HTTPS and MQTT communication protocols
+- Certificate-based authentication
+- Target registration and topology updates
+- End-to-end deployment
+
 ## Adding tests
 
 Copy an existing test such as `scenarios/basic` and modify it to test your scenario.
 Make sure the folder is under `scenarios/` so it will get picked up automatically.
 
 Tests MUST have:
+
 * A `magefile.go` with a `Test` target that deploys and runs the entire test.
 
 Tests SHOULD have:
+
 * `Setup`, `Verify`, and `Cleanup` targets to make it possible to get the cluster into the same state using console commands.

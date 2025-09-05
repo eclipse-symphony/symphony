@@ -328,6 +328,10 @@
       {
         "type": "vendors.targets",
         "route": "targets",
+        "properties": {
+          "workingCertDuration": "{{ .Values.targets.workingCertDuration | default "2160h" }}",
+          "workingCertRenewBefore": "{{ .Values.targets.workingCertRenewBefore | default "360h" }}"
+        },
         "managers": [
           {
             "name": "targets-manager",
@@ -845,7 +849,7 @@
         ]
       }
     },
-    {{- end }}  
+    {{- end }}
     {
       "type": "bindings.http",
       "config": {
@@ -897,5 +901,26 @@
           ]
       }
     }
+    {{- if .Values.mqtt.enabled }},
+    {
+      "type": "bindings.mqtt",
+      "config": {
+        "brokerAddress": "{{ .Values.mqtt.brokerAddress }}",
+        "clientID": "{{ .Values.mqtt.clientID | default "symphony-mqtt-client" }}",
+        "requestTopic": "{{ .Values.mqtt.requestTopic }}",
+        "responseTopic": "{{ .Values.mqtt.responseTopic }}",
+        "timeoutSeconds": {{ .Values.mqtt.timeoutSeconds | default 100 }},
+        "keepAliveSeconds": {{ .Values.mqtt.keepAliveSeconds | default 200 }},
+        "pingTimeoutSeconds": {{ .Values.mqtt.pingTimeoutSeconds | default 100 }},
+        "useTLS": "{{ .Values.mqtt.useTLS | default "false" }}",
+        "caCertPath": "{{ include "symphony.apiClientCAPem" . }}",
+        {{- if .Values.mqtt.mqttClientCert.enabled }}
+        "clientCertPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.crt",
+        "clientKeyPath": "{{ .Values.mqtt.mqttClientCert.mountPath }}/client.key",
+        {{- end }}
+        "insecureSkipVerify": "{{ .Values.mqtt.insecureSkipVerify | default "false" }}"
+      }
+    }
+    {{- end }}
   ]
 }

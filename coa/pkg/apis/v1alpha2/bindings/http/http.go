@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -92,7 +92,7 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 				log.Errorf("B (HTTP): failed to open certificate file %+v", err)
 				return v1alpha2.NewCOAError(nil, fmt.Sprintf("B (HTTP): failed to open certificate file %+v", err), v1alpha2.BadConfig)
 			}
-			certData, err := ioutil.ReadAll(certFile)
+			certData, err := io.ReadAll(certFile)
 			if err != nil {
 				log.Errorf("B (HTTP): failed to read certificate file %+v", err)
 				return v1alpha2.NewCOAError(err, "B (HTTP): failed to read certificate file", v1alpha2.InternalError)
@@ -115,7 +115,7 @@ func (h *HttpBinding) Launch(config HttpBindingConfig, endpoints []v1alpha2.Endp
 
 	// Load the PEM file
 	if ClientCAFile != "" {
-		pemData, err := ioutil.ReadFile(ClientCAFile)
+		pemData, err := os.ReadFile(ClientCAFile)
 		if err != nil {
 			return v1alpha2.NewCOAError(nil, fmt.Sprintf("Client cert file '%s' is not read successfully", ClientCAFile), v1alpha2.BadConfig)
 		}

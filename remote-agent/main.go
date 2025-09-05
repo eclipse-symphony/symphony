@@ -1,15 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
@@ -18,8 +23,10 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
-	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/bindings/http"
+	remoteHttp "github.com/eclipse-symphony/symphony/remote-agent/pollers/http"
+	remoteMqtt "github.com/eclipse-symphony/symphony/remote-agent/pollers/mqtt"
 	remoteProviders "github.com/eclipse-symphony/symphony/remote-agent/providers"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 const version = "0.0.0.1"
@@ -36,9 +43,25 @@ var (
 	execDir           string
 	protocol          string
 	caPath            string
+	useCertSubject    bool
 )
 
+// Add this structure to handle MQTT configuration
+type SymphonyConfig struct {
+	// HTTP fields
+	RequestEndpoint  string `json:"requestEndpoint"`
+	ResponseEndpoint string `json:"responseEndpoint"`
+	BaseUrl          string `json:"baseUrl"`
+
+	// MQTT fields
+	MqttBroker string `json:"mqttBroker"`
+	MqttPort   int    `json:"mqttPort"`
+	TargetName string `json:"targetName"`
+	Namespace  string `json:"namespace"`
+}
+
 func mainLogic() error {
+	log.Printf("mainLogic started, args: %v", os.Args)
 	// get executable path
 	execPath, err := os.Executable()
 	if err != nil {
@@ -56,6 +79,14 @@ func mainLogic() error {
 		return fmt.Errorf("failed to open log file: %v", err)
 	}
 	log.SetOutput(logFile)
+
+	// Log the complete binary execution command
+	log.Printf("=== Binary Execution Command ===")
+	log.Printf("Executable: %s", execPath)
+	log.Printf("Working Directory: %s", execDir)
+	log.Printf("Command Line: %s %s", execPath, strings.Join(os.Args[1:], " "))
+	log.Printf("Full Args: %v", os.Args)
+	log.Printf("================================")
 	// extract command line arguments
 	flag.StringVar(&configPath, "config", "config.json", "Path to the configuration file")
 	flag.StringVar(&clientCertPath, "client-cert", "public.pem", "Path to the client certificate file")
@@ -63,25 +94,51 @@ func mainLogic() error {
 	flag.StringVar(&targetName, "target-name", "remote-target", "remote target name")
 	flag.StringVar(&namespace, "namespace", "default", "Namespace to use for the agent")
 	flag.StringVar(&topologyFile, "topology", "topology.json", "Path to the topology file")
+	flag.StringVar(&caPath, "ca-cert", caPath, "Path to the CA certificate file (for MQTT) or Symphony server CA (for HTTP)")
+	flag.StringVar(&protocol, "protocol", "http", "Protocol to use: mqtt or http")
+	flag.BoolVar(&useCertSubject, "use-cert-subject", false, "Use certificate subject as topic suffix instead of target name")
 	flag.Parse()
+	caPath = promptForMqttCaCertIfNeeded(protocol, caPath)
 
+	log.Printf("Using client certificate path: %s\n", clientCertPath)
 	// read configuration
-	setting, err := ioutil.ReadFile(configPath)
+	setting, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("error reading configuration file: %v", err)
 	}
-	if err := json.Unmarshal(setting, &symphonyEndpoints); err != nil {
+
+	// Remove UTF-8 BOM if present
+	if len(setting) >= 3 && setting[0] == 0xEF && setting[1] == 0xBB && setting[2] == 0xBF {
+		fmt.Println("Removing UTF-8 BOM from config file")
+		setting = setting[3:]
+	}
+
+	// Use the new config structure
+	var config SymphonyConfig
+	if err := json.Unmarshal(setting, &config); err != nil {
+		log.Printf("Error unmarshalling config: %v\nContent: %s\n", err, string(setting))
 		return fmt.Errorf("error unmarshalling configuration file: %v", err)
 	}
 
 	// load certificates
 	log.Printf("Loading client certificate from %s and key from %s", clientCertPath, clientKeyPath)
-	clientCert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
+	cert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
 	if err != nil {
-		return fmt.Errorf("error loading client certificate and key: %v", err)
+		return fmt.Errorf("failed to load client cert/key: %v", err)
 	}
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{clientCert}}
-	httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
+	subjectName := ""
+	if len(cert.Certificate) > 0 {
+		parsedCert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err == nil {
+			subjectName = parsedCert.Subject.CommonName
+			if subjectName == "" {
+				subjectName = parsedCert.Subject.String()
+			}
+			log.Printf("Client certificate subject: %s\n", subjectName)
+		} else {
+			log.Printf("Failed to parse client certificate for subject: %v\n", err)
+		}
+	}
 
 	// compose target providers
 	providers := composeTargetProviders(topologyFile)
@@ -89,25 +146,226 @@ func mainLogic() error {
 		return fmt.Errorf("failed to compose target providers")
 	}
 
-	// create HttpBinding
-	h := &remoteHttp.HttpBinding{
-		Agent: agent.Agent{
-			Providers: providers,
-		},
-	}
-	h.RequestUrl = symphonyEndpoints.RequestEndpoint
-	h.ResponseUrl = symphonyEndpoints.ResponseEndpoint
-	h.Client = httpClient
-	h.Target = targetName
-	h.Namespace = namespace
-
-	// start HttpBinding
-	if err := h.Launch(); err != nil {
-		return fmt.Errorf("error launching HttpBinding: %v", err)
+	// Read topology file content for later updates
+	topologyContent, err := os.ReadFile(topologyFile)
+	if err != nil {
+		log.Printf("Error reading topology file: %v", err)
+		return fmt.Errorf("failed to read topology file: %v", err)
 	}
 
-	// keep the main function running
-	select {}
+	if protocol == "http" {
+		if config.RequestEndpoint == "" || config.ResponseEndpoint == "" || config.BaseUrl == "" {
+			return fmt.Errorf("RequestEndpoint, ResponseEndpoint, and BaseUrl must be set in the configuration file")
+		}
+		log.Printf("Using HTTP protocol with endpoints: Request=%s, Response=%s\n", config.RequestEndpoint, config.ResponseEndpoint)
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+
+		// If HTTP protocol and CA certificate is specified, add it to the trusted roots for Symphony server
+		if caPath != "" {
+			log.Printf("Loading Symphony server CA certificate from: %s\n", caPath)
+			serverCACert, err := os.ReadFile(caPath)
+			if err != nil {
+				return fmt.Errorf("failed to read Symphony server CA certificate: %v", err)
+			}
+
+			serverCACertPool := x509.NewCertPool()
+			if !serverCACertPool.AppendCertsFromPEM(serverCACert) {
+				return fmt.Errorf("failed to parse Symphony server CA certificate")
+			}
+
+			tlsConfig.RootCAs = serverCACertPool
+			log.Printf("Successfully loaded Symphony server CA certificate\n")
+		}
+
+		httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
+		symphonyEndpoints.RequestEndpoint = config.RequestEndpoint
+		// create HttpBinding
+		h := &remoteHttp.HttpPoller{
+			Agent: agent.Agent{
+				Providers: providers,
+			},
+		}
+		h.RequestUrl = config.RequestEndpoint
+		h.ResponseUrl = config.ResponseEndpoint
+		h.Client = httpClient
+		h.Target = targetName
+		h.Namespace = namespace
+
+		// send topology update via HTTP
+		updateTopologyEndpoint := fmt.Sprintf("%s/targets/updatetopology/%s?namespace=%s",
+			config.BaseUrl, targetName, namespace)
+		log.Printf("Sending topology update via HTTP: %s", updateTopologyEndpoint)
+
+		resp, err := httpClient.Post(updateTopologyEndpoint, "application/json", bytes.NewBuffer(topologyContent))
+		if err != nil {
+			return fmt.Errorf("failed to update topology: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// check response status code
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("topology update failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		}
+
+		log.Printf("Topology updated successfully via HTTP")
+
+		if err := h.Launch(); err != nil {
+			return fmt.Errorf("error launching HttpBinding: %v", err)
+		}
+		select {}
+	} else {
+		// Load MQTT CA certificate
+		log.Printf("Loading CA certificate from %s\n", caPath)
+		caCertPool := x509.NewCertPool()
+		caCert, err := os.ReadFile(caPath)
+		if err != nil {
+			return fmt.Errorf("failed to read MQTT CA file: %v", err)
+		}
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			return fmt.Errorf("failed to append MQTT CA cert")
+		}
+
+		// Use the configuration values from config.json
+		log.Printf("Config loaded: broker=%s, port=%d, target=%s\n",
+			config.MqttBroker, config.MqttPort, config.TargetName)
+		brokerAddr := config.MqttBroker
+		brokerPort := config.MqttPort
+
+		// If target name is specified in config and command line is empty, use the config value
+		if config.TargetName != "" {
+			targetName = config.TargetName
+			log.Printf("Using target name from config: %s\n", targetName)
+		}
+
+		// If namespace is specified in config and command line is empty, use the config value
+		if namespace == "default" && config.Namespace != "" {
+			namespace = config.Namespace
+			log.Printf("Using namespace from config: %s\n", namespace)
+		}
+		brokerAddr, brokerPort, err = getBrokerAddressAndPort(brokerAddr, brokerPort)
+		if err != nil {
+			return err
+		}
+		brokerUrl := fmt.Sprintf("tls://%s:%d", brokerAddr, brokerPort)
+		log.Printf("Using MQTT broker: %s\n", brokerUrl)
+
+		// Determine the correct ServerName for TLS verification
+		// If connecting to 127.0.0.1 or localhost, use "localhost" as ServerName
+		serverName := brokerAddr
+		if brokerAddr == "127.0.0.1" || brokerAddr == "::1" {
+			serverName = "localhost"
+		}
+		log.Printf("Using ServerName '%s' for TLS verification (connecting to %s)\n", serverName, brokerAddr)
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			RootCAs:      caCertPool,
+			ServerName:   serverName, // Use appropriate ServerName for certificate verification
+			MinVersion:   tls.VersionTLS12,
+			MaxVersion:   tls.VersionTLS13,
+		}
+		opts := mqtt.NewClientOptions()
+		opts.AddBroker(brokerUrl)
+		opts.SetTLSConfig(tlsConfig)
+		opts.SetClientID(strings.ToLower(targetName)) // Ensure lowercase is used
+		// Set client ID
+		log.Printf("MQTT TLS config: cert=%s, key=%s, ca=%s, clientID=%s\n",
+			clientCertPath, clientKeyPath, caPath, strings.ToLower(targetName))
+		log.Printf("begin to connect to MQTT broker %s\n", brokerUrl)
+		mqttClient := mqtt.NewClient(opts)
+		// Ensure lowercase is used
+		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+			log.Printf("failed to connect to MQTT broker: %v\n", token.Error())
+			return fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
+		} else {
+			fmt.Println("Connected to MQTT broker")
+		}
+		// choose topic suffix
+		topicSuffix := getTopicSuffix(targetName, subjectName, useCertSubject)
+		m := &remoteMqtt.MqttPoller{
+			Agent: agent.Agent{
+				Providers: providers,
+			},
+			Client:        mqttClient,
+			Target:        targetName,
+			RequestTopic:  fmt.Sprintf("symphony/request/%s", topicSuffix),
+			ResponseTopic: fmt.Sprintf("symphony/response/%s", topicSuffix),
+			Namespace:     namespace,
+		}
+
+		// First establish MQTT subscription for responses
+		log.Printf("Setting up MQTT subscription for responses...")
+		if err := m.Subscribe(); err != nil {
+			return fmt.Errorf("failed to setup MQTT subscription: %v", err)
+		}
+
+		// Keep retrying until the topology update is confirmed.
+		retryInterval := 2 * time.Minute
+		for {
+			if err := m.UpdateTopology(topologyContent); err != nil {
+				log.Printf("Topology update failed: %v. Retrying in %s", err, retryInterval)
+				time.Sleep(retryInterval)
+				continue
+			}
+			log.Printf("Topology update confirmed successful")
+			break
+		}
+
+		log.Printf("Topology update confirmed successful")
+		if err := m.Launch(); err != nil {
+			return fmt.Errorf("failed to launch MQTT binding: %v", err)
+		}
+
+		select {}
+	}
+}
+
+func getBrokerAddressAndPort(brokerAddr string, brokerPort int) (string, int, error) {
+	if brokerAddr == "" {
+		fmt.Print("MQTT broker address not found in config. Please enter MQTT broker address: ")
+		fmt.Scanln(&brokerAddr)
+		if brokerAddr == "" {
+			return "", 0, fmt.Errorf("MQTT broker address is required")
+		}
+	}
+
+	if brokerPort == 0 {
+		fmt.Print("MQTT broker port not found in config. Please enter MQTT broker port: ")
+		var portStr string
+		fmt.Scanln(&portStr)
+		if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
+			brokerPort = p
+		} else {
+			fmt.Println("Using default MQTT TLS port 8883")
+			brokerPort = 8883 // Default MQTT TLS port
+		}
+	}
+	return brokerAddr, brokerPort, nil
+}
+
+func promptForMqttCaCertIfNeeded(protocol string, caPath string) string {
+	if protocol == "mqtt" && caPath == "" {
+		fmt.Print("please enter the MQTT CA certificate path (e.g., ca.pem): ")
+		var input string
+		fmt.Scanln(&input)
+		if input != "" {
+			caPath = input
+		}
+		log.Printf("Using CA certificate path: %s\n", caPath)
+	}
+	return caPath
+}
+
+func getTopicSuffix(targetName, subjectName string, useCertSubject bool) string {
+	if useCertSubject && subjectName != "" {
+		s := strings.ToLower(subjectName)
+		log.Printf("Using certificate subject as topic suffix: %s\n", s)
+		return s
+	}
+	s := strings.ToLower(targetName)
+	log.Printf("Using target name as topic suffix: %s\n", s)
+	return s
 }
 
 func composeTargetProviders(topologyPath string) map[string]tgt.ITargetProvider {

@@ -30,8 +30,8 @@ var (
 	Interval       time.Duration = 10 * time.Second
 )
 
-// HttpBinding provides service endpoints as a fasthttp web server
-type HttpBinding struct {
+// HttpPoller provides service endpoints using the standard net/http client
+type HttpPoller struct {
 	CertProvider certs.ICertProvider
 	Agent        agent.Agent
 	ResponseUrl  string
@@ -42,7 +42,7 @@ type HttpBinding struct {
 }
 
 // Launch the polling agent
-func (h *HttpBinding) Launch() error {
+func (h *HttpPoller) Launch() error {
 	// Start the agent by handling starter requests
 	var wg sync.WaitGroup
 	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s&getAll=%s&preindex=%s", h.RequestUrl, h.Target, h.Namespace, "true", "0")
@@ -172,7 +172,7 @@ func (h *HttpBinding) Launch() error {
 	return nil
 }
 
-func (h *HttpBinding) pollRequests() []map[string]interface{} {
+func (h *HttpPoller) pollRequests() []map[string]interface{} {
 	requests := []map[string]interface{}{}
 	pollingUri := fmt.Sprintf("%s?target=%s&namespace=%s", h.RequestUrl, h.Target, h.Namespace)
 
@@ -191,16 +191,19 @@ func (h *HttpBinding) pollRequests() []map[string]interface{} {
 			return requests
 		}
 
-		var req map[string]interface{}
-		err = json.Unmarshal(body, &req)
+		// Parse as unified paging format
+		var pagingResponse model.ProviderPagingRequest
+		err = json.Unmarshal(body, &pagingResponse)
 		if err != nil {
 			return requests
 		}
-		_, ok := req["operationID"].(string)
-		if !ok {
-			return requests
+
+		// Extract requests from requestList
+		for _, req := range pagingResponse.RequestList {
+			if _, ok := req["operationID"].(string); ok {
+				requests = append(requests, req)
+			}
 		}
-		requests = append(requests, req)
 	}
 	return requests
 }
