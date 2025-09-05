@@ -388,9 +388,9 @@ func Logs(logRootFolder string) error {
 
 // Dump symphony api and k8s logs for tests
 func DumpSymphonyLogsForTest(testName string) {
-	normalizedTestName := strings.Replace(testName, "/", "_", -1)
-	normalizedTestName = strings.Replace(normalizedTestName, " ", "_", -1)
-
+	// Normalize test name to be safe for file paths and shell commands
+	re := regexp.MustCompile(`[\/\s()[]{}:;]`)
+	normalizedTestName := re.ReplaceAllString(testName, "_")
 	logFolderName := fmt.Sprintf("test_%s_%s", normalizedTestName, time.Now().Format("20060102150405"))
 	logRootFolder := fmt.Sprintf("%s/%s", getLogRoot(), logFolderName)
 

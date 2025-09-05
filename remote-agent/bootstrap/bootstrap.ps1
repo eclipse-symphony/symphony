@@ -23,7 +23,9 @@ param (
     [Parameter(Mandatory=$false)]
     [string]$ca_cert_path,
     [Parameter(Mandatory=$false)]
-    [bool]$use_cert_subject = $false
+    [bool]$use_cert_subject = $false,
+    [Parameter(Mandatory=$false)]
+    [string]$agent_path
 )
 function usage {
     Write-Host "Usage for HTTP mode:" -ForegroundColor Yellow
@@ -235,10 +237,15 @@ if ($protocol -eq 'http') {
     $private_path = Resolve-Path ".\private.pem"
     
 } else {
-    # MQTT mode: Prompt for binary
-    $agent_path = Read-Host "Please input the full absolute path to your remote-agent.exe binary (e.g. C:\path\to\remote-agent.exe)"
-    $agent_path = $agent_path.Trim('"')
-    if (-not (Test-Path $agent_path)) {
+    # MQTT mode: Use provided agent_path or prompt for binary
+    if (-not $agent_path) {
+        $agent_path = Read-Host "Please input the full absolute path to your remote-agent.exe binary (e.g. C:\path\to\remote-agent.exe)"
+        if ($agent_path) {
+            $agent_path = $agent_path.Trim('"')
+        }
+    }
+    
+    if (-not $agent_path -or -not (Test-Path $agent_path)) {
         Write-Host "Error: remote-agent.exe not found at $agent_path" -ForegroundColor Red
         exit 1
     }
@@ -289,7 +296,7 @@ if ($protocol -eq 'mqtt') {
 }
 
 $binPath = "`"$agent_path`" $processArgs"
-$serviceName = "symphony-service"
+$serviceName = "Symphony-RemoteAgent-$target_name"
 Write-Host "Remote agent command line: $binPath" -ForegroundColor Cyan
 # Setup as service or scheduled task
 if ($run_mode -eq 'service') {
@@ -322,38 +329,53 @@ if ($run_mode -eq 'service') {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
         # Continue execution rather than throwing
     }
-} else {
-    # Setup as a scheduled task
+} elseif ($run_mode -eq 'schedule') {
     Write-Host "[run_mode=schedule] Register and start as scheduled task..." -ForegroundColor Cyan
-    
-    # Create watchdog script
-    $watchdogScript = @"
+
+    # Create improved watchdog script (logs to watchdog.log, sets WorkingDirectory)
+    $agentFull = (Get-Item $agent_path).FullName
+    $agentDir = Split-Path $agentFull -Parent
+    $watchdogPath = Join-Path $agentDir 'watchdog-remote-agent.ps1'
+    $watchdogLog = Join-Path $agentDir 'watchdog.log'
+
+    $watchdogTemplate = @'
 try {
+    $log = "__WATCHDOG_LOG__"
+    Add-Content $log "$(Get-Date -Format o) - watchdog: checking process"
     if (-not (Get-Process -Name "remote-agent" -ErrorAction SilentlyContinue)) {
-        Start-Process -FilePath '$agent_path' -ArgumentList '$processArgs' -WindowStyle Hidden
+        Start-Process -FilePath "__AGENT_FULL__" -ArgumentList '__PROCESS_ARGS__' -WorkingDirectory "__AGENT_DIR__" -WindowStyle Hidden
+        Add-Content $log "$(Get-Date -Format o) - watchdog: started remote-agent"
+    } else {
+        Add-Content $log "$(Get-Date -Format o) - watchdog: already running"
     }
 } catch {
-    Write-Host "Error in watchdog: `$_.Exception.Message" -ForegroundColor Red
+    Add-Content $log "$(Get-Date -Format o) - watchdog error: $_"
 }
-"@
+'@
 
-    $watchdogPath = Join-Path (Split-Path $agent_path) "watchdog-remote-agent.ps1"
+    $watchdogScript = $watchdogTemplate.Replace('__WATCHDOG_LOG__',$watchdogLog).Replace('__AGENT_FULL__',$agentFull).Replace('__PROCESS_ARGS__',$processArgs).Replace('__AGENT_DIR__',$agentDir)
     $watchdogScript | Set-Content -Path $watchdogPath -Encoding UTF8
 
-    # Setup scheduled task
-    $Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
-    $Action = New-ScheduledTaskAction -Execute "pwsh.exe" -Argument "-NoProfile -WindowStyle Hidden -File `"$watchdogPath`""
+    # Setup scheduled task using absolute pwsh path (fallback to Windows PowerShell)
+    $pwshCmd = Get-Command pwsh -ErrorAction SilentlyContinue
+    if ($pwshCmd) { $pwshPath = $pwshCmd.Source } else { $pwshPath = Join-Path $env:windir 'System32\WindowsPowerShell\v1.0\powershell.exe' }
+
+    $action = New-ScheduledTaskAction -Execute $pwshPath -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$watchdogPath`""
+    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
     $TaskName = "RemoteAgentTask"
-    
+    $principal = New-ScheduledTaskPrincipal -UserId ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Highest
+
     if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
         Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
     }
-    
-    $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-    Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Description "Guard remote-agent.exe process" -User $currentUser -RunLevel Highest
+
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Description "Guard remote-agent.exe process" -Force
     Start-ScheduledTask -TaskName $TaskName
-    
+
     Write-Host "Registered and started scheduled task $TaskName" -ForegroundColor Green
+} else {
+    Write-Host "Error: Invalid run_mode '$run_mode'. Must be either 'service' or 'schedule'." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "Setup complete!" -ForegroundColor Green

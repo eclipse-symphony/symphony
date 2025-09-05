@@ -13,7 +13,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -78,7 +77,7 @@ func isSubjectValid(subject string) bool {
 }
 func loadCACertPool(caFile string) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(caFile)
+	caCert, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CA file %s: %v", caFile, err)
 	}
@@ -167,10 +166,10 @@ func (j JWT) JWT(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 					return
 				} else {
 					uri := ctx.Request.URI().String()
-					if strings.Contains(uri, "/targets/bootstrap") || strings.Contains(uri, "/files") {
+					if strings.Contains(uri, "/targets/getcert") || strings.Contains(uri, "/files") {
 						next(ctx)
 					} else {
-						log.ErrorfCtx(ctx, "JWT: Bootstrap cert can only access bootstrap and files endpoints.")
+						log.ErrorfCtx(ctx, "JWT: Bootstrap cert can only access getcert, and files endpoints.")
 						ctx.Response.SetStatusCode(fasthttp.StatusForbidden)
 						return
 					}

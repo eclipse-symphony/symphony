@@ -8,7 +8,6 @@ package config
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -134,7 +133,7 @@ func GetMaestroConfig(path string) MaestroConfig {
 	}
 	for _, f := range files {
 		if f != "" {
-			content, err := ioutil.ReadFile(f)
+			content, err := os.ReadFile(f)
 			if err == nil {
 				var config MaestroConfig
 				err = json.Unmarshal(content, &config)

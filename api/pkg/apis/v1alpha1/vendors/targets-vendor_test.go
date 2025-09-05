@@ -18,6 +18,8 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/google/uuid"
@@ -29,7 +31,7 @@ func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
 	vendor.Route = "targets"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 7, len(endpoints))
+	assert.Equal(t, 8, len(endpoints))
 }
 
 func TestTargetsInfo(t *testing.T) {
@@ -42,6 +44,10 @@ func TestTargetsInfo(t *testing.T) {
 func createTargetsVendor() TargetsVendor {
 	stateProvider := memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+
+	secretProvider := mock.MockSecretProvider{}
+	secretProvider.Init(mock.MockSecretProviderConfig{Name: "test-secret"})
+
 	pubSubProvider := memory.InMemoryPubSubProvider{}
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor := TargetsVendor{}
@@ -73,6 +79,7 @@ func createTargetsVendor() TargetsVendor {
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
 	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
+	vendor.TargetsManager.SecretProvider = &secretProvider
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {
@@ -274,6 +281,151 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 	assert.Equal(t, v1alpha2.OK, resp.State)
 	assert.NotNil(t, targetState.Status.Properties["ping"])
 }
+func TestTargetsOnGetCert(t *testing.T) {
+	vendor := createTargetsVendor()
+
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	data, _ := json.Marshal(target)
+	resp := vendor.onRegistry(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   data,
+		Parameters: map[string]string{
+			"__name":       "target1-v1",
+			"with-binding": "staging",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	// Pre-create a mock certificate in ready state to simulate cert-manager behavior
+	certObj := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "target1-v1",
+			"namespace": "default",
+		},
+		"spec": map[string]interface{}{
+			"secretName": "target1-v1-tls",
+		},
+		"status": map[string]interface{}{
+			"conditions": []interface{}{
+				map[string]interface{}{
+					"type":   "Ready",
+					"status": "True",
+				},
+			},
+		},
+	}
+
+	// Store the mock certificate in state
+	upsertRequest := states.UpsertRequest{
+		Value: states.StateEntry{
+			ID:   "target1-v1",
+			Body: certObj,
+		},
+		Metadata: map[string]interface{}{
+			"namespace": "default",
+			"group":     "cert-manager.io",
+			"version":   "v1",
+			"resource":  "certificates",
+			"kind":      "Certificate",
+		},
+	}
+	vendor.TargetsManager.StateProvider.Upsert(context.Background(), upsertRequest)
+
+	resp = vendor.onGetCert(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Parameters: map[string]string{
+			"__name": "target1-v1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	var certResponse map[string]interface{}
+	json.Unmarshal(resp.Body, &certResponse)
+	assert.Contains(t, certResponse, "public")
+	assert.Contains(t, certResponse, "private")
+}
+
+func TestTargetsOnUpdateTopology(t *testing.T) {
+	vendor := createTargetsVendor()
+
+	target := model.TargetState{
+		Spec: &model.TargetSpec{
+			DisplayName: "target1-v1",
+			Topologies: []model.TopologySpec{
+				{
+					Bindings: []model.BindingSpec{
+						{
+							Role:     "mock",
+							Provider: "providers.target.mock",
+							Config: map[string]string{
+								"id": uuid.New().String(),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	data, _ := json.Marshal(target)
+	resp := vendor.onRegistry(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   data,
+		Parameters: map[string]string{
+			"__name":       "target1-v1",
+			"with-binding": "staging",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	topology := model.TopologySpec{
+		Bindings: []model.BindingSpec{
+			{
+				Role:     "updated-mock",
+				Provider: "providers.target.updated-mock",
+				Config: map[string]string{
+					"id":     uuid.New().String(),
+					"update": "true",
+				},
+			},
+		},
+	}
+	topologyData, _ := json.Marshal(topology)
+
+	resp = vendor.onUpdateTopology(v1alpha2.COARequest{
+		Method: fasthttp.MethodPost,
+		Body:   topologyData,
+		Parameters: map[string]string{
+			"__name": "target1-v1",
+		},
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.OK, resp.State)
+
+	var updateResponse map[string]interface{}
+	json.Unmarshal(resp.Body, &updateResponse)
+	assert.Equal(t, "topology updated successfully", updateResponse["result"])
+}
+
 func TestTargetWrongMethod(t *testing.T) {
 	vendor := createTargetsVendor()
 	resp := vendor.onRegistry(v1alpha2.COARequest{
@@ -281,13 +433,6 @@ func TestTargetWrongMethod(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
-
-	resp = vendor.onBootstrap(v1alpha2.COARequest{
-		Method:  fasthttp.MethodPut,
-		Context: context.Background(),
-	})
-	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
-
 	resp = vendor.onStatus(v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
@@ -296,6 +441,18 @@ func TestTargetWrongMethod(t *testing.T) {
 
 	resp = vendor.onHeartBeat(v1alpha2.COARequest{
 		Method:  fasthttp.MethodPut,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+
+	resp = vendor.onGetCert(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
+		Context: context.Background(),
+	})
+	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)
+
+	resp = vendor.onUpdateTopology(v1alpha2.COARequest{
+		Method:  fasthttp.MethodGet,
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.MethodNotAllowed, resp.State)

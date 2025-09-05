@@ -38,8 +38,8 @@ fi
 
 cd ../../test/localenv
 
-mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true"
-# default is : mage cluster:deployWithSettings "--set remoteAgent.used=true --set RemoteCert.ClientCAs.SecretName=client-cert-secret --set RemoteCert.ClientCAs.SecretKey=client-cert-key --set installServiceExt=true --set installServiceExt=true"  
+mage cluster:deployWithSettings "--set remoteAgent.remoteCert.used=true --set remoteAgent.remoteCert.trustCAs.secretName=<secret name> --set remoteAgent.remoteCert.trustCAs.secretKey=<secret key> --set installServiceExt=true"
+# default is : mage cluster:deployWithSettings "--set remoteAgent.remoteCert.used=true --set remoteAgent.remoteCert.trustCAs.secretName=client-cert-secret --set remoteAgent.remoteCert.trustCAs.secretKey=client-cert-key --set installServiceExt=true"
 
 # start a new terminal
 # minikube tunnel

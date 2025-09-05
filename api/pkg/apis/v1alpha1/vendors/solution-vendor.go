@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
@@ -505,7 +506,13 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 	namespace := request.Parameters["namespace"]
 	getAll, exists := request.Parameters["getAll"]
 
-	if exists && getAll == "true" {
+	// Extract request-id from request metadata
+	var requestId string
+	if request.Metadata != nil {
+		requestId = request.Metadata["request-id"]
+	}
+
+	if exists && strings.EqualFold(getAll, "true") {
 		// Logic to handle getALL parameter
 		sLog.InfoCtx(ctx, "V(Solution): getALL request from remote agent %+v", agentRequest)
 
@@ -526,9 +533,9 @@ func (c *SolutionVendor) onGetRequest(request v1alpha2.COARequest) v1alpha2.COAR
 			}
 		}
 
-		return c.SolutionManager.GetTaskFromQueueByPaging(ctx, target, namespace, start, size)
+		return c.SolutionManager.GetTaskFromQueueByPaging(ctx, target, namespace, start, size, requestId)
 	}
-	return c.SolutionManager.GetTaskFromQueue(ctx, target, namespace)
+	return c.SolutionManager.GetTaskFromQueue(ctx, target, namespace, requestId)
 }
 
 // onGetResponse handles the get response from the remote agent.

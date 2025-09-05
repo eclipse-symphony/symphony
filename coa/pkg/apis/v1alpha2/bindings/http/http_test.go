@@ -12,7 +12,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -47,7 +47,7 @@ func testHttpRequestHelper(context context.Context, t *testing.T, method string,
 
 	defer resp.Body.Close()
 	assert.Equal(t, expectedStatusCode, resp.StatusCode)
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	assert.Nil(t, err)
 
 	if expectedBody != "" {
@@ -68,7 +68,7 @@ func testHttpRequestHelperWithHeaders(context context.Context, t *testing.T, met
 
 	defer resp.Body.Close()
 	assert.Equal(t, expectedStatusCode, resp.StatusCode)
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	assert.Nil(t, err)
 
 	if expectedBody != "" {
@@ -214,7 +214,7 @@ func TestHTTPEchoWithTLS(t *testing.T) {
 
 	defer resp.Body.Close()
 	assert.Equal(t, resp.StatusCode, 200)
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	assert.Nil(t, err)
 
 	assert.Equal(t, string(bodyBytes), "Hi there!!")
@@ -379,7 +379,7 @@ func TestHTTPEchoWithPipeline(t *testing.T) {
 
 	defer authResp.Body.Close()
 	assert.Equal(t, authResp.StatusCode, 200)
-	bodyBytes2, err := ioutil.ReadAll(authResp.Body)
+	bodyBytes2, err := io.ReadAll(authResp.Body)
 	var parsedAuthResp map[string]interface{}
 	json.Unmarshal(bodyBytes2, &parsedAuthResp)
 	authHeader, ok := parsedAuthResp["accessToken"].(string)
