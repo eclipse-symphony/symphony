@@ -369,7 +369,6 @@ func (c *CertManager) WaitForCertificateReady(ctx context.Context, targetName, n
 	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
-	// Simple retry loop instead of using backoff package
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
