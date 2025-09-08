@@ -16,17 +16,11 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
-
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
 
 func TestInitWithMap(t *testing.T) {
 	provider := HTTPProxyStageProvider{}
@@ -46,7 +40,7 @@ func TestSuccessfulProcess(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -92,7 +86,7 @@ func TestFailedProcess(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

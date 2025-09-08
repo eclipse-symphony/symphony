@@ -141,14 +141,14 @@ func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, u
 func WithUserPassword(ctx context.Context) ApiClientOption {
 	return func(a *apiClient) {
 		a.tokenProvider = func(ctx context.Context, baseUrl string, _ *http.Client, user string, password string) (string, error) {
-			request := authRequest{Username: user, Password: password}
+			request := AuthRequest{UserName: user, Password: password}
 			requestData, _ := json.Marshal(request)
 			ret, err := a.callRestAPI(ctx, "users/auth", "POST", requestData, "")
 			if err != nil {
 				return "", err
 			}
 
-			var response authResponse
+			var response AuthResponse
 			err = json.Unmarshal(ret, &response)
 			if err != nil {
 				return "", err

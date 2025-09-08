@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	coa_contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -25,13 +26,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 )
-
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
 
 var ctx = context.Background()
 
@@ -559,7 +553,7 @@ func TestArrayMergeConfig(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -623,7 +617,7 @@ func TestCircularCatalogReferences(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -679,7 +673,7 @@ func TestParentConfigEvaluation(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

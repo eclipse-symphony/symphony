@@ -13,6 +13,7 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -138,17 +139,9 @@ func TestTargetsOnRegistry(t *testing.T) {
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 }
-
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
-
 func TestTargetsOnBootstrap(t *testing.T) {
 	vendor := createTargetsVendor()
-	authRequest := AuthRequest{
+	authRequest := utils.AuthRequest{
 		UserName: "symphony-test",
 		Password: "",
 	}
@@ -159,7 +152,7 @@ func TestTargetsOnBootstrap(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	var authResponse AuthResponse
+	var authResponse utils.AuthResponse
 	json.Unmarshal(resp.Body, &authResponse)
 	assert.NotNil(t, authResponse.AccessToken)
 	assert.Equal(t, "Bearer", authResponse.TokenType)

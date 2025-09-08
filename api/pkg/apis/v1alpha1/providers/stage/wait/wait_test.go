@@ -16,6 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -151,13 +152,6 @@ func TestWaitProcess(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to wait for")
 }
 
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
-
 func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
@@ -187,7 +181,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				Spec: &model.CatalogSpec{},
 			}}
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

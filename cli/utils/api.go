@@ -18,8 +18,9 @@ import (
 )
 
 type authRequest struct {
-	UserName string `json:"username"`
-	Password string `json:"password"`
+	UserName  string `json:"username"`
+	Password  string `json:"password"`
+	CsrfToken string `json:"csrfToken,omitempty"`
 }
 
 type authResponse struct {
