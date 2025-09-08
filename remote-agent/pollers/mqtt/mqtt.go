@@ -12,6 +12,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
 	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -27,6 +28,7 @@ type MqttPoller struct {
 	Target             string
 	Namespace          string
 	topologyUpdateChan chan bool
+	RLog               logger.Logger
 }
 
 var (
@@ -150,12 +152,12 @@ func init() {
 
 // Subscribe sets up MQTT response topic subscription
 func (m *MqttPoller) Subscribe() error {
-	fmt.Println("Setting up MQTT subscription for topic: ", m.ResponseTopic)
+	m.RLog.Infof("Setting up MQTT subscription for topic: ", m.ResponseTopic)
 	m.Client.Subscribe(m.ResponseTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		var coaResponse v1alpha2.COAResponse
 		err := utils2.UnmarshalJson(msg.Payload(), &coaResponse)
 		if err != nil {
-			fmt.Printf("Error unmarshalling response: %s", err.Error())
+			m.RLog.Errorf("Error unmarshalling response: %s", err.Error())
 			return
 		}
 		// Check for request-id in response metadata
@@ -165,36 +167,36 @@ func (m *MqttPoller) Subscribe() error {
 		}
 
 		if respRequestId == "" {
-			fmt.Printf("Warning: request-id not found in response metadata")
+			m.RLog.Warnf("Warning: request-id not found in response metadata")
 			return
 		}
 
-		fmt.Printf("Received response with request-id: %s\n", respRequestId)
+		m.RLog.Infof("Received response with request-id: %s", respRequestId)
 		if !requestIDCache.Exists(respRequestId) {
 			// not my request, ignore it
-			fmt.Printf("Warning: request-id is not in cache")
+			m.RLog.Warnf("Warning: request-id is not in cache")
 			return
 		}
 
 		// Handle topology update responses
 		if m.topologyUpdateChan != nil {
-			fmt.Printf("Received topology update response: %s\n", string(msg.Payload()))
+			m.RLog.Infof("Received topology update response: %s", string(msg.Payload()))
 			// Check response status
 			if coaResponse.State == v1alpha2.OK || coaResponse.State == v1alpha2.Accepted {
-				fmt.Printf("Topology update successful (status code: %d)\n", coaResponse.State)
+				m.RLog.Infof("Topology update successful (status code: %d)", coaResponse.State)
 				select {
 				case m.topologyUpdateChan <- true:
-					fmt.Println("Success result sent to channel")
+					m.RLog.Infof("Success result sent to channel")
 				default:
-					fmt.Println("Channel is full or closed")
+					m.RLog.Errorf("Channel is full or closed")
 				}
 			} else {
-				fmt.Printf("Topology update failed (status code: %d): %s\n", coaResponse.State, string(coaResponse.Body))
+				m.RLog.Errorf("Topology update failed (status code: %d): %s", coaResponse.State, string(coaResponse.Body))
 				select {
 				case m.topologyUpdateChan <- false:
-					fmt.Println("Failure result sent to channel")
+					m.RLog.Errorf("Failure result sent to channel")
 				default:
-					fmt.Println("Channel is full or closed")
+					m.RLog.Errorf("Channel is full or closed")
 				}
 			}
 			// Clean up the request-id from cache
@@ -202,7 +204,7 @@ func (m *MqttPoller) Subscribe() error {
 			return
 		}
 		if coaResponse.State == v1alpha2.BadRequest {
-			fmt.Printf("Error: %s\n", string(coaResponse.Body))
+			m.RLog.Errorf("Error: %s", string(coaResponse.Body))
 			// Clean up the request-id from cache even on error
 			requestIDCache.Delete(respRequestId)
 			return
@@ -212,7 +214,7 @@ func (m *MqttPoller) Subscribe() error {
 		m.handleTaskResponse(coaResponse, respRequestId)
 	})
 
-	fmt.Println("Subscribe topic done: ", m.ResponseTopic)
+	m.RLog.Infof("Subscribe topic done: ", m.ResponseTopic)
 	return nil
 }
 
@@ -228,7 +230,7 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 	err := utils2.UnmarshalJson(coaResponse.Body, &allRequests)
 	if err == nil {
 		// Successfully parsed as paging request
-		fmt.Printf("Received %d requests from paging response\n", len(allRequests.RequestList))
+		m.RLog.Infof("Received %d requests from paging response", len(allRequests.RequestList))
 		requests = append(requests, allRequests.RequestList...)
 
 		// Process current batch of requests with correlation ID
@@ -238,7 +240,7 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 
 			// Check if there are more pages to fetch after current page is done
 			if allRequests.LastMessageID != "" {
-				fmt.Printf("Current page completed. Fetching next page with LastMessageID: %s\n", allRequests.LastMessageID)
+				m.RLog.Infof("Current page completed. Fetching next page with LastMessageID: %s", allRequests.LastMessageID)
 				// Generate request-id for continuation request
 				continueRequestId := uuid.New().String()
 				requestIDCache.Store(continueRequestId)
@@ -265,7 +267,7 @@ func (m *MqttPoller) handleTaskResponse(coaResponse v1alpha2.COAResponse, reques
 	}
 
 	// If parsing as paging request failed, it might be an empty response or error
-	fmt.Printf("No valid requests found in response body: %s\n", string(coaResponse.Body))
+	m.RLog.Infof("No valid requests found in response body: %s", string(coaResponse.Body))
 }
 
 func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
@@ -276,24 +278,29 @@ func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 			// Extract correlation ID from individual request, similar to HTTP poller
 			correlationId, ok := req[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
 			if !ok {
-				fmt.Println("error: correlationId not found in request or not a string. Using a mock one.")
+				m.RLog.Warnf("Warning: correlationId not found in request or not a string. Using a mock one.")
 				correlationId = "00000000-0000-0000-0000-000000000000"
 			}
 			retCtx = context.WithValue(retCtx, contexts.Activity_CorrelationId, correlationId)
-			fmt.Printf("Using correlation ID from request: %s\n", correlationId)
+			m.RLog.Infof("Using correlation ID from request: %s", correlationId)
 
 			body, err := json.Marshal(req)
 			if err != nil {
-				fmt.Println("error marshalling request:", err)
+				m.RLog.Errorf("error marshalling request:", err)
 				return
 			}
 			ret := m.Agent.Handle(body, retCtx)
 			ret.Namespace = m.Namespace
-
+			m.RLog.InfofCtx(retCtx, "Agent response: %v", ret)
+			logs, _, err := m.RLog.(*logger.FileLogger).GetLogsFromOffset(m.RLog.(*logger.FileLogger).GetLogOffset())
+			if err != nil {
+				m.RLog.ErrorfCtx(retCtx, "error getting logs: %v", err)
+			}
+			ret.Logs = logs
 			// Send response back
 			result, err := json.Marshal(ret)
 			if err != nil {
-				fmt.Println("error marshalling response:", err)
+				m.RLog.Errorf("error marshalling response:", err)
 			}
 			response := v1alpha2.COARequest{
 				Route:       "getResult",
@@ -303,10 +310,9 @@ func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 			}
 			data, err := json.Marshal(response)
 			if err != nil {
-				fmt.Printf("Error marshalling response: %s\n", err)
+				m.RLog.Errorf("Error marshalling response: %s", err)
 				return
 			}
-			fmt.Printf("Publishing remote agent execute result to MQTT %s\n", data)
 			m.Client.Publish(m.RequestTopic, 0, false, data)
 		}(request)
 		// Current request completed, continue to next request
@@ -344,7 +350,7 @@ func (m *MqttPoller) Launch() error {
 	// Main polling loop - run forever
 	for {
 		<-ticker.C
-		fmt.Println("Begin to pollRequests")
+		m.RLog.Infof("Begin to pollRequests")
 		m.pollRequests()
 	}
 }
@@ -368,7 +374,7 @@ func (m *MqttPoller) pollRequests() {
 				"request-id": pollRequestId,
 			},
 		}
-		fmt.Println("Begin to request topic Get task")
+		m.RLog.Infof("Begin to request topic Get task")
 		data, _ := json.Marshal(request)
 		m.Client.Publish(m.RequestTopic, 0, false, data)
 	}
@@ -376,7 +382,7 @@ func (m *MqttPoller) pollRequests() {
 
 // UpdateTopology sends topology update request and waits for response
 func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
-	fmt.Printf("Updating topology via MQTT for target %s in namespace %s\n", m.Target, m.Namespace)
+	m.RLog.Infof("Updating topology via MQTT for target %s in namespace %s", m.Target, m.Namespace)
 	m.topologyUpdateChan = make(chan bool, 1)
 	responseTimeout := time.After(30 * time.Second)
 
@@ -411,8 +417,8 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 
 	// Send topology update request without re-subscribing
 	// The Launch method's subscription will handle the response
-	fmt.Printf("Sending topology update request...\n")
-	fmt.Printf("Request topic: %s\n", m.RequestTopic)
+	m.RLog.Infof("Sending topology update request...")
+	m.RLog.Infof("Request topic: %s", m.RequestTopic)
 
 	m.Client.Publish(m.RequestTopic, 0, false, requestJSON)
 
@@ -420,7 +426,7 @@ func (m *MqttPoller) UpdateTopology(topologyContent []byte) error {
 	select {
 	case success := <-m.topologyUpdateChan:
 		if success {
-			fmt.Println("Topology update successfully confirmed")
+			m.RLog.Infof("Topology update successfully confirmed")
 		} else {
 			return fmt.Errorf("topology update failed")
 		}

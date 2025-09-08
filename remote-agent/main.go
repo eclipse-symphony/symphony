@@ -184,6 +184,7 @@ func mainLogic() error {
 				Providers: providers,
 				RLog:      rLog,
 			},
+			RLog: rLog,
 		}
 		h.RequestUrl = config.RequestEndpoint
 		h.ResponseUrl = config.ResponseEndpoint
@@ -286,12 +287,14 @@ func mainLogic() error {
 		m := &remoteMqtt.MqttPoller{
 			Agent: agent.Agent{
 				Providers: providers,
+				RLog:      rLog,
 			},
 			Client:        mqttClient,
 			Target:        targetName,
 			RequestTopic:  fmt.Sprintf("symphony/request/%s", topicSuffix),
 			ResponseTopic: fmt.Sprintf("symphony/response/%s", topicSuffix),
 			Namespace:     namespace,
+			RLog:          rLog,
 		}
 
 		// First establish MQTT subscription for responses
