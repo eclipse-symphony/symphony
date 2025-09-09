@@ -127,7 +127,7 @@ func (c *CertManager) CreateWorkingCert(ctx context.Context, targetName, namespa
 		},
 		"subject": map[string]interface{}{
 			"organizations": []interface{}{
-				c.Config.ServiceName,
+				ServiceName,
 			},
 		},
 		"privateKey": map[string]interface{}{
