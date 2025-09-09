@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -26,7 +27,9 @@ import (
 )
 
 var (
-	cLog = logger.NewLogger("coa.runtime")
+	cLog        = logger.NewLogger("coa.runtime")
+	CAIssuer    = os.Getenv("ISSUER_NAME")
+	ServiceName = os.Getenv("SYMPHONY_SERVICE_NAME")
 )
 
 type CertManager struct {
@@ -37,8 +40,6 @@ type CertManager struct {
 }
 
 type CertManagerConfig struct {
-	CAIssuer               string
-	ServiceName            string
 	WorkingCertDuration    string
 	WorkingCertRenewBefore string
 }
@@ -78,8 +79,6 @@ func (c *CertManager) Init(context *contexts.VendorContext, config managers.Mana
 
 	// Initialize config with defaults
 	c.Config = CertManagerConfig{
-		CAIssuer:               getConfigValue(config, "caIssuer", "symphony-issuer"),
-		ServiceName:            getConfigValue(config, "serviceName", "symphony-service"),
 		WorkingCertDuration:    getConfigValue(config, "workingCertDuration", "2160h"),   // 90 days
 		WorkingCertRenewBefore: getConfigValue(config, "workingCertRenewBefore", "360h"), // 15 days
 	}
@@ -98,7 +97,7 @@ func getConfigValue(config managers.ManagerConfig, key, defaultValue string) str
 func (c *CertManager) CreateWorkingCert(ctx context.Context, targetName, namespace string) error {
 	cLog.InfofCtx(ctx, "Creating working cert for target %s in namespace %s", targetName, namespace)
 
-	subject := fmt.Sprintf("CN=%s-%s.%s", namespace, targetName, c.Config.ServiceName)
+	subject := fmt.Sprintf("CN=%s-%s.%s", namespace, targetName, ServiceName)
 	secretName := fmt.Sprintf("%s-tls", targetName)
 
 	// Create a new GroupVersionKind for the certificate
@@ -123,7 +122,7 @@ func (c *CertManager) CreateWorkingCert(ctx context.Context, targetName, namespa
 			subject,
 		},
 		"issuerRef": map[string]interface{}{
-			"name": c.Config.CAIssuer,
+			"name": CAIssuer,
 			"kind": "Issuer",
 		},
 		"subject": map[string]interface{}{

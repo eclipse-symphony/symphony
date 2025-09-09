@@ -696,7 +696,7 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		// Check if certificate exists first, with retry: 10s interval, total 120s
+		// Check if certificate exists only once (no retry)
 		getRequest := states.GetRequest{
 			ID: id,
 			Metadata: map[string]interface{}{
@@ -707,19 +707,9 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 				"kind":      "Certificate",
 			},
 		}
-
-		var getErr error
-		start := time.Now()
-		for attempt := 0; time.Since(start) < 120*time.Second; attempt++ {
-			_, getErr = c.TargetsManager.StateProvider.Get(ctx, getRequest)
-			if getErr == nil {
-				break
-			}
-			tLog.InfofCtx(ctx, "V (Targets) : Working certificate not found for target %s, attempt %d, will retry in 10s: %s", id, attempt+1, getErr.Error())
-			time.Sleep(10 * time.Second)
-		}
+		_, getErr := c.TargetsManager.StateProvider.Get(ctx, getRequest)
 		if getErr != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : Working certificate not found for target %s after retry: %s", id, getErr.Error())
+			tLog.ErrorfCtx(ctx, "V (Targets) : Working certificate not found for target %s: %s", id, getErr.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.NotFound,
 				Body:  []byte(fmt.Sprintf("Working certificate not found for target %s. Please ensure target is properly created and managed through the solution vendor.", id)),

@@ -564,8 +564,6 @@
             "name": "cert-manager",
             "type": "managers.symphony.cert",
             "properties": {
-              "caIssuer": "{{ .Values.cert.caIssuer | default "symphony-issuer" }}",
-              "serviceName": "{{ .Values.cert.serviceName | default "symphony-service" }}",
               "workingCertDuration": "{{ .Values.cert.workingCertDuration | default "2160h" }}",
               "workingCertRenewBefore": "{{ .Values.cert.workingCertRenewBefore | default "360h" }}",
               "providers.persistentstate": "k8s-state",
