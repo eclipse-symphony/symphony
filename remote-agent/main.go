@@ -74,7 +74,6 @@ func mainLogic() error {
 		return fmt.Errorf("failed to get absolute path: %v", err)
 	}
 	execDir = filepath.Dir(execPath)
-	os.Setenv("SYMPHONY_REMOTE_AGENT", "true")
 	// log file
 
 	// Log the complete binary execution command

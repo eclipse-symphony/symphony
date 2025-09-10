@@ -282,11 +282,11 @@ func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 				correlationId = "00000000-0000-0000-0000-000000000000"
 			}
 			retCtx = context.WithValue(retCtx, contexts.Activity_CorrelationId, correlationId)
-			m.RLog.Infof("Using correlation ID from request: %s", correlationId)
+			m.RLog.InfofCtx(retCtx, "Using correlation ID from request: %s", correlationId)
 
 			body, err := json.Marshal(req)
 			if err != nil {
-				m.RLog.Errorf("error marshalling request:", err)
+				m.RLog.ErrorfCtx(retCtx, "error marshalling request:", err)
 				return
 			}
 			ret := m.Agent.Handle(body, retCtx)
@@ -300,7 +300,7 @@ func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 			// Send response back
 			result, err := json.Marshal(ret)
 			if err != nil {
-				m.RLog.Errorf("error marshalling response:", err)
+				m.RLog.ErrorfCtx(retCtx, "error marshalling response:", err)
 			}
 			response := v1alpha2.COARequest{
 				Route:       "getResult",
@@ -310,7 +310,7 @@ func (m *MqttPoller) handleRequests(requests []map[string]interface{}) {
 			}
 			data, err := json.Marshal(response)
 			if err != nil {
-				m.RLog.Errorf("Error marshalling response: %s", err)
+				m.RLog.ErrorfCtx(retCtx, "Error marshalling response: %s", err)
 				return
 			}
 			m.Client.Publish(m.RequestTopic, 0, false, data)
