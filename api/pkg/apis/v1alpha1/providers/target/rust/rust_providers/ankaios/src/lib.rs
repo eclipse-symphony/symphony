@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+ #![cfg(all(unix))]
+
 use std::collections::HashMap;
 use std::ffi::{c_char, CStr};
 use std::ptr;

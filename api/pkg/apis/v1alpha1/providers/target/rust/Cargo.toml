@@ -7,7 +7,7 @@ resolver = "2"
 members = [
     "symphony",
     "rust_providers/mock",
-    # "rust_providers/ankaios" # disable Ankaios provider for now as it doesn't support Windows 
+    "rust_providers/ankaios"
 ]
 
 [workspace.package]
