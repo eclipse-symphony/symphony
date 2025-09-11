@@ -257,12 +257,25 @@ func (c *CertManager) GetWorkingCert(ctx context.Context, targetName, namespace 
 		return "", "", fmt.Errorf("secret provider not configured for cert manager")
 	}
 
+	// Fast path: try to read the secret immediately (useful for tests and cases where secret already exists)
+	public, perr := c.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
+	if perr == nil {
+		private, perr := c.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
+		if perr == nil {
+			// Format certificates (remove newlines)
+			public = strings.ReplaceAll(public, "\n", " ")
+			private = strings.ReplaceAll(private, "\n", " ")
+			cLog.InfofCtx(ctx, "Successfully retrieved working cert for target %s (fast path)", targetName)
+			return public, private, nil
+		}
+	}
+
 	// Wait for certificate + secret to be ready (handles races where the cert object exists shortly after creation)
 	if err := c.WaitForCertificateReady(ctx, targetName, namespace); err != nil {
 		return "", "", fmt.Errorf("working certificate not ready for target %s: %w", targetName, err)
 	}
 
-	// Read the certificate and private key from the secret
+	// Read the certificate and private key from the secret (after wait)
 	public, err := c.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to read public certificate: %w", err)
