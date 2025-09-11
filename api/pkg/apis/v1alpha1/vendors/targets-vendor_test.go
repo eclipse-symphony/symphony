@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -19,13 +20,34 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
+
+// MockCertManager implements a mock certificate manager for testing
+type MockCertManager struct{}
+
+func (m *MockCertManager) GetWorkingCert(ctx context.Context, targetName, namespace string) (string, string, error) {
+	// Return mock certificate data
+	public := "-----BEGIN CERTIFICATE----- mock-public-cert-data -----END CERTIFICATE-----"
+	private := "-----BEGIN PRIVATE KEY----- mock-private-key-data -----END PRIVATE KEY-----"
+	return public, private, nil
+}
+
+func (m *MockCertManager) CreateWorkingCert(ctx context.Context, targetName, namespace string) error {
+	return nil
+}
+
+func (m *MockCertManager) DeleteWorkingCert(ctx context.Context, targetName, namespace string) error {
+	return nil
+}
+
+func (m *MockCertManager) CheckCertificateReady(ctx context.Context, targetName, namespace string) (bool, error) {
+	return true, nil
+}
 
 func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
@@ -80,6 +102,14 @@ func createTargetsVendor() TargetsVendor {
 	vendor.Config.Properties["useJobManager"] = "true"
 	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
 	vendor.TargetsManager.SecretProvider = &secretProvider
+
+	// Set up mock CertManager - create a real CertManager but with mock providers
+	mockCertManager := &cert.CertManager{
+		StateProvider:  &stateProvider,
+		SecretProvider: &secretProvider,
+	}
+	vendor.CertManager = mockCertManager
+
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {
@@ -284,6 +314,7 @@ func TestTargetsOnHeartbeats(t *testing.T) {
 func TestTargetsOnGetCert(t *testing.T) {
 	vendor := createTargetsVendor()
 
+	// Register a target first
 	target := model.TargetState{
 		Spec: &model.TargetSpec{
 			DisplayName: "target1-v1",
@@ -314,54 +345,38 @@ func TestTargetsOnGetCert(t *testing.T) {
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 
-	// Pre-create a mock certificate in ready state to simulate cert-manager behavior
-	certObj := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"name":      "target1-v1",
-			"namespace": "default",
-		},
-		"spec": map[string]interface{}{
-			"secretName": "target1-v1-tls",
-		},
-		"status": map[string]interface{}{
-			"conditions": []interface{}{
-				map[string]interface{}{
-					"type":   "Ready",
-					"status": "True",
-				},
-			},
-		},
-	}
+	ctx := context.Background()
+	targetName := "target1-v1"
+	namespace := "default"
 
-	// Store the mock certificate in state
-	upsertRequest := states.UpsertRequest{
-		Value: states.StateEntry{
-			ID:   "target1-v1",
-			Body: certObj,
-		},
-		Metadata: map[string]interface{}{
-			"namespace": "default",
-			"group":     "cert-manager.io",
-			"version":   "v1",
-			"resource":  "certificates",
-			"kind":      "Certificate",
-		},
-	}
-	vendor.TargetsManager.StateProvider.Upsert(context.Background(), upsertRequest)
+	// Use CertManager.CreateWorkingCert to create certificate
+	err := vendor.CertManager.CreateWorkingCert(ctx, targetName, namespace)
+	assert.NoError(t, err)
 
+	// Test the onGetCert endpoint
 	resp = vendor.onGetCert(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Parameters: map[string]string{
-			"__name": "target1-v1",
+			"__name": targetName,
 		},
-		Context: context.Background(),
+		Context: ctx,
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
 
+	// Verify response contains certificate data
 	var certResponse map[string]interface{}
 	json.Unmarshal(resp.Body, &certResponse)
 	assert.Contains(t, certResponse, "public")
 	assert.Contains(t, certResponse, "private")
+
+	// Verify certificate data is not empty and follows MockSecretProvider behavior
+	// MockSecretProvider returns "secretName>>fieldName" format
+	public := certResponse["public"].(string)
+	private := certResponse["private"].(string)
+	assert.NotEmpty(t, public)
+	assert.NotEmpty(t, private)
+	assert.Contains(t, public, "target1-v1-tls>>tls.crt")
+	assert.Contains(t, private, "target1-v1-tls>>tls.key")
 }
 
 func TestTargetsOnUpdateTopology(t *testing.T) {
