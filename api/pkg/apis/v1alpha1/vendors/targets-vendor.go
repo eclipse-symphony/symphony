@@ -17,6 +17,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targets"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -27,12 +28,10 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
-
-	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
 )
@@ -47,6 +46,7 @@ var (
 type TargetsVendor struct {
 	vendors.Vendor
 	TargetsManager *targets.TargetsManager
+	CertManager    *cert.CertManager
 }
 
 func (o *TargetsVendor) GetInfo() vendors.VendorInfo {
@@ -696,55 +696,27 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		// Check if certificate exists only once (no retry)
-		getRequest := states.GetRequest{
-			ID: id,
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     "cert-manager.io",
-				"version":   "v1",
-				"resource":  "certificates",
-				"kind":      "Certificate",
-			},
-		}
-		_, getErr := c.TargetsManager.StateProvider.Get(ctx, getRequest)
-		if getErr != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : Working certificate not found for target %s: %s", id, getErr.Error())
+		// Use the CertManager to get or create a working certificate for the target
+		if c.CertManager == nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : CertManager not available for onGetCert")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.NotFound,
-				Body:  []byte(fmt.Sprintf("Working certificate not found for target %s. Please ensure target is properly created and managed through the solution vendor.", id)),
+				State: v1alpha2.InternalError,
+				Body:  []byte("CertManager not available"),
 			})
 		}
-
-		secretName := fmt.Sprintf("%s-tls", id)
-
-		// Read the certificate and private key from the secret
-		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
+		public, private, err := c.CertManager.GetWorkingCert(ctx, id, namespace)
 		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed to read certificate - %s", err.Error())
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed to get working cert - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.NotFound,
-				Body:  []byte(fmt.Sprintf("Failed to read working certificate for target %s. Certificate may not be ready yet.", id)),
+				Body:  []byte(fmt.Sprintf("Failed to get working certificate for target %s: %s", id, err.Error())),
 			})
 		}
-		private, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed to read private key - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.NotFound,
-				Body:  []byte(fmt.Sprintf("Failed to read working certificate private key for target %s. Certificate may not be ready yet.", id)),
-			})
-		}
-
-		public = strings.ReplaceAll(public, "\n", " ")
-		private = strings.ReplaceAll(private, "\n", " ")
-
 		tLog.InfofCtx(ctx, "V (Targets) : Successfully retrieved working certificate for target %s", id)
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
 		})
-
 	}
 	tLog.ErrorCtx(ctx, "V (Targets) : onGetCert failed - method not allowed")
 	resp := v1alpha2.COAResponse{
@@ -765,8 +737,8 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 	defer cancel()
 
 	op := func() error {
-		// Check Certificate status
-		ready, err := c.checkCertificateStatus(timeoutCtx, certName, namespace)
+		// Check if Certificate is ready
+		ready, err := c.checkCertificateReady(timeoutCtx, certName, namespace)
 		if err != nil {
 			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : error checking certificate status: %v", err)
 			return err
@@ -809,44 +781,12 @@ func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, n
 	return nil
 }
 
-// checkCertificateStatus checks if Certificate is ready
-func (c *TargetsVendor) checkCertificateStatus(ctx context.Context, certName, namespace string) (bool, error) {
-	getRequest := states.GetRequest{
-		ID: certName,
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     "cert-manager.io",
-			"version":   "v1",
-			"resource":  "certificates",
-			"kind":      "Certificate",
-		},
+// checks if Certificate is ready
+func (c *TargetsVendor) checkCertificateReady(ctx context.Context, certName, namespace string) (bool, error) {
+	if c.CertManager == nil {
+		return false, fmt.Errorf("CertManager not available")
 	}
-
-	entry, err := c.TargetsManager.StateProvider.Get(ctx, getRequest)
-	if err != nil {
-		return false, fmt.Errorf("failed to get certificate: %s", err.Error())
-	}
-
-	// Check Certificate status conditions
-	if status, found := entry.Body.(map[string]interface{})["status"]; found {
-		if statusMap, ok := status.(map[string]interface{}); ok {
-			if conditions, found := statusMap["conditions"]; found {
-				if conditionsArray, ok := conditions.([]interface{}); ok {
-					for _, condition := range conditionsArray {
-						if condMap, ok := condition.(map[string]interface{}); ok {
-							if condType, found := condMap["type"]; found && strings.EqualFold(condType.(string), "ready") {
-								if condStatus, found := condMap["status"]; found && strings.EqualFold(condStatus.(string), "true") {
-									return true, nil
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false, nil
+	return c.CertManager.CheckCertificateReady(ctx, certName, namespace)
 }
 
 // checkSecretReady checks if secret exists and has the correct type and content
