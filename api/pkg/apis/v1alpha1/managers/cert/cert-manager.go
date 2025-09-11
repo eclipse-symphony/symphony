@@ -244,21 +244,22 @@ func (c *CertManager) GetWorkingCert(ctx context.Context, targetName, namespace 
 	secretName := fmt.Sprintf("%s-tls", targetName)
 	evalCtx := utils.EvaluationContext{Namespace: namespace}
 
-	// Check if certificate exists first
-	getRequest := states.GetRequest{
-		ID: targetName,
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     "cert-manager.io",
-			"version":   "v1",
-			"resource":  "certificates",
-			"kind":      "Certificate",
-		},
+	// Diagnostic: log provider types to help debug provider/initialization mismatches
+	cLog.InfofCtx(ctx, "CertManager providers -> StateProvider type: %T, SecretProvider type: %T", c.StateProvider, c.SecretProvider)
+
+	// Ensure providers are initialized
+	if c.StateProvider == nil {
+		cLog.ErrorfCtx(ctx, "StateProvider is nil in CertManager")
+		return "", "", fmt.Errorf("state provider not configured for cert manager")
+	}
+	if c.SecretProvider == nil {
+		cLog.ErrorfCtx(ctx, "SecretProvider is nil in CertManager")
+		return "", "", fmt.Errorf("secret provider not configured for cert manager")
 	}
 
-	_, err := c.StateProvider.Get(ctx, getRequest)
-	if err != nil {
-		return "", "", fmt.Errorf("working certificate not found for target %s: %w", targetName, err)
+	// Wait for certificate + secret to be ready (handles races where the cert object exists shortly after creation)
+	if err := c.WaitForCertificateReady(ctx, targetName, namespace); err != nil {
+		return "", "", fmt.Errorf("working certificate not ready for target %s: %w", targetName, err)
 	}
 
 	// Read the certificate and private key from the secret
