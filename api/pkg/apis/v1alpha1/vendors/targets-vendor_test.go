@@ -9,6 +9,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
@@ -31,9 +32,10 @@ import (
 type MockCertManager struct{}
 
 func (m *MockCertManager) GetWorkingCert(ctx context.Context, targetName, namespace string) (string, string, error) {
-	// Return mock certificate data
-	public := "-----BEGIN CERTIFICATE----- mock-public-cert-data -----END CERTIFICATE-----"
-	private := "-----BEGIN PRIVATE KEY----- mock-private-key-data -----END PRIVATE KEY-----"
+	// Return mock secret reference strings instead of real PEM data to match MockSecretProvider behavior
+	secretName := fmt.Sprintf("%s-tls", targetName)
+	public := fmt.Sprintf("%s>>%s", secretName, "tls.crt")
+	private := fmt.Sprintf("%s>>%s", secretName, "tls.key")
 	return public, private, nil
 }
 
@@ -103,12 +105,8 @@ func createTargetsVendor() TargetsVendor {
 	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
 	vendor.TargetsManager.SecretProvider = &secretProvider
 
-	// Set up mock CertManager - create a real CertManager but with mock providers
-	mockCertManager := &cert.CertManager{
-		StateProvider:  &stateProvider,
-		SecretProvider: &secretProvider,
-	}
-	vendor.CertManager = mockCertManager
+	// Set up mock CertManager - use the lightweight test mock so GetWorkingCert returns mock secret refs
+	vendor.CertManager = &MockCertManager{}
 
 	return vendor
 }
