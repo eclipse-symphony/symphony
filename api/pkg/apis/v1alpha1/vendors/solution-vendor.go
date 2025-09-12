@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -32,6 +33,7 @@ import (
 type SolutionVendor struct {
 	vendors.Vendor
 	SolutionManager *solution.SolutionManager
+	CertManager     *cert.CertManager
 }
 
 func (o *SolutionVendor) GetInfo() vendors.VendorInfo {
@@ -51,9 +53,15 @@ func (e *SolutionVendor) Init(config vendors.VendorConfig, factories []managers.
 		if c, ok := m.(*solution.SolutionManager); ok {
 			e.SolutionManager = c
 		}
+		if c, ok := m.(*cert.CertManager); ok {
+			e.CertManager = c
+		}
 	}
 	if e.SolutionManager == nil {
 		return v1alpha2.NewCOAError(nil, "solution manager is not supplied", v1alpha2.MissingConfig)
+	}
+	if e.CertManager == nil {
+		return v1alpha2.NewCOAError(nil, "cert manager is not supplied", v1alpha2.MissingConfig)
 	}
 	e.Vendor.Context.Subscribe(model.DeploymentStepTopic, v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
@@ -322,6 +330,7 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
+
 		summary, err := c.SolutionManager.AsyncReconcile(ctx, deployment, remove, namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
@@ -330,6 +339,22 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				State: v1alpha2.GetErrorState(err),
 				Body:  data,
 			})
+		}
+		// Handle certificate management for remote targets only
+		if deployment.RemoteTargetName != "" {
+			sLog.InfoCtx(ctx, "V (Solution): managing certificate for remote target: %s", deployment.RemoteTargetName)
+			if remove {
+				err = c.CertManager.DeleteWorkingCert(ctx, deployment.RemoteTargetName, namespace)
+			} else {
+				err = c.CertManager.CreateWorkingCert(ctx, deployment.RemoteTargetName, namespace)
+			}
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - certificate management %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
 		}
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State:       v1alpha2.OK,

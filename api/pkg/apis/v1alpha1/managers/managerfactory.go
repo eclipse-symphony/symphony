@@ -12,6 +12,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogcontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
@@ -106,6 +107,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &skills.SkillsManager{}
 	case "managers.symphony.trails":
 		manager = &trails.TrailsManager{}
+	case "managers.symphony.cert":
+		manager = &cert.CertManager{}
 	}
 	if manager != nil && config.Properties["singleton"] == "true" {
 		c.SingletonsCache[config.Type] = manager

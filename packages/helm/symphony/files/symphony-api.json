@@ -328,10 +328,7 @@
       {
         "type": "vendors.targets",
         "route": "targets",
-        "properties": {
-          "workingCertDuration": "{{ .Values.targets.workingCertDuration | default "2160h" }}",
-          "workingCertRenewBefore": "{{ .Values.targets.workingCertRenewBefore | default "360h" }}"
-        },
+        "properties": {},
         "managers": [
           {
             "name": "targets-manager",
@@ -348,6 +345,30 @@
               },
               "secret": {
                 "type": "providers.secret.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
+          },
+          {
+            "name": "cert-manager",
+            "type": "managers.symphony.cert",
+            "properties": {
+              "workingCertDuration": "{{ .Values.cert.workingCertDuration | default "2160h" }}",
+              "workingCertRenewBefore": "{{ .Values.cert.workingCertRenewBefore | default "360h" }}",
+              "providers.persistentstate": "k8s-state",
+              "providers.secret": "k8s-secret"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "k8s-secret": {
+                "type": "providers.secret.k8s", 
                 "config": {
                   "inCluster": true
                 }
@@ -559,6 +580,30 @@
                 "config": {}
               }
             }     
+          },
+          {
+            "name": "cert-manager",
+            "type": "managers.symphony.cert",
+            "properties": {
+              "workingCertDuration": "{{ .Values.cert.workingCertDuration | default "2160h" }}",
+              "workingCertRenewBefore": "{{ .Values.cert.workingCertRenewBefore | default "360h" }}",
+              "providers.persistentstate": "k8s-state",
+              "providers.secret": "k8s-secret"
+            },
+            "providers": {
+              "k8s-state": {
+                "type": "providers.state.k8s",
+                "config": {
+                  "inCluster": true
+                }
+              },
+              "k8s-secret": {
+                "type": "providers.secret.k8s", 
+                "config": {
+                  "inCluster": true
+                }
+              }
+            }
           }
         ]
       },

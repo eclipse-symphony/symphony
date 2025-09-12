@@ -191,7 +191,23 @@ if [ "$protocol" = "http" ]; then
     fi
 
     # Get certificate
-    result=$(eval "$curl_cmd -X POST \"$bootstrapCertEndpoint\" -H \"Content-Type: application/json\"")
+    # Retry logic: try for up to 120s, every 5s
+    retry_seconds=120
+    retry_interval=5
+    elapsed=0
+    while true; do
+        result=$(eval "$curl_cmd -X POST \"$bootstrapCertEndpoint\" -H \"Content-Type: application/json\"")
+        if [ $? -eq 0 ] && [ -n "$result" ]; then
+            break
+        fi
+        if [ $elapsed -ge $retry_seconds ]; then
+            echo -e "\e[31mError: Failed to call certificate endpoint after $retry_seconds seconds. Please check the endpoint and try again.\e[0m"
+            exit 1
+        fi
+        echo -e "\e[33mWarning: Certificate endpoint call failed, retrying in $retry_interval seconds... (elapsed: $elapsed s)\e[0m"
+        sleep $retry_interval
+        elapsed=$((elapsed+retry_interval))
+    done
 
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to call certificate endpoint. Please check the endpoint and try again.\e[0m"

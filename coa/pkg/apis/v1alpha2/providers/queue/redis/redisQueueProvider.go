@@ -278,17 +278,36 @@ func (rq *RedisQueueProvider) QueryByPaging(context context.Context, queueName s
 }
 
 func (rq *RedisQueueProvider) DeleteQueue(context context.Context, queue string) error {
-	// Delete the main stream
-	err := rq.client.Del(context, queue).Err()
+	// 1. check if queue exist
+	exists, err := rq.client.Exists(context, queue).Result()
+	if err != nil {
+		return fmt.Errorf("failed to check existence of Redis stream %s: %s", queue, err.Error())
+	}
+	if exists == 0 {
+		return fmt.Errorf("redis stream %s does not exist", queue)
+	}
+
+	// 2. delete stream
+	err = rq.client.Del(context, queue).Err()
 	if err != nil {
 		return fmt.Errorf("failed to delete Redis stream %s: %s", queue, err.Error())
 	}
 
-	// Delete associated metadata (lastID key)
+	// 3. delete metadata (lastID key)
 	lastIDkey := fmt.Sprintf("%s:lastID", queue)
 	err = rq.client.Del(context, lastIDkey).Err()
 	if err != nil {
 		return fmt.Errorf("failed to delete metadata for Redis stream %s: %s", queue, err.Error())
 	}
+
+	// 4. check if queue still exists
+	exists, err = rq.client.Exists(context, queue).Result()
+	if err != nil {
+		return fmt.Errorf("failed to re-check existence of Redis stream %s: %s", queue, err.Error())
+	}
+	if exists != 0 {
+		return fmt.Errorf("redis stream %s still exists after deletion", queue)
+	}
+
 	return nil
 }
