@@ -18,8 +18,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// coaLogger is the implemention for logrus
-type coaLogger struct {
+// CoaLogger is the implemention for logrus
+type CoaLogger struct {
 	// name is the name of logger that is published to log as a scope
 	name string
 	// logger is the logrus logger
@@ -33,6 +33,17 @@ type coaLogger struct {
 	callerSkip uint
 }
 
+// Force UTC timestamps regardless of system timezone.
+type utcFormatter struct {
+	inner logrus.Formatter
+}
+
+func (f utcFormatter) Format(e *logrus.Entry) ([]byte, error) {
+	// Ensure the timestamp is UTC so RFC3339Nano ends with Z.
+	e.Time = e.Time.UTC()
+	return f.inner.Format(e)
+}
+
 var CoaVersion string = "unknown"
 
 func GetCoaVersion() string {
@@ -42,12 +53,12 @@ func GetCoaVersion() string {
 	return CoaVersion
 }
 
-func newCoaLogger(name string, contextOptions hooks.ContextHookOptions) *coaLogger {
+func newCoaLogger(name string, contextOptions hooks.ContextHookOptions) *CoaLogger {
 	newLogger := logrus.New()
 	newLogger.AddHook(hooks.NewContextHookWithOptions(contextOptions))
 	newLogger.SetOutput(os.Stdout)
 
-	dl := &coaLogger{
+	dl := &CoaLogger{
 		name:   name,
 		logger: newLogger,
 		sharedFields: logrus.Fields{
@@ -63,7 +74,7 @@ func newCoaLogger(name string, contextOptions hooks.ContextHookOptions) *coaLogg
 }
 
 // EnableJSONOutput enables JSON formatted output log
-func (l *coaLogger) EnableJSONOutput(enabled bool) {
+func (l *CoaLogger) EnableJSONOutput(enabled bool) {
 	var formatter logrus.Formatter
 
 	fieldMap := logrus.FieldMap{
@@ -85,15 +96,15 @@ func (l *coaLogger) EnableJSONOutput(enabled bool) {
 	l.sharedFieldsLock.Unlock()
 
 	if enabled {
-		formatter = &logrus.JSONFormatter{
+		formatter = utcFormatter{inner: &logrus.JSONFormatter{
 			TimestampFormat: time.RFC3339Nano,
 			FieldMap:        fieldMap,
-		}
+		}}
 	} else {
-		formatter = &logrus.TextFormatter{
+		formatter = utcFormatter{inner: &logrus.TextFormatter{
 			TimestampFormat: time.RFC3339Nano,
 			FieldMap:        fieldMap,
-		}
+		}}
 	}
 
 	l.logger.SetFormatter(formatter)
@@ -101,7 +112,7 @@ func (l *coaLogger) EnableJSONOutput(enabled bool) {
 }
 
 // SetAppID sets app_id field in the log. Default value is empty string
-func (l *coaLogger) SetAppID(id string) {
+func (l *CoaLogger) SetAppID(id string) {
 	l.sharedFieldsLock.Lock()
 	defer l.sharedFieldsLock.Unlock()
 	l.sharedFields[logFieldAppID] = id
@@ -114,121 +125,121 @@ func toLogrusLevel(lvl LogLevel) logrus.Level {
 }
 
 // SetOutputLevel sets log output level
-func (l *coaLogger) SetOutputLevel(outputLevel LogLevel) {
+func (l *CoaLogger) SetOutputLevel(outputLevel LogLevel) {
 	l.logger.SetLevel(toLogrusLevel(outputLevel))
 }
 
 // WithLogType specify the log_type field in log. Default value is LogTypeLog
-func (l *coaLogger) WithLogType(logType string) Logger {
+func (l *CoaLogger) WithLogType(logType string) Logger {
 	l.sharedFieldsLock.Lock()
 	defer l.sharedFieldsLock.Unlock()
 	l.sharedFields[logFieldType] = logType
 	return l
 }
 
-func (l *coaLogger) GetSharedFields() logrus.Fields {
+func (l *CoaLogger) GetSharedFields() logrus.Fields {
 	l.sharedFieldsLock.Lock()
 	defer l.sharedFieldsLock.Unlock()
 	return l.sharedFields
 }
 
 // Info logs a message at level Info.
-func (l *coaLogger) InfoCtx(ctx context.Context, args ...interface{}) {
+func (l *CoaLogger) InfoCtx(ctx context.Context, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.InfoLevel, args...)
 }
 
 // Infof logs a message at level Info.
-func (l *coaLogger) InfofCtx(ctx context.Context, format string, args ...interface{}) {
+func (l *CoaLogger) InfofCtx(ctx context.Context, format string, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.InfoLevel, format, args...)
 }
 
 // Debug logs a message at level Debug.
-func (l *coaLogger) DebugCtx(ctx context.Context, args ...interface{}) {
+func (l *CoaLogger) DebugCtx(ctx context.Context, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.DebugLevel, args...)
 }
 
 // Debugf logs a message at level Debug.
-func (l *coaLogger) DebugfCtx(ctx context.Context, format string, args ...interface{}) {
+func (l *CoaLogger) DebugfCtx(ctx context.Context, format string, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.DebugLevel, format, args...)
 }
 
 // Warn logs a message at level Warn.
-func (l *coaLogger) WarnCtx(ctx context.Context, args ...interface{}) {
+func (l *CoaLogger) WarnCtx(ctx context.Context, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.WarnLevel, args...)
 }
 
 // Warnf logs a message at level Warn.
-func (l *coaLogger) WarnfCtx(ctx context.Context, format string, args ...interface{}) {
+func (l *CoaLogger) WarnfCtx(ctx context.Context, format string, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.WarnLevel, format, args...)
 }
 
 // Error logs a message at level Error.
-func (l *coaLogger) ErrorCtx(ctx context.Context, args ...interface{}) {
+func (l *CoaLogger) ErrorCtx(ctx context.Context, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.ErrorLevel, args...)
 }
 
 // Errorf logs a message at level Error.
-func (l *coaLogger) ErrorfCtx(ctx context.Context, format string, args ...interface{}) {
+func (l *CoaLogger) ErrorfCtx(ctx context.Context, format string, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.ErrorLevel, format, args...)
 }
 
 // Fatal logs a message at level Fatal then the process will exit with status set to 1.
-func (l *coaLogger) FatalCtx(ctx context.Context, args ...interface{}) {
+func (l *CoaLogger) FatalCtx(ctx context.Context, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Fatal(args...)
 }
 
 // Fatalf logs a message at level Fatal then the process will exit with status set to 1.
-func (l *coaLogger) FatalfCtx(ctx context.Context, format string, args ...interface{}) {
+func (l *CoaLogger) FatalfCtx(ctx context.Context, format string, args ...interface{}) {
 	l.logger.WithContext(ctx).WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Fatalf(format, args...)
 }
 
 // Info logs a message at level Info.
-func (l *coaLogger) Info(args ...interface{}) {
+func (l *CoaLogger) Info(args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.InfoLevel, args...)
 }
 
 // Infof logs a message at level Info.
-func (l *coaLogger) Infof(format string, args ...interface{}) {
+func (l *CoaLogger) Infof(format string, args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.InfoLevel, format, args...)
 }
 
 // Debug logs a message at level Debug.
-func (l *coaLogger) Debug(args ...interface{}) {
+func (l *CoaLogger) Debug(args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.DebugLevel, args...)
 }
 
 // Debugf logs a message at level Debug.
-func (l *coaLogger) Debugf(format string, args ...interface{}) {
+func (l *CoaLogger) Debugf(format string, args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.DebugLevel, format, args...)
 }
 
 // Warn logs a message at level Warn.
-func (l *coaLogger) Warn(args ...interface{}) {
+func (l *CoaLogger) Warn(args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.WarnLevel, args...)
 }
 
 // Warnf logs a message at level Warn.
-func (l *coaLogger) Warnf(format string, args ...interface{}) {
+func (l *CoaLogger) Warnf(format string, args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.WarnLevel, format, args...)
 }
 
 // Error logs a message at level Error.
-func (l *coaLogger) Error(args ...interface{}) {
+func (l *CoaLogger) Error(args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Log(logrus.ErrorLevel, args...)
 }
 
 // Errorf logs a message at level Error.
-func (l *coaLogger) Errorf(format string, args ...interface{}) {
+func (l *CoaLogger) Errorf(format string, args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Logf(logrus.ErrorLevel, format, args...)
 }
 
 // Fatal logs a message at level Fatal then the process will exit with status set to 1.
-func (l *coaLogger) Fatal(args ...interface{}) {
+func (l *CoaLogger) Fatal(args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Fatal(args...)
 }
 
 // Fatalf logs a message at level Fatal then the process will exit with status set to 1.
-func (l *coaLogger) Fatalf(format string, args ...interface{}) {
+func (l *CoaLogger) Fatalf(format string, args ...interface{}) {
 	l.logger.WithFields(l.GetSharedFields()).WithField("caller", getCaller(int(l.callerSkip))).Fatalf(format, args...)
 }
 

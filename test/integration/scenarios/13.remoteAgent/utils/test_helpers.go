@@ -1070,7 +1070,7 @@ func BuildRemoteAgentBinary(t *testing.T, config TestConfig) string {
 	t.Logf("Building remote agent binary at: %s", binaryPath)
 
 	// Build the binary: GOOS=linux GOARCH=amd64 go build -o bootstrap/remote-agent
-	buildCmd := exec.Command("go", "build", "-o", "bootstrap/remote-agent", ".")
+	buildCmd := exec.Command("go", "build", "-tags", "remote", "-o", "bootstrap/remote-agent", ".")
 	buildCmd.Dir = filepath.Join(config.ProjectRoot, "remote-agent")
 	buildCmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
 

@@ -13,13 +13,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/certs"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/eclipse-symphony/symphony/remote-agent/agent"
 )
@@ -39,6 +40,7 @@ type HttpPoller struct {
 	Client       *http.Client
 	Target       string
 	Namespace    string
+	RLog         logger.Logger
 }
 
 // Launch the polling agent
@@ -51,19 +53,25 @@ func (h *HttpPoller) Launch() error {
 		var allRequests model.ProviderPagingRequest
 		resp, err := h.Client.Get(pollingUri)
 		if err != nil {
-			fmt.Printf("Quitting the agent since polling failed for %s", err.Error())
-			os.Exit(0)
+			h.RLog.Errorf("Quitting the agent since polling failed for %s", err.Error())
+			return err
 		}
 		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			h.RLog.Errorf("error reading response body: %v", err)
+		}
 		defer resp.Body.Close()
 		err = json.Unmarshal(body, &allRequests)
+		if err != nil {
+			h.RLog.Errorf("error unmarshalling response body: %v", err)
+		}
 		requests = append(requests, allRequests.RequestList...)
 		if allRequests.LastMessageID == "" {
 			break
 		}
 		pollingUri = fmt.Sprintf("%s?target=%s&namespace=%s&getAll=%s&preindex=%s", h.RequestUrl, h.Target, h.Namespace, "true", allRequests.LastMessageID)
 	}
-	fmt.Printf("Found starter jobs: %d. \n", len(requests))
+	h.RLog.Infof("Found starter jobs: %d. \n", len(requests))
 
 	for _, request := range requests {
 		wg.Add(1)
@@ -71,7 +79,7 @@ func (h *HttpPoller) Launch() error {
 			defer wg.Done()
 			correlationId, ok := request[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
 			if !ok {
-				fmt.Println("error: correlationId not found or not a string. Using a mock one.")
+				h.RLog.Warnf("Warning: correlationId not found or not a string. Using a mock one.")
 				correlationId = "00000000-0000-0000-0000-000000000000"
 			}
 			retCtx := context.TODO()
@@ -79,49 +87,53 @@ func (h *HttpPoller) Launch() error {
 
 			body, err := json.Marshal(request)
 			if err != nil {
-				fmt.Println("error marshalling request:", err)
+				h.RLog.ErrorfCtx(retCtx, "error marshalling request: %v", err)
 				return
 			}
 			ret := h.Agent.Handle(body, retCtx)
 			ret.Namespace = h.Namespace
+			h.RLog.InfofCtx(retCtx, "Agent response: %v", ret)
+			logs, _, err := h.RLog.(*logger.FileLogger).GetLogsFromOffset(h.RLog.(*logger.FileLogger).GetLogOffset())
+			if err != nil {
+				h.RLog.ErrorfCtx(retCtx, "error getting logs: %v", err)
+			}
+			ret.Logs = logs
 
-			// Send response back - Mock
+			// Send response back
 			result, err := json.Marshal(ret)
 			if err != nil {
-				fmt.Println("error marshalling response:", err)
+				h.RLog.ErrorfCtx(retCtx, "error marshalling response: %v", err)
 			}
-			fmt.Println("Agent response:", string(result))
-
 			responseHost := fmt.Sprintf("%s?target=%s&namespace=%s", h.ResponseUrl, h.Target, h.Namespace)
 			responseUri, err := url.Parse(responseHost)
+			if err != nil {
+				h.RLog.ErrorfCtx(retCtx, "error parsing response URL: %v", err)
+				return
+			}
 			respRet, err := h.Client.Do(&http.Request{
 				URL:    responseUri,
 				Method: "POST",
 				Body:   io.NopCloser(strings.NewReader(string(result))),
 			})
 			if err != nil {
-				fmt.Println("error sending response:", err)
+				h.RLog.ErrorfCtx(retCtx, "error sending response: %v", err)
 			} else {
-				fmt.Println("response status:", respRet.Status)
+				h.RLog.InfofCtx(retCtx, "response status: %s", respRet.Status)
 			}
 		}()
 	}
 
 	// Wait for all goroutines to finish
 	wg.Wait()
-	fmt.Println("All starter requests processed. Starting polling agent.")
+	h.RLog.Infof("All starter requests processed. Starting polling agent.")
 	time.Sleep(Interval)
 
 	go func() {
 		for ShouldEnd == "false" {
-			// Mock to read request from file - Mock
-			//file, err := os.ReadFile("./samples/request.json")
-			// - Mock
-			//body := file
 
 			// Poll requests
 			requests = h.pollRequests()
-			fmt.Printf("Found jobs: %d. \n", len(requests))
+			h.RLog.Infof("Found jobs: %d. \n", len(requests))
 			for _, req := range requests {
 				wg.Add(1)
 				// handle request
@@ -129,7 +141,7 @@ func (h *HttpPoller) Launch() error {
 					defer wg.Done()
 					correlationId, ok := req[contexts.ConstructHttpHeaderKeyForActivityLogContext(contexts.Activity_CorrelationId)].(string)
 					if !ok {
-						fmt.Println("error: correlationId not found or not a string. Using a mock one.")
+						h.RLog.Warnf("Warning: correlationId not found or not a string. Using a mock one.")
 						correlationId = "00000000-0000-0000-0000-000000000000"
 					}
 					retCtx := context.TODO()
@@ -137,28 +149,39 @@ func (h *HttpPoller) Launch() error {
 
 					body, err := json.Marshal(req)
 					if err != nil {
-						fmt.Println("error marshalling request:", err)
+						h.RLog.ErrorfCtx(retCtx, "error marshalling request: %v", err)
 						return
 					}
 					ret := h.Agent.Handle(body, retCtx)
 					ret.Namespace = h.Namespace
-					result, err := json.Marshal(ret)
+					h.RLog.InfofCtx(retCtx, "Agent response: %v", ret)
+
+					logs, _, err := h.RLog.(*logger.FileLogger).GetLogsFromOffset(h.RLog.(*logger.FileLogger).GetLogOffset())
 					if err != nil {
-						fmt.Println("error marshalling response:", err)
+						h.RLog.ErrorfCtx(retCtx, "error getting logs: %v", err)
 					}
-					fmt.Println("Agent response:", string(result))
+					ret.Logs = logs
+					result, err := json.Marshal(ret)
+
+					if err != nil {
+						h.RLog.ErrorfCtx(retCtx, "error marshalling response: %v", err)
+					}
 
 					responseHost := fmt.Sprintf("%s?target=%s&namespace=%s", h.ResponseUrl, h.Target, h.Namespace)
 					responseUri, err := url.Parse(responseHost)
+					if err != nil {
+						h.RLog.ErrorfCtx(retCtx, "error parsing response URL: %v", err)
+						return
+					}
 					respRet, err := h.Client.Do(&http.Request{
 						URL:    responseUri,
 						Method: "POST",
 						Body:   io.NopCloser(strings.NewReader(string(result))),
 					})
 					if err != nil {
-						fmt.Println("error sending response:", err)
+						h.RLog.ErrorfCtx(retCtx, "error sending response: %v", err)
 					} else {
-						fmt.Println("response status:", respRet.Status)
+						h.RLog.InfofCtx(retCtx, "response status: %s", respRet.Status)
 					}
 				}()
 			}

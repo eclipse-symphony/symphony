@@ -254,6 +254,13 @@ processors:
         action: delete
       - key: log.file.path
         action: delete
+  transform/timestamp:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(time_unix_nano, UnixNano(Time(attributes["serviceTimestamp"], "%FT%TZ"))) where attributes["serviceTimestamp"] != nil
+
 
   batch:
   memory_limiter:
@@ -281,6 +288,6 @@ service:
   pipelines:
     logs/default:
       receivers: [filelog]
-      processors: [memory_limiter, batch, k8sattributes, resource/rename]
+      processors: [memory_limiter, batch, k8sattributes, resource/rename, transform/timestamp]
       exporters: [otlp/default]
       # exporters: [debug]

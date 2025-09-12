@@ -170,6 +170,10 @@ func (Cluster) Deploy() error {
 			return err
 		}
 	}
+	mk := &Minikube{}
+	if err := mk.Load(); err != nil {
+		return err
+	}
 	ss := fmt.Sprintf("helm upgrade %s %s --install -n %s --create-namespace --wait -f ../../packages/helm/symphony/values.yaml %s --set symphonyImage.tag=%s --set paiImage.tag=%s", getReleaseName(), getChartPath(), getChartNamespace(), ghcrValuesOptions(), getDockerTag(), getDockerTag())
 	fmt.Printf("%s\n", ss)
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
@@ -203,7 +207,10 @@ func (Cluster) DeployWithSettings(values string) error {
 			return err
 		}
 	}
-
+	mk := &Minikube{}
+	if err := mk.Load(); err != nil {
+		return err
+	}
 	certsToVerify := []string{"symphony-api-serving-cert ", "symphony-serving-cert"}
 	commands := []shellcmd.Command{
 		shellcmd.Command(fmt.Sprintf(

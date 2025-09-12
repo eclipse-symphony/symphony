@@ -67,14 +67,15 @@ const (
 
 type SolutionManager struct {
 	SummaryManager
-	TargetProviders map[string]tgt.ITargetProvider
-	ConfigProvider  config.IExtConfigProvider
-	SecretProvider  secret.ISecretProvider
-	KeyLockProvider keylock.IKeyLockProvider
-	QueueProvider   queue.IQueueProvider
-	IsTarget        bool
-	TargetNames     []string
-	ApiClientHttp   api_utils.ApiClient
+	TargetProviders         map[string]tgt.ITargetProvider
+	ConfigProvider          config.IExtConfigProvider
+	SecretProvider          secret.ISecretProvider
+	KeyLockProvider         keylock.IKeyLockProvider
+	QueueProvider           queue.IQueueProvider
+	IsTarget                bool
+	TargetNames             []string
+	ApiClientHttp           api_utils.ApiClient
+	RemoteAgentLogFormatter *logger.RemoteAgentLogFormatter
 }
 
 func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -152,6 +153,10 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	if err != nil {
 		return err
 	}
+
+	// Initialize remote agent log formatter
+	s.RemoteAgentLogFormatter = logger.NewRemoteAgentLogFormatter()
+
 	return nil
 }
 func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
@@ -1499,8 +1504,14 @@ func (s *SolutionManager) concludeSummary(ctx context.Context, objectName string
 func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, asyncResult model.AsyncResult) v1alpha2.COAResponse {
 	// Get operation ID
 	operationId := asyncResult.OperationID
-	// Get related info from redis - todo: timeout
-	log.InfoCtx(ctx, " M(Solution): handle remote agent request %+v", asyncResult)
+	// Enhanced log handling with proper formatting
+	if len(asyncResult.Logs) > 0 {
+		log.InfofCtx(ctx, "M(SolutionVendor): Processing %d remote agent logs for operationId: %s", len(asyncResult.Logs), operationId)
+		s.RemoteAgentLogFormatter.LogRemoteAgentLogs(operationId, asyncResult.Logs)
+	} else {
+		log.InfofCtx(ctx, "M(SolutionVendor): No logs received from remote agent for operationId: %s", operationId)
+	}
+
 	operationBody, err := s.getOperationState(ctx, operationId, asyncResult.Namespace)
 	if err != nil {
 		log.ErrorfCtx(ctx, " M(Solution): onGetResponse failed - %s", err.Error())
@@ -1548,7 +1559,7 @@ func (s *SolutionManager) HandleRemoteAgentExecuteResult(ctx context.Context, as
 			}
 		}
 		s.publishStepResult(ctx, operationBody.Target, operationBody.PlanId, operationBody.PlanName, operationBody.StepId, asyncResult.Error, []model.ComponentSpec{}, response, operationBody.NameSpace)
-		log.InfofCtx(ctx, " M(Solution):  delete operation ID", operationId)
+		log.InfofCtx(ctx, "M(SolutionVendor):  delete operation ID: %s", operationId)
 		s.deleteOperationState(ctx, operationId)
 		// delete from queue
 		s.QueueProvider.RemoveFromQueue(ctx, queueName, operationBody.MessageId)

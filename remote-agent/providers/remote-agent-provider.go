@@ -23,11 +23,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
@@ -43,10 +41,8 @@ const (
 )
 
 var (
-	sLog                     = logger.NewLogger(loggerName)
-	providerOperationMetrics *metrics.Metrics
-	once                     sync.Once
-	state                    = "active"
+	sLog  = logger.NewLogger(loggerName)
+	state = "active"
 )
 
 type RemoteAgentProviderConfig struct {

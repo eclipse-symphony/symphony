@@ -142,20 +142,6 @@ func toLogLevel(level string) LogLevel {
 	return UndefinedLevel
 }
 
-// NewLogger creates new Logger instance.
-func NewLogger(name string) Logger {
-	globalLoggersLock.Lock()
-	defer globalLoggersLock.Unlock()
-
-	logger, ok := globalLoggers[name]
-	if !ok {
-		logger = newCoaLogger(name, hooks.ContextHookOptions{DiagnosticLogContextEnabled: true, ActivityLogContextEnabled: false, Folding: true})
-		globalLoggers[name] = logger
-	}
-
-	return logger
-}
-
 func getLoggers() map[string]Logger {
 	globalLoggersLock.RLock()
 	defer globalLoggersLock.RUnlock()
