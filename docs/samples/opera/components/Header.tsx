@@ -43,12 +43,12 @@ function Header() {
                                 </Link>
                             </li>
                             <li className={styles.navLink}>
-                                <Link href='mailto:hbai@microsoft.com'>
+                                <a href='mailto:hbai@microsoft.com'>
                                     <span className="flex items-center gap-1">
                                         <FaEnvelope />
                                         <span>Contact</span>
                                     </span>                                
-                                </Link>
+                                </a>
                             </li>
                             <li className='flex items-center space-x-5 text-[#F6B519] ml-10'>
                                 { userObj?.username ? (
