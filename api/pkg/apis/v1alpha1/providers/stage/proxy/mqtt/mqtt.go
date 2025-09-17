@@ -15,7 +15,6 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -109,47 +108,6 @@ func (i *MQTTProxyStageProvider) InitWithMap(properties map[string]string) error
 		return v1alpha2.NewCOAError(nil, "properties are not supported", v1alpha2.BadRequest)
 	}
 	return i.Init(MQTTProxyStageProviderConfig{})
-}
-
-func (m *MQTTProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
-	switch val := v.(type) {
-	case string:
-		parser := utils.NewParser(val)
-		context := m.Context.VencorContext.EvaluationContext.Clone()
-		context.Value = ctx
-		v, err := parser.Eval(*context)
-		if err != nil {
-			return "", err
-		}
-		switch vt := v.(type) {
-		case string:
-			return vt, nil
-		default:
-			return m.traceValue(v, ctx)
-		}
-	case []interface{}:
-		ret := []interface{}{}
-		for _, v := range val {
-			tv, err := m.traceValue(v, ctx)
-			if err != nil {
-				return "", err
-			}
-			ret = append(ret, tv)
-		}
-		return ret, nil
-	case map[string]interface{}:
-		ret := map[string]interface{}{}
-		for k, v := range val {
-			tv, err := m.traceValue(v, ctx)
-			if err != nil {
-				return "", err
-			}
-			ret[k] = tv
-		}
-		return ret, nil
-	default:
-		return val, nil
-	}
 }
 
 func (i *MQTTProxyStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, activationdata v1alpha2.ActivationData) (map[string]interface{}, bool, error) {

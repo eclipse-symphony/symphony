@@ -92,47 +92,6 @@ func (i *HTTPProxyStageProvider) InitWithMap(properties map[string]string) error
 	return i.Init(HTTPProxyStageProviderConfig{})
 }
 
-func (m *HTTPProxyStageProvider) traceValue(v interface{}, ctx interface{}) (interface{}, error) {
-	switch val := v.(type) {
-	case string:
-		parser := utils.NewParser(val)
-		context := m.Context.VencorContext.EvaluationContext.Clone()
-		context.Value = ctx
-		v, err := parser.Eval(*context)
-		if err != nil {
-			return "", err
-		}
-		switch vt := v.(type) {
-		case string:
-			return vt, nil
-		default:
-			return m.traceValue(v, ctx)
-		}
-	case []interface{}:
-		ret := []interface{}{}
-		for _, v := range val {
-			tv, err := m.traceValue(v, ctx)
-			if err != nil {
-				return "", err
-			}
-			ret = append(ret, tv)
-		}
-		return ret, nil
-	case map[string]interface{}:
-		ret := map[string]interface{}{}
-		for k, v := range val {
-			tv, err := m.traceValue(v, ctx)
-			if err != nil {
-				return "", err
-			}
-			ret[k] = tv
-		}
-		return ret, nil
-	default:
-		return val, nil
-	}
-}
-
 func (i *HTTPProxyStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, activationdata v1alpha2.ActivationData) (map[string]interface{}, bool, error) {
 	ctx, span := observability.StartSpan("[Stage] HTTP Proxy Provider", ctx, &map[string]string{
 		"method": "Process",
