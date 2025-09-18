@@ -132,7 +132,10 @@
               }
             }
           }
-        ]
+        ],
+        "properties": {
+          "useJobManager": "true"
+        }
       },
       {
         "type": "vendors.backgroundjob",

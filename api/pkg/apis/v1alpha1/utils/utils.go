@@ -41,6 +41,19 @@ type ObjectInfo struct {
 	SummaryJobId string
 }
 
+type AuthRequest struct {
+	UserName  string `json:"username"`
+	Password  string `json:"password"`
+	CsrfToken string `json:"csrfToken,omitempty"`
+}
+
+type AuthResponse struct {
+	AccessToken string   `json:"accessToken"`
+	TokenType   string   `json:"tokenType"`
+	Username    string   `json:"username"`
+	Roles       []string `json:"roles"`
+}
+
 func IsNotFound(err error) bool {
 	if apiError, ok := err.(APIError); ok {
 		return apiError.Code == v1alpha2.NotFound

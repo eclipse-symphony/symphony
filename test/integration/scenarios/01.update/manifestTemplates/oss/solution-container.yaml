@@ -1,5 +1,5 @@
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
 metadata:
-  name: SOLUTIONCONTAINERFULLNAME
+  name: solution01
 spec:  

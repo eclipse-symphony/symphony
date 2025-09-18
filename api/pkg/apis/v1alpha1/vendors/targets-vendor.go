@@ -107,10 +107,6 @@ type MyCustomClaims struct {
 	User string `json:"user"`
 	jwt.RegisteredClaims
 }
-type AuthRequest struct {
-	UserName string `json:"username"`
-	Password string `json:"password"`
-}
 
 func (c *TargetsVendor) onRegistry(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	pCtx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
@@ -292,7 +288,7 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	tLog.InfofCtx(ctx, "V (Targets) : onBootstrap, method: %s", request.Method)
 	switch request.Method {
 	case fasthttp.MethodPost:
-		var authRequest AuthRequest
+		var authRequest utils.AuthRequest
 		err := utils2.UnmarshalJson(request.Body, &authRequest)
 		if err != nil || authRequest.UserName != "symphony-test" {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onBootstrap failed - %s", err.Error())

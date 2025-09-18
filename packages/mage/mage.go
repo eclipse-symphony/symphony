@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -174,10 +175,29 @@ func TestRace() error {
 
 // CleanTest runs unit tests without the test cache.
 func CleanTest() error {
-	return shellcmd.RunAll(
-		`go clean -testcache`,
-		shellcmd.Command(fmt.Sprintf(`LD_LIBRARY=./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release CGO_LDFLAGS=-L./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release go test %s -timeout 5m -cover -coverprofile=coverage.out ./...`, raceOpt())),
+	libPath := "./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"
+
+	libPath, err := filepath.Abs(libPath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// First: clean test cache
+	if err := exec.Command("go", "clean", "-testcache").Run(); err != nil {
+		return err
+	}
+
+	// Second: run tests with environment
+	cmd := exec.Command("go", "test", raceOpt(), "-timeout", "5m", "-cover", "-coverprofile=coverage.out", "./...")
+	cmd.Env = append(os.Environ(),
+		"LD_LIBRARY_PATH="+libPath,
+		"CGO_LDFLAGS=-L"+libPath,
 	)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 // Retrieve the test coverage count from coverage.out file.

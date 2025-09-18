@@ -106,8 +106,8 @@ func BuildApi() error {
 				"GOARCH=amd64",
 				"GOOS=linux",
 				"CC=gcc",
-				"LD_LIBRARY=./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release",
-				"CGO_LDFLAGS=-L./pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"},
+				"LD_LIBRARY_PATH=$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release",
+				"CGO_LDFLAGS=-L$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"},
 			args: []string{"go", "build", "-o", "symphony-api"},
 		},
 	}

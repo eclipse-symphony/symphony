@@ -230,6 +230,7 @@ type ActivationData struct {
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
 	Schedule             string                            `json:"schedule,omitempty"`
 	NeedsReport          bool                              `json:"needsReport,omitempty"`
+	Proxy                *ProxySpec                        `json:"proxy,omitempty"`
 }
 
 // UnmarshalJSON customizes the JSON unmarshalling for ActivationData
@@ -280,6 +281,11 @@ type HeartBeatData struct {
 	Action    HeartBeatAction `json:"action,omitempty"`
 	Time      time.Time       `json:"time,omitempty"`
 	JobAction JobAction       `json:"jobaction"`
+}
+
+type ProxySpec struct {
+	Provider string                 `json:"provider,omitempty"`
+	Config   map[string]interface{} `json:"config,omitempty"`
 }
 
 func (s ActivationData) ShouldFireNow() (bool, error) {

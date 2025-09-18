@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -59,7 +60,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
-	authRequest := AuthRequest{
+	authRequest := utils.AuthRequest{
 		UserName: "admin",
 		Password: "",
 	}
@@ -74,7 +75,7 @@ func TestAuth(t *testing.T) {
 }
 
 func TestUnauthorized(t *testing.T) {
-	authRequest := AuthRequest{
+	authRequest := utils.AuthRequest{
 		UserName: "abc",
 		Password: "",
 	}

@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -89,13 +90,6 @@ func TestReconcil(t *testing.T) {
 	assert.Nil(t, errs)
 }
 
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
-
 func InitiazlizeMockSymphonyAPI(siteId string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
@@ -128,7 +122,7 @@ func InitiazlizeMockSymphonyAPI(siteId string) *httptest.Server {
 				Origin: "batch-origin",
 			}
 		case "/users/auth":
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

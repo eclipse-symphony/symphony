@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
@@ -205,13 +206,6 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
-
 func TestApply(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
@@ -233,7 +227,7 @@ func TestApply(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -332,7 +326,7 @@ func TestGet(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -402,7 +396,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

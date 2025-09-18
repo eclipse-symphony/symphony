@@ -6,11 +6,11 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: TARGETNAME
+  name: target01
   annotations: 
-    management.azure.com/resourceId: TARGETREFNAME
+    management.azure.com/resourceId: target01
 spec:
-  displayName: TARGETNAME
+  displayName: target01
   scope: test-scope
   topologies:
   - bindings:

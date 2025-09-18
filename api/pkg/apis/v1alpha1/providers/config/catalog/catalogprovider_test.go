@@ -16,6 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
@@ -23,13 +24,6 @@ import (
 )
 
 var ctx = context.Background()
-
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
 
 func TestCatalogProviderInitWithMap(t *testing.T) {
 	config := map[string]string{
@@ -82,7 +76,7 @@ func TestRead(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -176,7 +170,7 @@ func TestReadObject(t *testing.T) {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -229,7 +223,7 @@ func TestSetandRemove(t *testing.T) {
 				}
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",
@@ -288,7 +282,7 @@ func TestSetandRemoveObject(t *testing.T) {
 				}
 			}
 		default:
-			response = AuthResponse{
+			response = api_utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

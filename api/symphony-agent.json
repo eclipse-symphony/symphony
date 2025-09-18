@@ -8,6 +8,24 @@
     }
   },
   "api": {
+    "pubsub": {
+      "shared": true,
+      "provider": {
+        "type": "providers.pubsub.memory",
+        "config": {}
+      }
+    },
+    "keylock": {
+      "shared": true,
+      "provider": {      
+        "type": "providers.keylock.memory",
+        "config": {
+          "mode": "Global",
+          "cleanInterval" : 30,
+          "purgeDuration" : 43200
+        }
+      }
+    },
     "vendors": [
       {
         "type": "vendors.echo",
@@ -26,6 +44,7 @@
               "providers.persistentstate": "mem-state",                
               "providers.config": "mock-config",  
               "providers.secret": "mock-secret",
+              "providers.keylock": "mem-keylock",
               "isTarget": "true",
               "targetNames": "test-target",
               "poll.enabled": "true"              
@@ -34,7 +53,13 @@
               "mem-state": {
                 "type": "providers.state.memory",
                 "config": {}
-              },              
+              },     
+              "mem-keylock": {
+                "type": "providers.keylock.memory",
+                "config": {
+                  "mode" : "Shared"
+                }
+              },         
               "mock-config": {
                 "type": "providers.config.mock",
                 "config": {}

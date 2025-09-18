@@ -275,7 +275,8 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 
 	if _, ok := s.Data[namespace]; !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
-		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
+		// Log entry not found as Info instead of Error to avoid flooding the logs
+		sLog.InfoCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	list, ok := s.Data[namespace].(map[string]interface{})
@@ -287,7 +288,8 @@ func (s *MemoryStateProvider) Get(ctx context.Context, request states.GetRequest
 	entry, ok := list[request.ID]
 	if !ok {
 		err = v1alpha2.NewCOAError(nil, fmt.Sprintf("entry '%s' is not found in namespace %s", request.ID, namespace), v1alpha2.NotFound)
-		sLog.ErrorfCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
+		// Log entry not found as Info instead of Error to avoid flooding the logs
+		sLog.InfoCtx(ctx, "  P (Memory State): failed to get %s state: %+v", request.ID, err)
 		return states.StateEntry{}, err
 	}
 	vE, ok := entry.(states.StateEntry)

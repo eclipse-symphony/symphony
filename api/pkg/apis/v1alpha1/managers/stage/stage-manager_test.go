@@ -1774,13 +1774,6 @@ func TestTaskHandlerInterface(t *testing.T) {
 	assert.NotNil(t, outputs)
 }
 
-type AuthResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
-
 func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
@@ -1819,7 +1812,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				},
 			}
 		default:
-			response = AuthResponse{
+			response = utils.AuthResponse{
 				AccessToken: "test-token",
 				TokenType:   "Bearer",
 				Username:    "test-user",

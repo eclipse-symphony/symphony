@@ -33,17 +33,6 @@ var (
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
 
-type authRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-type authResponse struct {
-	AccessToken string   `json:"accessToken"`
-	TokenType   string   `json:"tokenType"`
-	Username    string   `json:"username"`
-	Roles       []string `json:"roles"`
-}
-
 func GetSymphonyAPIAddressBase() string {
 	if os.Getenv(constants.SymphonyAPIUrlEnvName) == "" {
 		return SymphonyAPIAddressBase
@@ -294,6 +283,26 @@ func PublishActivationEvent(context context.Context, baseUrl string, user string
 	}
 
 	return nil
+}
+func CallRemoteProcessor(context context.Context, baseUrl string, user string, password string, event v1alpha2.ActivationData) (model.StageStatus, error) {
+	ret := model.StageStatus{}
+	token, err := auth(context, baseUrl, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+	event.Proxy = nil
+	jData, _ := json.Marshal(event)
+	response, err := callRestAPI(context, baseUrl, "processor", "POST", jData, token)
+
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
 }
 func GetABatchForSite(context context.Context, baseUrl string, site string, user string, password string) (model.SyncPackage, error) {
 	ret := model.SyncPackage{}
@@ -883,14 +892,14 @@ func Reconcile(context context.Context, baseUrl string, user string, password st
 	return summary, nil
 }
 func auth(context context.Context, baseUrl string, user string, password string) (string, error) {
-	request := authRequest{Username: user, Password: password}
+	request := AuthRequest{UserName: user, Password: password}
 	requestData, _ := json.Marshal(request)
 	ret, err := callRestAPI(context, baseUrl, "users/auth", "POST", requestData, "")
 	if err != nil {
 		return "", err
 	}
 
-	var response authResponse
+	var response AuthResponse
 	err = json.Unmarshal(ret, &response)
 	if err != nil {
 		return "", err
@@ -943,7 +952,6 @@ func callRestAPI(ctx context.Context, baseUrl string, route string, method strin
 	if err != nil {
 		return nil, err
 	}
-
 	if resp.StatusCode >= 300 {
 		// TODO: Can we remove the following? It doesn't seem right.
 		// I'm afraid some downstream logic is expecting this behavior, though.
