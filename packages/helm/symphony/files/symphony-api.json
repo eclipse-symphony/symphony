@@ -351,6 +351,14 @@
                 "config": {
                   "inCluster": true
                 }
+              },
+              "working-cert": {
+                "type": "providers.cert.k8scert",
+                "config": {
+                  "inCluster": true,
+                  "defaultDuration": "{{ .Values.targets.workingCertDuration | default \"2160h\" }}",
+                  "renewBefore": "{{ .Values.targets.workingCertRenewBefore | default \"360h\" }}"
+                }
               }
             }
           }
@@ -519,7 +527,8 @@
               "providers.config": "mock-config",  
               "providers.queue": "redis-queue",
               "providers.secret": "mock-secret",
-              "providers.keylock": "mem-keylock"
+              "providers.keylock": "mem-keylock",
+              "providers.cert": "working-cert"
             },
             "providers": {
               "redis-state": {
@@ -557,6 +566,14 @@
               "mock-secret": {
                 "type": "providers.secret.mock",
                 "config": {}
+              },
+              "working-cert": {
+                "type": "providers.cert.k8scert",
+                "config": {
+                  "inCluster": true,
+                  "defaultDuration": "{{ .Values.solution.workingCertDuration | default \"2160h\" }}",
+                  "renewBefore": "{{ .Values.solution.workingCertRenewBefore | default \"360h\" }}"
+                }
               }
             }     
           }

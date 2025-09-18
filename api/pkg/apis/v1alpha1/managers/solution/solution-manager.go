@@ -20,6 +20,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	sp "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
+	certProvider "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/cert"
 	tgt "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -68,6 +69,7 @@ const (
 type SolutionManager struct {
 	SummaryManager
 	TargetProviders         map[string]tgt.ITargetProvider
+	CertProvider            certProvider.ICertProvider
 	ConfigProvider          config.IExtConfigProvider
 	SecretProvider          secret.ISecretProvider
 	KeyLockProvider         keylock.IKeyLockProvider
@@ -118,6 +120,15 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		return err
 	}
 
+	// Initialize cert provider
+	if certProviderInstance, exists := providers["working-cert"]; exists {
+		if cp, ok := certProviderInstance.(certProvider.ICertProvider); ok {
+			s.CertProvider = cp
+		} else {
+			return fmt.Errorf("working-cert provider does not implement ICertProvider interface")
+		}
+	}
+
 	if v, ok := config.Properties["isTarget"]; ok {
 		b, err := strconv.ParseBool(v)
 		if err == nil || b {
@@ -159,6 +170,77 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 
 	return nil
 }
+
+// GetCertProvider returns the cert provider instance for certificate management operations
+func (s *SolutionManager) GetCertProvider() certProvider.ICertProvider {
+	return s.CertProvider
+}
+
+// SafeCreateWorkingCert creates a working certificate with validation checks
+// It validates that the certificate doesn't exist before creation and verifies creation success after
+func (s *SolutionManager) SafeCreateWorkingCert(ctx context.Context, certID string, request certProvider.CertRequest) error {
+	if s.CertProvider == nil {
+		return fmt.Errorf("cert provider not initialized")
+	}
+
+	// Pre-creation validation: check if certificate already exists
+	log.InfofCtx(ctx, " M (Solution): validating certificate %s doesn't exist before creation", certID)
+	_, err := s.CertProvider.GetCert(ctx, certID, request.Namespace)
+	if err == nil {
+		log.InfofCtx(ctx, " M (Solution): certificate %s already exists, skipping creation", certID)
+		return nil
+	}
+
+	// Create the certificate
+	log.InfofCtx(ctx, " M (Solution): creating working certificate %s", certID)
+	err = s.CertProvider.CreateCert(ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to create certificate %s: %v", certID, err)
+	}
+
+	// Post-creation validation: verify certificate was created successfully
+	log.InfofCtx(ctx, " M (Solution): validating certificate %s was created successfully", certID)
+	_, err = s.CertProvider.GetCert(ctx, certID, request.Namespace)
+	if err != nil {
+		return fmt.Errorf("certificate %s creation validation failed, certificate not found after creation: %v", certID, err)
+	}
+
+	log.InfofCtx(ctx, " M (Solution): working certificate %s created and validated successfully", certID)
+	return nil
+}
+
+// SafeDeleteWorkingCert deletes a working certificate with validation checks
+// It validates that the certificate exists before deletion and verifies deletion success after
+func (s *SolutionManager) SafeDeleteWorkingCert(ctx context.Context, certID string, namespace string) error {
+	if s.CertProvider == nil {
+		return fmt.Errorf("cert provider not initialized")
+	}
+
+	// Pre-deletion validation: check if certificate exists
+	log.InfofCtx(ctx, " M (Solution): validating certificate %s exists before deletion", certID)
+	_, err := s.CertProvider.GetCert(ctx, certID, namespace)
+	if err != nil {
+		return fmt.Errorf("certificate %s not found, cannot delete: %v", certID, err)
+	}
+
+	// Delete the certificate
+	log.InfofCtx(ctx, " M (Solution): deleting working certificate %s", certID)
+	err = s.CertProvider.DeleteCert(ctx, certID, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to delete certificate %s: %v", certID, err)
+	}
+
+	// Post-deletion validation: verify certificate was deleted successfully
+	log.InfofCtx(ctx, " M (Solution): validating certificate %s was deleted successfully", certID)
+	_, err = s.CertProvider.GetCert(ctx, certID, namespace)
+	if err == nil {
+		return fmt.Errorf("certificate %s deletion validation failed, certificate still exists after deletion", certID)
+	}
+
+	log.InfofCtx(ctx, " M (Solution): working certificate %s deleted and validated successfully", certID)
+	return nil
+}
+
 func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
 	lockName := api_utils.GenerateKeyLockName(namespace, deployment.Instance.ObjectMeta.Name)
 	s.KeyLockProvider.Lock(lockName)
@@ -1894,4 +1976,18 @@ func (s *SolutionManager) getOperationState(ctx context.Context, operationId str
 		return model.OperationBody{}, err
 	}
 	return ret, err
+}
+
+// CreateCertRequest creates a certificate request for the given target and namespace
+func (s *SolutionManager) CreateCertRequest(targetName string, namespace string) certProvider.CertRequest {
+	return certProvider.CertRequest{
+		TargetName:  targetName,
+		Namespace:   namespace,
+		Duration:    time.Hour * 2160, // 90 days default
+		RenewBefore: time.Hour * 360,  // 15 days before expiration
+		CommonName:  fmt.Sprintf("symphony-%s", targetName),
+		DNSNames:    []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
+		IssuerName:  "symphony-ca",
+		ServiceName: "symphony-service",
+	}
 }
