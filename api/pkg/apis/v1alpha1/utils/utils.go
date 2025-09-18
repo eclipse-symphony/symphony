@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"regexp"
 	"sort"
@@ -431,14 +432,26 @@ func jsonPathQuery(obj interface{}, jsonPath string) (interface{}, error) {
 	} else if len(result) == 0 {
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("no matches found by JsonPath query '%s'", jsonPath), v1alpha2.InternalError)
 	} else if len(result) == 1 {
-		return result[0], nil
+		return normalizeJSONNumber(result[0]), nil
 	} else {
-		return result, nil
+		return normalizeJSONNumber(result), nil
 	}
 }
-
-func isAlphanum(query string) bool {
-	return regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(query)
+func normalizeJSONNumber(x interface{}) interface{} {
+	switch v := x.(type) {
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			return i
+		}
+		if f, err := v.Float64(); err == nil {
+			return f
+		}
+	case float64:
+		if v == math.Trunc(v) {
+			return int64(v)
+		}
+	}
+	return x
 }
 
 func JsonParseProperty(properties interface{}, fieldPath string) (any, bool) {
