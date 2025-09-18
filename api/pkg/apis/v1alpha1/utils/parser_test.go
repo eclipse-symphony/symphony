@@ -2095,6 +2095,20 @@ func TestJsonPropertyAsComplexExpression(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(800), val)
 }
+
+func TestJsonPropertyAsComplexExpressionExplitString(t *testing.T) {
+	parser := NewParser("${{$jsonpath($json([{\"containerPort\":$input(containerPort),\"protocol\":\"TCP\"}]), [0].containerPort)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs: map[string]interface{}{
+			"containerPort": "${{300+$str($input(offset))}}",
+			"offset":        100,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(300100), val)
+}
+
 func TestBase64DecodeJson(t *testing.T) {
 	// SGVsbG8gV29ybGQh is "Hello World!"
 	// W3siY29udGFpbmVyUG9ydCI6OTA5MCwicHJvdG9jb2wiOiJUQ1AifV0= is [{"containerPort":9090,"protocol":"TCP"}]
