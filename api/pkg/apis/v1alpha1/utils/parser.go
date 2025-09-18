@@ -957,7 +957,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			strVal := FormatAsString(val)
 			decoded, err := base64.StdEncoding.DecodeString(strVal)
 			if err != nil {
-				return nil, v1alpha2.NewCOAError(err, fmt.Sprintf("failed to decode base64 string: %s", strVal), v1alpha2.BadConfig)
+				return nil, v1alpha2.NewCOAError(err, fmt.Sprintf("failed to decode base64 string: %s", strVal), v1alpha2.InternalError)
 			}
 			return string(decoded), nil
 		}
@@ -1088,57 +1088,6 @@ func newExpressionParser(text string) *ExpressionParser {
 	}
 	p.next()
 	return p
-}
-
-func normalizeSingleQuotedStrings(s string) string {
-	var b strings.Builder
-	inSingle := false
-	escape := false
-
-	for _, r := range s {
-		if inSingle {
-			if escape {
-				// Keep original escape; also re-escape " for double-quoted context.
-				if r == '"' {
-					b.WriteRune('\\')
-					b.WriteRune('"')
-				} else {
-					b.WriteRune(r)
-				}
-				escape = false
-				continue
-			}
-			switch r {
-			case '\\':
-				escape = true
-				b.WriteRune('\\') // keep the backslash; it remains valid in "..."
-			case '\'':
-				inSingle = false
-				b.WriteRune('"') // close the normalized string
-			case '"':
-				// Must escape " inside a "..." string
-				b.WriteRune('\\')
-				b.WriteRune('"')
-			default:
-				b.WriteRune(r)
-			}
-			continue
-		}
-
-		// not in single-quoted string
-		if r == '\'' {
-			inSingle = true
-			b.WriteRune('"') // open the normalized string
-			continue
-		}
-		b.WriteRune(r)
-	}
-
-	// If an opening ' was never closed, return original to avoid breaking things.
-	if inSingle {
-		return s
-	}
-	return b.String()
 }
 
 func (p *ExpressionParser) Eval(context utils.EvaluationContext) (interface{}, error) {
