@@ -35,8 +35,6 @@ import (
 	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var (
@@ -683,13 +681,14 @@ func (c *TargetsVendor) onHeartBeat(request v1alpha2.COARequest) v1alpha2.COARes
 	return resp
 }
 
-// getting a certificate for a target
+// getting a certificate for a target - READ-ONLY
+// Certificate creation is now handled by the solution-vendor's reconcile method
 func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	ctx, span := observability.StartSpan("Targets Vendor", request.Context, &map[string]string{
 		"method": "onGetCert",
 	})
 	defer span.End()
-	tLog.InfofCtx(ctx, "V (Targets) : onGetCert, method: %s", request.Method)
+	tLog.InfofCtx(ctx, "V (Targets) : onGetCert (READ-ONLY), method: %s", request.Method)
 	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
@@ -698,128 +697,47 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		subject := fmt.Sprintf("CN=%s-%s.%s", namespace, id, ServiceName)
-		// create a new GroupVersionKind for the certificate
-		gvk := schema.GroupVersionKind{
-			Group:   "cert-manager.io",
-			Version: "v1",
-			Kind:    "Certificate",
-		}
-
-		// create a new unstructured object for the certificate
-		cert := &unstructured.Unstructured{}
-		cert.SetGroupVersionKind(gvk)
-
-		cert.SetName(id)
-		cert.SetNamespace(namespace)
-
-		secretName := fmt.Sprintf("%s-tls", id)
-
-		// Get configurable working certificate duration and renewBefore values with defaults
-		duration := c.getWorkingCertDuration()
-		renewBefore := c.getWorkingCertRenewBefore()
-
-		spec := map[string]interface{}{
-			"secretName":  secretName,
-			"duration":    duration,
-			"renewBefore": renewBefore,
-			"commonName":  subject,
-			"dnsNames": []string{
-				subject,
-			},
-			"issuerRef": map[string]interface{}{
-				"name": CAIssuer,
-				"kind": "Issuer",
-			},
-			"subject": map[string]interface{}{
-				"organizations": []interface{}{
-					ServiceName,
-				},
-			},
-			"privateKey": map[string]interface{}{
-				"algorithm": "RSA",
-				"size":      2048,
-			},
-		}
-
-		cert.Object["spec"] = spec
-
-		upsertRequest := states.UpsertRequest{
-			Value: states.StateEntry{
-				ID:   id,
-				Body: cert.Object,
-			},
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     gvk.Group,
-				"version":   gvk.Version,
-				"resource":  "certificates",
-				"kind":      gvk.Kind,
-			},
-		}
-
-		// Check if Certificate already exists to avoid concurrent creation
-		getRequest := states.GetRequest{
-			ID: id,
-			Metadata: map[string]interface{}{
-				"namespace": namespace,
-				"group":     gvk.Group,
-				"version":   gvk.Version,
-				"resource":  "certificates",
-				"kind":      gvk.Kind,
-			},
-		}
-
-		_, err := c.TargetsManager.StateProvider.Get(ctx, getRequest)
-		if err == nil {
-			// Certificate already exists, log and proceed to wait
-			tLog.InfofCtx(ctx, "V (Targets) : Certificate %s already exists, waiting for ready state", id)
-		} else {
-			// Certificate doesn't exist, create it
-			jsonData, _ := json.Marshal(upsertRequest)
-			tLog.InfofCtx(ctx, "V (Targets) : create certificate object - %s", jsonData)
-			_, err := c.TargetsManager.StateProvider.Upsert(ctx, upsertRequest)
-			if err != nil {
-				tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
-			}
-		}
-
-		// Wait for Certificate to be ready and secret to be created with correct type
-		err = c.waitForCertificateReady(ctx, id, namespace, secretName)
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed waiting for certificate - %s", err.Error())
+		// Check if targets manager is available for cert provider access
+		if c.TargetsManager == nil {
+			tLog.ErrorCtx(ctx, "V (Targets) : onGetCert failed - targets manager not available")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
+				Body:  []byte("targets manager not available for certificate operations"),
 			})
 		}
 
-		// Use the fixed secret name directly
-		tLog.InfofCtx(ctx, "V (Targets) : Using fixed secret name: %s", secretName)
-
-		public, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.crt", coa_utils.EvaluationContext{Namespace: namespace})
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
+		certProvider := c.TargetsManager.GetCertProvider()
+		if certProvider == nil {
+			tLog.ErrorCtx(ctx, "V (Targets) : onGetCert failed - cert provider not available")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
-		}
-		private, err := readSecretWithRetry(ctx, c.TargetsManager.SecretProvider, secretName, "tls.key", coa_utils.EvaluationContext{Namespace: namespace})
-		if err != nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
+				Body:  []byte("certificate provider not available"),
 			})
 		}
 
-		public = strings.ReplaceAll(public, "\n", " ")
-		private = strings.ReplaceAll(private, "\n", " ")
+		// Use the working certificate ID (target name) to get existing certificate
+		certResponse, err := certProvider.GetCert(ctx, id, namespace)
+		if err != nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed to retrieve certificate for target %s - %s", id, err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.NotFound,
+				Body:  []byte(fmt.Sprintf("working certificate not found for target %s: %s", id, err.Error())),
+			})
+		}
+
+		if certResponse == nil {
+			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - nil certificate response for target %s", id)
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.NotFound,
+				Body:  []byte(fmt.Sprintf("working certificate not found for target %s", id)),
+			})
+		}
+
+		// Format certificate data for remote agent (remove newlines as expected)
+		public := strings.ReplaceAll(certResponse.PublicKey, "\n", " ")
+		private := strings.ReplaceAll(certResponse.PrivateKey, "\n", " ")
+
+		tLog.InfofCtx(ctx, "V (Targets) : successfully retrieved working certificate for target %s (expires: %s)", id, certResponse.ExpiresAt.Format(time.RFC3339))
 
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,

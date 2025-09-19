@@ -13,6 +13,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	certProvider "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -37,6 +38,7 @@ type TargetsManager struct {
 	needValidate     bool
 	TargetValidator  validation.TargetValidator
 	SecretProvider   secret.ISecretProvider
+	CertProvider     certProvider.ICertProvider
 }
 
 func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -60,6 +62,9 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	for _, p := range providers {
 		if c, ok := p.(secret.ISecretProvider); ok {
 			s.SecretProvider = c
+		}
+		if c, ok := p.(certProvider.ICertProvider); ok {
+			s.CertProvider = c
 		}
 	}
 
@@ -307,4 +312,9 @@ func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, 
 		return false, err
 	}
 	return len(instanceList) > 0, nil
+}
+
+// GetCertProvider returns the certificate provider for read-only access to certificates
+func (t *TargetsManager) GetCertProvider() certProvider.ICertProvider {
+	return t.CertProvider
 }

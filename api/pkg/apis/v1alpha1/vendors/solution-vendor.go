@@ -322,6 +322,19 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
+
+		// Handle working certificate management for remote targets
+		if deployment.RemoteTargetName != "" {
+			err = c.handleWorkingCertManagement(ctx, deployment, remove, namespace)
+			if err != nil {
+				sLog.ErrorfCtx(ctx, "V (Solution): failed to handle working cert management: %s", err.Error())
+				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+					State: v1alpha2.InternalError,
+					Body:  []byte(err.Error()),
+				})
+			}
+		}
+
 		summary, err := c.SolutionManager.AsyncReconcile(ctx, deployment, remove, namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
@@ -555,4 +568,32 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 		}
 	}
 	return c.SolutionManager.HandleRemoteAgentExecuteResult(ctx, asyncResult)
+}
+
+// handleWorkingCertManagement manages working certificates for remote targets
+func (c *SolutionVendor) handleWorkingCertManagement(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string) error {
+	sLog.InfofCtx(ctx, "V (Solution): handleWorkingCertManagement for remote target: %s, remove: %t", deployment.RemoteTargetName, remove)
+
+	if c.SolutionManager.GetCertProvider() == nil {
+		return fmt.Errorf("cert provider is not available")
+	}
+
+	if remove {
+		// Delete working certificate when removing remote target
+		err := c.SolutionManager.SafeDeleteWorkingCert(ctx, deployment.RemoteTargetName, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to delete working certificate for remote target %s: %w", deployment.RemoteTargetName, err)
+		}
+		sLog.InfofCtx(ctx, "V (Solution): successfully deleted working certificate for remote target: %s", deployment.RemoteTargetName)
+	} else {
+		// Create working certificate for remote target
+		err := c.SolutionManager.SafeCreateWorkingCert(ctx, deployment.RemoteTargetName, c.SolutionManager.CreateCertRequest(deployment.RemoteTargetName, namespace))
+		if err != nil {
+			return fmt.Errorf("failed to create or update working certificate for remote target %s: %w", deployment.RemoteTargetName, err)
+		} else {
+			sLog.InfofCtx(ctx, "V (Solution): successfully created working certificate for remote target: %s", deployment.RemoteTargetName)
+		}
+	}
+
+	return nil
 }
