@@ -356,8 +356,8 @@
                 "type": "providers.cert.k8scert",
                 "config": {
                   "inCluster": true,
-                  "defaultDuration": "{{ .Values.targets.workingCertDuration | default \"2160h\" }}",
-                  "renewBefore": "{{ .Values.targets.workingCertRenewBefore | default \"360h\" }}"
+                  "defaultDuration": "{{ .Values.targets.workingCertDuration | default "2160h" }}",
+                  "renewBefore": "{{ .Values.targets.workingCertRenewBefore | default "360h" }}"
                 }
               }
             }
@@ -571,8 +571,8 @@
                 "type": "providers.cert.k8scert",
                 "config": {
                   "inCluster": true,
-                  "defaultDuration": "{{ .Values.solution.workingCertDuration | default \"2160h\" }}",
-                  "renewBefore": "{{ .Values.solution.workingCertRenewBefore | default \"360h\" }}"
+                  "defaultDuration": "{{ .Values.solution.workingCertDuration | default "2160h" }}",
+                  "renewBefore": "{{ .Values.solution.workingCertRenewBefore | default "360h" }}"
                 }
               }
             }     
