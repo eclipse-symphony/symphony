@@ -22,9 +22,6 @@ type ICertProvider interface {
 	// GetCert retrieves the certificate for the specified target (read-only)
 	GetCert(ctx context.Context, targetName, namespace string) (*CertResponse, error)
 
-	// RotateCert rotates/renews the certificate for the specified target
-	RotateCert(ctx context.Context, targetName, namespace string) error
-
 	// CheckCertStatus checks if the certificate is ready and valid
 	CheckCertStatus(ctx context.Context, targetName, namespace string) (*CertStatus, error)
 }
