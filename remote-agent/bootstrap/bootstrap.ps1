@@ -177,20 +177,43 @@ if ($protocol -eq 'http') {
     }
     
     # HTTP mode: Get certificates from server
-    try {
-        $WebRequestParams = @{
-            Uri = "$($endpoint)/targets/getcert/$($target_name)?namespace=$($namespace)&osPlatform=windows"
-            Method = 'Post'
-            Certificate = $cert  
-            Headers = @{ "Content-Type" = "application/json"; "User-Agent" = "PowerShell-Debug" }
+    # get certificates from symphony server with retries
+    Write-Host "Begin to get certificates from symphony server" -ForegroundColor Blue
+    $maxRetries = 12
+    $retryCount = 0
+    $success = $false
+    $response = $null
+    $WebRequestParams = @{
+        Uri = "$($endpoint)/targets/getcert/$($target_name)?namespace=$($namespace)&osPlatform=windows"
+        Method = 'Post'
+        Certificate = $cert  
+        Headers = @{ "Content-Type" = "application/json"; "User-Agent" = "PowerShell-Debug" }
+    }
+    while ($retryCount -lt $maxRetries -and -not $success) {
+        try {
+            Write-Host "WebRequestParams:" -ForegroundColor Cyan
+            $WebRequestParams.GetEnumerator() | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Key, $_.Value) }
+            $response = Invoke-WebRequest @WebRequestParams -Verbose
+            $jsonResponse = $response.Content | ConvertFrom-Json
+            if ($jsonResponse.public -and $jsonResponse.private -and $jsonResponse.public -ne "null" -and $jsonResponse.private -ne "null") {
+                $success = $true
+                Write-Host "Successfully got working certificates from symphony server" -ForegroundColor Green
+                break
+            } else {
+                Write-Host "Certificate not ready, retrying in 10 seconds... ($($retryCount+1)/$maxRetries)" -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host "Error: Failed to send request to endpoint. Retrying in 10 seconds... ($($retryCount+1)/$maxRetries)" -ForegroundColor Red
+            Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
         }
-        Write-Host "WebRequestParams:" -ForegroundColor Cyan
-        $WebRequestParams.GetEnumerator() | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Key, $_.Value) }
-        $response = Invoke-WebRequest @WebRequestParams -Verbose
-        Write-Host "Successfully got working certificates from symphony server" -ForegroundColor Green
-    } catch {
-        Write-Host "Error: Failed to send request to endpoint." -ForegroundColor Red
-        Write-Host "Error Message: $($_.Exception.Message)" -ForegroundColor Red
+        Start-Sleep -Seconds 10
+        $retryCount++
+    }
+    if (-not $success) {
+        Write-Host "Error: Failed to get certificate after $($maxRetries*10) seconds." -ForegroundColor Red
+        if ($response -and $response.Content) {
+            Write-Host "Last response: $($response.Content)" -ForegroundColor Red
+        }
         exit 1
     }
     
