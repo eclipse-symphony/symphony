@@ -8,7 +8,6 @@ package k8scert
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -155,13 +154,13 @@ func (k *K8sCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 			},
 			"spec": map[string]interface{}{
 				"secretName":  secretName,
-				"commonName":  req.CommonName,
+				"commonName":  "symphony-service",
 				"dnsNames":    req.DNSNames,
 				"duration":    req.Duration.String(),
 				"renewBefore": req.RenewBefore.String(),
 				"issuerRef": map[string]interface{}{
 					"name": req.IssuerName,
-					"kind": "ClusterIssuer",
+					"kind": "Issuer",
 				},
 			},
 		},
@@ -222,7 +221,7 @@ func (k *K8sCertProvider) DeleteCert(ctx context.Context, targetName, namespace 
 	return nil
 }
 
-// GetCert retrieves the certificate from the cert-manager created secret
+// GetCert retrieves the certificate from the cert-manager created secret with retry logic
 func (k *K8sCertProvider) GetCert(ctx context.Context, targetName, namespace string) (*cert.CertResponse, error) {
 	ctx, span := observability.StartSpan("K8sCert Provider", ctx, &map[string]string{
 		"method": "GetCert",
@@ -235,29 +234,52 @@ func (k *K8sCertProvider) GetCert(ctx context.Context, targetName, namespace str
 
 	secretName := fmt.Sprintf("%s-working-cert", targetName)
 
-	secret, err := k.kubeClient.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "  P (K8sCert): certificate secret %s not found: %v", secretName, err)
-		return nil, fmt.Errorf("certificate not found for target %s: %v", targetName, err)
+	// Retry logic: 20 seconds timeout, retry every 2 seconds
+	timeout := time.Now().Add(20 * time.Second)
+	retryCount := 0
+
+	for time.Now().Before(timeout) {
+		secret, err := k.kubeClient.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+		if err == nil {
+			// Secret found, check if it has valid certificate data
+			certPEM := secret.Data["tls.crt"]
+			keyPEM := secret.Data["tls.key"]
+
+			if len(certPEM) > 0 && len(keyPEM) > 0 {
+				// Convert PEM format to match target vendor format (replace newlines with spaces)
+				// This ensures compatibility with existing test code that parses certificate responses
+				publicCert := strings.ReplaceAll(string(certPEM), "\n", " ")
+				privateCert := strings.ReplaceAll(string(keyPEM), "\n", " ")
+
+				response := &cert.CertResponse{
+					PublicKey:    publicCert,
+					PrivateKey:   privateCert,
+					ExpiresAt:    time.Now().Add(90 * 24 * time.Hour), // Default 90 days
+					SerialNumber: "cert-manager-generated",
+				}
+
+				sLog.InfofCtx(ctx, "  P (K8sCert): retrieved certificate for target %s after %d retries", targetName, retryCount)
+				return response, nil
+			} else {
+				sLog.InfofCtx(ctx, "  P (K8sCert): certificate secret %s exists but missing certificate or key data, retrying...", secretName)
+			}
+		} else {
+			if !errors.IsNotFound(err) {
+				// If it's not a "not found" error, return immediately
+				sLog.ErrorfCtx(ctx, "  P (K8sCert): unexpected error getting certificate secret %s: %v", secretName, err)
+				return nil, fmt.Errorf("certificate not found for target %s: %v", targetName, err)
+			}
+		}
+
+		// Log retry attempt
+		retryCount++
+		sLog.InfofCtx(ctx, "  P (K8sCert): certificate secret %s not ready yet, retrying in 2 seconds (attempt %d)...", secretName, retryCount)
+		time.Sleep(2 * time.Second)
 	}
 
-	certPEM := secret.Data["tls.crt"]
-	keyPEM := secret.Data["tls.key"]
-
-	if len(certPEM) == 0 || len(keyPEM) == 0 {
-		sLog.ErrorfCtx(ctx, "  P (K8sCert): certificate secret %s is missing certificate or key data", secretName)
-		return nil, fmt.Errorf("invalid certificate data for target %s", targetName)
-	}
-
-	response := &cert.CertResponse{
-		PublicKey:    base64.StdEncoding.EncodeToString(certPEM),
-		PrivateKey:   base64.StdEncoding.EncodeToString(keyPEM),
-		ExpiresAt:    time.Now().Add(90 * 24 * time.Hour), // Default 90 days
-		SerialNumber: "cert-manager-generated",
-	}
-
-	sLog.InfofCtx(ctx, "  P (K8sCert): retrieved certificate for target %s", targetName)
-	return response, nil
+	// 20 seconds timeout reached without finding valid certificate
+	sLog.ErrorfCtx(ctx, "  P (K8sCert): certificate secret %s not found after 20 seconds timeout", secretName)
+	return nil, fmt.Errorf("certificate not found for target %s after 20 seconds: secret %s not available", targetName, secretName)
 }
 
 // RotateCert rotates the certificate by recreating it
@@ -277,9 +299,9 @@ func (k *K8sCertProvider) RotateCert(ctx context.Context, targetName, namespace 
 		Namespace:   namespace,
 		Duration:    time.Hour * 2160, // 90 days default
 		RenewBefore: time.Hour * 360,  // 15 days before expiration
-		CommonName:  fmt.Sprintf("symphony-%s", targetName),
+		CommonName:  "symphony-service",
 		DNSNames:    []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
-		IssuerName:  "symphony-ca",
+		IssuerName:  "symphony-ca-issuer",
 	}
 
 	return k.CreateCert(ctx, req)

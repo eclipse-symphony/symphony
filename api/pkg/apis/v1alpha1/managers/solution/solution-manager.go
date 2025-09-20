@@ -1985,9 +1985,9 @@ func (s *SolutionManager) CreateCertRequest(targetName string, namespace string)
 		Namespace:   namespace,
 		Duration:    time.Hour * 2160, // 90 days default
 		RenewBefore: time.Hour * 360,  // 15 days before expiration
-		CommonName:  fmt.Sprintf("symphony-%s", targetName),
+		CommonName:  "symphony-service",
 		DNSNames:    []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
-		IssuerName:  "symphony-ca",
+		IssuerName:  "symphony-ca-issuer",
 		ServiceName: "symphony-service",
 	}
 }
