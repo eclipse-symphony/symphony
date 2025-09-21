@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/cert"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -177,13 +178,23 @@ func (k *K8sCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			sLog.InfofCtx(ctx, "  P (K8sCert): certificate %s already exists", certName)
-			return nil
+			// Even if certificate already exists, wait for it to be ready
+		} else {
+			sLog.ErrorfCtx(ctx, "  P (K8sCert): failed to create certificate: %+v", err)
+			return err
 		}
-		sLog.ErrorfCtx(ctx, "  P (K8sCert): failed to create certificate: %+v", err)
+	} else {
+		sLog.InfofCtx(ctx, "  P (K8sCert): created certificate %s in namespace %s", certName, req.Namespace)
+	}
+
+	// Wait for certificate and secret to be ready
+	err = k.waitForCertificateReady(ctx, certName, req.Namespace, secretName)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (K8sCert): failed to wait for certificate ready: %+v", err)
 		return err
 	}
 
-	sLog.InfofCtx(ctx, "  P (K8sCert): created certificate %s in namespace %s", certName, req.Namespace)
+	sLog.InfofCtx(ctx, "  P (K8sCert): certificate %s is ready with secret %s", certName, secretName)
 	return nil
 }
 
@@ -234,8 +245,8 @@ func (k *K8sCertProvider) GetCert(ctx context.Context, targetName, namespace str
 
 	secretName := fmt.Sprintf("%s-working-cert", targetName)
 
-	// Retry logic: 20 seconds timeout, retry every 2 seconds
-	timeout := time.Now().Add(20 * time.Second)
+	// Retry logic: 30 seconds timeout, retry every 2 seconds (safety net for client-side timing issues)
+	timeout := time.Now().Add(30 * time.Second)
 	retryCount := 0
 
 	for time.Now().Before(timeout) {
@@ -277,9 +288,9 @@ func (k *K8sCertProvider) GetCert(ctx context.Context, targetName, namespace str
 		time.Sleep(2 * time.Second)
 	}
 
-	// 20 seconds timeout reached without finding valid certificate
-	sLog.ErrorfCtx(ctx, "  P (K8sCert): certificate secret %s not found after 20 seconds timeout", secretName)
-	return nil, fmt.Errorf("certificate not found for target %s after 20 seconds: secret %s not available", targetName, secretName)
+	// 30 seconds timeout reached without finding valid certificate
+	sLog.ErrorfCtx(ctx, "  P (K8sCert): certificate secret %s not found after 30 seconds timeout", secretName)
+	return nil, fmt.Errorf("certificate not found for target %s after 30 seconds: secret %s not available", targetName, secretName)
 }
 
 // RotateCert rotates the certificate by recreating it
@@ -369,4 +380,115 @@ func (k *K8sCertProvider) CheckCertStatus(ctx context.Context, targetName, names
 	status.Reason = "NotReady"
 	status.Message = "Certificate is not ready yet"
 	return status, nil
+}
+
+// waitForCertificateReady waits for Certificate to be ready and secret to have the correct type and content
+func (k *K8sCertProvider) waitForCertificateReady(ctx context.Context, certName, namespace, secretName string) error {
+	sLog.InfofCtx(ctx, "  P (K8sCert): waiting for certificate %s to be ready in namespace %s", certName, namespace)
+
+	// Create a context with timeout for the whole operation
+	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
+	op := func() error {
+		// Check Certificate status
+		ready, err := k.checkCertificateStatus(timeoutCtx, certName, namespace)
+		if err != nil {
+			sLog.ErrorfCtx(timeoutCtx, "  P (K8sCert): error checking certificate status: %v", err)
+			return err
+		}
+
+		if !ready {
+			sLog.ErrorfCtx(timeoutCtx, "  P (K8sCert): certificate %s not ready yet", certName)
+			return fmt.Errorf("certificate %s not ready", certName)
+		}
+
+		// Check if secret exists and has correct type
+		secretReady, err := k.checkSecretReady(timeoutCtx, secretName, namespace)
+		if err != nil {
+			sLog.ErrorfCtx(timeoutCtx, "  P (K8sCert): error checking secret status: %v", err)
+			return err
+		}
+
+		if !secretReady {
+			sLog.ErrorfCtx(timeoutCtx, "  P (K8sCert): secret %s not ready yet", secretName)
+			return fmt.Errorf("secret %s not ready", secretName)
+		}
+
+		sLog.InfofCtx(timeoutCtx, "  P (K8sCert): certificate %s and secret %s are ready", certName, secretName)
+		return nil
+	}
+
+	// Use exponential backoff with the timeout context for cancellation
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = 2 * time.Second
+	bo.MaxInterval = 10 * time.Second
+	// Respect the outer timeout via WithContext
+	err := backoff.RetryNotify(op, backoff.WithContext(bo, timeoutCtx), func(err error, duration time.Duration) {
+		sLog.InfofCtx(timeoutCtx, "  P (K8sCert): retrying certificate check in %v due to: %v", duration, err)
+	})
+
+	if err != nil {
+		return fmt.Errorf("timeout waiting for certificate %s to be ready: %s", certName, err.Error())
+	}
+
+	return nil
+}
+
+// checkCertificateStatus checks if Certificate is ready
+func (k *K8sCertProvider) checkCertificateStatus(ctx context.Context, certName, namespace string) (bool, error) {
+	certificateGVR := k.dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}).Namespace(namespace)
+
+	certificate, err := certificateGVR.Get(ctx, certName, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get certificate: %s", err.Error())
+	}
+
+	// Check Certificate status conditions
+	if status, found := certificate.Object["status"]; found {
+		if statusMap, ok := status.(map[string]interface{}); ok {
+			if conditions, found := statusMap["conditions"]; found {
+				if conditionsArray, ok := conditions.([]interface{}); ok {
+					for _, condition := range conditionsArray {
+						if condMap, ok := condition.(map[string]interface{}); ok {
+							if condType, found := condMap["type"]; found && strings.EqualFold(condType.(string), "ready") {
+								if condStatus, found := condMap["status"]; found && strings.EqualFold(condStatus.(string), "true") {
+									return true, nil
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false, nil
+}
+
+// checkSecretReady checks if secret exists and has the correct type and content
+func (k *K8sCertProvider) checkSecretReady(ctx context.Context, secretName, namespace string) (bool, error) {
+	// Try to read both tls.crt and tls.key to verify secret is complete
+	secret, err := k.kubeClient.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (K8sCert): secret %s not ready yet, waiting...", secretName)
+		return false, err // Secret not ready yet
+	}
+
+	// Check if secret has the required keys
+	if _, hasCrt := secret.Data["tls.crt"]; !hasCrt {
+		sLog.ErrorfCtx(ctx, "  P (K8sCert): secret %s missing tls.crt, waiting...", secretName)
+		return false, fmt.Errorf("secret missing tls.crt")
+	}
+
+	if _, hasKey := secret.Data["tls.key"]; !hasKey {
+		sLog.ErrorfCtx(ctx, "  P (K8sCert): secret %s missing tls.key, waiting...", secretName)
+		return false, fmt.Errorf("secret missing tls.key")
+	}
+
+	return true, nil
 }
