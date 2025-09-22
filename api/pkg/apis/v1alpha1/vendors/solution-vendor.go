@@ -574,10 +574,6 @@ func (c *SolutionVendor) onGetResponse(request v1alpha2.COARequest) v1alpha2.COA
 func (c *SolutionVendor) handleWorkingCertManagement(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string) error {
 	sLog.InfofCtx(ctx, "V (Solution): handleWorkingCertManagement for remote target: %s, remove: %t", deployment.RemoteTargetName, remove)
 
-	if c.SolutionManager.GetCertProvider() == nil {
-		return fmt.Errorf("cert provider is not available")
-	}
-
 	if remove {
 		// Delete working certificate when removing remote target
 		err := c.SolutionManager.SafeDeleteWorkingCert(ctx, deployment.RemoteTargetName, namespace)
