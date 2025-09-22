@@ -8,6 +8,8 @@ package k8scert
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"strings"
 	"time"
@@ -27,6 +29,27 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+// parseCertificateInfo extracts serial number and expiration time from PEM certificate data
+func parseCertificateInfo(certPEM []byte) (serialNumber string, expiresAt time.Time, err error) {
+	// Parse PEM block
+	block, _ := pem.Decode(certPEM)
+	if block == nil {
+		return "", time.Time{}, fmt.Errorf("failed to parse PEM block")
+	}
+
+	// Parse X.509 certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to parse X.509 certificate: %v", err)
+	}
+
+	// Extract serial number and expiration time
+	serialNumber = cert.SerialNumber.String()
+	expiresAt = cert.NotAfter
+
+	return serialNumber, expiresAt, nil
+}
 
 const loggerName = "providers.cert.k8scert"
 
@@ -297,14 +320,23 @@ func (k *K8sCertProvider) GetCert(ctx context.Context, targetName, namespace str
 				publicCert := strings.ReplaceAll(string(certPEM), "\n", " ")
 				privateCert := strings.ReplaceAll(string(keyPEM), "\n", " ")
 
+				// Parse certificate to extract actual serial number and expiration time
+				serialNumber, expiresAt, err := parseCertificateInfo(certPEM)
+				if err != nil {
+					sLog.ErrorfCtx(ctx, "  P (K8sCert): failed to parse certificate info: %v, using defaults", err)
+					// Fallback to defaults if parsing fails
+					serialNumber = "cert-manager-generated"
+					expiresAt = time.Now().Add(90 * 24 * time.Hour)
+				}
+
 				response := &cert.CertResponse{
 					PublicKey:    publicCert,
 					PrivateKey:   privateCert,
-					ExpiresAt:    time.Now().Add(90 * 24 * time.Hour), // Default 90 days
-					SerialNumber: "cert-manager-generated",
+					ExpiresAt:    expiresAt,
+					SerialNumber: serialNumber,
 				}
 
-				sLog.InfofCtx(ctx, "  P (K8sCert): retrieved certificate for target %s after %d retries", targetName, retryCount)
+				sLog.InfofCtx(ctx, "  P (K8sCert): retrieved certificate for target %s after %d retries, serial: %s, expires: %s", targetName, retryCount, serialNumber, expiresAt.Format(time.RFC3339))
 				return response, nil
 			} else {
 				sLog.InfofCtx(ctx, "  P (K8sCert): certificate secret %s exists but missing certificate or key data, retrying...", secretName)
