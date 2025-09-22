@@ -121,8 +121,9 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		return err
 	}
 
-	// Initialize cert provider
-	if certProviderInstance, exists := providers["working-cert"]; exists {
+	// Initialize cert provider using unified approach
+	certProviderInstance, err := managers.GetCertProvider(config, providers)
+	if err == nil {
 		if cp, ok := certProviderInstance.(certProvider.ICertProvider); ok {
 			s.CertProvider = cp
 			// Try to get config from provider instance if possible
@@ -132,8 +133,11 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 				s.certProviderConfig = providerCfg.GetConfig()
 			}
 		} else {
-			return fmt.Errorf("working-cert provider does not implement ICertProvider interface")
+			return fmt.Errorf("cert provider does not implement ICertProvider interface")
 		}
+	} else {
+		// Cert provider is optional, log warning but don't fail
+		log.Warnf("Cert provider not configured: %v", err)
 	}
 
 	if v, ok := config.Properties["isTarget"]; ok {

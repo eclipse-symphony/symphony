@@ -263,6 +263,19 @@ func GetReporter(config ManagerConfig, providers map[string]providers.IProvider)
 	return reporterProvider, nil
 }
 
+func GetCertProvider(config ManagerConfig, providers map[string]providers.IProvider) (interface{}, error) {
+	certProviderName, ok := config.Properties[v1alpha2.ProvidersCert]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "cert provider is not configured", v1alpha2.MissingConfig)
+	}
+	provider, ok := providers[certProviderName]
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "cert provider is not supplied", v1alpha2.MissingConfig)
+	}
+	// Return interface{} to avoid circular import, let the caller do type assertion
+	return provider, nil
+}
+
 func NeedObjectValidate(config ManagerConfig, providers map[string]providers.IProvider) bool {
 	stateProviderName, ok := config.Properties[v1alpha2.ProvidersPersistentState]
 	if !ok {

@@ -59,13 +59,13 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 		s.TargetValidator = validation.NewTargetValidator(nil, s.targetUniqueNameLookup)
 	}
 
-	for _, p := range providers {
-		if c, ok := p.(secret.ISecretProvider); ok {
-			s.SecretProvider = c
+	// Initialize cert provider using unified approach
+	if certProviderInstance, err := managers.GetCertProvider(config, providers); err == nil {
+		if certProvider, ok := certProviderInstance.(certProvider.ICertProvider); ok {
+			s.CertProvider = certProvider
 		}
-		if c, ok := p.(certProvider.ICertProvider); ok {
-			s.CertProvider = c
-		}
+	} else {
+		log.Warnf("Cert provider not configured: %v", err)
 	}
 
 	return nil
