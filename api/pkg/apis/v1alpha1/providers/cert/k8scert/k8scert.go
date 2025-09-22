@@ -8,7 +8,6 @@ package k8scert
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -136,13 +135,21 @@ func (k *K8sCertProvider) Init(config providers.IProviderConfig) error {
 }
 
 func toK8sCertProviderConfig(config providers.IProviderConfig) (K8sCertProviderConfig, error) {
-	ret := K8sCertProviderConfig{}
-	data, err := json.Marshal(config)
-	if err != nil {
-		return ret, err
+	// Convert IProviderConfig to map[string]string and use existing parsing logic
+	configMap := make(map[string]string)
+
+	// Since config is guaranteed to be a map[string]interface{}, convert directly
+	mapConfig := config.(map[string]interface{})
+	for k, v := range mapConfig {
+		if str, ok := v.(string); ok {
+			configMap[k] = str
+		} else {
+			configMap[k] = fmt.Sprintf("%v", v)
+		}
 	}
-	err = json.Unmarshal(data, &ret)
-	return ret, err
+
+	// Use existing parsing logic that properly handles duration strings
+	return K8sCertProviderConfigFromMap(configMap)
 }
 
 // CreateCert creates a minimal cert-manager Certificate resource matching targets-vendor pattern
