@@ -2308,8 +2308,6 @@ func WaitForSymphonyServiceReady(t *testing.T, timeout time.Duration) {
 		select {
 		case <-ctx.Done():
 			// Before failing, let's get some debug information
-			t.Logf("Timeout waiting for Symphony service. Getting debug information...")
-
 			// Check pod status
 			cmd := exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony")
 			if output, err := cmd.CombinedOutput(); err == nil {
@@ -2334,7 +2332,8 @@ func WaitForSymphonyServiceReady(t *testing.T, timeout time.Duration) {
 			cmd := exec.Command("kubectl", "get", "deployment", "symphony-api", "-n", "default", "-o", "jsonpath={.status.readyReplicas}")
 			output, err := cmd.Output()
 			if err != nil {
-				t.Fatalf("Failed to check symphony-api deployment status: %v", err)
+				t.Logf("Failed to check symphony-api deployment status: %v", err)
+				continue
 			}
 
 			readyReplicas := strings.TrimSpace(string(output))

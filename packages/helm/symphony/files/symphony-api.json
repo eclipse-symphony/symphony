@@ -328,10 +328,6 @@
       {
         "type": "vendors.targets",
         "route": "targets",
-        "properties": {
-          "workingCertDuration": "{{ .Values.cert.certDurationTime | default "4320h" }}",
-          "workingCertRenewBefore": "{{ .Values.cert.certRenewBeforeTime | default "360h" }}"
-        },
         "managers": [
           {
             "name": "targets-manager",
