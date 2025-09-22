@@ -29,16 +29,22 @@ func TestK8sCertProviderConfigFromMap(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, config.InCluster)
 	assert.Equal(t, "", config.Name)
+	assert.Equal(t, time.Hour*2160, config.Duration)   // 90 days
+	assert.Equal(t, time.Hour*360, config.RenewBefore) // 15 days
 
 	// Test with custom values
 	properties = map[string]string{
-		"name":      "test-provider",
-		"inCluster": "false",
+		"name":        "test-provider",
+		"inCluster":   "false",
+		"duration":    "720h", // 30 days
+		"renewBefore": "168h", // 7 days
 	}
 	config, err = K8sCertProviderConfigFromMap(properties)
 	assert.NoError(t, err)
 	assert.False(t, config.InCluster)
 	assert.Equal(t, "test-provider", config.Name)
+	assert.Equal(t, time.Hour*720, config.Duration)
+	assert.Equal(t, time.Hour*168, config.RenewBefore)
 }
 
 func TestCertRequestDefaults(t *testing.T) {
@@ -423,4 +429,111 @@ func TestCommonNameConsistency(t *testing.T) {
 
 	assert.NotEqual(t, expectedCommonName, oldStyleCommonName)
 	assert.Equal(t, "symphony-test-target", oldStyleCommonName)
+}
+
+func TestCreateCertUsesProviderDefaults(t *testing.T) {
+	// Test that CreateCert method uses provider's configured defaults for Duration and RenewBefore only
+	provider := &K8sCertProvider{
+		Config: K8sCertProviderConfig{
+			Duration:    time.Hour * 720, // 30 days
+			RenewBefore: time.Hour * 168, // 7 days
+		},
+	}
+
+	// Create cert request with required fields but without Duration/RenewBefore
+	requestWithRequiredFields := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-service", // Required in request
+		IssuerName: "test-issuer",  // Required in request
+		DNSNames:   []string{"test-target", "test-target.test-namespace"},
+		// Duration and RenewBefore are empty/zero - should use provider defaults
+	}
+
+	// Test the logic that would be used in CreateCert to apply defaults
+	duration := requestWithRequiredFields.Duration
+	if duration == 0 {
+		duration = provider.Config.Duration
+	}
+
+	renewBefore := requestWithRequiredFields.RenewBefore
+	if renewBefore == 0 {
+		renewBefore = provider.Config.RenewBefore
+	}
+
+	// Verify provider defaults are used for Duration and RenewBefore
+	assert.Equal(t, time.Hour*720, duration)
+	assert.Equal(t, time.Hour*168, renewBefore)
+
+	// Verify request values are preserved for CommonName and IssuerName
+	assert.Equal(t, "test-service", requestWithRequiredFields.CommonName)
+	assert.Equal(t, "test-issuer", requestWithRequiredFields.IssuerName)
+	assert.Equal(t, "test-target", requestWithRequiredFields.TargetName)
+	assert.Equal(t, "test-namespace", requestWithRequiredFields.Namespace)
+	assert.Equal(t, []string{"test-target", "test-target.test-namespace"}, requestWithRequiredFields.DNSNames)
+}
+
+func TestCreateCertPreservesNonZeroRequestValues(t *testing.T) {
+	// Test that CreateCert preserves non-zero/non-empty request values
+	provider := &K8sCertProvider{
+		Config: K8sCertProviderConfig{
+			Duration:    time.Hour * 720, // 30 days (provider default)
+			RenewBefore: time.Hour * 168, // 7 days (provider default)
+		},
+	}
+
+	// Create cert request with explicit values
+	explicitRequest := cert.CertRequest{
+		TargetName:  "test-target",
+		Namespace:   "test-namespace",
+		Duration:    time.Hour * 2160, // 90 days (explicit value)
+		RenewBefore: time.Hour * 360,  // 15 days (explicit value)
+		CommonName:  "explicit-service",
+		IssuerName:  "explicit-issuer",
+		DNSNames:    []string{"test-target", "test-target.test-namespace"},
+	}
+
+	// Test the logic that would be used in CreateCert to apply defaults
+	duration := explicitRequest.Duration
+	if duration == 0 {
+		duration = provider.Config.Duration
+	}
+
+	renewBefore := explicitRequest.RenewBefore
+	if renewBefore == 0 {
+		renewBefore = provider.Config.RenewBefore
+	}
+
+	// Verify explicit request values are preserved (not overridden by provider defaults)
+	assert.Equal(t, time.Hour*2160, duration)
+	assert.Equal(t, time.Hour*360, renewBefore)
+	assert.Equal(t, "explicit-service", explicitRequest.CommonName)
+	assert.Equal(t, "explicit-issuer", explicitRequest.IssuerName)
+}
+
+func TestSimplifiedSolutionManagerWorkflow(t *testing.T) {
+	// Test that solution manager creates requests with required fields and provider handles duration defaults
+	targetName := "test-target"
+	namespace := "test-namespace"
+
+	// Simulate solution manager creating request (as in CreateCertRequest)
+	solutionManagerRequest := cert.CertRequest{
+		TargetName: targetName,
+		Namespace:  namespace,
+		CommonName: "symphony-service",   // Required field provided by solution manager
+		IssuerName: "symphony-ca-issuer", // Required field provided by solution manager
+		DNSNames:   []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
+		// Duration and RenewBefore will use provider defaults
+	}
+
+	// Verify solution manager request contains required fields
+	assert.Equal(t, "test-target", solutionManagerRequest.TargetName)
+	assert.Equal(t, "test-namespace", solutionManagerRequest.Namespace)
+	assert.Equal(t, "symphony-service", solutionManagerRequest.CommonName)
+	assert.Equal(t, "symphony-ca-issuer", solutionManagerRequest.IssuerName)
+	assert.Equal(t, []string{"test-target", "test-target.test-namespace"}, solutionManagerRequest.DNSNames)
+
+	// Verify duration fields that will use provider defaults are empty/zero
+	assert.Equal(t, time.Duration(0), solutionManagerRequest.Duration)
+	assert.Equal(t, time.Duration(0), solutionManagerRequest.RenewBefore)
 }

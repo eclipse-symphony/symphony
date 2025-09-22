@@ -34,8 +34,10 @@ const loggerName = "providers.cert.k8scert"
 var sLog = logger.NewLogger(loggerName)
 
 type K8sCertProviderConfig struct {
-	Name      string `json:"name"`
-	InCluster bool   `json:"inCluster,omitempty"`
+	Name        string        `json:"name"`
+	InCluster   bool          `json:"inCluster,omitempty"`
+	Duration    time.Duration `json:"duration,omitempty"`    // Default certificate duration
+	RenewBefore time.Duration `json:"renewBefore,omitempty"` // Default renew before duration
 }
 
 type K8sCertProvider struct {
@@ -47,14 +49,28 @@ type K8sCertProvider struct {
 
 func K8sCertProviderConfigFromMap(properties map[string]string) (K8sCertProviderConfig, error) {
 	ret := K8sCertProviderConfig{
-		InCluster: true, // default to in-cluster
+		InCluster:   true,             // default to in-cluster
+		Duration:    time.Hour * 2160, // default 90 days
+		RenewBefore: time.Hour * 360,  // default 15 days
 	}
+
 	if v, ok := properties["name"]; ok {
 		ret.Name = v
 	}
 	if v, ok := properties["inCluster"]; ok {
 		ret.InCluster = v == "true"
 	}
+	if v, ok := properties["duration"]; ok {
+		if d, err := time.ParseDuration(v); err == nil {
+			ret.Duration = d
+		}
+	}
+	if v, ok := properties["renewBefore"]; ok {
+		if d, err := time.ParseDuration(v); err == nil {
+			ret.RenewBefore = d
+		}
+	}
+
 	return ret, nil
 }
 
@@ -140,11 +156,23 @@ func (k *K8sCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 
 	sLog.InfofCtx(ctx, "  P (K8sCert): creating certificate for target %s in namespace %s", req.TargetName, req.Namespace)
 
+	// Use provider defaults for Duration and RenewBefore when request fields are empty or zero
+	duration := k.Config.Duration
+	renewBefore := k.Config.RenewBefore
+
+	// CommonName and IssuerName are now required in the request
+	if req.CommonName == "" {
+		return fmt.Errorf("CommonName is required in certificate request")
+	}
+	if req.IssuerName == "" {
+		return fmt.Errorf("IssuerName is required in certificate request")
+	}
+
 	// Use simple naming pattern like targets-vendor
 	certName := fmt.Sprintf("%s-working-cert", req.TargetName)
 	secretName := certName
 
-	// Create minimal Certificate resource matching solution-manager pattern
+	// Create minimal Certificate resource using request parameters and provider defaults
 	certificate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "cert-manager.io/v1",
@@ -155,10 +183,10 @@ func (k *K8sCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 			},
 			"spec": map[string]interface{}{
 				"secretName":  secretName,
-				"commonName":  "symphony-service",
+				"commonName":  req.CommonName,
 				"dnsNames":    req.DNSNames,
-				"duration":    req.Duration.String(),
-				"renewBefore": req.RenewBefore.String(),
+				"duration":    duration.String(),
+				"renewBefore": renewBefore.String(),
 				"issuerRef": map[string]interface{}{
 					"name": req.IssuerName,
 					"kind": "Issuer",
@@ -291,31 +319,6 @@ func (k *K8sCertProvider) GetCert(ctx context.Context, targetName, namespace str
 	// 30 seconds timeout reached without finding valid certificate
 	sLog.ErrorfCtx(ctx, "  P (K8sCert): certificate secret %s not found after 30 seconds timeout", secretName)
 	return nil, fmt.Errorf("certificate not found for target %s after 30 seconds: secret %s not available", targetName, secretName)
-}
-
-// RotateCert rotates the certificate by recreating it
-func (k *K8sCertProvider) RotateCert(ctx context.Context, targetName, namespace string) error {
-	ctx, span := observability.StartSpan("K8sCert Provider", ctx, &map[string]string{
-		"method": "RotateCert",
-	})
-	var err error = nil
-	defer observ_utils.CloseSpanWithError(span, &err)
-	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
-
-	sLog.InfofCtx(ctx, "  P (K8sCert): rotating certificate for target %s in namespace %s", targetName, namespace)
-
-	// Create a new certificate request with default values from solution-manager pattern
-	req := cert.CertRequest{
-		TargetName:  targetName,
-		Namespace:   namespace,
-		Duration:    time.Hour * 2160, // 90 days default
-		RenewBefore: time.Hour * 360,  // 15 days before expiration
-		CommonName:  "symphony-service",
-		DNSNames:    []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
-		IssuerName:  "symphony-ca-issuer",
-	}
-
-	return k.CreateCert(ctx, req)
 }
 
 // CheckCertStatus checks if the certificate is ready

@@ -70,6 +70,7 @@ type SolutionManager struct {
 	SummaryManager
 	TargetProviders         map[string]tgt.ITargetProvider
 	CertProvider            certProvider.ICertProvider
+	certProviderConfig      map[string]interface{}
 	ConfigProvider          config.IExtConfigProvider
 	SecretProvider          secret.ISecretProvider
 	KeyLockProvider         keylock.IKeyLockProvider
@@ -124,6 +125,12 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	if certProviderInstance, exists := providers["working-cert"]; exists {
 		if cp, ok := certProviderInstance.(certProvider.ICertProvider); ok {
 			s.CertProvider = cp
+			// Try to get config from provider instance if possible
+			if providerCfg, ok := certProviderInstance.(interface{ Config() map[string]interface{} }); ok {
+				s.certProviderConfig = providerCfg.Config()
+			} else if providerCfg, ok := certProviderInstance.(interface{ GetConfig() map[string]interface{} }); ok {
+				s.certProviderConfig = providerCfg.GetConfig()
+			}
 		} else {
 			return fmt.Errorf("working-cert provider does not implement ICertProvider interface")
 		}
@@ -1978,16 +1985,15 @@ func (s *SolutionManager) getOperationState(ctx context.Context, operationId str
 	return ret, err
 }
 
-// CreateCertRequest creates a certificate request for the given target and namespace
+// CreateCertRequest creates a certificate request with required fields, letting the cert provider use its configured defaults for Duration and RenewBefore
 func (s *SolutionManager) CreateCertRequest(targetName string, namespace string) certProvider.CertRequest {
+	// Create request with required fields - provider will use its configured defaults for Duration and RenewBefore only
 	return certProvider.CertRequest{
-		TargetName:  targetName,
-		Namespace:   namespace,
-		Duration:    time.Hour * 2160, // 90 days default
-		RenewBefore: time.Hour * 360,  // 15 days before expiration
-		CommonName:  "symphony-service",
-		DNSNames:    []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
-		IssuerName:  "symphony-ca-issuer",
-		ServiceName: "symphony-service",
+		TargetName: targetName,
+		Namespace:  namespace,
+		CommonName: "symphony-service",   // Required field
+		IssuerName: "symphony-ca-issuer", // Required field
+		DNSNames:   []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
+		// Duration and RenewBefore will use provider defaults
 	}
 }
