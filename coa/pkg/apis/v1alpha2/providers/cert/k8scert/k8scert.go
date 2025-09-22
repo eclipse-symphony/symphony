@@ -1,0 +1,267 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+package k8scert
+
+import (
+	"context"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"time"
+
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+)
+
+type K8SCertProvider struct {
+	Config        providers.IProviderConfig
+	Context       context.Context
+	K8sClient     kubernetes.Interface
+	DynamicClient dynamic.Interface
+}
+
+func (p *K8SCertProvider) ID() string {
+	return "k8s-cert"
+}
+
+func (p *K8SCertProvider) SetContext(ctx context.Context) {
+	p.Context = ctx
+}
+
+func (p *K8SCertProvider) Init(config providers.IProviderConfig) error {
+	p.Config = config
+
+	// Get in-cluster config
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get in-cluster config: %w", err)
+	}
+
+	// Create Kubernetes client
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+	p.K8sClient = clientset
+
+	// Create dynamic client for cert-manager CRDs
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+	p.DynamicClient = dynamicClient
+
+	return nil
+}
+
+// parseCertificateInfo extracts serial number and expiration time from PEM-encoded certificate data
+func parseCertificateInfo(certData []byte) (string, time.Time, error) {
+	// Decode PEM block
+	block, _ := pem.Decode(certData)
+	if block == nil {
+		return "", time.Time{}, fmt.Errorf("failed to decode PEM block")
+	}
+
+	// Parse certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	return cert.SerialNumber.String(), cert.NotAfter, nil
+}
+
+func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) error {
+	// Define the Certificate resource
+	certificateGVR := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}
+
+	// Create the Certificate object
+	certificate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "cert-manager.io/v1",
+			"kind":       "Certificate",
+			"metadata": map[string]interface{}{
+				"name":      req.TargetName,
+				"namespace": req.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"secretName": req.ServiceName, // Use ServiceName as secret name
+				"issuerRef": map[string]interface{}{
+					"name": req.IssuerName,
+					"kind": "Issuer",
+				},
+				"dnsNames":    req.DNSNames,
+				"commonName":  req.CommonName,
+				"duration":    req.Duration.String(),
+				"renewBefore": req.RenewBefore.String(),
+			},
+		},
+	}
+
+	// Create the certificate
+	_, err := p.DynamicClient.Resource(certificateGVR).Namespace(req.Namespace).Create(
+		ctx, certificate, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create certificate: %w", err)
+	}
+
+	return nil
+}
+
+func (p *K8SCertProvider) DeleteCert(ctx context.Context, targetName, namespace string) error {
+	certificateGVR := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}
+
+	err := p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Delete(
+		ctx, targetName, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete certificate: %w", err)
+	}
+
+	return nil
+}
+
+func (p *K8SCertProvider) GetCert(ctx context.Context, targetName, namespace string) (*cert.CertResponse, error) {
+	// Get the Certificate resource to find the secret name
+	certificateGVR := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}
+
+	certificate, err := p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Get(
+		ctx, targetName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get certificate: %w", err)
+	}
+
+	// Extract the secret name from the certificate spec
+	spec, ok := certificate.Object["spec"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid certificate spec")
+	}
+
+	secretName, ok := spec["secretName"].(string)
+	if !ok {
+		return nil, fmt.Errorf("secret name not found in certificate spec")
+	}
+
+	// Get the secret containing the certificate
+	secret, err := p.K8sClient.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret %s: %w", secretName, err)
+	}
+
+	// Extract certificate data
+	certData, exists := secret.Data["tls.crt"]
+	if !exists {
+		return nil, fmt.Errorf("certificate data not found in secret")
+	}
+
+	// Extract private key data
+	keyData, exists := secret.Data["tls.key"]
+	if !exists {
+		return nil, fmt.Errorf("private key data not found in secret")
+	}
+
+	// Parse certificate to get real serial number and expiration time
+	serialNumber, expiresAt, err := parseCertificateInfo(certData)
+	if err != nil {
+		// If parsing fails, return basic info
+		return &cert.CertResponse{
+			PublicKey:    string(certData),
+			PrivateKey:   string(keyData),
+			SerialNumber: "parsing-failed",
+			ExpiresAt:    time.Now().Add(90 * 24 * time.Hour), // default fallback
+		}, nil
+	}
+
+	return &cert.CertResponse{
+		PublicKey:    string(certData),
+		PrivateKey:   string(keyData),
+		SerialNumber: serialNumber,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+func (p *K8SCertProvider) CheckCertStatus(ctx context.Context, targetName, namespace string) (*cert.CertStatus, error) {
+	certificateGVR := schema.GroupVersionResource{
+		Group:    "cert-manager.io",
+		Version:  "v1",
+		Resource: "certificates",
+	}
+
+	certificate, err := p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Get(
+		ctx, targetName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get certificate: %w", err)
+	}
+
+	// Check the status
+	status, ok := certificate.Object["status"].(map[string]interface{})
+	if !ok {
+		return &cert.CertStatus{
+			Ready:      false,
+			LastUpdate: time.Now(),
+		}, nil
+	}
+
+	conditions, ok := status["conditions"].([]interface{})
+	if !ok || len(conditions) == 0 {
+		return &cert.CertStatus{
+			Ready:      false,
+			LastUpdate: time.Now(),
+		}, nil
+	}
+
+	// Check the Ready condition
+	for _, condition := range conditions {
+		condMap, ok := condition.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		if condType, ok := condMap["type"].(string); ok && condType == "Ready" {
+			if condStatus, ok := condMap["status"].(string); ok {
+				if condStatus == "True" {
+					return &cert.CertStatus{
+						Ready:      true,
+						LastUpdate: time.Now(),
+					}, nil
+				} else {
+					reason, _ := condMap["reason"].(string)
+					message, _ := condMap["message"].(string)
+					return &cert.CertStatus{
+						Ready:      false,
+						Reason:     reason,
+						Message:    message,
+						LastUpdate: time.Now(),
+					}, nil
+				}
+			}
+		}
+	}
+
+	return &cert.CertStatus{
+		Ready:      false,
+		LastUpdate: time.Now(),
+	}, nil
+}

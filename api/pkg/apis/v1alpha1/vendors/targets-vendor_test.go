@@ -14,11 +14,11 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	certProvider "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	certProvider "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"

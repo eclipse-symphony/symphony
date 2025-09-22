@@ -13,6 +13,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	providers "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger"
@@ -263,7 +264,7 @@ func GetReporter(config ManagerConfig, providers map[string]providers.IProvider)
 	return reporterProvider, nil
 }
 
-func GetCertProvider(config ManagerConfig, providers map[string]providers.IProvider) (interface{}, error) {
+func GetCertProvider(config ManagerConfig, providers map[string]providers.IProvider) (cert.ICertProvider, error) {
 	certProviderName, ok := config.Properties[v1alpha2.ProvidersCert]
 	if !ok {
 		return nil, v1alpha2.NewCOAError(nil, "cert provider is not configured", v1alpha2.MissingConfig)
@@ -272,8 +273,11 @@ func GetCertProvider(config ManagerConfig, providers map[string]providers.IProvi
 	if !ok {
 		return nil, v1alpha2.NewCOAError(nil, "cert provider is not supplied", v1alpha2.MissingConfig)
 	}
-	// Return interface{} to avoid circular import, let the caller do type assertion
-	return provider, nil
+	certProvider, ok := provider.(cert.ICertProvider)
+	if !ok {
+		return nil, v1alpha2.NewCOAError(nil, "supplied provider is not a cert provider", v1alpha2.BadConfig)
+	}
+	return certProvider, nil
 }
 
 func NeedObjectValidate(config ManagerConfig, providers map[string]providers.IProvider) bool {

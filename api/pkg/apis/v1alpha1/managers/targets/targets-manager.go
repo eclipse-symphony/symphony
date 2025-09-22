@@ -13,13 +13,13 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	certProvider "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/cert"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/registry"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -38,7 +38,7 @@ type TargetsManager struct {
 	needValidate     bool
 	TargetValidator  validation.TargetValidator
 	SecretProvider   secret.ISecretProvider
-	CertProvider     certProvider.ICertProvider
+	CertProvider     cert.ICertProvider
 }
 
 func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -61,9 +61,7 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 
 	// Initialize cert provider using unified approach
 	if certProviderInstance, err := managers.GetCertProvider(config, providers); err == nil {
-		if certProvider, ok := certProviderInstance.(certProvider.ICertProvider); ok {
-			s.CertProvider = certProvider
-		}
+		s.CertProvider = certProviderInstance
 	} else {
 		log.Warnf("Cert provider not configured: %v", err)
 	}
@@ -315,6 +313,6 @@ func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, 
 }
 
 // GetCertProvider returns the certificate provider for read-only access to certificates
-func (t *TargetsManager) GetCertProvider() certProvider.ICertProvider {
+func (t *TargetsManager) GetCertProvider() cert.ICertProvider {
 	return t.CertProvider
 }

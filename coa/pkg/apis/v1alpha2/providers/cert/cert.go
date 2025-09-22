@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-// ICertProvider defines the interface for certificate management
+// ICertProvider defines the interface for certificate providers
 type ICertProvider interface {
-	// CreateCert creates a certificate for the specified target
+	// CreateCert creates a new certificate for the specified target
 	CreateCert(ctx context.Context, req CertRequest) error
 
 	// DeleteCert deletes the certificate for the specified target
 	DeleteCert(ctx context.Context, targetName, namespace string) error
 
-	// GetCert retrieves the certificate for the specified target (read-only)
+	// GetCert retrieves the certificate for the specified target
 	GetCert(ctx context.Context, targetName, namespace string) (*CertResponse, error)
 
-	// CheckCertStatus checks if the certificate is ready and valid
+	// CheckCertStatus checks the status of the certificate for the specified target
 	CheckCertStatus(ctx context.Context, targetName, namespace string) (*CertStatus, error)
 }
 
@@ -38,7 +38,7 @@ type CertRequest struct {
 	ServiceName string        `json:"serviceName"`
 }
 
-// CertResponse represents the certificate data
+// CertResponse represents a certificate response
 type CertResponse struct {
 	PublicKey    string    `json:"publicKey"`
 	PrivateKey   string    `json:"privateKey"`
@@ -46,7 +46,7 @@ type CertResponse struct {
 	SerialNumber string    `json:"serialNumber"`
 }
 
-// CertStatus represents the certificate status
+// CertStatus represents the status of a certificate
 type CertStatus struct {
 	Ready       bool      `json:"ready"`
 	Reason      string    `json:"reason"`
