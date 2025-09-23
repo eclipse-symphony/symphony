@@ -9,6 +9,7 @@ package k8scert
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"time"
@@ -24,8 +25,14 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+type K8SCertProviderConfig struct {
+	Name            string `json:"name"`
+	DefaultDuration string `json:"defaultDuration"`
+	RenewBefore     string `json:"renewBefore"`
+}
+
 type K8SCertProvider struct {
-	Config        providers.IProviderConfig
+	Config        K8SCertProviderConfig
 	Context       context.Context
 	K8sClient     kubernetes.Interface
 	DynamicClient dynamic.Interface
@@ -39,8 +46,22 @@ func (p *K8SCertProvider) SetContext(ctx context.Context) {
 	p.Context = ctx
 }
 
+func toK8SCertProviderConfig(config providers.IProviderConfig) (K8SCertProviderConfig, error) {
+	ret := K8SCertProviderConfig{}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(data, &ret)
+	return ret, err
+}
+
 func (p *K8SCertProvider) Init(config providers.IProviderConfig) error {
-	p.Config = config
+	aConfig, err := toK8SCertProviderConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to convert config: %w", err)
+	}
+	p.Config = aConfig
 
 	// Get in-cluster config
 	restConfig, err := rest.InClusterConfig()
@@ -63,6 +84,34 @@ func (p *K8SCertProvider) Init(config providers.IProviderConfig) error {
 	p.DynamicClient = dynamicClient
 
 	return nil
+}
+
+// getConfigDuration reads the defaultDuration from provider configuration
+func (p *K8SCertProvider) getConfigDuration() time.Duration {
+	if p.Config.DefaultDuration == "" {
+		return 4320 * time.Hour // 180 days default
+	}
+
+	duration, err := time.ParseDuration(p.Config.DefaultDuration)
+	if err != nil {
+		return 4320 * time.Hour // 180 days default
+	}
+
+	return duration
+}
+
+// getConfigRenewBefore reads the renewBefore from provider configuration
+func (p *K8SCertProvider) getConfigRenewBefore() time.Duration {
+	if p.Config.RenewBefore == "" {
+		return 360 * time.Hour // 15 days default
+	}
+
+	renewBefore, err := time.ParseDuration(p.Config.RenewBefore)
+	if err != nil {
+		return 360 * time.Hour // 15 days default
+	}
+
+	return renewBefore
 }
 
 // parseCertificateInfo extracts serial number and expiration time from PEM-encoded certificate data
@@ -90,6 +139,12 @@ func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 		Resource: "certificates",
 	}
 
+	duration := p.getConfigDuration()
+	renewBefore := p.getConfigRenewBefore()
+
+	// Use consistent naming: targetname-working-cert
+	secretName := fmt.Sprintf("%s-working-cert", req.TargetName)
+
 	// Create the Certificate object
 	certificate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -100,15 +155,15 @@ func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 				"namespace": req.Namespace,
 			},
 			"spec": map[string]interface{}{
-				"secretName": req.ServiceName, // Use ServiceName as secret name
+				"secretName": secretName,
 				"issuerRef": map[string]interface{}{
 					"name": req.IssuerName,
 					"kind": "Issuer",
 				},
 				"dnsNames":    req.DNSNames,
 				"commonName":  req.CommonName,
-				"duration":    req.Duration.String(),
-				"renewBefore": req.RenewBefore.String(),
+				"duration":    duration.String(),
+				"renewBefore": renewBefore.String(),
 			},
 		},
 	}
