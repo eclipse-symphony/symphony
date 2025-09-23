@@ -85,7 +85,7 @@ func TestE2EHttpCommunicationWithProcess(t *testing.T) {
 		// Wait for target to be created
 		utils.WaitForTargetCreated(t, targetName, namespace, 30*time.Second)
 	})
-	time.Sleep(10 * time.Second) // Short wait to ensure target resource is fully ready
+
 	// Start the remote agent process at main test level so it persists across subtests
 	t.Logf("Starting remote agent process...")
 	config := utils.TestConfig{
