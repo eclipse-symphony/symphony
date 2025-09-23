@@ -38,6 +38,7 @@ import (
 	tgtmock "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mock"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/mqtt"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/proxy"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/rust"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/script"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/win10/sideload"
@@ -264,6 +265,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.target.rust":
+		mProvider := &rust.RustTargetProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
 	case "providers.config.mock":
 		mProvider := &mockconfig.MockConfigProvider{}
 		err = mProvider.Init(config)
@@ -288,6 +295,14 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
+	case "providers.target.rust":
+		provider := &rust.RustTargetProvider{}
+		err := provider.InitWithMap(binding.Config)
+		if err != nil {
+			return nil, err
+		}
+		provider.Context = context
+		return provider, nil
 	case "providers.pubsub.memory":
 		mProvider := &mempubsub.InMemoryPubSubProvider{}
 		err = mProvider.Init(config)
@@ -517,6 +532,14 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 				case "providers.target.configmap":
 					provider := &configmap.ConfigMapTargetProvider{}
+					err := provider.InitWithMap(binding.Config)
+					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.target.rust":
+					provider := &rust.RustTargetProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err
