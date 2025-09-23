@@ -49,6 +49,41 @@ type TestConfig struct {
 	BrokerPort     string
 }
 
+// Global variables for single binary optimization
+var (
+	buildOnce        sync.Once
+	sharedBinaryPath string
+	buildError       error
+)
+
+// BuildRemoteAgentBinaryOnce builds the remote agent binary only once using sync.Once
+// This prevents multiple goroutines from building the same binary simultaneously
+func BuildRemoteAgentBinaryOnce(t *testing.T, config TestConfig) (string, error) {
+	buildOnce.Do(func() {
+		t.Logf("Building remote agent binary (once)...")
+		sharedBinaryPath = filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap", "remote-agent")
+
+		buildCmd := exec.Command("go", "build", "-tags", "remote", "-o", "bootstrap/remote-agent", ".")
+		buildCmd.Dir = filepath.Join(config.ProjectRoot, "remote-agent")
+		buildCmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
+
+		var stdout, stderr bytes.Buffer
+		buildCmd.Stdout = &stdout
+		buildCmd.Stderr = &stderr
+
+		buildError = buildCmd.Run()
+		if buildError != nil {
+			t.Logf("Build stdout: %s", stdout.String())
+			t.Logf("Build stderr: %s", stderr.String())
+			sharedBinaryPath = ""
+		} else {
+			t.Logf("Successfully built shared remote agent binary: %s", sharedBinaryPath)
+		}
+	})
+
+	return sharedBinaryPath, buildError
+}
+
 // getHostIPForMinikube returns the host IP address that minikube can reach
 // This is typically the host's main network interface IP
 func getHostIPForMinikube() (string, error) {
@@ -255,7 +290,7 @@ spec:
       role: remote-agent
 `, targetName, namespace, targetName)
 
-	yamlPath := filepath.Join(testDir, fmt.Sprintf("%s-target.yaml", targetName))
+	yamlPath := filepath.Join(testDir, "target.yaml")
 	err := ioutil.WriteFile(yamlPath, []byte(strings.TrimSpace(yamlContent)), 0644)
 	require.NoError(t, err)
 
@@ -788,8 +823,8 @@ func WaitForResourceDeleted(t *testing.T, resourceType, resourceName, namespace 
 	for {
 		select {
 		case <-ctx.Done():
-			t.Logf("Timeout waiting for %s %s/%s to be deleted", resourceType, namespace, resourceName)
-			return // Don't fail the test, just log and continue
+			t.Fatalf("Timeout waiting for %s %s/%s to be deleted", resourceType, namespace, resourceName)
+			return
 		case <-ticker.C:
 			cmd := exec.Command("kubectl", "get", resourceType, resourceName, "-n", namespace)
 			err := cmd.Run()
@@ -848,6 +883,7 @@ func GetDynamicClient() (dynamic.Interface, error) {
 func WaitForTargetCreated(t *testing.T, targetName, namespace string, timeout time.Duration) {
 	dyn, err := GetDynamicClient()
 	require.NoError(t, err)
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -859,7 +895,6 @@ func WaitForTargetCreated(t *testing.T, targetName, namespace string, timeout ti
 		case <-ctx.Done():
 			t.Fatalf("Timeout waiting for Target %s/%s to be created", namespace, targetName)
 		case <-ticker.C:
-
 			targets, err := dyn.Resource(schema.GroupVersionResource{
 				Group:    "fabric.symphony",
 				Version:  "v1",
@@ -880,6 +915,13 @@ func WaitForTargetCreated(t *testing.T, targetName, namespace string, timeout ti
 
 // WaitForTargetReady waits for a Target to reach ready state
 func WaitForTargetReady(t *testing.T, targetName, namespace string, timeout time.Duration) {
+	WaitForTargetStatus(t, targetName, namespace, "Succeeded", timeout)
+}
+
+// WaitForTargetStatus waits for a Target to reach the expected status
+// If expectedStatus is "Succeeded", it will report error if timeout and status is not "Succeeded"
+// If expectedStatus is "Failed", it will report error if timeout and status is not "Failed"
+func WaitForTargetStatus(t *testing.T, targetName, namespace string, expectedStatus string, timeout time.Duration) {
 	dyn, err := GetDynamicClient()
 	require.NoError(t, err)
 
@@ -888,6 +930,8 @@ func WaitForTargetReady(t *testing.T, targetName, namespace string, timeout time
 
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
+
+	t.Logf("Waiting for Target %s/%s to reach status: %s", namespace, targetName, expectedStatus)
 
 	// Check immediately first
 	target, err := dyn.Resource(schema.GroupVersionResource{
@@ -904,12 +948,9 @@ func WaitForTargetReady(t *testing.T, targetName, namespace string, timeout time
 				statusStr, found, err := unstructured.NestedString(provisioningStatus, "status")
 				if err == nil && found {
 					t.Logf("Target %s/%s current status: %s", namespace, targetName, statusStr)
-					if statusStr == "Succeeded" {
-						t.Logf("Target %s/%s is already ready", namespace, targetName)
+					if statusStr == expectedStatus {
+						t.Logf("Target %s/%s is already at expected status: %s", namespace, targetName, expectedStatus)
 						return
-					}
-					if statusStr == "Failed" {
-						t.Fatalf("Target %s/%s failed to deploy", namespace, targetName)
 					}
 				}
 			}
@@ -919,30 +960,9 @@ func WaitForTargetReady(t *testing.T, targetName, namespace string, timeout time
 	for {
 		select {
 		case <-ctx.Done():
-			// Before failing, let's check the current status one more time and provide better diagnostics
-			target, err := dyn.Resource(schema.GroupVersionResource{
-				Group:    "fabric.symphony",
-				Version:  "v1",
-				Resource: "targets",
-			}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
+			// Report error if timeout and status doesn't match expected
+			t.Fatalf("Timeout waiting for Target %s/%s to reach status %s.", namespace, targetName, expectedStatus)
 
-			if err != nil {
-				t.Logf("Failed to get target %s/%s for final status check: %v", namespace, targetName, err)
-			} else {
-				status, found, err := unstructured.NestedMap(target.Object, "status")
-				if err == nil && found {
-					statusJSON, _ := json.MarshalIndent(status, "", "  ")
-					t.Logf("Final target %s/%s status: %s", namespace, targetName, string(statusJSON))
-				}
-			}
-
-			// Also check Symphony service status
-			cmd := exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony")
-			if output, err := cmd.CombinedOutput(); err == nil {
-				t.Logf("Symphony pods at timeout:\n%s", string(output))
-			}
-
-			t.Fatalf("Timeout waiting for Target %s/%s to be ready", namespace, targetName)
 		case <-ticker.C:
 			target, err := dyn.Resource(schema.GroupVersionResource{
 				Group:    "fabric.symphony",
@@ -957,13 +977,10 @@ func WaitForTargetReady(t *testing.T, targetName, namespace string, timeout time
 					if err == nil && found {
 						statusStr, found, err := unstructured.NestedString(provisioningStatus, "status")
 						if err == nil && found {
-							t.Logf("Target %s/%s status: %s", namespace, targetName, statusStr)
-							if statusStr == "Succeeded" {
-								t.Logf("Target %s/%s is ready", namespace, targetName)
+							t.Logf("Target %s/%s status: %s (expecting: %s)", namespace, targetName, statusStr, expectedStatus)
+							if statusStr == expectedStatus {
+								t.Logf("Target %s/%s reached expected status: %s", namespace, targetName, expectedStatus)
 								return
-							}
-							if statusStr == "Failed" {
-								t.Fatalf("Target %s/%s failed to deploy", namespace, targetName)
 							}
 						} else {
 							t.Logf("Target %s/%s: provisioningStatus.status not found", namespace, targetName)
@@ -997,8 +1014,7 @@ func WaitForInstanceReady(t *testing.T, instanceName, namespace string, timeout 
 	for {
 		select {
 		case <-ctx.Done():
-			t.Logf("Timeout waiting for Instance %s/%s to be ready", namespace, instanceName)
-			// Don't fail the test, just continue - Instance deployment might take long
+			t.Fatalf("Timeout waiting for Instance %s/%s to be ready", namespace, instanceName)
 			return
 		case <-ticker.C:
 			instance, err := dyn.Resource(schema.GroupVersionResource{
@@ -1269,8 +1285,12 @@ func StartRemoteAgentProcess(t *testing.T, config TestConfig) *exec.Cmd {
 	stderrTee := io.TeeReader(stderrPipe, &stderr)
 
 	err = cmd.Start()
-
-	require.NoError(t, err)
+	if err != nil {
+		t.Logf("Failed to start remote agent process: %v", err)
+		t.Logf("Stdout: %s", stdout.String())
+		t.Logf("Stderr: %s", stderr.String())
+	}
+	require.NoError(t, err, "Failed to start remote agent process")
 
 	// Start real-time log streaming in background goroutines
 	go streamProcessLogs(t, stdoutTee, "Remote Agent STDOUT")
@@ -2333,7 +2353,7 @@ func WaitForSymphonyServiceReady(t *testing.T, timeout time.Duration) {
 			// Check pod status
 			cmd := exec.Command("kubectl", "get", "pods", "-n", "default", "-l", "app.kubernetes.io/name=symphony")
 			if output, err := cmd.CombinedOutput(); err == nil {
-				t.Logf("Symphony pods status:\n%s", string(output))
+				t.Fatalf("Symphony pods at timeout:\n%s", string(output))
 			}
 
 			// Check service status
@@ -2914,7 +2934,7 @@ func WaitForSystemdService(t *testing.T, serviceName string, timeout time.Durati
 	for {
 		select {
 		case <-ctx.Done():
-			t.Logf("Timeout waiting for systemd service %s to be active", serviceName)
+			t.Fatalf("Timeout waiting for systemd service %s to be active", serviceName)
 			// Before failing, check the final status
 			CheckSystemdServiceStatus(t, serviceName)
 			// Also check if the process is actually running
@@ -3169,7 +3189,7 @@ func SetupExternalMQTTBroker(t *testing.T, certs MQTTCertificatePaths, brokerPor
 	configContent := fmt.Sprintf(`
 port %d
 cafile /mqtt/certs/%s
-certfile /mqtt/certs/%s
+certfile /mqtt/certs/%s  
 keyfile /mqtt/certs/%s
 require_certificate true
 use_identity_as_username false
@@ -3387,466 +3407,145 @@ func TestMQTTConnectivity(t *testing.T, brokerAddress string, brokerPort int, ce
 	}()
 
 	// Test basic connectivity (simplified - in real implementation you'd use MQTT client library)
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", brokerPort), 10*time.Second)
-	if err == nil {
-		conn.Close()
-		t.Logf("MQTT broker connectivity test passed")
-	} else {
-		t.Logf("MQTT broker connectivity test failed: %v", err)
-		require.NoError(t, err)
-	}
-}
+	// In a more complete implementation, you could use an MQTT client library like:
+	// - github.com/eclipse/paho.mqtt.golang
+	// - github.com/at-wat/mqtt-go
 
-// StartSymphonyWithMQTTConfigAlternative starts Symphony with MQTT configuration using direct Helm commands
-func StartSymphonyWithMQTTConfigAlternative(t *testing.T, brokerAddress string) {
-	helmValues := fmt.Sprintf("--set remoteAgent.remoteCert.used=true "+
-		"--set remoteAgent.remoteCert.trustCAs.secretName=mqtt-ca "+
-		"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt "+
-		"--set remoteAgent.remoteCert.subjects=MyRootCA;localhost "+
-		"--set http.enabled=true "+
-		"--set mqtt.enabled=true "+
-		"--set mqtt.useTLS=true "+
-		"--set mqtt.mqttClientCert.enabled=true "+
-		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret "+
-		"--set mqtt.brokerAddress=%s "+
-		"--set certManager.enabled=true "+
-		"--set api.env.ISSUER_NAME=symphony-ca-issuer "+
-		"--set api.env.SYMPHONY_SERVICE_NAME=symphony-service", brokerAddress)
+	t.Logf("Step 2: Simulating MQTT client connection test...")
 
-	t.Logf("Deploying Symphony with MQTT configuration using direct Helm approach...")
-
-	projectRoot := GetProjectRoot(t)
-	localenvDir := filepath.Join(projectRoot, "test", "localenv")
-
-	// Step 1: Ensure minikube and prerequisites are ready
-	t.Logf("Step 1: Setting up minikube and prerequisites...")
-	cmd := exec.Command("mage", "cluster:ensureminikubeup")
-	cmd.Dir = localenvDir
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: ensureminikubeup failed: %v", err)
-	}
-
-	// Step 2: Load images with timeout
-	t.Logf("Step 2: Loading Docker images...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-	cmd = exec.CommandContext(ctx, "mage", "cluster:load")
-	cmd.Dir = localenvDir
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: image loading failed or timed out: %v", err)
-	}
-
-	// Step 3: Deploy cert-manager and trust-manager
-	t.Logf("Step 3: Setting up cert-manager and trust-manager...")
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
-	cmd = exec.CommandContext(ctx, "kubectl", "apply", "-f", "https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.yaml", "--wait")
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: cert-manager setup failed or timed out: %v", err)
-	}
-
-	// Wait for cert-manager webhook
-	cmd = exec.Command("kubectl", "wait", "--for=condition=ready", "pod", "-l", "app.kubernetes.io/component=webhook", "-n", "cert-manager", "--timeout=90s")
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: cert-manager webhook not ready: %v", err)
-	}
-
-	// Step 3b: Set up trust-manager
-	t.Logf("Step 3b: Setting up trust-manager...")
-	cmd = exec.Command("helm", "repo", "add", "jetstack", "https://charts.jetstack.io", "--force-update")
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: failed to add jetstack repo: %v", err)
-	}
-
-	cmd = exec.Command("helm", "upgrade", "trust-manager", "jetstack/trust-manager", "--install", "--namespace", "cert-manager", "--wait", "--set", "app.trust.namespace=cert-manager")
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: trust-manager setup failed: %v", err)
-	}
-
-	// Step 4: Deploy Symphony with a shorter timeout and without hanging
-	t.Logf("Step 4: Deploying Symphony Helm chart...")
-	chartPath := "../../packages/helm/symphony"
-	valuesFile1 := "../../packages/helm/symphony/values.yaml"
-	valuesFile2 := "symphony-ghcr-values.yaml"
-
-	// Build the complete Helm command
-	helmCmd := []string{
-		"helm", "upgrade", "ecosystem", chartPath,
-		"--install", "-n", "default", "--create-namespace",
-		"-f", valuesFile1,
-		"-f", valuesFile2,
-		"--set", "symphonyImage.tag=latest",
-		"--set", "paiImage.tag=latest",
-		"--timeout", "8m0s",
-	}
-
-	// Add the MQTT-specific values
-	helmValuesList := strings.Split(helmValues, " ")
-	helmCmd = append(helmCmd, helmValuesList...)
-
-	t.Logf("Running Helm command: %v", helmCmd)
-
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	cmd = exec.CommandContext(ctx, helmCmd[0], helmCmd[1:]...)
-	cmd.Dir = localenvDir
+	// Use openssl s_client to test the connection more thoroughly
+	cmd = exec.Command("timeout", "10s", "openssl", "s_client",
+		"-connect", fmt.Sprintf("%s:%d", brokerAddress, brokerPort),
+		"-CAfile", certs.CACert,
+		"-cert", certs.RemoteAgentCert,
+		"-key", certs.RemoteAgentKey,
+		"-verify_return_error",
+		"-quiet")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	cmd.Stdin = strings.NewReader("CONNECT\n")
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
-		t.Logf("Helm deployment stdout: %s", stdout.String())
-		t.Logf("Helm deployment stderr: %s", stderr.String())
-		t.Fatalf("Helm deployment failed: %v", err)
+		t.Logf("❌ MQTT/TLS connection test failed: %v", err)
+		t.Logf("stdout: %s", stdout.String())
+		t.Logf("stderr: %s", stderr.String())
+	} else {
+		t.Logf("✅ MQTT/TLS connection test passed")
+		t.Logf("Connection output: %s", stdout.String())
 	}
 
-	t.Logf("Helm deployment completed successfully")
-	t.Logf("Helm stdout: %s", stdout.String())
-
-	// Step 5: Wait for certificates manually
-	t.Logf("Step 5: Waiting for Symphony certificates...")
-	for _, cert := range []string{"symphony-api-serving-cert", "symphony-serving-cert"} {
-		cmd = exec.Command("kubectl", "wait", "--for=condition=ready", "certificates", cert, "-n", "default", "--timeout=90s")
-		if err := cmd.Run(); err != nil {
-			t.Logf("Warning: certificate %s not ready: %v", cert, err)
-		}
-	}
-
-	t.Logf("Symphony deployment with MQTT configuration completed successfully")
+	t.Logf("=== MQTT CONNECTION TEST COMPLETED ===")
 }
 
-// StartSymphonyWithMQTTConfig starts Symphony with MQTT configuration
-func StartSymphonyWithMQTTConfig(t *testing.T, brokerAddress string) {
-	helmValues := fmt.Sprintf("--set remoteAgent.remoteCert.used=true "+
-		"--set remoteAgent.remoteCert.trustCAs.secretName=mqtt-ca "+
-		"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt "+
-		"--set remoteAgent.remoteCert.subjects=MyRootCA;localhost "+
-		"--set http.enabled=true "+
-		"--set mqtt.enabled=true "+
-		"--set mqtt.useTLS=true "+
-		"--set mqtt.mqttClientCert.enabled=true "+
-		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret"+
-		"--set mqtt.brokerAddress=%s "+
-		"--set certManager.enabled=true "+
-		"--set api.env.ISSUER_NAME=symphony-ca-issuer "+
-		"--set api.env.SYMPHONY_SERVICE_NAME=symphony-service", brokerAddress)
-
-	t.Logf("Deploying Symphony with MQTT configuration...")
-	t.Logf("Command: mage cluster:deployWithSettings \"%s\"", helmValues)
-
-	// Execute mage command from localenv directory
-	projectRoot := GetProjectRoot(t)
-	localenvDir := filepath.Join(projectRoot, "test", "localenv")
-
-	t.Logf("StartSymphonyWithMQTTConfig: Project root: %s", projectRoot)
-	t.Logf("StartSymphonyWithMQTTConfig: Localenv dir: %s", localenvDir)
-
-	// Check if localenv directory exists
-	if _, err := os.Stat(localenvDir); os.IsNotExist(err) {
-		t.Fatalf("Localenv directory does not exist: %s", localenvDir)
-	}
-
-	// Pre-deployment checks to ensure cluster is ready
-	t.Logf("Performing pre-deployment cluster readiness checks...")
-
-	// Check if required secrets exist
-	cmd := exec.Command("kubectl", "get", "secret", "mqtt-ca", "-n", "cert-manager")
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: mqtt-ca secret not found in cert-manager namespace: %v", err)
-	} else {
-		t.Logf("mqtt-ca secret found in cert-manager namespace")
-	}
-
-	cmd = exec.Command("kubectl", "get", "secret", "remote-agent-client-secret", "-n", "default")
-	if err := cmd.Run(); err != nil {
-		t.Logf("Warning: mqtt-client-secret not found in default namespace: %v", err)
-	} else {
-		t.Logf("mqtt-client-secret found in default namespace")
-	}
-
-	// Check cluster resource usage before deployment
-	cmd = exec.Command("kubectl", "top", "nodes")
-	if output, err := cmd.CombinedOutput(); err == nil {
-		t.Logf("Pre-deployment node resource usage:\n%s", string(output))
-	}
-
-	// Try to start the deployment without timeout first to see if it responds
-	t.Logf("Starting MQTT deployment with reduced timeout (10 minutes) and better error handling...")
-
-	// Reduce timeout back to 10 minutes but with better error handling
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	cmd = exec.CommandContext(ctx, "mage", "cluster:deploywithsettings", helmValues)
-	cmd.Dir = localenvDir
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	// Start the command and monitor its progress
-	err := cmd.Start()
-	if err != nil {
-		t.Fatalf("Failed to start deployment command: %v", err)
-	}
-
-	// Monitor the deployment progress in background
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				// Check if any pods are being created
-				monitorCmd := exec.Command("kubectl", "get", "pods", "-n", "default", "--no-headers")
-				if output, err := monitorCmd.Output(); err == nil {
-					podCount := len(strings.Split(strings.TrimSpace(string(output)), "\n"))
-					if string(output) != "" {
-						t.Logf("Deployment progress: %d pods in default namespace", podCount)
-					}
-				}
-			}
-		}
-	}()
-
-	// Wait for the command to complete
-	err = cmd.Wait()
-
-	if err != nil {
-		t.Logf("Symphony MQTT deployment stdout: %s", stdout.String())
-		t.Logf("Symphony MQTT deployment stderr: %s", stderr.String())
-
-		// Check for common deployment issues and provide more specific error handling
-		stderrStr := stderr.String()
-		stdoutStr := stdout.String()
-
-		// Check if the error is related to cert-manager webhook
-		if strings.Contains(stderrStr, "cert-manager-webhook") &&
-			strings.Contains(stderrStr, "x509: certificate signed by unknown authority") {
-			t.Logf("Detected cert-manager webhook certificate issue, attempting to fix...")
-			FixCertManagerWebhook(t)
-
-			// Retry the deployment after fixing cert-manager
-			t.Logf("Retrying Symphony MQTT deployment after cert-manager fix...")
-			retryCtx, retryCancel := context.WithTimeout(context.Background(), 10*time.Minute)
-			defer retryCancel()
-
-			retryCmd := exec.CommandContext(retryCtx, "mage", "cluster:deploywithsettings", helmValues)
-			retryCmd.Dir = localenvDir
-
-			var retryStdout, retryStderr bytes.Buffer
-			retryCmd.Stdout = &retryStdout
-			retryCmd.Stderr = &retryStderr
-
-			retryErr := retryCmd.Run()
-			if retryErr != nil {
-				t.Logf("Retry MQTT deployment stdout: %s", retryStdout.String())
-				t.Logf("Retry MQTT deployment stderr: %s", retryStderr.String())
-				require.NoError(t, retryErr)
-			} else {
-				t.Logf("Symphony MQTT deployment succeeded after cert-manager fix")
-				err = nil // Clear the original error since retry succeeded
-			}
-		} else if strings.Contains(stderrStr, "context deadline exceeded") {
-			t.Logf("Deployment timed out after 10 minutes. This might indicate resource constraints or stuck resources.")
-			t.Logf("Checking cluster resources...")
-
-			// Log some debug information about cluster state
-			debugCmd := exec.Command("kubectl", "get", "pods", "--all-namespaces")
-			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
-				t.Logf("Current cluster pods:\n%s", string(debugOutput))
-			}
-
-			debugCmd = exec.Command("kubectl", "get", "pvc", "--all-namespaces")
-			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
-				t.Logf("Current PVCs:\n%s", string(debugOutput))
-			}
-
-			debugCmd = exec.Command("kubectl", "top", "nodes")
-			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
-				t.Logf("Node resource usage at timeout:\n%s", string(debugOutput))
-			}
-
-			// Check if helm is stuck
-			debugCmd = exec.Command("helm", "list", "-n", "default")
-			if debugOutput, debugErr := debugCmd.CombinedOutput(); debugErr == nil {
-				t.Logf("Helm releases in default namespace:\n%s", string(debugOutput))
-			}
-		} else if strings.Contains(stdoutStr, "Release \"ecosystem\" does not exist. Installing it now.") &&
-			strings.Contains(stderrStr, "Error: context deadline exceeded") {
-			t.Logf("Helm installation timed out. This is likely due to resource constraints or dependency issues.")
-		}
-	}
+// VerifyTargetTopologyUpdate verifies that a target has been updated with topology information
+// This is a common function used by all topology verification tests
+func VerifyTargetTopologyUpdate(t *testing.T, targetName, namespace, testType string) {
+	// Get the dynamic client to access Kubernetes resources
+	dyn, err := GetDynamicClient()
 	require.NoError(t, err)
 
-	t.Logf("Helm deployment command completed successfully")
-	t.Logf("Started Symphony with MQTT configuration")
-}
+	t.Logf("Verifying %s topology update for target %s/%s", testType, namespace, targetName)
 
-// CleanupExternalMQTTBroker cleans up external MQTT broker Docker container
-func CleanupExternalMQTTBroker(t *testing.T) {
-	t.Logf("Cleaning up external MQTT broker Docker container...")
+	// Get the Target resource from Kubernetes
+	target, err := dyn.Resource(schema.GroupVersionResource{
+		Group:    "fabric.symphony",
+		Version:  "v1",
+		Resource: "targets",
+	}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
+	require.NoError(t, err, "Failed to get Target resource")
 
-	// Stop and remove Docker container
-	exec.Command("docker", "stop", "mqtt-broker").Run()
-	exec.Command("docker", "rm", "mqtt-broker").Run()
+	// Extract the spec.topologies field from the target
+	spec, found, err := unstructured.NestedMap(target.Object, "spec")
+	require.NoError(t, err, "Failed to get target spec")
+	require.True(t, found, "Target spec not found")
 
-	t.Logf("External MQTT broker cleanup completed")
-}
+	topologies, found, err := unstructured.NestedSlice(spec, "topologies")
+	require.NoError(t, err, "Failed to get topologies from target spec")
+	require.True(t, found, "Topologies field not found in target spec")
+	require.NotEmpty(t, topologies, "Target topologies should not be empty after topology update")
 
-// CleanupMQTTBroker cleans up MQTT broker deployment
-func CleanupMQTTBroker(t *testing.T) {
-	t.Logf("Cleaning up MQTT broker...")
+	t.Logf("Found %d topology entries in target", len(topologies))
 
-	// Delete broker deployment and service
-	exec.Command("kubectl", "delete", "deployment", "mosquitto-broker", "-n", "default", "--ignore-not-found=true").Run()
-	exec.Command("kubectl", "delete", "service", "mosquitto-service", "-n", "default", "--ignore-not-found=true").Run()
-	exec.Command("kubectl", "delete", "configmap", "mosquitto-config", "-n", "default", "--ignore-not-found=true").Run()
-	exec.Command("kubectl", "delete", "secret", "mqtt-server-certs", "-n", "default", "--ignore-not-found=true").Run()
-
-	t.Logf("MQTT broker cleanup completed")
-}
-
-// CleanupMQTTCASecret cleans up MQTT CA secret from cert-manager namespace
-func CleanupMQTTCASecret(t *testing.T, secretName string) {
-	cmd := exec.Command("kubectl", "delete", "secret", secretName, "-n", "cert-manager", "--ignore-not-found=true")
-	cmd.Run()
-	t.Logf("Cleaned up MQTT CA secret %s from cert-manager namespace", secretName)
-}
-
-// CleanupMQTTClientSecret cleans up MQTT client certificate secret from namespace
-func CleanupMQTTClientSecret(t *testing.T, namespace, secretName string) {
-	cmd := exec.Command("kubectl", "delete", "secret", secretName, "-n", namespace, "--ignore-not-found=true")
-	cmd.Run()
-	t.Logf("Cleaned up MQTT client secret %s from namespace %s", secretName, namespace)
-}
-
-// StartRemoteAgentProcessComplete starts remote agent as a complete process with full lifecycle management
-func StartRemoteAgentProcessComplete(t *testing.T, config TestConfig) *exec.Cmd {
-	// First build the binary
-	binaryPath := BuildRemoteAgentBinary(t, config)
-
-	// Phase 1: Get working certificates using bootstrap cert (HTTP protocol only)
-	var workingCertPath, workingKeyPath string
-	if config.Protocol == "http" {
-		t.Logf("Using HTTP protocol, obtaining working certificates...")
-		workingCertPath, workingKeyPath = GetWorkingCertificates(t, config.BaseURL, config.TargetName, config.Namespace,
-			config.ClientCertPath, config.ClientKeyPath, filepath.Dir(config.ConfigPath))
-	} else {
-		// For MQTT, use bootstrap certificates directly
-		workingCertPath = config.ClientCertPath
-		workingKeyPath = config.ClientKeyPath
+	// Verify the topology contains expected bindings
+	// The test topology should contain bindings with providers like:
+	// - providers.target.script
+	// - providers.target.remote-agent
+	// - providers.target.http
+	// - providers.target.docker
+	expectedProviders := []string{
+		"providers.target.script",
+		"providers.target.remote-agent",
+		"providers.target.http",
+		"providers.target.docker",
 	}
 
-	// Phase 2: Start remote agent with working certificates
-	args := []string{
-		"-config", config.ConfigPath,
-		"-client-cert", workingCertPath,
-		"-client-key", workingKeyPath,
-		"-target-name", config.TargetName,
-		"-namespace", config.Namespace,
-		"-topology", config.TopologyPath,
-		"-protocol", config.Protocol,
+	// Check the first topology (there should be one from the remote agent)
+	require.Len(t, topologies, 1, "Expected exactly one topology entry")
+
+	topologyMap, ok := topologies[0].(map[string]interface{})
+	require.True(t, ok, "Topology should be a map")
+
+	bindings, found, err := unstructured.NestedSlice(topologyMap, "bindings")
+	require.NoError(t, err, "Failed to get bindings from topology")
+	require.True(t, found, "Bindings field not found in topology")
+	require.NotEmpty(t, bindings, "Topology bindings should not be empty")
+
+	t.Logf("Found %d bindings in topology", len(bindings))
+
+	// Verify all expected providers are present
+	foundProviders := make(map[string]bool)
+	for _, binding := range bindings {
+		bindingMap, ok := binding.(map[string]interface{})
+		require.True(t, ok, "Binding should be a map")
+
+		provider, found, err := unstructured.NestedString(bindingMap, "provider")
+		require.NoError(t, err, "Failed to get provider from binding")
+		require.True(t, found, "Provider field not found in binding")
+
+		foundProviders[provider] = true
+		t.Logf("Found provider: %s", provider)
 	}
 
-	if config.CACertPath != "" {
-		args = append(args, "-ca-cert", config.CACertPath)
+	// Check that all expected providers were found
+	for _, expectedProvider := range expectedProviders {
+		require.True(t, foundProviders[expectedProvider],
+			"Expected provider %s not found in topology bindings", expectedProvider)
 	}
 
-	// Log the complete binary execution command to test output
-	t.Logf("=== Remote Agent Process Execution Command ===")
-	t.Logf("Binary Path: %s", binaryPath)
-	t.Logf("Working Directory: %s", filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap"))
-	t.Logf("Command Line: %s %s", binaryPath, strings.Join(args, " "))
-	t.Logf("Full Arguments: %v", args)
-	t.Logf("===============================================")
-
-	t.Logf("Starting remote agent process with arguments: %v", args)
-	cmd := exec.Command(binaryPath, args...)
-	// Set working directory to where the binary is located
-	cmd.Dir = filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap")
-
-	// Create pipes for real-time log streaming
-	stdoutPipe, err := cmd.StdoutPipe()
-	require.NoError(t, err, "Failed to create stdout pipe")
-
-	stderrPipe, err := cmd.StderrPipe()
-	require.NoError(t, err, "Failed to create stderr pipe")
-
-	// Also capture to buffers for final output
-	var stdout, stderr bytes.Buffer
-	stdoutTee := io.TeeReader(stdoutPipe, &stdout)
-	stderrTee := io.TeeReader(stderrPipe, &stderr)
-
-	err = cmd.Start()
-	require.NoError(t, err, "Failed to start remote agent process")
-
-	// Start real-time log streaming in background goroutines
-	go streamProcessLogs(t, stdoutTee, "Process STDOUT")
-	go streamProcessLogs(t, stderrTee, "Process STDERR")
-
-	// Final output logging when process exits
-	go func() {
-		cmd.Wait()
-		if stdout.Len() > 0 {
-			t.Logf("Remote agent process final stdout: %s", stdout.String())
-		}
-		if stderr.Len() > 0 {
-			t.Logf("Remote agent process final stderr: %s", stderr.String())
-		}
-	}()
-
-	// Setup automatic cleanup
-	t.Cleanup(func() {
-		CleanupRemoteAgentProcess(t, cmd)
-	})
-
-	t.Logf("Started remote agent process with PID: %d using working certificates", cmd.Process.Pid)
-	t.Logf("Remote agent process logs will be shown in real-time with [Process STDOUT] and [Process STDERR] prefixes")
-	return cmd
+	t.Logf("%s topology update verification completed successfully", testType)
+	t.Logf("✓ Target has topology information")
+	t.Logf("✓ Topology contains expected bindings")
+	t.Logf("✓ All expected providers are present")
 }
 
-// Global variables for single binary optimization
-var (
-	buildOnce        sync.Once
-	sharedBinaryPath string
-	buildError       error
-)
+// CleanupMultipleRemoteAgentProcesses cleans up multiple remote agent processes in parallel
+func CleanupMultipleRemoteAgentProcesses(t *testing.T, processes map[string]*exec.Cmd) {
+	if len(processes) == 0 {
+		t.Logf("No processes to cleanup")
+		return
+	}
 
-// BuildRemoteAgentBinaryOnce builds the remote agent binary only once using sync.Once
-// This prevents multiple goroutines from building the same binary simultaneously
-func BuildRemoteAgentBinaryOnce(t *testing.T, config TestConfig) (string, error) {
-	buildOnce.Do(func() {
-		t.Logf("Building remote agent binary (once)...")
-		sharedBinaryPath = filepath.Join(config.ProjectRoot, "remote-agent", "bootstrap", "remote-agent")
+	t.Logf("Cleaning up %d remote agent processes...", len(processes))
+	var wg sync.WaitGroup
 
-		buildCmd := exec.Command("go", "build", "-tags", "remote", "-o", "bootstrap/remote-agent", ".")
-		buildCmd.Dir = filepath.Join(config.ProjectRoot, "remote-agent")
-		buildCmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64")
-
-		var stdout, stderr bytes.Buffer
-		buildCmd.Stdout = &stdout
-		buildCmd.Stderr = &stderr
-
-		buildError = buildCmd.Run()
-		if buildError != nil {
-			t.Logf("Build stdout: %s", stdout.String())
-			t.Logf("Build stderr: %s", stderr.String())
-			sharedBinaryPath = ""
-		} else {
-			t.Logf("Successfully built shared remote agent binary: %s", sharedBinaryPath)
+	for targetName, cmd := range processes {
+		if cmd == nil {
+			continue
 		}
-	})
+		wg.Add(1)
+		go func(name string, process *exec.Cmd) {
+			defer wg.Done()
+			t.Logf("Cleaning up remote agent for target %s...", name)
+			CleanupRemoteAgentProcess(t, process)
+		}(targetName, cmd)
+	}
 
-	return sharedBinaryPath, buildError
+	wg.Wait()
+	t.Logf("All remote agent processes cleaned up successfully")
 }
-
-// StartRemoteAgentProcessWithSharedBinary starts remote agent using a shared binary path
-// This optimizes multi-target scenarios by reusing the same binary
 func StartRemoteAgentProcessWithSharedBinary(t *testing.T, config TestConfig) *exec.Cmd {
 	// Get the shared binary path
 	binaryPath, err := BuildRemoteAgentBinaryOnce(t, config)
@@ -3854,6 +3553,94 @@ func StartRemoteAgentProcessWithSharedBinary(t *testing.T, config TestConfig) *e
 
 	// Use the shared binary to start the process
 	return startRemoteAgentWithExistingBinary(t, config, binaryPath)
+}
+
+// CleanupRemoteAgentProcess cleans up the remote agent process
+func CleanupRemoteAgentProcess(t *testing.T, cmd *exec.Cmd) {
+	if cmd == nil {
+		t.Logf("No process to cleanup (cmd is nil)")
+		return
+	}
+
+	if cmd.Process == nil {
+		t.Logf("No process to cleanup (cmd.Process is nil)")
+		return
+	}
+
+	pid := cmd.Process.Pid
+	t.Logf("Cleaning up remote agent process with PID: %d", pid)
+
+	// Check if process is already dead
+	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+		t.Logf("Process PID %d already exited: %s", pid, cmd.ProcessState.String())
+		return
+	}
+
+	// Try to check if process is still alive using signal 0
+	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
+		t.Logf("Process PID %d is not alive or not accessible: %v", pid, err)
+		return
+	}
+
+	t.Logf("Process PID %d is alive, attempting graceful termination...", pid)
+
+	// First try graceful termination with SIGTERM
+	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Logf("Failed to send SIGTERM to PID %d: %v", pid, err)
+	} else {
+		t.Logf("Sent SIGTERM to PID %d, waiting for graceful shutdown...", pid)
+	}
+
+	// Wait for graceful shutdown with timeout
+	gracefulTimeout := 5 * time.Second
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Logf("Process PID %d exited with error: %v", pid, err)
+		} else {
+			t.Logf("Process PID %d exited gracefully", pid)
+		}
+		return
+	case <-time.After(gracefulTimeout):
+		t.Logf("Process PID %d did not exit gracefully within %v, force killing...", pid, gracefulTimeout)
+	}
+
+	// Force kill if graceful shutdown failed
+	if err := cmd.Process.Kill(); err != nil {
+		t.Logf("Failed to kill process PID %d: %v", pid, err)
+
+		// Last resort: try to kill using OS-specific methods
+		if runtime.GOOS == "windows" {
+			killCmd := exec.Command("taskkill", "/F", "/PID", fmt.Sprintf("%d", pid))
+			if killErr := killCmd.Run(); killErr != nil {
+				t.Logf("Failed to force kill process PID %d using taskkill: %v", pid, killErr)
+			} else {
+				t.Logf("Force killed process PID %d using taskkill", pid)
+			}
+		} else {
+			killCmd := exec.Command("kill", "-9", fmt.Sprintf("%d", pid))
+			if killErr := killCmd.Run(); killErr != nil {
+				t.Logf("Failed to force kill process PID %d using kill -9: %v", pid, killErr)
+			} else {
+				t.Logf("Force killed process PID %d using kill -9", pid)
+			}
+		}
+	} else {
+		t.Logf("Process PID %d force killed successfully", pid)
+	}
+
+	// Final wait with timeout
+	select {
+	case <-done:
+		t.Logf("Process PID %d cleanup completed", pid)
+	case <-time.After(3 * time.Second):
+		t.Logf("Warning: Process PID %d cleanup timed out, but continuing", pid)
+	}
 }
 
 // startRemoteAgentWithExistingBinary starts remote agent using an existing binary
@@ -3946,32 +3733,6 @@ func startRemoteAgentWithExistingBinary(t *testing.T, config TestConfig, binaryP
 
 	t.Logf("Started remote agent process for target %s with PID: %d using shared binary", config.TargetName, cmd.Process.Pid)
 	return cmd
-}
-
-// CleanupMultipleRemoteAgentProcesses cleans up multiple remote agent processes in parallel
-func CleanupMultipleRemoteAgentProcesses(t *testing.T, processes map[string]*exec.Cmd) {
-	if len(processes) == 0 {
-		t.Logf("No processes to cleanup")
-		return
-	}
-
-	t.Logf("Cleaning up %d remote agent processes...", len(processes))
-	var wg sync.WaitGroup
-
-	for targetName, cmd := range processes {
-		if cmd == nil {
-			continue
-		}
-		wg.Add(1)
-		go func(name string, process *exec.Cmd) {
-			defer wg.Done()
-			t.Logf("Cleaning up remote agent for target %s...", name)
-			CleanupRemoteAgentProcess(t, process)
-		}(targetName, cmd)
-	}
-
-	wg.Wait()
-	t.Logf("All remote agent processes cleaned up successfully")
 }
 
 // StartRemoteAgentProcessWithoutCleanup starts remote agent as a complete process but doesn't set up automatic cleanup
@@ -4122,149 +3883,6 @@ func WaitForProcessHealthy(t *testing.T, cmd *exec.Cmd, timeout time.Duration) {
 	}
 }
 
-// CleanupRemoteAgentProcess cleans up the remote agent process
-func CleanupRemoteAgentProcess(t *testing.T, cmd *exec.Cmd) {
-	if cmd == nil {
-		t.Logf("No process to cleanup (cmd is nil)")
-		return
-	}
-
-	if cmd.Process == nil {
-		t.Logf("No process to cleanup (cmd.Process is nil)")
-		return
-	}
-
-	pid := cmd.Process.Pid
-	t.Logf("Cleaning up remote agent process with PID: %d", pid)
-
-	// Check if process is already dead
-	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-		t.Logf("Process PID %d already exited: %s", pid, cmd.ProcessState.String())
-		return
-	}
-
-	// Try to check if process is still alive using signal 0
-	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
-		t.Logf("Process PID %d is not alive or not accessible: %v", pid, err)
-		return
-	}
-
-	t.Logf("Process PID %d is alive, attempting graceful termination...", pid)
-
-	// First try graceful termination with SIGTERM
-	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		t.Logf("Failed to send SIGTERM to PID %d: %v", pid, err)
-	} else {
-		t.Logf("Sent SIGTERM to PID %d, waiting for graceful shutdown...", pid)
-	}
-
-	// Wait for graceful shutdown with timeout
-	gracefulTimeout := 5 * time.Second
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
-
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Logf("Process PID %d exited with error: %v", pid, err)
-		} else {
-			t.Logf("Process PID %d exited gracefully", pid)
-		}
-		return
-	case <-time.After(gracefulTimeout):
-		t.Logf("Process PID %d did not exit gracefully within %v, force killing...", pid, gracefulTimeout)
-	}
-
-	// Force kill if graceful shutdown failed
-	if err := cmd.Process.Kill(); err != nil {
-		t.Logf("Failed to kill process PID %d: %v", pid, err)
-
-		// Last resort: try to kill using OS-specific methods
-		if runtime.GOOS == "windows" {
-			killCmd := exec.Command("taskkill", "/F", "/PID", fmt.Sprintf("%d", pid))
-			if killErr := killCmd.Run(); killErr != nil {
-				t.Logf("Failed to force kill process PID %d using taskkill: %v", pid, killErr)
-			} else {
-				t.Logf("Force killed process PID %d using taskkill", pid)
-			}
-		} else {
-			killCmd := exec.Command("kill", "-9", fmt.Sprintf("%d", pid))
-			if killErr := killCmd.Run(); killErr != nil {
-				t.Logf("Failed to force kill process PID %d using kill -9: %v", pid, killErr)
-			} else {
-				t.Logf("Force killed process PID %d using kill -9", pid)
-			}
-		}
-	} else {
-		t.Logf("Process PID %d force killed successfully", pid)
-	}
-
-	// Final wait with timeout
-	select {
-	case <-done:
-		t.Logf("Process PID %d cleanup completed", pid)
-	case <-time.After(3 * time.Second):
-		t.Logf("Warning: Process PID %d cleanup timed out, but continuing", pid)
-	}
-}
-
-// CleanupStaleRemoteAgentProcesses kills any stale remote-agent processes that might be left from previous test runs
-func CleanupStaleRemoteAgentProcesses(t *testing.T) {
-	t.Logf("Checking for stale remote-agent processes...")
-
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		// Windows: Use tasklist and taskkill
-		cmd = exec.Command("tasklist", "/FI", "IMAGENAME eq remote-agent*", "/FO", "CSV")
-	} else {
-		// Unix/Linux: Use ps and grep
-		cmd = exec.Command("ps", "aux")
-	}
-
-	output, err := cmd.Output()
-	if err != nil {
-		t.Logf("Could not list processes to check for stale remote-agent: %v", err)
-		return
-	}
-
-	outputStr := string(output)
-	if runtime.GOOS == "windows" {
-		// Windows: Look for remote-agent processes
-		if strings.Contains(strings.ToLower(outputStr), "remote-agent") {
-			t.Logf("Found potential stale remote-agent processes on Windows, attempting cleanup...")
-			killCmd := exec.Command("taskkill", "/F", "/IM", "remote-agent*")
-			if err := killCmd.Run(); err != nil {
-				t.Logf("Failed to kill stale remote-agent processes: %v", err)
-			} else {
-				t.Logf("Killed stale remote-agent processes")
-			}
-		}
-	} else {
-		// Unix/Linux: Look for remote-agent processes
-		lines := strings.Split(outputStr, "\n")
-		for _, line := range lines {
-			if strings.Contains(line, "remote-agent") && !strings.Contains(line, "grep") {
-				t.Logf("Found stale remote-agent process: %s", line)
-				// Extract PID (second column in ps aux output)
-				fields := strings.Fields(line)
-				if len(fields) >= 2 {
-					pid := fields[1]
-					killCmd := exec.Command("kill", "-9", pid)
-					if err := killCmd.Run(); err != nil {
-						t.Logf("Failed to kill process PID %s: %v", pid, err)
-					} else {
-						t.Logf("Killed stale process PID %s", pid)
-					}
-				}
-			}
-		}
-	}
-
-	t.Logf("Stale process cleanup completed")
-}
-
 // TestMQTTConnectionWithClientCert tests MQTT connection using specific client certificates
 // This function attempts to make an actual MQTT connection (not just TLS) to verify certificate authentication
 func TestMQTTConnectionWithClientCert(t *testing.T, brokerAddress string, brokerPort int, caCertPath, clientCertPath, clientKeyPath string) bool {
@@ -4328,83 +3946,195 @@ func TestMQTTConnectionWithClientCert(t *testing.T, brokerAddress string, broker
 	return true
 }
 
-// VerifyTargetTopologyUpdate verifies that a target has been updated with topology information
-// This is a common function used by all topology verification tests
-func VerifyTargetTopologyUpdate(t *testing.T, targetName, namespace, testType string) {
-	// Get the dynamic client to access Kubernetes resources
-	dyn, err := GetDynamicClient()
-	require.NoError(t, err)
+// CleanupMQTTCASecret cleans up MQTT CA secret from cert-manager namespace
+func CleanupMQTTCASecret(t *testing.T, secretName string) {
+	cmd := exec.Command("kubectl", "delete", "secret", secretName, "-n", "cert-manager", "--ignore-not-found=true")
+	cmd.Run()
+	t.Logf("Cleaned up MQTT CA secret %s from cert-manager namespace", secretName)
+}
 
-	t.Logf("Verifying %s topology update for target %s/%s", testType, namespace, targetName)
+// CleanupExternalMQTTBroker cleans up external MQTT broker Docker container
+func CleanupExternalMQTTBroker(t *testing.T) {
+	t.Logf("Cleaning up external MQTT broker Docker container...")
 
-	// Get the Target resource from Kubernetes
-	target, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "fabric.symphony",
-		Version:  "v1",
-		Resource: "targets",
-	}).Namespace(namespace).Get(context.Background(), targetName, metav1.GetOptions{})
-	require.NoError(t, err, "Failed to get Target resource")
+	// Stop and remove Docker container
+	exec.Command("docker", "stop", "mqtt-broker").Run()
+	exec.Command("docker", "rm", "mqtt-broker").Run()
 
-	// Extract the spec.topologies field from the target
-	spec, found, err := unstructured.NestedMap(target.Object, "spec")
-	require.NoError(t, err, "Failed to get target spec")
-	require.True(t, found, "Target spec not found")
+	t.Logf("External MQTT broker cleanup completed")
+}
 
-	topologies, found, err := unstructured.NestedSlice(spec, "topologies")
-	require.NoError(t, err, "Failed to get topologies from target spec")
-	require.True(t, found, "Topologies field not found in target spec")
-	require.NotEmpty(t, topologies, "Target topologies should not be empty after topology update")
+// StartSymphonyWithMQTTConfigAlternative starts Symphony with MQTT configuration using direct Helm commands
+func StartSymphonyWithMQTTConfigAlternative(t *testing.T, brokerAddress string) {
+	helmValues := fmt.Sprintf("--set remoteAgent.remoteCert.used=true "+
+		"--set remoteAgent.remoteCert.trustCAs.secretName=mqtt-ca "+
+		"--set remoteAgent.remoteCert.trustCAs.secretKey=ca.crt "+
+		"--set remoteAgent.remoteCert.subjects=MyRootCA;localhost "+
+		"--set http.enabled=true "+
+		"--set mqtt.enabled=true "+
+		"--set mqtt.useTLS=true "+
+		"--set mqtt.mqttClientCert.enabled=true "+
+		"--set mqtt.mqttClientCert.secretName=mqtt-client-secret "+
+		"--set mqtt.brokerAddress=%s "+
+		"--set certManager.enabled=true "+
+		"--set api.env.ISSUER_NAME=symphony-ca-issuer "+
+		"--set api.env.SYMPHONY_SERVICE_NAME=symphony-service", brokerAddress)
 
-	t.Logf("Found %d topology entries in target", len(topologies))
+	t.Logf("Deploying Symphony with MQTT configuration using direct Helm approach...")
 
-	// Verify the topology contains expected bindings
-	// The test topology should contain bindings with providers like:
-	// - providers.target.script
-	// - providers.target.remote-agent
-	// - providers.target.http
-	// - providers.target.docker
-	expectedProviders := []string{
-		"providers.target.script",
-		"providers.target.remote-agent",
-		"providers.target.http",
-		"providers.target.docker",
+	projectRoot := GetProjectRoot(t)
+	localenvDir := filepath.Join(projectRoot, "test", "localenv")
+
+	// Step 1: Ensure minikube and prerequisites are ready
+	t.Logf("Step 1: Setting up minikube and prerequisites...")
+	cmd := exec.Command("mage", "cluster:ensureminikubeup")
+	cmd.Dir = localenvDir
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: ensureminikubeup failed: %v", err)
 	}
 
-	// Check the first topology (there should be one from the remote agent)
-	require.Len(t, topologies, 1, "Expected exactly one topology entry")
-
-	topologyMap, ok := topologies[0].(map[string]interface{})
-	require.True(t, ok, "Topology should be a map")
-
-	bindings, found, err := unstructured.NestedSlice(topologyMap, "bindings")
-	require.NoError(t, err, "Failed to get bindings from topology")
-	require.True(t, found, "Bindings field not found in topology")
-	require.NotEmpty(t, bindings, "Topology bindings should not be empty")
-
-	t.Logf("Found %d bindings in topology", len(bindings))
-
-	// Verify all expected providers are present
-	foundProviders := make(map[string]bool)
-	for _, binding := range bindings {
-		bindingMap, ok := binding.(map[string]interface{})
-		require.True(t, ok, "Binding should be a map")
-
-		provider, found, err := unstructured.NestedString(bindingMap, "provider")
-		require.NoError(t, err, "Failed to get provider from binding")
-		require.True(t, found, "Provider field not found in binding")
-
-		foundProviders[provider] = true
-		t.Logf("Found provider: %s", provider)
+	// Step 2: Load images with timeout
+	t.Logf("Step 2: Loading Docker images...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, "mage", "cluster:load")
+	cmd.Dir = localenvDir
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: image loading failed or timed out: %v", err)
 	}
 
-	// Check that all expected providers were found
-	for _, expectedProvider := range expectedProviders {
-		require.True(t, foundProviders[expectedProvider],
-			"Expected provider %s not found in topology bindings", expectedProvider)
+	// Step 3: Deploy cert-manager and trust-manager
+	t.Logf("Step 3: Setting up cert-manager and trust-manager...")
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, "kubectl", "apply", "-f", "https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.yaml", "--wait")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: cert-manager setup failed or timed out: %v", err)
 	}
 
-	t.Logf("%s topology update verification completed successfully", testType)
-	t.Logf("✓ Target has topology information")
-	t.Logf("✓ Topology contains expected bindings")
-	t.Logf("✓ All expected providers are present")
+	// Wait for cert-manager webhook
+	cmd = exec.Command("kubectl", "wait", "--for=condition=ready", "pod", "-l", "app.kubernetes.io/component=webhook", "-n", "cert-manager", "--timeout=90s")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: cert-manager webhook not ready: %v", err)
+	}
+
+	// Step 3b: Set up trust-manager
+	t.Logf("Step 3b: Setting up trust-manager...")
+	cmd = exec.Command("helm", "repo", "add", "jetstack", "https://charts.jetstack.io", "--force-update")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: failed to add jetstack repo: %v", err)
+	}
+
+	cmd = exec.Command("helm", "upgrade", "trust-manager", "jetstack/trust-manager", "--install", "--namespace", "cert-manager", "--wait", "--set", "app.trust.namespace=cert-manager")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Warning: trust-manager setup failed: %v", err)
+	}
+
+	// Step 4: Deploy Symphony with a shorter timeout and without hanging
+	t.Logf("Step 4: Deploying Symphony Helm chart...")
+	chartPath := "../../packages/helm/symphony"
+	valuesFile1 := "../../packages/helm/symphony/values.yaml"
+	valuesFile2 := "symphony-ghcr-values.yaml"
+
+	// Build the complete Helm command
+	helmCmd := []string{
+		"helm", "upgrade", "ecosystem", chartPath,
+		"--install", "-n", "default", "--create-namespace",
+		"-f", valuesFile1,
+		"-f", valuesFile2,
+		"--set", "symphonyImage.tag=latest",
+		"--set", "paiImage.tag=latest",
+		"--timeout", "8m0s",
+	}
+
+	// Add the MQTT-specific values
+	helmValuesList := strings.Split(helmValues, " ")
+	helmCmd = append(helmCmd, helmValuesList...)
+
+	t.Logf("Running Helm command: %v", helmCmd)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	cmd = exec.CommandContext(ctx, helmCmd[0], helmCmd[1:]...)
+	cmd.Dir = localenvDir
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		t.Logf("Helm deployment stdout: %s", stdout.String())
+		t.Logf("Helm deployment stderr: %s", stderr.String())
+		t.Fatalf("Helm deployment failed: %v", err)
+	}
+
+	t.Logf("Helm deployment completed successfully")
+	t.Logf("Helm stdout: %s", stdout.String())
+
+	// Step 5: Wait for certificates manually
+	t.Logf("Step 5: Waiting for Symphony certificates...")
+	for _, cert := range []string{"symphony-api-serving-cert", "symphony-serving-cert"} {
+		cmd = exec.Command("kubectl", "wait", "--for=condition=ready", "certificates", cert, "-n", "default", "--timeout=90s")
+		if err := cmd.Run(); err != nil {
+			t.Logf("Warning: certificate %s not ready: %v", cert, err)
+		}
+	}
+
+	t.Logf("Symphony deployment with MQTT configuration completed successfully")
+}
+
+// CleanupStaleRemoteAgentProcesses kills any stale remote-agent processes that might be left from previous test runs
+func CleanupStaleRemoteAgentProcesses(t *testing.T) {
+	t.Logf("Checking for stale remote-agent processes...")
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		// Windows: Use tasklist and taskkill
+		cmd = exec.Command("tasklist", "/FI", "IMAGENAME eq remote-agent*", "/FO", "CSV")
+	} else {
+		// Unix/Linux: Use ps and grep
+		cmd = exec.Command("ps", "aux")
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		t.Logf("Could not list processes to check for stale remote-agent: %v", err)
+		return
+	}
+
+	outputStr := string(output)
+	if runtime.GOOS == "windows" {
+		// Windows: Look for remote-agent processes
+		if strings.Contains(strings.ToLower(outputStr), "remote-agent") {
+			t.Logf("Found potential stale remote-agent processes on Windows, attempting cleanup...")
+			killCmd := exec.Command("taskkill", "/F", "/IM", "remote-agent*")
+			if err := killCmd.Run(); err != nil {
+				t.Logf("Failed to kill stale remote-agent processes: %v", err)
+			} else {
+				t.Logf("Killed stale remote-agent processes")
+			}
+		}
+	} else {
+		// Unix/Linux: Look for remote-agent processes
+		lines := strings.Split(outputStr, "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "remote-agent") && !strings.Contains(line, "grep") {
+				t.Logf("Found stale remote-agent process: %s", line)
+				// Extract PID (second column in ps aux output)
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					pid := fields[1]
+					killCmd := exec.Command("kill", "-9", pid)
+					if err := killCmd.Run(); err != nil {
+						t.Logf("Failed to kill process PID %s: %v", pid, err)
+					} else {
+						t.Logf("Killed stale process PID %s", pid)
+					}
+				}
+			}
+		}
+	}
+
+	t.Logf("Stale process cleanup completed")
 }

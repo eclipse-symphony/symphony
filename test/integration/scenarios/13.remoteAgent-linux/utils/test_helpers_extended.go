@@ -538,9 +538,9 @@ func TestSystemResponsivenessUnderLoad(t *testing.T, namespace string, component
 			name string
 			cmd  []string
 		}{
-			{"pods", []string{"kubectl", "get", "pods", "-n", namespace, "--timeout=30s"}},
-			{"instances", []string{"kubectl", "get", "instances.solution.symphony", "-n", namespace, "--timeout=30s"}},
-			{"targets", []string{"kubectl", "get", "targets.fabric.symphony", "-n", namespace, "--timeout=30s"}},
+			{"pods", []string{"kubectl", "get", "pods", "-n", namespace}},
+			{"instances", []string{"kubectl", "get", "instances.solution.symphony", "-n", namespace}},
+			{"targets", []string{"kubectl", "get", "targets.fabric.symphony", "-n", namespace}},
 		}
 
 		allPassed := true

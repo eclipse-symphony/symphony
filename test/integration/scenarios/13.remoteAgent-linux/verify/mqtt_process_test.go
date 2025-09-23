@@ -373,8 +373,6 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		}
 
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
-		utils.CleanupMQTTCASecret(t, "mqtt-ca")
-		utils.CleanupMQTTClientSecret(t, namespace, "mqtt-client-secret")
 		t.Logf("=== INFRASTRUCTURE CLEANUP FINISHED ===")
 	})
 

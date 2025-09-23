@@ -35,7 +35,7 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 	// Setup test namespace
 	setupNamespace(t, namespace)
 
-	var caSecretName, clientSecretName, remoteAgentSecretName string
+	var caSecretName string
 	var configPath, topologyPath, targetYamlPath string
 	var config utils.TestConfig
 	var brokerAddress string
@@ -65,10 +65,10 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		caSecretName = utils.CreateMQTTCASecret(t, mqttCerts)
 
 		// Create Symphony MQTT client certificate secret in default namespace
-		clientSecretName = utils.CreateSymphonyMQTTClientSecret(t, namespace, mqttCerts)
+		utils.CreateSymphonyMQTTClientSecret(t, namespace, mqttCerts)
 
 		// Create Remote Agent MQTT client certificate secret in default namespace
-		remoteAgentSecretName = utils.CreateRemoteAgentClientCertSecret(t, namespace, mqttCerts)
+		utils.CreateRemoteAgentClientCertSecret(t, namespace, mqttCerts)
 	})
 
 	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
@@ -168,8 +168,6 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 		utils.CleanupSymphony(t, "remote-agent-mqtt-bootstrap-test")
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
 		utils.CleanupMQTTCASecret(t, caSecretName)
-		utils.CleanupMQTTClientSecret(t, namespace, clientSecretName)      // Symphony client cert
-		utils.CleanupMQTTClientSecret(t, namespace, remoteAgentSecretName) // Remote Agent client cert
 	})
 
 	t.Logf("MQTT communication test completed successfully")
