@@ -295,14 +295,6 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
-	case "providers.target.rust":
-		provider := &rust.RustTargetProvider{}
-		err := provider.InitWithMap(binding.Config)
-		if err != nil {
-			return nil, err
-		}
-		provider.Context = context
-		return provider, nil
 	case "providers.pubsub.memory":
 		mProvider := &mempubsub.InMemoryPubSubProvider{}
 		err = mProvider.Init(config)
