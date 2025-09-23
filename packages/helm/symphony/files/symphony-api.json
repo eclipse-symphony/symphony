@@ -333,7 +333,8 @@
             "name": "targets-manager",
             "type": "managers.symphony.targets",
             "properties": {
-              "providers.persistentstate": "k8s-state"
+              "providers.persistentstate": "k8s-state",
+              "providers.cert": "k8s-cert"
             },
             "providers": {
               "k8s-state": {
@@ -342,13 +343,7 @@
                   "inCluster": true
                 }
               },
-              "secret": {
-                "type": "providers.secret.k8s",
-                "config": {
-                  "inCluster": true
-                }
-              },
-              "working-cert": {
+              "k8s-cert": {
                 "type": "providers.cert.k8scert",
                 "config": {
                   "inCluster": true,
@@ -524,7 +519,7 @@
               "providers.queue": "redis-queue",
               "providers.secret": "mock-secret",
               "providers.keylock": "mem-keylock",
-              "providers.cert": "working-cert"
+              "providers.cert": "k8s-cert"
             },
             "providers": {
               "redis-state": {
@@ -563,7 +558,7 @@
                 "type": "providers.secret.mock",
                 "config": {}
               },
-              "working-cert": {
+              "k8s-cert": {
                 "type": "providers.cert.k8scert",
                 "config": {
                   "inCluster": true,
