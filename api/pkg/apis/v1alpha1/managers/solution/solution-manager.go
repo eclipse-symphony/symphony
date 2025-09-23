@@ -1998,6 +1998,5 @@ func (s *SolutionManager) CreateCertRequest(targetName string, namespace string)
 		CommonName: "symphony-service",   // Required field
 		IssuerName: "symphony-ca-issuer", // Required field
 		DNSNames:   []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
-		// Duration and RenewBefore will use provider defaults
 	}
 }

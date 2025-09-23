@@ -139,11 +139,29 @@ func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 		Resource: "certificates",
 	}
 
+	// Use config defaults when request values are zero
 	duration := p.getConfigDuration()
 	renewBefore := p.getConfigRenewBefore()
 
 	// Use consistent naming: targetname-working-cert
 	secretName := fmt.Sprintf("%s-working-cert", req.TargetName)
+
+	// Create the spec map
+	spec := map[string]interface{}{
+		"secretName": secretName,
+		"issuerRef": map[string]interface{}{
+			"name": req.IssuerName,
+			"kind": "Issuer",
+		},
+		"commonName":  req.CommonName,
+		"duration":    duration.String(),
+		"renewBefore": renewBefore.String(),
+	}
+
+	// Only add dnsNames if it's not empty to avoid deep copy issues
+	if len(req.DNSNames) > 0 {
+		spec["dnsNames"] = req.DNSNames
+	}
 
 	// Create the Certificate object
 	certificate := &unstructured.Unstructured{
@@ -154,17 +172,7 @@ func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 				"name":      req.TargetName,
 				"namespace": req.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"secretName": secretName,
-				"issuerRef": map[string]interface{}{
-					"name": req.IssuerName,
-					"kind": "Issuer",
-				},
-				"dnsNames":    req.DNSNames,
-				"commonName":  req.CommonName,
-				"duration":    duration.String(),
-				"renewBefore": renewBefore.String(),
-			},
+			"spec": spec,
 		},
 	}
 
