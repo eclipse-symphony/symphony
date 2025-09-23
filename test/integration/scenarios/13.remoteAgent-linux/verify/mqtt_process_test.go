@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/test/integration/scenarios/13.remoteAgent/utils"
+	"github.com/eclipse-symphony/symphony/test/integration/scenarios/13.remoteAgent-linux/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -373,8 +373,6 @@ func TestE2EMQTTCommunicationWithProcess(t *testing.T) {
 		}
 
 		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
-		utils.CleanupMQTTCASecret(t, "mqtt-ca")
-		utils.CleanupMQTTClientSecret(t, namespace, "mqtt-client-secret")
 		t.Logf("=== INFRASTRUCTURE CLEANUP FINISHED ===")
 	})
 
