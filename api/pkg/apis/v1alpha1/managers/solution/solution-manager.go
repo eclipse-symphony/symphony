@@ -128,22 +128,11 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	}
 
 	// Initialize cert provider using unified approach
-	certProviderInstance, err := managers.GetCertProvider(config, providers)
+	certProvider, err := managers.GetCertProvider(config, providers)
 	if err == nil {
-		if cp, ok := certProviderInstance.(certProvider.ICertProvider); ok {
-			s.CertProvider = cp
-			// Try to get config from provider instance if possible
-			if providerCfg, ok := certProviderInstance.(interface{ Config() map[string]interface{} }); ok {
-				s.certProviderConfig = providerCfg.Config()
-			} else if providerCfg, ok := certProviderInstance.(interface{ GetConfig() map[string]interface{} }); ok {
-				s.certProviderConfig = providerCfg.GetConfig()
-			}
-		} else {
-			return fmt.Errorf("cert provider does not implement ICertProvider interface")
-		}
+		s.CertProvider = certProvider
 	} else {
-		// Cert provider is optional, log warning but don't fail
-		log.Warnf("Cert provider not configured: %v", err)
+		return err
 	}
 
 	if v, ok := config.Properties["isTarget"]; ok {
@@ -186,11 +175,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	s.RemoteAgentLogFormatter = logger.NewRemoteAgentLogFormatter()
 
 	return nil
-}
-
-// GetCertProvider returns the cert provider instance for certificate management operations
-func (s *SolutionManager) GetCertProvider() certProvider.ICertProvider {
-	return s.CertProvider
 }
 
 // CreateCertificateWithValidation creates a certificate with validation checks
