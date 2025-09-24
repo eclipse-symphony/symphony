@@ -322,7 +322,6 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-
 		summary, err := c.SolutionManager.AsyncReconcile(ctx, deployment, remove, namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
