@@ -219,7 +219,7 @@ func (p *K8SCertProvider) buildCertificateSpec(req cert.CertRequest, secretName 
 	}
 
 	// Only add subject if it's not empty to avoid issues with nil maps
-	if req.Subject != nil && len(req.Subject) > 0 {
+	if len(req.Subject) > 0 {
 		spec["subject"] = req.Subject
 	}
 
@@ -290,11 +290,12 @@ func (p *K8SCertProvider) GetCert(ctx context.Context, targetName, namespace str
 	serialNumber, expiresAt, err := parseCertificateInfo(certData)
 	if err != nil {
 		// If parsing fails, return basic info
+		// Fallback: use current time + config duration as estimated expiration (not real cert expiration)
 		return &cert.CertResponse{
 			PublicKey:    string(certData),
 			PrivateKey:   string(keyData),
 			SerialNumber: "parsing-failed",
-			ExpiresAt:    time.Now().Add(90 * 24 * time.Hour), // default fallback
+			ExpiresAt:    time.Now().Add(p.getConfigDuration()), // fallback, estimated value
 		}, nil
 	}
 
