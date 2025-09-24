@@ -76,7 +76,6 @@ type SolutionManager struct {
 	SummaryManager
 	TargetProviders         map[string]tgt.ITargetProvider
 	CertProvider            certProvider.ICertProvider
-	certProviderConfig      map[string]interface{}
 	ConfigProvider          config.IExtConfigProvider
 	SecretProvider          secret.ISecretProvider
 	KeyLockProvider         keylock.IKeyLockProvider
