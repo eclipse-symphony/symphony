@@ -288,7 +288,7 @@ func (s *SolutionManager) handleWorkingCertManagement(ctx context.Context, deplo
 		log.InfofCtx(ctx, "V (Solution): successfully deleted working certificate for remote target: %s", deployment.Solution.ObjectMeta.Name)
 	} else {
 		// Create working certificate for remote target
-		err := s.CreateCertificateWithValidation(ctx, deployment.Solution.ObjectMeta.Name, s.CreateCertRequest(deployment.Solution.ObjectMeta.Name, namespace))
+		err := s.CreateCertificateWithValidation(ctx, deployment.Solution.ObjectMeta.Name, s.createCertRequest(deployment.Solution.ObjectMeta.Name, namespace))
 		if err != nil {
 			return fmt.Errorf("failed to create or update working certificate for remote target %s: %w", deployment.Solution.ObjectMeta.Name, err)
 		} else {
@@ -2045,8 +2045,8 @@ func (s *SolutionManager) getOperationState(ctx context.Context, operationId str
 	return ret, err
 }
 
-// CreateCertRequest creates a certificate request with required fields, letting the cert provider use its configured defaults for Duration and RenewBefore
-func (s *SolutionManager) CreateCertRequest(targetName string, namespace string) certProvider.CertRequest {
+// createCertRequest creates a certificate request with required fields, letting the cert provider use its configured defaults for Duration and RenewBefore
+func (s *SolutionManager) createCertRequest(targetName string, namespace string) certProvider.CertRequest {
 	// Create request with required fields - provider will use its configured defaults for Duration and RenewBefore only
 	return certProvider.CertRequest{
 		TargetName: targetName,
