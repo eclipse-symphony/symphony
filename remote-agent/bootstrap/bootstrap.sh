@@ -200,9 +200,9 @@ if [ "$protocol" = "http" ]; then
             # Check if response contains valid public and private fields
             public=$(echo $result | jq -r '.public')
             private=$(echo $result | jq -r '.private')
-            if [ "$public" != "null" ] && [ "$private" != "null" ] && [ -n "$public" ] && [ -n "$private" ]; then
-                break
-            fi
+                if [ -n "$public" ] && [ "$public" != "null" ] && [ -n "$private" ] && [ "$private" != "null" ]; then
+                    break
+                fi
         fi
         retry_count=$((retry_count+1))
         if [ $retry_count -ge $max_retries ]; then
@@ -225,10 +225,10 @@ if [ "$protocol" = "http" ]; then
     private=$(echo $result | jq -r '.private')
 
     # Check if we got valid certificates
-    if [ "$public" = "null" ] || [ "$private" = "null" ] || [ -z "$public" ] || [ -z "$private" ]; then
-        echo -e "\e[31mError: Failed to extract certificates from response. Response: $result\e[0m"
-        exit 1
-    fi
+        if [ -z "$public" ] || [ "$public" = "null" ] || [ -z "$private" ] || [ "$private" = "null" ]; then
+            echo -e "\e[31mError: Failed to extract certificates from response. Response: $result\e[0m"
+            exit 1
+        fi
 
     # Reconstruct PEM format properly (Symphony converts \n to spaces for transmission)
     # Convert to word arrays and reconstruct with proper headers/footers
