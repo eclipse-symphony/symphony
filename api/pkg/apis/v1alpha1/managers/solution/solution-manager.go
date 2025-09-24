@@ -254,8 +254,8 @@ func (s *SolutionManager) DeleteCertificateWithValidation(ctx context.Context, c
 	return nil
 }
 
-// IsRemoteTargetDeployment checks if a deployment spec involves a remote target by looking for components of type "remote-agent"
-func IsRemoteTargetDeployment(deploymentSpec *model.DeploymentSpec) bool {
+// isRemoteTargetDeployment checks if a deployment spec involves a remote target by looking for components of type "remote-agent"
+func isRemoteTargetDeployment(deploymentSpec *model.DeploymentSpec) bool {
 	if deploymentSpec == nil {
 		return false
 	}
@@ -393,7 +393,7 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 	}
 	initalPlan.Steps = stepList
 	// Handle working certificate management for remote targets
-	if IsRemoteTargetDeployment(&deployment) {
+	if isRemoteTargetDeployment(&deployment) {
 		err = s.handleWorkingCertManagement(ctx, deployment, remove, namespace)
 		if err != nil {
 			log.ErrorfCtx(ctx, "V (Solution): failed to handle working cert management: %s", err.Error())
@@ -2048,11 +2048,15 @@ func (s *SolutionManager) getOperationState(ctx context.Context, operationId str
 // createCertRequest creates a certificate request with required fields, letting the cert provider use its configured defaults for Duration and RenewBefore
 func (s *SolutionManager) createCertRequest(targetName string, namespace string) certProvider.CertRequest {
 	// Create request with required fields - provider will use its configured defaults for Duration and RenewBefore only
+	subject := fmt.Sprintf("CN=%s-%s.%s", namespace, targetName, ServiceName)
 	return certProvider.CertRequest{
 		TargetName: targetName,
 		Namespace:  namespace,
-		CommonName: ServiceName, // Required field
-		IssuerName: CAIssuer,    // Required field
-		DNSNames:   []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
+		CommonName: subject,
+		DNSNames:   []string{subject},
+		IssuerName: CAIssuer,
+		Subject: map[string]interface{}{
+			"organizations": []interface{}{ServiceName},
+		},
 	}
 }

@@ -28,14 +28,15 @@ type ICertProvider interface {
 
 // CertRequest represents a certificate creation request
 type CertRequest struct {
-	TargetName  string        `json:"targetName"`
-	Namespace   string        `json:"namespace"`
-	Duration    time.Duration `json:"duration"`
-	RenewBefore time.Duration `json:"renewBefore"`
-	CommonName  string        `json:"commonName"`
-	DNSNames    []string      `json:"dnsNames"`
-	IssuerName  string        `json:"issuerName"`
-	ServiceName string        `json:"serviceName"`
+	TargetName  string                 `json:"targetName"`
+	Namespace   string                 `json:"namespace"`
+	Duration    time.Duration          `json:"duration"`
+	RenewBefore time.Duration          `json:"renewBefore"`
+	CommonName  string                 `json:"commonName"`
+	DNSNames    []string               `json:"dnsNames"`
+	IssuerName  string                 `json:"issuerName"`
+	ServiceName string                 `json:"serviceName"`
+	Subject     map[string]interface{} `json:"subject,omitempty"`
 }
 
 // CertResponse represents a certificate response

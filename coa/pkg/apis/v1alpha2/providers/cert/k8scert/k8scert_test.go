@@ -458,3 +458,202 @@ func TestCreateCert_SecretNaming(t *testing.T) {
 	// We can't directly verify this from the fake client, but the test passing means
 	// the certificate was created without errors using the new naming scheme
 }
+
+func TestValidateCertRequest_ValidRequest(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+	}
+
+	err := provider.validateCertRequest(req)
+	assert.NoError(t, err)
+}
+
+func TestValidateCertRequest_MissingTargetName(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+	}
+
+	err := provider.validateCertRequest(req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "targetName is required")
+}
+
+func TestValidateCertRequest_MissingNamespace(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+	}
+
+	err := provider.validateCertRequest(req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "namespace is required")
+}
+
+func TestValidateCertRequest_MissingCommonName(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		IssuerName: "test-issuer",
+	}
+
+	err := provider.validateCertRequest(req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "commonName is required")
+}
+
+func TestValidateCertRequest_MissingIssuerName(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+	}
+
+	err := provider.validateCertRequest(req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "issuerName is required")
+}
+
+func TestBuildCertificateSpec_WithDNSNames(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+		DNSNames:   []string{"example.com", "www.example.com"},
+	}
+
+	spec, err := provider.buildCertificateSpec(req, "test-secret", time.Hour*24, time.Hour*2)
+	assert.NoError(t, err)
+	assert.NotNil(t, spec)
+
+	dnsNames, exists := spec["dnsNames"]
+	assert.True(t, exists)
+	assert.Equal(t, []string{"example.com", "www.example.com"}, dnsNames)
+}
+
+func TestBuildCertificateSpec_WithoutDNSNames(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+		DNSNames:   []string{}, // Empty slice
+	}
+
+	spec, err := provider.buildCertificateSpec(req, "test-secret", time.Hour*24, time.Hour*2)
+	assert.NoError(t, err)
+	assert.NotNil(t, spec)
+
+	_, exists := spec["dnsNames"]
+	assert.False(t, exists) // Should not be included when empty
+}
+
+func TestBuildCertificateSpec_WithSubject(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	subject := map[string]interface{}{
+		"organization": "Test Org",
+		"country":      "US",
+	}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+		Subject:    subject,
+	}
+
+	spec, err := provider.buildCertificateSpec(req, "test-secret", time.Hour*24, time.Hour*2)
+	assert.NoError(t, err)
+	assert.NotNil(t, spec)
+
+	specSubject, exists := spec["subject"]
+	assert.True(t, exists)
+	assert.Equal(t, subject, specSubject)
+}
+
+func TestBuildCertificateSpec_WithoutSubject(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+		Subject:    nil, // Nil subject
+	}
+
+	spec, err := provider.buildCertificateSpec(req, "test-secret", time.Hour*24, time.Hour*2)
+	assert.NoError(t, err)
+	assert.NotNil(t, spec)
+
+	_, exists := spec["subject"]
+	assert.False(t, exists) // Should not be included when nil
+}
+
+func TestBuildCertificateSpec_WithEmptySubject(t *testing.T) {
+	provider := &K8SCertProvider{}
+
+	req := cert.CertRequest{
+		TargetName: "test-target",
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+		Subject:    map[string]interface{}{}, // Empty map
+	}
+
+	spec, err := provider.buildCertificateSpec(req, "test-secret", time.Hour*24, time.Hour*2)
+	assert.NoError(t, err)
+	assert.NotNil(t, spec)
+
+	_, exists := spec["subject"]
+	assert.False(t, exists) // Should not be included when empty
+}
+
+func TestCreateCert_ValidationFailure(t *testing.T) {
+	scheme := runtime.NewScheme()
+	dynamicClient := fake.NewSimpleDynamicClient(scheme)
+
+	provider := &K8SCertProvider{
+		Config: K8SCertProviderConfig{
+			DefaultDuration: "2160h",
+			RenewBefore:     "240h",
+		},
+		DynamicClient: dynamicClient,
+		Context:       context.Background(),
+	}
+
+	// Test with missing required field
+	req := cert.CertRequest{
+		TargetName: "", // Missing target name
+		Namespace:  "test-namespace",
+		CommonName: "test-common",
+		IssuerName: "test-issuer",
+	}
+
+	err := provider.CreateCert(context.Background(), req)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid certificate request")
+	assert.Contains(t, err.Error(), "targetName is required")
+}

@@ -132,6 +132,11 @@ func parseCertificateInfo(certData []byte) (string, time.Time, error) {
 }
 
 func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) error {
+	// Validate required fields
+	if err := p.validateCertRequest(req); err != nil {
+		return fmt.Errorf("invalid certificate request: %w", err)
+	}
+
 	// Define the Certificate resource
 	certificateGVR := schema.GroupVersionResource{
 		Group:    "cert-manager.io",
@@ -139,28 +144,17 @@ func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 		Resource: "certificates",
 	}
 
-	// Use config defaults when request values are zero
+	// Always use provider config for duration and renewBefore
 	duration := p.getConfigDuration()
 	renewBefore := p.getConfigRenewBefore()
 
 	// Use consistent naming: targetname-working-cert
 	secretName := fmt.Sprintf("%s-working-cert", req.TargetName)
 
-	// Create the spec map
-	spec := map[string]interface{}{
-		"secretName": secretName,
-		"issuerRef": map[string]interface{}{
-			"name": req.IssuerName,
-			"kind": "Issuer",
-		},
-		"commonName":  req.CommonName,
-		"duration":    duration.String(),
-		"renewBefore": renewBefore.String(),
-	}
-
-	// Only add dnsNames if it's not empty to avoid deep copy issues
-	if len(req.DNSNames) > 0 {
-		spec["dnsNames"] = req.DNSNames
+	// Build certificate spec with proper field handling
+	spec, err := p.buildCertificateSpec(req, secretName, duration, renewBefore)
+	if err != nil {
+		return fmt.Errorf("failed to build certificate spec: %w", err)
 	}
 
 	// Create the Certificate object
@@ -176,14 +170,60 @@ func (p *K8SCertProvider) CreateCert(ctx context.Context, req cert.CertRequest) 
 		},
 	}
 
-	// Create the certificate
-	_, err := p.DynamicClient.Resource(certificateGVR).Namespace(req.Namespace).Create(
+	// Create the certificate with better error handling
+	_, err = p.DynamicClient.Resource(certificateGVR).Namespace(req.Namespace).Create(
 		ctx, certificate, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to create certificate: %w", err)
+		if errors.IsAlreadyExists(err) {
+			return fmt.Errorf("certificate '%s' already exists in namespace '%s'", req.TargetName, req.Namespace)
+		}
+		return fmt.Errorf("failed to create certificate '%s' in namespace '%s': %w", req.TargetName, req.Namespace, err)
 	}
 
 	return nil
+}
+
+// validateCertRequest validates the required fields in the certificate request
+func (p *K8SCertProvider) validateCertRequest(req cert.CertRequest) error {
+	if req.TargetName == "" {
+		return fmt.Errorf("targetName is required")
+	}
+	if req.Namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+	if req.IssuerName == "" {
+		return fmt.Errorf("issuerName is required")
+	}
+	if req.CommonName == "" {
+		return fmt.Errorf("commonName is required")
+	}
+	return nil
+}
+
+// buildCertificateSpec builds the certificate spec with proper field handling
+func (p *K8SCertProvider) buildCertificateSpec(req cert.CertRequest, secretName string, duration, renewBefore time.Duration) (map[string]interface{}, error) {
+	spec := map[string]interface{}{
+		"secretName": secretName,
+		"issuerRef": map[string]interface{}{
+			"name": req.IssuerName,
+			"kind": "Issuer",
+		},
+		"commonName":  req.CommonName,
+		"duration":    duration.String(),
+		"renewBefore": renewBefore.String(),
+	}
+
+	// Only add dnsNames if it's not empty
+	if len(req.DNSNames) > 0 {
+		spec["dnsNames"] = req.DNSNames
+	}
+
+	// Only add subject if it's not empty to avoid issues with nil maps
+	if req.Subject != nil && len(req.Subject) > 0 {
+		spec["subject"] = req.Subject
+	}
+
+	return spec, nil
 }
 
 func (p *K8SCertProvider) DeleteCert(ctx context.Context, targetName, namespace string) error {
@@ -210,10 +250,8 @@ func (p *K8SCertProvider) GetCert(ctx context.Context, targetName, namespace str
 		Resource: "certificates",
 	}
 
-	// Retry logic: retry up to 10 times, 2 seconds interval
 	var certificate *unstructured.Unstructured
-	var err error
-	certificate, err = p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Get(
+	certificate, err := p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Get(
 		ctx, targetName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get certificate for %s after retries: %w", targetName, err)
