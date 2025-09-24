@@ -27,7 +27,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
@@ -35,6 +34,14 @@ import (
 	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/valyala/fasthttp"
+)
+
+// Secret reading retry constants
+const (
+	SecretReadMaxRetries      = 3                // Maximum number of retries for secret reading
+	SecretReadInitialInterval = 1 * time.Second  // Initial interval for secret reading retry backoff
+	SecretReadMaxInterval     = 10 * time.Second // Maximum interval for secret reading retry backoff
+	SecretReadMaxElapsedTime  = 30 * time.Second // Maximum total time for secret reading retries
 )
 
 var (
@@ -369,13 +376,13 @@ func readSecretWithRetry(ctx context.Context, secretProvider secret.ISecretProvi
 		return nil
 	}
 
-	// Configure exponential backoff with max 3 retries and initial delay of 1 second
+	// Configure exponential backoff with named constants instead of magic numbers
 	bo := backoff.NewExponentialBackOff()
-	bo.InitialInterval = 1 * time.Second
-	bo.MaxInterval = 10 * time.Second
-	bo.MaxElapsedTime = 30 * time.Second
+	bo.InitialInterval = SecretReadInitialInterval
+	bo.MaxInterval = SecretReadMaxInterval
+	bo.MaxElapsedTime = SecretReadMaxElapsedTime
 
-	retryBackoff := backoff.WithMaxRetries(bo, 3)
+	retryBackoff := backoff.WithMaxRetries(bo, SecretReadMaxRetries)
 
 	err := backoff.RetryNotify(operation, retryBackoff, func(err error, duration time.Duration) {
 		tLog.InfofCtx(ctx, "V (Targets) : retrying secret read for %s in %v due to: %v", key, duration, err)
@@ -697,7 +704,7 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 
 	switch request.Method {
 	case fasthttp.MethodPost:
-		// Check if targets manager is available for cert provider access
+		// Check if targets manager is available
 		if c.TargetsManager == nil {
 			tLog.ErrorCtx(ctx, "V (Targets) : onGetCert failed - targets manager not available")
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -706,17 +713,8 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 			})
 		}
 
-		certProvider := c.TargetsManager.GetCertProvider()
-		if certProvider == nil {
-			tLog.ErrorCtx(ctx, "V (Targets) : onGetCert failed - cert provider not available")
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte("certificate provider not available"),
-			})
-		}
-
-		// Use the working certificate ID (target name) to get existing certificate
-		certResponse, err := certProvider.GetCert(ctx, id, namespace)
+		// Use the manager's encapsulated certificate retrieval method (follows MVP architecture)
+		publicKey, privateKey, err := c.TargetsManager.GetTargetCertificate(ctx, id, namespace)
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed to retrieve certificate for target %s - %s", id, err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -725,23 +723,11 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 			})
 		}
 
-		if certResponse == nil {
-			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed - nil certificate response for target %s", id)
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.NotFound,
-				Body:  []byte(fmt.Sprintf("working certificate not found for target %s", id)),
-			})
-		}
-
-		// Format certificate data for remote agent (remove newlines as expected)
-		public := strings.ReplaceAll(certResponse.PublicKey, "\n", " ")
-		private := strings.ReplaceAll(certResponse.PrivateKey, "\n", " ")
-
-		tLog.InfofCtx(ctx, "V (Targets) : successfully retrieved working certificate for target %s (expires: %s)", id, certResponse.ExpiresAt.Format(time.RFC3339))
+		tLog.InfofCtx(ctx, "V (Targets) : successfully retrieved working certificate for target %s", id)
 
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
-			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", public, private)),
+			Body:  []byte(fmt.Sprintf("{\"public\":\"%s\",\"private\":\"%s\"}", publicKey, privateKey)),
 		})
 
 	}
@@ -753,119 +739,6 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
-}
-
-// waitForCertificateReady waits for Certificate to be ready and secret to have the correct type and content
-func (c *TargetsVendor) waitForCertificateReady(ctx context.Context, certName, namespace, secretName string) error {
-	tLog.InfofCtx(ctx, "V (Targets) : waiting for certificate %s to be ready in namespace %s", certName, namespace)
-
-	// Create a context with timeout for the whole operation
-	timeoutCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
-	defer cancel()
-
-	op := func() error {
-		// Check Certificate status
-		ready, err := c.checkCertificateStatus(timeoutCtx, certName, namespace)
-		if err != nil {
-			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : error checking certificate status: %v", err)
-			return err
-		}
-
-		if !ready {
-			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : certificate %s not ready yet", certName)
-			return fmt.Errorf("certificate %s not ready", certName)
-		}
-
-		// Check if secret exists and has correct type
-		secretReady, err := c.checkSecretReady(timeoutCtx, secretName, namespace)
-		if err != nil {
-			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : error checking secret status: %v", err)
-			return err
-		}
-
-		if !secretReady {
-			tLog.ErrorfCtx(timeoutCtx, "V (Targets) : secret %s not ready yet", secretName)
-			return fmt.Errorf("secret %s not ready", secretName)
-		}
-
-		tLog.InfofCtx(timeoutCtx, "V (Targets) : certificate %s and secret %s are ready", certName, secretName)
-		return nil
-	}
-
-	// Use exponential backoff with the timeout context for cancellation
-	bo := backoff.NewExponentialBackOff()
-	bo.InitialInterval = 2 * time.Second
-	bo.MaxInterval = 10 * time.Second
-	// Respect the outer timeout via WithContext
-	err := backoff.RetryNotify(op, backoff.WithContext(bo, timeoutCtx), func(err error, duration time.Duration) {
-		tLog.InfofCtx(timeoutCtx, "V (Targets) : retrying certificate check in %v due to: %v", duration, err)
-	})
-
-	if err != nil {
-		return fmt.Errorf("timeout waiting for certificate %s to be ready: %s", certName, err.Error())
-	}
-
-	return nil
-}
-
-// checkCertificateStatus checks if Certificate is ready
-func (c *TargetsVendor) checkCertificateStatus(ctx context.Context, certName, namespace string) (bool, error) {
-	getRequest := states.GetRequest{
-		ID: certName,
-		Metadata: map[string]interface{}{
-			"namespace": namespace,
-			"group":     "cert-manager.io",
-			"version":   "v1",
-			"resource":  "certificates",
-			"kind":      "Certificate",
-		},
-	}
-
-	entry, err := c.TargetsManager.StateProvider.Get(ctx, getRequest)
-	if err != nil {
-		return false, fmt.Errorf("failed to get certificate: %s", err.Error())
-	}
-
-	// Check Certificate status conditions
-	if status, found := entry.Body.(map[string]interface{})["status"]; found {
-		if statusMap, ok := status.(map[string]interface{}); ok {
-			if conditions, found := statusMap["conditions"]; found {
-				if conditionsArray, ok := conditions.([]interface{}); ok {
-					for _, condition := range conditionsArray {
-						if condMap, ok := condition.(map[string]interface{}); ok {
-							if condType, found := condMap["type"]; found && strings.EqualFold(condType.(string), "ready") {
-								if condStatus, found := condMap["status"]; found && strings.EqualFold(condStatus.(string), "true") {
-									return true, nil
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false, nil
-}
-
-// checkSecretReady checks if secret exists and has the correct type and content
-func (c *TargetsVendor) checkSecretReady(ctx context.Context, secretName, namespace string) (bool, error) {
-	evalCtx := coa_utils.EvaluationContext{Namespace: namespace}
-
-	// Try to read both tls.crt and tls.key to verify secret is complete
-	_, err := c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
-	if err != nil {
-		tLog.ErrorfCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
-		return false, err // Secret not ready yet
-	}
-
-	_, err = c.TargetsManager.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
-	if err != nil {
-		tLog.ErrorCtx(ctx, "V (Targets) : secret %s not ready yet, waiting...", secretName)
-		return false, err // Secret not complete yet
-	}
-
-	return true, nil
 }
 
 func (c *TargetsVendor) onUpdateTopology(request v1alpha2.COARequest) v1alpha2.COAResponse {

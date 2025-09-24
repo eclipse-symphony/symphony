@@ -195,10 +195,10 @@ if ($protocol -eq 'http') {
             $WebRequestParams.GetEnumerator() | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Key, $_.Value) }
             $response = Invoke-WebRequest @WebRequestParams -Verbose
             $jsonResponse = $response.Content | ConvertFrom-Json
-            if ($jsonResponse.public -and $jsonResponse.private -and $jsonResponse.public -ne "null" -and $jsonResponse.private -ne "null") {
-                $success = $true
-                Write-Host "Successfully got working certificates from symphony server" -ForegroundColor Green
-                break
+                if (-not [string]::IsNullOrEmpty($jsonResponse.public) -and -not [string]::IsNullOrEmpty($jsonResponse.private)) {
+                    $success = $true
+                    Write-Host "Successfully got working certificates from symphony server" -ForegroundColor Green
+                    break
             } else {
                 Write-Host "Certificate not ready, retrying in 10 seconds... ($($retryCount+1)/$maxRetries)" -ForegroundColor Yellow
             }

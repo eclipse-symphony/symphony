@@ -42,6 +42,8 @@ import (
 var (
 	log                 = logger.NewLogger("coa.runtime")
 	apiOperationMetrics *metrics.Metrics
+	CAIssuer            = os.Getenv("ISSUER_NAME")
+	ServiceName         = os.Getenv("SYMPHONY_SERVICE_NAME")
 )
 
 var deploymentTypeMap = map[bool]string{
@@ -64,6 +66,10 @@ const (
 	DeploymentState = "DeployState"
 	DeploymentPlan  = "DeploymentPlan"
 	OperationState  = "OperationState"
+
+	// Certificate creation retry constants
+	CertCreationMaxRetries = 10
+	CertCreationRetryDelay = 2 * time.Second
 )
 
 type SolutionManager struct {
@@ -187,9 +193,9 @@ func (s *SolutionManager) GetCertProvider() certProvider.ICertProvider {
 	return s.CertProvider
 }
 
-// SafeCreateWorkingCert creates a working certificate with validation checks
+// CreateCertificateWithValidation creates a certificate with validation checks
 // It validates that the certificate doesn't exist before creation and verifies creation success after
-func (s *SolutionManager) SafeCreateWorkingCert(ctx context.Context, certID string, request certProvider.CertRequest) error {
+func (s *SolutionManager) CreateCertificateWithValidation(ctx context.Context, certID string, request certProvider.CertRequest) error {
 	if s.CertProvider == nil {
 		return fmt.Errorf("cert provider not initialized")
 	}
@@ -209,20 +215,32 @@ func (s *SolutionManager) SafeCreateWorkingCert(ctx context.Context, certID stri
 		return fmt.Errorf("failed to create certificate %s: %v", certID, err)
 	}
 
-	// Post-creation validation: verify certificate was created successfully
-	log.InfofCtx(ctx, " M (Solution): validating certificate %s was created successfully", certID)
-	_, err = s.CertProvider.GetCert(ctx, certID, request.Namespace)
-	if err != nil {
-		return fmt.Errorf("certificate %s creation validation failed, certificate not found after creation: %v", certID, err)
+	// Post-creation validation with retry mechanism: verify certificate was created successfully
+	log.InfofCtx(ctx, " M (Solution): validating certificate %s was created successfully with retry mechanism", certID)
+	for i := 0; i < CertCreationMaxRetries; i++ {
+		_, err = s.CertProvider.GetCert(ctx, certID, request.Namespace)
+		if err == nil {
+			log.InfofCtx(ctx, " M (Solution): working certificate %s created and validated successfully after %d attempts", certID, i+1)
+			return nil
+		}
+
+		if i < CertCreationMaxRetries-1 {
+			log.InfofCtx(ctx, " M (Solution): certificate %s not found on attempt %d/%d, waiting %v before retry. Error: %v",
+				certID, i+1, CertCreationMaxRetries, CertCreationRetryDelay, err)
+			time.Sleep(CertCreationRetryDelay)
+		} else {
+			log.ErrorfCtx(ctx, " M (Solution): certificate %s validation failed after %d attempts. Final error: %v",
+				certID, CertCreationMaxRetries, err)
+		}
 	}
 
-	log.InfofCtx(ctx, " M (Solution): working certificate %s created and validated successfully", certID)
-	return nil
+	return fmt.Errorf("certificate %s creation validation failed, certificate not found after creation with %d retries: %v",
+		certID, CertCreationMaxRetries, err)
 }
 
-// SafeDeleteWorkingCert deletes a working certificate with validation checks
+// DeleteCertificateWithValidation deletes a certificate with validation checks
 // It validates that the certificate exists before deletion and verifies deletion success after
-func (s *SolutionManager) SafeDeleteWorkingCert(ctx context.Context, certID string, namespace string) error {
+func (s *SolutionManager) DeleteCertificateWithValidation(ctx context.Context, certID string, namespace string) error {
 	if s.CertProvider == nil {
 		return fmt.Errorf("cert provider not initialized")
 	}
@@ -231,7 +249,8 @@ func (s *SolutionManager) SafeDeleteWorkingCert(ctx context.Context, certID stri
 	log.InfofCtx(ctx, " M (Solution): validating certificate %s exists before deletion", certID)
 	_, err := s.CertProvider.GetCert(ctx, certID, namespace)
 	if err != nil {
-		return fmt.Errorf("certificate %s not found, cannot delete: %v", certID, err)
+		log.InfofCtx(ctx, " M (Solution): certificate %s does not exist, skipping deletion", certID)
+		return nil
 	}
 
 	// Delete the certificate
@@ -249,6 +268,51 @@ func (s *SolutionManager) SafeDeleteWorkingCert(ctx context.Context, certID stri
 	}
 
 	log.InfofCtx(ctx, " M (Solution): working certificate %s deleted and validated successfully", certID)
+	return nil
+}
+
+// IsRemoteTargetDeployment checks if a deployment spec involves a remote target by looking for components of type "remote-agent"
+func IsRemoteTargetDeployment(deploymentSpec *model.DeploymentSpec) bool {
+	if deploymentSpec == nil {
+		return false
+	}
+
+	// check components in solution spec
+	if deploymentSpec.Solution.Spec == nil || len(deploymentSpec.Solution.Spec.Components) == 0 {
+		return false
+	}
+
+	// iterate over all components to find one with type "remote-agent"
+	for _, component := range deploymentSpec.Solution.Spec.Components {
+		if component.Type == "remote-agent" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// handleWorkingCertManagement manages working certificates for remote targets
+func (s *SolutionManager) handleWorkingCertManagement(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string) error {
+	log.InfofCtx(ctx, "V (Solution): handleWorkingCertManagement for remote target: %s, remove: %t", deployment.Solution.ObjectMeta.Name, remove)
+
+	if remove {
+		// Delete working certificate when removing remote target
+		err := s.DeleteCertificateWithValidation(ctx, deployment.Solution.ObjectMeta.Name, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to delete working certificate for remote target %s: %w", deployment.Solution.ObjectMeta.Name, err)
+		}
+		log.InfofCtx(ctx, "V (Solution): successfully deleted working certificate for remote target: %s", deployment.Solution.ObjectMeta.Name)
+	} else {
+		// Create working certificate for remote target
+		err := s.CreateCertificateWithValidation(ctx, deployment.Solution.ObjectMeta.Name, s.CreateCertRequest(deployment.Solution.ObjectMeta.Name, namespace))
+		if err != nil {
+			return fmt.Errorf("failed to create or update working certificate for remote target %s: %w", deployment.Solution.ObjectMeta.Name, err)
+		} else {
+			log.InfofCtx(ctx, "V (Solution): successfully created working certificate for remote target: %s", deployment.Solution.ObjectMeta.Name)
+		}
+	}
+
 	return nil
 }
 
@@ -290,6 +354,7 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		s.KeyLockProvider.UnLock(lockName)
 		return summary, err
 	}
+
 	// get the components count for the deployment
 	componentCount := len(deployment.Solution.Spec.Components)
 	apiOperationMetrics.ApiComponentCount(
@@ -344,6 +409,14 @@ func (s *SolutionManager) AsyncReconcile(ctx context.Context, deployment model.D
 		stepList = append(stepList, step)
 	}
 	initalPlan.Steps = stepList
+	// Handle working certificate management for remote targets
+	if IsRemoteTargetDeployment(&deployment) {
+		err = s.handleWorkingCertManagement(ctx, deployment, remove, namespace)
+		if err != nil {
+			log.ErrorfCtx(ctx, "V (Solution): failed to handle working cert management: %s", err.Error())
+			return summary, err
+		}
+	}
 	log.InfoCtx(ctx, "publish topic for object %s", deployment.Instance.ObjectMeta.Name)
 	s.VendorContext.Publish(model.DeploymentPlanTopic, v1alpha2.Event{
 		Metadata: map[string]string{
@@ -1995,8 +2068,8 @@ func (s *SolutionManager) CreateCertRequest(targetName string, namespace string)
 	return certProvider.CertRequest{
 		TargetName: targetName,
 		Namespace:  namespace,
-		CommonName: "symphony-service",   // Required field
-		IssuerName: "symphony-ca-issuer", // Required field
+		CommonName: ServiceName, // Required field
+		IssuerName: CAIssuer,    // Required field
 		DNSNames:   []string{targetName, fmt.Sprintf("%s.%s", targetName, namespace)},
 	}
 }

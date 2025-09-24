@@ -10,7 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
@@ -30,6 +33,14 @@ import (
 )
 
 var log = logger.NewLogger("coa.runtime")
+
+// Certificate waiting and retry constants
+const (
+	// Certificate waiting timeout configuration
+	CertificateWaitTimeout   = 120 * time.Second // Total timeout for certificate readiness
+	CertRetryInitialInterval = 2 * time.Second   // Initial interval for certificate retry backoff
+	CertRetryMaxInterval     = 10 * time.Second  // Maximum interval for certificate retry backoff
+)
 
 type TargetsManager struct {
 	managers.Manager
@@ -315,4 +326,168 @@ func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, 
 // GetCertProvider returns the certificate provider for read-only access to certificates
 func (t *TargetsManager) GetCertProvider() cert.ICertProvider {
 	return t.CertProvider
+}
+
+// getTargetRuntimeKey returns the target runtime key with prefix
+func getTargetRuntimeKey(targetName string) string {
+	return fmt.Sprintf("target-runtime-%s", targetName)
+}
+
+// GetTargetCertificate retrieves and formats the certificate for a target
+// This encapsulates the cert provider logic following MVP architecture
+func (t *TargetsManager) GetTargetCertificate(ctx context.Context, targetName, namespace string) (publicKey, privateKey string, err error) {
+	ctx, span := observability.StartSpan("Targets Manager", ctx, &map[string]string{
+		"method": "GetTargetCertificate",
+	})
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	// Verify target exists
+	_, err = t.GetState(ctx, targetName, namespace)
+	if err != nil {
+		log.ErrorfCtx(ctx, "Target %s not found in namespace %s: %v", targetName, namespace, err)
+		return "", "", fmt.Errorf("target %s not found: %w", targetName, err)
+	}
+
+	// Check if cert provider is available
+	if t.CertProvider == nil {
+		log.ErrorCtx(ctx, "Certificate provider not available")
+		return "", "", fmt.Errorf("certificate provider not available")
+	}
+
+	// Get the target runtime key for certificate lookup
+	key := getTargetRuntimeKey(targetName)
+
+	// Retrieve certificate from provider
+	certResponse, err := t.CertProvider.GetCert(ctx, key, namespace)
+	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to retrieve certificate for target %s: %v", targetName, err)
+		return "", "", fmt.Errorf("working certificate not found for target %s: %w", key, err)
+	}
+
+	if certResponse == nil {
+		log.ErrorfCtx(ctx, "Nil certificate response for target %s", targetName)
+		return "", "", fmt.Errorf("working certificate not found for target %s", key)
+	}
+
+	// Format certificate data for remote agent (remove newlines as expected by the protocol)
+	publicKey = strings.ReplaceAll(certResponse.PublicKey, "\n", " ")
+	privateKey = strings.ReplaceAll(certResponse.PrivateKey, "\n", " ")
+
+	log.InfofCtx(ctx, "Successfully retrieved working certificate for target %s (expires: %s)", targetName, certResponse.ExpiresAt.Format("2006-01-02 15:04:05"))
+
+	return publicKey, privateKey, nil
+}
+
+// waitForCertificateReady waits for Certificate to be ready and secret to have the correct type and content
+func (t *TargetsManager) waitForCertificateReady(ctx context.Context, certName, namespace, secretName string) error {
+	log.InfofCtx(ctx, "T (TargetsManager): waiting for certificate %s to be ready in namespace %s", certName, namespace)
+
+	// Create a context with timeout for the whole operation
+	timeoutCtx, cancel := context.WithTimeout(ctx, CertificateWaitTimeout)
+	defer cancel()
+
+	op := func() error {
+		// Check Certificate status
+		ready, err := t.checkCertificateStatus(timeoutCtx, certName, namespace)
+		if err != nil {
+			log.ErrorfCtx(timeoutCtx, "T (TargetsManager): error checking certificate status: %v", err)
+			return err
+		}
+
+		if !ready {
+			log.ErrorfCtx(timeoutCtx, "T (TargetsManager): certificate %s not ready yet", certName)
+			return fmt.Errorf("certificate %s not ready", certName)
+		}
+
+		// Check if secret exists and has correct type
+		secretReady, err := t.checkSecretReady(timeoutCtx, secretName, namespace)
+		if err != nil {
+			log.ErrorfCtx(timeoutCtx, "T (TargetsManager): error checking secret status: %v", err)
+			return err
+		}
+
+		if !secretReady {
+			log.ErrorfCtx(timeoutCtx, "T (TargetsManager): secret %s not ready yet", secretName)
+			return fmt.Errorf("secret %s not ready", secretName)
+		}
+
+		log.InfofCtx(timeoutCtx, "T (TargetsManager): certificate %s and secret %s are ready", certName, secretName)
+		return nil
+	}
+
+	// Use exponential backoff with the timeout context for cancellation
+	bo := backoff.NewExponentialBackOff()
+	bo.InitialInterval = CertRetryInitialInterval
+	bo.MaxInterval = CertRetryMaxInterval
+	// Respect the outer timeout via WithContext
+	err := backoff.RetryNotify(op, backoff.WithContext(bo, timeoutCtx), func(err error, duration time.Duration) {
+		log.InfofCtx(timeoutCtx, "T (TargetsManager): retrying certificate check in %v due to: %v", duration, err)
+	})
+
+	if err != nil {
+		return fmt.Errorf("timeout waiting for certificate %s to be ready: %s", certName, err.Error())
+	}
+
+	return nil
+}
+
+// checkCertificateStatus checks if Certificate is ready
+func (t *TargetsManager) checkCertificateStatus(ctx context.Context, certName, namespace string) (bool, error) {
+	getRequest := states.GetRequest{
+		ID: certName,
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     "cert-manager.io",
+			"version":   "v1",
+			"resource":  "certificates",
+			"kind":      "Certificate",
+		},
+	}
+
+	entry, err := t.StateProvider.Get(ctx, getRequest)
+	if err != nil {
+		return false, fmt.Errorf("failed to get certificate: %s", err.Error())
+	}
+
+	// Check Certificate status conditions
+	if status, found := entry.Body.(map[string]interface{})["status"]; found {
+		if statusMap, ok := status.(map[string]interface{}); ok {
+			if conditions, found := statusMap["conditions"]; found {
+				if conditionsArray, ok := conditions.([]interface{}); ok {
+					for _, condition := range conditionsArray {
+						if condMap, ok := condition.(map[string]interface{}); ok {
+							if condType, found := condMap["type"]; found && strings.EqualFold(condType.(string), "ready") {
+								if condStatus, found := condMap["status"]; found && strings.EqualFold(condStatus.(string), "true") {
+									return true, nil
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false, nil
+}
+
+// checkSecretReady checks if secret exists and has the correct type and content
+func (t *TargetsManager) checkSecretReady(ctx context.Context, secretName, namespace string) (bool, error) {
+	evalCtx := utils.EvaluationContext{Namespace: namespace}
+
+	// Try to read both tls.crt and tls.key to verify secret is complete
+	_, err := t.SecretProvider.Read(ctx, secretName, "tls.crt", evalCtx)
+	if err != nil {
+		log.ErrorfCtx(ctx, "T (TargetsManager): secret %s not ready yet, waiting...", secretName)
+		return false, err // Secret not ready yet
+	}
+
+	_, err = t.SecretProvider.Read(ctx, secretName, "tls.key", evalCtx)
+	if err != nil {
+		log.ErrorfCtx(ctx, "T (TargetsManager): secret %s not ready yet, waiting...", secretName)
+		return false, err // Secret not complete yet
+	}
+
+	return true, nil
 }

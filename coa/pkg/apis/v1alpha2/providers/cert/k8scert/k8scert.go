@@ -213,18 +213,10 @@ func (p *K8SCertProvider) GetCert(ctx context.Context, targetName, namespace str
 	// Retry logic: retry up to 10 times, 2 seconds interval
 	var certificate *unstructured.Unstructured
 	var err error
-	for i := 0; i < 10; i++ {
-		certificate, err = p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Get(
-			ctx, targetName, metav1.GetOptions{})
-		if err == nil {
-			break
-		}
-		if i < 9 {
-			time.Sleep(2 * time.Second)
-		}
-	}
+	certificate, err = p.DynamicClient.Resource(certificateGVR).Namespace(namespace).Get(
+		ctx, targetName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get certificate after retries: %w", err)
+		return nil, fmt.Errorf("failed to get certificate for %s after retries: %w", targetName, err)
 	}
 
 	// Extract the secret name from the certificate spec
