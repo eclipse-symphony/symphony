@@ -200,9 +200,9 @@ if [ "$protocol" = "http" ]; then
             # Check if response contains valid public and private fields
             public=$(echo $result | jq -r '.public')
             private=$(echo $result | jq -r '.private')
-                if [ -n "$public" ] && [ "$public" != "null" ] && [ -n "$private" ] && [ "$private" != "null" ]; then
-                    break
-                fi
+            if [ -n "$public" ] && [ -n "$private" ]; then
+                break
+            fi
         fi
         retry_count=$((retry_count+1))
         if [ $retry_count -ge $max_retries ]; then
