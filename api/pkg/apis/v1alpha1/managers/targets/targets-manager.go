@@ -323,11 +323,6 @@ func (t *TargetsManager) targetInstanceLookup(ctx context.Context, name string, 
 	return len(instanceList) > 0, nil
 }
 
-// GetCertProvider returns the certificate provider for read-only access to certificates
-func (t *TargetsManager) GetCertProvider() cert.ICertProvider {
-	return t.CertProvider
-}
-
 // getTargetRuntimeKey returns the target runtime key with prefix
 func getTargetRuntimeKey(targetName string) string {
 	return fmt.Sprintf("target-runtime-%s", targetName)
@@ -343,6 +338,7 @@ func (t *TargetsManager) GetTargetCertificate(ctx context.Context, targetName, n
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	// Verify target exists
+
 	_, err = t.GetState(ctx, targetName, namespace)
 	if err != nil {
 		log.ErrorfCtx(ctx, "Target %s not found in namespace %s: %v", targetName, namespace, err)
