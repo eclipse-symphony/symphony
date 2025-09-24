@@ -663,17 +663,8 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 		scope = constants.DefaultScope
 	}
 
-	// Check if this is a remote target by looking for remote-agent components
-	remoteTargetName := ""
-	for _, component := range target.Spec.Components {
-		if component.Type == "remote-agent" {
-			remoteTargetName = target.ObjectMeta.Name
-			break
-		}
-	}
 	ret := model.DeploymentSpec{
-		ObjectNamespace:  namespace,
-		RemoteTargetName: remoteTargetName,
+		ObjectNamespace: namespace,
 	}
 	solution := model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
