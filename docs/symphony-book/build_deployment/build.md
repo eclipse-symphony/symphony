@@ -76,16 +76,22 @@ pushd .
 cd api/pkg/apis/v1alpha1/providers/target/rust
 cargo build --release
 popd #back to the api folder
-go build -o symphony-api
+export LIBDIR=$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/release        
+CGO_ENABLED=1 GOARCH=amd64 GOOS=linux CC=gcc CGO_LDFLAGS="-L$LIBDIR" go build -o symphony-api
 # to build for Windows
 GOOS=windows GOARCH=amd64 go build -o symphony-api.exe
 # to build for Mac
 GOOS=darwin GOARCH=amd64 go build -o symphony-api-mac
+# copy libsymphony.so to /usr/local/lib folder
+sudo cp $LIBDIR/libsymphony.so /usr/local/lib
+sudo ldconfig
 ```
 
 Then, you can launch the API as a local web service using (default port is `8082`. See `./symphony-api-no-k8s.json` settings):
 
 ```bash
+export USE_SERVICE_ACCOUNT_TOKENS=false
+export SYMPHONY_API_URL=http://localhost:8082/v1alpha2/
 ./symphony-api -c ./symphony-api-no-k8s.json -l Debug
 ```
 
