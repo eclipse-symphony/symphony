@@ -50,35 +50,12 @@ type RustTargetProvider struct {
 	Context  *contexts.ManagerContext
 }
 
-func RustTargetProviderConfigFromMap(properties map[string]string) (RustTargetProviderConfig, error) {
-	ret := RustTargetProviderConfig{}
-	if v, ok := properties["name"]; ok {
-		ret.Name = v
-	}
-	if v, ok := properties["libFile"]; ok {
-		ret.LibFile = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "'libFile' is missing in Rust provider config", v1alpha2.BadConfig)
-	}
-	if v, ok := properties["libHash"]; ok {
-		ret.LibHash = v
-	} else {
-		return ret, v1alpha2.NewCOAError(nil, "'libHash' is missing in Rust provider config", v1alpha2.BadConfig)
-	}
-	return ret, nil
-}
-
 func (s *RustTargetProvider) SetContext(ctx *contexts.ManagerContext) {
 	s.Context = ctx
 }
 
 func (i *RustTargetProvider) InitWithMap(properties map[string]string) error {
-	config, err := RustTargetProviderConfigFromMap(properties)
-	if err != nil {
-		log.Errorf("  P (HTTP Target): expected HttpTargetProviderConfig: %+v", err)
-		return err
-	}
-	return i.Init(config)
+	return i.Init(properties)
 }
 
 func toRustProviderConfig(config providers.IProviderConfig) (RustTargetProviderConfig, error) {
