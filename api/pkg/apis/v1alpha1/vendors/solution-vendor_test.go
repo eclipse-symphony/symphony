@@ -113,6 +113,12 @@ func createSolutionVendor() SolutionVendor {
 			Outputs:        make(map[string]map[string]interface{}),
 			Triggers:       make(map[string]interface{}),
 		}
+
+		// Set the SolutionManager's VendorContext to the same context
+		// This ensures the manager can access the EvaluationContext
+		if vendor.SolutionManager != nil {
+			vendor.SolutionManager.VendorContext = vendor.Context
+		}
 	}
 
 	return vendor
