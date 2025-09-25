@@ -2044,6 +2044,14 @@ func TestBase64EncodeDecode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Hello World!", val)
 }
+func TestMultipleExpressions(t *testing.T) {
+	parser := NewParser("${{a}}${{b}}${{c}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", val)
+}
 func TestExpressionWithLotsOfEmbeddedCalls(t *testing.T) {
 	//create mock config provider
 	configProvider := &mock.MockConfigProvider{}

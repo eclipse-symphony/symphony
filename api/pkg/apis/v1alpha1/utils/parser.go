@@ -442,20 +442,6 @@ type FunctionNode struct {
 	Args []Node
 }
 
-func maybeNumber(s string) (interface{}, bool) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil, false
-	}
-	if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-		return i, true
-	}
-	if f, err := strconv.ParseFloat(s, 64); err == nil {
-		return f, true
-	}
-	return nil, false
-}
-
 func readProperty(properties map[string]string, key string, evalCtx utils.EvaluationContext) (string, error) {
 	v, ok := properties[key]
 	if !ok {
