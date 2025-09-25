@@ -718,8 +718,8 @@ func (c *TargetsVendor) onGetCert(request v1alpha2.COARequest) v1alpha2.COARespo
 		if err != nil {
 			tLog.ErrorfCtx(ctx, "V (Targets) : onGetCert failed to retrieve certificate for target %s - %s", id, err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.NotFound,
-				Body:  []byte(fmt.Sprintf("working certificate not found for target %s: %s", id, err.Error())),
+				State: v1alpha2.GetErrorState(err),
+				Body:  []byte(fmt.Sprintf("failed to retrieve working certificate for target %s: %s", id, err.Error())),
 			})
 		}
 
