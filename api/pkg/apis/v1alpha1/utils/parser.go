@@ -7,12 +7,12 @@
 package utils
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"text/scanner"
@@ -102,7 +102,48 @@ func removeQuotes(s string) string {
 	}
 	return s
 }
-
+func looksLikeJSON(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return false
+	}
+	switch s[0] {
+	case '{', '[':
+		return true
+	case '"', 't', 'f', 'n', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		// JSON can be a primitive too
+		return true
+	default:
+		return false
+	}
+}
+func coerceJSON(v interface{}) interface{} {
+	switch x := v.(type) {
+	case string:
+		txt := strings.TrimSpace(x)
+		// First pass
+		var out interface{}
+		dec := json.NewDecoder(strings.NewReader(txt))
+		dec.UseNumber()
+		if err := dec.Decode(&out); err != nil {
+			return v // not JSON; leave as-is
+		}
+		// If result is a string that itself looks like JSON, second pass
+		if inner, ok := out.(string); ok && looksLikeJSON(inner) {
+			var out2 interface{}
+			dec2 := json.NewDecoder(strings.NewReader(inner))
+			dec2.UseNumber()
+			if err := dec2.Decode(&out2); err == nil {
+				return out2
+			}
+		}
+		return out
+	case []byte:
+		return coerceJSON(string(x))
+	default:
+		return v // already structured
+	}
+}
 func (n *IdentifierNode) Eval(context utils.EvaluationContext) (interface{}, error) {
 	return removeQuotes(n.Value), nil
 }
@@ -401,18 +442,46 @@ type FunctionNode struct {
 	Args []Node
 }
 
-func readProperty(properties map[string]string, key string) (string, error) {
-	if v, ok := properties[key]; ok {
+func readProperty(properties map[string]string, key string, evalCtx utils.EvaluationContext) (string, error) {
+	v, ok := properties[key]
+	if !ok {
+		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s is not found", key), v1alpha2.BadConfig)
+	}
+
+	if !strings.HasPrefix(v, "${{") || !strings.HasSuffix(v, "}}") {
 		return v, nil
 	}
-	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s is not found", key), v1alpha2.BadConfig)
-}
-func readPropertyInterface(properties map[string]interface{}, key string) (interface{}, error) {
-	if v, ok := properties[key]; ok {
-		return v, nil
+	parser := NewParser(v)
+	res, err := parser.Eval(evalCtx)
+	if err != nil {
+		return "", err
 	}
-	return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s is not found", key), v1alpha2.BadConfig)
+	return fmt.Sprintf("%v", res), nil
 }
+
+func readPropertyInterface(properties map[string]interface{}, key string, evalCtx utils.EvaluationContext) (interface{}, error) {
+	v, ok := properties[key]
+	if !ok {
+		return "", v1alpha2.NewCOAError(nil, fmt.Sprintf("property %s is not found", key), v1alpha2.BadConfig)
+	}
+
+	// Only attempt expression evaluation for string values.
+	// TODO: Consider recursively evaluating lists and maps?
+	if s, isString := v.(string); isString {
+		if !strings.HasPrefix(s, "${{") || !strings.HasSuffix(s, "}}") {
+			return v, nil
+		}
+		parser := NewParser(s)
+		res, err := parser.Eval(evalCtx)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
+
+	return v, nil
+}
+
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
 	components := deployment.Solution.Spec.Components
 	for _, c := range components {
@@ -433,53 +502,77 @@ func toIntIfPossible(f float64) interface{} {
 	return f
 }
 
-func formatFloats(left interface{}, right interface{}, operator string) interface{} {
-	var lv_f, rv_f float64
-	var okl, okr bool
-	if lv_i, ok := left.(int64); ok {
-		lv_f = float64(lv_i)
-		okl = true
-	} else {
-		lv_f, okl = left.(float64)
-	}
-	if rv_i, ok := right.(int64); ok {
-		rv_f = float64(rv_i)
-		okr = true
-	} else {
-		rv_f, okr = right.(float64)
-	}
-	if okl && okr {
-		switch operator {
-		case "":
-			return toIntIfPossible(lv_f + rv_f)
-		case "-":
-			return toIntIfPossible(lv_f - rv_f)
-		case "*":
-			return toIntIfPossible(lv_f * rv_f)
-		case "/":
-			if rv_f != 0 {
-				return toIntIfPossible(lv_f / rv_f)
-			} else {
-				lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
-				rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
-				return fmt.Sprintf("%v%s%v", lv_str, operator, rv_str)
-			}
-		case ".":
-			lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
-			rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
-			return fmt.Sprintf("%v%s%v", lv_str, operator, rv_str)
-		default:
-			return fmt.Errorf("operator '%s' is not allowed in this context", operator)
+func toFloat64(x interface{}) (float64, bool) {
+	switch v := x.(type) {
+	case int:
+		return float64(v), true
+	case int8:
+		return float64(v), true
+	case int16:
+		return float64(v), true
+	case int32:
+		return float64(v), true
+	case int64:
+		return float64(v), true
+	case uint:
+		return float64(v), true
+	case uint8:
+		return float64(v), true
+	case uint16:
+		return float64(v), true
+	case uint32:
+		return float64(v), true
+	case uint64:
+		return float64(v), true
+	case float32:
+		return float64(v), true
+	case float64:
+		return v, true
+	case json.Number:
+		if f, err := v.Float64(); err == nil {
+			return f, true
 		}
-	} else if okl {
-		lv_str := strconv.FormatFloat(lv_f, 'f', -1, 64)
-		return fmt.Sprintf("%v%s%v", lv_str, operator, right)
-	} else if okr {
-		rv_str := strconv.FormatFloat(rv_f, 'f', -1, 64)
-		return fmt.Sprintf("%v%s%v", left, operator, rv_str)
-	} else {
-		return fmt.Sprintf("%v%s%v", left, operator, right)
 	}
+	return 0, false
+}
+
+func formatFloats(left, right interface{}, operator string) interface{} {
+	if lf, okL := toFloat64(left); okL {
+		if rf, okR := toFloat64(right); okR {
+			switch operator {
+			case "":
+				return toIntIfPossible(lf + rf)
+			case "-":
+				return toIntIfPossible(lf - rf)
+			case "*":
+				return toIntIfPossible(lf * rf)
+			case "/":
+				if rf != 0 {
+					return toIntIfPossible(lf / rf)
+				}
+				// fall back to string form when dividing by 0
+				return fmt.Sprintf("%v/%v",
+					strconv.FormatFloat(lf, 'f', -1, 64),
+					strconv.FormatFloat(rf, 'f', -1, 64))
+			case ".":
+				return fmt.Sprintf("%v.%v",
+					strconv.FormatFloat(lf, 'f', -1, 64),
+					strconv.FormatFloat(rf, 'f', -1, 64))
+			default:
+				return fmt.Errorf("operator '%s' is not allowed in this context", operator)
+			}
+		}
+		// left is numeric, right is not
+		return fmt.Sprintf("%v%s%v", strconv.FormatFloat(lf, 'f', -1, 64), operator, right)
+	}
+
+	// left is not numeric
+	if rf, okR := toFloat64(right); okR {
+		return fmt.Sprintf("%v%s%v", left, operator, strconv.FormatFloat(rf, 'f', -1, 64))
+	}
+
+	// neither is numeric -> stringify
+	return fmt.Sprintf("%v%s%v", left, operator, right)
 }
 
 func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error) {
@@ -505,14 +598,14 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$params() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "property":
 		if len(n.Args) == 1 {
-			if context.Properties == nil || len(context.Properties) == 0 {
+			if len(context.Properties) == 0 {
 				return nil, v1alpha2.NewCOAError(nil, "a property collection is needed to evaluate $property()", v1alpha2.BadConfig)
 			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			property, err := readProperty(context.Properties, FormatAsString(key))
+			property, err := readProperty(context.Properties, FormatAsString(key), context)
 			if err != nil {
 				return nil, err
 			}
@@ -521,14 +614,14 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$property() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "input":
 		if len(n.Args) == 1 {
-			if context.Inputs == nil || len(context.Inputs) == 0 {
+			if len(context.Inputs) == 0 {
 				return nil, errors.New("an input collection is needed to evaluate $input()")
 			}
 			key, err := n.Args[0].Eval(context)
 			if err != nil {
 				return nil, err
 			}
-			property, err := readPropertyInterface(context.Inputs, FormatAsString(key))
+			property, err := readPropertyInterface(context.Inputs, FormatAsString(key), context)
 			if err != nil {
 				return nil, err
 			}
@@ -537,7 +630,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$input() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "output":
 		if len(n.Args) == 2 {
-			if context.Outputs == nil || len(context.Outputs) == 0 {
+			if len(context.Outputs) == 0 {
 				//return nil, errors.New("an output collection is needed to evaluate $output()")
 				return "", nil
 			}
@@ -552,7 +645,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if _, ok := context.Outputs[FormatAsString(step)]; !ok {
 				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("step %s is not found in output collection", FormatAsString(step)), v1alpha2.BadConfig)
 			}
-			property, err := readPropertyInterface(context.Outputs[FormatAsString(step)], FormatAsString(key))
+			property, err := readPropertyInterface(context.Outputs[FormatAsString(step)], FormatAsString(key), context)
 			if err != nil {
 				return nil, err
 			}
@@ -572,7 +665,7 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if context.Triggers == nil {
 				return defaultVal, nil
 			}
-			property, err := readPropertyInterface(context.Triggers, FormatAsString(key))
+			property, err := readPropertyInterface(context.Triggers, FormatAsString(key), context)
 			if err != nil {
 				return defaultVal, nil
 			}
@@ -841,6 +934,58 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			}
 		}
 		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$val() or $context() expects 0 or 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
+	case "base64decode":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			strVal := FormatAsString(val)
+			decoded, err := base64.StdEncoding.DecodeString(strVal)
+			if err != nil {
+				return nil, v1alpha2.NewCOAError(err, fmt.Sprintf("failed to decode base64 string: %s", strVal), v1alpha2.InternalError)
+			}
+			return string(decoded), nil
+		}
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$base64decode() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
+	case "base64encode":
+		if len(n.Args) == 1 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			strVal := FormatAsString(val)
+			encoded := base64.StdEncoding.EncodeToString([]byte(strVal))
+			return encoded, nil
+		}
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$base64encode() expects 1 argument, found %d", len(n.Args)), v1alpha2.BadConfig)
+	case "jsonpath":
+		if len(n.Args) == 2 {
+			val, err := n.Args[0].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+			path, err := n.Args[1].Eval(context)
+			if err != nil {
+				return nil, err
+			}
+
+			formalVal := coerceJSON(val)
+
+			p := FormatAsString(path)
+			if len(p) >= 2 {
+				first, last := p[0], p[len(p)-1]
+				if (first == last) && (first == '"' || first == '\'' || first == '`') {
+					p = p[1 : len(p)-1]
+				}
+			}
+			result, err := JsonPathQuery(formalVal, p)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		}
+		return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("$jsonpath() expects 2 arguments, found %d", len(n.Args)), v1alpha2.BadConfig)
 	case "json":
 		if len(n.Args) == 1 {
 			val, err := n.Args[0].Eval(context)
@@ -879,26 +1024,8 @@ type ExpressionParser struct {
 }
 
 func NewParser(text string) *Parser {
-	re := regexp.MustCompile(`(\${{.*?}})`)
-	loc := re.FindAllStringIndex(text, -1)
-
-	segments := make([]string, 0, len(loc)*2+1)
-	start := 0
-	for _, l := range loc {
-		if start != l[0] {
-			segments = append(segments, text[start:l[0]])
-		}
-		segments = append(segments, text[l[0]:l[1]])
-		start = l[1]
-	}
-	if start < len(text) {
-		segments = append(segments, text[start:])
-	}
-
-	p := &Parser{
-		Segments: segments,
-	}
-	return p
+	segments := splitSegments(text)
+	return &Parser{Segments: segments}
 }
 
 func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
@@ -933,8 +1060,11 @@ func (p *Parser) Eval(context utils.EvaluationContext) (interface{}, error) {
 }
 
 func newExpressionParser(text string) *ExpressionParser {
+	text = strings.TrimSpace(text)
+	//text = normalizeSingleQuotedStrings(text) // <-- ADD THIS
+
 	var s scanner.Scanner // TODO: this is mostly used to scan go code, we should use a custom scanner
-	s.Init(strings.NewReader(strings.TrimSpace(text)))
+	s.Init(strings.NewReader(text))
 	// Supress "invalid char literal" messages
 	s.Error = func(_ *scanner.Scanner, _ string) {} // no-op
 	s.Mode = scanner.ScanIdents | scanner.ScanChars | scanner.ScanStrings | scanner.ScanInts
@@ -1018,6 +1148,10 @@ func (p *ExpressionParser) scan() Token {
 		return NUMBER
 	case scanner.Ident:
 		return IDENT
+	case scanner.String:
+		return STRING
+	case scanner.Char:
+		return STRING
 	case '$':
 		return DOLLAR
 	case '(':
@@ -1086,6 +1220,10 @@ func (p *ExpressionParser) primary() (Node, error) {
 		v, _ := strconv.ParseFloat(p.text, 64)
 		p.next()
 		return &NumberNode{v}, nil
+	case STRING:
+		raw := p.text
+		p.next()
+		return &IdentifierNode{raw}, nil
 	case DOLLAR:
 		return p.function()
 	case OPAREN:
@@ -1413,6 +1551,75 @@ func toNumber(val interface{}) (float64, bool) {
 		return num, true
 	}
 	return 0, false
+}
+
+func splitSegments(text string) []string {
+	var segs []string
+	n := len(text)
+	i := 0
+
+	for i < n {
+		start := strings.Index(text[i:], "${{")
+		if start == -1 {
+			// no more expressions
+			segs = append(segs, text[i:])
+			break
+		}
+		start += i
+		// prefix literal
+		if start > i {
+			segs = append(segs, text[i:start])
+		}
+
+		// scan forward to the matching "}}" not inside a string
+		j := start + 3 // after "${{"
+		inStr := false
+		var quote byte
+		escape := false
+
+		for j < n {
+			c := text[j]
+
+			if inStr {
+				if escape {
+					escape = false
+				} else {
+					if c == '\\' && quote != '`' { // backticks don't use escapes
+						escape = true
+					} else if c == quote {
+						inStr = false
+						quote = 0
+					}
+				}
+				j++
+				continue
+			}
+
+			// not in string: entering a string?
+			if c == '"' || c == '\'' || c == '`' {
+				inStr = true
+				quote = c
+				j++
+				continue
+			}
+
+			// possible close "}}"
+			if c == '}' && j+1 < n && text[j+1] == '}' {
+				j += 2 // include the "}}"
+				segs = append(segs, text[start:j])
+				i = j // continue after this segment
+				goto nextLoop
+			}
+			j++
+		}
+
+		// unmatched: treat rest as a single segment
+		segs = append(segs, text[start:])
+		break
+
+	nextLoop:
+	}
+	return segs
 }
 
 func evalProperties(context utils.EvaluationContext, properties interface{}) (interface{}, error) {

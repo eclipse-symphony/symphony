@@ -207,7 +207,7 @@ func TestFakeAPIWithJsonPathFloatResult(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, outputs)
 	assert.Equal(t, 200, outputs["status"])
-	assert.Equal(t, float64(1), outputs["waitResult"])
+	assert.Equal(t, int64(1), outputs["waitResult"])
 }
 
 func TestFakeAPIWithJsonPathArrayResult(t *testing.T) {

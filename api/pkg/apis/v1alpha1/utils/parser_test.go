@@ -2005,6 +2005,161 @@ func TestConfigCommaConfig(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "abc::def,ghi::jkl", val)
 }
+func TestBase64Decode(t *testing.T) {
+	parser := NewParser("${{$base64decode('SGVsbG8gV29ybGQh')}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "Hello World!", val)
+}
+func TestBase64DecodeNoQuotes(t *testing.T) {
+	parser := NewParser("${{$base64decode(SGVsbG8gV29ybGQh)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "Hello World!", val)
+}
+func TestBase64DecodeInvalid(t *testing.T) {
+	parser := NewParser("${{$base64decode('InvalidBase64String')}}")
+	_, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.NotNil(t, err)
+}
+func TestBase64Encode(t *testing.T) {
+	parser := NewParser("${{$base64encode('Hello World!')}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "SGVsbG8gV29ybGQh", val)
+}
+func TestBase64EncodeDecode(t *testing.T) {
+	parser := NewParser("${{$base64decode($base64encode('Hello World!'))}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "Hello World!", val)
+}
+func TestMultipleExpressions(t *testing.T) {
+	parser := NewParser("${{a}}${{b}}${{c}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", val)
+}
+func TestExpressionWithLotsOfEmbeddedCalls(t *testing.T) {
+	//create mock config provider
+	configProvider := &mock.MockConfigProvider{}
+	err := configProvider.Init(mock.MockConfigProviderConfig{})
+	assert.Nil(t, err)
+
+	//create mock secret provider
+	secretProvider := &secretmock.MockSecretProvider{}
+	err = secretProvider.Init(secretmock.MockSecretProviderConfig{})
+	assert.Nil(t, err)
+
+	parser := NewParser("${{$base64decode($base64encode($config($secret(a,b)+c, $secret(c,d)+e)+f))}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context:        ctx,
+		ConfigProvider: configProvider,
+		SecretProvider: secretProvider,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "a>>bc::c>>def", val)
+}
+func TestJsonPropertyAsIntExpression(t *testing.T) {
+	parser := NewParser("${{$jsonpath($json([{\"containerPort\":(100+200),\"protocol\":\"TCP\"}]), [0].containerPort)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(300), val)
+}
+func TestJsonPropertyAsStringExpression(t *testing.T) {
+	//Note difference from the above test. The (100+200) is not in parentheses, so it is treated as a string concatenation
+	//Then the jsonpath returns it as a string, and finally the expression parser evaluates it as a math expression
+	//So the final result is 100200 as an integer
+	parser := NewParser("${{$jsonpath($json([{\"containerPort\":100+200,\"protocol\":\"TCP\"}]), [0].containerPort)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(100200), val)
+}
+func TestJsonPropertyAsComplexExpression(t *testing.T) {
+	parser := NewParser("${{$jsonpath($json([{\"containerPort\":($input(containerPort)*2),\"protocol\":\"TCP\"}]), [0].containerPort)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs: map[string]interface{}{
+			"containerPort": "${{300+$input(offset)}}",
+			"offset":        100,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(800), val)
+}
+
+func TestJsonPropertyAsComplexExpressionExplitString(t *testing.T) {
+	parser := NewParser("${{$jsonpath($json([{\"containerPort\":$input(containerPort),\"protocol\":\"TCP\"}]), [0].containerPort)}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs: map[string]interface{}{
+			"containerPort": "${{300+$str($input(offset))}}",
+			"offset":        100,
+		},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(300100), val)
+}
+
+func TestBase64DecodeJson(t *testing.T) {
+	// SGVsbG8gV29ybGQh is "Hello World!"
+	// W3siY29udGFpbmVyUG9ydCI6OTA5MCwicHJvdG9jb2wiOiJUQ1AifV0= is [{"containerPort":9090,"protocol":"TCP"}]
+	parser := NewParser("${{$base64decode('W3siY29udGFpbmVyUG9ydCI6OTA5MCwicHJvdG9jb2wiOiJUQ1AifV0=')}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "[{\"containerPort\":9090,\"protocol\":\"TCP\"}]", val)
+}
+func TestBase64DecodeJsonThenPathQuery(t *testing.T) {
+	// W3siY29udGFpbmVyUG9ydCI6OTA5MCwicHJvdG9jb2wiOiJUQ1AifV0= is [{"containerPort":9090,"protocol":"TCP"}]
+	parser := NewParser("${{$jsonpath($base64decode('W3siY29udGFpbmVyUG9ydCI6OTA5MCwicHJvdG9jb2wiOiJUQ1AifV0='), '$[0].containerPort')}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(9090), val)
+}
+func TestJsonPathQueryArrayNumer(t *testing.T) {
+	parser := NewParser("${{$jsonpath('[{\"containerPort\":9090,\"protocol\":\"TCP\"}]', '$[0].containerPort')}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(9090), val)
+}
+func TestJsonPathQueryJsonString(t *testing.T) {
+	parser := NewParser("${{$jsonpath('{\"requests\":{\"cpu\":\"100m\",\"memory\":\"100Mi\"}}', '$.requests.cpu')}}")
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "100m", val)
+}
+func TestJsonPathQueryJsonStringUnescaped(t *testing.T) {
+	parser := NewParser(`${{$jsonpath('{"requests":{"cpu":"100m","memory":"100Mi"}}', '$.requests.cpu')}}`)
+	val, err := parser.Eval(utils.EvaluationContext{
+		Context: ctx,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, "100m", val)
+}
 func TestJson1(t *testing.T) {
 	parser := NewParser("[{\"containerPort\":9090,\"protocol\":\"TCP\"}]")
 	val, err := parser.Eval(utils.EvaluationContext{
