@@ -18,13 +18,13 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/google/uuid"
@@ -62,6 +62,7 @@ func createSolutionVendor() SolutionVendor {
 					"providers.secret":          "mock-secret",
 					"providers.keylock":         "mem-keylock",
 					"providers.queue":           "redis-queue",
+					"providers.cert":            "mock-cert",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -88,6 +89,14 @@ func createSolutionVendor() SolutionVendor {
 							Password: "",
 						},
 					},
+					"mock-cert": {
+						Type:   "providers.cert.mock",
+						Config: {
+							"inCluster":      true,
+							"defaultDuration":  "4320h",
+							"renewBefore":   "360h" 
+						}
+					},
 				},
 			},
 		},
@@ -102,25 +111,6 @@ func createSolutionVendor() SolutionVendor {
 			"redis-queue": &queueProvider,
 		},
 	}, nil)
-
-	// Initialize EvaluationContext to prevent nil pointer dereference
-	if vendor.Context != nil {
-		vendor.Context.EvaluationContext = &utils.EvaluationContext{
-			ConfigProvider: &configProvider,
-			SecretProvider: &secretProvider,
-			Properties:     make(map[string]string),
-			Inputs:         make(map[string]interface{}),
-			Outputs:        make(map[string]map[string]interface{}),
-			Triggers:       make(map[string]interface{}),
-		}
-
-		// Set the SolutionManager's VendorContext to the same context
-		// This ensures the manager can access the EvaluationContext
-		if vendor.SolutionManager != nil {
-			vendor.SolutionManager.VendorContext = vendor.Context
-		}
-	}
-
 	return vendor
 }
 

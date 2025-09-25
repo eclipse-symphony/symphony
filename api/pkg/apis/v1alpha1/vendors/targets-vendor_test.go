@@ -105,12 +105,20 @@ func createTargetsVendor() TargetsVendor {
 				Type: "managers.symphony.targets",
 				Properties: map[string]string{
 					"providers.persistentstate": "mem-state",
-					"providers.cert":            "cert-provider",
+					"providers.cert":            "k8scert",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
 						Type:   "providers.state.memory",
 						Config: memorystate.MemoryStateProviderConfig{},
+					},
+					"k8scert": {
+						Type: "providers.cert.k8s",
+						Config: map[string]interface{}{
+							"inCluster":       true,
+							"defaultDuration": "4320h",
+							"renewBefore":     "360h",
+						},
 					},
 				},
 			},
@@ -119,8 +127,8 @@ func createTargetsVendor() TargetsVendor {
 		&sym_mgr.SymphonyManagerFactory{},
 	}, map[string]map[string]providers.IProvider{
 		"targets-manager": {
-			"mem-state":     &stateProvider,
-			"cert-provider": mockCertProvider, // Add certificate provider to the providers map
+			"mem-state": &stateProvider,
+			"k8scert":   mockCertProvider, // Add certificate provider to the providers map
 		},
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
