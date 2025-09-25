@@ -24,6 +24,7 @@ import (
 	redisqueue "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/queue/redis"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	coalogcontexts "github.com/eclipse-symphony/symphony/coa/pkg/logger/contexts"
 	"github.com/google/uuid"
@@ -101,6 +102,19 @@ func createSolutionVendor() SolutionVendor {
 			"redis-queue": &queueProvider,
 		},
 	}, nil)
+
+	// Initialize EvaluationContext to prevent nil pointer dereference
+	if vendor.Context != nil {
+		vendor.Context.EvaluationContext = &utils.EvaluationContext{
+			ConfigProvider: &configProvider,
+			SecretProvider: &secretProvider,
+			Properties:     make(map[string]string),
+			Inputs:         make(map[string]interface{}),
+			Outputs:        make(map[string]map[string]interface{}),
+			Triggers:       make(map[string]interface{}),
+		}
+	}
+
 	return vendor
 }
 
