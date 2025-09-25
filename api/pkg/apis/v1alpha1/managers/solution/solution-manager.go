@@ -2048,12 +2048,10 @@ func (s *SolutionManager) getOperationState(ctx context.Context, operationId str
 // createCertRequest creates a certificate request with required fields, letting the cert provider use its configured defaults for Duration and RenewBefore
 func (s *SolutionManager) createCertRequest(targetName string, namespace string) certProvider.CertRequest {
 	// Create request with required fields - provider will use its configured defaults for Duration and RenewBefore only
-	subject := fmt.Sprintf("CN=%s-%s.%s", namespace, targetName, ServiceName)
 	return certProvider.CertRequest{
 		TargetName: targetName,
 		Namespace:  namespace,
-		CommonName: subject,
-		DNSNames:   []string{subject},
+		CommonName: ServiceName,
 		IssuerName: CAIssuer,
 		Subject: map[string]interface{}{
 			"organizations": []interface{}{ServiceName},
