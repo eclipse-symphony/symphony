@@ -75,6 +75,12 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Handler:    o.onReconcile,
 		},
 		{
+			Methods: []string{fasthttp.MethodPost},
+			Route:   route + "/cancel",
+			Version: o.Version,
+			Handler: o.onCancel,
+		},
+		{
 			Methods: []string{fasthttp.MethodGet, fasthttp.MethodPost, fasthttp.MethodDelete},
 			Route:   route + "/queue",
 			Version: o.Version,
@@ -82,6 +88,7 @@ func (o *SolutionVendor) GetEndpoints() []v1alpha2.Endpoint {
 		},
 	}
 }
+
 func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COAResponse {
 	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
 		"method": "onQueue",
@@ -161,6 +168,10 @@ func (c *SolutionVendor) onQueue(request v1alpha2.COARequest) v1alpha2.COARespon
 				})
 			}
 			instance = deployment.Instance.ObjectMeta.Name
+
+			if delete == "true" {
+				c.SolutionManager.CancelPreviousJobs(ctx, namespace, instance, deployment.JobID)
+			}
 		}
 
 		if instance == "" {
@@ -265,7 +276,8 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 				targetName = v
 			}
 		}
-		summary, err := c.SolutionManager.Reconcile(ctx, deployment, delete == "true", namespace, targetName)
+
+		summary, err := c.SolutionManager.ReconcileWithCancelWrapper(ctx, deployment, delete == "true", namespace, targetName)
 		data, _ := json.Marshal(summary)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "V (Solution): onReconcile failed POST - reconcile %s", err.Error())
@@ -284,6 +296,26 @@ func (c *SolutionVendor) onReconcile(request v1alpha2.COARequest) v1alpha2.COARe
 	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),
+		ContentType: "application/json",
+	})
+}
+
+func (c *SolutionVendor) onCancel(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	rContext, span := observability.StartSpan("Solution Vendor", request.Context, &map[string]string{
+		"method": "onCancel",
+	})
+	defer span.End()
+
+	namespace := request.Parameters["namespace"]
+	instance := request.Parameters["instance"]
+	jobId := request.Parameters["jobId"]
+
+	sLog.InfofCtx(rContext, "V (Solution): onCancel instance: %s job ID: %s", instance, jobId)
+	c.SolutionManager.CancelPreviousJobs(rContext, namespace, instance, jobId)
+
+	return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+		State:       v1alpha2.OK,
+		Body:        []byte("{\"result\":\"200 - OK\"}"),
 		ContentType: "application/json",
 	})
 }
