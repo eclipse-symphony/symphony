@@ -18,7 +18,6 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
@@ -90,12 +89,12 @@ func createSolutionVendor() SolutionVendor {
 						},
 					},
 					"mock-cert": {
-						Type:   "providers.cert.mock",
-						Config: {
-							"inCluster":      true,
-							"defaultDuration":  "4320h",
-							"renewBefore":   "360h" 
-						}
+						Type: "providers.cert.mock",
+						Config: map[string]interface{}{
+							"inCluster":       true,
+							"defaultDuration": "4320h",
+							"renewBefore":     "360h",
+						},
 					},
 				},
 			},
