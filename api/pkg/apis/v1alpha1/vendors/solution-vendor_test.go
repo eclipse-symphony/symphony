@@ -61,6 +61,7 @@ func createSolutionVendor() SolutionVendor {
 					"providers.secret":          "mock-secret",
 					"providers.keylock":         "mem-keylock",
 					"providers.queue":           "redis-queue",
+					"providers.cert":            "mock-cert",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
@@ -85,6 +86,14 @@ func createSolutionVendor() SolutionVendor {
 							Name:     "test",
 							Host:     "localhost:6379",
 							Password: "",
+						},
+					},
+					"mock-cert": {
+						Type: "providers.cert.mock",
+						Config: map[string]interface{}{
+							"inCluster":       true,
+							"defaultDuration": "4320h",
+							"renewBefore":     "360h",
 						},
 					},
 				},

@@ -18,7 +18,7 @@ import (
 
 // Test config
 const (
-	TEST_NAME    = "Remote Agent Communication scenario (HTTP and MQTT)"
+	TEST_NAME    = "Remote Agent Communication scenario "
 	TEST_TIMEOUT = "30m"
 )
 

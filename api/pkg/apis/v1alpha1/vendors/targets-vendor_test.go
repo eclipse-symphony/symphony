@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
@@ -17,6 +18,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	certProvider "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub/memory"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
@@ -26,6 +28,44 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
+
+// MockCertProvider implements both ICertProvider and IProvider interfaces for testing
+type MockCertProvider struct {
+}
+
+// Implement IProvider interface
+func (m *MockCertProvider) Init(config providers.IProviderConfig) error {
+	return nil
+}
+
+// Implement ICertProvider interface
+func (m *MockCertProvider) CreateCert(ctx context.Context, req certProvider.CertRequest) error {
+	return nil
+}
+
+func (m *MockCertProvider) DeleteCert(ctx context.Context, targetName, namespace string) error {
+	return nil
+}
+
+func (m *MockCertProvider) GetCert(ctx context.Context, targetName, namespace string) (*certProvider.CertResponse, error) {
+	// Return mock certificate data that matches what the test expects
+	return &certProvider.CertResponse{
+		PublicKey:    "-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJANlqGR0GwHpNMA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNVBAMMCWxv\nY2FsaG9zdDAeFw0yMzA5MjIwOTE1MzRaFw0yNDA5MjEwOTE1MzRaMBQxEjAQBgNV\nBAMMCWxvY2FsaG9zdDBcMA0GCSqGSIb3DQEBAQUAA0sAMEgCQQC7rsI/sNlQmFD+\nkab4TGXYXfVBnPJnZvajRvHxiTPfkTfNWVE/6LiYh8WNk6BW8jXMf5jf+DBSjvKW\n8P3VNhv5AgMBAAEwDQYJKoZIhvcNAQELBQADQQBJ4v4Y7HdXaajdRP3IgJyVgKQL\nIvdzP8qfmYCAf0+Dg4Gx8kfyze89/+P8dGwBCU6VzQGsv6K4FlT0gWg=\n-----END CERTIFICATE-----",
+		PrivateKey:   "-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAu67CP7DZUJHQ+pGm\n+Exl2F31QZzyZ2b2o0bx8Ykz35E3zVlRP+i4mIfFjZOgVvI1zH+Y3/gwUo7ylvD9\n1TYb+QIDAQABAkEAjLP5+VKam+XlSlJiuk8VSwZJvN1Ba2z3o7bq7J7z6KfkfWo3\nUvLL+bt+5YfzpxjzHur8YKK+n8KhSz5WPLwLsQIhAOO+7v7FL1a6K+FmJ2fPGadU\nqcY7FKjP3LTnh35pjNn1AiEA2gL7YKzsKmK2ZvJukM8eJSlrL7JJJLVcLhHmYzXa\nqr0CIGl+ADVLJiVZyCgJiXUgD7qq5Gi7CWGm2RJef8Gtn2aFAiBU5aAB/j3NKt7g\nkMHRnznYKBdb8tKUsQZgxWY1KXDoNwIgSPqzOgCpG6UNhG2jgL9JyGG7JJ1b7PfJ\nD8wEgEJWj8Y=\n-----END PRIVATE KEY-----",
+		ExpiresAt:    time.Now().Add(24 * time.Hour),
+		SerialNumber: "123456789",
+	}, nil
+}
+
+func (m *MockCertProvider) CheckCertStatus(ctx context.Context, targetName, namespace string) (*certProvider.CertStatus, error) {
+	return &certProvider.CertStatus{
+		Ready:       true,
+		Reason:      "Certificate is ready",
+		Message:     "Mock certificate is ready for use",
+		LastUpdate:  time.Now(),
+		NextRenewal: time.Now().Add(7 * 24 * time.Hour),
+	}, nil
+}
 
 func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
@@ -48,6 +88,10 @@ func createTargetsVendor() TargetsVendor {
 	secretProvider := mock.MockSecretProvider{}
 	secretProvider.Init(mock.MockSecretProviderConfig{Name: "test-secret"})
 
+	// Create mock certificate provider and initialize it
+	mockCertProvider := &MockCertProvider{}
+	mockCertProvider.Init(nil) // Initialize the provider
+
 	pubSubProvider := memory.InMemoryPubSubProvider{}
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor := TargetsVendor{}
@@ -61,11 +105,20 @@ func createTargetsVendor() TargetsVendor {
 				Type: "managers.symphony.targets",
 				Properties: map[string]string{
 					"providers.persistentstate": "mem-state",
+					"providers.cert":            "k8scert",
 				},
 				Providers: map[string]managers.ProviderConfig{
 					"mem-state": {
 						Type:   "providers.state.memory",
 						Config: memorystate.MemoryStateProviderConfig{},
+					},
+					"k8scert": {
+						Type: "providers.cert.k8s",
+						Config: map[string]interface{}{
+							"inCluster":       true,
+							"defaultDuration": "4320h",
+							"renewBefore":     "360h",
+						},
 					},
 				},
 			},
@@ -75,11 +128,13 @@ func createTargetsVendor() TargetsVendor {
 	}, map[string]map[string]providers.IProvider{
 		"targets-manager": {
 			"mem-state": &stateProvider,
+			"k8scert":   mockCertProvider, // Add certificate provider to the providers map
 		},
 	}, &pubSubProvider)
 	vendor.Config.Properties["useJobManager"] = "true"
 	vendor.TargetsManager.TargetValidator = validation.NewTargetValidator(nil, nil)
 	vendor.TargetsManager.SecretProvider = &secretProvider
+	// Certificate provider should now be automatically set during Init() due to the providers map
 	return vendor
 }
 func TestTargetsOnRegistry(t *testing.T) {

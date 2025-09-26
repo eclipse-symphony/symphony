@@ -45,6 +45,7 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	cp "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/cert/k8scert"
 	mockconfig "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/config/mock"
 	memorykeylock "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/keylock/memory"
 	mockledger "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/ledger/mock"
@@ -386,6 +387,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.queue.redis":
 		mProvider := &redisqueue.RedisQueueProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.cert.k8scert":
+		mProvider := &k8scert.K8SCertProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
