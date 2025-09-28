@@ -71,8 +71,8 @@ func (s *TargetsManager) Init(context *contexts.VendorContext, config managers.M
 	}
 
 	// Initialize cert provider using unified approach
-	if certProviderInstance, err := managers.GetCertProvider(config, providers); err == nil {
-		s.CertProvider = certProviderInstance
+	if certProvider, err := managers.GetCertProvider(config, providers); err == nil {
+		s.CertProvider = certProvider
 	} else {
 		log.Warnf("Cert provider not configured: %v", err)
 	}
