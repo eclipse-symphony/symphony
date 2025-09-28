@@ -321,14 +321,12 @@ func TestCertStatus_Fields(t *testing.T) {
 func TestToK8SCertProviderConfig(t *testing.T) {
 	// Test config conversion
 	mockConfig := MockProviderConfig{
-		Name:            "test-cert",
 		DefaultDuration: "4320h",
 		RenewBefore:     "360h",
 	}
 
 	result, err := toK8SCertProviderConfig(mockConfig)
 	assert.NoError(t, err)
-	assert.Equal(t, "test-cert", result.Name)
 	assert.Equal(t, "4320h", result.DefaultDuration)
 	assert.Equal(t, "360h", result.RenewBefore)
 }
