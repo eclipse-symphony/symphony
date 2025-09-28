@@ -26,7 +26,6 @@ import (
 )
 
 type K8SCertProviderConfig struct {
-	Name            string `json:"name"`
 	DefaultDuration string `json:"defaultDuration"`
 	RenewBefore     string `json:"renewBefore"`
 }

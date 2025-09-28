@@ -346,7 +346,6 @@
               "k8s-cert": {
                 "type": "providers.cert.k8scert",
                 "config": {
-                  "inCluster": true,
                   "defaultDuration": "{{ .Values.cert.certDurationTime | default "4320h" }}",
                   "renewBefore": "{{ .Values.cert.certRenewBeforeTime | default "360h" }}"
                 }
@@ -561,7 +560,6 @@
               "k8s-cert": {
                 "type": "providers.cert.k8scert",
                 "config": {
-                  "inCluster": true,
                   "defaultDuration": "{{ .Values.cert.certDurationTime | default "4320h" }}",
                   "renewBefore": "{{ .Values.cert.certRenewBeforeTime | default "360h" }}"
                 }
