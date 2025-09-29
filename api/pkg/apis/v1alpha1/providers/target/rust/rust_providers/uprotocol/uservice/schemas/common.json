@@ -1,0 +1,134 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://github.com/eclipse-symphony/schemas/common.json",
+    "title": "Eclipse Symphony common types",
+    "$defs": {
+        "AnyMap": {
+            "type": "object"
+        },
+        "BindingSpec": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "config": { "$ref": "#/$defs/StringMap" }
+            }
+        },
+        "DeployableStatus": {
+            "type": "object",
+            "properties": {
+                "properties": { "$ref": "#/$defs/StringMap" },
+                "provisioning-status": {
+                    "type": "string"
+                },
+                "last-modified": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            }    
+        },
+        "DeviceSpec": {
+            "type": "object",
+            "properties": {
+                "display-name": {
+                    "type": "string"
+                },
+                "properties": { "$ref": "#/$defs/StringMap" },
+                "bindings": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/BindingSpec" }
+                }
+            }
+        },
+        "FilterSpec": {
+            "type": "object",
+            "properties": {
+                "direction": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "parameters": { "$ref": "#/$defs/StringMap" }
+            }
+        },
+        "ObjectMeta": {
+            "type": "object",
+            "properties": {
+                "namespace": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "etag": {
+                    "type": "string"
+                },
+                "object-generation": {
+                    "type": "integer"
+                },
+                "labels": { "$ref": "#/$defs/StringMap" },
+                "annotations": { "$ref": "#/$defs/StringMap" },
+                "uid": {
+                    "type": "string"
+                },
+                "owner-references": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/OwnerReference" }
+                }
+            }
+        },
+        "OwnerReference": {},
+        "RouteSpec": {
+            "type": "object",
+            "properties": {
+                "route": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "properties": { "$ref": "#/$defs/StringMap" },
+                "filters": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/FilterSpec" }
+                }
+            }
+        },
+        "SidecarSpec": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "properties": { "$ref": "#/$defs/AnyMap" }
+            }
+        },
+        "StringMap": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "TopologySpec": {
+            "type": "object",
+            "properties": {
+                "device": {
+                    "type": "string"
+                },
+                "selector": { "$ref": "#/$defs/StringMap" },
+                "bindings": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/BindingSpec" }
+                }
+            }
+        }
+    }
+}

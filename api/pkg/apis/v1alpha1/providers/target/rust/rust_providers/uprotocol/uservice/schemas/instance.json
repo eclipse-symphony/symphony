@@ -1,0 +1,64 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://github.com/eclipse-symphony/schemas/instance.json",
+    "title": "Instance types",
+    "$defs": {
+        "InstanceState": {
+            "type": "object",
+            "properties": {
+                "object-meta": { "$ref": "common.json#/$defs/ObjectMeta" },
+                "spec": { "$ref": "#/$defs/InstanceSpec" },
+                "status": { "$ref": "common.json#/$defs/DeployableStatus" }
+            }
+        },
+        "InstanceSpec": {
+            "type": "object",
+            "properties": {
+                "display-name": {
+                    "type": "string"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "parameters": { "$ref": "common.json#/$defs/StringMap" },
+                "metadata": { "$ref": "common.json#/$defs/StringMap" },
+                "solution": {
+                    "type": "string"
+                },
+                "target": { "$ref": "#/$defs/TargetSelector" },
+                "topologies": {
+                    "type": "array",
+                    "items": { "$ref": "common.json#/$defs/TopologySpec" }
+                },
+                "pipelines": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/PipelineSpec" }
+                },
+                "is-dry-run": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "PipelineSpec": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "skill": {
+                    "type": "string"
+                },
+                "parameters": { "$ref": "common.json#/$defs/StringMap" }
+            }
+        },
+        "TargetSelector": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "selector": { "$ref": "common.json#/$defs/StringMap" }
+            }
+        }
+    }
+}

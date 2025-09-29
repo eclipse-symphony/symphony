@@ -17,10 +17,8 @@ pub trait ITargetProvider: Send + Sync {
 
  ## Current Rust based Target Providers
 
- | Provider | Info |
- |----------|------|
- | ankaios  | An [Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) provider |
- | mock     | A mock provider for testing purposes |
- 
-
-
+ | Provider  | Info |
+ |-----------|------|
+ | ankaios   | An [Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) provider |
+ | mock      | A mock provider for testing purposes |
+ | uprotocol | A provider that allows deployment Targets to be implemented using [Eclipse uProtocol](https://uprotocol.org) |

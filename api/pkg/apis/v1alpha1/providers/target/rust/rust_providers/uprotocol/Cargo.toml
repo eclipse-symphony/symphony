@@ -1,0 +1,29 @@
+# Copyright (c) Contributors to the Eclipse Foundation.
+# Licensed under the MIT license.
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "uprotocol"
+version = "0.1.0"
+edition = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+backon = { version = "1.5", default-features = false, features = ["tokio-sleep"] }
+symphony = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { version = "1.45" }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+up-rust = { version = "0.7.1", default-features = false, features = ["communication", "util"] }
+up-transport-mqtt5 = { version = "0.3" }
+up-transport-zenoh = { version = "0.8" }
+
+[dev-dependencies]
+async-trait = { version = "0.1.88" }
+test-case = { version = "3.3" }
+test-log = { version = "0.2", features = ["trace"] }
+up-rust = { version = "0.7.1", default-features = false, features = ["communication", "util", "test-util"] }

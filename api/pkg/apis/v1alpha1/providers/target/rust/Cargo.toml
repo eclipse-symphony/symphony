@@ -7,7 +7,8 @@ resolver = "2"
 members = [
     "symphony",
     "rust_providers/mock",
-    "rust_providers/ankaios"
+    "rust_providers/ankaios",
+    "rust_providers/uprotocol"
 ]
 
 [workspace.package]

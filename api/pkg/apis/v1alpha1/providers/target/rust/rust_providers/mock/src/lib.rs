@@ -6,11 +6,11 @@
 
 use std::collections::HashMap;
 use std::ffi::{c_char, CStr};
-use symphony::{ITargetProvider, ProviderWrapper};
 use symphony::models::{
-    ComponentResultSpec, ComponentSpec, ComponentStep, DeploymentSpec,
-    DeploymentStep, RouteSpec, SidecarSpec, State, ValidationRule,
+    ComponentResultSpec, ComponentSpec, ComponentStep, DeploymentSpec, DeploymentStep, RouteSpec,
+    SidecarSpec, State, ValidationRule,
 };
+use symphony::{ITargetProvider, ProviderWrapper};
 
 pub struct MockProvider;
 
