@@ -92,9 +92,6 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 		return err
 	}
 
-	// Ensure the embedded VendorContext field is properly set
-	// Access the field through the embedded Manager struct to avoid shadowing
-	s.Manager.VendorContext = context
 	s.TargetProviders = make(map[string]tgt.ITargetProvider)
 	for k, v := range providers {
 		if p, ok := v.(tgt.ITargetProvider); ok {
