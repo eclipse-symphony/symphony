@@ -190,8 +190,28 @@ if [ "$protocol" = "http" ]; then
         curl_cmd="$curl_cmd -k"
     fi
 
-    # Get certificate
-    result=$(eval "$curl_cmd -X POST \"$bootstrapCertEndpoint\" -H \"Content-Type: application/json\"")
+    # Get certificate with retry (10s interval, max 120s)
+    retry_count=0
+    max_retries=12
+    result=""
+    while true; do
+        result=$(eval "$curl_cmd -X POST \"$bootstrapCertEndpoint\" -H \"Content-Type: application/json\"")
+        if [ $? -eq 0 ]; then
+            # Check if response contains valid public and private fields
+            public=$(echo $result | jq -r '.public')
+            private=$(echo $result | jq -r '.private')
+            if [ -n "$public" ] && [ -n "$private" ]; then
+                break
+            fi
+        fi
+        retry_count=$((retry_count+1))
+        if [ $retry_count -ge $max_retries ]; then
+            echo -e "\e[31mError: Failed to get certificate after $((max_retries*10)) seconds. Response: $result\e[0m"
+            exit 1
+        fi
+        echo -e "\e[33mCertificate not ready, retrying in 10 seconds... ($retry_count/$max_retries)\e[0m"
+        sleep 10
+    done
 
     if [ $? -ne 0 ]; then
         echo -e "\e[31mError: Failed to call certificate endpoint. Please check the endpoint and try again.\e[0m"
@@ -205,10 +225,10 @@ if [ "$protocol" = "http" ]; then
     private=$(echo $result | jq -r '.private')
 
     # Check if we got valid certificates
-    if [ "$public" = "null" ] || [ "$private" = "null" ] || [ -z "$public" ] || [ -z "$private" ]; then
-        echo -e "\e[31mError: Failed to extract certificates from response. Response: $result\e[0m"
-        exit 1
-    fi
+        if [ -z "$public" ] || [ "$public" = "null" ] || [ -z "$private" ] || [ "$private" = "null" ]; then
+            echo -e "\e[31mError: Failed to extract certificates from response. Response: $result\e[0m"
+            exit 1
+        fi
 
     # Reconstruct PEM format properly (Symphony converts \n to spaces for transmission)
     # Convert to word arrays and reconstruct with proper headers/footers

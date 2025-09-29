@@ -395,6 +395,7 @@ const (
 	ProviderQueue            = "providers.queue"
 	ProviderLedger           = "providers.ledger"
 	ProvidersKeyLock         = "providers.keylock"
+	ProvidersCert            = "providers.cert"
 	StatusOutput             = "__status"
 	ErrorOutput              = "__error"
 	StateOutput              = "__state"

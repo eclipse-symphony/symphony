@@ -328,16 +328,13 @@
       {
         "type": "vendors.targets",
         "route": "targets",
-        "properties": {
-          "workingCertDuration": "{{ .Values.targets.workingCertDuration | default "2160h" }}",
-          "workingCertRenewBefore": "{{ .Values.targets.workingCertRenewBefore | default "360h" }}"
-        },
         "managers": [
           {
             "name": "targets-manager",
             "type": "managers.symphony.targets",
             "properties": {
-              "providers.persistentstate": "k8s-state"
+              "providers.persistentstate": "k8s-state",
+              "providers.cert": "k8s-cert"
             },
             "providers": {
               "k8s-state": {
@@ -346,10 +343,11 @@
                   "inCluster": true
                 }
               },
-              "secret": {
-                "type": "providers.secret.k8s",
+              "k8s-cert": {
+                "type": "providers.cert.k8scert",
                 "config": {
-                  "inCluster": true
+                  "defaultDuration": "{{ .Values.cert.certDurationTime | default "4320h" }}",
+                  "renewBefore": "{{ .Values.cert.certRenewBeforeTime | default "360h" }}"
                 }
               }
             }
@@ -519,7 +517,8 @@
               "providers.config": "mock-config",  
               "providers.queue": "redis-queue",
               "providers.secret": "mock-secret",
-              "providers.keylock": "mem-keylock"
+              "providers.keylock": "mem-keylock",
+              "providers.cert": "k8s-cert"
             },
             "providers": {
               "redis-state": {
@@ -557,6 +556,13 @@
               "mock-secret": {
                 "type": "providers.secret.mock",
                 "config": {}
+              },
+              "k8s-cert": {
+                "type": "providers.cert.k8scert",
+                "config": {
+                  "defaultDuration": "{{ .Values.cert.certDurationTime | default "4320h" }}",
+                  "renewBefore": "{{ .Values.cert.certRenewBeforeTime | default "360h" }}"
+                }
               }
             }     
           }
