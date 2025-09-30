@@ -85,20 +85,14 @@ func Upsert(url string, username string, password string, objType string, objNam
 	return nil
 }
 
-type YamlArtifact struct {
-	APIVersion string                 `json:"apiVersion"`
-	Kind       string                 `json:"kind"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-	Spec       interface{}            `json:"spec"`
-}
-
 func yamlToJson(payload []byte) ([]byte, error) {
-	var o YamlArtifact
-	err := yaml.Unmarshal(payload, &o)
-	if err != nil {
+	var m map[string]interface{}
+	if err := yaml.Unmarshal(payload, &m); err != nil {
 		return nil, err
 	}
-	return json.Marshal(o)
+	delete(m, "apiVersion")
+	delete(m, "kind")
+	return json.Marshal(m)
 }
 
 func Get(url string, username string, password string, objType string, path string, docType string, objName string) ([]interface{}, error) {
