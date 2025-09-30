@@ -151,6 +151,7 @@ func testMultiTargetParallelOperations(t *testing.T, config *utils.TestConfig) {
 
 	// Wait for all targets to be ready
 	for _, targetName := range targetNames {
+		// Use the original target name (no suffix)
 		utils.WaitForTargetReady(t, targetName, config.Namespace, 3*time.Minute)
 		t.Logf("✓ Target %s is ready", targetName)
 	}
@@ -210,7 +211,7 @@ func testMultiTargetParallelOperations(t *testing.T, config *utils.TestConfig) {
 		targetName   string
 		provider     string
 	}{
-		{"test-instance-1", "test-script-solution-1", "test-target-1", "script"},
+		{"test-instance-1", "test-script-solution-1", "test-target-1", "script"}, // Use original target names
 		{"test-instance-2", "test-script-solution-2", "test-target-2", "script"},
 		{"test-instance-3", "test-script-solution-3", "test-target-3", "script"},
 	}
@@ -332,6 +333,7 @@ func testMultiTargetParallelOperations(t *testing.T, config *utils.TestConfig) {
 
 	// Wait for all targets to be deleted
 	for _, targetName := range targetNames {
+		// Use the original target name (no suffix)
 		utils.WaitForResourceDeleted(t, "target", targetName, config.Namespace, 2*time.Minute)
 		t.Logf("✓ Target %s deleted successfully", targetName)
 	}
@@ -342,8 +344,36 @@ func testMultiTargetParallelOperations(t *testing.T, config *utils.TestConfig) {
 // Helper functions for parallel operations
 
 func createTargetParallel(t *testing.T, config *utils.TestConfig, targetName string, index int) error {
-	// Use the standard CreateTargetYAML function from utils
-	targetPath := utils.CreateTargetYAML(t, testDir, fmt.Sprintf("%s-%d", targetName, index), config.Namespace)
+	// Keep the original target name, only make filename unique to avoid race conditions
+	targetYaml := fmt.Sprintf(`
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  displayName: %s
+  components:
+  - name: remote-agent
+    type: remote-agent
+    properties:
+      description: E2E test remote agent
+  topologies:
+  - bindings:
+    - provider: providers.target.script
+      role: script
+    - provider: providers.target.remote-agent
+      role: remote-agent
+`, targetName, config.Namespace, targetName)
+
+	// Use unique filename for each target to prevent file write race conditions
+	// Only the filename is unique, the target resource name remains original
+	targetPath := filepath.Join(testDir, fmt.Sprintf("%s-%d-target.yaml", targetName, index))
+	err := utils.CreateYAMLFile(t, targetPath, targetYaml)
+	if err != nil {
+		return err
+	}
+
 	return utils.ApplyKubernetesManifest(t, targetPath)
 }
 
@@ -492,7 +522,19 @@ func deleteSolutionParallel(t *testing.T, config *utils.TestConfig, solutionName
 }
 
 func deleteTargetParallel(t *testing.T, config *utils.TestConfig, targetName string) error {
-	targetPath := filepath.Join(testDir, fmt.Sprintf("%s-target.yaml", targetName))
+	// Since we now keep original target names, we need to find the correct file
+	// The files are named with pattern: targetName-index-target.yaml
+	// We need to find which index was used for this targetName
+	var index int
+	// Extract the index from the targetName (test-target-1 -> index 0, test-target-2 -> index 1, etc.)
+	if len(targetName) > 12 && targetName[:12] == "test-target-" {
+		index = int(targetName[12] - '1') // Convert '1', '2', '3' to 0, 1, 2
+	} else {
+		index = 0 // Default fallback
+	}
+
+	// The file was created with this pattern in createTargetParallel
+	targetPath := filepath.Join(testDir, fmt.Sprintf("%s-%d-target.yaml", targetName, index))
 	return utils.DeleteKubernetesManifest(t, targetPath)
 }
 
