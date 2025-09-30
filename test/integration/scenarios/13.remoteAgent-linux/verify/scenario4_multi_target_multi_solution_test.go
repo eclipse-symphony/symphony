@@ -2,6 +2,7 @@ package verify
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -376,8 +377,32 @@ func testMultiTargetMultiSolution(t *testing.T, config *utils.TestConfig) {
 // Helper functions for multi-target multi-solution operations
 
 func createMultiTarget(t *testing.T, config *utils.TestConfig, targetName string) error {
-	// Use the standard CreateTargetYAML function from utils
-	targetPath := utils.CreateTargetYAML(t, scenario4TestDir, targetName, config.Namespace)
+	// Create unique target YAML file to avoid race conditions in parallel execution
+	targetYaml := fmt.Sprintf(`
+apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  displayName: %s
+  scope: %s-scope
+  topologies:
+  - bindings:
+    - config:
+        inCluster: "false"
+      provider: providers.target.remote-agent
+      role: remote-agent
+  properties:
+    os.name: linux
+`, targetName, config.Namespace, targetName, config.Namespace)
+
+	// Use unique filename for each target to prevent race conditions
+	targetPath := filepath.Join(scenario4TestDir, fmt.Sprintf("%s-target.yaml", targetName))
+	if err := utils.CreateYAMLFile(t, targetPath, targetYaml); err != nil {
+		return err
+	}
+
 	return utils.ApplyKubernetesManifest(t, targetPath)
 }
 
@@ -403,9 +428,34 @@ data:
 
 func createMultiSolution(t *testing.T, config *utils.TestConfig, solutionName, provider string) error {
 	var solutionYaml string
+	solutionVersion := fmt.Sprintf("%s-v-version1", solutionName)
 
 	switch provider {
 	case "script":
+		// Create a temporary script file for the script provider
+		scriptContent := fmt.Sprintf(`#!/bin/bash
+echo "=== Script Provider Multi-Target Test ==="
+echo "Solution: %s"
+echo "Timestamp: $(date)"
+echo "Creating marker file..."
+echo "Multi-target multi-solution test successful at $(date)" > /tmp/%s-test.log
+echo "=== Script Provider Test Completed ==="
+exit 0
+`, solutionName, solutionName)
+
+		// Write script to a temporary file
+		scriptPath := filepath.Join(scenario4TestDir, fmt.Sprintf("%s-script.sh", solutionName))
+		err := utils.CreateYAMLFile(t, scriptPath, scriptContent) // CreateYAMLFile can handle any text content
+		if err != nil {
+			return err
+		}
+
+		// Make script executable
+		err = os.Chmod(scriptPath, 0755)
+		if err != nil {
+			return err
+		}
+
 		solutionYaml = fmt.Sprintf(`
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
@@ -420,20 +470,13 @@ metadata:
   name: %s
   namespace: %s
 spec:
-  rootResource: %s-v-version1
+  rootResource: %s
   components:
   - name: %s-script-component
     type: script
     properties:
-      script: |
-        echo "=== Script Provider Multi-Target Test ==="
-        echo "Solution: %s"
-        echo "Timestamp: $(date)"
-        echo "Creating marker file..."
-        echo "Multi-target multi-solution test successful at $(date)" > /tmp/%s-test.log
-        echo "=== Script Provider Test Completed ==="
-        exit 0
-`, solutionName, config.Namespace, solutionName, config.Namespace, solutionName, solutionName, solutionName, solutionName)
+      path: %s
+`, solutionName, config.Namespace, solutionVersion, config.Namespace, solutionName, solutionName, scriptPath)
 
 	case "helm":
 		solutionYaml = fmt.Sprintf(`
@@ -450,7 +493,7 @@ metadata:
   name: %s
   namespace: %s
 spec:
-  rootResource: %s-v-version1
+  rootResource: %s
   components:
   - name: %s-helm-component
     type: helm.v3
@@ -474,7 +517,7 @@ spec:
         podAnnotations:
           test.symphony.com/scenario: "multi-target-multi-solution"
           test.symphony.com/solution: "%s"
-`, solutionName, config.Namespace, solutionName, config.Namespace, solutionName, solutionName, solutionName)
+`, solutionName, config.Namespace, solutionVersion, config.Namespace, solutionName, solutionName, solutionName)
 
 	default:
 		return fmt.Errorf("unsupported provider: %s", provider)
