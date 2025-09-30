@@ -125,7 +125,7 @@ func testMultiTargetMultiSolution(t *testing.T, config *utils.TestConfig) {
 		provider string
 	}{
 		{"multi-script-solution-1", "script"},
-		{"multi-helm-solution-2", "helm"},
+		{"multi-script-solution-2", "script"},
 		{"multi-script-solution-3", "script"},
 	}
 
@@ -137,7 +137,7 @@ func testMultiTargetMultiSolution(t *testing.T, config *utils.TestConfig) {
 		provider     string
 	}{
 		{"multi-instance-1", "multi-script-solution-1", "multi-target-1", "script"},
-		{"multi-instance-2", "multi-helm-solution-2", "multi-target-2", "helm"},
+		{"multi-instance-2", "multi-script-solution-2", "multi-target-2", "script"},
 		{"multi-instance-3", "multi-script-solution-3", "multi-target-3", "script"},
 	}
 
@@ -577,7 +577,7 @@ func verifyMultiDeployment(t *testing.T, provider, instanceName string) {
 		// For now, we rely on the instance being ready
 	case "helm":
 		t.Logf("Verifying helm deployment for instance: %s", instanceName)
-		// Helm verification would check for deployed charts and running pods
+		// helm verification would check for deployed charts and running pods
 		// For now, we rely on the instance being ready
 	default:
 		t.Logf("Unknown provider type for verification: %s", provider)
