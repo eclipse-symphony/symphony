@@ -2,6 +2,7 @@ package verify
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -314,6 +315,30 @@ func createSingleTargetSolution(t *testing.T, config *utils.TestConfig, solution
 
 	switch provider {
 	case "script":
+		// Create a temporary script file for the script provider
+		scriptContent := fmt.Sprintf(`#!/bin/bash
+echo "=== Script Provider Single Target Test ==="
+echo "Solution: %s"
+echo "Timestamp: $(date)"
+echo "Creating marker file..."
+echo "Single target multi-instance test successful at $(date)" > /tmp/%s-test.log
+echo "=== Script Provider Test Completed ==="
+exit 0
+`, solutionName, solutionName)
+
+		// Write script to a temporary file
+		scriptPath := filepath.Join(scenario3TestDir, fmt.Sprintf("%s-script.sh", solutionName))
+		err := utils.CreateYAMLFile(t, scriptPath, scriptContent) // CreateYAMLFile can handle any text content
+		if err != nil {
+			return err
+		}
+
+		// Make script executable
+		err = os.Chmod(scriptPath, 0755)
+		if err != nil {
+			return err
+		}
+
 		solutionYaml = fmt.Sprintf(`
 apiVersion: solution.symphony/v1
 kind: SolutionContainer
@@ -333,15 +358,8 @@ spec:
   - name: %s-script-component
     type: script
     properties:
-      script: |
-        echo "=== Script Provider Single Target Test ==="
-        echo "Solution: %s"
-        echo "Timestamp: $(date)"
-        echo "Creating marker file..."
-        echo "Single target multi-instance test successful at $(date)" > /tmp/%s-test.log
-        echo "=== Script Provider Test Completed ==="
-        exit 0
-`, solutionName, config.Namespace, solutionVersion, config.Namespace, solutionName, solutionName, solutionName, solutionName)
+      path: %s
+`, solutionName, config.Namespace, solutionVersion, config.Namespace, solutionName, solutionName, scriptPath)
 
 	case "helm":
 		solutionYaml = fmt.Sprintf(`
@@ -430,7 +448,7 @@ func deleteSingleTargetSolution(t *testing.T, config *utils.TestConfig, solution
 }
 
 func deleteSingleTarget(t *testing.T, config *utils.TestConfig, targetName string) error {
-	targetPath := filepath.Join(scenario3TestDir, fmt.Sprintf("%s-target.yaml", targetName))
+	targetPath := filepath.Join(scenario3TestDir, "target.yaml")
 	return utils.DeleteKubernetesManifest(t, targetPath)
 }
 
