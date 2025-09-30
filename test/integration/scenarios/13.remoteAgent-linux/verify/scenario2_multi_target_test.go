@@ -210,9 +210,9 @@ func testMultiTargetParallelOperations(t *testing.T, config *utils.TestConfig) {
 		targetName   string
 		provider     string
 	}{
-		{"test-instance-1", "test-script-solution-1", "test-target-1", "script"},
-		{"test-instance-2", "test-script-solution-2", "test-target-2", "script"},
-		{"test-instance-3", "test-script-solution-3", "test-target-3", "script"},
+		{"test-instance-4", "test-script-solution-4", "test-target-4", "script"},
+		{"test-instance-5", "test-script-solution-5", "test-target-5", "script"},
+		{"test-instance-6", "test-script-solution-6", "test-target-6", "script"},
 	}
 
 	t.Logf("=== Creating 3 instances in parallel ===")
@@ -343,7 +343,7 @@ func testMultiTargetParallelOperations(t *testing.T, config *utils.TestConfig) {
 
 func createTargetParallel(t *testing.T, config *utils.TestConfig, targetName string, index int) error {
 	// Use the standard CreateTargetYAML function from utils
-	targetPath := utils.CreateTargetYAML(t, testDir, targetName, config.Namespace)
+	targetPath := utils.CreateTargetYAML(t, testDir, fmt.Sprintf("%s-%d", targetName, index), config.Namespace)
 	return utils.ApplyKubernetesManifest(t, targetPath)
 }
 
