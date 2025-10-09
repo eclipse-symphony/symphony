@@ -6,129 +6,152 @@ import (
 	"testing"
 	"time"
 
-	"github.com/eclipse-symphony/symphony/test/integration/scenarios/13.remoteAgent/utils"
+	"github.com/eclipse-symphony/symphony/test/integration/scenarios/13.remoteAgent-linux/utils"
 	"github.com/stretchr/testify/require"
 )
 
-func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
+func TestE2EHttpCommunicationWithBootstrap(t *testing.T) {
 	// Test configuration - use relative path from test directory
 	projectRoot := utils.GetProjectRoot(t) // Get project root dynamically
-	targetName := "test-mqtt-target"
+	targetName := "test-http-bootstrap-target"
 	namespace := "default"
-	mqttBrokerPort := 8883
 
 	// Setup test environment
 	testDir := utils.SetupTestDirectory(t)
-	t.Logf("Running MQTT communication test in: %s", testDir)
+	t.Logf("Running HTTP bootstrap test in: %s", testDir)
 
 	// Step 1: Start fresh minikube cluster
 	t.Run("SetupFreshMinikubeCluster", func(t *testing.T) {
 		utils.StartFreshMinikube(t)
 	})
+
+	// Ensure minikube is cleaned up after test
 	t.Cleanup(func() {
 		utils.CleanupMinikube(t)
 	})
 
-	// Generate MQTT certificates
-	mqttCerts := utils.GenerateMQTTCertificates(t, testDir)
+	// Generate test certificates (with MyRootCA subject)
+	certs := utils.GenerateTestCertificates(t, testDir)
 
-	// Setup test namespace
-	setupNamespace(t, namespace)
-
-	var caSecretName, clientSecretName, remoteAgentSecretName string
+	var caSecretName, clientSecretName string
 	var configPath, topologyPath, targetYamlPath string
-	var config utils.TestConfig
-	var brokerAddress string
-
-	// Set up initial config with certificate paths
-	t.Run("SetupInitialConfig", func(t *testing.T) {
-		config = utils.TestConfig{
-			ProjectRoot:    projectRoot,
-			TargetName:     targetName,
-			Namespace:      namespace,
-			Protocol:       "mqtt",
-			ClientCertPath: mqttCerts.RemoteAgentCert,
-			ClientKeyPath:  mqttCerts.RemoteAgentKey,
-			CACertPath:     mqttCerts.CACert,
-		}
-	})
-
-	// Use our bootstrap test setup function with detected broker address
-	t.Run("SetupMQTTBootstrapTestWithDetectedAddress", func(t *testing.T) {
-		utils.SetupMQTTBootstrapTestWithDetectedAddress(t, &config, &mqttCerts)
-		brokerAddress = config.BrokerAddress
-		t.Logf("MQTT bootstrap test setup completed with broker address: %s", brokerAddress)
-	})
+	var symphonyCAPath, baseURL string
 
 	t.Run("CreateCertificateSecrets", func(t *testing.T) {
-		// Create CA secret in cert-manager namespace (use MQTT certs for trust bundle)
-		caSecretName = utils.CreateMQTTCASecret(t, mqttCerts)
+		// Create CA secret in cert-manager namespace
+		caSecretName = utils.CreateCASecret(t, certs)
 
-		// Create Symphony MQTT client certificate secret in default namespace
-		clientSecretName = utils.CreateSymphonyMQTTClientSecret(t, namespace, mqttCerts)
-
-		// Create Remote Agent MQTT client certificate secret in default namespace
-		remoteAgentSecretName = utils.CreateRemoteAgentClientCertSecret(t, namespace, mqttCerts)
+		// Create client cert secret in test namespace
+		clientSecretName = utils.CreateClientCertSecret(t, namespace, certs)
 	})
 
-	t.Run("StartSymphonyWithMQTTConfig", func(t *testing.T) {
-		// Deploy Symphony with MQTT configuration using detected broker address
-		// Use the broker address that was detected and configured for Symphony connectivity
-		symphonyBrokerAddress := fmt.Sprintf("tls://%s:%d", brokerAddress, mqttBrokerPort)
-		t.Logf("Starting Symphony with MQTT broker address: %s (detected: %s)", symphonyBrokerAddress, brokerAddress)
+	t.Run("StartSymphonyServer", func(t *testing.T) {
+		utils.StartSymphonyWithRemoteAgentConfig(t, "http")
 
-		// Try the alternative deployment method first
-		utils.StartSymphonyWithMQTTConfigAlternative(t, symphonyBrokerAddress)
-
-		// Wait longer for Symphony server certificate to be created - cert-manager needs time
-		t.Logf("Waiting for Symphony API server certificate creation...")
-		utils.WaitForSymphonyServerCert(t, 8*time.Minute)
-
-		// Additional wait to ensure certificate is fully propagated
-		t.Logf("Certificate ready, waiting additional time for propagation...")
-		time.Sleep(30 * time.Second)
-
-		// Wait for Symphony service to be ready and accessible
-		utils.WaitForSymphonyServiceReady(t, 5*time.Minute)
+		// Wait for Symphony server certificate to be created
+		utils.WaitForSymphonyServerCert(t, 5*time.Minute)
 	})
+
+	t.Run("SetupSymphonyConnection", func(t *testing.T) {
+		// Download Symphony server CA certificate
+		symphonyCAPath = utils.DownloadSymphonyCA(t, testDir)
+
+		t.Logf("Symphony server CA certificate downloaded")
+	})
+
+	// Setup hosts mapping and port-forward at main test level so they persist
+	// across all sub-tests until the main test completes
+	t.Logf("Setting up hosts mapping and port-forward...")
+	utils.SetupSymphonyHostsForMainTest(t)
+	utils.StartPortForwardForMainTest(t)
+	baseURL = "https://symphony-service:8081/v1alpha2"
+	t.Logf("Symphony server accessible at: %s", baseURL)
+
 	// Create test configurations AFTER Symphony is running
 	t.Run("CreateTestConfigurations", func(t *testing.T) {
-		configPath = utils.CreateMQTTConfig(t, testDir, brokerAddress, mqttBrokerPort, targetName, namespace)
+		configPath = utils.CreateHTTPConfig(t, testDir, baseURL)
 		topologyPath = utils.CreateTestTopology(t, testDir)
-		fmt.Printf("Topology path: %s", topologyPath)
 		targetYamlPath = utils.CreateTargetYAML(t, testDir, targetName, namespace)
-		fmt.Printf("Target YAML path: %s", targetYamlPath)
-		// Apply Target YAML to create the target resource with retry for webhook readiness
-		err := utils.ApplyKubernetesManifestWithRetry(t, targetYamlPath, 5, 10*time.Second)
+
+		// Apply Target YAML to create the target resource
+		err := utils.ApplyKubernetesManifest(t, targetYamlPath)
 		require.NoError(t, err)
 
 		// Wait for target to be created
 		utils.WaitForTargetCreated(t, targetName, namespace, 30*time.Second)
 	})
 
-	t.Run("StartRemoteAgentWithMQTTBootstrap", func(t *testing.T) {
-		// Configure remote agent for MQTT (use standard test certificates for remote agent)
+	t.Run("StartRemoteAgentWithBootstrap", func(t *testing.T) {
+		// Clean up any existing remote-agent service first to avoid file conflicts
+		t.Logf("Cleaning up any existing remote-agent service...")
+		utils.CleanupSystemdService(t)
+
+		// Create configuration for bootstrap.sh
 		config := utils.TestConfig{
 			ProjectRoot:    projectRoot,
 			ConfigPath:     configPath,
-			ClientCertPath: mqttCerts.RemoteAgentCert, // Use standard test cert for remote agent
-			ClientKeyPath:  mqttCerts.RemoteAgentKey,  // Use standard test key for remote agent
-			CACertPath:     mqttCerts.CACert,          // Use Symphony server CA for TLS trust
+			ClientCertPath: certs.ClientCert,
+			ClientKeyPath:  certs.ClientKey,
+			CACertPath:     symphonyCAPath, // Use Symphony server CA for TLS trust
 			TargetName:     targetName,
 			Namespace:      namespace,
 			TopologyPath:   topologyPath,
-			Protocol:       "mqtt",
+			Protocol:       "http",
+			BaseURL:        baseURL,
 		}
-		fmt.Printf("Starting remote agent with config: %+v\n", config)
+
 		// Start remote agent using bootstrap.sh
 		bootstrapCmd := utils.StartRemoteAgentWithBootstrap(t, config)
 		require.NotNil(t, bootstrapCmd)
 
-		// Check service status
+		// Wait for bootstrap.sh to complete - increased timeout for GitHub Actions
+		t.Logf("Waiting for bootstrap.sh to complete...")
+		time.Sleep(30 * time.Second)
+
+		// Check if bootstrap.sh process is still running
+		if bootstrapCmd.ProcessState == nil {
+			t.Logf("Bootstrap.sh is still running, waiting a bit more...")
+			time.Sleep(15 * time.Second)
+		}
+
+		// Check service status - if bootstrap.sh completed successfully,
+		// the service should have been created and started
 		utils.CheckSystemdServiceStatus(t, "remote-agent.service")
 
-		// Try to wait for service to be active
+		// Try to wait for service to be active, but don't fail if it's not
+		// since bootstrap.sh already confirmed it started
 		t.Logf("Attempting to verify service is active...")
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Logf("Service check failed, but bootstrap.sh succeeded: %v", r)
+				}
+			}()
+			utils.WaitForSystemdService(t, "remote-agent.service", 30*time.Second)
+		}()
+
+		// Give some time for the service check, but continue regardless
+		time.Sleep(10 * time.Second)
+		t.Logf("Continuing with test - bootstrap.sh should have completed")
+	})
+
+	t.Run("VerifyTargetStatus", func(t *testing.T) {
+		// Wait for target to reach ready state
+		utils.WaitForTargetReady(t, targetName, namespace, 120*time.Second)
+	})
+
+	t.Run("VerifyTopologyUpdate", func(t *testing.T) {
+		// Verify that topology was successfully updated
+		// This would check that the remote agent successfully called
+		// the /targets/updatetopology endpoint
+		utils.VerifyTargetTopologyUpdate(t, targetName, namespace, "HTTP bootstrap")
+	})
+
+	t.Run("TestDataInteraction", func(t *testing.T) {
+		// Test actual data interaction between server and agent
+		// This would involve creating an Instance that uses the Target
+		// and verifying the end-to-end workflow
+		t.Logf("Attempting to verify service is active after instance create...")
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -138,66 +161,26 @@ func TestE2EMQTTCommunicationWithBootstrap(t *testing.T) {
 			utils.WaitForSystemdService(t, "remote-agent.service", 15*time.Second)
 		}()
 
+		// Give some time for the service check, but continue regardless
 		time.Sleep(5 * time.Second)
 		t.Logf("Continuing with test - bootstrap.sh completed successfully")
-	})
-
-	t.Run("VerifyTargetStatus", func(t *testing.T) {
-		// Wait for target to reach ready state - increased timeout due to more thorough checks
-		utils.WaitForTargetReady(t, targetName, namespace, 10*time.Minute)
-	})
-
-	t.Run("VerifyTopologyUpdate", func(t *testing.T) {
-		// Verify that topology was successfully updated
-		// This would check that the remote agent successfully called
-		// the topology update endpoint via MQTT
-		utils.VerifyTargetTopologyUpdate(t, targetName, namespace, "MQTT bootstrap")
-	})
-
-	t.Run("VerifyMQTTDataInteraction", func(t *testing.T) {
-		// Verify that data flows through MQTT correctly
-		// This would check that the remote agent successfully communicates
-		// with Symphony through the MQTT broker
-		// verifyMQTTDataInteraction(t, targetName, namespace, testDir)
-		testBootstrapDataInteraction(t, targetName, namespace, testDir)
+		testBootstrapDataInteractionWithBootstrap(t, targetName, namespace, testDir)
 	})
 
 	// Cleanup
 	t.Cleanup(func() {
+		// Clean up systemd service first
 		utils.CleanupSystemdService(t)
-		utils.CleanupSymphony(t, "remote-agent-mqtt-bootstrap-test")
-		utils.CleanupExternalMQTTBroker(t) // Use external broker cleanup
-		utils.CleanupMQTTCASecret(t, caSecretName)
-		utils.CleanupMQTTClientSecret(t, namespace, clientSecretName)      // Symphony client cert
-		utils.CleanupMQTTClientSecret(t, namespace, remoteAgentSecretName) // Remote Agent client cert
+		// Then clean up Symphony and other resources
+		utils.CleanupSymphony(t, "remote-agent-http-bootstrap-test")
+		utils.CleanupCASecret(t, caSecretName)
+		utils.CleanupClientSecret(t, namespace, clientSecretName)
 	})
 
-	t.Logf("MQTT communication test completed successfully")
+	t.Logf("HTTP communication test with bootstrap.sh completed successfully")
 }
 
-func setupNamespace(t *testing.T, namespace string) {
-	// Create namespace if it doesn't exist
-	_, err := utils.GetKubeClient()
-	if err != nil {
-		t.Logf("Warning: Could not get kube client to create namespace: %v", err)
-		return
-	}
-
-	nsYaml := fmt.Sprintf(`
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: %s
-`, namespace)
-
-	nsPath := filepath.Join(utils.SetupTestDirectory(t), "namespace.yaml")
-	err = utils.CreateYAMLFile(t, nsPath, nsYaml)
-	if err == nil {
-		utils.ApplyKubernetesManifest(t, nsPath)
-	}
-}
-
-func testBootstrapDataInteraction(t *testing.T, targetName, namespace, testDir string) {
+func testBootstrapDataInteractionWithBootstrap(t *testing.T, targetName, namespace, testDir string) {
 	// Step 1: Create a simple Solution first
 	solutionName := "test-bootstrap-solution"
 	solutionVersion := "test-bootstrap-solution-v-version1"

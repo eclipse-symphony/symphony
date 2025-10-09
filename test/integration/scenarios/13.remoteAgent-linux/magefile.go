@@ -29,6 +29,17 @@ var (
 		"./verify -run TestE2EHttpCommunicationWithBootstrap",
 		"./verify -run TestE2EHttpCommunicationWithProcess",
 		"./verify -run TestE2EMQTTCommunicationWithProcess",
+		"./verify -run TestScenario1ProviderCRUD",
+		"./verify -run TestScenario2MultiTargetCRUD",
+		"./verify -run TestScenario3SingleTargetMultiInstance",
+		"./verify -run TestScenario4MultiTargetMultiSolution",
+		"./verify -run TestScenario5PrestartRemoteAgent",
+		"./verify -run TestScenario6_RemoteAgentNotStarted",
+		"./verify -run TestScenario6_RemoteAgentNotStarted_Targets",
+		"./verify -run TestScenario7_SolutionUpdate",
+		"./verify -run TestScenario7_SolutionUpdate_MultipleProviders",
+		"./verify -run TestScenario8_ManyComponents_MultipleProviders",
+		"./verify -run TestScenario8_ManyComponents_StressTest",
 	}
 )
 
