@@ -31,51 +31,52 @@ var (
 )
 
 // Run implements PostRenderer.
-func (r *PostRenderer) Run(renderedManifests *bytes.Buffer) (modifiedManifests *bytes.Buffer, err error) {
-	modifiedManifests = new(bytes.Buffer)
-	reader := yaml.NewYAMLReader(bufio.NewReader(renderedManifests))
+func (r *PostRenderer) Run(renderedManifests *bytes.Buffer) (*bytes.Buffer, error) {
+    modifiedManifests := new(bytes.Buffer)
+    reader := yaml.NewYAMLReader(bufio.NewReader(renderedManifests))
 
-	for {
-		// Read the next YAML document
-		manifest, err := reader.Read()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, err
-		}
-		// Skip empty manifests
-		if len(manifest) == 0 {
-			continue
-		}
-		// Source is the first line of the manifest.
-		modifiedManifests.WriteString("---\n")
-		modifiedManifests.Write(r.getSourceBytes(manifest))
+    for {
+        manifest, err := reader.Read()
+        if err != nil {
+            if errors.Is(err, io.EOF) {
+                break
+            }
+            return nil, err
+        }
 
-		// Decode the manifest into a Kubernetes resource
-		obj, _, err := decoder.Decode(manifest, nil, nil)
-		if err != nil {
-			return nil, err
-		}
+        // Trim spaces/newlines. Comment-only docs still have non-empty bytes but
+        // they're not actual k8s objects. We handle that by trying to decode first.
+        if len(bytes.TrimSpace(manifest)) == 0 {
+            // completely empty doc -> skip
+            continue
+        }
 
-		// Apply the metadata to the resource
-		if err := r.populateMeta(obj); err != nil {
-			return nil, err
-		}
+        // Try to decode into an Unstructured object
+        obj, _, decErr := decoder.Decode(manifest, nil, nil)
+        if decErr != nil {
+            // This happens for docs that are only comments or otherwise not K8s
+            // resources (like the PodDisruptionBudget comment block).
+            // We just ignore those docs instead of failing the whole render.
+            continue
+        }
 
-		// Re-encode the manifest and write it to the modifiedManifests buffer
-		// We won't use the codec because it encodes in JSON, not YAML
-		if err := r.encodeInto(modifiedManifests, obj); err != nil {
-			return nil, err
-		}
+        // Inject Symphony metadata
+        if err := r.populateMeta(obj); err != nil {
+            return nil, err
+        }
 
-		if err != nil {
-			return nil, err
-		}
-	}
-	syaml.Marshal(modifiedManifests)
+        // Only now that we know it's a valid resource do we write it out.
+        // If you still want the "# Source: ..." line, keep getSourceBytes().
+        // Otherwise you can drop it for cleanliness.
+        modifiedManifests.WriteString("---\n")
+        modifiedManifests.Write(r.getSourceBytes(manifest))
 
-	return modifiedManifests, nil
+        if err := r.encodeInto(modifiedManifests, obj); err != nil {
+            return nil, err
+        }
+    }
+
+    return modifiedManifests, nil
 }
 
 func (r *PostRenderer) populateMeta(obj runtime.Object) error {

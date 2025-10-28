@@ -363,9 +363,9 @@ func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 		Type: "helm.v3",
 		Properties: map[string]interface{}{
 			"chart": map[string]string{
-				"repo":    "https://github.com/kubernetes/ingress-nginx/releases/download/helm-chart-4.7.1/ingress-nginx-4.7.1.tgz",
+				"repo":    "https://kubernetes.github.io/ingress-nginx",
 				"name":    "ingress-nginx",
-				"version": "4.7.1",
+				"version": "4.13.3",
 			},
 			"values": map[string]interface{}{
 				"controller": map[string]interface{}{
