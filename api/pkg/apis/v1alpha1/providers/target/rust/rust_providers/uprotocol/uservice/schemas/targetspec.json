@@ -1,0 +1,33 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://github.com/eclipse-symphony/schemas/targetspec.json",
+    "title": "TargetSpec",
+    "type": "object",
+    "properties": {
+        "display-name": {
+            "type": "string"
+        },
+        "scope": {
+            "type": "string"
+        },
+        "metadata": { "$ref": "./common.json#/$defs/StringMap" },
+        "properties": { "$ref": "./common.json#/$defs/StringMap" },
+        "components": {
+            "type": "array",
+            "items": { "$ref": "./componentspec.json" }
+        },
+        "constraints": {
+            "type": "string"
+        },
+        "topologies": {
+            "type": "array",
+            "items": { "$ref": "./common.json#/$defs/TopologySpec" }
+        },
+        "force-redeploy": {
+            "type": "boolean"
+        },
+        "is-dry-run": {
+            "type": "boolean"
+        }
+    }
+}

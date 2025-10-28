@@ -33,7 +33,7 @@ ARG BUILD_BASE_IMAGE
 # Install necessary build tools, cross-compilers, and Go
 RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     apt-get update && apt-get install -y \
-    gcc g++ make curl wget git cargo \
+    gcc g++ make cmake curl wget git cargo \
     gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
     libssl-dev pkg-config protobuf-compiler \
     && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \

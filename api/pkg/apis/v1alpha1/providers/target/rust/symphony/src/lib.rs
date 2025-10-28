@@ -88,7 +88,7 @@ pub struct ProviderWrapper {
 ///
 /// ```
 /// use core::ffi::c_char;
-/// use rust_binding::ProviderWrapper;
+/// use symphony::ProviderWrapper;
 ///
 /// #[no_mangle]
 /// pub unsafe extern "C" fn create_provider(config_json: *const c_char) -> *mut ProviderWrapper {

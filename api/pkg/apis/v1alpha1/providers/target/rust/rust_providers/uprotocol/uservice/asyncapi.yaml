@@ -1,0 +1,125 @@
+# Copyright (c) 2025 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+
+asyncapi: '3.0.0'
+id: urn:eclipse:org:uprotocol:symphony:targetprovider
+info:
+  title: Eclipse Symphony Target Provider
+  version: '1.0.0'
+  description: |
+    The Eclipse Symphony Target Provider interface modeled as a uProtocol service.
+  contact:
+    name: Kai Hudalla
+    email: kai.hudalla@etas.com
+  license:
+    name: MIT
+    url: https://opensource.org/license/mit/
+  tags:
+    - name: Eclipse uProtocol
+    - name: Eclipse Symphony
+    - name: OTA
+  x-uprotocol:
+    serviceName: eclipse.symphony.targetprovider
+    serviceId: A100
+
+defaultContentType: "application/json"
+
+channels:
+  getRequests:
+    summary: Queries for the current deployment status of components.
+    messages:
+      json:
+        contentType: "application/json"
+        payload:
+          $ref: "./schemas/messages.json#/$defs/Request"
+
+  getResponses:
+    summary: Information about the current deployment status of components.
+    messages:
+      json:
+        contentType: "application/json"
+        payload:
+          $ref: "./schemas/messages.json#/$defs/GetResponse"
+
+  updateRequests:
+    summary: Apply updates to a target, such as installing new components or updating existing ones.
+    messages:
+      json:
+        contentType: "application/json"
+        payload:
+          $ref: "./schemas/messages.json#/$defs/Request"
+
+  updateResponses:
+    summary: Outcomes of requests to apply updates to a target.
+    messages:
+      json:
+        contentType: "application/json"
+        payload:
+          $ref: "./schemas/messages.json#/$defs/ApplyResponse"
+
+  deleteRequests:
+    summary: Remove components from a target.
+    messages:
+      json:
+        contentType: "application/json"
+        payload:
+          $ref: "./schemas/messages.json#/$defs/Request"
+
+  deleteResponses:
+    summary: Outcomes of requests to remove components from a target.
+    messages:
+      json:
+        contentType: "application/json"
+        payload:
+          $ref: "./schemas/messages.json#/$defs/ApplyResponse"
+
+operations:
+  Get:
+    title: Get deployment status
+    summary: Gets current deployment status of components from the remote target.
+    description: A longer description
+    channel:
+      $ref: "#/channels/getRequests"
+    action: send
+    reply:
+      channel:
+        $ref: "#/channels/getResponses"
+    bindings:
+      x-uprotocol:
+        methodId: 1
+
+  Update:
+    title: Update components
+    summary: Updates components on the remote target.
+    description: A longer description
+    channel:
+      $ref: "#/channels/updateRequests"
+    action: send
+    reply:
+      channel:
+        $ref: "#/channels/updateResponses"
+    bindings:
+      x-uprotocol:
+        methodId: 2
+
+  Delete:
+    title: Delete components
+    summary: Deletes components from the remote target.
+    description: A longer description
+    channel:
+      $ref: "#/channels/deleteRequests"
+    action: send
+    reply:
+      channel:
+        $ref: "#/channels/deleteResponses"
+    bindings:
+      x-uprotocol:
+        methodId: 3
