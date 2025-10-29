@@ -111,16 +111,11 @@ RUN \
     set -x \
     && apt-get update \
     && apt-get install -y gcc g++ openssl libc6 libc6-dev libssl-dev ca-certificates curl wget jq android-tools-adb binutils \
-    && if [ "${TARGETARCH}" = "arm64" ]; then \
-        wget -O helm-v3.16.2-linux-arm64.tar.gz https://get.helm.sh/helm-v3.16.2-linux-arm64.tar.gz && \
-        tar -zxvf helm-v3.16.2-linux-arm64.tar.gz && \
-        mv linux-arm64/helm /usr/local/bin/helm && \
-        chmod +x /usr/local/bin/helm; \
-    else \
-        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 && \
-        chmod +x get_helm.sh && \
-        ./get_helm.sh; \
-    fi \
+    && apt-get install curl gpg apt-transport-https --yes  \
+    && curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null \
+    && echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | tee /etc/apt/sources.list.d/helm-stable-debian.list \
+    && apt-get update \
+    && apt-get install helm \
     && apt upgrade -y
 ADD https://github.com/golang/go/raw/master/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=/zoneinfo.zip
