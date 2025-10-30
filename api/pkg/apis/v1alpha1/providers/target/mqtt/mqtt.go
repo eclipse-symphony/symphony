@@ -249,7 +249,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 	if token := i.MQTTClient.Connect(); token.Wait() && token.Error() != nil {
 		connErr := token.Error()
 		sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to connect to MQTT broker - %+v", connErr)
-		
+
 		// Provide specific guidance for common TLS errors
 		if strings.Contains(connErr.Error(), "certificate signed by unknown authority") {
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): TLS certificate verification failed. Common solutions:")
@@ -262,7 +262,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Verify CA certificate path and format")
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): - Check client certificate and key paths if using mutual TLS")
 		}
-		
+
 		return v1alpha2.NewCOAError(connErr, "failed to connect to MQTT broker", v1alpha2.InternalError)
 	}
 
@@ -272,7 +272,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		proxyResponse := ProxyResponse{
 			IsOK:    response.State == v1alpha2.OK || response.State == v1alpha2.Accepted,
 			State:   response.State,
-			Payload: response.String(),
+			Payload: response.Body,
 		}
 
 		if !proxyResponse.IsOK {
@@ -355,7 +355,7 @@ func (i *MQTTTargetProvider) Get(ctx context.Context, deployment model.Deploymen
 	select {
 	case resp := <-responseChan:
 		if resp.IsOK {
-			data := []byte(resp.Payload.(string))
+			data := resp.Payload.([]byte)
 			var ret []model.ComponentSpec
 			err = json.Unmarshal(data, &ret)
 			if err != nil {
@@ -507,7 +507,7 @@ func (i *MQTTTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 		select {
 		case resp := <-responseChan:
 			if resp.IsOK {
-				data := []byte(resp.Payload.(string))
+				data := resp.Payload.([]byte)
 				var summary model.SummarySpec
 				err = json.Unmarshal(data, &summary)
 				if err == nil {
@@ -678,11 +678,11 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 func isCertificatePEM(data []byte) bool {
 	// Check if the data contains PEM headers
 	dataStr := string(data)
-	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") || 
-	   !strings.Contains(dataStr, "-----END CERTIFICATE-----") {
+	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") ||
+		!strings.Contains(dataStr, "-----END CERTIFICATE-----") {
 		return false
 	}
-	
+
 	// Try to decode the PEM block
 	block, _ := pem.Decode(data)
 	return block != nil && block.Type == "CERTIFICATE"
