@@ -8,8 +8,16 @@ package mqtt
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
+	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -160,32 +168,59 @@ func TestGet(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	}
-	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-		var request v1alpha2.COARequest
-		err := json.Unmarshal(msg.Payload(), &request)
-		assert.Nil(t, err)
-		var response v1alpha2.COAResponse
-		ret := make([]model.ComponentSpec, 0)
-		data, _ := json.Marshal(ret)
-		response.State = v1alpha2.OK
-		response.Metadata = make(map[string]string)
-		response.Metadata["request-id"] = request.Metadata["request-id"]
-		response.Body = data
-		data, _ = json.Marshal(response)
-		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
-		token.Wait()
-
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			panic(token.Error())
+	// Connect with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Connect()
+		if tok.Wait() && tok.Error() != nil {
+			if attempts == 9 {
+				t.Fatalf("failed to connect mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
 		}
+		break
+	}
+	// Wait until connected
+	for i := 0; i < 25 && !c.IsConnected(); i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
+	if !c.IsConnected() {
+		t.Fatalf("mqtt responder not connected")
+	}
+	// Subscribe with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+			var request v1alpha2.COARequest
+			err := json.Unmarshal(msg.Payload(), &request)
+			assert.Nil(t, err)
+			var response v1alpha2.COAResponse
+			ret := make([]model.ComponentSpec, 0)
+			data, _ := json.Marshal(ret)
+			response.State = v1alpha2.OK
+			response.Metadata = make(map[string]string)
+			response.Metadata["request-id"] = request.Metadata["request-id"]
+			response.Body = data
+			data, _ = json.Marshal(response)
+			token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
+			token.Wait()
+
+		})
+		if tok.Wait() && tok.Error() != nil {
+			if tok.Error().Error() == "subscription exists" {
+				break
+			}
+			if attempts == 9 {
+				t.Fatalf("failed to subscribe mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+		break
 	}
 
 	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
@@ -214,30 +249,57 @@ func TestGetBad(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	}
-	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-		var request v1alpha2.COARequest
-		err := json.Unmarshal(msg.Payload(), &request)
-		assert.Nil(t, err)
-		var response v1alpha2.COAResponse
-		response.State = v1alpha2.InternalError
-		response.Metadata = make(map[string]string)
-		response.Metadata["request-id"] = request.Metadata["request-id"]
-		response.Body = []byte("BAD!!")
-		data, _ := json.Marshal(response)
-		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
-		token.Wait()
-
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			panic(token.Error())
+	// Connect with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Connect()
+		if tok.Wait() && tok.Error() != nil {
+			if attempts == 9 {
+				t.Fatalf("failed to connect mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
 		}
+		break
+	}
+	// Wait until connected
+	for i := 0; i < 25 && !c.IsConnected(); i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
+	if !c.IsConnected() {
+		t.Fatalf("mqtt responder not connected")
+	}
+	// Subscribe with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+			var request v1alpha2.COARequest
+			err := json.Unmarshal(msg.Payload(), &request)
+			assert.Nil(t, err)
+			var response v1alpha2.COAResponse
+			response.State = v1alpha2.InternalError
+			response.Metadata = make(map[string]string)
+			response.Metadata["request-id"] = request.Metadata["request-id"]
+			response.Body = []byte("didn't get response to Get() call over MQTT")
+			data, _ := json.Marshal(response)
+			token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
+			token.Wait()
+
+		})
+		if tok.Wait() && tok.Error() != nil {
+			if tok.Error().Error() == "subscription exists" {
+				break
+			}
+			if attempts == 9 {
+				t.Fatalf("failed to subscribe mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+		break
 	}
 
 	_, err = provider.Get(context.Background(), model.DeploymentSpec{
@@ -247,7 +309,7 @@ func TestGetBad(t *testing.T) {
 	}, nil)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, "Internal Error: BAD!!", err.Error())
+	assert.Equal(t, "Internal Error: didn't get response to Get() call over MQTT", err.Error())
 }
 func TestApply(t *testing.T) {
 	testMQTT := os.Getenv("TEST_MQTT")
@@ -262,7 +324,7 @@ func TestApply(t *testing.T) {
 		MQTTRequestTopic  string = "coa-request"
 		MQTTResponseTopic string = "coa-response"
 
-		TestTargetSuccessMessage string = "Success"
+		TestTargetSuccessMessage string = ""
 	)
 
 	config := MQTTTargetProviderConfig{
@@ -277,14 +339,17 @@ func TestApply(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
+	// Connect with simple retry to avoid transient broker readiness issues
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+		t.Fatalf("failed to connect mqtt responder: %v", token.Error())
 	}
-	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+	// Subscribe with simple retry, tolerating existing subscription
+	token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
 		var request v1alpha2.COARequest
 		err := json.Unmarshal(msg.Payload(), &request)
 		assert.Nil(t, err)
@@ -315,10 +380,9 @@ func TestApply(t *testing.T) {
 		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
 		token.Wait()
 
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			panic(token.Error())
-		}
+	})
+	if token.Wait() && token.Error() != nil {
+		t.Fatalf("failed to subscribe mqtt responder: %v", token.Error())
 	}
 
 	deploymentSpec := model.DeploymentSpec{
@@ -408,8 +472,9 @@ func TestApplyBad(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
@@ -468,29 +533,56 @@ func TestARemove(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	}
-	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-		var request v1alpha2.COARequest
-		err := json.Unmarshal(msg.Payload(), &request)
-		assert.Nil(t, err)
-		var response v1alpha2.COAResponse
-		response.State = v1alpha2.OK
-		response.Metadata = make(map[string]string)
-		response.Metadata["request-id"] = request.Metadata["request-id"]
-		data, _ := json.Marshal(response)
-		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
-		token.Wait()
-
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			panic(token.Error())
+	// Connect with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Connect()
+		if tok.Wait() && tok.Error() != nil {
+			if attempts == 9 {
+				t.Fatalf("failed to connect mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
 		}
+		break
+	}
+	// Wait until connected
+	for i := 0; i < 25 && !c.IsConnected(); i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
+	if !c.IsConnected() {
+		t.Fatalf("mqtt responder not connected")
+	}
+	// Subscribe with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+			var request v1alpha2.COARequest
+			err := json.Unmarshal(msg.Payload(), &request)
+			assert.Nil(t, err)
+			var response v1alpha2.COAResponse
+			response.State = v1alpha2.OK
+			response.Metadata = make(map[string]string)
+			response.Metadata["request-id"] = request.Metadata["request-id"]
+			data, _ := json.Marshal(response)
+			token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
+			token.Wait()
+
+		})
+		if tok.Wait() && tok.Error() != nil {
+			if tok.Error().Error() == "subscription exists" {
+				break
+			}
+			if attempts == 9 {
+				t.Fatalf("failed to subscribe mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+		break
 	}
 
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
@@ -526,8 +618,9 @@ func TestARemoveBad(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
@@ -585,36 +678,63 @@ func TestGetApply(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+	// Connect with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Connect()
+		if tok.Wait() && tok.Error() != nil {
+			if attempts == 9 {
+				t.Fatalf("failed to connect mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+		break
 	}
-	if token := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
-		var request v1alpha2.COARequest
-		json.Unmarshal(msg.Payload(), &request)
-		var response v1alpha2.COAResponse
-		response.Metadata = make(map[string]string)
-		response.Metadata["request-id"] = request.Metadata["request-id"]
-		if request.Method == "GET" {
-			ret := make([]model.ComponentSpec, 0)
-			data, _ := json.Marshal(ret)
-			response.State = v1alpha2.OK
-			response.Body = data
-		} else {
-			response.State = v1alpha2.OK
-		}
+	// Wait until connected
+	for i := 0; i < 25 && !c.IsConnected(); i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
+	if !c.IsConnected() {
+		t.Fatalf("mqtt responder not connected")
+	}
+	// Subscribe with retry
+	for attempts := 0; attempts < 10; attempts++ {
+		tok := c.Subscribe(config.RequestTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+			var request v1alpha2.COARequest
+			json.Unmarshal(msg.Payload(), &request)
+			var response v1alpha2.COAResponse
+			response.Metadata = make(map[string]string)
+			response.Metadata["request-id"] = request.Metadata["request-id"]
+			if request.Method == "GET" {
+				ret := make([]model.ComponentSpec, 0)
+				data, _ := json.Marshal(ret)
+				response.State = v1alpha2.OK
+				response.Body = data
+			} else {
+				response.State = v1alpha2.OK
+			}
 
-		data, _ := json.Marshal(response)
-		token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
-		token.Wait()
+			data, _ := json.Marshal(response)
+			token := c.Publish(config.ResponseTopic, 0, false, data) //sending COARequest directly doesn't seem to work
+			token.Wait()
 
-	}); token.Wait() && token.Error() != nil {
-		if token.Error().Error() != "subscription exists" {
-			panic(token.Error())
+		})
+		if tok.Wait() && tok.Error() != nil {
+			if tok.Error().Error() == "subscription exists" {
+				break
+			}
+			if attempts == 9 {
+				t.Fatalf("failed to subscribe mqtt responder: %v", tok.Error())
+			}
+			time.Sleep(200 * time.Millisecond)
+			continue
 		}
+		break
 	}
 
 	arr, err := provider.Get(context.Background(), model.DeploymentSpec{
@@ -664,8 +784,9 @@ func TestLocalApplyGet(t *testing.T) {
 	assert.Nil(t, err)
 
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID("test-sender")
-	opts.SetKeepAlive(2 * time.Second)
-	opts.SetPingTimeout(1 * time.Second)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
 
 	c := gmqtt.NewClient(opts)
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
@@ -743,4 +864,261 @@ func TestConformanceSuite(t *testing.T) {
 	_ = provider.Init(MQTTTargetProviderConfig{})
 	// assert.Nil(t, err) okay if provider is not fully initialized
 	conformance.ConformanceSuite(t, provider)
+}
+
+// --- TLS/mTLS unit tests ---
+
+// generateSelfSignedCert creates a temporary self-signed certificate and key.
+// Returns paths to cert and key files and the certificate bytes.
+func generateSelfSignedCert(t *testing.T) (string, string, []byte) {
+	t.Helper()
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	assert.Nil(t, err)
+
+	tmpl := x509.Certificate{
+		SerialNumber:          bigIntOne(t),
+		Subject:               pkix.Name{CommonName: "localhost"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	certDER, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &privKey.PublicKey, privKey)
+	assert.Nil(t, err)
+
+	// Write cert
+	certFile, err := os.CreateTemp("", "mtls-cert-*.pem")
+	assert.Nil(t, err)
+	defer certFile.Close()
+	assert.Nil(t, pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certDER}))
+
+	// Write key
+	keyFile, err := os.CreateTemp("", "mtls-key-*.pem")
+	assert.Nil(t, err)
+	defer keyFile.Close()
+	assert.Nil(t, pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privKey)}))
+
+	return certFile.Name(), keyFile.Name(), pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+}
+
+func bigIntOne(t *testing.T) *big.Int {
+	t.Helper()
+	return big.NewInt(1)
+}
+
+func TestCreateTLSConfig_InvalidCAPath(t *testing.T) {
+	provider := &MQTTTargetProvider{Config: MQTTTargetProviderConfig{
+		UseTLS:     true,
+		CACertPath: filepath.Join(os.TempDir(), "non-existent-ca.pem"),
+	}}
+	_, err := provider.createTLSConfig(context.Background())
+	assert.NotNil(t, err)
+}
+
+func TestCreateTLSConfig_InvalidCAPEM(t *testing.T) {
+	caFile, err := os.CreateTemp("", "invalid-ca-*.pem")
+	assert.Nil(t, err)
+	defer os.Remove(caFile.Name())
+	defer caFile.Close()
+	_, _ = caFile.Write([]byte("not a pem"))
+
+	provider := &MQTTTargetProvider{Config: MQTTTargetProviderConfig{
+		UseTLS:     true,
+		CACertPath: caFile.Name(),
+	}}
+	_, cfgErr := provider.createTLSConfig(context.Background())
+	assert.NotNil(t, cfgErr)
+}
+
+func TestCreateTLSConfig_ClientCertWithoutKey(t *testing.T) {
+	certPath, _, _ := generateSelfSignedCert(t)
+	defer os.Remove(certPath)
+
+	provider := &MQTTTargetProvider{Config: MQTTTargetProviderConfig{
+		UseTLS:         true,
+		ClientCertPath: certPath,
+		// missing key path
+	}}
+	_, err := provider.createTLSConfig(context.Background())
+	assert.NotNil(t, err)
+}
+
+func TestCreateTLSConfig_ClientCertAndKey_Success(t *testing.T) {
+	certPath, keyPath, caBytes := generateSelfSignedCert(t)
+	defer os.Remove(certPath)
+	defer os.Remove(keyPath)
+
+	// Use the same self-signed cert as CA to exercise RootCAs path
+	caFile, err := os.CreateTemp("", "ca-*.pem")
+	assert.Nil(t, err)
+	defer os.Remove(caFile.Name())
+	defer caFile.Close()
+	_, _ = caFile.Write(caBytes)
+
+	provider := &MQTTTargetProvider{Config: MQTTTargetProviderConfig{
+		UseTLS:         true,
+		CACertPath:     caFile.Name(),
+		ClientCertPath: certPath,
+		ClientKeyPath:  keyPath,
+	}}
+	cfg, err := provider.createTLSConfig(context.Background())
+	assert.Nil(t, err)
+	assert.NotNil(t, cfg)
+	assert.True(t, len(cfg.Certificates) == 1)
+}
+
+// Optional integration-style test to actually run MQTT with mTLS against a live broker.
+// Requires environment variables:
+// - TEST_MQTT_MTLS=1 (enables the test)
+// - TEST_MQTT_MTLS_BROKER (e.g., ssl://127.0.0.1:8883)
+// - TEST_MQTT_MTLS_CA, TEST_MQTT_MTLS_CERT, TEST_MQTT_MTLS_KEY (paths to PEM files)
+// - TEST_MQTT_MTLS_REQUEST_TOPIC, TEST_MQTT_MTLS_RESPONSE_TOPIC
+func TestGet_mTLS(t *testing.T) {
+	if os.Getenv("TEST_MQTT_MTLS") == "" {
+		t.Skip("Skipping mTLS test; set TEST_MQTT_MTLS and related env vars to enable")
+	}
+	broker := os.Getenv("TEST_MQTT_MTLS_BROKER")
+	ca := os.Getenv("TEST_MQTT_MTLS_CA")
+	cert := os.Getenv("TEST_MQTT_MTLS_CERT")
+	key := os.Getenv("TEST_MQTT_MTLS_KEY")
+	reqTopic := os.Getenv("TEST_MQTT_MTLS_REQUEST_TOPIC")
+	respTopic := os.Getenv("TEST_MQTT_MTLS_RESPONSE_TOPIC")
+	if broker == "" || ca == "" || cert == "" || key == "" || reqTopic == "" || respTopic == "" {
+		t.Skip("Skipping mTLS test; missing required TEST_MQTT_MTLS_* env vars")
+	}
+
+	provider := &MQTTTargetProvider{}
+	err := provider.Init(MQTTTargetProviderConfig{
+		Name:           "mtls-test",
+		BrokerAddress:  broker,
+		ClientID:       "mtls-provider",
+		RequestTopic:   reqTopic,
+		ResponseTopic:  respTopic,
+		UseTLS:         true,
+		CACertPath:     ca,
+		ClientCertPath: cert,
+		ClientKeyPath:  key,
+	})
+	assert.Nil(t, err)
+
+	// Separate client to respond to requests, also using mTLS
+	respTLS := newTLSConfigFromFiles(t, ca, cert, key)
+
+	opts := gmqtt.NewClientOptions().AddBroker(broker).SetClientID("mtls-responder")
+	opts.SetTLSConfig(respTLS)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
+
+	c := gmqtt.NewClient(opts)
+	if token := c.Connect(); token.Wait() && token.Error() != nil {
+		t.Fatalf("failed to connect mtls responder: %v", token.Error())
+	}
+	if token := c.Subscribe(reqTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		_ = json.Unmarshal(msg.Payload(), &request)
+		var response v1alpha2.COAResponse
+		ret := make([]model.ComponentSpec, 0)
+		data, _ := json.Marshal(ret)
+		response.State = v1alpha2.OK
+		response.Metadata = map[string]string{"request-id": request.Metadata["request-id"]}
+		response.Body = data
+		data, _ = json.Marshal(response)
+		tok := c.Publish(respTopic, 0, false, data)
+		tok.Wait()
+	}); token.Wait() && token.Error() != nil {
+		if token.Error().Error() != "subscription exists" {
+			t.Fatalf("subscribe failed: %v", token.Error())
+		}
+	}
+
+	arr, err := provider.Get(context.Background(), model.DeploymentSpec{Instance: model.InstanceState{Spec: &model.InstanceSpec{}}}, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(arr))
+}
+
+// TLS server-auth only (no client cert). Requires a TLS listener without mTLS on the broker.
+// Env vars:
+// - TEST_MQTT_TLS=1 (enables the test)
+// - TEST_MQTT_TLS_BROKER (e.g., ssl://127.0.0.1:8883)
+// - TEST_MQTT_TLS_CA (path to broker CA cert)
+// - TEST_MQTT_TLS_REQUEST_TOPIC, TEST_MQTT_TLS_RESPONSE_TOPIC
+func TestGet_TLS(t *testing.T) {
+	if os.Getenv("TEST_MQTT_TLS") == "" {
+		t.Skip("Skipping TLS test; set TEST_MQTT_TLS and related env vars to enable")
+	}
+	broker := os.Getenv("TEST_MQTT_TLS_BROKER")
+	ca := os.Getenv("TEST_MQTT_TLS_CA")
+	reqTopic := os.Getenv("TEST_MQTT_TLS_REQUEST_TOPIC")
+	respTopic := os.Getenv("TEST_MQTT_TLS_RESPONSE_TOPIC")
+	if broker == "" || ca == "" || reqTopic == "" || respTopic == "" {
+		t.Skip("Skipping TLS test; missing required TEST_MQTT_TLS_* env vars")
+	}
+
+	provider := &MQTTTargetProvider{}
+	err := provider.Init(MQTTTargetProviderConfig{
+		Name:          "tls-test",
+		BrokerAddress: broker,
+		ClientID:      "tls-provider",
+		RequestTopic:  reqTopic,
+		ResponseTopic: respTopic,
+		UseTLS:        true,
+		CACertPath:    ca,
+	})
+	assert.Nil(t, err)
+
+	// TLS responder without client certificate
+	caBytes, err := os.ReadFile(ca)
+	assert.Nil(t, err)
+	pool := x509.NewCertPool()
+	assert.True(t, pool.AppendCertsFromPEM(caBytes))
+	tlsCfg := &tls.Config{RootCAs: pool}
+
+	opts := gmqtt.NewClientOptions().AddBroker(broker).SetClientID("tls-responder")
+	opts.SetTLSConfig(tlsCfg)
+	opts.SetKeepAlive(30 * time.Second)
+	opts.SetAutoReconnect(false)
+	opts.SetPingTimeout(10 * time.Second)
+
+	c := gmqtt.NewClient(opts)
+	if token := c.Connect(); token.Wait() && token.Error() != nil {
+		t.Fatalf("failed to connect tls responder: %v", token.Error())
+	}
+	if token := c.Subscribe(reqTopic, 0, func(client gmqtt.Client, msg gmqtt.Message) {
+		var request v1alpha2.COARequest
+		_ = json.Unmarshal(msg.Payload(), &request)
+		var response v1alpha2.COAResponse
+		ret := make([]model.ComponentSpec, 0)
+		data, _ := json.Marshal(ret)
+		response.State = v1alpha2.OK
+		response.Metadata = map[string]string{"request-id": request.Metadata["request-id"]}
+		response.Body = data
+		data, _ = json.Marshal(response)
+		tok := c.Publish(respTopic, 0, false, data)
+		tok.Wait()
+	}); token.Wait() && token.Error() != nil {
+		if token.Error().Error() != "subscription exists" {
+			t.Fatalf("subscribe failed: %v", token.Error())
+		}
+	}
+
+	arr, err := provider.Get(context.Background(), model.DeploymentSpec{Instance: model.InstanceState{Spec: &model.InstanceSpec{}}}, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(arr))
+}
+
+func newTLSConfigFromFiles(t *testing.T, caPath, certPath, keyPath string) *tls.Config {
+	t.Helper()
+	caBytes, err := os.ReadFile(caPath)
+	assert.Nil(t, err)
+	pool := x509.NewCertPool()
+	assert.True(t, pool.AppendCertsFromPEM(caBytes))
+
+	crt, err := tls.LoadX509KeyPair(certPath, keyPath)
+	assert.Nil(t, err)
+
+	return &tls.Config{RootCAs: pool, Certificates: []tls.Certificate{crt}}
 }

@@ -25,3 +25,4 @@ docs-site/.hugo_build.lock
 
 api/pkg/apis/v1alpha1/providers/target/rust/target
 Cargo.lock
+**/mtls-certs/
