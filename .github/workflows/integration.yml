@@ -29,8 +29,8 @@ jobs:
         - "01.update"
         - "02.basic"
         - "03.basicWithNsDelete"
-        - "04.workflow:false"
-        - "04.workflow:true"
+        - "04.workflow-false"
+        - "04.workflow-true"
         - "05.catalogNconfigmap"
         - "07.maestroTest"
         - "08.webhook"
@@ -126,8 +126,8 @@ jobs:
         REPO_PATH: ${{ github.workspace }}
       run: |
         SCERN="${{ matrix.scenario }}"
-        if [[ "$SCERN" == 04.workflow:* ]]; then
-          FLAG="${SCERN#*:}"
+        if [[ "$SCERN" == 04.workflow-* ]]; then
+          FLAG="${SCERN#*-}"
           cd test/integration/scenarios/04.workflow/ && mage test "$FLAG"
         else
           cd "test/integration/scenarios/$SCERN/" && mage test
