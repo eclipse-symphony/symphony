@@ -16,18 +16,37 @@ on:
 env:
     ContainerRegistry: "ghcr.io"
     ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
+    GO_VERSION: "1.24.0"
 
 jobs:
-
-  build:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+        - "00.unit"
+        - "01.update"
+        - "02.basic"
+        - "03.basicWithNsDelete"
+        - "04.workflow:false"
+        - "04.workflow:true"
+        - "05.catalogNconfigmap"
+        - "07.maestroTest"
+        - "08.webhook"
+        - "09.stress"
+        - "10.catalogEval"
+        - "12.naming"
+        - "13.createStage"
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
 
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: 1.24.0
+        go-version: ${{ env.GO_VERSION }}
         
     - name: Set up custom GOPATH
       run: |
@@ -100,68 +119,24 @@ jobs:
     
     - name: Go work init
       run: |
-        mv go.work.bk go.work
+        mv go.work.bk go.work || true
 
-    - name: Run integration tests 00
+    - name: Run scenarios
+      env:
+        REPO_PATH: ${{ github.workspace }}
       run: |
-        cd test/integration/scenarios/00.unit/ && mage test
-
-    - name: Run integration tests 01
-      run: |
-        cd test/integration/scenarios/01.update/ && mage test
-        
-    - name: Run integration tests 02
-      run: |
-        cd test/integration/scenarios/02.basic/ && mage test
-
-    - name: Run integration tests 03
-      run: |
-        cd test/integration/scenarios/03.basicWithNsDelete/ && mage test
-
-    - name: Run integration tests 04 without labeling
-      run: |
-        export REPO_PATH="${{ github.workspace }}"
-        echo "REPO_PATH=$REPO_PATH"
-        cd test/integration/scenarios/04.workflow/ && mage test false
-
-    - name: Run integration tests 04 with labeling
-      run: |
-        export REPO_PATH="${{ github.workspace }}"
-        echo "REPO_PATH=$REPO_PATH"
-        cd test/integration/scenarios/04.workflow/ && mage test true
-
-    - name: Run integration tests 05
-      run: |
-        cd test/integration/scenarios/05.catalogNconfigmap/ && mage test
-        
-    - name: Run integration tests 07
-      run: |
-        cd test/integration/scenarios/07.maestroTest/ && mage test
-    
-    - name: Run integration tests 08
-      run: |
-        cd test/integration/scenarios/08.webhook/ && mage test
-
-    - name: Run integration tests 09
-      run: |
-        cd test/integration/scenarios/09.stress/ && mage test
-
-    - name: Run integration tests 10
-      run: |
-        cd test/integration/scenarios/10.catalogEval/ && mage test
-    
-    - name: Run integration tests 12
-      run: |
-        cd test/integration/scenarios/12.naming/ && mage test
-
-    - name: Run integration tests 13
-      run: |
-        cd test/integration/scenarios/13.createStage/ && mage test
+        SCERN="${{ matrix.scenario }}"
+        if [[ "$SCERN" == 04.workflow:* ]]; then
+          FLAG="${SCERN#*:}"
+          cd test/integration/scenarios/04.workflow/ && mage test "$FLAG"
+        else
+          cd "test/integration/scenarios/$SCERN/" && mage test
+        fi
 
     - name: Collect and upload symphony logs
       uses: actions/upload-artifact@v4
       with:
-        name: symphony-logs
+        name: symphony-logs-${{ matrix.scenario }}
         path: |
           /tmp/symphony-integration-test-logs/**/*.log
       continue-on-error: true
