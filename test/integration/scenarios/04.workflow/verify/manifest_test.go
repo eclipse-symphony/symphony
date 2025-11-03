@@ -476,20 +476,19 @@ func getStatus(resource unstructured.Unstructured) string {
 // Helper for finding the labels
 func getLabels(resource unstructured.Unstructured) string {
 	labels := resource.GetLabels()
-	if labels != nil {
-		labelValue, ok := labels["localtest"]
-		if ok {
-			if labelValue == "localtest" {
-				return labelValue
-			} else {
-				return "wronglabel"
-			}
-		} else {
-			return "nolabel"
-		}
-	} else {
+
+	if labels == nil {
 		return "nolabel"
 	}
+
+	if value, ok := labels["localtest"]; ok {
+		if value == "localtest" {
+			return value
+		}
+		return "wronglabel"
+	}
+
+	return "nolabel"
 }
 
 // Helper for finding the annotations

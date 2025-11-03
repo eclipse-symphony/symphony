@@ -122,12 +122,12 @@ jobs:
         mv go.work.bk go.work || true
 
     - name: Run scenarios
-      env:
-        REPO_PATH: ${{ github.workspace }}
       run: |
         SCERN="${{ matrix.scenario }}"
         if [[ "$SCERN" == 04.workflow-* ]]; then
           FLAG="${SCERN#*-}"
+          export REPO_PATH="${{ github.workspace }}"
+          echo "REPO_PATH=$REPO_PATH"
           cd test/integration/scenarios/04.workflow/ && mage test "$FLAG"
         else
           cd "test/integration/scenarios/$SCERN/" && mage test
