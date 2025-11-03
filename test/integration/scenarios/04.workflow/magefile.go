@@ -243,6 +243,9 @@ func modifyYAML(v string, annotationKey string) error {
 		return err
 	}
 
+	fmt.Printf("Saved YAML content: %s\n", string(data))
+	fmt.Printf("Saved YAML file to: %s\n", ghcrValueFilePath)
+
 	// Write the modified YAML data back to the file
 	err = os.WriteFile(ghcrValueFilePath, data, 0644)
 	if err != nil {
