@@ -1,7 +1,7 @@
 api:
-  annotationKey:
-  labelKey:
-  labelValue:
+  annotationKey: ""
+  labelKey: ""
+  labelValue: ""
 installServiceExt: false
 paiImage:
   pullPolicy: Never
