@@ -249,6 +249,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	for _, catalog := range catalogs {
 		label_key := os.Getenv("LABEL_KEY")
 		label_value := os.Getenv("LABEL_VALUE")
+
+		fmt.Printf("------------------------------------------------------------------label_key: %s\n", label_key)
+		fmt.Printf("------------------------------------------------------------------label_value: %s\n", label_value)
+
 		annotation_name := os.Getenv("ANNOTATION_KEY")
 		if label_key != "" && label_value != "" {
 			// Check if metadata exists, if not create it

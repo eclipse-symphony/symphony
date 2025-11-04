@@ -249,6 +249,9 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: %s", objectName), v1alpha2.BadRequest)
 			}
 
+			fmt.Printf("C------------------------------------------------------------------label_key: %s\n", label_key)
+			fmt.Printf("C------------------------------------------------------------------label_value: %s\n", label_value)
+
 			if label_key != "" && label_value != "" {
 				// Check if labels exists within metadata, if not create it
 				labels := solutionState.ObjectMeta.Labels

@@ -388,6 +388,9 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "webappconfig-v-version1", metav1.GetOptions{})
 	require.NoError(t, err)
 
+	//print out resource
+	fmt.Printf("The catalog is: %v\n", resource)
+
 	result := getLabels(*resource)
 	fmt.Printf("The catalog is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
