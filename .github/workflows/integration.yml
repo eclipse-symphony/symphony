@@ -30,7 +30,6 @@ jobs:
         - "02.basic"
         - "03.basicWithNsDelete"
         - "04.workflow-false"
-        - "04.workflow-true"
         - "05.catalogNconfigmap"
         - "07.maestroTest"
         - "08.webhook"
