@@ -70,7 +70,7 @@ func Test(labeling bool) error {
 	// defer Cleanup()
 	var err error
 	if labeling {
-		err = testhelpers.SetClusterWithSetting("\"--set api.labelKey=localhost --set api.labelValue=localhost --set api.annotationKey=management.azure.com/azureName\"")
+		err = testhelpers.SetClusterWithSetting("\"--set api.labelKey=localtest --set api.labelValue=localtest --set api.annotationKey=management.azure.com/azureName\"")
 		os.Setenv("labelingEnabled", "true")
 	} else {
 		err = testhelpers.SetupCluster()
