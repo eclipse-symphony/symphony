@@ -125,13 +125,6 @@ jobs:
           cd api/pkg/apis/v1alpha1/providers/target/rust
           cargo build --release        
 
-      - name: Clean Rust artifacts
-        run: |
-          cd api/pkg/apis/v1alpha1/providers/target/rust
-          cargo clean || true
-          # Remove toolchains to free several GB
-          rustup self uninstall -y || true
-      
       - name: Replace version in cli/cmd/up.go
         run: |
           version=$(cat .github/version/versions.txt)
@@ -142,6 +135,13 @@ jobs:
           cd cli
           mage generatePackages /home/runner/maestro
           cd ..
+
+      - name: Clean Rust artifacts
+        run: |
+          cd api/pkg/apis/v1alpha1/providers/target/rust
+          cargo clean || true
+          # Remove toolchains to free several GB
+          rustup self uninstall -y || true
 
       - name: Clean Go cache
         run: |
