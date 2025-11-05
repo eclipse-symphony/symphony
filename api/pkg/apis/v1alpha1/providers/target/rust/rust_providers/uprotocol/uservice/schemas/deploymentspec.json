@@ -1,0 +1,48 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://github.com/eclipse-symphony/schemas/deploymentspec.json",
+    "title": "DeploymentSpec",
+    "type": "object",
+    "properties": {
+        "solution-name": {
+            "type": "string"
+        },
+        "solution": { "$ref": "./solutionstate.json" },
+        "instance": { "$ref": "./instance.json#/$defs/InstanceState" },
+        "targets": {
+            "type": "object",
+            "unevaluatedProperties": { "$ref": "./targetstate.json" }
+        },
+        "devices": {
+            "type": "array",
+            "items": { "$ref": "./common.json#/$defs/DeviceSpec" }
+        },
+        "assignments": { "$ref": "./common.json#/$defs/StringMap" },
+        "component-start-index": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "component-end-index": {
+            "type": "integer",
+            "minimum": 0
+        },
+        "active-target": {
+            "type": "string"
+        },
+        "generation": {
+            "type": "string"
+        },
+        "job-id": {
+            "type": "string"
+        },
+        "object-namespace": {
+            "type": "string"
+        },
+        "hash": {
+            "type": "string"
+        },
+        "is-dry-run": {
+            "type": "boolean"
+        }
+    }
+}

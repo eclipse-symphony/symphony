@@ -33,9 +33,15 @@ ARG BUILD_BASE_IMAGE
 # Install necessary build tools, cross-compilers, and Go
 RUN if echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     apt-get update && apt-get install -y \
-    gcc g++ make curl wget git cargo \
+    gcc g++ make cmake curl wget git \
+    libssl-dev pkg-config \
+    ca-certificates \
+    build-essential protobuf-compiler \
+    binutils \
+    libc6-dev \
+    libc6-dev-armhf-cross libc6-dev-arm64-cross \
+    zlib1g-dev \
     gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
-    libssl-dev pkg-config protobuf-compiler \
     && wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz; \
@@ -49,8 +55,6 @@ RUN if [ "$BUILDFLAG" != "azure" ] && echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu
 fi
 
 # Set up Rust environment
-ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 ENV PATH=/root/.cargo/bin:$PATH
 ENV PROTOC=/usr/bin/protoc
 
@@ -66,14 +70,11 @@ fi
 RUN if [ "$BUILDFLAG" != "azure" ] && echo "$BUILD_BASE_IMAGE" | grep -q "ubuntu"; then \
     cargo clean && \
     if [ "$TARGETARCH" = "arm" ]; then \
-        CC=arm-linux-gnueabihf-gcc \
-        CARGO_BUILD_TARGET=armv7-unknown-linux-gnueabihf \
         RUSTFLAGS="-C linker=arm-linux-gnueabihf-gcc" \
         cargo build --release --target=armv7-unknown-linux-gnueabihf && \
         cp target/armv7-unknown-linux-gnueabihf/release/*.so /extensions/; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        CC=aarch64-linux-gnu-gcc \
-        CARGO_BUILD_TARGET=aarch64-unknown-linux-gnu \
+        RUSTFLAGS="-C linker=aarch64-linux-gnu-gcc" \
         cargo build --release --target=aarch64-unknown-linux-gnu && \
         cp target/aarch64-unknown-linux-gnu/release/*.so /extensions/; \
     else \

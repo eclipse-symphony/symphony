@@ -1,0 +1,40 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://github.com/eclipse-symphony/schemas/componentspec.json",
+    "title": "ComponentSpec",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "type": {
+            "type": "string"
+        },
+        "metadata": { "$ref": "./common.json#/$defs/StringMap" },
+        "properties": { "$ref": "./common.json#/$defs/AnyMap" },
+        "parameters": { "$ref": "./common.json#/$defs/StringMap" },
+        "routes": {
+            "type": "array",
+            "items": { "$ref": "./common.json#/$defs/RouteSpec" }
+        },
+        "constraints": {
+            "type": "string"
+        },
+        "dependencies": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "skills": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "sidecars": {
+            "type": "array",
+            "items": { "$ref": "./common.json#/$defs/SidecarSpec" }
+        }
+    }
+}
