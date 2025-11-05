@@ -149,7 +149,7 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 	return ret, nil
 }
 
-func setLables(meta *model.ObjectMeta) {
+func setLabels(meta *model.ObjectMeta) {
 	label_key := os.Getenv("LABEL_KEY")
 	label_value := os.Getenv("LABEL_VALUE")
 	if label_key != "" && label_value != "" {
@@ -303,7 +303,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", instanceState.ObjectMeta.Name, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}
 
-			setLables(&instanceState.ObjectMeta)
+			setLabels(&instanceState.ObjectMeta)
 
 			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 			previousJobId := "-1"
@@ -414,6 +414,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			if annotation_name != "" {
 				solutionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
+
+			setLabels(&solutionState.ObjectMeta)
+
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
@@ -444,7 +447,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				)
 				return outputs, false, err
 			}
-			setLables(&solutionState.ObjectMeta)
+
 			solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
 			objectData, _ := json.Marshal(solutionState)
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
@@ -497,7 +500,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
 				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", targetState.ObjectMeta.Name, constants.AzureOperationIdKey, targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}
-			setLables(&targetState.ObjectMeta)
+			setLabels(&targetState.ObjectMeta)
 			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
 			previousJobId := "-1"
 			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
@@ -609,6 +612,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			if annotation_name != "" {
 				catalogState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
+
+			setLabels(&catalogState.ObjectMeta)
+
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
@@ -735,7 +741,7 @@ func checkCatalog(catalog *model.CatalogState) bool {
 	if catalog.Spec == nil {
 		return false
 	}
-	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" {
+	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" || catalog.Spec.CatalogType == "config" {
 		return true
 	}
 	return false

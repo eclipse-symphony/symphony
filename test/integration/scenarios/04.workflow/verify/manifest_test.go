@@ -32,6 +32,8 @@ var (
 	CampaignNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignnotexist.yaml"
 
 	WithStageActivation = "test/integration/scenarios/04.workflow/manifest/activation-stage.yaml"
+
+	ExpectedKeyValue = "localtest"
 )
 
 // Verify catalog created
@@ -245,7 +247,7 @@ func TestAdvance_TargetLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "sitek8starget", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	result := getLabels(*resource)
+	result := getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
 	fmt.Printf("The target is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
@@ -311,7 +313,7 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	result := getLabels(*resource)
+	result := getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
 	fmt.Printf("The instance is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
@@ -326,7 +328,7 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	}
 	expectedResult := "nolabel"
 	if labelingEnabled == "true" {
-		expectedResult = "localtest"
+		expectedResult = ExpectedKeyValue
 	}
 
 	cfg, err := testhelpers.RestConfig()
@@ -342,7 +344,7 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteapp-v-version1", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	result := getLabels(*resource)
+	result := getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
 	fmt.Printf("The solution is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 
@@ -357,7 +359,7 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	result = getLabels(*resource)
+	result = getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
 	fmt.Printf("The solution container is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
@@ -391,7 +393,7 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	//print out resource
 	fmt.Printf("The catalog is: %v\n", resource)
 
-	result := getLabels(*resource)
+	result := getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
 	fmt.Printf("The catalog is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 
@@ -406,7 +408,7 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	}).Namespace(namespace).Get(context.Background(), "webappconfig", metav1.GetOptions{})
 	require.NoError(t, err)
 
-	result = getLabels(*resource)
+	result = getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
 	fmt.Printf("The catalog container is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
@@ -477,15 +479,15 @@ func getStatus(resource unstructured.Unstructured) string {
 }
 
 // Helper for finding the labels
-func getLabels(resource unstructured.Unstructured) string {
+func getLabels(resource unstructured.Unstructured, expectedKey string, expectedValue string) string {
 	labels := resource.GetLabels()
 
 	if labels == nil {
 		return "nolabel"
 	}
 
-	if value, ok := labels["localtest"]; ok {
-		if value == "localtest" {
+	if value, ok := labels[expectedKey]; ok {
+		if value == expectedValue {
 			return value
 		}
 		return "wronglabel"
