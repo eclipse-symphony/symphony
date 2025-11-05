@@ -71,6 +71,15 @@ func localenvCmd(mageCmd string, flavor string) error {
 	return ShellExec(fmt.Sprintf("cd ../../../localenv && mage %s %s", mageCmd, flavor))
 }
 
+func SetClusterWithSetting(settings string) error {
+	err := localenvCmd("cluster:deployWithSettings", settings)
+	if err != nil {
+		return err
+	}
+	time.Sleep(time.Second * 10)
+	return nil
+}
+
 // Prepare the cluster
 // Run this manually to prepare your local environment for testing/debugging
 func SetupCluster() error {

@@ -149,6 +149,17 @@ func MaterialieStageProviderConfigFromMap(properties map[string]string) (Materia
 	return ret, nil
 }
 
+func setLabels(meta *model.ObjectMeta) {
+	label_key := os.Getenv("LABEL_KEY")
+	label_value := os.Getenv("LABEL_VALUE")
+	if label_key != "" && label_value != "" {
+		if meta.Labels == nil {
+			meta.Labels = make(map[string]string)
+		}
+		meta.Labels[label_key] = label_value
+	}
+}
+
 func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext contexts.ManagerContext, inputs map[string]interface{}) (map[string]interface{}, bool, error) {
 	ctx, span := observability.StartSpan("[Stage] Materialize Provider", ctx, &map[string]string{
 		"method": "Process",
@@ -246,28 +257,10 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	createdObjectList := make(map[string]bool, 0)
 	instanceList := make([]utils.ObjectInfo, 0)
 	targetList := make([]utils.ObjectInfo, 0)
+
+	annotation_name := os.Getenv("ANNOTATION_KEY")
+
 	for _, catalog := range catalogs {
-		label_key := os.Getenv("LABEL_KEY")
-		label_value := os.Getenv("LABEL_VALUE")
-		annotation_name := os.Getenv("ANNOTATION_KEY")
-		if label_key != "" && label_value != "" {
-			// Check if metadata exists, if not create it
-			metadata, ok := catalog.Spec.Properties["metadata"].(map[string]interface{})
-			if !ok {
-				metadata = make(map[string]interface{})
-				catalog.Spec.Properties["metadata"] = metadata
-			}
-
-			// Check if labels exists within metadata, if not create it
-			labels, ok := metadata["labels"].(map[string]string)
-			if !ok {
-				labels = make(map[string]string)
-				metadata["labels"] = labels
-			}
-
-			// Add the label
-			labels[label_key] = label_value
-		}
 		objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
 		name := catalog.ObjectMeta.Name
 		if s, ok := inputs["__origin"]; ok {
@@ -309,6 +302,8 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
 				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", instanceState.ObjectMeta.Name, constants.AzureOperationIdKey, instanceState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}
+
+			setLabels(&instanceState.ObjectMeta)
 
 			instanceState.ObjectMeta = updateObjectMeta(instanceState.ObjectMeta, inputs)
 			previousJobId := "-1"
@@ -419,6 +414,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			if annotation_name != "" {
 				solutionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
+
+			setLabels(&solutionState.ObjectMeta)
+
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
@@ -502,7 +500,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey] = operationIdKey
 				mLog.InfofCtx(ctx, "  P (Materialize Processor): update %s annotation: %s to %s", targetState.ObjectMeta.Name, constants.AzureOperationIdKey, targetState.ObjectMeta.Annotations[constants.AzureOperationIdKey])
 			}
-
+			setLabels(&targetState.ObjectMeta)
 			targetState.ObjectMeta = updateObjectMeta(targetState.ObjectMeta, inputs)
 			previousJobId := "-1"
 			ret, err := i.ApiClient.GetTarget(ctx, targetState.ObjectMeta.Name, targetState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
@@ -614,6 +612,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			if annotation_name != "" {
 				catalogState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
+
+			setLabels(&catalogState.ObjectMeta)
+
 			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
 			_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
@@ -740,7 +741,7 @@ func checkCatalog(catalog *model.CatalogState) bool {
 	if catalog.Spec == nil {
 		return false
 	}
-	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" {
+	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" || catalog.Spec.CatalogType == "config" {
 		return true
 	}
 	return false

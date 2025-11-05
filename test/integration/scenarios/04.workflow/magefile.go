@@ -66,17 +66,16 @@ var (
 
 // Entry point for running the tests
 func Test(labeling bool) error {
-	fmt.Println("Running ", TEST_NAME)
-
+	fmt.Println("Running ", TEST_NAME, " with labeling:", labeling)
+	// defer Cleanup()
+	var err error
 	if labeling {
-		err := modifyYAML("localtest", "management.azure.com/azureName")
-		if err != nil {
-			return err
-		}
+		err = testhelpers.SetClusterWithSetting("\"--set api.labelKey=localtest --set api.labelValue=localtest --set api.annotationKey=management.azure.com/azureName\"")
 		os.Setenv("labelingEnabled", "true")
+	} else {
+		err = testhelpers.SetupCluster()
 	}
-	defer Cleanup()
-	err := testhelpers.SetupCluster()
+
 	if err != nil {
 		return err
 	}
