@@ -65,7 +65,7 @@ jobs:
            zlib1g-dev libcurl4-openssl-dev \
            libxml2-dev uuid-dev \
            gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
-           libssl-dev pkg-config mingw-w64
+           libssl-dev pkg-config mingw-w64 mingw-w64-tools g++-mingw-w64-x86-64
            sudo snap install yq
 
       - name: Install Rust
