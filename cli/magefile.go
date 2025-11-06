@@ -27,7 +27,7 @@ func BuildCli() error {
 		"CGO_ENABLED=0 GOARCH=arm64 go build -o maestro-arm64",
 		"CGO_ENABLED=0 GOARCH=arm GOARM=7 go build -o maestro-arm",
 		"CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o maestro.exe",
-		// "CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
+		"CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
 	); err != nil {
 		return err
 	}
@@ -53,11 +53,11 @@ func BuildApi() error {
 		args []string
 	}{
 		{ // Aarch64
-			env:  []string{"CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc", "CC=aarch64-linux-gnu-gcc", "RUSTFLAGS=-C linker=aarch64-linux-gnu-gcc"},
+			env:  []string{"CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc", "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc", "RUSTFLAGS=-C linker=aarch64-linux-gnu-gcc"},
 			args: []string{"cargo", "build", "--release", "--target", "aarch64-unknown-linux-gnu"},
 		},
 		{ // ARMv7
-			env:  []string{"CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc", "CC=arm-linux-gnueabihf-gcc", "RUSTFLAGS=-C linker=arm-linux-gnueabihf-gcc"},
+			env:  []string{"CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc", "CC_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-gcc", "RUSTFLAGS=-C linker=arm-linux-gnueabihf-gcc"},
 			args: []string{"cargo", "build", "--release", "--target", "armv7-unknown-linux-gnueabihf"},
 		},
 		{ // Standard targets
