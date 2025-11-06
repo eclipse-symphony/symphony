@@ -27,7 +27,7 @@ func BuildCli() error {
 		"CGO_ENABLED=0 GOARCH=arm64 go build -o maestro-arm64",
 		"CGO_ENABLED=0 GOARCH=arm GOARM=7 go build -o maestro-arm",
 		"CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o maestro.exe",
-		"CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
+		// "CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o maestro-mac",
 	); err != nil {
 		return err
 	}
