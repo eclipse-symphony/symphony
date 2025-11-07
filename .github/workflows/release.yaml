@@ -68,6 +68,13 @@ jobs:
            libssl-dev pkg-config mingw-w64 mingw-w64-tools g++-mingw-w64-x86-64
            sudo snap install yq
 
+      - name: Fix MinGW User32 name for Rust
+        run: |
+          if [ -f /usr/x86_64-w64-mingw32/lib/libuser32.a ] && [ ! -e /usr/x86_64-w64-mingw32/lib/libUser32.a ]; then
+            sudo ln -s /usr/x86_64-w64-mingw32/lib/libuser32.a \
+                      /usr/x86_64-w64-mingw32/lib/libUser32.a
+          fi
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
