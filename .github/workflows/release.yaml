@@ -32,12 +32,7 @@ jobs:
       
       - name: Print branch name
         run: echo ${{ steps.extract_branch.outputs.branch }}
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y make gcc
-          sudo snap install yq
-
+      
       - name: Install Helm
         run: |
           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -70,8 +65,15 @@ jobs:
            zlib1g-dev libcurl4-openssl-dev \
            libxml2-dev uuid-dev \
            gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
-           libssl-dev pkg-config mingw-w64
+           libssl-dev pkg-config mingw-w64 mingw-w64-tools g++-mingw-w64-x86-64
            sudo snap install yq
+
+      - name: Fix MinGW User32 name for Rust
+        run: |
+          if [ -f /usr/x86_64-w64-mingw32/lib/libuser32.a ] && [ ! -e /usr/x86_64-w64-mingw32/lib/libUser32.a ]; then
+            sudo ln -s /usr/x86_64-w64-mingw32/lib/libuser32.a \
+                      /usr/x86_64-w64-mingw32/lib/libUser32.a
+          fi
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -130,6 +132,28 @@ jobs:
           cd api/pkg/apis/v1alpha1/providers/target/rust
           cargo build --release        
 
+      - name: Replace version in cli/cmd/up.go
+        run: |
+          version=$(cat .github/version/versions.txt)
+          sed -i "s/const SymphonyAPIVersion = .*/const SymphonyAPIVersion = \"$version\"/" cli/cmd/up.go
+
+      - name: Build maestro
+        run: |
+          cd cli
+          mage generatePackages /home/runner/maestro
+          cd ..
+
+      - name: Clean Rust artifacts
+        run: |
+          cd api/pkg/apis/v1alpha1/providers/target/rust
+          cargo clean || true
+          # Remove toolchains to free several GB
+          rustup self uninstall -y || true
+
+      - name: Clean Go cache
+        run: |
+          go clean -cache -modcache -testcache || true
+
       - name: Build Symphony Api
         run: |
           cd api
@@ -142,17 +166,6 @@ jobs:
           cd k8s
           mage dockerBuildK8sMultiPlatform
 
-      - name: Replace version in cli/cmd/up.go
-        run: |
-          version=$(cat .github/version/versions.txt)
-          sed -i "s/const SymphonyAPIVersion = .*/const SymphonyAPIVersion = \"$version\"/" cli/cmd/up.go
-
-      - name: Build maestro
-        run: |
-          cd cli
-          mage generatePackages /home/runner/maestro
-          cd ..
-
       - name: Replace version in packages/helm/values.yaml
         run: |
           version=$(cat .github/version/versions.txt)
@@ -162,7 +175,7 @@ jobs:
           yq eval -i ".appVersion = \"$version\"" packages/helm/symphony-poll-agent/Chart.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony/values.yaml
           sed -i "s/{VERSION}/${{ steps.increment_version.outputs.version }}/g" packages/helm/symphony-poll-agent/values.yaml
-          
+      
       - name: Build Helm
         run: |
           cd k8s
