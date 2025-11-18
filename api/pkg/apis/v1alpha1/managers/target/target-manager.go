@@ -43,7 +43,7 @@ type Device struct {
 	Object Object
 }
 type Object struct {
-	ApiVersion string                 `json:"apiVersion`
+	ApiVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
 	Metadata   map[string]interface{} `json:"metadata"`
 	Spec       DeviceSpec             `json:"spec"`
