@@ -88,6 +88,7 @@ func TestCampaignWithSingleMockStageLoop(t *testing.T) {
 	// assert.Equal(t, "test", status.Outputs["__stage"])
 	// assert.Equal(t, "fake", status.Outputs["__site"])
 }
+
 func TestCampaignWithSingleCounterStageLoop(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
