@@ -8,6 +8,8 @@ replace github.com/eclipse-symphony/symphony/coa => ../coa
 
 replace github.com/eclipse-symphony/symphony/packages/mage => ../packages/mage
 
+replace "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/piccolo" => ./pkg/apis/v1alpha1/providers/target/piccolo
+
 require (
 	github.com/eclipse-symphony/symphony/coa v0.0.0
 	github.com/spf13/cobra v1.9.1
