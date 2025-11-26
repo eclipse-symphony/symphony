@@ -127,7 +127,7 @@ func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpe
 			}
 			configMap[k] = val
 		}
-		err = mapToStruct(configMap, task.Config)
+		err = mapToStruct(configMap, &task.Config)
 		if err != nil {
 			return nil, err
 		}
