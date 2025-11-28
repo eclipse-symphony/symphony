@@ -3,9 +3,9 @@ name: symphony
 description: A Helm chart for Symphony control plane
 type: application
 # The version is auto updated by the release pipeline, do not change it manually
-version: "0.48.43"
+version: "0.48.44"
 # The version is auto updated by the release pipeline, do not change it manually
-appVersion: "0.48.43"
+appVersion: "0.48.44"
 dependencies:
   - name: cert-manager
     version: "1.13.1"
