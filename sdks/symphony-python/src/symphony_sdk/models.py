@@ -131,7 +131,7 @@ class ComponentSpec:
     routes: List[RouteSpec] = None
     constraints: str = ""
     properties: Dict[str, str] = None
-    depedencies: List[str] = None
+    dependencies: List[str] = None
     skills: List[str] = None
     metadata: Dict[str, str] = None
     parameters: Dict[str, str] = None
