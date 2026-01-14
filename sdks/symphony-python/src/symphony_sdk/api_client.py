@@ -26,7 +26,7 @@ Symphony operations based on the OpenAPI specification.
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -198,11 +198,11 @@ class SymphonyAPI:
         self._access_token = access_token
         # Assume token is valid for ~1 hour
         # Use timezone-aware UTC datetimes and truncate seconds/micros
-        self._token_expiry = datetime.now(timezone.utc).replace(microsecond=0, second=0)
-        self._token_expiry = self._token_expiry.replace(
-            minute=(self._token_expiry.minute + 50) % 60
+        self._token_expiry = (
+            datetime.now(timezone.utc)
+            .replace(second=0, microsecond=0)
+            + timedelta(minutes=50)
         )
-
         # Update session headers with token
         self._session.headers.update({"Authorization": f"Bearer {access_token}"})
 
