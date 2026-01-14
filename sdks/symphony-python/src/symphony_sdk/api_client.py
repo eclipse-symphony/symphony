@@ -639,7 +639,7 @@ class SymphonyAPI:
         """
         try:
             # Try a simple endpoint that doesn't require auth
-            response = self._make_request("GET", "/greetings", json={"foo": "bar"})
+            response = self._make_request("GET", "/greetings")
             return response.status_code == 200
         except Exception as e:
             self.logger.error(f"Health check failed: {e}")
