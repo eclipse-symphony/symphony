@@ -238,11 +238,19 @@ except SymphonyAPIError as e:
 # Clone the repository
 git clone https://github.com/eclipse-symphony/symphony.git
 cd symphony/sdks/symphony-python
+```
 
+#### Using pip
+
+```bash
 # Install in development mode with all development dependencies
 pip install -e ".[dev]"
+```
 
-# Or using uv (faster)
+#### Using uv
+
+```bash
+# Install the package and dev dependencies
 uv pip install -e ".[dev]"
 ```
 
@@ -253,6 +261,8 @@ This installs the package along with:
 - `types-PyYAML` and `types-requests` - Type stubs for dependencies
 
 ### Running Tests
+
+#### Using pip
 
 ```bash
 # Run all tests
@@ -266,6 +276,22 @@ pytest tests/test_api_client.py
 
 # Run tests in verbose mode
 pytest -v
+```
+
+#### Using uv
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage (configured in pyproject.toml)
+uv run pytest --cov=src/symphony_sdk --cov-report=html --cov-report=term-missing
+
+# Run specific test file
+uv run pytest tests/test_api_client.py
+
+# Run tests in verbose mode
+uv run pytest -v
 ```
 
 ### Code Quality Tools

@@ -101,7 +101,7 @@ addopts = [
 
 [tool.coverage.run]
 source = ["src/symphony_sdk"]
-omit = ["*/tests/*", "*/test_*.py"]
+omit = ["*/tests/*", "*/test_*.py", "*/__init__.py"]
 
 [tool.coverage.report]
 exclude_lines = [
