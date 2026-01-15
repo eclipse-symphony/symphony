@@ -12,7 +12,9 @@ Symphony operations based on the OpenAPI specification.
 import json
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
+
+JSONType = Union[Dict[str, Any], List[Dict[str, Any]]]
 
 import requests
 
@@ -118,7 +120,7 @@ class SymphonyAPI:
 
     def _handle_response(
         self, response: requests.Response, expected_codes: List[int] = None
-    ) -> Dict[str, Any]:
+    ) -> Optional[JSONType]:
         """Handle API response and extract JSON data.
 
         Args:
