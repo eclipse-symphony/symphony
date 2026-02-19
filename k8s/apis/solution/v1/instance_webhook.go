@@ -57,10 +57,16 @@ var instanceHistory history.InstanceHistory
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
 	k8sClient = mgr.GetClient()
+
 	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
 		return []string{instance.Spec.Solution}
 	})
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.target.name", func(rawObj client.Object) []string {
+		instance := rawObj.(*Instance)
+		return []string{instance.Spec.Target.Name}
+	})
+
 	myConfig, err := configutils.GetProjectConfig()
 	if err != nil {
 		return err

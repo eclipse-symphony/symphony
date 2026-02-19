@@ -192,24 +192,25 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	tarObj := obj.(*fabric_v1.Target)
 	var instances solution_v1.InstanceList
 
-	options := []client.ListOption{client.InNamespace(tarObj.Namespace)}
-	err := r.List(context.Background(), &instances, options...)
-	if err != nil {
-		diagnostic.ErrorWithCtx(log.Log, ctx, err, "Failed to list instances")
-		return ret
-	}
-
-	targetList := fabric_v1.TargetList{}
-	targetList.Items = append(targetList.Items, *tarObj)
-
+	// Check if target has AzureResourceIdKey annotation for different processing logic
 	updatedInstanceNames := make([]string, 0)
-	for _, instance := range instances.Items {
-		if !utils.NeedWatchInstance(instance) {
-			continue
+	if azureResourceId, exists := tarObj.Annotations[constants.AzureResourceIdKey]; exists && azureResourceId != "" {
+		// Use field index to query instances by Azure resource ID
+		options := []client.ListOption{
+			client.InNamespace(tarObj.Namespace),
+			client.MatchingFields{"spec.target.name": azureResourceId},
+		}
+		err := r.List(ctx, &instances, options...)
+		if err != nil {
+			diagnostic.ErrorWithCtx(log.Log, ctx, err, "Failed to list instances by Azure resource ID index")
+			return ret
 		}
 
-		targetCandidates := utils.MatchTargets(instance, targetList)
-		if len(targetCandidates) > 0 {
+		// For Azure targets, directly add all matching instances to result
+		for _, instance := range instances.Items {
+			if !utils.NeedWatchInstance(instance) {
+				continue
+			}
 			ret = append(ret, ctrl.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      instance.Name,
@@ -217,6 +218,34 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 				},
 			})
 			updatedInstanceNames = append(updatedInstanceNames, instance.Name)
+		}
+	} else {
+		// Use  full namespace listing and MatchTargets
+		options := []client.ListOption{client.InNamespace(tarObj.Namespace)}
+		err := r.List(ctx, &instances, options...)
+		if err != nil {
+			diagnostic.ErrorWithCtx(log.Log, ctx, err, "Failed to list instances")
+			return ret
+		}
+
+		targetList := fabric_v1.TargetList{}
+		targetList.Items = append(targetList.Items, *tarObj)
+
+		for _, instance := range instances.Items {
+			if !utils.NeedWatchInstance(instance) {
+				continue
+			}
+
+			targetCandidates := utils.MatchTargets(instance, targetList)
+			if len(targetCandidates) > 0 {
+				ret = append(ret, ctrl.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      instance.Name,
+						Namespace: instance.Namespace,
+					},
+				})
+				updatedInstanceNames = append(updatedInstanceNames, instance.Name)
+			}
 		}
 	}
 
@@ -240,7 +269,7 @@ func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionR
 		client.InNamespace(solutionRefNamespace),
 		client.MatchingFields{"spec.solution": solutionRef},
 	}
-	error := r.List(context.Background(), &instances, options...)
+	error := r.List(ctx, &instances, options...)
 	if error != nil {
 		diagnostic.ErrorWithCtx(log.Log, ctx, error, "Failed to list instances")
 		return ret, updatedInstanceNames
