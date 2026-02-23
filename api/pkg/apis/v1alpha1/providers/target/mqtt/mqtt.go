@@ -36,9 +36,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -287,7 +286,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		}
 	}); token.Wait() && token.Error() != nil {
 		if token.Error().Error() != "subscription exists" {
-			sLog.ErrorfCtx(ctx, "  P (MQTT Target): faild to connect to subscribe to the response topic - %+v", token.Error())
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to connect to subscribe to the response topic - %+v", token.Error())
 			err = v1alpha2.NewCOAError(token.Error(), "failed to subscribe to response topic", v1alpha2.InternalError)
 			return err
 		}
@@ -623,7 +622,7 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 	if i.Config.CACertPath != "" {
 		sLog.InfofCtx(ctx, "  P (MQTT Target): attempting to load CA certificate from %s", i.Config.CACertPath)
 
-		caCert, err := ioutil.ReadFile(i.Config.CACertPath)
+		caCert, err := os.ReadFile(i.Config.CACertPath)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): failed to read CA certificate - %+v", err)
 			return nil, fmt.Errorf("failed to read CA certificate: %w", err)
@@ -633,12 +632,6 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 		sLog.InfofCtx(ctx, "  P (MQTT Target): CA certificate file size: %d bytes", len(caCert))
 		if len(caCert) == 0 {
 			return nil, fmt.Errorf("CA certificate file is empty")
-		}
-
-		// Validate that the file contains valid PEM data
-		if !isCertificatePEM(caCert) {
-			sLog.ErrorfCtx(ctx, "  P (MQTT Target): CA certificate file does not contain valid PEM data")
-			return nil, fmt.Errorf("CA certificate file does not contain valid PEM data")
 		}
 
 		caCertPool := x509.NewCertPool()
@@ -672,20 +665,6 @@ func (i *MQTTTargetProvider) createTLSConfig(ctx context.Context) (*tls.Config, 
 	}
 
 	return tlsConfig, nil
-}
-
-// isCertificatePEM checks if the given data contains valid PEM formatted certificate data
-func isCertificatePEM(data []byte) bool {
-	// Check if the data contains PEM headers
-	dataStr := string(data)
-	if !strings.Contains(dataStr, "-----BEGIN CERTIFICATE-----") || 
-	   !strings.Contains(dataStr, "-----END CERTIFICATE-----") {
-		return false
-	}
-	
-	// Try to decode the PEM block
-	block, _ := pem.Decode(data)
-	return block != nil && block.Type == "CERTIFICATE"
 }
 
 func (*MQTTTargetProvider) GetValidationRule(ctx context.Context) model.ValidationRule {

@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -61,6 +61,9 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	}
 
 	// Set default values
+	if config.TimeoutSeconds <= 0 {
+		config.TimeoutSeconds = 8
+	}
 	if config.KeepAliveSeconds <= 0 {
 		config.KeepAliveSeconds = 2
 	}
@@ -71,6 +74,11 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 	opts := gmqtt.NewClientOptions().AddBroker(config.BrokerAddress).SetClientID(config.ClientID)
 	opts.SetKeepAlive(time.Duration(config.KeepAliveSeconds) * time.Second)
 	opts.SetPingTimeout(time.Duration(config.PingTimeoutSeconds) * time.Second)
+	if config.TimeoutSeconds > 0 {
+		timeout := time.Duration(config.TimeoutSeconds) * time.Second
+		opts.SetConnectTimeout(timeout)
+		opts.SetWriteTimeout(timeout)
+	}
 	opts.CleanSession = false
 
 	// Configure authentication
@@ -170,7 +178,7 @@ func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, er
 	if config.CACertPath != "" {
 		log.Infof("MQTT Binding: attempting to load CA certificate from %s", config.CACertPath)
 
-		caCert, err := ioutil.ReadFile(config.CACertPath)
+		caCert, err := os.ReadFile(config.CACertPath)
 		if err != nil {
 			log.Errorf("MQTT Binding: failed to read CA certificate - %+v", err)
 			return nil, fmt.Errorf("failed to read CA certificate: %w", err)
