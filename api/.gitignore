@@ -21,3 +21,4 @@ symphony-api-mac
 symphony-api.exe
 .env.debug
 .vscode/serviceaccount/
+pkg/apis/v1alpha1/providers/target/mqtt/mtls-certs/

@@ -1,0 +1,115 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "symphony-sdk"
+version = "0.1.0"
+description = "Pure Python SDK for Eclipse Symphony"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "composiv.ai", email = "info@composiv.ai" }
+]
+dependencies = [
+    "requests>=2.25",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+mqtt = [
+    "paho-mqtt>=2.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "ruff>=0.1.0",
+    "types-PyYAML>=6.0",
+    "types-requests>=2.25",
+]
+
+[project.urls]
+Homepage = "https://github.com/eclipse-symphony/symphony"
+Issues = "https://github.com/eclipse-symphony/symphony/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/symphony_sdk"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/symphony_sdk",
+    "README.md",
+    "LICENSE"
+]
+
+[tool.uv.sources]
+symphony-sdk = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "symphony-sdk",
+    "twine>=6.2.0",
+]
+
+[tool.ruff]
+# Enable pycodestyle (E), Pyflakes (F), isort (I), pydocstyle (D), and more
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+# Allow unused variables when underscore-prefixed
+select = ["E", "F", "W", "I", "D", "UP", "B", "C4", "SIM"]
+ignore = ["D203", "D213"]  # Ignore conflicting docstring rules
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"tests/*" = ["D"]  # Ignore docstring requirements in tests
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Use Google-style docstrings
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = false  # Set to true once all code is typed
+disallow_any_unimported = false
+no_implicit_optional = true
+strict_optional = true
+check_untyped_defs = true
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "--verbose",
+    "--cov=src/symphony_sdk",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.coverage.run]
+source = ["src/symphony_sdk"]
+omit = ["*/tests/*", "*/test_*.py", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
