@@ -76,6 +76,26 @@ func NewCampaignTaskHandler(manager *StageManager, triggerData v1alpha2.Activati
 	}
 }
 
+func structToMap(v any) (map[string]interface{}, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func mapToStruct(m map[string]interface{}, dst any) error {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, dst)
+}
+
 func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpec, inputs map[string]interface{}, siteName string) (map[string]interface{}, error) {
 	// Create task-specific inputs
 	taskInputs := utils.MergeCollection_StringAny(inputs, task.Inputs)
@@ -92,6 +112,25 @@ func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpe
 			return nil, err
 		}
 		taskInputs[k] = val
+	}
+
+	if task.Config != nil {
+		configMap, err := structToMap(task.Config)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range configMap {
+			var val interface{}
+			val, err := h.manager.traceValue(ctx, v, h.triggerData.Namespace, taskInputs, h.triggers, h.triggerData.Outputs)
+			if err != nil {
+				return nil, err
+			}
+			configMap[k] = val
+		}
+		err = mapToStruct(configMap, &task.Config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Create task provider
@@ -859,6 +898,41 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		// 5. If campaign.provider exists, initialize a provider
 		var provider providers.IProvider
 		if triggerData.Provider != "" {
+
+			if triggerData.Config != nil {
+				//evaluate config expressions
+				configMap, err := structToMap(triggerData.Config)
+				if err != nil {
+					status.Status = v1alpha2.InternalError
+					status.StatusMessage = v1alpha2.InternalError.String()
+					status.ErrorMessage = err.Error()
+					status.IsActive = false
+					log.ErrorfCtx(ctx, " M (Stage): failed to convert config to map: %v", err)
+					return status, activationData
+				}
+				for k, v := range configMap {
+					var val interface{}
+					val, err = s.traceValue(ctx, v, triggerData.Namespace, snapshotInputs, triggers, triggerData.Outputs)
+					if err != nil {
+						status.Status = v1alpha2.InternalError
+						status.StatusMessage = v1alpha2.InternalError.String()
+						status.ErrorMessage = err.Error()
+						status.IsActive = false
+						log.ErrorfCtx(ctx, " M (Stage): failed to evaluate config: %v", err)
+						return status, activationData
+					}
+					configMap[k] = val
+				}
+				err = mapToStruct(configMap, &triggerData.Config)
+				if err != nil {
+					status.Status = v1alpha2.InternalError
+					status.StatusMessage = v1alpha2.InternalError.String()
+					status.ErrorMessage = err.Error()
+					status.IsActive = false
+					log.ErrorfCtx(ctx, " M (Stage): failed to convert config map to struct: %v", err)
+					return status, activationData
+				}
+			}
 			factory := symproviders.SymphonyProviderFactory{}
 			provider, err = factory.CreateProvider(triggerData.Provider, triggerData.Config)
 			if err != nil {
