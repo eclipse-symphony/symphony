@@ -126,6 +126,15 @@ func IsNotFound(err error) bool {
 	}
 	return coaE.State == NotFound
 }
+
+func IsCanceled(err error) bool {
+	coaE, ok := err.(COAError)
+	if !ok {
+		return false
+	}
+	return coaE.State == Canceled
+}
+
 func IsDelayed(err error) bool {
 	coaE, ok := err.(COAError)
 	if !ok {

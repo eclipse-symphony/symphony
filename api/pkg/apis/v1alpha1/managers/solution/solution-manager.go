@@ -15,6 +15,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution/metrics"
@@ -36,6 +37,7 @@ import (
 
 var (
 	log                 = logger.NewLogger("coa.runtime")
+	jobListLock         sync.RWMutex
 	apiOperationMetrics *metrics.Metrics
 )
 
@@ -52,7 +54,14 @@ const (
 
 	Summary         = "Summary"
 	DeploymentState = "DeployState"
+
+	defaultTimeout = 60 * time.Minute
 )
+
+type JobIdentifier struct {
+	Namespace string
+	Name      string
+}
 
 type SolutionManager struct {
 	SummaryManager
@@ -63,6 +72,7 @@ type SolutionManager struct {
 	IsTarget        bool
 	TargetNames     []string
 	ApiClientHttp   api_utils.ApiClient
+	jobList         map[JobIdentifier]map[string]context.CancelFunc
 }
 
 type SolutionManagerDeploymentState struct {
@@ -138,7 +148,13 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 	if err != nil {
 		return err
 	}
+
+	s.initCancelMap()
 	return nil
+}
+
+func (s *SolutionManager) initCancelMap() {
+	s.jobList = make(map[JobIdentifier]map[string]context.CancelFunc)
 }
 
 func (s *SolutionManager) GetSummary(ctx context.Context, summaryId string, name string, namespace string) (model.SummaryResult, error) {
@@ -349,147 +365,162 @@ func (s *SolutionManager) Reconcile(ctx context.Context, deployment model.Deploy
 
 	plannedCount := 0
 	planSuccessCount := 0
+	log.DebugfCtx(ctx, " M (Solution): count of plan.Steps: %v", len(plan.Steps))
 	for _, step := range plan.Steps {
-		log.DebugfCtx(ctx, " M (Solution): processing step with Role %s on target %s", step.Role, step.Target)
-		for _, component := range step.Components {
-			log.DebugfCtx(ctx, " M (Solution): processing component %s with action %s", component.Component.Name, component.Action)
-		}
-		if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
-			continue
-		}
-
-		if targetName != "" && targetName != step.Target {
-			continue
-		}
-
-		plannedCount++
-
-		dep.ActiveTarget = step.Target
-		agent := findAgentFromDeploymentState(mergedState, step.Target)
-		if agent != "" {
-			col[ENV_NAME] = agent
-		} else {
-			delete(col, ENV_NAME)
-		}
-		var override tgt.ITargetProvider
-		role := step.Role
-		if role == "container" {
-			role = "instance"
-		}
-		if v, ok := s.TargetProviders[role]; ok {
-			override = v
-		}
-		var provider providers.IProvider
-		if override == nil {
-			targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
-			provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
-			if err != nil {
-				summary.SummaryMessage = "failed to create provider:" + err.Error()
-				log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
-				return summary, err
+		select {
+		case <-ctx.Done():
+			// Context canceled or timed out
+			log.DebugCtx(ctx, " M (Solution): reconcile canceled")
+			err = v1alpha2.NewCOAError(nil, "Reconciliation was canceled.", v1alpha2.Canceled)
+			return summary, err
+		default:
+			log.DebugfCtx(ctx, " M (Solution): processing step with Role %s on target %s", step.Role, step.Target)
+			for _, component := range step.Components {
+				log.DebugfCtx(ctx, " M (Solution): processing component %s with action %s", component.Component.Name, component.Action)
 			}
-		} else {
-			provider = override
-		}
-		var stepError error
-		var componentResults = make(map[string]model.ComponentResultSpec)
-		if previousDesiredState != nil {
-			testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
-			if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
-				log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
-				targetResult[step.Target] = 1
-				planSuccessCount++
-				summary.CurrentDeployed += len(step.Components)
+			if s.IsTarget && !api_utils.ContainsString(s.TargetNames, step.Target) {
 				continue
 			}
-		}
-		log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
-		someStepsRan = true
-		retryCount := 1
-		//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
-		// an error condition can't be resolved quickly.
 
-		// for _, component := range step.Components {
-		// 	for k, v := range component.Component.Properties {
-		// 		if strV, ok := v.(string); ok {
-		// 			parser := api_utils.NewParser(strV)
-		// 			eCtx := s.VendorContext.EvaluationContext.Clone()
-		// 			eCtx.DeploymentSpec = deployment
-		// 			eCtx.Component = component.Component.Name
-		// 			val, err := parser.Eval(*eCtx)
-		// 			if err == nil {
-		// 				component.Component.Properties[k] = val
-		// 			} else {
-		// 				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate property: %+v", err)
-		// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
-		// 				s.saveSummary(ctx, deployment, summary)
-		// 				return summary, err
-		// 			}
-		// 		}
-		// 	}
-		// }
+			if targetName != "" && targetName != step.Target {
+				continue
+			}
 
-		defaultScope := deployment.Instance.Spec.Scope
-		// ensure to restore the original scope defined in instance in case the scope is changed during the deployment
-		defer func() {
-			deployment.Instance.Spec.Scope = defaultScope
-		}()
-		for i := 0; i < retryCount; i++ {
-			deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, deployment.Instance, deployment.Targets[step.Target])
-			componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
-			if stepError == nil {
-				targetResult[step.Target] = 1
-				summary.AllAssignedDeployed = plannedCount == planSuccessCount
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
-				err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, summaryId, deployment.Generation, deployment.Hash, summary, namespace)
+			plannedCount++
+
+			dep.ActiveTarget = step.Target
+			agent := findAgentFromDeploymentState(mergedState, step.Target)
+			if agent != "" {
+				col[ENV_NAME] = agent
+			} else {
+				delete(col, ENV_NAME)
+			}
+			var override tgt.ITargetProvider
+			role := step.Role
+			if role == "container" {
+				role = "instance"
+			}
+			if v, ok := s.TargetProviders[role]; ok {
+				override = v
+			}
+			var provider providers.IProvider
+			if override == nil {
+				targetSpec := s.getTargetStateForStep(step, deployment, previousDesiredState)
+				provider, err = sp.CreateProviderForTargetRole(s.Context, step.Role, targetSpec, override)
 				if err != nil {
-					log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+					summary.SummaryMessage = "failed to create provider:" + err.Error()
+					log.ErrorfCtx(ctx, " M (Solution): failed to create provider: %+v", err)
 					return summary, err
 				}
-				break
 			} else {
-				targetResult[step.Target] = 0
-				summary.AllAssignedDeployed = false
-				targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
-				targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
-				summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
-				time.Sleep(5 * time.Second)                                                                                                                                   //TODO: make this configurable?
+				provider = override
 			}
-			deployment.Instance.Spec.Scope = defaultScope
-		}
-		if stepError != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to execute deployment step: %+v", stepError)
-
-			successCount := 0
-			for _, v := range targetResult {
-				successCount += v
-			}
-			deployedCount := 0
-			for _, ret := range componentResults {
-				if (!remove && ret.Status == v1alpha2.Updated) || (remove && ret.Status == v1alpha2.Deleted) {
-					// TODO: need to ensure the status updated correctly on returning from target providers.
-					deployedCount += 1
+			var stepError error
+			var componentResults = make(map[string]model.ComponentResultSpec)
+			if previousDesiredState != nil {
+				testState := MergeDeploymentStates(&previousDesiredState.State, currentState)
+				if s.canSkipStep(ctx, step, step.Target, provider.(tgt.ITargetProvider), previousDesiredState.State.Components, testState) {
+					summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
+					log.InfofCtx(ctx, " M (Solution): skipping step with role %s on target %s", step.Role, step.Target)
+					targetResult[step.Target] = 1
+					planSuccessCount++
+					summary.CurrentDeployed += len(step.Components)
+					continue
 				}
 			}
-			summary.CurrentDeployed += deployedCount
-			if deployment.IsDryRun || deployment.IsInActive {
-				summary.SuccessCount = 0
-			} else {
-				summary.SuccessCount = successCount
+			log.DebugfCtx(ctx, " M (Solution): applying step with Role %s on target %s", step.Role, step.Target)
+			someStepsRan = true
+			retryCount := 1
+			//TODO: set to 1 for now. Although retrying can help to handle transient errors, in more cases
+			// an error condition can't be resolved quickly.
+
+			// for _, component := range step.Components {
+			// 	for k, v := range component.Component.Properties {
+			// 		if strV, ok := v.(string); ok {
+			// 			parser := api_utils.NewParser(strV)
+			// 			eCtx := s.VendorContext.EvaluationContext.Clone()
+			// 			eCtx.DeploymentSpec = deployment
+			// 			eCtx.Component = component.Component.Name
+			// 			val, err := parser.Eval(*eCtx)
+			// 			if err == nil {
+			// 				component.Component.Properties[k] = val
+			// 			} else {
+			// 				log.ErrorfCtx(ctx, " M (Solution): failed to evaluate property: %+v", err)
+			// 				summary.SummaryMessage = fmt.Sprintf("failed to evaluate property '%s' on component '%s: %s", k, component.Component.Name, err.Error())
+			// 				s.saveSummary(ctx, deployment, summary)
+			// 				return summary, err
+			// 			}
+			// 		}
+			// 	}
+			// }
+
+			defaultScope := deployment.Instance.Spec.Scope
+			// ensure to restore the original scope defined in instance in case the scope is changed during the deployment
+			defer func() {
+				deployment.Instance.Spec.Scope = defaultScope
+			}()
+			for i := 0; i < retryCount; i++ {
+				deployment.Instance.Spec.Scope = getCurrentApplicationScope(ctx, deployment.Instance, deployment.Targets[step.Target])
+				componentResults, stepError = (provider.(tgt.ITargetProvider)).Apply(ctx, dep, step, deployment.IsDryRun)
+				if stepError == nil {
+					targetResult[step.Target] = 1
+					summary.AllAssignedDeployed = plannedCount == planSuccessCount
+					summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: "OK", Message: "", ComponentResults: componentResults})
+					err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, summaryId, deployment.Generation, deployment.Hash, summary, namespace)
+					if err != nil {
+						log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+						return summary, err
+					}
+					break
+				} else {
+					targetResult[step.Target] = 0
+					summary.AllAssignedDeployed = false
+					targetResultStatus := fmt.Sprintf("%s Failed", deploymentType)
+					targetResultMessage := fmt.Sprintf("An error occurred in %s, err: %s", deploymentType, stepError.Error())
+					summary.UpdateTargetResult(step.Target, model.TargetResultSpec{Status: targetResultStatus, Message: targetResultMessage, ComponentResults: componentResults}) // TODO: this keeps only the last error on the target
+
+					if v1alpha2.IsCanceled(stepError) {
+						log.ErrorfCtx(ctx, " M (Solution): reconcile canceled: %+v", stepError)
+						break
+					}
+
+					time.Sleep(5 * time.Second) //TODO: make this configurable?
+				}
+				deployment.Instance.Spec.Scope = defaultScope
 			}
-			summary.AllAssignedDeployed = plannedCount == planSuccessCount
-			err = stepError
-			return summary, err
+			if stepError != nil {
+				log.ErrorfCtx(ctx, " M (Solution): failed to execute deployment step: %+v", stepError)
+
+				successCount := 0
+				for _, v := range targetResult {
+					successCount += v
+				}
+				deployedCount := 0
+				for _, ret := range componentResults {
+					if (!remove && ret.Status == v1alpha2.Updated) || (remove && ret.Status == v1alpha2.Deleted) {
+						// TODO: need to ensure the status updated correctly on returning from target providers.
+						deployedCount += 1
+					}
+				}
+				summary.CurrentDeployed += deployedCount
+				if deployment.IsDryRun || deployment.IsInActive {
+					summary.SuccessCount = 0
+				} else {
+					summary.SuccessCount = successCount
+				}
+				summary.AllAssignedDeployed = plannedCount == planSuccessCount
+				err = stepError
+				return summary, err
+			}
+			planSuccessCount++
+			summary.CurrentDeployed += len(step.Components)
+			err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, summaryId, deployment.Generation, deployment.Hash, summary, namespace)
+			if err != nil {
+				log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
+				return summary, err
+			}
+			log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.CurrentDeployed, summary.PlannedDeployment)
 		}
-		planSuccessCount++
-		summary.CurrentDeployed += len(step.Components)
-		err = s.saveSummaryProgress(ctx, deployment.Instance.ObjectMeta.Name, summaryId, deployment.Generation, deployment.Hash, summary, namespace)
-		if err != nil {
-			log.ErrorfCtx(ctx, " M (Solution): failed to save summary progress: %+v", err)
-			return summary, err
-		}
-		log.DebugfCtx(ctx, " M (Solution): reconcile save summary progress: current deployed %v out of total %v deployments", summary.CurrentDeployed, summary.PlannedDeployment)
 	}
 
 	mergedState.ClearAllRemoved()
@@ -748,6 +779,86 @@ func getCurrentApplicationScope(ctx context.Context, instance model.InstanceStat
 		observ_utils.EmitUserAuditsLogs(ctx, message)
 	}
 	return instance.Spec.Scope
+}
+
+func (s *SolutionManager) ReconcileWithCancelWrapper(ctx context.Context, deployment model.DeploymentSpec, remove bool, namespace string, targetName string) (model.SummarySpec, error) {
+	instance := deployment.Instance.ObjectMeta.Name
+	log.InfofCtx(ctx, " M (Solution): onReconcile create context with timeout, instance: %s, job id: %s, isRemove: %v", instance, deployment.JobID, remove)
+
+	// Two conditions when the context will be canceled:
+	//   1. default timeout reached;
+	//   2. cancel() is called
+	cancelCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	if !remove {
+		// Track the CancelFunc for ongoing reconcile job
+		s.addCancelFunc(ctx, namespace, instance, deployment.JobID, cancel)
+	}
+
+	defer func() {
+		// call cancel to release resource and clean up the cancelFunc in jobList
+		log.InfofCtx(ctx, " M (Solution): onReconcile complete, namespace: %s, instance: %s, job id: %s, isRemove: %v", namespace, instance, deployment.JobID, remove)
+		cancel()
+		if !remove {
+			s.cleanUpCancelFunc(namespace, instance, deployment.JobID)
+		}
+	}()
+
+	summary, err := s.Reconcile(cancelCtx, deployment, remove, namespace, targetName)
+	return summary, err
+}
+
+func (s *SolutionManager) addCancelFunc(ctx context.Context, namespace string, instance string, jobID string, cancel context.CancelFunc) {
+	jobListLock.Lock()
+	defer jobListLock.Unlock()
+	log.InfofCtx(ctx, " M (Solution): AddCancelFunc, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
+
+	jobKey := JobIdentifier{Namespace: namespace, Name: instance}
+	if _, exists := s.jobList[jobKey]; !exists {
+		s.jobList[jobKey] = make(map[string]context.CancelFunc)
+	}
+
+	s.jobList[jobKey][jobID] = cancel
+}
+
+func (s *SolutionManager) cleanUpCancelFunc(namespace string, instance string, jobID string) {
+	jobListLock.Lock()
+	defer jobListLock.Unlock()
+
+	jobKey := JobIdentifier{Namespace: namespace, Name: instance}
+	if _, exists := s.jobList[jobKey]; exists {
+		delete(s.jobList[jobKey], jobID)
+	}
+
+	if len(s.jobList[jobKey]) == 0 {
+		delete(s.jobList, jobKey)
+	}
+}
+
+func (s *SolutionManager) CancelPreviousJobs(ctx context.Context, namespace string, instance string, jobID string) error {
+	jobListLock.RLock()
+	defer jobListLock.RUnlock()
+	log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, namespace: %s, instance: %s, job id: %s", namespace, instance, jobID)
+
+	jobKey := JobIdentifier{Namespace: namespace, Name: instance}
+	for jid, cancelJob := range s.jobList[jobKey] {
+		if convertJobIdToInt(jid) < convertJobIdToInt(jobID) {
+			// only cancel jobs prior to the delete job
+			log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, found previous job id: %s", jid)
+			if cancelJob != nil {
+				cancelJob()
+				log.InfofCtx(ctx, " M (Solution): CancelPreviousJobs, cancelled job id: %s", jid)
+			}
+		}
+	}
+	return nil
+}
+
+func convertJobIdToInt(jobID string) int {
+	num, err := strconv.Atoi(jobID)
+	if err != nil {
+		return 0
+	}
+	return num
 }
 
 func findAgentFromDeploymentState(state model.DeploymentState, targetName string) string {

@@ -58,6 +58,7 @@ const (
 	ValidateFailed State = 8003
 	Updated        State = 8004
 	Deleted        State = 8005
+	Canceled       State = 8006
 	// Workflow status
 	Running        State = 9994
 	Paused         State = 9995
@@ -229,6 +230,8 @@ func (s State) String() string {
 		return "Updated"
 	case Deleted:
 		return "Deleted"
+	case Canceled:
+		return "Canceled"
 	case Running:
 		return "Running"
 	case Paused:
