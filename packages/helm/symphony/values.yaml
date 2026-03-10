@@ -57,7 +57,7 @@ redis:
     size: 1Gi
 
 kubeRbacProxy:
-  image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+  image: mcr.microsoft.com/oss/v2/kubernetes/kube-rbac-proxy:v0.18.2
 parent:
   url:
   username: admin
