@@ -156,10 +156,28 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 }
 
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
-	sPath, err := url.JoinPath(scriptFolder, script)
+	// Escape special characters in both scriptFolder and script to handle environment variable notation
+	// This prevents URL parsing errors when $ or % are present
+	escapedFolder := strings.ReplaceAll(scriptFolder, "%", "%25")
+	escapedFolder = strings.ReplaceAll(escapedFolder, "$", "%24")
+
+	// Parse the escaped base URL
+	baseURL, err := url.Parse(escapedFolder)
 	if err != nil {
 		return err
 	}
+
+	// Properly escape the script path
+	escapedScript := url.PathEscape(script)
+
+	// Manually join paths to preserve URL encoding
+	basePath := strings.TrimSuffix(baseURL.Path, "/")
+	if basePath != "" {
+		basePath += "/"
+	}
+	baseURL.Path = basePath + escapedScript
+	sPath := baseURL.String()
+
 	tPath := filepath.Join(stagingFolder, script)
 
 	out, err := os.Create(tPath)
