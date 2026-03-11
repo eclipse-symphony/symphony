@@ -530,6 +530,84 @@ func TestErrorHandler(t *testing.T) {
 	// assert.Equal(t, "fake", status.Outputs["__site"])
 }
 
+func TestConditionalErrorHandler(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.StageStatus
+	activation := &v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Outputs:              nil,
+		Provider:             "providers.stage.http",
+		Namespace:            "fakens",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider:      "providers.stage.http",
+					StageSelector: "${{$if($equal($output(test, status), 200), 'test3', 'test2')}}",
+					Inputs: map[string]interface{}{
+						"method": "GET",
+						"url":    "http://www.bing.com",
+					},
+				},
+				"test2": {
+					Provider: "providers.stage.counter",
+					Inputs: map[string]interface{}{
+						"test-okay": "6",
+					},
+					StageSelector: "",
+					HandleErrors:  true,
+				},
+				"test3": {
+					Provider: "providers.stage.counter",
+					Inputs: map[string]interface{}{
+						"test-okay": "5",
+					},
+					StageSelector: "test4",
+					HandleErrors:  true,
+				},
+				"test4": {
+					Provider:      "providers.stage.http",
+					StageSelector: "${{$if($equal($output(test4, status), 200), 'test3', 'test2')}}",
+					Inputs: map[string]interface{}{
+						"method": "GET",
+						"url":    "bad url",
+					},
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
+	// execution path: test (success) -> test3 -> test4 (cause error) -> test2 (handle error)
+	assert.Equal(t, int64(6), status.Outputs["test-okay"])
+}
+
 func TestErrorHandlerWithSelfDrivingDisabled(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
