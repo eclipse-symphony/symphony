@@ -56,6 +56,12 @@ spec:
                 fieldPath: spec.serviceAccountName
           - name: SYMPHONY_CONTROLLER_SERVICE_ACCOUNT_NAME
             value: '{{ include "symphony.fullname" . }}-controller-manager'
+          {{- if .Values.global.azure.identity.mSIAdapterYaml }}
+          - name: IDENTITY_ENDPOINT
+            value: "http://127.0.0.1:8421/metadata/identity/oauth2/token"
+          - name: IDENTITY_HEADER
+            value: "ArcK8s"
+          {{- end }}
         envFrom:
         - secretRef:
             name: {{ include "symphony.fullname" . }}-auth
@@ -106,6 +112,8 @@ spec:
         env:
         - name: TOKEN_NAMESPACE
           value: {{ .Release.Namespace }}
+        - name: ENABLE_LOCALHOST_TOKEN_ENDPOINT
+          value: "true"
         {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
       {{- end }}
       volumes:
