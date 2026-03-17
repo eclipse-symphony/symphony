@@ -109,12 +109,22 @@ spec:
       {{- end}}
       {{- if .Values.global.azure.identity.mSIAdapterYaml }}
       - name: msi-adapter
+        {{- $adapterConfig := .Values.global.azure.identity.mSIAdapterYaml | fromYaml }}
+        {{- $overrideEnv := list
+          (dict "name" "TOKEN_NAMESPACE" "value" .Release.Namespace)
+          (dict "name" "ENABLE_LOCALHOST_TOKEN_ENDPOINT" "value" "true")
+        }}
+        {{- $overrideNames := list "TOKEN_NAMESPACE" "ENABLE_LOCALHOST_TOKEN_ENDPOINT" }}
+        {{- $filteredEnv := list }}
+        {{- range ($adapterConfig.env | default list) }}
+          {{- if not (has .name $overrideNames) }}
+            {{- $filteredEnv = append $filteredEnv . }}
+          {{- end }}
+        {{- end }}
+        {{- $mergedEnv := concat $filteredEnv $overrideEnv }}
+        {{- omit $adapterConfig "env" | toYaml | nindent 8 }}
         env:
-        - name: TOKEN_NAMESPACE
-          value: {{ .Release.Namespace }}
-        - name: ENABLE_LOCALHOST_TOKEN_ENDPOINT
-          value: "true"
-        {{- .Values.global.azure.identity.mSIAdapterYaml | nindent 8 }}
+        {{- toYaml $mergedEnv | nindent 8 }}
       {{- end }}
       volumes:
         {{- if (not .Values.otlpInsecureGrpc) }}
