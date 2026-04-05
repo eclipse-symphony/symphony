@@ -128,11 +128,37 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 	return err
 }
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
-	sPath, err := url.JoinPath(scriptFolder, script)
+	sLog.Debugf("  downloadFile: scriptFolder=%q, script=%q, stagingFolder=%q", scriptFolder, script, stagingFolder)
+
+	// 1. Normalize: unescape first to get a clean raw string.
+	//    If the input is already unescaped (e.g. "deploy$1.sh"), PathUnescape is a no-op.
+	//    If it was pre-encoded (e.g. "deploy%241.sh"), this yields "deploy$1.sh".
+	rawScript, err := url.PathUnescape(script)
+	if err != nil {
+		// Fallback: if unescaping fails (e.g. bare "%" like "deploy%test.sh"),
+		// use the original string as-is.
+		rawScript = script
+	}
+
+	// 2. Escape the script name for the URL path.
+	//    url.PathEscape handles spaces (%20), percent (%25), etc. but does NOT
+	//    escape RFC 3986 sub-delimiters ($, &, +, =). We must encode them manually
+	//    to ensure the download URL is unambiguous for all HTTP servers.
+	escapedScript := url.PathEscape(rawScript)
+	escapedScript = encodeSubDelimiters(escapedScript)
+
+	// 3. Normalize and encode sub-delimiters in the scriptFolder URL path.
+	escapedFolder := escapeURLPathSubDelims(scriptFolder)
+
+	sPath, err := url.JoinPath(escapedFolder, escapedScript)
 	if err != nil {
 		return err
 	}
-	tPath := filepath.Join(stagingFolder, script)
+	sLog.Debugf("  downloadFile: resolved URL=%q, localPath=%q", sPath, filepath.Join(stagingFolder, rawScript))
+
+	// 4. Use the raw, clean string for the local file system path.
+	//    '$' and '%' are valid filesystem characters; no escaping needed.
+	tPath := filepath.Join(stagingFolder, rawScript)
 
 	resp, err := http.Get(sPath)
 	if err != nil {
@@ -163,6 +189,33 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 	}
 	return os.Chmod(tPath, 0755)
 }
+
+// encodeSubDelimiters percent-encodes the RFC 3986 sub-delimiters that
+// url.PathEscape leaves unencoded ($, &, +, =). These characters are legal
+// in URL paths but can cause mismatches on servers that store filenames in
+// their percent-encoded form.
+func encodeSubDelimiters(s string) string {
+	s = strings.ReplaceAll(s, "$", "%24")
+	s = strings.ReplaceAll(s, "&", "%26")
+	s = strings.ReplaceAll(s, "+", "%2B")
+	s = strings.ReplaceAll(s, "=", "%3D")
+	return s
+}
+
+// escapeURLPathSubDelims encodes sub-delimiters ($, &, +, =) in the path
+// portion of a full URL. url.Parse implicitly decodes percent-encoded forms
+// in u.Path; EscapedPath() preserves other percent-encodings (like %20).
+// We then encode the remaining sub-delimiters and set RawPath.
+func escapeURLPathSubDelims(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return encodeSubDelimiters(rawURL)
+	}
+	escapedPath := encodeSubDelimiters(u.EscapedPath())
+	u.RawPath = escapedPath
+	return u.String()
+}
+
 func toScriptStageProviderConfig(config providers.IProviderConfig) (ScriptStageProviderConfig, error) {
 	ret := ScriptStageProviderConfig{}
 	data, err := json.Marshal(config)
