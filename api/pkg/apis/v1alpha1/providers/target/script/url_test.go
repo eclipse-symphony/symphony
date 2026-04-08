@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"testing"
 
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,8 +51,8 @@ func TestDownloadFileURLEscaping(t *testing.T) {
 				rawScript = tc.script
 			}
 			escapedScript := url.PathEscape(rawScript)
-			escapedScript = encodeSubDelimiters(escapedScript)
-			escapedFolder := escapeURLPathSubDelims(base)
+			escapedScript = coa_utils.EncodeSubDelimiters(escapedScript)
+			escapedFolder := coa_utils.EscapeURLPathSubDelims(base)
 			sPath, err := url.JoinPath(escapedFolder, escapedScript)
 			assert.NoError(t, err, "url.JoinPath should not fail")
 
@@ -85,7 +86,7 @@ func TestEncodeSubDelimiters(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := encodeSubDelimiters(tc.input)
+			result := coa_utils.EncodeSubDelimiters(tc.input)
 			assert.Equal(t, tc.expect, result)
 		})
 	}
@@ -113,7 +114,7 @@ func TestEscapeURLPathSubDelims(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := escapeURLPathSubDelims(tc.input)
+			result := coa_utils.EscapeURLPathSubDelims(tc.input)
 			assert.Equal(t, tc.expect, result)
 		})
 	}
@@ -151,8 +152,8 @@ func TestFolderAndScriptEndToEnd(t *testing.T) {
 				rawScript = tc.script
 			}
 			escapedScript := url.PathEscape(rawScript)
-			escapedScript = encodeSubDelimiters(escapedScript)
-			escapedFolder := escapeURLPathSubDelims(tc.folder)
+			escapedScript = coa_utils.EncodeSubDelimiters(escapedScript)
+			escapedFolder := coa_utils.EscapeURLPathSubDelims(tc.folder)
 
 			sPath, err := url.JoinPath(escapedFolder, escapedScript)
 			assert.NoError(t, err)

@@ -25,9 +25,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -173,10 +173,10 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 	//    escape RFC 3986 sub-delimiters ($, &, +, =). We must encode them manually
 	//    to ensure the download URL is unambiguous for all HTTP servers.
 	escapedScript := url.PathEscape(rawScript)
-	escapedScript = encodeSubDelimiters(escapedScript)
+	escapedScript = coa_utils.EncodeSubDelimiters(escapedScript)
 
 	// 3. Normalize and encode sub-delimiters in the scriptFolder URL path.
-	escapedFolder := escapeURLPathSubDelims(scriptFolder)
+	escapedFolder := coa_utils.EscapeURLPathSubDelims(scriptFolder)
 
 	sPath, err := url.JoinPath(escapedFolder, escapedScript)
 	if err != nil {
@@ -202,32 +202,6 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 		return err
 	}
 	return os.Chmod(tPath, 0755)
-}
-
-// encodeSubDelimiters percent-encodes the RFC 3986 sub-delimiters that
-// url.PathEscape leaves unencoded ($, &, +, =). These characters are legal
-// in URL paths but can cause mismatches on servers that store filenames in
-// their percent-encoded form.
-func encodeSubDelimiters(s string) string {
-	s = strings.ReplaceAll(s, "$", "%24")
-	s = strings.ReplaceAll(s, "&", "%26")
-	s = strings.ReplaceAll(s, "+", "%2B")
-	s = strings.ReplaceAll(s, "=", "%3D")
-	return s
-}
-
-// escapeURLPathSubDelims encodes sub-delimiters ($, &, +, =) in the path
-// portion of a full URL. url.Parse implicitly decodes percent-encoded forms
-// in u.Path; EscapedPath() preserves other percent-encodings (like %20).
-// We then encode the remaining sub-delimiters and set RawPath.
-func escapeURLPathSubDelims(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return encodeSubDelimiters(rawURL)
-	}
-	escapedPath := encodeSubDelimiters(u.EscapedPath())
-	u.RawPath = escapedPath
-	return u.String()
 }
 
 func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderConfig, error) {
@@ -323,13 +297,13 @@ func (i *ScriptProvider) runScriptOnComponents(ctx context.Context, deployment m
 	var scriptAbs = ""
 	if isRemove {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.RemoveScript))
-		utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run remove script - %s", i.Config.RemoveScript)
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run remove script - %s", i.Config.RemoveScript)
 		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.RemoveScript))
 		}
 	} else {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.ApplyScript))
-		utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run apply script - %s", i.Config.ApplyScript)
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run apply script - %s", i.Config.ApplyScript)
 		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.ApplyScript))
 		}
