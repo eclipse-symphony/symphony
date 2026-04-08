@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -211,4 +212,30 @@ func FormatAsString(val interface{}) string {
 
 func ConvertStringToValidLabel(s string) string {
 	return strings.ReplaceAll(s, " ", "")
+}
+
+// EncodeSubDelimiters percent-encodes the RFC 3986 sub-delimiters that
+// url.PathEscape leaves unencoded ($, &, +, =). These characters are legal
+// in URL paths but can cause mismatches on servers that store filenames in
+// their percent-encoded form.
+func EncodeSubDelimiters(s string) string {
+	s = strings.ReplaceAll(s, "$", "%24")
+	s = strings.ReplaceAll(s, "&", "%26")
+	s = strings.ReplaceAll(s, "+", "%2B")
+	s = strings.ReplaceAll(s, "=", "%3D")
+	return s
+}
+
+// EscapeURLPathSubDelims encodes sub-delimiters ($, &, +, =) in the path
+// portion of a full URL. url.Parse implicitly decodes percent-encoded forms
+// in u.Path; EscapedPath() preserves other percent-encodings (like %20).
+// We then encode the remaining sub-delimiters and set RawPath.
+func EscapeURLPathSubDelims(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return EncodeSubDelimiters(rawURL)
+	}
+	escapedPath := EncodeSubDelimiters(u.EscapedPath())
+	u.RawPath = escapedPath
+	return u.String()
 }

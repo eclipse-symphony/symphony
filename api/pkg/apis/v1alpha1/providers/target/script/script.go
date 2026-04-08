@@ -25,9 +25,9 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -156,11 +156,35 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 }
 
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
-	sPath, err := url.JoinPath(scriptFolder, script)
+	sLog.Debugf("  downloadFile: scriptFolder=%q, script=%q, stagingFolder=%q", scriptFolder, script, stagingFolder)
+
+	// 1. Normalize: unescape first to get a clean raw string.
+	//    If the input is already unescaped (e.g. "deploy$1.sh"), PathUnescape is a no-op.
+	//    If it was pre-encoded (e.g. "deploy%241.sh"), this yields "deploy$1.sh".
+	rawScript, err := url.PathUnescape(script)
+	if err != nil {
+		// Fallback: if unescaping fails (e.g. bare "%" like "deploy%test.sh"),
+		// use the original string as-is.
+		rawScript = script
+	}
+
+	// 2. Escape the script name for the URL path.
+	//    url.PathEscape handles spaces (%20), percent (%25), etc. but does NOT
+	//    escape RFC 3986 sub-delimiters ($, &, +, =). We must encode them manually
+	//    to ensure the download URL is unambiguous for all HTTP servers.
+	escapedScript := url.PathEscape(rawScript)
+	escapedScript = coa_utils.EncodeSubDelimiters(escapedScript)
+
+	// 3. Normalize and encode sub-delimiters in the scriptFolder URL path.
+	escapedFolder := coa_utils.EscapeURLPathSubDelims(scriptFolder)
+
+	sPath, err := url.JoinPath(escapedFolder, escapedScript)
 	if err != nil {
 		return err
 	}
-	tPath := filepath.Join(stagingFolder, script)
+	sLog.Debugf("  downloadFile: resolved URL=%q, localPath=%q", sPath, filepath.Join(stagingFolder, rawScript))
+
+	tPath := filepath.Join(stagingFolder, rawScript)
 
 	out, err := os.Create(tPath)
 	if err != nil {
@@ -179,6 +203,7 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 	}
 	return os.Chmod(tPath, 0755)
 }
+
 func toScriptProviderConfig(config providers.IProviderConfig) (ScriptProviderConfig, error) {
 	ret := ScriptProviderConfig{}
 	data, err := json.Marshal(config)
@@ -272,13 +297,13 @@ func (i *ScriptProvider) runScriptOnComponents(ctx context.Context, deployment m
 	var scriptAbs = ""
 	if isRemove {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.RemoveScript))
-		utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run remove script - %s", i.Config.RemoveScript)
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run remove script - %s", i.Config.RemoveScript)
 		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.RemoveScript))
 		}
 	} else {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.ApplyScript))
-		utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run apply script - %s", i.Config.ApplyScript)
+		observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Target): Start to run apply script - %s", i.Config.ApplyScript)
 		if strings.HasPrefix(i.Config.ScriptFolder, "http") {
 			scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.ApplyScript))
 		}
