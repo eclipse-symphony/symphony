@@ -1441,9 +1441,9 @@ func TestHandleDirectTriggerEventEvaluatesProxyConfigExpressions(t *testing.T) {
 		Stage:                "test",
 		ActivationGeneration: "1",
 		Inputs: map[string]interface{}{
-			"foo":     1,
-			"baseUrl": ts.URL + "/",
-			"user":    "admin",
+			"foo":      1,
+			"baseUrl":  ts.URL + "/",
+			"user":     "admin",
 			"password": "",
 		},
 		Outputs:   nil,
@@ -1452,9 +1452,9 @@ func TestHandleDirectTriggerEventEvaluatesProxyConfigExpressions(t *testing.T) {
 		Proxy: &v1alpha2.ProxySpec{
 			Provider: "providers.stage.proxy.http",
 			Config: map[string]interface{}{
-				"baseUrl":  "${{$trigger(baseUrl)}}",
-				"user":     "${{$trigger(user)}}",
-				"password": "${{$trigger(password)}}",
+				"baseUrl":  "${{$trigger(baseUrl,'')}}",
+				"user":     "${{$trigger(user,'')}}",
+				"password": "${{$trigger(password,'')}}",
 			},
 		},
 	}
@@ -1517,9 +1517,9 @@ func TestHandleTriggerEventEvaluatesProxyConfigExpressions(t *testing.T) {
 				Proxy: &v1alpha2.ProxySpec{
 					Provider: "providers.stage.proxy.http",
 					Config: map[string]interface{}{
-						"baseUrl":  "${{$trigger(baseUrl)}}",
-						"user":     "${{$trigger(user)}}",
-						"password": "${{$trigger(password)}}",
+						"baseUrl":  "${{$trigger(baseUrl, '')}}",
+						"user":     "${{$trigger(user, '')}}",
+						"password": "${{$trigger(password, '')}}",
 					},
 				},
 				Contexts: "fake",

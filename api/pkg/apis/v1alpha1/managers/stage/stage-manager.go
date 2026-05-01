@@ -363,14 +363,14 @@ func (s *StageManager) processTasks(ctx context.Context, currentStage model.Stag
 	return processor.Process(ctx, currentStage.Tasks, inputCopy, handler, currentStage.TaskOption.ErrorAction, currentStage.TaskOption.Concurrency, siteName)
 }
 
-func (s *StageManager) evaluateProxyConfig(ctx context.Context, triggerData v1alpha2.ActivationData, inputs map[string]interface{}, triggers map[string]interface{}) (map[string]interface{}, error) {
+func (s *StageManager) evaluateProxyConfig(ctx context.Context, triggerData v1alpha2.ActivationData, runtimeInputs map[string]interface{}, activationTriggers map[string]interface{}) (map[string]interface{}, error) {
 	if triggerData.Proxy == nil || triggerData.Proxy.Config == nil {
 		return nil, nil
 	}
 
 	evaluated := make(map[string]interface{}, len(triggerData.Proxy.Config))
 	for k, v := range triggerData.Proxy.Config {
-		val, err := s.traceValue(ctx, v, triggerData.Namespace, inputs, triggers, triggerData.Outputs)
+		val, err := s.traceValue(ctx, v, triggerData.Namespace, runtimeInputs, activationTriggers, triggerData.Outputs)
 		if err != nil {
 			return nil, err
 		}
@@ -806,6 +806,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	}
 	var activationData *v1alpha2.ActivationData
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
+		if triggerData.Proxy == nil {
+			triggerData.Proxy = currentStage.Proxy
+		}
+
 		sites := make([]string, 0)
 		// 1. According to campaign.Contexts, find out which sites will be executed
 		if currentStage.Contexts != "" {
@@ -1055,7 +1059,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					var pause bool
 					var iErr error = nil
 					if triggerData.Proxy != nil {
-						proxyConfig, cfgErr := s.evaluateProxyConfig(ctx, triggerData, inputCopy, triggers)
+						proxyConfig, cfgErr := s.evaluateProxyConfig(ctx, triggerData, inputCopy, triggerData.Inputs)
 						if cfgErr != nil {
 							results <- StageResult{
 								Outputs: nil,
