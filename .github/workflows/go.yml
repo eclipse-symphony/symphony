@@ -58,7 +58,8 @@ jobs:
         libxml2-dev uuid-dev \
         gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
         libssl-dev pkg-config mingw-w64
-        sudo snap install yq
+        sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+        sudo chmod +x /usr/local/bin/yq
 
     - name: Install Rust
       uses: actions-rs/toolchain@v1

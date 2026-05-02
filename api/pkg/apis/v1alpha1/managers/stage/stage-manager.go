@@ -363,6 +363,23 @@ func (s *StageManager) processTasks(ctx context.Context, currentStage model.Stag
 	return processor.Process(ctx, currentStage.Tasks, inputCopy, handler, currentStage.TaskOption.ErrorAction, currentStage.TaskOption.Concurrency, siteName)
 }
 
+func (s *StageManager) evaluateProxyConfig(ctx context.Context, triggerData v1alpha2.ActivationData, runtimeInputs map[string]interface{}, activationTriggers map[string]interface{}) (map[string]interface{}, error) {
+	if triggerData.Proxy == nil || triggerData.Proxy.Config == nil {
+		return nil, nil
+	}
+
+	evaluated := make(map[string]interface{}, len(triggerData.Proxy.Config))
+	for k, v := range triggerData.Proxy.Config {
+		val, err := s.traceValue(ctx, v, triggerData.Namespace, runtimeInputs, activationTriggers, triggerData.Outputs)
+		if err != nil {
+			return nil, err
+		}
+		evaluated[k] = val
+	}
+
+	return evaluated, nil
+}
+
 func (t *StageResult) GetError() error {
 	if t.Error != nil {
 		return t.Error
@@ -686,6 +703,19 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 
 	var outputs map[string]interface{}
 	if triggerData.Proxy != nil {
+		proxyConfig, err := s.evaluateProxyConfig(ctx, triggerData, triggerData.Inputs, triggerData.Inputs)
+		if err != nil {
+			status.Status = v1alpha2.InternalError
+			status.StatusMessage = v1alpha2.InternalError.String()
+			status.ErrorMessage = err.Error()
+			status.IsActive = false
+			return status
+		}
+
+		if proxyConfig != nil {
+			triggerData.Proxy.Config = proxyConfig
+		}
+
 		proxyProvider, err := factory.CreateProvider(triggerData.Proxy.Provider, nil)
 		if err != nil {
 			status.Status = v1alpha2.InternalError
@@ -776,6 +806,10 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	}
 	var activationData *v1alpha2.ActivationData
 	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
+		if triggerData.Proxy == nil {
+			triggerData.Proxy = currentStage.Proxy
+		}
+
 		sites := make([]string, 0)
 		// 1. According to campaign.Contexts, find out which sites will be executed
 		if currentStage.Contexts != "" {
@@ -1025,9 +1059,26 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 					var pause bool
 					var iErr error = nil
 					if triggerData.Proxy != nil {
+						proxyConfig, cfgErr := s.evaluateProxyConfig(ctx, triggerData, inputCopy, triggerData.Inputs)
+						if cfgErr != nil {
+							results <- StageResult{
+								Outputs: nil,
+								Error:   cfgErr,
+								Site:    site,
+							}
+							return
+						}
+
+						triggerDataForProxy := triggerData
+						proxySpec := *triggerData.Proxy
+						if proxyConfig != nil {
+							proxySpec.Config = proxyConfig
+						}
+						triggerDataForProxy.Proxy = &proxySpec
+
 						factory := symproviders.SymphonyProviderFactory{}
 						proxyProvider, pErr := factory.CreateProvider(triggerData.Proxy.Provider, nil)
-						if err != nil {
+						if pErr != nil {
 							results <- StageResult{
 								Outputs: nil,
 								Error:   pErr,
@@ -1038,10 +1089,17 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 						if _, ok := proxyProvider.(contexts.IWithManagerContext); ok {
 							proxyProvider.(contexts.IWithManagerContext).SetContext(s.Manager.Context)
 						}
-						for k, v := range inputCopy {
-							triggerData.Inputs[k] = v
+
+						proxyInputs := make(map[string]interface{})
+						for k, v := range triggerData.Inputs {
+							proxyInputs[k] = v
 						}
-						outputs, pause, iErr = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerData)
+						for k, v := range inputCopy {
+							proxyInputs[k] = v
+						}
+						triggerDataForProxy.Inputs = proxyInputs
+
+						outputs, pause, iErr = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerDataForProxy)
 					} else {
 						outputs, pause, iErr = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
 					}

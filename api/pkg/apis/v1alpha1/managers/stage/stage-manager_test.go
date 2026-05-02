@@ -1407,6 +1407,130 @@ func TestHandleDirectTriggerScheduleEvent(t *testing.T) {
 	assert.Equal(t, v1alpha2.Paused, status.Outputs["status"])
 	assert.Equal(t, false, status.IsActive)
 }
+
+func TestHandleDirectTriggerEventEvaluatesProxyConfigExpressions(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/processor":
+			response = model.StageStatus{
+				Status: v1alpha2.Done,
+				Outputs: map[string]interface{}{
+					"proxyChecked": "ok",
+				},
+			}
+		default:
+			response = utils.AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+
+	manager := prepareManager()
+
+	activation := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Inputs: map[string]interface{}{
+			"foo":      1,
+			"baseUrl":  ts.URL + "/",
+			"user":     "admin",
+			"password": "",
+		},
+		Outputs:   nil,
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
+		Proxy: &v1alpha2.ProxySpec{
+			Provider: "providers.stage.proxy.http",
+			Config: map[string]interface{}{
+				"baseUrl":  "${{$trigger(baseUrl,'')}}",
+				"user":     "${{$trigger(user,'')}}",
+				"password": "${{$trigger(password,'')}}",
+			},
+		},
+	}
+
+	status := manager.HandleDirectTriggerEvent(context.Background(), activation)
+	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.Equal(t, "ok", status.Outputs["proxyChecked"])
+}
+
+func TestHandleTriggerEventEvaluatesProxyConfigExpressions(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		switch r.URL.Path {
+		case "/processor":
+			response = model.StageStatus{
+				Status: v1alpha2.Done,
+				Outputs: map[string]interface{}{
+					"proxyChecked": "ok",
+				},
+			}
+		default:
+			response = utils.AuthResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				Username:    "test-user",
+				Roles:       []string{"role1", "role2"},
+			}
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+
+	manager := prepareManager()
+
+	activation := v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Inputs: map[string]interface{}{
+			"baseUrl":  ts.URL + "/",
+			"user":     "admin",
+			"password": "",
+		},
+		Provider:  "providers.stage.counter",
+		Namespace: "fakens",
+	}
+
+	status, _ := manager.HandleTriggerEvent(context.Background(), model.CampaignSpec{
+		SelfDriving: false,
+		FirstStage:  "test",
+		Stages: map[string]model.StageSpec{
+			"test": {
+				Provider: "providers.stage.counter",
+				Inputs: map[string]interface{}{
+					"foo": 1,
+				},
+				Proxy: &v1alpha2.ProxySpec{
+					Provider: "providers.stage.proxy.http",
+					Config: map[string]interface{}{
+						"baseUrl":  "${{$trigger(baseUrl, '')}}",
+						"user":     "${{$trigger(user, '')}}",
+						"password": "${{$trigger(password, '')}}",
+					},
+				},
+				Contexts: "fake",
+			},
+		},
+	}, activation)
+
+	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.Equal(t, "ok", status.Outputs["proxyChecked"])
+}
+
 func TestHandleActivationEvent(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
