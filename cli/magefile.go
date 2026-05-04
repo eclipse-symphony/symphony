@@ -61,8 +61,8 @@ func BuildApi() error {
 			args: []string{"cargo", "build", "--release", "--target", "armv7-unknown-linux-gnueabihf"},
 		},
 		{ // Standard targets
-			env:  []string{"CC=", "RUSTFLAGS="},
-			args: []string{"cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu"},
+			env:  []string{"CC=", "RUSTFLAGS=", "CFLAGS_x86_64_pc_windows_gnu=-D_WIN32_WINNT=0x0600 -DWINVER=0x0600", "CXXFLAGS_x86_64_pc_windows_gnu=-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"},
+			args: []string{"cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu", "--workspace", "--exclude", "uprotocol"},
 		},
 		// {
 		// 	env:  []string{"CC=o64-clang", "CXX=o64-clang++", "RUSTFLAGS=-C linker=o64-clang"},
