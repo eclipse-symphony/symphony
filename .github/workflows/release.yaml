@@ -136,7 +136,7 @@ jobs:
           # Build for Windows without uprotocol (incompatible with MinGW)
           export CFLAGS_x86_64_pc_windows_gnu="-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"
           export CXXFLAGS_x86_64_pc_windows_gnu="-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"
-          cargo build --release --target x86_64-pc-windows-gnu --exclude uprotocol        
+          cargo build --release --target x86_64-pc-windows-gnu --workspace --exclude uprotocol        
 
       - name: Replace version in cli/cmd/up.go
         run: |
