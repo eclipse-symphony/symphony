@@ -60,17 +60,17 @@ func BuildApi() error {
 			env:  []string{"CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc", "CC_armv7_unknown_linux_gnueabihf=arm-linux-gnueabihf-gcc", "RUSTFLAGS=-C linker=arm-linux-gnueabihf-gcc"},
 			args: []string{"cargo", "build", "--release", "--target", "armv7-unknown-linux-gnueabihf"},
 		},
-		{ // Standard targets
-			env:  []string{"CC=", "RUSTFLAGS=", "CFLAGS_x86_64_pc_windows_gnu=-D_WIN32_WINNT=0x0600 -DWINVER=0x0600", "CXXFLAGS_x86_64_pc_windows_gnu=-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"},
+		{ // Windows - skip uprotocol (incompatible with MinGW)
+			env:  []string{"CFLAGS_x86_64_pc_windows_gnu=-D_WIN32_WINNT=0x0600 -DWINVER=0x0600", "CXXFLAGS_x86_64_pc_windows_gnu=-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"},
 			args: []string{"cargo", "build", "--release", "--target", "x86_64-pc-windows-gnu", "--workspace", "--exclude", "uprotocol"},
 		},
 		// {
 		// 	env:  []string{"CC=o64-clang", "CXX=o64-clang++", "RUSTFLAGS=-C linker=o64-clang"},
 		// 	args: []string{"cargo", "build", "--release", "--target", "x86_64-apple-darwin"},
 		// },
-		{
+		{ // Linux x86_64 (host target - no explicit --target to build for current system)
 			env:  []string{"CC=", "RUSTFLAGS="},
-			args: []string{"cargo", "build", "--release", "--target", "x86_64-unknown-linux-gnu"},
+			args: []string{"cargo", "build", "--release"},
 		},
 	}
 
@@ -106,8 +106,8 @@ func BuildApi() error {
 				"GOARCH=amd64",
 				"GOOS=linux",
 				"CC=gcc",
-				"LD_LIBRARY_PATH=$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release",
-				"CGO_LDFLAGS=-L$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/x86_64-unknown-linux-gnu/release"},
+				"LD_LIBRARY_PATH=$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/release",
+				"CGO_LDFLAGS=-L$(pwd)/pkg/apis/v1alpha1/providers/target/rust/target/release"},
 			args: []string{"go", "build", "-o", "symphony-api"},
 		},
 	}
