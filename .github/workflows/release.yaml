@@ -131,7 +131,12 @@ jobs:
       - name: Build Rust bindings
         run: |
           cd api/pkg/apis/v1alpha1/providers/target/rust
-          cargo build --release        
+          # Build for Linux with all providers
+          cargo build --release --target x86_64-unknown-linux-gnu
+          # Build for Windows without uprotocol (incompatible with MinGW)
+          export CFLAGS_x86_64_pc_windows_gnu="-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"
+          export CXXFLAGS_x86_64_pc_windows_gnu="-D_WIN32_WINNT=0x0600 -DWINVER=0x0600"
+          cargo build --release --target x86_64-pc-windows-gnu --exclude uprotocol        
 
       - name: Replace version in cli/cmd/up.go
         run: |
