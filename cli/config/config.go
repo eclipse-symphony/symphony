@@ -20,7 +20,8 @@ type TargetProviderConfig struct {
 	Config map[string]interface{} `json:"config"`
 }
 type SymphonyAgentConfig struct {
-	SiteInfo struct {
+	ShutdownGracePeriod string `json:"shutdownGracePeriod,omitempty"`
+	SiteInfo            struct {
 		SiteId      string `json:"siteId"`
 		CurrentSite struct {
 			BaseURL  string `json:"baseUrl"`
@@ -29,6 +30,8 @@ type SymphonyAgentConfig struct {
 		} `json:"currentSite"`
 	} `json:"siteInfo"`
 	API struct {
+		Pubsub  map[string]interface{} `json:"pubsub,omitempty"`
+		Keylock map[string]interface{} `json:"keylock,omitempty"`
 		Vendors []struct {
 			Type         string `json:"type"`
 			Route        string `json:"route"`
@@ -38,6 +41,7 @@ type SymphonyAgentConfig struct {
 				Type       string `json:"type"`
 				Properties struct {
 					ProvidersPersistentState string `json:"providers.persistentstate"`
+					ProvidersKeylock         string `json:"providers.keylock,omitempty"`
 					IsTarget                 string `json:"isTarget"`
 					TargetNames              string `json:"targetNames"`
 					ProvidersConfig          string `json:"providers.config"`
@@ -60,16 +64,24 @@ type SymphonyAgentConfig struct {
 }
 
 type MaestroContext struct {
-	Url    string `json:"url"`
-	User   string `json:"user"`
-	Secret string `json:"secret,omitempty"`
+	Url    string            `json:"url"`
+	User   string            `json:"user"`
+	Secret string            `json:"secret,omitempty"`
+	Mqtt   MaestroMqttConfig `json:"mqtt,omitempty"`
+}
+
+type MaestroMqttConfig struct {
+	BrokerAddress string `json:"brokerAddress,omitempty"`
+	RequestTopic  string `json:"requestTopic,omitempty"`
+	ResponseTopic string `json:"responseTopic,omitempty"`
+	ClientID      string `json:"clientID,omitempty"`
 }
 type MaestroConfig struct {
 	DefaultContext string                    `json:"default,omitempty"`
 	Contexts       map[string]MaestroContext `json:"contexts,omitempty"`
 }
 
-func UpdateMaestroConfig(context string, address string) error {
+func UpdateMaestroConfig(context string, address string, mqtt MaestroMqttConfig) error {
 	config := GetMaestroConfig("")
 	if config.Contexts == nil {
 		config.Contexts = make(map[string]MaestroContext)
@@ -78,6 +90,7 @@ func UpdateMaestroConfig(context string, address string) error {
 		Url:    "http://" + address + ":8080/v1alpha2",
 		User:   "admin",
 		Secret: "",
+		Mqtt:   mqtt,
 	}
 	config.DefaultContext = context
 	return SaveMaestroConfig(config)

@@ -109,3 +109,16 @@ Azure:
 otlpLogsEndpointGrpc: 
 otlpMetricsEndpointGrpc: 
 otlpInsecureGrpc: true
+
+mqtt:
+  # whether to enable and deploy Mosquitto MQTT broker
+  enabled: false
+  image: eclipse-mosquitto:2.0
+  port: 1883
+  persistentVolume:
+    # whether to enable persistent volume for MQTT broker
+    enabled: false
+    # the storage class where the MQTT PV is provisioned. Default SC is used if not specified
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 1Gi

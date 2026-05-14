@@ -1,0 +1,86 @@
+{{- if .Values.mqtt.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "symphony.fullname" . }}-mqtt-config
+  namespace: {{ .Release.Namespace }}
+data:
+  mosquitto.conf: |
+    listener 1883
+    protocol mqtt
+    allow_anonymous true
+---
+{{- if include "CheckMqttPvSetting" . }}
+{{- if .Values.mqtt.persistentVolume.enabled}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mqtt-pvc
+  namespace: {{ .Release.Namespace }}
+spec:
+  storageClassName: {{ include "MqttPVCStorageClassName" . }}
+  accessModes:
+  - {{ .Values.mqtt.persistentVolume.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.mqtt.persistentVolume.size }}
+{{- end}}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "symphony.fullname" . }}-mqtt
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "symphony.name" . }}-mqtt
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "symphony.name" . }}-mqtt
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ include "symphony.name" . }}-mqtt
+    spec:
+      containers:
+      - name: mqtt
+        image: {{ .Values.mqtt.image }}
+        ports:
+          - containerPort: {{ .Values.mqtt.port }}
+            name: mqtt
+        volumeMounts:
+        - name: mqtt-config
+          mountPath: /mosquitto/config
+        {{- if .Values.mqtt.persistentVolume.enabled }}
+        - name: mqtt-data
+          mountPath: /mosquitto/data
+        {{- end }}
+      volumes:
+      - name: mqtt-config
+        configMap:
+          name: {{ include "symphony.fullname" . }}-mqtt-config
+      {{- if .Values.mqtt.persistentVolume.enabled }}
+      - name: mqtt-data
+        persistentVolumeClaim:
+          claimName: mqtt-pvc
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "symphony.fullname" . }}-mqtt
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "symphony.name" . }}-mqtt
+spec:
+  selector:
+    app: {{ include "symphony.name" . }}-mqtt
+  ports:
+    - name: mqtt
+      port: {{ .Values.mqtt.port }}
+      targetPort: {{ .Values.mqtt.port }}
+      protocol: TCP
+  type: {{ ternary "LoadBalancer" "ClusterIP" .Values.installServiceExt }}
+{{- end }}
