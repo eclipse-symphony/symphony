@@ -85,3 +85,8 @@ navbar_logo = false
 enable = false
 yes = ''
 no = ''
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true

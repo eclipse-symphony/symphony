@@ -2,6 +2,44 @@
     "package": "maestro",
     "version": "0.1",
     "samples": [
+                {
+            "name": "hello-world",
+            "path": "no-k8s/docker",
+            "artifacts": [
+                {
+                    "file": "target.yaml",
+                    "type": "target",
+                    "name": "sample-local-target"
+                },
+                {
+                    "file": "solution-container.yaml",
+                    "type": "solution-container",
+                    "name": "sample-prometheus-server" 
+                }, 
+                {
+                    "file": "solution.yaml",
+                    "type": "solution",
+                    "name": "sample-prometheus-server-v-v1" 
+                }, 
+                {
+                    "file": "instance.yaml",
+                    "type": "instance",
+                    "name": "sample-prometheus-instance"                             
+                }
+            ],            
+            "description": "Deploy a Prometheus server on Docker",
+            "description-long": "This sample registers your current machine as a <C>Target</C>, defines a <C>Solution</C> with a Prometheus component (Docker: prom/Prometheus), and deploys the Solution to the Target by creating an <C>Instance</C> object. When the Instance is deployed, a <G>sample-k8s-scoe</G> namespace is created, and a LoadBalancer service named <G>sample-prometheus-instance</G> is created.",
+            "postActions": 
+                [                                   
+                    {
+                        "command": "echo",
+                        "args": [
+                           "Navigate to http://localhost:9090/ to access the Promethus portal (it may take a few seconds for the Prometheus server to be ready)"                           
+                        ]
+                    }                    
+                ],
+            "requires":["Docker"]
+        },
         {
             "name": "hello-k8s",
             "path": "k8s/hello-world",

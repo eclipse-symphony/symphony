@@ -30,6 +30,72 @@ func TestDockerTargetProviderInitEmptyConfig(t *testing.T) {
 	err := provider.Init(config)
 	assert.Nil(t, err)
 }
+
+func TestParseContainerPorts_SupportsShorthandBinding(t *testing.T) {
+	ports := `{"9090/tcp":{"HostIP":"0.0.0.0","hostPort":"9090"}}`
+	portMap, portSet, err := parseContainerPorts(ports)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(portMap))
+	assert.Equal(t, 1, len(portSet))
+	bindings := portMap["9090/tcp"]
+	assert.Equal(t, 1, len(bindings))
+	assert.Equal(t, "0.0.0.0", bindings[0].HostIP)
+	assert.Equal(t, "9090", bindings[0].HostPort)
+}
+
+func TestContainerPortsChanged_EquivalentJsonShapes(t *testing.T) {
+	oldPorts := `{"9090/tcp":[{"HostIp":"0.0.0.0","HostPort":"9090"}]}`
+	newPorts := `{"9090/tcp":{"HostIP":"0.0.0.0","hostPort":"9090"}}`
+	assert.False(t, areContainerPortsChanged(oldPorts, newPorts))
+}
+
+func TestParseContainerPorts_InvalidFormat(t *testing.T) {
+	_, _, err := parseContainerPorts(`{"9090/tcp":123}`)
+	assert.NotNil(t, err)
+}
+
+func TestContainerImagesChanged_DockerHubImplicitLatest(t *testing.T) {
+	oldImage := "prom/prometheus"
+	newImage := "docker.io/prom/prometheus:latest"
+	assert.False(t, areContainerImagesChanged(oldImage, newImage))
+}
+
+func TestContainerImagesChanged_NoLatestTag(t *testing.T) {
+	oldImage := "prom/prometheus"
+	newImage := "prom/prometheus:latest"
+	assert.False(t, areContainerImagesChanged(oldImage, newImage))
+}
+
+func TestContainerImagesChanged_TagMissmatch(t *testing.T) {
+	oldImage := "prom/prometheus:v1"
+	newImage := "prom/prometheus:latest"
+	assert.True(t, areContainerImagesChanged(oldImage, newImage))
+}
+
+func TestContainerImagesChanged_CustomRegistry(t *testing.T) {
+	oldImage := "ghcr.io/prom/prometheus"
+	newImage := "ghcr.ioprom/prometheus:latest"
+	assert.True(t, areContainerImagesChanged(oldImage, newImage))
+}
+
+func TestContainerImagesChanged_DockerHubLibraryDefault(t *testing.T) {
+	oldImage := "redis"
+	newImage := "docker.io/library/redis:latest"
+	assert.False(t, areContainerImagesChanged(oldImage, newImage))
+}
+
+func TestContainerImagesChanged_DifferentTags(t *testing.T) {
+	oldImage := "prom/prometheus:v2.54.0"
+	newImage := "docker.io/prom/prometheus:latest"
+	assert.True(t, areContainerImagesChanged(oldImage, newImage))
+}
+
+func TestContainerImagesChanged_DockerHubRegistryAlias(t *testing.T) {
+	oldImage := "registry-1.docker.io/prom/prometheus:latest"
+	newImage := "docker.io/prom/prometheus:latest"
+	assert.False(t, areContainerImagesChanged(oldImage, newImage))
+}
+
 func TestInitWithMap(t *testing.T) {
 	configMap := map[string]string{
 		"name": "name",

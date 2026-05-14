@@ -7,6 +7,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -34,6 +35,7 @@ var (
 	noRestApi           bool
 	withMqttBroker      bool
 	helmChartPath       string
+	apiConfigFile       string
 	storageRP           string
 	storageAccount      string
 	storageContainer    string
@@ -63,14 +65,25 @@ var UpCmd = &cobra.Command{
 			return
 		}
 		if noK8s {
-			if !updateSymphonyContext("no-k8s", "localhost", config.MaestroMqttConfig{}) {
+			configPath := filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json")
+			if apiConfigFile != "" {
+				configPath = apiConfigFile
+			}
+
+			port, err := extractPortFromConfig(configPath)
+			if err != nil {
+				fmt.Printf("\n%s  Failed to extract port from config: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 				return
 			}
-			os.Setenv("SYMPHONY_API_URL", "http://localhost:8082/v1alpha2/")
+
+			if !updateSymphonyContext("no-k8s", "localhost", port, configPath, config.MaestroMqttConfig{}) {
+				return
+			}
+			os.Setenv("SYMPHONY_API_URL", fmt.Sprintf("http://localhost:%d/v1alpha2/", port))
 			os.Setenv("USE_SERVICE_ACCOUNT_TOKENS", "false")
-			_, err := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json"), "-l", "Debug")
-			if err != nil {
-				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+			_, launchErr := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json"), "-l", "Debug")
+			if launchErr != nil {
+				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), launchErr.Error(), utils.ColorReset())
 				return
 			}
 		} else {
@@ -122,7 +135,7 @@ var UpCmd = &cobra.Command{
 					}
 				}
 
-				if !updateSymphonyContext(k8sContext, apiAddress, mqttConfig) {
+				if !updateSymphonyContext(k8sContext, apiAddress, 0, "", mqttConfig) {
 					return
 				}
 
@@ -164,6 +177,41 @@ var UpCmd = &cobra.Command{
 	},
 }
 
+// extractPortFromConfig reads the Symphony API config file and extracts the HTTP binding port
+func extractPortFromConfig(configPath string) (int, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return 0, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	bindings, ok := cfg["bindings"].([]interface{})
+	if !ok || len(bindings) == 0 {
+		return 0, fmt.Errorf("no bindings found in config")
+	}
+
+	binding, ok := bindings[0].(map[string]interface{})
+	if !ok {
+		return 0, fmt.Errorf("invalid binding format")
+	}
+
+	bindingConfig, ok := binding["config"].(map[string]interface{})
+	if !ok {
+		return 0, fmt.Errorf("no config in binding")
+	}
+
+	port, ok := bindingConfig["port"].(float64)
+	if !ok {
+		return 0, fmt.Errorf("port not found or invalid in binding config")
+	}
+
+	return int(port), nil
+}
+
 func init() {
 	UpCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "Kubernetes namespace")
 	UpCmd.Flags().StringVarP(&symphonyVersion, "symphony-version", "s", SymphonyAPIVersion, "Symphony API version")
@@ -171,6 +219,7 @@ func init() {
 	UpCmd.Flags().BoolVar(&noRestApi, "no-rest-api", false, "Doesn't expose Symphony API, interact with k8s.")
 	UpCmd.Flags().BoolVar(&withMqttBroker, "with-mqtt-broker", false, "Install Mosquitto MQTT broker alongside Symphony API")
 	UpCmd.Flags().StringVar(&helmChartPath, "helm-chart-path", "", "Use a local Helm chart path instead of OCI chart (e.g. ./packages/helm/symphony)")
+	UpCmd.Flags().StringVar(&apiConfigFile, "api-config", "", "Custom Symphony API config file for no-k8s mode (default: ~/.symphony/symphony-api-no-k8s.json)")
 	//UpCmd.Flags().StringVarP(&portalVersion, "portal-version", "p", KANPortalVersion, "Symphony Portal version")
 	//UpCmd.Flags().StringVarP(&portalType, "with-portal", "", "", "Install Symphony Portal")
 	// UpCmd.Flags().StringVarP(&storageRP, "storage-resource-group", "", "", "Azure Storage account resource group")
@@ -365,8 +414,8 @@ func handleDocker() bool {
 	}
 	return true
 }
-func updateSymphonyContext(context string, apiAddress string, mqtt config.MaestroMqttConfig) bool {
-	err := config.UpdateMaestroConfig(context, apiAddress, mqtt)
+func updateSymphonyContext(context string, apiAddress string, port int, configFile string, mqtt config.MaestroMqttConfig) bool {
+	err := config.UpdateMaestroConfig(context, apiAddress, port, configFile, mqtt)
 	if err != nil {
 		fmt.Printf("\n%s  Failed to update maestro config file.%s\n\n", utils.ColorRed(), utils.ColorReset())
 	}

@@ -10,14 +10,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
@@ -213,6 +216,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 		if component.Action == model.ComponentUpdate {
 			containerImage := model.ReadPropertyCompat(component.Component.Properties, model.ContainerImage, injections)
 			resources := model.ReadPropertyCompat(component.Component.Properties, "container.resources", injections)
+			ports := model.ReadPropertyCompat(component.Component.Properties, "container.ports", injections)
 			if containerImage == "" {
 				err = errors.New("component doesn't have container.image property")
 				ret[component.Component.Name] = model.ComponentResultSpec{
@@ -286,6 +290,22 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 					Resources: resourceSpec,
 				}
 			}
+			if ports != "" {
+				portBindings, exposedPorts, parseErr := parseContainerPorts(ports)
+				if parseErr != nil {
+					ret[component.Component.Name] = model.ComponentResultSpec{
+						Status:  v1alpha2.UpdateFailed,
+						Message: parseErr.Error(),
+					}
+					sLog.ErrorfCtx(ctx, "  P (Docker Target): failed to read container port settings: %+v", parseErr)
+					return ret, parseErr
+				}
+				if hostConfig == nil {
+					hostConfig = &container.HostConfig{}
+				}
+				hostConfig.PortBindings = portBindings
+				containerConfig.ExposedPorts = exposedPorts
+			}
 			var containerResponse container.CreateResponse
 			sLog.InfofCtx(ctx, "  P (Docker Target): create container: %s", component.Component.Name)
 			containerResponse, err = cli.ContainerCreate(ctx, &containerConfig, hostConfig, nil, nil, component.Component.Name)
@@ -345,15 +365,208 @@ func (*DockerTargetProvider) GetValidationRule(ctx context.Context) model.Valida
 		AllowSidecar: false,
 		ComponentValidationRule: model.ComponentValidationRule{
 			RequiredProperties:    []string{model.ContainerImage},
-			OptionalProperties:    []string{"container.resources"},
+			OptionalProperties:    []string{"container.resources", "container.ports"},
 			RequiredComponentType: "",
 			RequiredMetadata:      []string{},
 			OptionalMetadata:      []string{},
 			ChangeDetectionProperties: []model.PropertyDesc{
-				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false},
-				{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true},
+				{Name: model.ContainerImage, IgnoreCase: false, SkipIfMissing: false, PropChanged: areContainerImagesChanged},
+				{Name: "container.ports", IgnoreCase: false, SkipIfMissing: true, PropChanged: areContainerPortsChanged},
 				{Name: "container.resources", IgnoreCase: false, SkipIfMissing: true},
 			},
 		},
 	}
+}
+
+func toContainerImageString(value any) (string, bool) {
+	if value == nil {
+		return "", false
+	}
+	if s, ok := value.(string); ok {
+		trimmed := strings.TrimSpace(s)
+		return trimmed, trimmed != ""
+	}
+	formatted := strings.TrimSpace(fmt.Sprintf("%v", value))
+	return formatted, formatted != ""
+}
+
+func normalizeContainerImageRef(image string) (string, bool) {
+	trimmed := strings.TrimSpace(image)
+	if trimmed == "" {
+		return "", false
+	}
+
+	namePart := trimmed
+	digest := ""
+	if at := strings.Index(trimmed, "@"); at >= 0 {
+		namePart = trimmed[:at]
+		digest = trimmed[at:]
+	}
+
+	lastSlash := strings.LastIndex(namePart, "/")
+	lastColon := strings.LastIndex(namePart, ":")
+	tag := ""
+	if lastColon > lastSlash {
+		tag = namePart[lastColon+1:]
+		namePart = namePart[:lastColon]
+	}
+
+	segments := strings.Split(namePart, "/")
+	if len(segments) == 0 {
+		return "", false
+	}
+
+	registry := "docker.io"
+	pathSegments := segments
+	first := segments[0]
+	if strings.Contains(first, ".") || strings.Contains(first, ":") || first == "localhost" {
+		registry = first
+		pathSegments = segments[1:]
+	}
+
+	if len(pathSegments) == 0 {
+		return "", false
+	}
+
+	registry = strings.ToLower(registry)
+	if registry == "index.docker.io" || registry == "registry-1.docker.io" {
+		registry = "docker.io"
+	}
+
+	for i := range pathSegments {
+		pathSegments[i] = strings.ToLower(pathSegments[i])
+	}
+	if registry == "docker.io" && len(pathSegments) == 1 {
+		pathSegments = append([]string{"library"}, pathSegments...)
+	}
+
+	canonical := registry + "/" + strings.Join(pathSegments, "/")
+	if digest == "" && tag == "" {
+		tag = "latest"
+	}
+	if tag != "" {
+		canonical += ":" + tag
+	}
+	if digest != "" {
+		canonical += digest
+	}
+
+	return canonical, true
+}
+
+func areContainerImagesChanged(oldProp, newProp any) bool {
+	oldImage, oldOk := toContainerImageString(oldProp)
+	newImage, newOk := toContainerImageString(newProp)
+
+	if !oldOk && !newOk {
+		return false
+	}
+	if oldOk != newOk {
+		return true
+	}
+
+	oldNormalized, oldNormOK := normalizeContainerImageRef(oldImage)
+	newNormalized, newNormOK := normalizeContainerImageRef(newImage)
+	if oldNormOK && newNormOK {
+		return oldNormalized != newNormalized
+	}
+
+	return oldImage != newImage
+}
+
+func parseContainerPorts(ports string) (nat.PortMap, nat.PortSet, error) {
+	trimmed := strings.TrimSpace(ports)
+	if trimmed == "" {
+		return nil, nil, nil
+	}
+
+	var portMap nat.PortMap
+	if err := json.Unmarshal([]byte(trimmed), &portMap); err == nil && len(portMap) > 0 {
+		normalized := normalizePortMap(portMap)
+		return normalized, toPortSet(normalized), nil
+	}
+
+	// Support a shorthand map shape like {"9090/tcp": {"HostIP":"0.0.0.0","HostPort":"9090"}}.
+	var singleBindings map[string]nat.PortBinding
+	if err := json.Unmarshal([]byte(trimmed), &singleBindings); err == nil && len(singleBindings) > 0 {
+		converted := make(nat.PortMap)
+		for port, binding := range singleBindings {
+			converted[nat.Port(port)] = []nat.PortBinding{{
+				HostIP:   binding.HostIP,
+				HostPort: binding.HostPort,
+			}}
+		}
+		normalized := normalizePortMap(converted)
+		return normalized, toPortSet(normalized), nil
+	}
+
+	return nil, nil, fmt.Errorf("invalid container.ports format, expected Docker port map JSON")
+}
+
+func normalizePortMap(pm nat.PortMap) nat.PortMap {
+	normalized := make(nat.PortMap)
+	for port, bindings := range pm {
+		sortedBindings := make([]nat.PortBinding, 0, len(bindings))
+		sortedBindings = append(sortedBindings, bindings...)
+		sort.Slice(sortedBindings, func(i, j int) bool {
+			if sortedBindings[i].HostIP == sortedBindings[j].HostIP {
+				return sortedBindings[i].HostPort < sortedBindings[j].HostPort
+			}
+			return sortedBindings[i].HostIP < sortedBindings[j].HostIP
+		})
+		normalized[port] = sortedBindings
+	}
+	return normalized
+}
+
+func toPortSet(pm nat.PortMap) nat.PortSet {
+	portSet := make(nat.PortSet)
+	for port := range pm {
+		portSet[port] = struct{}{}
+	}
+	return portSet
+}
+
+func toNormalizedPortMap(value any) (nat.PortMap, bool) {
+	if value == nil {
+		return nil, false
+	}
+
+	var jsonString string
+	switch v := value.(type) {
+	case string:
+		jsonString = v
+	default:
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, false
+		}
+		jsonString = string(data)
+	}
+
+	portMap, _, err := parseContainerPorts(jsonString)
+	if err != nil {
+		return nil, false
+	}
+	return portMap, true
+}
+
+func areContainerPortsChanged(oldProp, newProp any) bool {
+	oldMap, oldOk := toNormalizedPortMap(oldProp)
+	newMap, newOk := toNormalizedPortMap(newProp)
+
+	if oldOk && newOk {
+		oldData, oldErr := json.Marshal(oldMap)
+		newData, newErr := json.Marshal(newMap)
+		if oldErr != nil || newErr != nil {
+			return fmt.Sprintf("%v", oldProp) != fmt.Sprintf("%v", newProp)
+		}
+		return string(oldData) != string(newData)
+	}
+
+	if !oldOk && !newOk {
+		return fmt.Sprintf("%v", oldProp) != fmt.Sprintf("%v", newProp)
+	}
+
+	return true
 }
