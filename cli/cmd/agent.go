@@ -87,7 +87,7 @@ func runAgentWorkflow(mode string) {
 		return
 	}
 
-	agentFile, err := updateAgentConfig()
+	agentFile, err := updateAgentConfig(ctx)
 	if err != nil {
 		fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
 		return
@@ -210,7 +210,7 @@ func createTarget(ctx config.MaestroContext) error {
 	return utils.Upsert(ctx.Url, ctx.User, ctx.Secret, "target", targetName, targetData)
 }
 
-func updateAgentConfig() (string, error) {
+func updateAgentConfig(ctx config.MaestroContext) (string, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %s", err.Error())
@@ -232,7 +232,12 @@ func updateAgentConfig() (string, error) {
 	}
 	ensureAgentConfigDefaults(&agentConfig)
 
+	agentConfig.SiteInfo.CurrentSite.BaseURL = ctx.Url
+	agentConfig.SiteInfo.CurrentSite.Username = ctx.User
+	agentConfig.SiteInfo.CurrentSite.Password = ctx.Secret
+
 	agentConfig.API.Vendors[1].Managers[0].Properties.TargetNames = targetName
+	agentConfig.API.Vendors[1].Managers[0].Properties.TargetNamespace = targetNamespace
 	agentConfig.API.Vendors[1].Managers[0].Providers[targetName] = config.TargetProviderConfig{
 		Type:   "providers.target.mock",
 		Config: map[string]interface{}{},

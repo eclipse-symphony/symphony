@@ -44,6 +44,7 @@ type SymphonyAgentConfig struct {
 					ProvidersKeylock         string `json:"providers.keylock,omitempty"`
 					IsTarget                 string `json:"isTarget"`
 					TargetNames              string `json:"targetNames"`
+					TargetNamespace          string `json:"targetNamespace,omitempty"`
 					ProvidersConfig          string `json:"providers.config"`
 					ProvidersSecret          string `json:"providers.secret"`
 					PollEnabled              string `json:"poll.enabled"`

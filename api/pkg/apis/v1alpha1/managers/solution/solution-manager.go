@@ -62,6 +62,7 @@ type SolutionManager struct {
 	KeyLockProvider keylock.IKeyLockProvider
 	IsTarget        bool
 	TargetNames     []string
+	TargetNamespace string
 	ApiClientHttp   api_utils.ApiClient
 }
 
@@ -122,6 +123,11 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 
 	s.TargetNames = strings.Split(targetNames, ",")
 
+	s.TargetNamespace = "default"
+	if v, ok := config.Properties["targetNamespace"]; ok && strings.TrimSpace(v) != "" {
+		s.TargetNamespace = v
+	}
+
 	if s.IsTarget {
 		if len(s.TargetNames) == 0 {
 			return errors.New("target mode is set but target name is not set")
@@ -134,7 +140,7 @@ func (s *SolutionManager) Init(context *contexts.VendorContext, config managers.
 			return err
 		}
 	}
-	s.ApiClientHttp, err = api_utils.GetParentApiClient(s.Context.SiteInfo.ParentSite.BaseUrl)
+	s.ApiClientHttp, err = api_utils.GetParentApiClient(s.Context.SiteInfo.CurrentSite.BaseUrl)
 	if err != nil {
 		return err
 	}
@@ -682,15 +688,20 @@ func (s *SolutionManager) Enabled() bool {
 	return s.Config.Properties["poll.enabled"] == "true"
 }
 func (s *SolutionManager) Poll() []error {
-	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.ParentSite.BaseUrl != "" && s.IsTarget {
+	log.InfofCtx(context.Background(), " M (Solution): Poll() called, pollEnabled=%s, currentUrl=%s, isTarget=%v, targetNames=%v",
+		s.Config.Properties["poll.enabled"], s.Context.SiteInfo.CurrentSite.BaseUrl, s.IsTarget, s.TargetNames)
+	if s.Config.Properties["poll.enabled"] == "true" && s.Context.SiteInfo.CurrentSite.BaseUrl != "" && s.IsTarget {
+		log.InfofCtx(context.Background(), " M (Solution): conditions met, starting to process %d targets", len(s.TargetNames))
 		for _, target := range s.TargetNames {
+			namespace := s.TargetNamespace
 			catalogs, err := s.ApiClientHttp.GetCatalogsWithFilter(context.Background(), "", "label", "staged_target="+target,
-				s.Context.SiteInfo.ParentSite.Username,
-				s.Context.SiteInfo.ParentSite.Password)
+				s.Context.SiteInfo.CurrentSite.Username,
+				s.Context.SiteInfo.CurrentSite.Password)
 			if err != nil {
 				return []error{err}
 			}
 			for _, c := range catalogs {
+				namespace = c.ObjectMeta.Namespace
 				if vs, ok := c.Spec.Properties["deployment"]; ok {
 					deployment := model.DeploymentSpec{}
 					jData, _ := json.Marshal(vs)
@@ -719,12 +730,27 @@ func (s *SolutionManager) Poll() []error {
 					err = s.ApiClientHttp.ReportCatalogs(context.Background(),
 						deployment.Instance.ObjectMeta.Name+"-"+target,
 						components,
-						s.Context.SiteInfo.ParentSite.Username,
-						s.Context.SiteInfo.ParentSite.Password)
+						s.Context.SiteInfo.CurrentSite.Username,
+						s.Context.SiteInfo.CurrentSite.Password)
 					if err != nil {
 						return []error{err}
 					}
 				}
+			}
+			// Report target status on every poll cycle regardless of whether catalogs are staged
+			targetReportErr := s.ApiClientHttp.ReportTargetStatus(context.Background(),
+				target,
+				namespace,
+				map[string]string{
+					"agent.status":     "online",
+					"agent.lastReport": time.Now().UTC().Format(time.RFC3339),
+				},
+				s.Context.SiteInfo.CurrentSite.Username,
+				s.Context.SiteInfo.CurrentSite.Password)
+			if targetReportErr != nil {
+				log.WarnfCtx(context.Background(), " M (Solution): failed to report target status for target %s: %v", target, targetReportErr)
+			} else {
+				log.InfofCtx(context.Background(), " M (Solution): successfully reported target status for target %s in namespace %s", target, namespace)
 			}
 		}
 	}

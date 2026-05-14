@@ -38,6 +38,7 @@ type (
 		tokenProvider TokenProvider
 		client        *http.Client
 		caCertPath    string
+		useSATokens   bool
 	}
 
 	ApiClientOption func(*apiClient)
@@ -87,6 +88,7 @@ type (
 		SyncStageStatus(ctx context.Context, status model.StageStatus, user string, password string) error
 		SendVisualizationPacket(ctx context.Context, payload []byte, user string, password string) error
 		ReportCatalogs(ctx context.Context, instance string, components []model.ComponentSpec, user string, password string) error
+		ReportTargetStatus(ctx context.Context, target string, namespace string, properties map[string]string, user string, password string) error
 		CreateSolutionContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
 		DeleteSolutionContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
 		GetSolutionContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.SolutionContainerState, error)
@@ -140,6 +142,7 @@ func noTokenProvider(ctx context.Context, baseUrl string, client *http.Client, u
 
 func WithUserPassword(ctx context.Context) ApiClientOption {
 	return func(a *apiClient) {
+		a.useSATokens = false
 		a.tokenProvider = func(ctx context.Context, baseUrl string, _ *http.Client, user string, password string) (string, error) {
 			request := AuthRequest{UserName: user, Password: password}
 			requestData, _ := json.Marshal(request)
@@ -161,6 +164,7 @@ func WithUserPassword(ctx context.Context) ApiClientOption {
 
 func WithServiceAccountToken() ApiClientOption {
 	return func(a *apiClient) {
+		a.useSATokens = true
 		a.tokenProvider = func(ctx context.Context, _ string, _ *http.Client, _ string, _ string) (string, error) {
 			path := os.Getenv(constants.SATokenPathName)
 			if path == "" {
@@ -198,6 +202,7 @@ func NewApiClient(ctx context.Context, baseUrl string, opts ...ApiClientOption) 
 		baseUrl:       baseUrl,
 		tokenProvider: noTokenProvider,
 		client:        client,
+		useSATokens:   false,
 	}
 
 	for _, opt := range opts {
@@ -738,6 +743,28 @@ func (a *apiClient) ReportCatalogs(ctx context.Context, instance string, compone
 	return nil
 }
 
+func (a *apiClient) ReportTargetStatus(ctx context.Context, target string, namespace string, properties map[string]string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+	if properties == nil {
+		properties = map[string]string{}
+	}
+	path := "targets/status/" + url.QueryEscape(target) + "?namespace=" + url.QueryEscape(namespace)
+	payload := map[string]interface{}{
+		"status": map[string]interface{}{
+			"properties": properties,
+		},
+	}
+	jData, _ := json.Marshal(payload)
+	_, err = a.callRestAPI(ctx, path, "PUT", jData, token)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (a *apiClient) UpsertSolution(ctx context.Context, solution string, payload []byte, namespace string, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
@@ -834,7 +861,9 @@ func (a *apiClient) SendVisualizationPacket(ctx context.Context, payload []byte,
 }
 
 func (a *apiClient) callRestAPI(ctx context.Context, route string, method string, payload []byte, token string) ([]byte, error) {
-	urlString := fmt.Sprintf("%s%s", a.baseUrl, path.Clean(route))
+	baseURL := strings.TrimRight(a.baseUrl, "/")
+	cleanRoute := strings.TrimLeft(path.Clean(route), "/")
+	urlString := fmt.Sprintf("%s/%s", baseURL, cleanRoute)
 	ctx, span := observability.StartSpan("Symphony-API-Client", ctx, &map[string]string{
 		"method":      "callRestAPI",
 		"http.method": method,
@@ -896,8 +925,8 @@ func (a *apiClient) callRestAPI(ctx context.Context, route string, method string
 		if resp.StatusCode >= 300 {
 			if resp.StatusCode == http.StatusForbidden {
 				// 403 is a retriable error, so we return a COAError with the same status code
-				// This should only happen at k8s token provider so can skip the username and password
-				if ShouldUseSATokens() {
+				// Refresh service-account token only when this client was configured to use SA tokens.
+				if a.useSATokens {
 					token, err := a.tokenProvider(ctx, a.baseUrl, a.client, "", "")
 					if err != nil {
 						return err
