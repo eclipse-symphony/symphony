@@ -1,4 +1,5 @@
 {
+  "shutdownGracePeriod": "30s",
   "siteInfo": {
     "siteId": "hq",
     "currentSite": {

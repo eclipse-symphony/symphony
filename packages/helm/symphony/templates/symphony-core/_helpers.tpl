@@ -279,3 +279,46 @@ true
 {{- define "symphony.tls.caBundleLabelValue" -}}
 {{- default "false" .Values.observability.tls.caBundleLabelValue }}
 {{- end }}
+
+{{- define "MqttPVCStorageClassName" -}}
+{{- $pvcName := "mqtt-pvc" -}}
+{{- $existingPVC := (lookup "v1" "PersistentVolumeClaim" .Release.Namespace $pvcName) -}}
+{{- if .Values.mqtt.persistentVolume.storageClass }}
+{{- $storageClass := .Values.mqtt.persistentVolume.storageClass }}
+{{- $sc := lookup "storage.k8s.io/v1" "StorageClass" "" $storageClass }}
+{{- if not $sc }}
+{{- fail (printf "Error: StorageClass '%s' not found. Please create it before installing." $storageClass)}}
+{{- end  }}
+{{- .Values.mqtt.persistentVolume.storageClass -}}
+{{- else if $existingPVC  }}
+{{- $existingPVC.spec.storageClassName -}}
+{{- else }}
+{{- $defaultStorageClass := "" -}}
+{{- range $sc := (lookup "storage.k8s.io/v1" "StorageClass" "" "").items -}}
+  {{- if and $sc.metadata.annotations (kindIs "map" $sc.metadata.annotations) (hasKey $sc.metadata.annotations "storageclass.kubernetes.io/is-default-class") -}}
+    {{- $annotations := $sc.metadata.annotations -}}
+    {{- $labelValue := index $annotations "storageclass.kubernetes.io/is-default-class" -}}
+    {{- if eq $labelValue "true" -}}
+      {{- $defaultStorageClass = $sc.metadata.name -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if eq $defaultStorageClass "" -}}
+{{- fail (printf "Error: No default storage class found. Please ensure a storage class with the label 'is-default-class' set to 'true' exists.")}}
+{{- end -}}
+{{- $defaultStorageClass -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "CheckMqttPvSetting" -}}
+{{- $configMap := (lookup "v1" "ConfigMap" .Release.Namespace "mqtt-config-map") -}}
+{{- if not $configMap }}
+true
+{{- else if eq ($configMap.data.pvEnabled | quote) ""}}
+true
+{{- else if ne ($configMap.data.pvEnabled | quote) (.Values.mqtt.persistentVolume.enabled | quote)}}
+{{- fail (printf ".Values.mqtt.persistentVolume.enabled is immutable. Unable to change %s to %s" ($configMap.data.pvEnabled | quote) (.Values.mqtt.persistentVolume.enabled | quote))}}
+{{- else}}
+true
+{{- end -}}
+{{- end -}}

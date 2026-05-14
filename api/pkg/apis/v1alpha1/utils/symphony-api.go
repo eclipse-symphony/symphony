@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -29,7 +30,6 @@ import (
 
 var (
 	SymphonyAPIAddressBase = "http://symphony-service:8080/v1alpha2/"
-	useSAToken             = os.Getenv(constants.UseServiceAccountTokenEnvName)
 	apiCertPath            = os.Getenv(constants.ApiCertEnvName)
 )
 
@@ -70,8 +70,10 @@ func getApiClient() (*apiClient, error) {
 	}
 
 	if ShouldUseSATokens() {
+		log.Infof("Configuring API client with service account token provider")
 		clientOptions = append(clientOptions, WithServiceAccountToken())
 	} else {
+		log.Infof("Configuring API client with user/password token provider")
 		clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
 	}
 
@@ -89,6 +91,7 @@ func GetParentApiClient(baseUrl string) (*apiClient, error) {
 		clientOptions = append(clientOptions, WithCertAuth(caCert))
 	}
 
+	log.Infof("Configuring parent API client with user/password token provider for baseUrl: %s", baseUrl)
 	clientOptions = append(clientOptions, WithUserPassword(context.TODO()))
 	client, err := NewApiClient(context.Background(), baseUrl, clientOptions...)
 	if err != nil {
@@ -98,11 +101,26 @@ func GetParentApiClient(baseUrl string) (*apiClient, error) {
 }
 
 func ShouldUseSATokens() bool {
-	return !ShouldUseUserCreds()
+	raw, ok := os.LookupEnv(constants.UseServiceAccountTokenEnvName)
+	if !ok {
+		return true
+	}
+
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return true
+	}
+
+	v, err := strconv.ParseBool(strings.ToLower(raw))
+	if err != nil {
+		log.Warnf("Invalid value for %s: %q; defaulting to service account token auth", constants.UseServiceAccountTokenEnvName, raw)
+		return true
+	}
+	return v
 }
 
 func ShouldUseUserCreds() bool {
-	return strings.ToLower(os.Getenv(constants.UseServiceAccountTokenEnvName)) == "false"
+	return !ShouldUseSATokens()
 }
 
 var log = logger.NewLogger("coa.runtime")
