@@ -1,9 +1,9 @@
 apiVersion: fabric.symphony/v1
 kind: Target
 metadata:
-  name: sample-docker-target        
-spec:  
-  forceRedeploy: true
+  name: sample-local-target 
+spec:
+  forceRedeploy: false
   topologies:
   - bindings:
     - role: instance

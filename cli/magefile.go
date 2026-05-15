@@ -12,13 +12,69 @@ Use this tool to quickly build symphony api or maestro cli. It can also help gen
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/princjef/mageutil/shellcmd"
 )
+
+type sampleManifest struct {
+	Samples []sampleEntry `json:"samples"`
+}
+
+type sampleEntry struct {
+	Path string `json:"path"`
+}
+
+func discoverSampleFolders(samplesManifestPath string) ([]string, []string, error) {
+	content, err := os.ReadFile(samplesManifestPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	manifest := sampleManifest{}
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		return nil, nil, err
+	}
+
+	pathSet := map[string]bool{}
+	rootSet := map[string]bool{}
+	for _, sample := range manifest.Samples {
+		p := strings.TrimSpace(sample.Path)
+		if p == "" {
+			continue
+		}
+		clean := filepath.Clean(filepath.FromSlash(p))
+		if strings.HasPrefix(clean, "..") {
+			return nil, nil, fmt.Errorf("invalid sample path outside docs/samples: %s", p)
+		}
+		pathSet[clean] = true
+
+		root := strings.Split(filepath.ToSlash(clean), "/")[0]
+		if root != "" && root != "." {
+			rootSet[root] = true
+		}
+	}
+
+	samplePaths := make([]string, 0, len(pathSet))
+	for p := range pathSet {
+		samplePaths = append(samplePaths, p)
+	}
+	sort.Strings(samplePaths)
+
+	sampleRoots := make([]string, 0, len(rootSet))
+	for r := range rootSet {
+		sampleRoots = append(sampleRoots, r)
+	}
+	sort.Strings(sampleRoots)
+
+	return samplePaths, sampleRoots, nil
+}
 
 // Build maestro cli tools for Windows, Mac and Linux.
 func BuildCli() error {
@@ -143,6 +199,57 @@ func runCommands(commands [][]string, envVars []string) error {
 	return nil
 }
 
+// UpdateSamples updates local ~/.symphony sample files from docs/samples using samples.json discovery.
+func UpdateSamples() error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	symphonyPath := filepath.Dir(wd)
+	samplesManifestPath := filepath.Join(symphonyPath, "docs", "samples", "samples.json")
+
+	samplePaths, sampleRoots, err := discoverSampleFolders(samplesManifestPath)
+	if err != nil {
+		return err
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	localSymphonyPath := filepath.Join(homeDir, ".symphony")
+	if err := os.MkdirAll(localSymphonyPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	if err := runCommand(nil, "cp", samplesManifestPath, filepath.Join(localSymphonyPath, "samples.json")); err != nil {
+		return err
+	}
+
+	for _, root := range sampleRoots {
+		if err := os.MkdirAll(filepath.Join(localSymphonyPath, root), os.ModePerm); err != nil {
+			return err
+		}
+	}
+
+	for _, samplePath := range samplePaths {
+		sourcePath := filepath.Join(symphonyPath, "docs", "samples", samplePath)
+		destinationParent := filepath.Join(localSymphonyPath, filepath.Dir(samplePath))
+		if filepath.Dir(samplePath) == "." {
+			destinationParent = localSymphonyPath
+		}
+		if err := os.MkdirAll(destinationParent, os.ModePerm); err != nil {
+			return err
+		}
+		if err := runCommand(nil, "cp", "-r", sourcePath, destinationParent); err != nil {
+			return err
+		}
+	}
+
+	fmt.Printf("Updated %d sample folders and samples.json in %s\n", len(samplePaths), localSymphonyPath)
+	return nil
+}
+
 // Generate packages with Symphony api, maestro cli and samples for Windows, Mac and Linux.
 func GeneratePackages(des string) error {
 	des = filepath.Clean(des)
@@ -199,25 +306,35 @@ func GeneratePackages(des string) error {
 		return err
 	}
 
-	// copy over samples
-	err = os.MkdirAll(filepath.Join(des, "k8s"), os.ModePerm)
+	// copy over samples discovered from samples.json
+	samplesManifestPath := filepath.Join(symphonyPath, "docs", "samples", "samples.json")
+	samplePaths, sampleRoots, err := discoverSampleFolders(samplesManifestPath)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(filepath.Join(des, "iot-edge"), os.ModePerm)
-	if err != nil {
+
+	if err := runCommand(nil, "cp", samplesManifestPath, des); err != nil {
 		return err
 	}
-	if err != nil {
-		return err
+
+	for _, root := range sampleRoots {
+		if err := os.MkdirAll(filepath.Join(des, root), os.ModePerm); err != nil {
+			return err
+		}
 	}
-	if err := shellcmd.RunAll(
-		shellcmd.Command(fmt.Sprintf("cp %s/docs/samples/samples.json %s", symphonyPath, des)),
-		shellcmd.Command(fmt.Sprintf("cp -r %s/docs/samples/k8s/hello-world/ %s", symphonyPath, filepath.Join(des, "k8s"))),
-		shellcmd.Command(fmt.Sprintf("cp -r %s/docs/samples/k8s/staged/ %s", symphonyPath, filepath.Join(des, "k8s"))),
-		shellcmd.Command(fmt.Sprintf("cp -r %s/docs/samples/iot-edge/simulated-temperature-sensor/ %s", symphonyPath, filepath.Join(des, "iot-edge"))),
-	); err != nil {
-		return err
+
+	for _, samplePath := range samplePaths {
+		sourcePath := filepath.Join(symphonyPath, "docs", "samples", samplePath)
+		destinationParent := filepath.Join(des, filepath.Dir(samplePath))
+		if filepath.Dir(samplePath) == "." {
+			destinationParent = des
+		}
+		if err := os.MkdirAll(destinationParent, os.ModePerm); err != nil {
+			return err
+		}
+		if err := runCommand(nil, "cp", "-r", sourcePath, destinationParent); err != nil {
+			return err
+		}
 	}
 
 	// change working directory to des folder
@@ -226,8 +343,10 @@ func GeneratePackages(des string) error {
 		return err
 	}
 
+	sampleRootArgs := strings.Join(sampleRoots, " ")
+
 	// package Linux
-	linuxCommand := fmt.Sprintf("tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
+	linuxCommand := fmt.Sprintf("tar -czvf maestro_linux_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json %s", sampleRootArgs)
 	if err := shellcmd.RunAll(
 		shellcmd.Command(linuxCommand),
 	); err != nil {
@@ -235,9 +354,9 @@ func GeneratePackages(des string) error {
 	}
 
 	// package windows
-	// windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json k8s iot-edge")
+	// windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
 	// TODO: re-enable windows package
-	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api-no-k8s.json samples.json k8s iot-edge")
+	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
 	if err := shellcmd.RunAll(
 		shellcmd.Command(windowsCommand),
 	); err != nil {
@@ -245,9 +364,9 @@ func GeneratePackages(des string) error {
 	}
 
 	// package mac
-	//macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json k8s iot-edge")
+	//macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
 	// TODO: re-enable mac package
-	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api-no-k8s.json samples.json k8s iot-edge")
+	macComomand := fmt.Sprintf("tar -czvf maestro_darwin_amd64.tar.gz maestro symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
 		// shellcmd.Command(fmt.Sprintf("rm symphony-api")),
@@ -260,7 +379,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package arm64
-	arm64Comomand := fmt.Sprintf("tar -czvf maestro_linux_arm64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
+	arm64Comomand := fmt.Sprintf("tar -czvf maestro_linux_arm64.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json %s", sampleRootArgs)
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
 		shellcmd.Command(fmt.Sprintf("rm symphony-api")),
@@ -272,7 +391,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package arm64
-	arm7Command := fmt.Sprintf("tar -czvf maestro_linux_arm.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json k8s iot-edge")
+	arm7Command := fmt.Sprintf("tar -czvf maestro_linux_arm.tar.gz maestro symphony-api symphony-api-no-k8s.json samples.json symphony-agent.json %s", sampleRootArgs)
 	if err := shellcmd.RunAll(
 		shellcmd.Command(fmt.Sprintf("rm maestro")),
 		shellcmd.Command(fmt.Sprintf("rm symphony-api")),

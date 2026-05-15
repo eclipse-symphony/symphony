@@ -1,0 +1,9 @@
+apiVersion: solution.symphony/v1
+kind: Instance
+metadata:
+  name: sample-prometheus-instance
+spec:
+  scope: sample-local-scope  
+  solution: sample-prometheus-server:v1
+  target: 
+    name: sample-local-target

@@ -8,6 +8,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -65,10 +66,12 @@ type SymphonyAgentConfig struct {
 }
 
 type MaestroContext struct {
-	Url    string            `json:"url"`
-	User   string            `json:"user"`
-	Secret string            `json:"secret,omitempty"`
-	Mqtt   MaestroMqttConfig `json:"mqtt,omitempty"`
+	Url        string            `json:"url"`
+	User       string            `json:"user"`
+	Secret     string            `json:"secret,omitempty"`
+	Mqtt       MaestroMqttConfig `json:"mqtt,omitempty"`
+	ConfigFile string            `json:"configFile,omitempty"`
+	Port       int               `json:"port,omitempty"`
 }
 
 type MaestroMqttConfig struct {
@@ -82,16 +85,23 @@ type MaestroConfig struct {
 	Contexts       map[string]MaestroContext `json:"contexts,omitempty"`
 }
 
-func UpdateMaestroConfig(context string, address string, mqtt MaestroMqttConfig) error {
+func UpdateMaestroConfig(context string, address string, port int, configFile string, mqtt MaestroMqttConfig) error {
 	config := GetMaestroConfig("")
 	if config.Contexts == nil {
 		config.Contexts = make(map[string]MaestroContext)
 	}
+	// For no-k8s deployments, use the extracted port. For k8s deployments, use port 8080 by default.
+	httpPort := 8080
+	if port > 0 {
+		httpPort = port
+	}
 	config.Contexts[context] = MaestroContext{
-		Url:    "http://" + address + ":8080/v1alpha2",
-		User:   "admin",
-		Secret: "",
-		Mqtt:   mqtt,
+		Url:        "http://" + address + ":" + fmt.Sprint(httpPort) + "/v1alpha2",
+		User:       "admin",
+		Secret:     "",
+		Mqtt:       mqtt,
+		ConfigFile: configFile,
+		Port:       port,
 	}
 	config.DefaultContext = context
 	return SaveMaestroConfig(config)
