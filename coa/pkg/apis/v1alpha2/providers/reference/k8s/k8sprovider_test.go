@@ -36,14 +36,14 @@ func TestInit(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	testRedis := os.Getenv("TEST_K8S")
-	symphonySolution := os.Getenv("SYMPHONY_SOLUTION")
-	if testRedis == "" || symphonySolution == "" {
+	symphonySolutionVersion := os.Getenv("SYMPHONY_SOLUTION")
+	if testRedis == "" || symphonySolutionVersion == "" {
 		t.Skip("Skipping because TEST_K8S or SYMPHONY_SOLUTION enviornment variable is not set")
 	}
 	provider := K8sReferenceProvider{}
 	err := provider.Init(K8sReferenceProviderConfig{})
 	assert.Nil(t, err)
-	_, err = provider.Get(symphonySolution, "default", "solution.symphony", "solutions", "v1", "")
+	_, err = provider.Get(symphonySolutionVersion, "default", "solutionversion.symphony", "solutionversions", "v1", "")
 	assert.NotNil(t, err)
 }
 func TestK8sReferenceProviderConfigFromMapMapNil(t *testing.T) {

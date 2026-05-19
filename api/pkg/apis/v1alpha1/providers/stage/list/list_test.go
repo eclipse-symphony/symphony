@@ -120,7 +120,7 @@ func TestListProcessSites(t *testing.T) {
 	assert.Equal(t, "child", siteNames[1])
 }
 
-func TestListProcessCatalogs(t *testing.T) {
+func TestListProcessCatalogVersions(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := ListStageProvider{}
@@ -133,25 +133,25 @@ func TestListProcessCatalogs(t *testing.T) {
 	assert.Nil(t, err)
 
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType": "catalogs",
+		"objectType": "catalogversions",
 	})
 	assert.Nil(t, err)
-	catalogs, ok := outputs["items"].([]model.CatalogState)
+	catalogversions, ok := outputs["items"].([]model.CatalogVersionState)
 	assert.True(t, ok)
-	assert.Equal(t, 2, len(catalogs))
-	assert.Equal(t, "catalog1", catalogs[0].ObjectMeta.Name)
-	assert.Equal(t, "catalog2", catalogs[1].ObjectMeta.Name)
+	assert.Equal(t, 2, len(catalogversions))
+	assert.Equal(t, "catalogversion1", catalogversions[0].ObjectMeta.Name)
+	assert.Equal(t, "catalogversion2", catalogversions[1].ObjectMeta.Name)
 
 	outputs, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType": "catalogs",
+		"objectType": "catalogversions",
 		"namesOnly":  true,
 	})
 	assert.Nil(t, err)
-	catalogNames, ok := outputs["items"].([]string)
+	catalogversionNames, ok := outputs["items"].([]string)
 	assert.True(t, ok)
-	assert.Equal(t, 2, len(catalogNames))
-	assert.Equal(t, "catalog1", catalogNames[0])
-	assert.Equal(t, "catalog2", catalogNames[1])
+	assert.Equal(t, 2, len(catalogversionNames))
+	assert.Equal(t, "catalogversion1", catalogversionNames[0])
+	assert.Equal(t, "catalogversion2", catalogversionNames[1])
 }
 
 func TestListProcessUnsupported(t *testing.T) {
@@ -208,21 +208,21 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					},
 					Status: &model.SiteStatus{},
 				}}
-		case "/catalogs/registry":
-			response = []model.CatalogState{
+		case "/catalogversions/registry":
+			response = []model.CatalogVersionState{
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "catalog1",
+						Name: "catalogversion1",
 					},
-					Spec:   &model.CatalogSpec{},
-					Status: &model.CatalogStatus{},
+					Spec:   &model.CatalogVersionSpec{},
+					Status: &model.CatalogVersionStatus{},
 				},
 				{
 					ObjectMeta: model.ObjectMeta{
-						Name: "catalog2",
+						Name: "catalogversion2",
 					},
-					Spec:   &model.CatalogSpec{},
-					Status: &model.CatalogStatus{},
+					Spec:   &model.CatalogVersionSpec{},
+					Status: &model.CatalogVersionStatus{},
 				}}
 		default:
 			response = utils.AuthResponse{

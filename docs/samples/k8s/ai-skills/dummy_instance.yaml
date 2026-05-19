@@ -1,9 +1,9 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: dummy-instance
 spec:
-  solution: dummy-solution:version1
+  solutionversion: dummy-solutionversion:version1
   target: 
     name: voe-target
   pipelines:

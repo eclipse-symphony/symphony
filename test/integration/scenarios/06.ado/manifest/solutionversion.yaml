@@ -1,0 +1,7 @@
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
+metadata:
+  name: solutionversion-v-version1
+spec:
+  rootResource: solutionversion
+  components: []

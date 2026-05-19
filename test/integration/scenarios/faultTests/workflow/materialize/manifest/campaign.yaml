@@ -14,10 +14,10 @@ spec:
         user: admin
         password: ""
       inputs:
-        objectType: catalogs
+        objectType: catalogversions
         names:
-        - sitecatalog:version1
-        - sitecatalog2:version1
+        - sitecatalogversion:version1
+        - sitecatalogversion2:version1
         - siteapp:version1
         - sitek8starget:version1
         - siteinstance:version1
@@ -29,7 +29,7 @@ spec:
         user: admin
         password: ""
       inputs:
-        objectType: catalogs
+        objectType: catalogversions
         namesOnly: "${{$trigger(namesOnly,false)}}"
     deploy:
       name: deploy

@@ -50,8 +50,8 @@ This tutorial shows you how to launch Symphony as a single process and call the 
     You should see outputs like this:
     ```bash
     Creating target sample-local-target ... done
-    Creating solution-container sample-prometheus-server ... done
-    Creating solution sample-prometheus-server-v-v1 ... done
+    Creating solutionversion-container sample-prometheus-server ... done
+    Creating solutionversion sample-prometheus-server-v-v1 ... done
     Creating instance sample-prometheus-instance ... done
     ⣟  NOTE: Navigate to http://localhost:9090/ to access the Promethus portal (it may take a few seconds for the Prometheus server to be ready)
     ```

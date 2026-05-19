@@ -4,7 +4,7 @@
 # This is needed incase the Symphony Operator is not running and the CRs are stuck in a terminating state
 
 TIMEOUT=60
-SOLUTION_GROUP=solution.symphony
+SOLUTION_GROUP=solutionversion.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
 WORKFLOW_GROUP=workflow.symphony
@@ -55,11 +55,11 @@ echo "Removing finalizers from Symphony resources"
 remove_finalizers "activations.$WORKFLOW_GROUP"
 remove_finalizers "campaigns.$WORKFLOW_GROUP"
 remove_finalizers "instances.$SOLUTION_GROUP"
-remove_finalizers "solutions.$SOLUTION_GROUP"
+remove_finalizers "solutionversions.$SOLUTION_GROUP"
 remove_finalizers "targets.$FABRIC_GROUP"
 remove_finalizers "devices.$FABRIC_GROUP"
 remove_finalizers "models.$AI_GROUP"
 remove_finalizers "skills.$AI_GROUP"  
 remove_finalizers "skillpackages.$AI_GROUP"  
-remove_finalizers "catalogs.$FEDERATION_GROUP"
+remove_finalizers "catalogversions.$FEDERATION_GROUP"
 remove_finalizers "sites.$FEDERATION_GROUP"

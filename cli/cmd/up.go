@@ -356,7 +356,7 @@ func handleSymphony(norest bool) bool {
 		stdout, _ = cmd.Output()
 		instances := strings.Fields(string(stdout))
 		for _, t := range instances {
-			c := exec.Command("kubectl", "patch", "instance.solution.symphony", t, "-p", `'{"metadata":{"finalizers":null}}'`, "--type=merge")
+			c := exec.Command("kubectl", "patch", "instance.solutionversion.symphony", t, "-p", `'{"metadata":{"finalizers":null}}'`, "--type=merge")
 			c.Run()
 		}
 	}

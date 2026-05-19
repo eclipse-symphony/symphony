@@ -55,26 +55,26 @@ from symphony_sdk import TargetSpec, TargetState
 target = TargetSpec(displayName="IoT Device", ...)
 ```
 
-### 3. Solution and Instance Management ([03_solution_deployment.py](03_solution_deployment.py))
+### 3. SolutionVersion and Instance Management ([03_solutionversion_deployment.py](03_solutionversion_deployment.py))
 
-Managing solutions and deploying instances:
-- Creating solutions with YAML specs
-- Creating instances from solutions
+Managing solutionversions and deploying instances:
+- Creating solutionversions with YAML specs
+- Creating instances from solutionversions
 - Applying deployments
 - Checking deployment status
-- Listing solutions and instances
+- Listing solutionversions and instances
 - Resource cleanup
 - Using InstanceSpec dataclass
 
 **Key concepts:**
 ```python
-# Create a solution
-solution_yaml = yaml.dump({...})
-client.create_solution("web-app", solution_yaml)
+# Create a solutionversion
+solutionversion_yaml = yaml.dump({...})
+client.create_solutionversion("web-app", solutionversion_yaml)
 
 # Create an instance
 instance_spec = {
-    "solution": "web-app",
+    "solutionversion": "web-app",
     "target": {"name": "device-001"}
 }
 client.create_instance("web-app-prod", instance_spec)
@@ -264,7 +264,7 @@ for attempt in range(10):
 The SDK provides comprehensive data models matching Symphony's COA specification:
 
 - **Target Models**: `TargetSpec`, `TargetState`, `TargetStatus`
-- **Solution Models**: `SolutionSpec`, `SolutionState`, `ComponentSpec`
+- **SolutionVersion Models**: `SolutionVersionSpec`, `SolutionVersionState`, `ComponentSpec`
 - **Instance Models**: `InstanceSpec`, `DeploymentSpec`
 - **COA Models**: `COARequest`, `COAResponse`, `State`
 - **Summary Models**: `SummaryResult`, `SummarySpec`, `ComponentResultSpec`

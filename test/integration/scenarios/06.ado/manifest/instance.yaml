@@ -1,9 +1,9 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: instance
 spec:
   target:
     name: target
-  solution: solution:version1
+  solutionversion: solutionversion:version1
   scope: azure-iot-operations

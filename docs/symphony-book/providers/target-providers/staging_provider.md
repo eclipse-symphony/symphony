@@ -1,6 +1,6 @@
 # Staging provider
 
-Staging provider allows [components](../../concepts/unified-object-model/solution.md#componentspec-schema) to be recorded on an [Target](../../concepts/unified-object-model/target.md) object without being deployed to the actual target. This allows components to be **staged** and retrieved later, such as by a polling agent. 
+Staging provider allows [components](../../concepts/unified-object-model/solutionversion.md#componentspec-schema) to be recorded on an [Target](../../concepts/unified-object-model/target.md) object without being deployed to the actual target. This allows components to be **staged** and retrieved later, such as by a polling agent. 
 
 ## Provider configuration
 
@@ -9,7 +9,7 @@ Staging provider allows [components](../../concepts/unified-object-model/solutio
 | `configType` | Type of K8s configuration, either `path` or `bytes`. |
 | `configData` | Configuration data<sup>2</sup> |
 | `inCluster` | If provider is running inside a K8s cluster (`"true"`). If `true`, `configType` and `configData` are not used. |
-| `singleSolution` | If only one solution can be staged on the target. Default is `true`<sup>3</sup>. |
+| `singleSolutionVersion` | If only one solutionversion can be staged on the target. Default is `true`<sup>3</sup>. |
 | `targetName` | Name of the target |
 
 1: When `configType` is set to `path`, this property contains the path to a Kubernetes configuration file. If this property is left empty or omitted, the default Kubernetes configuration file on the host will be used. If `configType` is set to `bytes`, this property contains the Kubernetes configuration bytes, as shown in the following Target spec:
@@ -45,4 +45,4 @@ topologies:
           token: ...
 ```
 
-2: When `singleSolution` is set to `true`, staging a new solution to a target wipes all previously stated components. Otherwise, components from the solution are merged into the currently staged component list.
+2: When `singleSolutionVersion` is set to `true`, staging a new solutionversion to a target wipes all previously stated components. Otherwise, components from the solutionversion are merged into the currently staged component list.

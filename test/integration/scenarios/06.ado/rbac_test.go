@@ -18,7 +18,7 @@ import (
 var _ = Describe("RBAC", Ordered, func() {
 	type Rbac struct {
 		TargetComponents   []string
-		SolutionComponents []string
+		SolutionVersionComponents []string
 		InstanceScope      string
 		TargetScope        string
 		Expectation        types.Expectation
@@ -29,17 +29,17 @@ var _ = Describe("RBAC", Ordered, func() {
 
 	var instanceBytes []byte
 	var targetBytes []byte
-	var solutionBytes []byte
-	var solutionContainerBytes []byte
+	var solutionversionBytes []byte
+	var solutionversionContainerBytes []byte
 	var specTimeout = 3 * time.Minute
 	var installValues HelmValues
 	var runRbacTest = func(ctx context.Context, testcase Rbac) {
 		var err error
 
-		By("deploy solution container")
-		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		By("deploy solutionversion container")
+		solutionversionContainerBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.ContainerOptions{})
 		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionContainerBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("setting the components for the target and scope")
@@ -49,9 +49,9 @@ var _ = Describe("RBAC", Ordered, func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("setting the components for the solution")
-		solutionBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
-			ComponentNames: testcase.SolutionComponents,
+		By("setting the components for the solutionversion")
+		solutionversionBytes, err = testhelpers.PatchSolutionVersion(defaultSolutionVersionManifest, testhelpers.SolutionVersionOptions{
+			ComponentNames: testcase.SolutionVersionComponents,
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -65,8 +65,8 @@ var _ = Describe("RBAC", Ordered, func() {
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the solution")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		By("deploying the solutionversion")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("deploying the instance")
@@ -114,7 +114,7 @@ var _ = Describe("RBAC", Ordered, func() {
 		})
 
 		AfterAll(func(ctx context.Context) {
-			By("removing all instances, targets and solutions from the cluster")
+			By("removing all instances, targets and solutionversions from the cluster")
 			err := testhelpers.CleanupManifests(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -124,7 +124,7 @@ var _ = Describe("RBAC", Ordered, func() {
 				"it succefully install in default namespace", SpecTimeout(specTimeout),
 				Rbac{
 					TargetComponents:   []string{"basic-clusterrole"},
-					SolutionComponents: []string{"simple-chart-1"},
+					SolutionVersionComponents: []string{"simple-chart-1"},
 					Expectation: expectations.All(
 						successfullInstanceExpectation,
 						successfullInstanceExpectation,
@@ -155,7 +155,7 @@ var _ = Describe("RBAC", Ordered, func() {
 		})
 
 		AfterAll(func(ctx context.Context) {
-			By("removing all instances, targets and solutions from the cluster")
+			By("removing all instances, targets and solutionversions from the cluster")
 			err := testhelpers.CleanupManifests(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -165,9 +165,9 @@ var _ = Describe("RBAC", Ordered, func() {
 				"it succefully install in default namespace", SpecTimeout(specTimeout),
 				Rbac{
 					TargetComponents:   []string{"mongodb-configmap"}, // Namespace level resource (configmap)
-					SolutionComponents: []string{"basic-configmap-1"}, // Namespace level resource (configmap)
+					SolutionVersionComponents: []string{"basic-configmap-1"}, // Namespace level resource (configmap)
 					TargetScope:        "default",                     // Places the target component in the same namesapce as orchestrator
-					InstanceScope:      "default",                     // Places the solution component in the same namesapce as orchestrator
+					InstanceScope:      "default",                     // Places the solutionversion component in the same namesapce as orchestrator
 					Expectation: expectations.All(
 						successfullInstanceExpectation,
 						successfullInstanceExpectation,
@@ -205,7 +205,7 @@ var _ = Describe("RBAC", Ordered, func() {
 		})
 
 		AfterAll(func(ctx context.Context) {
-			By("removing all instances, targets and solutions from the cluster")
+			By("removing all instances, targets and solutionversions from the cluster")
 			err := testhelpers.CleanupManifests(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -215,8 +215,8 @@ var _ = Describe("RBAC", Ordered, func() {
 				"it succefully install in default namespace", SpecTimeout(specTimeout),
 				Rbac{
 					TargetComponents:   []string{"mongodb-configmap"}, // Namespace level resource (configmap)
-					SolutionComponents: []string{"basic-configmap-1"}, // Namespace level resource (configmap)
-					InstanceScope:      "namespace-a",                 // Places the solution component in the allowed namespace
+					SolutionVersionComponents: []string{"basic-configmap-1"}, // Namespace level resource (configmap)
+					InstanceScope:      "namespace-a",                 // Places the solutionversion component in the allowed namespace
 					TargetScope:        "namespace-a",                 // Places the target component in the allowed namespace
 					Expectation: expectations.All(
 						successfullInstanceExpectation,

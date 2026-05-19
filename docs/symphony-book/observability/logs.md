@@ -109,7 +109,7 @@ Attributes:
      -> scope: Str(coa.runtime.user.diagnostics)
      -> type: Str(UserDiagnosticsLog)
      -> correlationId: Str(8ca7ba3a-4353-4c2e-9a95-74396220b462)
-     -> operationName: Str(instances.solution.symphony/Write)
+     -> operationName: Str(instances.solutionversion.symphony/Write)
      -> callerId: Str()
      -> operatingResourceK8SId: Str(default/instance)
      -> instance: Str(symphony-api-6b9b548b5b-fmggp)

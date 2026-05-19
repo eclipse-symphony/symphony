@@ -44,12 +44,12 @@ topologies:
           token: ...
 ```
 
-## Solution component example
-Here is a simple example for using configMap target provider in solution deployment. The below solution will create two configMaps in the kubernetes cluster for all the targets where the solution is invoked. The first one will create a configMap named configmap1 with key-value pair {"tags", "this is configmap1"} in the data. And it's similar for the second one.
+## SolutionVersion component example
+Here is a simple example for using configMap target provider in solutionversion deployment. The below solutionversion will create two configMaps in the kubernetes cluster for all the targets where the solutionversion is invoked. The first one will create a configMap named configmap1 with key-value pair {"tags", "this is configmap1"} in the data. And it's similar for the second one.
 
 ```
-apiVersion: solution.symphony/v1
-kind: Solution
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
 metadata:
   name: examples
 spec:

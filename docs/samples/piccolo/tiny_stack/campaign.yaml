@@ -29,7 +29,7 @@ spec:
         user: admin
         password: ""
       inputs:
-        objectType: solution
+        objectType: solutionversion
         objectName: tiny-app:version1
         patchSource: inline
         patchContent:

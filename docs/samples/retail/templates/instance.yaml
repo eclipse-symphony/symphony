@@ -1,9 +1,9 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: retail-instance
 spec:
-  solution: retail-solution:version1
+  solutionversion: retail-solutionversion:version1
   target: 
     selector: 
       scenario: retail-app

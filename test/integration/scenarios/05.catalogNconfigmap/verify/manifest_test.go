@@ -73,7 +73,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solution.symphony",
+			Group:    "solutionversion.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})

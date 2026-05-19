@@ -1,0 +1,5 @@
+apiVersion: solutionversion.symphony/v1
+kind: Solution
+metadata:
+  name: sample-simulated-temperature-sensor  
+spec:

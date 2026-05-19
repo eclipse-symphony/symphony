@@ -1,10 +1,10 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: redis-instance
 spec:
   scope: basic-k8s
-  solution: redis-server:version1
+  solutionversion: redis-server:version1
   target: 
     name: k8s-target    
   parameters:

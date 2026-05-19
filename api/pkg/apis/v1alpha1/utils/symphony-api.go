@@ -195,12 +195,12 @@ func SyncStageStatus(context context.Context, baseUrl string, user string, passw
 
 	return nil
 }
-func ReportCatalogs(context context.Context, baseUrl string, user string, password string, instance string, components []model.ComponentSpec) error {
+func ReportCatalogVersions(context context.Context, baseUrl string, user string, password string, instance string, components []model.ComponentSpec) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "catalogs/status/" + url.QueryEscape(instance)
+	path := "catalogversions/status/" + url.QueryEscape(instance)
 	jData, _ := json.Marshal(components)
 	_, err = callRestAPI(context, baseUrl, path, "POST", jData, token)
 	if err != nil {
@@ -209,13 +209,13 @@ func ReportCatalogs(context context.Context, baseUrl string, user string, passwo
 	return nil
 }
 
-func GetCatalogsWithFilter(context context.Context, baseUrl string, user string, password string, namespace string, filterType string, filterValue string) ([]model.CatalogState, error) {
-	ret := make([]model.CatalogState, 0)
+func GetCatalogVersionsWithFilter(context context.Context, baseUrl string, user string, password string, namespace string, filterType string, filterValue string) ([]model.CatalogVersionState, error) {
+	ret := make([]model.CatalogVersionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "catalogs/registry"
+	path := "catalogversions/registry"
 	if filterType != "" && filterValue != "" {
 		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
 		if namespace != "" {
@@ -234,22 +234,22 @@ func GetCatalogsWithFilter(context context.Context, baseUrl string, user string,
 	}
 	return ret, nil
 }
-func GetCatalogs(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.CatalogState, error) {
-	return GetCatalogsWithFilter(context, baseUrl, user, password, namespace, "", "")
+func GetCatalogVersions(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.CatalogVersionState, error) {
+	return GetCatalogVersionsWithFilter(context, baseUrl, user, password, namespace, "", "")
 }
-func GetCatalog(context context.Context, baseUrl string, catalog string, user string, password string, namespace string) (model.CatalogState, error) {
-	ret := model.CatalogState{}
+func GetCatalogVersion(context context.Context, baseUrl string, catalogversion string, user string, password string, namespace string) (model.CatalogVersionState, error) {
+	ret := model.CatalogVersionState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	catalogName := catalog
-	if strings.HasPrefix(catalogName, "<") && strings.HasSuffix(catalogName, ">") {
-		catalogName = catalogName[1 : len(catalogName)-1]
+	catalogversionName := catalogversion
+	if strings.HasPrefix(catalogversionName, "<") && strings.HasSuffix(catalogversionName, ">") {
+		catalogversionName = catalogversionName[1 : len(catalogversionName)-1]
 	}
 
-	path := "catalogs/registry/" + url.QueryEscape(catalogName)
+	path := "catalogversions/registry/" + url.QueryEscape(catalogversionName)
 	if namespace != "" {
 		path = path + "?namespace=" + url.QueryEscape(namespace)
 	}
@@ -395,13 +395,13 @@ func GetInstance(context context.Context, baseUrl string, instance string, user 
 	}
 	return ret, nil
 }
-func UpsertCatalog(context context.Context, baseUrl string, catalog string, user string, password string, payload []byte) error {
+func UpsertCatalogVersion(context context.Context, baseUrl string, catalogversion string, user string, password string, payload []byte) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+url.QueryEscape(catalog), "POST", payload, token)
+	_, err = callRestAPI(context, baseUrl, "catalogversions/registry/"+url.QueryEscape(catalogversion), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -423,13 +423,13 @@ func CreateInstance(context context.Context, baseUrl string, instance string, us
 	return nil
 }
 
-func DeleteCatalog(context context.Context, baseUrl string, catalog string, user string, password string) error {
+func DeleteCatalogVersion(context context.Context, baseUrl string, catalogversion string, user string, password string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = callRestAPI(context, baseUrl, "catalogs/registry/"+url.QueryEscape(catalog), "DELETE", nil, token)
+	_, err = callRestAPI(context, baseUrl, "catalogversions/registry/"+url.QueryEscape(catalogversion), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -464,14 +464,14 @@ func DeleteTarget(context context.Context, baseUrl string, target string, user s
 	return nil
 }
 
-func GetSolutionsForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.SolutionState, error) {
-	ret := make([]model.SolutionState, 0)
+func GetSolutionVersionsForAllNamespaces(context context.Context, baseUrl string, user string, password string) ([]model.SolutionVersionState, error) {
+	ret := make([]model.SolutionVersionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := callRestAPI(context, baseUrl, "solutions", "GET", nil, token)
+	response, err := callRestAPI(context, baseUrl, "solutionversions", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -483,13 +483,13 @@ func GetSolutionsForAllNamespaces(context context.Context, baseUrl string, user 
 	return ret, nil
 }
 
-func GetSolutions(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.SolutionState, error) {
-	ret := make([]model.SolutionState, 0)
+func GetSolutionVersions(context context.Context, baseUrl string, user string, password string, namespace string) ([]model.SolutionVersionState, error) {
+	ret := make([]model.SolutionVersionState, 0)
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "solution" + "?namespace=" + url.QueryEscape(namespace)
+	path := "solutionversion" + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -502,13 +502,13 @@ func GetSolutions(context context.Context, baseUrl string, user string, password
 	return ret, nil
 }
 
-func GetSolution(context context.Context, baseUrl string, solution string, user string, password string, namespace string) (model.SolutionState, error) {
-	ret := model.SolutionState{}
+func GetSolutionVersion(context context.Context, baseUrl string, solutionversion string, user string, password string, namespace string) (model.SolutionVersionState, error) {
+	ret := model.SolutionVersionState{}
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return ret, err
 	}
-	path := "solutions/" + url.QueryEscape(solution)
+	path := "solutionversions/" + url.QueryEscape(solutionversion)
 	path = path + "?namespace=" + url.QueryEscape(namespace)
 	response, err := callRestAPI(context, baseUrl, path, "GET", nil, token)
 	if err != nil {
@@ -522,12 +522,12 @@ func GetSolution(context context.Context, baseUrl string, solution string, user 
 	return ret, nil
 }
 
-func UpsertSolution(context context.Context, baseUrl string, solution string, user string, password string, payload []byte, namespace string) error {
+func UpsertSolutionVersion(context context.Context, baseUrl string, solutionversion string, user string, password string, payload []byte, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "solutions/" + url.QueryEscape(solution)
+	path := "solutionversions/" + url.QueryEscape(solutionversion)
 	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
@@ -536,12 +536,12 @@ func UpsertSolution(context context.Context, baseUrl string, solution string, us
 	return nil
 }
 
-func DeleteSolution(context context.Context, baseUrl string, solution string, user string, password string, namespace string) error {
+func DeleteSolutionVersion(context context.Context, baseUrl string, solutionversion string, user string, password string, namespace string) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "solutions/" + url.QueryEscape(solution)
+	path := "solutionversions/" + url.QueryEscape(solutionversion)
 	path = path + "?namespace=" + url.QueryEscape(namespace)
 	_, err = callRestAPI(context, baseUrl, path, "DELETE", nil, token)
 	if err != nil {
@@ -693,12 +693,12 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
-	solution := model.SolutionState{
+	solutionversion := model.SolutionVersionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      key,
 			Namespace: target.ObjectMeta.Namespace,
 		},
-		Spec: &model.SolutionSpec{
+		Spec: &model.SolutionVersionSpec{
 			DisplayName: key,
 			Components:  make([]model.ComponentSpec, 0),
 		},
@@ -712,7 +712,7 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 		if err != nil {
 			return ret, err
 		}
-		solution.Spec.Components = append(solution.Spec.Components, c)
+		solutionversion.Spec.Components = append(solutionversion.Spec.Components, c)
 	}
 
 	targets := make(map[string]model.TargetState)
@@ -726,7 +726,7 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 		Spec: &model.InstanceSpec{
 			Scope:       scope,
 			DisplayName: key,
-			Solution:    key,
+			SolutionVersion:    key,
 			Target: model.TargetSelector{
 				Name: target.ObjectMeta.Name,
 			},
@@ -735,13 +735,13 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 	// TODO: is this a good way to set guid for deployment?
 	instance.ObjectMeta.SetGuid(target.ObjectMeta.GetGuid())
 
-	ret.Solution = solution
+	ret.SolutionVersion = solutionversion
 	ret.Instance = instance
 	ret.Targets = targets
-	ret.SolutionName = key
+	ret.SolutionVersionName = key
 	// set the target generation to the deployment
 	ret.Generation = target.ObjectMeta.ETag
-	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ctx, ret.SolutionVersion.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -767,7 +767,7 @@ func ConstructSummaryId(name string, guid string) string {
 	return name
 }
 
-func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solution model.SolutionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
+func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState, solutionversion model.SolutionVersionState, targets []model.TargetState, devices []model.DeviceState, namespace string) (model.DeploymentSpec, error) {
 	ret := model.DeploymentSpec{
 		ObjectNamespace: namespace,
 	}
@@ -780,14 +780,14 @@ func CreateSymphonyDeployment(ctx context.Context, instance model.InstanceState,
 	}
 
 	//TODO: handle devices
-	ret.Solution = solution
+	ret.SolutionVersion = solutionversion
 	ret.Targets = sTargets
 	ret.Instance = instance
-	ret.SolutionName = solution.ObjectMeta.Name
+	ret.SolutionVersionName = solutionversion.ObjectMeta.Name
 	ret.Instance.ObjectMeta.Name = instance.ObjectMeta.Name
 	ret.Instance.ObjectMeta.SetGuid(instance.ObjectMeta.GetGuid())
 
-	assignments, err := AssignComponentsToTargets(ctx, ret.Solution.Spec.Components, ret.Targets)
+	assignments, err := AssignComponentsToTargets(ctx, ret.SolutionVersion.Spec.Components, ret.Targets)
 	if err != nil {
 		return ret, err
 	}
@@ -836,7 +836,7 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 	if err != nil {
 		return result, err
 	}
-	path := "solution/queue"
+	path := "solutionversion/queue"
 	path = path + "?instance=" + url.QueryEscape(id) + "&namespace=" + url.QueryEscape(namespace)
 	ret, err := callRestAPI(context, baseUrl, path, "GET", nil, token) // TODO: We can pass empty token now because is path is a "back-door", as it was designed to be invoked from a trusted environment, which should be also protected with auth
 	if err != nil {
@@ -853,12 +853,12 @@ func GetSummary(context context.Context, baseUrl string, user string, password s
 
 	return result, nil
 }
-func CatalogHook(context context.Context, baseUrl string, user string, password string, payload []byte) error {
+func CatalogVersionHook(context context.Context, baseUrl string, user string, password string, payload []byte) error {
 	token, err := auth(context, baseUrl, user, password)
 	if err != nil {
 		return err
 	}
-	path := "federation/k8shook?objectType=catalog"
+	path := "federation/k8shook?objectType=catalogversion"
 	_, err = callRestAPI(context, baseUrl, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -871,7 +871,7 @@ func QueueJob(context context.Context, baseUrl string, user string, password str
 	if err != nil {
 		return err
 	}
-	path := "solution/queue?instance=" + url.QueryEscape(id)
+	path := "solutionversion/queue?instance=" + url.QueryEscape(id)
 	if isDelete {
 		path += "&delete=true"
 	}
@@ -889,7 +889,7 @@ func Reconcile(context context.Context, baseUrl string, user string, password st
 	summary := model.SummarySpec{}
 	payload, _ := json.Marshal(deployment)
 
-	path := "solution/reconcile" + "?namespace=" + url.QueryEscape(namespace)
+	path := "solutionversion/reconcile" + "?namespace=" + url.QueryEscape(namespace)
 	if isDelete {
 		path = path + "&delete=true"
 	}

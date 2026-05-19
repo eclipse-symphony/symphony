@@ -18,17 +18,17 @@ import (
 var _ = Describe("Create/update resources for rollback testing", Ordered, func() {
 	type TestCase struct {
 		TargetComponents      []string
-		SolutionComponents    []string
-		SolutionComponentsV2  []string
+		SolutionVersionComponents    []string
+		SolutionVersionComponentsV2  []string
 		PostUpdateExpectation types.Expectation
 		PostRevertExpectation types.Expectation
 		TargetProperties      map[string]string
 	}
 	var instanceBytes []byte
 	var targetBytes []byte
-	var solutionBytes []byte
-	var solutionBytesV2 []byte
-	var solutionContainerBytes []byte
+	var solutionversionBytes []byte
+	var solutionversionBytesV2 []byte
+	var solutionversionContainerBytes []byte
 	var targetProps map[string]string
 
 	BeforeAll(func(ctx context.Context) {
@@ -56,10 +56,10 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 	runner := func(ctx context.Context, testcase TestCase) {
 		var err error
 
-		By("deploy solution container")
-		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		By("deploy solutionversion container")
+		solutionversionContainerBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.ContainerOptions{})
 		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionContainerBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("setting the components for the target")
@@ -74,13 +74,13 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("setting the components for Solution V1")
-		solutionBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
-			ComponentNames: testcase.SolutionComponents,
+		By("setting the components for SolutionVersion V1")
+		solutionversionBytes, err = testhelpers.PatchSolutionVersion(defaultSolutionVersionManifest, testhelpers.SolutionVersionOptions{
+			ComponentNames: testcase.SolutionVersionComponents,
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("preparing the instance bytes with a new operation id for Solution V1")
+		By("preparing the instance bytes with a new operation id for SolutionVersion V1")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -88,59 +88,59 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying Solution V1")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		By("deploying SolutionVersion V1")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the Instance that references Solution V1")
+		By("deploying the Instance that references SolutionVersion V1")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("setting the components for Solution V2, an invalid solution")
-		solutionBytesV2, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
-			ComponentNames: testcase.SolutionComponentsV2,
-			SolutionName:   "solution-v-version2",
+		By("setting the components for SolutionVersion V2, an invalid solutionversion")
+		solutionversionBytesV2, err = testhelpers.PatchSolutionVersion(defaultSolutionVersionManifest, testhelpers.SolutionVersionOptions{
+			ComponentNames: testcase.SolutionVersionComponentsV2,
+			SolutionVersionName:   "solutionversion-v-version2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying Solution V2")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytesV2)
+		By("deploying SolutionVersion V2")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionBytesV2)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("preparing the instance bytes with a new operation id for Solution V2")
+		By("preparing the instance bytes with a new operation id for SolutionVersion V2")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution:version2",
+			SolutionVersion: "solutionversion:version2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("updating the Instance to use Solution V2")
+		By("updating the Instance to use SolutionVersion V2")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("verifying deployment of Instance referencing Solution V2 fails")
+		By("verifying deployment of Instance referencing SolutionVersion V2 fails")
 		err = testcase.PostUpdateExpectation.Verify(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("reverting the Instance to use Solution V1")
+		By("reverting the Instance to use SolutionVersion V1")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			Solution: "solution:version1",
+			SolutionVersion: "solutionversion:version1",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("Deploying the Instance to use Solution V1 again")
+		By("Deploying the Instance to use SolutionVersion V1 again")
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", instanceBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("verifying deployment of Instance referencing Solution V1 succeeds")
+		By("verifying deployment of Instance referencing SolutionVersion V1 succeeds")
 		err = testcase.PostRevertExpectation.Verify(ctx)
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	DescribeTable("fail to deploy solution v2 then rollback to v1", Ordered, runner,
+	DescribeTable("fail to deploy solutionversion v2 then rollback to v1", Ordered, runner,
 		Entry("with a single component", TestCase{
 			TargetComponents:     []string{"simple-chart-1"},
-			SolutionComponents:   []string{"simple-chart-2"},
-			SolutionComponentsV2: []string{"simple-chart-2-nonexistent"},
+			SolutionVersionComponents:   []string{"simple-chart-2"},
+			SolutionVersionComponentsV2: []string{"simple-chart-2-nonexistent"},
 			PostUpdateExpectation: expectations.All(
 				kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 					kube.ProvisioningFailedCondition, // and it is failed

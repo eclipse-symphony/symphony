@@ -95,8 +95,8 @@ func HasCircularDependency(object string, field string, context EvaluationContex
 	if context.ParentConfigs == nil {
 		return false
 	}
-	if catalogFields, exist := context.ParentConfigs[object]; exist {
-		if catalogFields[field] {
+	if catalogversionFields, exist := context.ParentConfigs[object]; exist {
+		if catalogversionFields[field] {
 			return true
 		}
 	}

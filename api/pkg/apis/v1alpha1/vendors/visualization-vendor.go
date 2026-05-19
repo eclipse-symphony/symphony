@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
@@ -30,7 +30,7 @@ var vcLog = logger.NewLogger("coa.runtime")
 
 type VisualizationVendor struct {
 	vendors.Vendor
-	CatalogsManager *catalogs.CatalogsManager
+	CatalogVersionsManager *catalogversions.CatalogVersionsManager
 }
 
 func (s *VisualizationVendor) GetInfo() vendors.VendorInfo {
@@ -47,12 +47,12 @@ func (e *VisualizationVendor) Init(config vendors.VendorConfig, factories []mana
 		return err
 	}
 	for _, m := range e.Managers {
-		if c, ok := m.(*catalogs.CatalogsManager); ok {
-			e.CatalogsManager = c
+		if c, ok := m.(*catalogversions.CatalogVersionsManager); ok {
+			e.CatalogVersionsManager = c
 		}
 	}
-	if e.CatalogsManager == nil {
-		return v1alpha2.NewCOAError(nil, "catalogs manager is not supplied", v1alpha2.MissingConfig)
+	if e.CatalogVersionsManager == nil {
+		return v1alpha2.NewCOAError(nil, "catalogversions manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		catalog, err := convertVisualizationPacketToCatalog(packet)
+		catalogversion, err := convertVisualizationPacketToCatalogVersion(packet)
 		if err != nil {
 			vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -110,8 +110,8 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 			})
 		}
 
-		if packet.Solution != "" {
-			err = c.updateSolutionTopologyCatalog(ctx, fmt.Sprintf("%s-topology", packet.Solution), catalog)
+		if packet.SolutionVersion != "" {
+			err = c.updateSolutionVersionTopologyCatalogVersion(ctx, fmt.Sprintf("%s-topology", packet.SolutionVersion), catalogversion)
 			if err != nil {
 				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -122,7 +122,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		}
 
 		if packet.Instance != "" {
-			err = c.updateSolutionTopologyCatalog(ctx, fmt.Sprintf("%s-topology", packet.Instance), catalog)
+			err = c.updateSolutionVersionTopologyCatalogVersion(ctx, fmt.Sprintf("%s-topology", packet.Instance), catalogversion)
 			if err != nil {
 				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -133,7 +133,7 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 		}
 
 		if packet.Target != "" {
-			err = c.updateSolutionTopologyCatalog(ctx, fmt.Sprintf("%s-topology", packet.Target), catalog)
+			err = c.updateSolutionVersionTopologyCatalogVersion(ctx, fmt.Sprintf("%s-topology", packet.Target), catalogversion)
 			if err != nil {
 				vcLog.ErrorfCtx(pCtx, "V (Visualization): onVisPacket failed - %s", err.Error())
 				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
@@ -156,27 +156,27 @@ func (c *VisualizationVendor) onVisPacket(request v1alpha2.COARequest) v1alpha2.
 	return resp
 }
 
-func (c *VisualizationVendor) updateSolutionTopologyCatalog(ctx context.Context, name string, catalog model.CatalogState) error {
-	catalog.ObjectMeta.Name = name + "-v-version1"
-	catalog.Spec.RootResource = validation.GetRootResourceFromName(catalog.ObjectMeta.Name)
-	existingCatalog, err := c.CatalogsManager.GetState(ctx, name, catalog.ObjectMeta.Namespace)
+func (c *VisualizationVendor) updateSolutionVersionTopologyCatalogVersion(ctx context.Context, name string, catalogversion model.CatalogVersionState) error {
+	catalogversion.ObjectMeta.Name = name + "-v-version1"
+	catalogversion.Spec.RootResource = validation.GetRootResourceFromName(catalogversion.ObjectMeta.Name)
+	existingCatalogVersion, err := c.CatalogVersionsManager.GetState(ctx, name, catalogversion.ObjectMeta.Namespace)
 	if err != nil {
 		if !utils.IsNotFound(err) {
 			return err
 		}
-		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
+		return c.CatalogVersionsManager.UpsertState(ctx, catalogversion.ObjectMeta.Name, catalogversion)
 	} else {
-		catalog, err = mergeCatalogs(existingCatalog, catalog)
+		catalogversion, err = mergeCatalogVersions(existingCatalogVersion, catalogversion)
 		if err != nil {
 			return err
 		}
-		return c.CatalogsManager.UpsertState(ctx, catalog.ObjectMeta.Name, catalog)
+		return c.CatalogVersionsManager.UpsertState(ctx, catalogversion.ObjectMeta.Name, catalogversion)
 	}
 }
-func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.CatalogState, error) {
-	mergedCatalog := existingCatalog
-	for k, v := range newCatalog.Spec.Properties {
-		if ev, ok := existingCatalog.Spec.Properties[k]; ok {
+func mergeCatalogVersions(existingCatalogVersion, newCatalogVersion model.CatalogVersionState) (model.CatalogVersionState, error) {
+	mergedCatalogVersion := existingCatalogVersion
+	for k, v := range newCatalogVersion.Spec.Properties {
+		if ev, ok := existingCatalogVersion.Spec.Properties[k]; ok {
 			if vd, ok := v.(map[string]model.Packet); ok {
 				if ed, ok := ev.(map[string]interface{}); ok {
 					for ik, iv := range vd {
@@ -187,21 +187,21 @@ func mergeCatalogs(existingCatalog, newCatalog model.CatalogState) (model.Catalo
 						ed[ik] = iv
 					}
 				} else {
-					return model.CatalogState{}, fmt.Errorf("cannot merge catalogs, existing property %s is not a map[string]interface{}", k)
+					return model.CatalogVersionState{}, fmt.Errorf("cannot merge catalogversions, existing property %s is not a map[string]interface{}", k)
 				}
 			} else {
-				return model.CatalogState{}, fmt.Errorf("cannot merge catalogs, new property %s is not a map[string]model.Packet", k)
+				return model.CatalogVersionState{}, fmt.Errorf("cannot merge catalogversions, new property %s is not a map[string]model.Packet", k)
 			}
 		} else {
-			mergedCatalog.Spec.Properties[k] = v
+			mergedCatalogVersion.Spec.Properties[k] = v
 		}
 	}
-	return mergedCatalog, nil
+	return mergedCatalogVersion, nil
 }
 
-func convertVisualizationPacketToCatalog(packet model.Packet) (model.CatalogState, error) {
-	catalog := model.CatalogState{
-		Spec: &model.CatalogSpec{
+func convertVisualizationPacketToCatalogVersion(packet model.Packet) (model.CatalogVersionState, error) {
+	catalogversion := model.CatalogVersionState{
+		Spec: &model.CatalogVersionSpec{
 			CatalogType: "topology",
 			Properties: map[string]interface{}{
 				packet.From: map[string]model.Packet{
@@ -210,5 +210,5 @@ func convertVisualizationPacketToCatalog(packet model.Packet) (model.CatalogStat
 			},
 		},
 	}
-	return catalog, nil
+	return catalogversion, nil
 }

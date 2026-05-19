@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: solutions.solution.symphony
+  name: solutions.solutionversion.symphony
 spec:
-  group: solution.symphony
+  group: solutionversion.symphony
   names:
     kind: Solution
     listKind: SolutionList
@@ -17,7 +17,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Solution is the Schema for the solutions API
+        description: Solution is the Schema for the Solutions API
         properties:
           apiVersion:
             description: |-
@@ -37,99 +37,15 @@ spec:
           metadata:
             type: object
           spec:
-            properties:
-              components:
-                items:
-                  description: Defines a desired runtime component
-                  properties:
-                    constraints:
-                      type: string
-                    dependencies:
-                      items:
-                        type: string
-                      type: array
-                    metadata:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    name:
-                      type: string
-                    properties:
-                      x-kubernetes-preserve-unknown-fields: true
-                    routes:
-                      items:
-                        properties:
-                          filters:
-                            items:
-                              properties:
-                                direction:
-                                  type: string
-                                parameters:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
-                                type:
-                                  type: string
-                              required:
-                              - direction
-                              - type
-                              type: object
-                            type: array
-                          properties:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          route:
-                            type: string
-                          type:
-                            type: string
-                        required:
-                        - route
-                        - type
-                        type: object
-                      type: array
-                    sidecars:
-                      items:
-                        properties:
-                          name:
-                            type: string
-                          properties:
-                            x-kubernetes-preserve-unknown-fields: true
-                          type:
-                            type: string
-                        type: object
-                      type: array
-                    skills:
-                      items:
-                        type: string
-                      type: array
-                    type:
-                      type: string
-                  required:
-                  - name
-                  - type
-                  type: object
-                type: array
-              displayName:
-                type: string
-              metadata:
-                additionalProperties:
-                  type: string
-                type: object
-              rootResource:
-                type: string
-              version:
-                type: string
             type: object
           status:
-            description: SolutionStatus defines the observed state of Solution
             properties:
               properties:
                 additionalProperties:
                   type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
                 type: object
+            required:
+            - properties
             type: object
         type: object
     served: true

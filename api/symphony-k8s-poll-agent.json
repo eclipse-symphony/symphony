@@ -38,13 +38,13 @@
           "managers": []
         },
         {
-          "type": "vendors.solution",
+          "type": "vendors.solutionversion",
           "loopInterval": 15,
-          "route": "solution",
+          "route": "solutionversion",
           "managers": [
             {
-              "name": "solution-manager",
-              "type": "managers.symphony.solution",
+              "name": "solutionversion-manager",
+              "type": "managers.symphony.solutionversion",
               "properties": {
                 "providers.persistentstate": "mem-state",                
                 "providers.config": "mock-config",  

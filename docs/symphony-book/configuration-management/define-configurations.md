@@ -1,10 +1,10 @@
 # Defining a configuration object
 
-In Symphony, a configuration object is described by a `catalog` object, which can hold a collection of key-value pairs, as shown in the following example:
+In Symphony, a configuration object is described by a `catalogversion` object, which can hold a collection of key-value pairs, as shown in the following example:
 
 ```yaml
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: robot-config
 spec: 

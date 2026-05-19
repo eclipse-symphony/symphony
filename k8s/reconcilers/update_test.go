@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/reconcilers"
 
@@ -97,7 +97,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 		var reconciler *reconcilers.DeploymentReconciler
 		var apiClient *MockApiClient
 		var kubeClient client.Client
-		var object *solutionv1.Instance
+		var object *solutionversionv1.Instance
 		var reconcileResult reconcile.Result
 		var reconcileError error
 		var reconcileResultPolling reconcile.Result
@@ -107,7 +107,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 		BeforeEach(func() {
 			By("setting up the reconciler")
 			apiClient = &MockApiClient{}
-			kubeClient = CreateFakeKubeClientForSolutionGroup(
+			kubeClient = CreateFakeKubeClientForSolutionVersionGroup(
 				BuildDefaultInstance(),
 			)
 			var err error
@@ -121,7 +121,7 @@ var _ = Describe("Calling 'AttemptUpdate' on object", func() {
 
 		BeforeEach(func(ctx context.Context) {
 			By("fetching the latest resources from kube api")
-			object = &solutionv1.Instance{}
+			object = &solutionversionv1.Instance{}
 			err := kubeClient.Get(ctx, DefaultInstanceNamespacedName, object)
 			Expect(err).NotTo(HaveOccurred())
 		})

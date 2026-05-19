@@ -57,8 +57,8 @@ func TestGetOneDesired(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "MyApp",
@@ -95,8 +95,8 @@ func TestGetOneDesiredNotFound(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "MyApp",
@@ -140,8 +140,8 @@ func TestApply(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -176,8 +176,8 @@ func TestRemove(t *testing.T) {
 		},
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -208,8 +208,8 @@ func TestGetFailed(t *testing.T) {
 	assert.Nil(t, err)
 
 	_, err = provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "MyApp",
@@ -251,8 +251,8 @@ func TestApplyFailed(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

@@ -30,9 +30,9 @@ spec:
       contexts: "${{$output(list,items)}}"
       inputs:
         operation: wait
-        objectType: catalogs
+        objectType: catalogversions
         names:
-        - site-catalog:version1
+        - site-catalogversion:version1
         - site-app:version1
         - site-k8s-target:version1
         - site-instance:version1
@@ -44,7 +44,7 @@ spec:
       inputs:
         operation: materialize
         names:
-        - site-catalog:version1
+        - site-catalogversion:version1
         - site-app:version1
         - site-k8s-target:version1
         - site-instance:version1

@@ -1,11 +1,11 @@
-apiVersion: solution.symphony/v1
-kind: SolutionContainer
+apiVersion: solutionversion.symphony/v1
+kind: Solution
 metadata:
   name: csad  
 spec:
 ---
-apiVersion: solution.symphony/v1
-kind: Solution
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
 metadata: 
   name: csad-v-version1
 spec:

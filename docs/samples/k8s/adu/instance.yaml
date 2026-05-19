@@ -1,9 +1,9 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: my-rtos-app
 spec:  
-  solution: rtos-app:version1
+  solutionversion: rtos-app:version1
   target:
     selector: 
       app: rtos-demo

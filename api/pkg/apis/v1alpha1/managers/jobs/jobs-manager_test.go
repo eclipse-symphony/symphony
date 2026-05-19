@@ -243,7 +243,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Solution: "solution1",
+					SolutionVersion: "solutionversion1",
 				},
 			}
 		case "/instances":
@@ -253,7 +253,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Solution: "solution1",
+					SolutionVersion: "solutionversion1",
 				},
 			}}
 		case "/targets/registry":
@@ -276,13 +276,13 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					DisplayName: "target1",
 				},
 			}
-		case "/solutions/solution1":
-			response = model.SolutionState{
+		case "/solutionversions/solutionversion1":
+			response = model.SolutionVersionState{
 				ObjectMeta: model.ObjectMeta{
-					Name:      "solution1",
+					Name:      "solutionversion1",
 					Namespace: "default",
 				},
-				Spec: &model.SolutionSpec{},
+				Spec: &model.SolutionVersionSpec{},
 			}
 		default:
 			response = utils.AuthResponse{

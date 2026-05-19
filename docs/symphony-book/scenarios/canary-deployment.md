@@ -4,13 +4,13 @@ In this scenario, you deploy an application with a front end and a backend. As y
 
 ## Model the application
 
-You can model the application using a Symphony [solution](../concepts/unified-object-model/solution.md) object in several different ways:
+You can model the application using a Symphony [solutionversion](../concepts/unified-object-model/solutionversion.md) object in several different ways:
 
-* You can put the front-end, the backend (v1), as well as an ingress into the same solution definition as three components. When you need to roll out a new backend (v2), you patch the solution object to add a new backend (v2) component, and then add a canary ingress component to adjust traffic shape. During canary, you perform manual or automated validations and adjust the traffic shape by modifying the canary ingress definition.
+* You can put the front-end, the backend (v1), as well as an ingress into the same solutionversion definition as three components. When you need to roll out a new backend (v2), you patch the solutionversion object to add a new backend (v2) component, and then add a canary ingress component to adjust traffic shape. During canary, you perform manual or automated validations and adjust the traffic shape by modifying the canary ingress definition.
 
-* If you consider that ingress is an infrastructure component, you can move the ingress component to be a [target](../concepts/unified-object-model/target.md) object, or a separate solution object, so that it can be managed separately.
+* If you consider that ingress is an infrastructure component, you can move the ingress component to be a [target](../concepts/unified-object-model/target.md) object, or a separate solutionversion object, so that it can be managed separately.
 
-* If the front-end and the backend are managed by different teams, you can split them into different solutions.
+* If the front-end and the backend are managed by different teams, you can split them into different solutionversions.
 
 ## Generic flow
 
@@ -29,7 +29,7 @@ You can find sample artifacts in this repository in the `docs/samples/canary` fo
 | [activation.yaml](../../samples/canary/activation.yaml) | Activate the canary workflow |
 | [campaign.yaml](../../samples/canary/campaign.yaml) | Canary workflow definition |
 | [instance.yaml](../../samples/canary/instance.yaml) | Initial application deployment (front-end + backend (v1)) |
-| [solution.yaml](../../samples/canary/solution.yaml) | Initial application definition (front-end + backend (v1)) |
+| [solutionversion.yaml](../../samples/canary/solutionversion.yaml) | Initial application definition (front-end + backend (v1)) |
 | [target.yaml](../../samples/canary/target.yaml) | Target definition (current K8s cluster) |
 
 The following diagram illustrates how the stages in the canary workflow are defined, with corresponding stage names in `campaign.yaml`.
@@ -42,7 +42,7 @@ The following diagram illustrates how the stages in the canary workflow are defi
 
    ```bash
    kubectl apply -f target.yaml
-   kubectl apply -f solution.yaml
+   kubectl apply -f solutionversion.yaml
    kubectl apply -f instance.yaml
    ```
 
@@ -68,8 +68,8 @@ The following diagram illustrates how the stages in the canary workflow are defi
 1. The campaign takes a few minutes to run. Eventually, you should see that all traffic is shifted to v2 in the above terminal window. Optionally, in a separate terminal window, you can examine various objects:
 
    ```bash
-   # check how the solution is patched
-   kubectl get solution test-app -o yaml
+   # check how the solutionversion is patched
+   kubectl get solutionversion test-app -o yaml
    # check how the canary ingress is configured (such as weight assignment)
    kubectl get ingress canary-ingress -o yaml
    ```

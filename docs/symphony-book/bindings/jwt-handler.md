@@ -9,7 +9,7 @@ JWT handler is plugged into an [HTTP binding](../bindings/http-binding.md) via t
   {
     "type": "middleware.http.jwt",                   
     "properties": {
-      "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances"],
+      "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solutionversion/instances"],
       "verifyKey": "SymphonyKey"
     }
   }

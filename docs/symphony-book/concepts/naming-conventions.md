@@ -7,8 +7,8 @@ Symphony prefers naming conventions over rigid schemas in many cases. And in som
 This document captures naming rules and conventions that are used at different places of Symphony.
 
 
-## Catalog Naming Conventions
-* Topology catalogs are named after the objects they represent, with a ```-topology``` postfix. For example, a catalog that represents the topology of a solution ```solution-a``` is named as ```solution-a-topology```.
+## CatalogVersion Naming Conventions
+* Topology catalogversions are named after the objects they represent, with a ```-topology``` postfix. For example, a catalogversion that represents the topology of a solutionversion ```solutionversion-a``` is named as ```solutionversion-a-topology```.
 
 ## Environment Variables
 

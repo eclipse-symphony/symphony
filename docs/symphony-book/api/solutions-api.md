@@ -1,23 +1,25 @@
-# Solutions API
+# SolutionVersion Containers API
 
 | Route | Method| Function |
 |--------|-------|--------|
-| `/solutions/{solution name}` | POST | Creates or updates a solution |
-| `/solutions/[{solution name}]?[<path=<json path>]&[<doc-type>=<doc type>]` | GET | Query solutions |
-| `/solutions/{solution name}` | DELETE | Deletes a solution |
+| `/solutions/{solutionversion container name}` | POST | Creates or updates a solutionversion container |
+| `/solutions/[{solutionversion container name}]?[<path=<json path>]&[<doc-type>=<doc type>]` | GET | Queries solutionversion containers |
+| `/solutions/{solutionversion container name}` | DELETE | Deletes a solutionversion |
 
->**NOTE**: `{}` indicate path parameter; `<>` indicates query parameter; `[]` indicates optional parameter
+>**NOTE**: 
+- `{}` indicates a path parameter; `<>` indicates a query parameter; `[]` indicates a optional parameter
+- Other container objects `catalogversion container`, `campaign container` support the same REST APIs.
 
-## Query solutions
+## Query solutionversion containers
 
-* **Path:** /solutions/{solution name}
+* **Path:** /solutions/{solutionversion container name}
 * **Method:** Get
 * **Parameters:**
 
   |Parameter| Value|
   |--------|--------|
-  | `[{solution name}]` | (optional) Name of the solution. A list is returned when this parameter is omitted. |
-  | `[<path>]` | (option) JSON path filter. |
+  | `[{solutionversion container name}]` | (optional) Name of the solutionversion container. A list is returned when this parameter is omitted. |
+  | `[<path>]` | (optional) JSON path filter. |
   |`[<doc-type>]`| (optional) Return doc type, like `yaml` or `json`. Default is `json`. For more information, see [query projection](./projection.md). |
   
 * **Headers:**
@@ -29,101 +31,65 @@
 * **Request body:** None
 * **Response body** (without [projection](./projection.md))**:**
 
-  Single solution
+  SolutionVersion Container GET
 
   ```json
   {
-    "id": "{solution name}",    
-    "spec": {...}  //solution spec
+    "id": "{solutionversion container name}",
+    "spec": {...}
   }
   ```
 
-  Solution list
+  SolutionVersion Containers LIST
 
   ```json
-
   [
     {
-      "id": "solution name 1",
-      "spec": {...}  //solution spec
+      "id": "solutionversion container 1",
+      "spec": {...}
     },
     ...
     {
-      "id": "solution name n",
-      "spec": {...}  //solution spec
+      "id": "solutionversion container n",
+      "spec": {...}
     },
   ]
   ```
 
-## Create or update a solution
+## Create or update a solutionversion container
 
-* **Path:** /solutions/{solution name}
+* **Path:** /solutions/{solutionversion container name}
 * **Method:** POST
 * **Parameters:**
 
   |Parameter| Value|
   |--------|--------|
-  | `{solution name}` | Name of the solution. |
-  | `[<embed-type>]` | Type of embedded artifact<sup>1</sup>. |
-  | `[<embed-component>]` | Name of the embedded component<sup>1</sup>. |
-  | `[<embed-property>]`| Name of the embedded component property<sup>1</sup>. |
-  
-  <sup>1</sup> Symphony allows a foreign application artifact to be directly embedded as a component property. The embedded artifact can be in any format. When you send the POST request, you need to use the correct content encoding. For example, to embed a YAML file as an `embedded` property of a `my-external-component` component, you need to set body encoding to `text/plain`.
+  | `{solutionversion container name}` | Name of the solutionversion container|
 
 * **Headers:**
 
   |Parameter| Value|
   |--------|--------|
-  | `Authorization` | Bearer token. For more information, see [authorization](../security/authorization.md). |
+  | `Authorization` | Bearer token. For more information, see [authorization](../security/authorization.md).  |
 
-* **Request body:** Solution spec (JSON), or an arbitrary text payload when `embed-*` parameters are used. For example, the following request:
-
-  ```query
-  http://localhost:8080/v1alpha2/solutions/api-test-1?embed-type=container&embed-component=galaxy-services&embed-property=embedded
-  ```
-
-  with request body:
-
-  ```yaml
-  version: '3.8'
-  provisioner-version: '1.0'
-  services:
-  my-apache-app:
-  download-image: true
-  image: docker.io/httpd:2.4
-  ports:
-  - 8085:80
-  volumes:    
-  - "/:/usr/local/apache2/htdocs"
-  container_name: my-apache-app
-  ```
-
-  creates an `api-test-1` solution with a single `galaxy-services` component that has an `embedded` property containing the posted YAML. This is equivalent to sending a request to `http://localhost:8080/v1alpha2/solutions/api-test-1` with JSON request body:
+* **Request body:** Container container spec. For example:
 
   ```json
   {
-    "displayName": "api-test-1",
-    "components": [
-      {
-        "name": "galaxy-services",
-        "type": "container",
-        "properties": {
-          "embedded": "version: '3.8'\r\nprovisioner-version: '1.0'\r\nservices:\r\n  my-apache-app:\r\n  download-image: true\r\n  image: docker.io/httpd:2.4\r\n  ports:\r\n  - 8085:80\r\n  volumes:    \r\n  - \"/:/usr/local/apache2/htdocs\"\r\n  container_name: my-apache-app"
-        }
-      }
-    ]
+    "name": "samplecontainer",
   }
   ```
+* **Response body:** None
 
-## Delete a solution
+## Delete a solutionversion container
 
-* **Path:** /targets/solutions/{solution name}
+* **Path:** /solutions/{solutionversion container name}
 * **Method:** DELETE
 * **Parameters:**
 
   |Parameter| Value|
   |--------|--------|
-  | `{solution name}` | Name of the solution. |
+  | `{solutionversion name}` | Name of the solutionversion |
   
 * **Headers:**
 

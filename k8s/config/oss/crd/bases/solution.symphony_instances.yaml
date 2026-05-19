@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: instances.solution.symphony
+  name: instances.solutionversion.symphony
 spec:
-  group: solution.symphony
+  group: solutionversion.symphony
   names:
     kind: Instance
     listKind: InstanceList
@@ -98,7 +98,7 @@ spec:
                 type: object
               scope:
                 type: string
-              solution:
+              solutionversion:
                 type: string
               target:
                 description: TargertRefSpec defines the target the instance will deploy
@@ -141,7 +141,7 @@ spec:
                   type: object
                 type: array
             required:
-            - solution
+            - solutionversion
             type: object
           status:
             properties:

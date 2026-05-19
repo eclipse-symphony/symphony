@@ -13,10 +13,10 @@ components:
       type: http
       scheme: noauth
 tags:
-  - name: Solutions
+  - name: SolutionVersions
   - name: Targets
   - name: Instances
-  - name: Catalogs
+  - name: CatalogVersions
   - name: Users
   - name: Campaigns
   - name: Activations
@@ -28,14 +28,14 @@ tags:
   - name: Settings
   - name: Jobs
   - name: Echo
-  - name: Solution
+  - name: SolutionVersion
   - name: Federation
 paths:
-  /solutions/{SOLUTION_NAME}:
+  /solutionversions/{SOLUTION_NAME}:
     post:
       tags:
-        - Solutions
-      summary: Create Solution with embedded spec
+        - SolutionVersions
+      summary: Create SolutionVersion with embedded spec
       requestBody:
         content:
           text/plain:
@@ -72,8 +72,8 @@ paths:
             application/json: {}
     get:
       tags:
-        - Solutions
-      summary: Get Solution spec Yaml
+        - SolutionVersions
+      summary: Get SolutionVersion spec Yaml
       security:
         - bearerAuth: []
       parameters:
@@ -99,8 +99,8 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Solutions
-      summary: Delete Solution
+        - SolutionVersions
+      summary: Delete SolutionVersion
       security:
         - bearerAuth: []
       parameters:
@@ -114,11 +114,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /solutions:
+  /solutionversions:
     get:
       tags:
-        - Solutions
-      summary: List Solutions
+        - SolutionVersions
+      summary: List SolutionVersions
       security:
         - bearerAuth: []
       responses:
@@ -316,7 +316,7 @@ paths:
               type: object
               example:
                 displayName: '{{INSTANCE_NAME}}'
-                solution: '{{SOLUTION_NAME}}'
+                solutionversion: '{{SOLUTION_NAME}}'
                 target:
                   name: '{{TARGET_NAME}}'
       security:
@@ -388,11 +388,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /catalogs/registry:
+  /catalogversions/registry:
     get:
       tags:
-        - Catalogs
-      summary: List Catalogs
+        - CatalogVersions
+      summary: List CatalogVersions
       security:
         - bearerAuth: []
       responses:
@@ -400,11 +400,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /catalogs/registry/{CATALOG_NAME}:
+  /catalogversions/registry/{CATALOG_NAME}:
     post:
       tags:
-        - Catalogs
-      summary: Create Catalog
+        - CatalogVersions
+      summary: Create CatalogVersion
       requestBody:
         content:
           application/json:
@@ -430,8 +430,8 @@ paths:
             application/json: {}
     get:
       tags:
-        - Catalogs
-      summary: Get Catalog spec YAML
+        - CatalogVersions
+      summary: Get CatalogVersion spec YAML
       security:
         - bearerAuth: []
       parameters:
@@ -457,8 +457,8 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Catalogs
-      summary: Delete Catalog
+        - CatalogVersions
+      summary: Delete CatalogVersion
       security:
         - bearerAuth: []
       parameters:
@@ -472,11 +472,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /catalogs/graph:
+  /catalogversions/graph:
     get:
       tags:
-        - Catalogs
-      summary: List Catalogs - Config Chains
+        - CatalogVersions
+      summary: List CatalogVersions - Config Chains
       security:
         - bearerAuth: []
       parameters:
@@ -490,11 +490,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /catalogs/check:
+  /catalogversions/check:
     post:
       tags:
-        - Catalogs
-      summary: Validate Catalog
+        - CatalogVersions
+      summary: Validate CatalogVersion
       requestBody:
         content:
           application/json:
@@ -512,11 +512,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /catalogs/registry/{CATALOG_NAME}-2:
+  /catalogversions/registry/{CATALOG_NAME}-2:
     post:
       tags:
-        - Catalogs
-      summary: Create Catalog 2
+        - CatalogVersions
+      summary: Create CatalogVersion 2
       requestBody:
         content:
           application/json:
@@ -786,7 +786,7 @@ paths:
           in: query
           schema:
             type: string
-          example: catalogs
+          example: catalogversions
         - name: group
           in: query
           schema:
@@ -805,7 +805,7 @@ paths:
     get:
       tags:
         - Agent
-      summary: Get object reference - solution
+      summary: Get object reference - solutionversion
       security:
         - bearerAuth: []
       parameters:
@@ -823,12 +823,12 @@ paths:
           in: query
           schema:
             type: string
-          example: solutions
+          example: solutionversions
         - name: group
           in: query
           schema:
             type: string
-          example: solution.symphony
+          example: solutionversion.symphony
         - name: version
           in: query
           schema:
@@ -1222,10 +1222,10 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /solution/reconcile:
+  /solutionversion/reconcile:
     post:
       tags:
-        - Solution
+        - SolutionVersion
       summary: Direct delete deployment
       requestBody:
         content:
@@ -1233,8 +1233,8 @@ paths:
             schema:
               type: object
               example:
-                solutionName: redis
-                solution:
+                solutionversionName: redis
+                solutionversion:
                   components:
                     - name: redis
                       type: container
@@ -1262,10 +1262,10 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /solution/instances:
+  /solutionversion/instances:
     get:
       tags:
-        - Solution
+        - SolutionVersion
       summary: Get components
       security:
         - bearerAuth: []
@@ -1276,7 +1276,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Solution
+        - SolutionVersion
       summary: Apply deployment
       requestBody:
         content:
@@ -1284,8 +1284,8 @@ paths:
             schema:
               type: object
               example:
-                solutionName: redis
-                solution:
+                solutionversionName: redis
+                solutionversion:
                   components:
                     - name: redis
                       type: container
@@ -1309,7 +1309,7 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Solution
+        - SolutionVersion
       summary: Delete components
       security:
         - bearerAuth: []
@@ -1318,10 +1318,10 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /solution/queue:
+  /solutionversion/queue:
     get:
       tags:
-        - Solution
+        - SolutionVersion
       summary: Get instance status
       security:
         - bearerAuth: []
@@ -1338,7 +1338,7 @@ paths:
             application/json: {}
     post:
       tags:
-        - Solution
+        - SolutionVersion
       summary: Queue target deletion job
       requestBody:
         content:
@@ -1552,7 +1552,7 @@ paths:
     post:
       tags:
         - Federation
-      summary: Create catalog hook
+      summary: Create catalogversion hook
       requestBody:
         content:
           application/json:
@@ -1570,7 +1570,7 @@ paths:
           in: query
           schema:
             type: string
-          example: catalog
+          example: catalogversion
       responses:
         '200':
           description: Successful response

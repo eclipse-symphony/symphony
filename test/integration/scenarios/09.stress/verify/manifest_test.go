@@ -31,20 +31,20 @@ import (
 var (
 	yamlFiles = map[string]string{
 		"target":            "scenario2/target",
-		"solution":          "scenario2/solution",
+		"solutionversion":          "scenario2/solutionversion",
 		"instance":          "scenario2/instance",
-		"solutioncontainer": "scenario2/solution-container",
+		"solution": "scenario2/solutionversion-container",
 	}
 	AzureIdFormat = map[string]string{
 		"target":   "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX",
-		"solution": "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX/solutions/scenario2solutioncontainerINDEX/versions/version1",
+		"solutionversion": "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX/solutionversions/scenario2solutionINDEX/versions/version1",
 		"instance": "",
 	}
 	objectAzureName = map[string]string{
 		"target":            "scenario2targetINDEX",
-		"solution":          "scenario2targetINDEX-v-scenario2solutioncontainerINDEX-v-version1",
-		"instance":          "scenario2targetINDEX-v-scenario2solutioncontainerINDEX-v-instanceINDEX",
-		"solutioncontainer": "scenario2targetINDEX-v-scenario2solutioncontainerINDEX",
+		"solutionversion":          "scenario2targetINDEX-v-scenario2solutionINDEX-v-version1",
+		"instance":          "scenario2targetINDEX-v-scenario2solutionINDEX-v-instanceINDEX",
+		"solution": "scenario2targetINDEX-v-scenario2solutionINDEX",
 	}
 )
 
@@ -53,7 +53,7 @@ type (
 		// Name gives the brief introduction of each test case
 		Name string
 
-		// Target is Symphony manifest to test, e.g. solution/target
+		// Target is Symphony manifest to test, e.g. solutionversion/target
 		Target string
 
 		// ComponentsToAdd specifies the components to be added to the symphony manifest
@@ -82,10 +82,10 @@ func TestScenario_Stress_AllNamespaces(t *testing.T) {
 		"Activation":        "activations",
 		"Campaign":          "campaigns",
 		"CampaignContainer": "campaigncontainers",
-		"Catalog":           "catalogs",
-		"CatalogContainer":  "catalogcontainers",
-		"SolutionContainer": "solutioncontainers",
-		"Solution":          "solutions",
+		"CatalogVersion":           "catalogversions",
+		"Catalog":  "catalogs",
+		"Solution": "solutions",
+		"SolutionVersion":          "solutionversions",
 		"Instance":          "instances",
 		"Target":            "targets",
 	}
@@ -160,7 +160,7 @@ func Scenario_Stress(t *testing.T, namespace string) {
 
 func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 
-	watcher, err := dynamicClient.Resource(getGVR("solution.symphony/v1", "Instance")).Namespace(namespace).Watch(context.TODO(), metav1.ListOptions{})
+	watcher, err := dynamicClient.Resource(getGVR("solutionversion.symphony/v1", "Instance")).Namespace(namespace).Watch(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -200,14 +200,14 @@ func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 }
 
 func createScenario2(dynamicClient dynamic.Interface, index int) {
-	createBasicContinerAndNested(dynamicClient, "solution", index, nil)
+	createBasicContinerAndNested(dynamicClient, "solutionversion", index, nil)
 	createBasic(dynamicClient, "target", index, nil)
 	adjust := func(spec map[interface{}]interface{}, index int) {
 		if testhelpers.IsTestInAzure() {
-			spec["solution"] = strings.ToLower(strings.ReplaceAll(AzureIdFormat["solution"], "INDEX", fmt.Sprintf("%d", index)))
+			spec["solutionversion"] = strings.ToLower(strings.ReplaceAll(AzureIdFormat["solutionversion"], "INDEX", fmt.Sprintf("%d", index)))
 			spec["target"].(map[interface{}]interface{})["name"] = strings.ToLower(strings.ReplaceAll(AzureIdFormat["target"], "INDEX", fmt.Sprintf("%d", index)))
 		} else {
-			spec["solution"] = fmt.Sprintf("scenario2solutioncontainer%d-v-version1", index)
+			spec["solutionversion"] = fmt.Sprintf("scenario2solution%d-v-version1", index)
 			spec["target"].(map[interface{}]interface{})["name"] = fmt.Sprintf("scenario2target%d", index)
 		}
 	}
@@ -222,7 +222,7 @@ func deleteScenario2(dynamicClient dynamic.Interface, index int) {
 		_, err = getBasic(dynamicClient, "instance", index)
 	}
 	deleteBasic(dynamicClient, "target", index)
-	deleteBasicContinerAndNested(dynamicClient, "solution", index)
+	deleteBasicContinerAndNested(dynamicClient, "solutionversion", index)
 }
 func createBasic(dynamicClient dynamic.Interface, objectType string, index int, adjust func(map[interface{}]interface{}, int)) {
 	var cr map[interface{}]interface{}

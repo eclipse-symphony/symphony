@@ -158,14 +158,14 @@ func AbsentInstance(name, namespace string, opts ...Option) (*KubeExpectation, e
 	return AbsentResource(name, namespace, helpers.InstanceGVK, opts...)
 }
 
-// Solution returns an expectation for a solution(s) in the cluster
-func Solution(name, namespace string, opts ...Option) (*KubeExpectation, error) {
-	return Resource(name, namespace, helpers.SolutionGVK, opts...)
+// SolutionVersion returns an expectation for a solutionversion(s) in the cluster
+func SolutionVersion(name, namespace string, opts ...Option) (*KubeExpectation, error) {
+	return Resource(name, namespace, helpers.SolutionVersionGVK, opts...)
 }
 
-// AbsentSolution returns an expectation that the solution(s) is/are absent from the cluster
-func AbsentSolution(name, namespace string, opts ...Option) (*KubeExpectation, error) {
-	return AbsentResource(name, namespace, helpers.SolutionGVK, opts...)
+// AbsentSolutionVersion returns an expectation that the solutionversion(s) is/are absent from the cluster
+func AbsentSolutionVersion(name, namespace string, opts ...Option) (*KubeExpectation, error) {
+	return AbsentResource(name, namespace, helpers.SolutionVersionGVK, opts...)
 }
 
 // Must returns a resource expectation or panics if there is an error

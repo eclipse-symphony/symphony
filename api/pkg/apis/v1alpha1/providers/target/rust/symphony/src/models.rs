@@ -66,8 +66,8 @@ impl Default for ValidationRule {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentSpec {
-    pub solution_name: String,
-    pub solution: SolutionState,
+    pub solutionversion_name: String,
+    pub solutionversion: SolutionVersionState,
     pub instance: InstanceState,
     pub targets: HashMap<String, TargetState>,
     pub devices: Option<Vec<DeviceSpec>>,
@@ -84,8 +84,8 @@ impl DeploymentSpec {
     /// Creates an empty `DeploymentSpec` with default values.
     pub fn empty() -> Self {
         DeploymentSpec {
-            solution_name: String::new(),
-            solution: SolutionState {
+            solutionversion_name: String::new(),
+            solutionversion: SolutionVersionState {
                 metadata: ObjectMeta {
                     namespace: None,
                     name: None,
@@ -222,14 +222,14 @@ pub enum ComponentAction {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SolutionState {
+pub struct SolutionVersionState {
     pub metadata: ObjectMeta,
-    pub spec: Option<SolutionSpec>,
+    pub spec: Option<SolutionVersionSpec>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SolutionSpec {
+pub struct SolutionVersionSpec {
     pub display_name: Option<String>,
     pub metadata: Option<HashMap<String, String>>,
     pub components: Option<Vec<ComponentSpec>>,
@@ -252,7 +252,7 @@ pub struct InstanceSpec {
     pub scope: Option<String>,
     pub parameters: Option<HashMap<String, String>>,
     pub metadata: Option<HashMap<String, String>>,
-    pub solution: String,
+    pub solutionversion: String,
     pub target: Option<TargetSelector>, // Include TargetSelector
     pub topologies: Option<Vec<TopologySpec>>,
     pub pipelines: Option<Vec<PipelineSpec>>,
@@ -493,8 +493,8 @@ pub enum State {
     CatalogsGetFailed = 10042,
     InvalidInstanceCatalog = 10043,
     CreateInstanceFromCatalogFailed = 10044,
-    InvalidSolutionCatalog = 10045,
-    CreateSolutionFromCatalogFailed = 10046,
+    InvalidSolutionVersionCatalog = 10045,
+    CreateSolutionVersionFromCatalogFailed = 10046,
     InvalidTargetCatalog = 10047,
     CreateTargetFromCatalogFailed = 10048,
     InvalidCatalogCatalog = 10049,
@@ -509,7 +509,7 @@ pub enum State {
     UnsupportedAction = 10058,
 
     // Instance controller errors
-    SolutionGetFailed = 11000,
+    SolutionVersionGetFailed = 11000,
     TargetCandidatesNotFound = 11001,
     TargetListGetFailed = 11002,
     ObjectInstanceConversionFailed = 11003,
@@ -618,8 +618,8 @@ impl From<u16> for State {
             10042 => State::CatalogsGetFailed,
             10043 => State::InvalidInstanceCatalog,
             10044 => State::CreateInstanceFromCatalogFailed,
-            10045 => State::InvalidSolutionCatalog,
-            10046 => State::CreateSolutionFromCatalogFailed,
+            10045 => State::InvalidSolutionVersionCatalog,
+            10046 => State::CreateSolutionVersionFromCatalogFailed,
             10047 => State::InvalidTargetCatalog,
             10048 => State::CreateTargetFromCatalogFailed,
             10049 => State::InvalidCatalogCatalog,
@@ -634,7 +634,7 @@ impl From<u16> for State {
             10058 => State::UnsupportedAction,
 
             // Instance controller errors
-            11000 => State::SolutionGetFailed,
+            11000 => State::SolutionVersionGetFailed,
             11001 => State::TargetCandidatesNotFound,
             11002 => State::TargetListGetFailed,
             11003 => State::ObjectInstanceConversionFailed,

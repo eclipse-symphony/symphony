@@ -220,34 +220,34 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize %v in namespace %s", prefixedNames, namespace)
 
 	// Fail fast check
-	catalogs := []model.CatalogState{}
-	errorMessage := "Failed to get all catalogs: "
-	anyCatalogInvalid := false
+	catalogversions := []model.CatalogVersionState{}
+	errorMessage := "Failed to get all catalogversions: "
+	anyCatalogVersionInvalid := false
 	for _, objectRef := range prefixedNames {
 		objectName := api_utils.ConvertReferenceToObjectName(objectRef)
-		catalog, err := i.ApiClient.GetCatalog(ctx, objectName, namespace, i.Config.User, i.Config.Password)
+		catalogversion, err := i.ApiClient.GetCatalogVersion(ctx, objectName, namespace, i.Config.User, i.Config.Password)
 		if err != nil {
 			errorMessage = fmt.Sprintf("%s %s(reason: %s).", errorMessage, objectRef, err.Error())
-			anyCatalogInvalid = anyCatalogInvalid || api_utils.IsNotFound(err)
+			anyCatalogVersionInvalid = anyCatalogVersionInvalid || api_utils.IsNotFound(err)
 			continue
 		}
-		if !checkCatalog(&catalog) {
-			errorMessage = fmt.Sprintf("%s %s(reason: catalog doesn't have a valid Spec.CatalogType).", errorMessage, objectRef)
-			anyCatalogInvalid = true
+		if !checkCatalogVersion(&catalogversion) {
+			errorMessage = fmt.Sprintf("%s %s(reason: catalogversion doesn't have a valid Spec.CatalogType).", errorMessage, objectRef)
+			anyCatalogVersionInvalid = true
 			continue
 		}
-		catalogs = append(catalogs, catalog)
+		catalogversions = append(catalogversions, catalogversion)
 	}
-	if len(catalogs) < len(prefixedNames) {
+	if len(catalogversions) < len(prefixedNames) {
 		mLog.ErrorCtx(ctx, errorMessage)
 		providerOperationMetrics.ProviderOperationErrors(
 			materialize,
 			functionName,
 			metrics.ProcessOperation,
 			metrics.RunOperationType,
-			v1alpha2.CatalogsGetFailed.String(),
+			v1alpha2.CatalogVersionsGetFailed.String(),
 		)
-		if anyCatalogInvalid {
+		if anyCatalogVersionInvalid {
 			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.BadRequest)
 		} else {
 			return outputs, false, v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
@@ -260,38 +260,38 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 
-	for _, catalog := range catalogs {
-		objectData, _ := json.Marshal(catalog.Spec.Properties) //TODO: handle errors
-		name := catalog.ObjectMeta.Name
+	for _, catalogversion := range catalogversions {
+		objectData, _ := json.Marshal(catalogversion.Spec.Properties) //TODO: handle errors
+		name := catalogversion.ObjectMeta.Name
 		if s, ok := inputs["__origin"]; ok {
-			name = strings.TrimPrefix(catalog.ObjectMeta.Name, fmt.Sprintf("%s-", s))
+			name = strings.TrimPrefix(catalogversion.ObjectMeta.Name, fmt.Sprintf("%s-", s))
 		}
-		switch catalog.Spec.CatalogType {
+		switch catalogversion.Spec.CatalogType {
 		case "instance":
 			var instanceState model.InstanceState
 			err = utils2.UnmarshalJson(objectData, &instanceState)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state for catalog %s: %s", name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal instance state for catalogversion %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidInstanceCatalog.String(),
+					v1alpha2.InvalidInstanceCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded instance in catalog %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded instance in catalogversion %s", name), v1alpha2.BadRequest)
 			}
 
 			if instanceState.ObjectMeta.Name == "" {
-				mLog.ErrorfCtx(ctx, "Instance name is empty: catalog - %s", name)
+				mLog.ErrorfCtx(ctx, "Instance name is empty: catalogversion - %s", name)
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidInstanceCatalog.String(),
+					v1alpha2.InvalidInstanceCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalog - %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance name: catalogversion - %s", name), v1alpha2.BadRequest)
 			}
 
 			operationIdKey := api_utils.GenerateOperationId()
@@ -336,7 +336,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.CreateInstanceFromCatalogFailed.String(),
+					v1alpha2.CreateInstanceFromCatalogVersionFailed.String(),
 				)
 				return outputs, false, err
 			}
@@ -366,67 +366,67 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceState.ObjectMeta.Name), v1alpha2.BadRequest)
 			}
 			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
-			createdObjectList[catalog.ObjectMeta.Name] = true
-		case "solution":
-			var solutionState model.SolutionState
-			err = utils2.UnmarshalJson(objectData, &solutionState)
+			createdObjectList[catalogversion.ObjectMeta.Name] = true
+		case "solutionversion":
+			var solutionversionState model.SolutionVersionState
+			err = utils2.UnmarshalJson(objectData, &solutionversionState)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for catalog %s: %s: %s", name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal solutionversion state for catalogversion %s: %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidSolutionCatalog.String(),
+					v1alpha2.InvalidSolutionVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solution in catalog %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solutionversion in catalogversion %s", name), v1alpha2.BadRequest)
 			}
 
-			if solutionState.ObjectMeta.Name == "" {
-				mLog.ErrorfCtx(ctx, "Solution name is empty: catalog - %s", name)
+			if solutionversionState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "SolutionVersion name is empty: catalogversion - %s", name)
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidSolutionCatalog.String(),
+					v1alpha2.InvalidSolutionVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty solution name: catalog - %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty solutionversion name: catalogversion - %s", name), v1alpha2.BadRequest)
 			}
 
-			solutionName := solutionState.ObjectMeta.Name
-			parts := strings.Split(solutionName, constants.ReferenceSeparator)
+			solutionversionName := solutionversionState.ObjectMeta.Name
+			parts := strings.Split(solutionversionName, constants.ReferenceSeparator)
 			if len(parts) == 2 {
-				solutionState.Spec.RootResource = parts[0]
-				solutionState.Spec.Version = parts[1]
+				solutionversionState.Spec.RootResource = parts[0]
+				solutionversionState.Spec.Version = parts[1]
 			} else {
-				mLog.ErrorfCtx(ctx, "Solution name is invalid: solution - %s, catalog - %s", solutionName, name)
+				mLog.ErrorfCtx(ctx, "SolutionVersion name is invalid: solutionversion - %s, catalogversion - %s", solutionversionName, name)
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidSolutionCatalog.String(),
+					v1alpha2.InvalidSolutionVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: catalog - %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solutionversion name: catalogversion - %s", name), v1alpha2.BadRequest)
 			}
 
 			if annotation_name != "" {
-				solutionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
+				solutionversionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
 
-			setLabels(&solutionState.ObjectMeta)
+			setLabels(&solutionversionState.ObjectMeta)
 
-			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, namespace)
-			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check solutionversion contains %v, namespace %s", solutionversionState.Spec.RootResource, namespace)
+			_, err := i.ApiClient.GetSolution(ctx, solutionversionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
-				mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
-				solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: namespace, Labels: solutionState.ObjectMeta.Labels}}
-				containerObjectData, _ := json.Marshal(solutionContainerState)
-				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solution container %v in namespace %s", solutionState.Spec.RootResource, namespace)
-				err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
+				mLog.DebugfCtx(ctx, "SolutionVersion container %s doesn't exist: %s", solutionversionState.Spec.RootResource, err.Error())
+				solutionversionContainerState := model.SolutionState{ObjectMeta: model.ObjectMeta{Name: solutionversionState.Spec.RootResource, Namespace: namespace, Labels: solutionversionState.ObjectMeta.Labels}}
+				containerObjectData, _ := json.Marshal(solutionversionContainerState)
+				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solutionversion container %v in namespace %s", solutionversionState.Spec.RootResource, namespace)
+				err = i.ApiClient.CreateSolution(ctx, solutionversionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 				if err != nil {
-					mLog.ErrorfCtx(ctx, "Failed to create solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+					mLog.ErrorfCtx(ctx, "Failed to create solutionversion container %s: %s", solutionversionState.Spec.RootResource, err.Error())
 					providerOperationMetrics.ProviderOperationErrors(
 						materialize,
 						functionName,
@@ -437,7 +437,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					return outputs, false, err
 				}
 			} else if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to get solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to get solutionversion container %s: %s", solutionversionState.Spec.RootResource, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
@@ -448,48 +448,48 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, err
 			}
 
-			solutionState.ObjectMeta = updateObjectMeta(solutionState.ObjectMeta, inputs)
-			objectData, _ := json.Marshal(solutionState)
-			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-			err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			solutionversionState.ObjectMeta = updateObjectMeta(solutionversionState.ObjectMeta, inputs)
+			objectData, _ := json.Marshal(solutionversionState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solutionversion %v to namespace %s", solutionversionState.ObjectMeta.Name, solutionversionState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solutionversion %v to namespace %s", solutionversionState.ObjectMeta.Name, solutionversionState.ObjectMeta.Namespace)
+			err = i.ApiClient.UpsertSolutionVersion(ctx, solutionversionState.ObjectMeta.Name, objectData, solutionversionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to create solution %s: %s", name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to create solutionversion %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.CreateSolutionFromCatalogFailed.String(),
+					v1alpha2.CreateSolutionVersionFromCatalogVersionFailed.String(),
 				)
 				return outputs, false, err
 			}
-			createdObjectList[catalog.ObjectMeta.Name] = true
+			createdObjectList[catalogversion.ObjectMeta.Name] = true
 		case "target":
 			var targetState model.TargetState
 			err = utils2.UnmarshalJson(objectData, &targetState)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to unmarshal target state for catalog %s: %s", name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal target state for catalogversion %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidTargetCatalog.String(),
+					v1alpha2.InvalidTargetCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded target in catalog %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded target in catalogversion %s", name), v1alpha2.BadRequest)
 			}
 
 			if targetState.ObjectMeta.Name == "" {
-				mLog.ErrorfCtx(ctx, "Target name is empty: catalog - %s", name)
+				mLog.ErrorfCtx(ctx, "Target name is empty: catalogversion - %s", name)
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidTargetCatalog.String(),
+					v1alpha2.InvalidTargetCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalog - %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target name: catalogversion - %s", name), v1alpha2.BadRequest)
 			}
 
 			operationIdKey := api_utils.GenerateOperationId()
@@ -532,7 +532,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.CreateTargetFromCatalogFailed.String(),
+					v1alpha2.CreateTargetFromCatalogVersionFailed.String(),
 				)
 				return outputs, false, err
 			}
@@ -563,68 +563,68 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty target guid: - %s", targetState.ObjectMeta.Name), v1alpha2.BadRequest)
 			}
 			targetList = append(targetList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
-			createdObjectList[catalog.ObjectMeta.Name] = true
+			createdObjectList[catalogversion.ObjectMeta.Name] = true
 		default:
-			// Check wrapped catalog structure and extract wrapped catalog name
-			var catalogState model.CatalogState
-			err = utils2.UnmarshalJson(objectData, &catalogState)
+			// Check wrapped catalogversion structure and extract wrapped catalogversion name
+			var catalogversionState model.CatalogVersionState
+			err = utils2.UnmarshalJson(objectData, &catalogversionState)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to unmarshal catalog state for catalog %s: %s", name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal catalogversion state for catalogversion %s: %s", name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidCatalogCatalog.String(),
+					v1alpha2.InvalidCatalogVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded catalog in catalog %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded catalogversion in catalogversion %s", name), v1alpha2.BadRequest)
 			}
 
-			if catalogState.ObjectMeta.Name == "" {
-				mLog.ErrorfCtx(ctx, "Catalog name is empty %s", name)
+			if catalogversionState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "CatalogVersion name is empty %s", name)
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidCatalogCatalog.String(),
+					v1alpha2.InvalidCatalogVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty catalog name: %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty catalogversion name: %s", name), v1alpha2.BadRequest)
 			}
 
-			catalogName := catalogState.ObjectMeta.Name
-			parts := strings.Split(catalogName, constants.ReferenceSeparator)
+			catalogversionName := catalogversionState.ObjectMeta.Name
+			parts := strings.Split(catalogversionName, constants.ReferenceSeparator)
 			if len(parts) == 2 {
-				catalogState.Spec.RootResource = parts[0]
-				catalogState.Spec.Version = parts[1]
+				catalogversionState.Spec.RootResource = parts[0]
+				catalogversionState.Spec.Version = parts[1]
 			} else {
-				mLog.ErrorfCtx(ctx, "Catalog name is invalid: catalog - %s, parent catalog - %s", catalogName, name)
+				mLog.ErrorfCtx(ctx, "CatalogVersion name is invalid: catalogversion - %s, parent catalogversion - %s", catalogversionName, name)
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidCatalogCatalog.String(),
+					v1alpha2.InvalidCatalogVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalog name: catalog - %s", name), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid catalogversion name: catalogversion - %s", name), v1alpha2.BadRequest)
 			}
 
 			if annotation_name != "" {
-				catalogState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
+				catalogversionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
 
-			setLabels(&catalogState.ObjectMeta)
+			setLabels(&catalogversionState.ObjectMeta)
 
-			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalog contains %v, namespace %s", catalogState.Spec.RootResource, namespace)
-			_, err := i.ApiClient.GetCatalogContainer(ctx, catalogState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): check catalogversion contains %v, namespace %s", catalogversionState.Spec.RootResource, namespace)
+			_, err := i.ApiClient.GetCatalog(ctx, catalogversionState.Spec.RootResource, namespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
-				mLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", catalogState.Spec.RootResource, err.Error())
-				catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: catalogState.Spec.RootResource, Namespace: namespace, Labels: catalogState.ObjectMeta.Labels}}
-				containerObjectData, _ := json.Marshal(catalogContainerState)
-				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create catalog container %v in namespace %s", catalogState.Spec.RootResource, namespace)
-				err = i.ApiClient.CreateCatalogContainer(ctx, catalogState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
+				mLog.DebugfCtx(ctx, "CatalogVersion container %s doesn't exist: %s", catalogversionState.Spec.RootResource, err.Error())
+				catalogState := model.CatalogState{ObjectMeta: model.ObjectMeta{Name: catalogversionState.Spec.RootResource, Namespace: namespace, Labels: catalogversionState.ObjectMeta.Labels}}
+				containerObjectData, _ := json.Marshal(catalogState)
+				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create catalogversion container %v in namespace %s", catalogversionState.Spec.RootResource, namespace)
+				err = i.ApiClient.CreateCatalog(ctx, catalogversionState.Spec.RootResource, containerObjectData, namespace, i.Config.User, i.Config.Password)
 				if err != nil {
-					mLog.ErrorfCtx(ctx, "Failed to create catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
+					mLog.ErrorfCtx(ctx, "Failed to create catalogversion container %s: %s", catalogversionState.Spec.RootResource, err.Error())
 					providerOperationMetrics.ProviderOperationErrors(
 						materialize,
 						functionName,
@@ -635,7 +635,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 					return outputs, false, err
 				}
 			} else if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to get catalog container %s: %s", catalogState.Spec.RootResource, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to get catalogversion container %s: %s", catalogversionState.Spec.RootResource, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
@@ -646,32 +646,32 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, err
 			}
 
-			catalogState.ObjectMeta = updateObjectMeta(catalogState.ObjectMeta, inputs)
-			objectData, _ := json.Marshal(catalogState)
-			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize catalog %v to namespace %s", catalogState.ObjectMeta.Name, catalogState.ObjectMeta.Namespace)
-			err = i.ApiClient.UpsertCatalog(ctx, catalogState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
+			catalogversionState.ObjectMeta = updateObjectMeta(catalogversionState.ObjectMeta, inputs)
+			objectData, _ := json.Marshal(catalogversionState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize catalogversion %v to namespace %s", catalogversionState.ObjectMeta.Name, catalogversionState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize catalogversion %v to namespace %s", catalogversionState.ObjectMeta.Name, catalogversionState.ObjectMeta.Namespace)
+			err = i.ApiClient.UpsertCatalogVersion(ctx, catalogversionState.ObjectMeta.Name, objectData, i.Config.User, i.Config.Password)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to create catalog %s: %s", catalogState.ObjectMeta.Name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to create catalogversion %s: %s", catalogversionState.ObjectMeta.Name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					materialize,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.CreateCatalogFromCatalogFailed.String(),
+					v1alpha2.CreateCatalogVersionFromCatalogVersionFailed.String(),
 				)
 				return outputs, false, err
 			}
-			createdObjectList[catalog.ObjectMeta.Name] = true
+			createdObjectList[catalogversion.ObjectMeta.Name] = true
 		}
 		// DO NOT REMOVE THIS COMMENT
 		// gofail: var afterMaterializeOnce bool
 	}
 	if len(createdObjectList) < len(objects) {
 		errorMessage := "failed to create all objects:"
-		for _, catalog := range catalogs {
-			if _, ok := createdObjectList[catalog.ObjectMeta.Name]; !ok {
-				errorMessage = fmt.Sprintf("%s %s", errorMessage, catalog.ObjectMeta.Name)
+		for _, catalogversion := range catalogversions {
+			if _, ok := createdObjectList[catalogversion.ObjectMeta.Name]; !ok {
+				errorMessage = fmt.Sprintf("%s %s", errorMessage, catalogversion.ObjectMeta.Name)
 			}
 		}
 		err = v1alpha2.NewCOAError(nil, errorMessage, v1alpha2.InternalError)
@@ -737,11 +737,11 @@ func updateObjectMeta(objectMeta model.ObjectMeta, inputs map[string]interface{}
 	return objectMeta
 }
 
-func checkCatalog(catalog *model.CatalogState) bool {
-	if catalog.Spec == nil {
+func checkCatalogVersion(catalogversion *model.CatalogVersionState) bool {
+	if catalogversion.Spec == nil {
 		return false
 	}
-	if catalog.Spec.CatalogType == "instance" || catalog.Spec.CatalogType == "solution" || catalog.Spec.CatalogType == "target" || catalog.Spec.CatalogType == "catalog" || catalog.Spec.CatalogType == "config" {
+	if catalogversion.Spec.CatalogType == "instance" || catalogversion.Spec.CatalogType == "solutionversion" || catalogversion.Spec.CatalogType == "target" || catalogversion.Spec.CatalogType == "catalogversion" || catalogversion.Spec.CatalogType == "config" {
 		return true
 	}
 	return false

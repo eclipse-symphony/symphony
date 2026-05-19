@@ -155,8 +155,8 @@ func TestIngressTargetProviderApply(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -225,8 +225,8 @@ func TestIngressTargetProviderDelete(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -270,8 +270,8 @@ func TestIngressTargetProviderGet(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -345,8 +345,8 @@ func TestIngressTargetProviderApplyGet(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

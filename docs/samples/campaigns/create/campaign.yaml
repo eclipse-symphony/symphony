@@ -28,7 +28,7 @@ spec:
           metadata: 
             name: site-instance
           spec: 
-            solution: site-app:version1
+            solutionversion: site-app:version1
             target:
               name: site-k8s-target
     succeeded:

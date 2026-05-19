@@ -20,9 +20,9 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// Verify catalog created
-func TestBasic_Catalogs(t *testing.T) {
-	fmt.Printf("Checking Catalogs\n")
+// Verify catalogversion created
+func TestBasic_CatalogVersions(t *testing.T) {
+	fmt.Printf("Checking CatalogVersions\n")
 	namespace := "default"
 
 	cfg, err := testhelpers.RestConfig()
@@ -35,15 +35,15 @@ func TestBasic_Catalogs(t *testing.T) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogs",
+			Resource: "catalogversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		catalogs := []string{}
+		catalogversions := []string{}
 		for _, item := range resources.Items {
-			catalogs = append(catalogs, item.GetName())
+			catalogversions = append(catalogversions, item.GetName())
 		}
-		fmt.Printf("Catalogs: %v\n", catalogs)
+		fmt.Printf("CatalogVersions: %v\n", catalogversions)
 		if len(resources.Items) == 4 {
 			break
 		}
@@ -54,7 +54,7 @@ func TestBasic_Catalogs(t *testing.T) {
 }
 
 // Verify eval status
-func Test_CatalogsEvals(t *testing.T) {
+func Test_CatalogVersionsEvals(t *testing.T) {
 	fmt.Printf("Checking evals\n")
 
 	namespace := "default"
@@ -63,131 +63,131 @@ func Test_CatalogsEvals(t *testing.T) {
 
 	dyn, err := dynamic.NewForConfig(cfg)
 	require.NoError(t, err)
-	var evaluateevalcatalog *unstructured.Unstructured
+	var evaluateevalcatalogversion *unstructured.Unstructured
 	retryWithTimeout(func() (any, error) {
-		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+		evaluateevalcatalogversion, err = dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogevalexpressions",
-		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog01", metav1.GetOptions{})
+			Resource: "catalogversionevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalogversion01", metav1.GetOptions{})
 		require.NoError(t, err)
-		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		status, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "status")
 		require.NoError(t, err)
 		require.Contains(t, []string{"Succeeded", "Failed"}, status)
-		return evaluateevalcatalog, nil
+		return evaluateevalcatalogversion, nil
 	}, time.Minute*1)
-	resourceRef, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "spec", "resourceRef", "name")
+	resourceRef, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "spec", "resourceRef", "name")
 	require.NoError(t, err)
-	require.Equal(t, "evalcatalog-v-version1", resourceRef)
+	require.Equal(t, "evalcatalogversion-v-version1", resourceRef)
 
-	status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
+	status, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "evaluationStatus")
 	require.NoError(t, err)
 	require.Equal(t, "Failed", status)
 
-	address, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "address")
+	address, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "address")
 	require.NoError(t, err)
 	require.Equal(t, "1st Avenue", address)
 
-	city, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "city")
+	city, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "city")
 	require.NoError(t, err)
 	require.Equal(t, "Sydney", city)
 
-	zipcode, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "zipcode")
+	zipcode, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "zipcode")
 	require.NoError(t, err)
 	require.Contains(t, zipcode, "Not Found")
 
-	county, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "county")
+	county, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "county")
 	require.NoError(t, err)
 	require.Contains(t, county, "Not Found")
 
-	country, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "country")
+	country, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "country")
 	require.NoError(t, err)
 	require.Contains(t, country, "Bad Config")
 
-	fromCountry, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "country")
+	fromCountry, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "from", "country")
 	require.NoError(t, err)
 	require.Equal(t, "Australia", fromCountry)
 
-	// check evaluateevalcatalog02
+	// check evaluateevalcatalogversion02
 	retryWithTimeout(func() (any, error) {
-		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+		evaluateevalcatalogversion, err = dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogevalexpressions",
-		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog02", metav1.GetOptions{})
+			Resource: "catalogversionevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalogversion02", metav1.GetOptions{})
 		require.NoError(t, err)
-		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		status, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "status")
 		require.NoError(t, err)
 		require.Contains(t, []string{"Succeeded", "Failed"}, status)
-		return evaluateevalcatalog, nil
+		return evaluateevalcatalogversion, nil
 	}, time.Minute*1)
-	code, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "error", "code")
+	code, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "error", "code")
 	require.NoError(t, err)
 	require.Equal(t, "ParentRefNotFound", code)
 
-	// check evaluateevalcatalog03
+	// check evaluateevalcatalogversion03
 	retryWithTimeout(func() (any, error) {
-		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+		evaluateevalcatalogversion, err = dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogevalexpressions",
-		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog03", metav1.GetOptions{})
+			Resource: "catalogversionevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalogversion03", metav1.GetOptions{})
 		require.NoError(t, err)
-		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		status, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "status")
 		require.NoError(t, err)
 		require.Contains(t, []string{"Succeeded", "Failed"}, status)
-		return evaluateevalcatalog, nil
+		return evaluateevalcatalogversion, nil
 	}, time.Minute*1)
-	status, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
+	status, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "evaluationStatus")
 	require.NoError(t, err)
 	require.Equal(t, "Succeeded", status)
 
-	city, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "city")
+	city, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "city")
 	require.NoError(t, err)
 	require.Equal(t, "Sydney", city)
 
-	// check evaluateevalcatalog04
+	// check evaluateevalcatalogversion04
 	retryWithTimeout(func() (any, error) {
-		evaluateevalcatalog, err = dyn.Resource(schema.GroupVersionResource{
+		evaluateevalcatalogversion, err = dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogevalexpressions",
-		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalog04", metav1.GetOptions{})
+			Resource: "catalogversionevalexpressions",
+		}).Namespace(namespace).Get(context.Background(), "evaluateevalcatalogversion04", metav1.GetOptions{})
 		require.NoError(t, err)
-		status, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "status")
+		status, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "status")
 		require.NoError(t, err)
 		require.Contains(t, []string{"Succeeded", "Failed"}, status)
-		return evaluateevalcatalog, nil
+		return evaluateevalcatalogversion, nil
 	}, time.Minute*1)
-	status, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "evaluationStatus")
+	status, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "evaluationStatus")
 	require.NoError(t, err)
 	require.Equal(t, "Failed", status)
 
-	address, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "address")
+	address, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "address")
 	require.NoError(t, err)
 	require.Equal(t, "1st Avenue", address)
 
-	city, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "city")
+	city, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "city")
 	require.NoError(t, err)
 	require.Equal(t, "Sydney", city)
 
-	zipcode, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "zipcode")
+	zipcode, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "zipcode")
 	require.NoError(t, err)
 	require.Contains(t, zipcode, "Not Found")
 
-	county, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "county")
+	county, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "county")
 	require.NoError(t, err)
 	require.Contains(t, county, "Not Found")
 
-	country, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "country")
+	country, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "country")
 	require.NoError(t, err)
 	require.Equal(t, "Australia", country)
 
-	fromCountry, _, err = unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "country")
+	fromCountry, _, err = unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "from", "country")
 	require.NoError(t, err)
 	require.Equal(t, "Australia", fromCountry)
 
-	fromState, _, err := unstructured.NestedString(evaluateevalcatalog.Object, "status", "actionStatus", "output", "from", "state")
+	fromState, _, err := unstructured.NestedString(evaluateevalcatalogversion.Object, "status", "actionStatus", "output", "from", "state")
 	require.NoError(t, err)
 	require.Equal(t, "Virginia", fromState)
 }

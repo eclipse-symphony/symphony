@@ -13,7 +13,6 @@ import (
 
 	sym_mgr "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -39,6 +38,7 @@ func TestSolutionsInfo(t *testing.T) {
 	assert.NotNil(t, info)
 	assert.Equal(t, "1.0", info.Version)
 }
+
 func createSolutionsVendor() SolutionsVendor {
 	stateProvider := memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
@@ -49,7 +49,7 @@ func createSolutionsVendor() SolutionsVendor {
 		},
 		Managers: []managers.ManagerConfig{
 			{
-				Name: "solutions-manager",
+				Name: "solutionversion-container-manager",
 				Type: "managers.symphony.solutions",
 				Properties: map[string]string{
 					"providers.persistentstate": "mem-state",
@@ -65,14 +65,14 @@ func createSolutionsVendor() SolutionsVendor {
 	}, []managers.IManagerFactroy{
 		&sym_mgr.SymphonyManagerFactory{},
 	}, map[string]map[string]providers.IProvider{
-		"solutions-manager": {
+		"solutionversion-container-manager": {
 			"mem-state": &stateProvider,
 		},
 	}, nil)
-	vendor.SolutionsManager.SolutionValidator = validation.NewSolutionValidator(nil, nil, nil)
 	return vendor
 }
-func TestSolutionsOnSolutions(t *testing.T) {
+
+func TestOnSolutions(t *testing.T) {
 	vendor := createSolutionsVendor()
 	vendor.Context = &contexts.VendorContext{}
 	vendor.Context.SiteInfo = v1alpha2.SiteInfo{
@@ -81,21 +81,19 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	pubSubProvider := memory.InMemoryPubSubProvider{}
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor.Context.Init(&pubSubProvider)
-	solution := model.SolutionState{
-		Spec: &model.SolutionSpec{
-			RootResource: "solutions1",
-		},
+	solutionversion := model.SolutionState{
+		Spec: &model.SolutionSpec{},
 		ObjectMeta: model.ObjectMeta{
-			Name:      "solutions1-v-version1",
+			Name:      "solutionversion1",
 			Namespace: "scope1",
 		},
 	}
-	data, _ := json.Marshal(solution)
+	data, _ := json.Marshal(solutionversion)
 	resp := vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodPost,
 		Body:   data,
 		Parameters: map[string]string{
-			"__name":    "solutions1-v-version1",
+			"__name":    "solutionversion1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),
@@ -105,17 +103,17 @@ func TestSolutionsOnSolutions(t *testing.T) {
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
 		Parameters: map[string]string{
-			"__name":    "solutions1-v-version1",
+			"__name":    "solutionversion1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),
 	})
-	var solutions model.SolutionState
+	var solutionversions model.SolutionState
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	err := json.Unmarshal(resp.Body, &solutions)
+	err := json.Unmarshal(resp.Body, &solutionversions)
 	assert.Nil(t, err)
-	assert.Equal(t, "solutions1-v-version1", solutions.ObjectMeta.Name)
-	assert.Equal(t, "scope1", solutions.ObjectMeta.Namespace)
+	assert.Equal(t, "solutionversion1", solutionversions.ObjectMeta.Name)
+	assert.Equal(t, "scope1", solutionversions.ObjectMeta.Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodGet,
@@ -125,17 +123,17 @@ func TestSolutionsOnSolutions(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, resp.State)
-	var solutionsList []model.SolutionState
-	err = json.Unmarshal(resp.Body, &solutionsList)
+	var solutionversionsList []model.SolutionState
+	err = json.Unmarshal(resp.Body, &solutionversionsList)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(solutionsList))
-	assert.Equal(t, "solutions1-v-version1", solutionsList[0].ObjectMeta.Name)
-	assert.Equal(t, "scope1", solutionsList[0].ObjectMeta.Namespace)
+	assert.Equal(t, 1, len(solutionversionsList))
+	assert.Equal(t, "solutionversion1", solutionversionsList[0].ObjectMeta.Name)
+	assert.Equal(t, "scope1", solutionversionsList[0].ObjectMeta.Namespace)
 
 	resp = vendor.onSolutions(v1alpha2.COARequest{
 		Method: fasthttp.MethodDelete,
 		Parameters: map[string]string{
-			"__name":    "solutions1-v-version1",
+			"__name":    "solutionversion1",
 			"namespace": "scope1",
 		},
 		Context: context.Background(),

@@ -1,10 +1,10 @@
 ---
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: array-merging-instance
 spec:
-  solution: array-merging-solution:v1
+  solutionversion: array-merging-solutionversion:v1
   scope: default
   target:
     name: k8s-target

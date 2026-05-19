@@ -1,0 +1,14 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
+metadata:
+  annotations: 
+    management.azure.com/resourceId: solutionversion01:version1
+  name: solutionversion01-v-version1
+spec:
+  rootResource: solutionversion01
+  displayName: solutionversion01-v-version1

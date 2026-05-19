@@ -483,7 +483,7 @@ func readPropertyInterface(properties map[string]interface{}, key string, evalCt
 }
 
 func readArgument(deployment model.DeploymentSpec, component string, key string) (string, error) {
-	components := deployment.Solution.Spec.Components
+	components := deployment.SolutionVersion.Spec.Components
 	for _, c := range components {
 		if c.Name == component {
 			if v, ok := c.Parameters[key]; ok {
@@ -1443,7 +1443,7 @@ func (p *ExpressionParser) function() (Node, error) {
 
 func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, error) {
 	if deploymentSpec, ok := context.DeploymentSpec.(model.DeploymentSpec); ok {
-		for ic, c := range deploymentSpec.Solution.Spec.Components {
+		for ic, c := range deploymentSpec.SolutionVersion.Spec.Components {
 
 			val, err := evalProperties(context, c.Metadata)
 			if err != nil {
@@ -1461,7 +1461,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 				for k, v := range metadata {
 					stringMap[k] = fmt.Sprintf("%v", v)
 				}
-				deploymentSpec.Solution.Spec.Components[ic].Metadata = stringMap
+				deploymentSpec.SolutionVersion.Spec.Components[ic].Metadata = stringMap
 			}
 
 			val, err = evalProperties(context, c.Properties)
@@ -1475,7 +1475,7 @@ func EvaluateDeployment(context utils.EvaluationContext) (model.DeploymentSpec, 
 				log.ErrorfCtx(context.Context, " (Parser): Evaluate deployment failed: %v", err)
 				return deploymentSpec, err
 			}
-			deploymentSpec.Solution.Spec.Components[ic].Properties = props
+			deploymentSpec.SolutionVersion.Spec.Components[ic].Properties = props
 		}
 		log.DebugCtx(context.Context, " (Parser): Evaluate deployment completed.")
 		return deploymentSpec, nil

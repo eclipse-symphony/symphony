@@ -445,17 +445,17 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 				return err //TODO: instance is gone
 			}
 
-			//get solution
-			var solution model.SolutionState
-			solutionName := api_utils.ConvertReferenceToObjectName(instance.Spec.Solution)
-			solution, err = s.apiClient.GetSolution(ctx, solutionName, namespace, s.user, s.password)
+			//get solutionversion
+			var solutionversion model.SolutionVersionState
+			solutionversionName := api_utils.ConvertReferenceToObjectName(instance.Spec.SolutionVersion)
+			solutionversion, err = s.apiClient.GetSolutionVersion(ctx, solutionversionName, namespace, s.user, s.password)
 			if err != nil {
-				solution = model.SolutionState{
+				solutionversion = model.SolutionVersionState{
 					ObjectMeta: model.ObjectMeta{
-						Name:      instance.Spec.Solution,
+						Name:      instance.Spec.SolutionVersion,
 						Namespace: namespace,
 					},
-					Spec: &model.SolutionSpec{
+					Spec: &model.SolutionVersionSpec{
 						Components: make([]model.ComponentSpec, 0),
 					},
 				}
@@ -473,7 +473,7 @@ func (s *JobsManager) HandleJobEvent(ctx context.Context, event v1alpha2.Event) 
 
 			//create deployment spec
 			var deployment model.DeploymentSpec
-			deployment, err = utils.CreateSymphonyDeployment(ctx, instance, solution, targetCandidates, nil, namespace)
+			deployment, err = utils.CreateSymphonyDeployment(ctx, instance, solutionversion, targetCandidates, nil, namespace)
 			if err != nil {
 				log.ErrorfCtx(ctx, " M (Job): error creating deployment spec for instance %s: %s", instanceName, err.Error())
 				return err

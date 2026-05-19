@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Solution and Instance Management Example
+"""SolutionVersion and Instance Management Example
 
 This example demonstrates how to:
-1. Create a solution
-2. Create an instance from a solution
+1. Create a solutionversion
+2. Create an instance from a solutionversion
 3. Apply a deployment
 4. Check deployment status
-5. List solutions and instances
+5. List solutionversions and instances
 6. Clean up resources
 """
 
@@ -17,9 +17,9 @@ import yaml
 from symphony_sdk import SymphonyAPI, SymphonyAPIError
 
 
-def create_solution_yaml():
-    """Create a sample solution specification in YAML format."""
-    solution = {
+def create_solutionversion_yaml():
+    """Create a sample solutionversion specification in YAML format."""
+    solutionversion = {
         "displayName": "Web Application Stack",
         "rootResource": "web-app-stack",
         "metadata": {"version": "1.0.0", "description": "A simple web application with nginx"},
@@ -40,7 +40,7 @@ def create_solution_yaml():
             },
         ],
     }
-    return yaml.dump(solution)
+    return yaml.dump(solutionversion)
 
 
 def main():
@@ -48,29 +48,29 @@ def main():
     username = "admin"
     password = ""
 
-    solution_name = "web-app-stack-v-1.0.0"  # Format: <rootResource>-v-<version>
+    solutionversion_name = "web-app-stack-v-1.0.0"  # Format: <rootResource>-v-<version>
     instance_name = "web-app-prod"
 
     with SymphonyAPI(base_url, username, password) as client:
         try:
-            # 1. Create a solution
-            print("1. Creating solution...")
-            solution_yaml = create_solution_yaml()
-            client.create_solution(solution_name, solution_yaml)
-            print(f"   ✓ Solution '{solution_name}' created")
+            # 1. Create a solutionversion
+            print("1. Creating solutionversion...")
+            solutionversion_yaml = create_solutionversion_yaml()
+            client.create_solutionversion(solutionversion_name, solutionversion_yaml)
+            print(f"   ✓ SolutionVersion '{solutionversion_name}' created")
 
-            # 2. Verify solution was created
-            print("\n2. Verifying solution...")
-            solution = client.get_solution(solution_name)
-            print("   ✓ Solution retrieved")
-            spec = solution.get("spec", {})
+            # 2. Verify solutionversion was created
+            print("\n2. Verifying solutionversion...")
+            solutionversion = client.get_solutionversion(solutionversion_name)
+            print("   ✓ SolutionVersion retrieved")
+            spec = solutionversion.get("spec", {})
             print(f"     Display Name: {spec.get('displayName', 'N/A')}")
             print(f"     Components: {len(spec.get('components', []))}")
 
-            # 3. Create an instance from the solution
+            # 3. Create an instance from the solutionversion
             print(f"\n3. Creating instance '{instance_name}'...")
             instance_spec = {
-                "solution": solution_name,
+                "solutionversion": solutionversion_name,
                 "target": {
                     "name": "example-device-001"  # Target must exist
                 },
@@ -101,14 +101,14 @@ def main():
                     print(f"     Status check error: {e}")
                     break
 
-            # 5. List all solutions
-            print("\n5. Listing all solutions...")
-            solutions = client.list_solutions()
-            solutions_list = (
-                solutions if isinstance(solutions, list) else solutions.get("items", [])
+            # 5. List all solutionversions
+            print("\n5. Listing all solutionversions...")
+            solutionversions = client.list_solutionversions()
+            solutionversions_list = (
+                solutionversions if isinstance(solutionversions, list) else solutionversions.get("items", [])
             )
-            print(f"   ✓ Found {len(solutions_list)} solutions")
-            for sol in solutions_list[:5]:
+            print(f"   ✓ Found {len(solutionversions_list)} solutionversions")
+            for sol in solutionversions_list[:5]:
                 print(f"     - {sol.get('metadata', {}).get('name', 'unknown')}")
 
             # 6. List all instances
@@ -121,15 +121,15 @@ def main():
             for inst in instances_list[:5]:
                 print(f"     - {inst.get('metadata', {}).get('name', 'unknown')}")
 
-            # 7. Clean up - delete instance and solution
+            # 7. Clean up - delete instance and solutionversion
             print("\n7. Cleaning up resources...")
             print(f"   Deleting instance '{instance_name}'...")
             client.delete_instance(instance_name)
             print("   ✓ Instance deleted")
 
-            print(f"   Deleting solution '{solution_name}'...")
-            client.delete_solution(solution_name)
-            print("   ✓ Solution deleted")
+            print(f"   Deleting solutionversion '{solutionversion_name}'...")
+            client.delete_solutionversion(solutionversion_name)
+            print("   ✓ SolutionVersion deleted")
 
         except SymphonyAPIError as e:
             print(f"\n✗ Error: {e}")
@@ -148,7 +148,7 @@ def example_using_instance_spec_dataclass():
     # Create instance spec using dataclass
     instance = InstanceSpec(
         name="my-instance",
-        solution="my-solution",
+        solutionversion="my-solutionversion",
         target=TargetSelector(name="my-target", selector={"location": "datacenter-1"}),
         scope="default",
         display_name="My Application Instance",
@@ -158,14 +158,14 @@ def example_using_instance_spec_dataclass():
 
     print("✓ Created InstanceSpec with dataclass")
     print(f"  Name: {instance.name}")
-    print(f"  Solution: {instance.solution}")
+    print(f"  SolutionVersion: {instance.solutionversion}")
     print(f"  Target: {instance.target.name}")
     print(f"  Parameters: {instance.parameters}")
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Symphony SDK - Solution and Instance Management")
+    print("Symphony SDK - SolutionVersion and Instance Management")
     print("=" * 60 + "\n")
 
     print("NOTE: Update the credentials in this script before running!\n")

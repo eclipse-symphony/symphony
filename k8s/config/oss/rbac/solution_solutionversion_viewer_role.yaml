@@ -1,0 +1,26 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
+# permissions for end users to view solutionversions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solutionversion-viewer-role
+rules:
+- apiGroups:
+  - solutionversion.symphony
+  resources:
+  - solutionversions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - solutionversion.symphony
+  resources:
+  - solutionversions/status
+  verbs:
+  - get

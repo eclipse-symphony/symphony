@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solution
+package solutionversion
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 )
 
 // InstanceHistoryReconciler reconciles a InstanceHistory object
@@ -24,9 +24,9 @@ type InstanceHistoryReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=solution.symphony,resources=instancehistories,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=solution.symphony,resources=instancehistories/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=solution.symphony,resources=instancehistories/finalizers,verbs=update
+//+kubebuilder:rbac:groups=solutionversion.symphony,resources=instancehistories,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solutionversion.symphony,resources=instancehistories/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solutionversion.symphony,resources=instancehistories/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -52,6 +52,6 @@ func (r *InstanceHistoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstanceHistory").
 		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
-		For(&solutionv1.InstanceHistory{}).
+		For(&solutionversionv1.InstanceHistory{}).
 		Complete(r)
 }

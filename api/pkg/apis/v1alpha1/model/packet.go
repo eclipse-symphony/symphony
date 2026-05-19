@@ -7,7 +7,7 @@
 package model
 
 type Packet struct {
-	Solution string      `json:"solution,omitempty"`
+	SolutionVersion string      `json:"solutionversion,omitempty"`
 	From     string      `json:"from"`
 	To       string      `json:"to"`
 	Instance string      `json:"instance,omitempty"`
@@ -17,5 +17,5 @@ type Packet struct {
 }
 
 func (p *Packet) IsValid() bool {
-	return p.From != "" && p.To != "" && (p.Solution != "" || p.Instance != "" || p.Target != "")
+	return p.From != "" && p.To != "" && (p.SolutionVersion != "" || p.Instance != "" || p.Target != "")
 }

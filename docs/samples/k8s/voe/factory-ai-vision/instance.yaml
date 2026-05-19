@@ -1,9 +1,9 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: factory-floor-1
 spec:
-  solution: factory-ai-vision:version1
+  solutionversion: factory-ai-vision:version1
   target:
     name: iot-edge-target
   topologies:

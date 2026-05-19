@@ -188,7 +188,7 @@ func (i *DockerTargetProvider) Apply(ctx context.Context, deployment model.Deplo
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.ObjectMeta.Name,
-		SolutionId: deployment.Instance.Spec.Solution,
+		SolutionVersionId: deployment.Instance.Spec.SolutionVersion,
 		TargetId:   deployment.ActiveTarget,
 	}
 

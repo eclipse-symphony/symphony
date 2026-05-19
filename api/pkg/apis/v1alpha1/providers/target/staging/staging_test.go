@@ -124,11 +124,11 @@ func TestStagingTargetProviderApply(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "policies",
 				Components:  []model.ComponentSpec{component},
 			},
@@ -184,11 +184,11 @@ func TestStagingTargetProviderRemove(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "policies",
 				Components:  []model.ComponentSpec{component},
 			},
@@ -210,12 +210,12 @@ func TestApply(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target":
-			response = model.CatalogState{
+		case "/catalogversions/registry/test-target":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "abc",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"components": []model.ComponentSpec{
 							{
@@ -270,11 +270,11 @@ func TestApply(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
 			},
@@ -307,12 +307,12 @@ func TestGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/test-target-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "abc",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"staged": map[string]interface{}{
 							"components": []model.ComponentSpec{
@@ -368,11 +368,11 @@ func TestGet(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
 			},
@@ -392,7 +392,7 @@ func TestGetCatalogsFailed(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/test-target-v-version1":
+		case "/catalogversions/registry/test-target-v-version1":
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		default:
@@ -439,11 +439,11 @@ func TestGetCatalogsFailed(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Namespace: "",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "name",
 				Components:  []model.ComponentSpec{component},
 			},

@@ -1,6 +1,6 @@
 # Property expressions
 
-Symphony solution [components](./solution.md#componentspec-schema) and campaign stages can use property expressions in their property values, wrapped in `${{}}`. Property expressions are evaluated at the solution [vendor](../../vendors/_overview.md) level, which means that they are evaluated immediately once they arrive at the Symphony API surface. Hence, none of the [managers](../../managers/_overview.md) or [providers](../../providers/_overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their solution documents.
+Symphony solutionversion [components](./solutionversion.md#componentspec-schema) and campaign stages can use property expressions in their property values, wrapped in `${{}}`. Property expressions are evaluated at the solutionversion [vendor](../../vendors/_overview.md) level, which means that they are evaluated immediately once they arrive at the Symphony API surface. Hence, none of the [managers](../../managers/_overview.md) or [providers](../../providers/_overview.md) need to worry about (or be aware of) the expression rules. When authoring Symphony artifacts, a user can use these expressions in their solutionversion documents.
 
 In general, Symphony attempts to parse the property values as strings whenever possible. Only when Symphony detects clear and valid arithmetical expressions and function calls will it try to evaluate them first before the string evaluation. This means that Symphony is mostly tolerable to syntax errors in expressions and will treat those as string literals. For example, `"10/2"` is interpreted as a division, while `"10/0"` is treated as a string because otherwise it's a divide-by-zero error.
 
@@ -66,7 +66,7 @@ When these functions are used, a valid `EvaluationContext` is required, which in
 |`$instance()`| Gets instance name of the current deployment |
 |`$json(<value>)`| Arranges `<value>` into a JSON string |
 |`$output(<stage>, <field>)` | Reads the output `<field>` value from a campaign `<stage>` outputs|
-|`$param(<parameter name>)`| Reads a component parameter. Parameters are defined on [component](./solution.md#componentspec) and can be overridden by stage arguments in [instance](./instance.md). |
+|`$param(<parameter name>)`| Reads a component parameter. Parameters are defined on [component](./solutionversion.md#componentspec) and can be overridden by stage arguments in [instance](./instance.md). |
 |`$property(<property name>)`| Reads a property from the evaluation context |
 |`$secret(<secret object>, <secret key>)`| Reads a secret from a secret store provider |
 |`$val([<JsonPath>])` | Reads the evaluation context value. If a JsonPath is specified, it applies the path to the context value (same as `$context()`) |

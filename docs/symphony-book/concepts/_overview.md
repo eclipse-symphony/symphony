@@ -11,29 +11,29 @@ Symphony operates within an orchestration layer, strategically positioned atop p
 
 ## Object model
 
-The Symphony object model defines common elements of intelligent solutions as Kubernetes custom resources that can be managed using standard tools. For more information, see [Unified object model](../concepts/unified-object-model/_overview.md).
+The Symphony object model defines common elements of intelligent solutionversions as Kubernetes custom resources that can be managed using standard tools. For more information, see [Unified object model](../concepts/unified-object-model/_overview.md).
 
 ### Foundational objects
 
-Foundational objects represent the hardware and software for your intelligent solution.
+Foundational objects represent the hardware and software for your intelligent solutionversion.
 
-Use a `device` object to register managed devices like cameras or other sensors. A `target` object represents a computational resource that can receive Symphony deployments. Devices can be attached to and managed by target objects. A `solution` object defines an application to be deployed, and an `instance` object applies a specific solution to one or more targets.
+Use a `device` object to register managed devices like cameras or other sensors. A `target` object represents a computational resource that can receive Symphony deployments. Devices can be attached to and managed by target objects. A `solutionversion` object defines an application to be deployed, and an `instance` object applies a specific solutionversion to one or more targets.
 
 For more information, see:
 
 * [Device](../concepts/unified-object-model/device.md)
 * [Target](../concepts/unified-object-model/target.md)
-* [Solution](../concepts/unified-object-model/solution.md)
+* [SolutionVersion](../concepts/unified-object-model/solutionversion.md)
 * [Instance](../concepts/unified-object-model/instance.md)
 
 ### Federation objects
 
-Federation objects support your business processes as you define and roll out Symphony deployments. A `campaign` object is Symphony's representation of a deployment workflow. You can use campaigns to define multi-stage deployments. A `catalog` object is a generic graph data structure that you can use to create information models for your organization.
+Federation objects support your business processes as you define and roll out Symphony deployments. A `campaign` object is Symphony's representation of a deployment workflow. You can use campaigns to define multi-stage deployments. A `catalogversion` object is a generic graph data structure that you can use to create information models for your organization.
 
 For more information, see:
 
 * [Campaign](./unified-object-model/campaign.md)
-* [Catalog](./unified-object-model/catalog.md)
+* [CatalogVersion](./unified-object-model/catalogversion.md)
 
 ## AI objects
 

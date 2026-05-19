@@ -43,14 +43,14 @@ class PipelineSpec:
 
 @dataclass
 class VersionSpec:
-    solution: str = ""
+    solutionversion: str = ""
     percentage: int = 100
 
 @dataclass
 class InstanceSpec:
     name: str = ""
     parameters: Dict[str, str] = None
-    solution: str = ""
+    solutionversion: str = ""
     target: TargetSelector = None
     topologies: List[TopologySpec] = None
     pipelines: List[PipelineSpec] = None
@@ -89,16 +89,16 @@ class ComponentSpec:
     
 
 @dataclass
-class SolutionSpec:    
+class SolutionVersionSpec:    
     components: List[ComponentSpec] = None    
     scope: str = ""    
     displayName: str = ""
     metadata: Dict[str,str] = None
     
 @dataclass
-class SolutionState:
+class SolutionVersionState:
     metadata: ObjectMeta = None
-    spec: SolutionSpec = None
+    spec: SolutionVersionSpec = None
 
 @dataclass
 class TargetSpec:
@@ -160,8 +160,8 @@ class DeviceSpec:
     
 @dataclass
 class DeploymentSpec:
-    solutionName: str = ""
-    solution: SolutionState = None
+    solutionversionName: str = ""
+    solutionversion: SolutionVersionState = None
     instance: InstanceSpec = None
     targets: Dict[str, TargetState] = None
     devices: List[DeviceSpec] = None
@@ -171,10 +171,10 @@ class DeploymentSpec:
     activeTarget: str = ""
 
     def get_components_slice(self) -> []:
-        if self.solution != None:
+        if self.solutionversion != None:
             if self.componentStartIndex >= 0 and self.componentEndIndex >= 0 and self.componentEndIndex > self.componentStartIndex:
-                return self.solution.spec.components[self.componentStartIndex: self.componentEndIndex]
-            return self.solution.spec.components
+                return self.solutionversion.spec.components[self.componentStartIndex: self.componentEndIndex]
+            return self.solutionversion.spec.components
         return []
 
 @dataclass

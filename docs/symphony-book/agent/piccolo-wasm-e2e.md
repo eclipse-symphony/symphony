@@ -89,7 +89,7 @@ This scenario demonstrates Piccolo's capabilities. You will deploy a WebAssembly
    clang -target bpf -I/usr/include -I/usr/include/x86_64-linux-gnu -g -O2 -o hello.bpf.o -c hello.bpf.c
    ```
 
-9. Update `solution.yaml`, `solution-patch.yaml`, `campaign.yaml` and `campaign-schedule.yaml` to use correct addresses of `http-wasm.wasm` and `hello.bpf.o`.
+9. Update `solutionversion.yaml`, `solutionversion-patch.yaml`, `campaign.yaml` and `campaign-schedule.yaml` to use correct addresses of `http-wasm.wasm` and `hello.bpf.o`.
 
 10. Create a Logic Apps workflow that sends an email for a designated approver for approval. You can use `approval-logic-apps.json` as a reference.
 
@@ -126,7 +126,7 @@ This scenario demonstrates Piccolo's capabilities. You will deploy a WebAssembly
 
    > **NOTE**: In many scenarios, you don't have direct access to the tiny edge devices. Hence a polling agent is used to communicate with the control plane through an outbound connection.
 
-2. Open `solution.yaml`. This is a simple solution (`tiny-app`) with a single WASM moudle, which hosts a simple web server. 
+2. Open `solutionversion.yaml`. This is a simple solutionversion (`tiny-app`) with a single WASM moudle, which hosts a simple web server. 
 
    >**NOTE**: Source code of the WASM module is under `docs/samples/piccolo/http-wasm`.
 
@@ -134,23 +134,23 @@ This scenario demonstrates Piccolo's capabilities. You will deploy a WebAssembly
 
 ### III. Deploy Symphony artifacts
 
-1. Deploy target, solution and intance:
+1. Deploy target, solutionversion and intance:
 
    ```bash
    kubectl apply -f tiny-edge-target.yaml
-   kubectl apply -f solution.yaml
+   kubectl apply -f solutionversion.yaml
    kubectl apply -f instance.yaml
    ```
-2. (Optional) The stage provider creates a new catalog object on the control plane, which you can retrieve by:
+2. (Optional) The stage provider creates a new catalogversion object on the control plane, which you can retrieve by:
 
    ```bash
-   kubectl get catalog
+   kubectl get catalogversion
    ```
 3. Open a Chrome browser on your demo PC and navigate to `http://localhost:8085/`. You should see a simple web page that says "Web server inside WebAssembly".    
 
 ### IV. Deploy eBFP module
 
-1. Open `campaign.yaml`. Point out that since deploying a Linux Kernel moudle may have high impact, this workflow requires the deployment to be approved through email first. Then, the solution object is patched to include the eBPF module, which is a simple eBPF module that outputs a "Hello, World!" string upon events.
+1. Open `campaign.yaml`. Point out that since deploying a Linux Kernel moudle may have high impact, this workflow requires the deployment to be approved through email first. Then, the solutionversion object is patched to include the eBPF module, which is a simple eBPF module that outputs a "Hello, World!" string upon events.
 
 2. Deploy the campaign and then activate it:
 
@@ -173,8 +173,8 @@ Optionally, point out that you can use the `campaign-schedule.yaml` campaign ins
    ```bash
    kubectl delete instance tiny-app
    kubectl delete target tiny-edge
-   kubectl delete solution tiny-app
-   kubectl delete catalog tiny-app-tiny-edge
+   kubectl delete solutionversion tiny-app
+   kubectl delete catalogversion tiny-app-tiny-edge
    kubectl delete activation ebpf-approval
    kubectl delete campaign ebpf-approval
    ```

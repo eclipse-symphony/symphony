@@ -1,5 +1,5 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-version2
 spec:

@@ -294,7 +294,7 @@ func (o *Observability) InitTrace(config ObservabilityConfig) error {
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
 	otel.SetTextMapPropagator(propagator)
 
-	// temporary solution to clean up the meter provider until we have hooks for shutdown sequence in symphony
+	// temporary solutionversion to clean up the meter provider until we have hooks for shutdown sequence in symphony
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 

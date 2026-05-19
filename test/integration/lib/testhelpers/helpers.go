@@ -41,17 +41,17 @@ func DumpClusterState(ctx context.Context) {
 	shell.Exec(ctx, "kubectl get all -A -o wide")
 	shell.Exec(ctx, "kubectl get events -A --sort-by=.metadata.creationTimestamp")
 	shell.Exec(ctx, "kubectl get targets.fabric.symphony -A -o yaml")
-	shell.Exec(ctx, "kubectl get solutions.solution.symphony -A -o yaml")
-	shell.Exec(ctx, "kubectl get instances.solution.symphony -A -o yaml")
+	shell.Exec(ctx, "kubectl get solutionversions.solutionversion.symphony -A -o yaml")
+	shell.Exec(ctx, "kubectl get instances.solutionversion.symphony -A -o yaml")
 	shell.Exec(ctx, "helm list -A -o yaml")
 }
 
 func CleanupManifests(ctx context.Context) error {
 	return shell.ExecAll(
 		ctx,
-		"kubectl delete instances.solution.symphony --all -A",
+		"kubectl delete instances.solutionversion.symphony --all -A",
 		"kubectl delete targets.fabric.symphony --all -A",
-		"kubectl delete solutions.solution.symphony --all -A",
+		"kubectl delete solutionversions.solutionversion.symphony --all -A",
 	)
 }
 
@@ -156,7 +156,7 @@ func WriteYamlStringsToFile(yamlString string, filePath string) error {
 	return nil
 }
 
-func ReplacePlaceHolderInManifestWithString(manifest string, targetName string, solutionContainerName string, solutionName string, instanceName string, historyName string) (string, error) {
+func ReplacePlaceHolderInManifestWithString(manifest string, targetName string, solutionversionContainerName string, solutionversionName string, instanceName string, historyName string) (string, error) {
 	fullPath, err := filepath.Abs(manifest)
 	if err != nil {
 		return "", err
@@ -168,7 +168,7 @@ func ReplacePlaceHolderInManifestWithString(manifest string, targetName string, 
 	stringYaml := string(data)
 	if IsTestInAzure() {
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONREFNAME",
-			"/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME/solutions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME")
+			"/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME/solutionversions/SOLUTIONCONTAINERNAME/versions/SOLUTIONNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "TARGETREFNAME", "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/microsoft.edge/targets/TARGETNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-INSTANCENAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONFULLNAME", "TARGETNAME-v-SOLUTIONCONTAINERNAME-v-SOLUTIONNAME")
@@ -182,20 +182,20 @@ func ReplacePlaceHolderInManifestWithString(manifest string, targetName string, 
 		stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERFULLNAME", "SOLUTIONCONTAINERNAME")
 		stringYaml = strings.ReplaceAll(stringYaml, "INSTANCEHISTORYFULLNAME", "INSTANCENAME-v-HISTORYNAME")
 	}
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", solutionContainerName)
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONCONTAINERNAME", solutionversionContainerName)
 	stringYaml = strings.ReplaceAll(stringYaml, "INSTANCENAME", instanceName)
 	stringYaml = strings.ReplaceAll(stringYaml, "TARGETNAME", targetName)
-	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", solutionName)
+	stringYaml = strings.ReplaceAll(stringYaml, "SOLUTIONNAME", solutionversionName)
 	stringYaml = strings.ReplaceAll(stringYaml, "HISTORYNAME", historyName)
 	return stringYaml, nil
 }
 
-func ReplacePlaceHolderInManifest(manifest string, targetName string, solutionContainerName string, solutionName string, instanceName string, historyName string) error {
+func ReplacePlaceHolderInManifest(manifest string, targetName string, solutionversionContainerName string, solutionversionName string, instanceName string, historyName string) error {
 	fullPath, err := filepath.Abs(manifest)
 	if err != nil {
 		return err
 	}
-	stringYaml, err := ReplacePlaceHolderInManifestWithString(manifest, targetName, solutionContainerName, solutionName, instanceName, historyName)
+	stringYaml, err := ReplacePlaceHolderInManifestWithString(manifest, targetName, solutionversionContainerName, solutionversionName, instanceName, historyName)
 	if err != nil {
 		return err
 	}

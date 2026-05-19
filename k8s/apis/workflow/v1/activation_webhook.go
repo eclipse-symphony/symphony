@@ -116,13 +116,13 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.InvalidResource,
-			metrics.CatalogResourceType)
+			metrics.CatalogVersionResourceType)
 	} else {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.ValidResource,
-			metrics.CatalogResourceType)
+			metrics.CatalogVersionResourceType)
 	}
 
 	return nil, validationError

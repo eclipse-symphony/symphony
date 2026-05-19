@@ -1,0 +1,5 @@
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: solutionversion
+spec:  

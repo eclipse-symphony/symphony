@@ -80,54 +80,54 @@ func (s *StagingManager) Poll() []error {
 		return []error{err}
 	}
 	siteId := utils.FormatAsString(site)
-	var catalogs []model.CatalogState
-	catalogs, err = s.apiClient.GetCatalogs(ctx, "",
+	var catalogversions []model.CatalogVersionState
+	catalogversions, err = s.apiClient.GetCatalogVersions(ctx, "",
 		s.VendorContext.SiteInfo.CurrentSite.Username,
 		s.VendorContext.SiteInfo.CurrentSite.Password)
 	if err != nil {
-		log.Errorf(" M (Staging): Failed to get catalogs: %s", err.Error())
+		log.Errorf(" M (Staging): Failed to get catalogversions: %s", err.Error())
 		return []error{err}
 	}
-	for _, catalog := range catalogs {
-		cacheId := siteId + "-" + catalog.ObjectMeta.Name
+	for _, catalogversion := range catalogversions {
+		cacheId := siteId + "-" + catalogversion.ObjectMeta.Name
 		getRequest := states.GetRequest{
 			ID: cacheId,
 			Metadata: map[string]interface{}{
 				"version":   "v1",
 				"group":     model.FederationGroup,
-				"resource":  "catalogs",
-				"namespace": catalog.ObjectMeta.Namespace,
+				"resource":  "catalogversions",
+				"namespace": catalogversion.ObjectMeta.Namespace,
 			},
 		}
 		var entry states.StateEntry
 		entry, err = s.StateProvider.Get(ctx, getRequest)
-		if err == nil && entry.Body != nil && entry.Body.(string) == catalog.ObjectMeta.ETag {
+		if err == nil && entry.Body != nil && entry.Body.(string) == catalogversion.ObjectMeta.ETag {
 			continue
 		}
 		if err != nil && !utils.IsNotFound(err) {
-			log.Errorf(" M (Staging): Failed to get catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to get catalogversion %s: %s", catalogversion.ObjectMeta.Name, err.Error())
 		}
 		s.QueueProvider.Enqueue(siteId, v1alpha2.JobData{
-			Id:     catalog.ObjectMeta.Name,
+			Id:     catalogversion.ObjectMeta.Name,
 			Action: v1alpha2.JobUpdate,
-			Body:   catalog,
+			Body:   catalogversion,
 		})
 
-		// TODO: clean up the catalog synchronization status for multi-site
+		// TODO: clean up the catalogversion synchronization status for multi-site
 		_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 			Value: states.StateEntry{
 				ID:   cacheId,
-				Body: catalog.ObjectMeta.ETag,
+				Body: catalogversion.ObjectMeta.ETag,
 			},
 			Metadata: map[string]interface{}{
 				"version":   "v1",
 				"group":     model.FederationGroup,
-				"resource":  "catalogs",
-				"namespace": catalog.ObjectMeta.Namespace,
+				"resource":  "catalogversions",
+				"namespace": catalogversion.ObjectMeta.Namespace,
 			},
 		})
 		if err != nil {
-			log.Errorf(" M (Staging): Failed to record catalog %s: %s", catalog.ObjectMeta.Name, err.Error())
+			log.Errorf(" M (Staging): Failed to record catalogversion %s: %s", catalogversion.ObjectMeta.Name, err.Error())
 		}
 	}
 	return nil

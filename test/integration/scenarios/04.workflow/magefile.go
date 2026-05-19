@@ -34,19 +34,19 @@ var (
 )
 
 var (
-	// catalogs to deploy
-	testCatalogs = []string{
-		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
-		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container-2.yaml",
-		"test/integration/scenarios/04.workflow/manifest/instance-catalog-container.yaml",
-		"test/integration/scenarios/04.workflow/manifest/solution-catalog-container.yaml",
-		"test/integration/scenarios/04.workflow/manifest/target-catalog-container.yaml",
+	// catalogversions to deploy
+	testCatalogVersions = []string{
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion-container-2.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalogversion-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solutionversion-catalogversion-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalogversion-container.yaml",
 
-		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
-		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-2.yaml",
-		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
-		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
-		"test/integration/scenarios/04.workflow/manifest/target-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion-2.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalogversion.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solutionversion-catalogversion.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalogversion.yaml",
 	}
 
 	testCampaign = []string{
@@ -110,11 +110,11 @@ func DeployManifests(namespace string) error {
 			}
 		}
 	}
-	// Deploy the catalogs
-	for _, catalog := range testCatalogs {
-		absCatalog := filepath.Join(repoPath, catalog)
+	// Deploy the catalogversions
+	for _, catalogversion := range testCatalogVersions {
+		absCatalogVersion := filepath.Join(repoPath, catalogversion)
 
-		data, err := os.ReadFile(absCatalog)
+		data, err := os.ReadFile(absCatalogVersion)
 		if err != nil {
 			return err
 		}

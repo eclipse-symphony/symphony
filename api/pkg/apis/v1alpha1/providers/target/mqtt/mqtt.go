@@ -251,7 +251,7 @@ func (i *MQTTTargetProvider) Init(config providers.IProviderConfig) error {
 		
 		// Provide specific guidance for common TLS errors
 		if strings.Contains(connErr.Error(), "certificate signed by unknown authority") {
-			sLog.ErrorfCtx(ctx, "  P (MQTT Target): TLS certificate verification failed. Common solutions:")
+			sLog.ErrorfCtx(ctx, "  P (MQTT Target): TLS certificate verification failed. Common solutionversions:")
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): 1. Set 'caCertPath' to the path of your broker's CA certificate")
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): 2. Set 'insecureSkipVerify' to 'true' for testing (not recommended for production)")
 			sLog.ErrorfCtx(ctx, "  P (MQTT Target): 3. Ensure your broker certificate is issued by a trusted CA")

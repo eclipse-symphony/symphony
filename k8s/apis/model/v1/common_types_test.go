@@ -52,10 +52,10 @@ func TestInstanceSpecDeepEquals(t *testing.T) {
 	spec_update.Metadata = nil
 	assert.True(t, spec.DeepEquals(spec_update))
 
-	// Test Solution
-	spec_update.Solution = "solution:version2"
+	// Test SolutionVersion
+	spec_update.SolutionVersion = "solutionversion:version2"
 	assert.False(t, spec.DeepEquals(spec_update))
-	spec_update.Solution = spec.Solution
+	spec_update.SolutionVersion = spec.SolutionVersion
 
 	// Test Target
 	spec_update.Target.Selector["group"] = "rtos-demo"
@@ -91,7 +91,7 @@ func createDummyInstanceSpec(name string, interval string) InstanceSpec {
 			"foo": "bar",
 		},
 		Metadata: map[string]string{},
-		Solution: "solution:version1",
+		SolutionVersion: "solutionversion:version1",
 		Target: model.TargetSelector{
 			Name: "target-1",
 			Selector: map[string]string{

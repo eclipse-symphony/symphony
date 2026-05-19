@@ -27,10 +27,10 @@ func NewInstanceHistory(saveInstanceHistoryFunc SaveObjectSnapshotFunc) Instance
 
 // Validate Instance creation or update
 // 1. DisplayName is unique
-// 2. Solution exists
+// 2. SolutionVersion exists
 // 3. Target exists if provided by name rather than selector
 // 4. Target is valid, i.e. either name or selector is provided
 
-func (i *InstanceHistory) SaveInstanceHistory(ctx context.Context, objectName string, namespace string, instance interface{}, solutionSpec interface{}, targetSpec interface{}) error {
+func (i *InstanceHistory) SaveInstanceHistory(ctx context.Context, objectName string, namespace string, instance interface{}, solutionversionSpec interface{}, targetSpec interface{}) error {
 	return i.SaveInstanceHistoryFunc(ctx, objectName, instance)
 }

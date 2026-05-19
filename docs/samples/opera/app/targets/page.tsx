@@ -25,8 +25,8 @@ async function TargetsPage() {
     type: 'targets',
     menuItems: [
       {
-        name: 'Add Solution',
-        href: '/solutions/add',                
+        name: 'Add SolutionVersion',
+        href: '/solutionversions/add',                
       }
     ],
     views: ['cards', 'table'],

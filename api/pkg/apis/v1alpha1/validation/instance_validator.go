@@ -17,7 +17,7 @@ import (
 
 type InstanceValidator struct {
 	UniqueNameInstanceLookupFunc ObjectLookupFunc
-	SolutionLookupFunc           ObjectLookupFunc
+	SolutionVersionLookupFunc           ObjectLookupFunc
 	TargetLookupFunc             ObjectLookupFunc
 }
 
@@ -26,17 +26,17 @@ var (
 	instanceMinNameLength = 1
 )
 
-func NewInstanceValidator(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) InstanceValidator {
+func NewInstanceValidator(uniqueNameInstanceLookupFunc ObjectLookupFunc, solutionversionLookupFunc ObjectLookupFunc, targetLookupFunc ObjectLookupFunc) InstanceValidator {
 	return InstanceValidator{
 		UniqueNameInstanceLookupFunc: uniqueNameInstanceLookupFunc,
-		SolutionLookupFunc:           solutionLookupFunc,
+		SolutionVersionLookupFunc:           solutionversionLookupFunc,
 		TargetLookupFunc:             targetLookupFunc,
 	}
 }
 
 // Validate Instance creation or update
 // 1. DisplayName is unique
-// 2. Solution exists
+// 2. SolutionVersion exists
 // 3. Target exists if provided by name rather than selector
 // 4. Target is valid, i.e. either name or selector is provided
 func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
@@ -56,8 +56,8 @@ func (i *InstanceValidator) ValidateCreateOrUpdate(ctx context.Context, newRef i
 			errorFields = append(errorFields, *err)
 		}
 	}
-	if oldRef == nil || new.Spec.Solution != old.Spec.Solution {
-		if err := i.ValidateSolutionExist(ctx, new); err != nil {
+	if oldRef == nil || new.Spec.SolutionVersion != old.Spec.SolutionVersion {
+		if err := i.ValidateSolutionVersionExist(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
@@ -107,42 +107,42 @@ func (i *InstanceValidator) ValidateUniqueName(ctx context.Context, c model.Inst
 	return nil
 }
 
-// Validate Solution exists for instance
-func (i *InstanceValidator) ValidateSolutionExist(ctx context.Context, c model.InstanceState) *ErrorField {
-	if i.SolutionLookupFunc == nil {
+// Validate SolutionVersion exists for instance
+func (i *InstanceValidator) ValidateSolutionVersionExist(ctx context.Context, c model.InstanceState) *ErrorField {
+	if i.SolutionVersionLookupFunc == nil {
 		return nil
 	}
-	solution, err := i.SolutionLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.Solution), c.ObjectMeta.Namespace)
+	solutionversion, err := i.SolutionVersionLookupFunc(ctx, ConvertReferenceToObjectName(c.Spec.SolutionVersion), c.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
-			FieldPath:       "spec.solution",
-			Value:           c.Spec.Solution,
-			DetailedMessage: "solution does not exist",
+			FieldPath:       "spec.solutionversion",
+			Value:           c.Spec.SolutionVersion,
+			DetailedMessage: "solutionversion does not exist",
 		}
 	}
-	marshalResult, err := json.Marshal(solution)
+	marshalResult, err := json.Marshal(solutionversion)
 	if err != nil {
 		return &ErrorField{
-			FieldPath:       "spec.solution",
-			Value:           c.Spec.Solution,
-			DetailedMessage: "solution can not be parsed.",
+			FieldPath:       "spec.solutionversion",
+			Value:           c.Spec.SolutionVersion,
+			DetailedMessage: "solutionversion can not be parsed.",
 		}
 	}
-	var solutionState model.SolutionState
-	err = json.Unmarshal(marshalResult, &solutionState)
+	var solutionversionState model.SolutionVersionState
+	err = json.Unmarshal(marshalResult, &solutionversionState)
 	if err != nil {
 		return &ErrorField{
-			FieldPath:       "spec.solution",
-			Value:           c.Spec.Solution,
-			DetailedMessage: "solution can not be parsed.",
+			FieldPath:       "spec.solutionversion",
+			Value:           c.Spec.SolutionVersion,
+			DetailedMessage: "solutionversion can not be parsed.",
 		}
 	}
 
-	if c.ObjectMeta.Labels[api_constants.SolutionUid] != string(solutionState.ObjectMeta.UID) {
+	if c.ObjectMeta.Labels[api_constants.SolutionVersionUid] != string(solutionversionState.ObjectMeta.UID) {
 		return &ErrorField{
-			FieldPath:       "metadata.labels.solutionUid",
-			Value:           string(solutionState.ObjectMeta.UID),
-			DetailedMessage: "metadata.labels.solutionUid is empty or doesn't match with the solution.",
+			FieldPath:       "metadata.labels.solutionversionUid",
+			Value:           string(solutionversionState.ObjectMeta.UID),
+			DetailedMessage: "metadata.labels.solutionversionUid is empty or doesn't match with the solutionversion.",
 		}
 	}
 

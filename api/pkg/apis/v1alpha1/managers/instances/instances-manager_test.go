@@ -39,14 +39,14 @@ func TestCreateGetDeleteInstancesState(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestCreateInstanceWithoutSolutionTargetValidation(t *testing.T) {
+func TestCreateInstanceWithoutSolutionVersionTargetValidation(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, manager.solutionLookup, manager.targetLookup)
+	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, manager.solutionversionLookup, manager.targetLookup)
 
 	err := manager.UpsertState(context.Background(), "test", model.InstanceState{
 		ObjectMeta: model.ObjectMeta{
@@ -55,7 +55,7 @@ func TestCreateInstanceWithoutSolutionTargetValidation(t *testing.T) {
 		},
 		Spec: &model.InstanceSpec{
 			DisplayName: "test",
-			Solution:    "testsolution",
+			SolutionVersion:    "testsolutionversion",
 			Target: model.TargetSelector{
 				Name: "testtarget",
 			},
@@ -63,38 +63,38 @@ func TestCreateInstanceWithoutSolutionTargetValidation(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "target does not exist")
-	assert.Contains(t, err.Error(), "solution does not exist")
+	assert.Contains(t, err.Error(), "solutionversion does not exist")
 }
 
-func TestCreateInstanceWithSolutionTargetValidation(t *testing.T) {
+func TestCreateInstanceWithSolutionVersionTargetValidation(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := InstancesManager{
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, manager.solutionLookup, manager.targetLookup)
+	manager.InstanceValidator = validation.NewInstanceValidator(manager.instanceUniqueNameLookup, manager.solutionversionLookup, manager.targetLookup)
 
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: "testsolution",
+			ID: "testsolutionversion",
 			Body: map[string]interface{}{
-				"apiVersion": model.SolutionGroup + "/v1",
-				"kind":       "Solution",
+				"apiVersion": model.SolutionVersionGroup + "/v1",
+				"kind":       "SolutionVersion",
 				"metadata": model.ObjectMeta{
-					Name:      "testsolution",
+					Name:      "testsolutionversion",
 					Namespace: "default",
 				},
-				"spec": model.SolutionSpec{},
+				"spec": model.SolutionVersionSpec{},
 			},
 			ETag: "1",
 		},
 		Metadata: map[string]interface{}{
 			"namespace": "default",
-			"group":     model.SolutionGroup,
+			"group":     model.SolutionVersionGroup,
 			"version":   "v1",
-			"resource":  "solutions",
-			"kind":      "Solution",
+			"resource":  "solutionversions",
+			"kind":      "SolutionVersion",
 		},
 	})
 
@@ -128,7 +128,7 @@ func TestCreateInstanceWithSolutionTargetValidation(t *testing.T) {
 		},
 		Spec: &model.InstanceSpec{
 			DisplayName: "test",
-			Solution:    "testsolution",
+			SolutionVersion:    "testsolutionversion",
 			Target: model.TargetSelector{
 				Name: "testtarget",
 			},
@@ -142,7 +142,7 @@ func TestCreateInstanceWithSolutionTargetValidation(t *testing.T) {
 		},
 		Spec: &model.InstanceSpec{
 			DisplayName: "test",
-			Solution:    "testsolution",
+			SolutionVersion:    "testsolutionversion",
 			Target: model.TargetSelector{
 				Name: "testtarget2",
 			},
@@ -156,13 +156,13 @@ func TestCreateInstanceWithSolutionTargetValidation(t *testing.T) {
 		},
 		Spec: &model.InstanceSpec{
 			DisplayName: "test",
-			Solution:    "testsolution2",
+			SolutionVersion:    "testsolutionversion2",
 			Target: model.TargetSelector{
 				Name: "testtarget",
 			},
 		},
 	})
-	assert.Contains(t, err.Error(), "solution does not exist")
+	assert.Contains(t, err.Error(), "solutionversion does not exist")
 }
 
 func TestCreateInstanceWithSameDisplayNameValidation(t *testing.T) {
@@ -181,7 +181,7 @@ func TestCreateInstanceWithSameDisplayNameValidation(t *testing.T) {
 		},
 		Spec: &model.InstanceSpec{
 			DisplayName: "test",
-			Solution:    "testsolution",
+			SolutionVersion:    "testsolutionversion",
 			Target: model.TargetSelector{
 				Name: "testtarget",
 			},
@@ -196,7 +196,7 @@ func TestCreateInstanceWithSameDisplayNameValidation(t *testing.T) {
 		},
 		Spec: &model.InstanceSpec{
 			DisplayName: "test",
-			Solution:    "testsolution",
+			SolutionVersion:    "testsolutionversion",
 			Target: model.TargetSelector{
 				Name: "testtarget",
 			},

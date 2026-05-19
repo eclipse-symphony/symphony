@@ -2,7 +2,7 @@
 
 _(last edit: 4/15/2024)_
 
-This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solution instance to your local machine using Docker.
+This quick start walks you through the steps of setting up a new Symphony control plane in standalone mode and deploying a new Symphony solutionversion instance to your local machine using Docker.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
 
@@ -64,11 +64,11 @@ Define your current machine as a [target](../concepts/unified-object-model/targe
 
   ```
 
-## Define a solution
+## Define a solutionversion
 
-Define a [solution](../concepts/unified-object-model/solution.md) with a single Redis container as a component:
+Define a [solutionversion](../concepts/unified-object-model/solutionversion.md) with a single Redis container as a component:
 
-* **ADDRESS**: http://localhost:8082/v1alpha2/solutions/sample-redis
+* **ADDRESS**: http://localhost:8082/v1alpha2/solutionversions/sample-redis
 * **METHOD**: POST
 * **BODY**:
 
@@ -91,7 +91,7 @@ Define a [solution](../concepts/unified-object-model/solution.md) with a single 
 
 ## Define an instance
 
-Define an [instance](../concepts/unified-object-model/instance.md), which triggers the Docker *provider* to deploy the Redis container *solution* to your location machine *target*:
+Define an [instance](../concepts/unified-object-model/instance.md), which triggers the Docker *provider* to deploy the Redis container *solutionversion* to your location machine *target*:
 
 * **ADDRESS**: http://localhost:8082/v1alpha2/instances/redis-server
 * **METHOD**: POST
@@ -102,7 +102,7 @@ Define an [instance](../concepts/unified-object-model/instance.md), which trigge
     "spec": {
       "displayName": "redis-server",
       "name": "default",
-      "solution": "sample-redis",
+      "solutionversion": "sample-redis",
       "target": {
         "name": "sample-docker-target"
       }        
@@ -140,7 +140,7 @@ To delete the container, send a `DELETE` request:
   {
     "spec": {
       "displayName": "redis-server",
-      "solution": "sample-redis",
+      "solutionversion": "sample-redis",
       "target": {
         "name": "sample-docker-target"
       }        

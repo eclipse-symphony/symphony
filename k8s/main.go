@@ -35,7 +35,7 @@ import (
 	fabricv1 "gopls-workspace/apis/fabric/v1"
 	federationv1 "gopls-workspace/apis/federation/v1"
 	commoncontainer "gopls-workspace/apis/model/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 	"gopls-workspace/constants"
 
@@ -45,7 +45,7 @@ import (
 	fabriccontrollers "gopls-workspace/controllers/fabric"
 	federationcontrollers "gopls-workspace/controllers/federation"
 	monitorcontrollers "gopls-workspace/controllers/monitor"
-	solutioncontrollers "gopls-workspace/controllers/solution"
+	solutionversioncontrollers "gopls-workspace/controllers/solution"
 	workflowcontrollers "gopls-workspace/controllers/workflow"
 	//+kubebuilder:scaffold:imports
 )
@@ -106,7 +106,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(solutionv1.AddToScheme(scheme))
+	utilruntime.Must(solutionversionv1.AddToScheme(scheme))
 	utilruntime.Must(fabricv1.AddToScheme(scheme))
 	utilruntime.Must(aiv1.AddToScheme(scheme))
 	utilruntime.Must(configv1.AddToScheme(scheme))
@@ -280,11 +280,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&solutioncontrollers.SolutionReconciler{
+	if err = (&solutionversioncontrollers.SolutionVersionReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Solution")
+		setupLog.Error(err, "unable to create controller", "controller", "SolutionVersion")
 		os.Exit(1)
 	}
 	if err = (&workflowcontrollers.CampaignReconciler{
@@ -302,8 +302,8 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Activation")
 		os.Exit(1)
 	}
-	if err = (&solutioncontrollers.InstanceQueueingReconciler{
-		InstanceReconciler: solutioncontrollers.InstanceReconciler{
+	if err = (&solutionversioncontrollers.InstanceQueueingReconciler{
+		InstanceReconciler: solutionversioncontrollers.InstanceReconciler{
 			Client:                 mgr.GetClient(),
 			Scheme:                 mgr.GetScheme(),
 			ReconciliationInterval: reconcileInterval,
@@ -317,8 +317,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&solutioncontrollers.InstancePollingReconciler{
-		InstanceReconciler: solutioncontrollers.InstanceReconciler{
+	if err = (&solutionversioncontrollers.InstancePollingReconciler{
+		InstanceReconciler: solutionversioncontrollers.InstanceReconciler{
 			Client:                      mgr.GetClient(),
 			Scheme:                      mgr.GetScheme(),
 			ReconciliationInterval:      reconcileInterval,
@@ -397,20 +397,20 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Site")
 		os.Exit(1)
 	}
-	if err = (&federationcontrollers.CatalogReconciler{
+	if err = (&federationcontrollers.CatalogVersionReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		ApiClient: apiClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
+		setupLog.Error(err, "unable to create controller", "controller", "CatalogVersion")
 		os.Exit(1)
 	}
-	if err = (&actioncontrollers.CatalogEvalReconciler{
+	if err = (&actioncontrollers.CatalogVersionEvalReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		ApiClient: apiClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
+		setupLog.Error(err, "unable to create controller", "controller", "CatalogVersion")
 		os.Exit(1)
 	}
 	if !disableWebhooksServer {
@@ -423,15 +423,15 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Target")
 			os.Exit(1)
 		}
-		if err = (&solutionv1.Solution{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Solution")
+		if err = (&solutionversionv1.SolutionVersion{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "SolutionVersion")
 			os.Exit(1)
 		}
-		if err = (&solutionv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&solutionversionv1.Instance{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Instance")
 			os.Exit(1)
 		}
-		if err = (&solutionv1.InstanceHistory{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&solutionversionv1.InstanceHistory{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "InstanceHistory")
 			os.Exit(1)
 		}
@@ -447,12 +447,12 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Activation")
 			os.Exit(1)
 		}
-		if err = (&federationv1.Catalog{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
+		if err = (&federationv1.CatalogVersion{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogVersion")
 			os.Exit(1)
 		}
-		if err = (&federationv1.CatalogEvalExpression{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogEvalExpression")
+		if err = (&federationv1.CatalogVersionEvalExpression{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogVersionEvalExpression")
 			os.Exit(1)
 		}
 		if err = (&workflowv1.Campaign{}).SetupWebhookWithManager(mgr); err != nil {
@@ -471,27 +471,27 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CampaignContainer")
 			os.Exit(1)
 		}
-		if err = commoncontainer.SetupWebhookWithManager(mgr, &federationv1.CatalogContainer{}); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogContainer")
+		if err = commoncontainer.SetupWebhookWithManager(mgr, &federationv1.Catalog{}); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Catalog")
 			os.Exit(1)
 		}
-		if err = commoncontainer.SetupWebhookWithManager(mgr, &solutionv1.SolutionContainer{}); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "SolutionContainer")
+		if err = commoncontainer.SetupWebhookWithManager(mgr, &solutionversionv1.Solution{}); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Solution")
 			os.Exit(1)
 		}
 	}
-	if err = (&solutioncontrollers.SolutionContainerReconciler{
+	if err = (&solutionversioncontrollers.SolutionReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SolutionContainer")
+		setupLog.Error(err, "unable to create controller", "controller", "Solution")
 		os.Exit(1)
 	}
-	if err = (&federationcontrollers.CatalogContainerReconciler{
+	if err = (&federationcontrollers.CatalogReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CatalogContainer")
+		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
 		os.Exit(1)
 	}
 	if err = (&workflowcontrollers.CampaignContainerReconciler{
@@ -508,7 +508,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Diagnostic")
 		os.Exit(1)
 	}
-	if err = (&solutioncontrollers.InstanceHistoryReconciler{
+	if err = (&solutionversioncontrollers.InstanceHistoryReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

@@ -27,14 +27,14 @@ var (
 	// Manifests to deploy
 	testSamples = map[string][]string{
 		"sample-hello-world": {
-			"../../../../docs/samples/k8s/hello-world/solution-container.yaml",
-			"../../../../docs/samples/k8s/hello-world/solution.yaml",
+			"../../../../docs/samples/k8s/hello-world/solutionversion-container.yaml",
+			"../../../../docs/samples/k8s/hello-world/solutionversion.yaml",
 			"../../../../docs/samples/k8s/hello-world/target.yaml",
 			"../../../../docs/samples/k8s/hello-world/instance.yaml",
 		},
 		"sample-staged": {
-			"../../../../docs/samples/k8s/staged/solution-container.yaml",
-			"../../../../docs/samples/k8s/staged/solution.yaml",
+			"../../../../docs/samples/k8s/staged/solutionversion-container.yaml",
+			"../../../../docs/samples/k8s/staged/solutionversion.yaml",
 			"../../../../docs/samples/k8s/staged/target.yaml",
 			"../../../../docs/samples/k8s/staged/instance.yaml",
 		},
@@ -57,7 +57,7 @@ func Test() error {
 		return err
 	}
 
-	// Deploy solution, target and instance
+	// Deploy solutionversion, target and instance
 	for namespace, manifests := range testSamples {
 		os.Setenv("NAMESPACE", namespace)
 		err := DeployManifests(namespace, manifests)
@@ -91,7 +91,7 @@ func Verify() error {
 	return nil
 }
 
-// Deploy solution, target and instance
+// Deploy solutionversion, target and instance
 func DeployManifests(namespace string, testManifests []string) error {
 	// Ensure that namespace is defined
 	err := testhelpers.EnsureNamespace(namespace)

@@ -4,10 +4,10 @@
     "title": "DeploymentSpec",
     "type": "object",
     "properties": {
-        "solution-name": {
+        "solutionversion-name": {
             "type": "string"
         },
-        "solution": { "$ref": "./solutionstate.json" },
+        "solutionversion": { "$ref": "./solutionversionstate.json" },
         "instance": { "$ref": "./instance.json#/$defs/InstanceState" },
         "targets": {
             "type": "object",

@@ -20,7 +20,7 @@ type PropertyDesc struct {
 	SkipIfMissing   bool   `json:"skipIfMissing,omitempty"`
 	PrefixMatch     bool   `json:"prefixMatch,omitempty"`
 	IsComponentName bool   `json:"isComponentName,omitempty"`
-	// This is a stop-gap solution to support change detection for advanced comparison scenarios.
+	// This is a stop-gap solutionversion to support change detection for advanced comparison scenarios.
 	PropChanged func(oldProp, newProp any) bool `json:"-"`
 }
 type ComponentValidationRule struct {

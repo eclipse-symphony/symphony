@@ -3,7 +3,7 @@
 ## Licensed under the MIT license.
 ## SPDX-License-Identifier: MIT
 ##
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   annotations: {}
@@ -11,7 +11,7 @@ metadata:
 spec:
   displayName: INSTANCEFULLNAME
   scope: SCOPENAME
-  solution: SOLUTIONREFNAME
+  solutionversion: SOLUTIONREFNAME
   isDryRun: DRYRUN
   activeState: ACTIVESTATE
   target:

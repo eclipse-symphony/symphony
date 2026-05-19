@@ -14,7 +14,7 @@
 
 **Complete Data Models**
 - COA request/response structures with multiple content types
-- Target, Solution, Instance, and Deployment specifications
+- Target, SolutionVersion, Instance, and Deployment specifications
 - Full type hints and dataclass support for IDE autocomplete
 - Summary and status tracking models
 
@@ -79,15 +79,15 @@ with SymphonyAPI(base_url, username, password) as client:
     client.unregister_target("gateway-001")
 ```
 
-### Deploying Solutions
+### Deploying SolutionVersions
 
 ```python
 import yaml
 from symphony_sdk import SymphonyAPI
 
 with SymphonyAPI(base_url, username, password) as client:
-    # Create a solution
-    solution = {
+    # Create a solutionversion
+    solutionversion = {
         "displayName": "Web App",
         "components": [{
             "name": "nginx",
@@ -95,11 +95,11 @@ with SymphonyAPI(base_url, username, password) as client:
             "properties": {"image": "nginx:latest"}
         }]
     }
-    client.create_solution("web-app", yaml.dump(solution))
+    client.create_solutionversion("web-app", yaml.dump(solutionversion))
 
     # Deploy an instance
     instance_spec = {
-        "solution": "web-app",
+        "solutionversion": "web-app",
         "target": {"name": "gateway-001"}
     }
     client.create_instance("web-app-prod", instance_spec)
@@ -160,7 +160,7 @@ target = TargetSpec(
 
 instance = InstanceSpec(
     name="my-app",
-    solution="web-app",
+    solutionversion="web-app",
     target=TargetSelector(name="my-target"),
     parameters={"replicas": "3"}
 )
@@ -177,7 +177,7 @@ instance = InstanceSpec(
 📖 **Examples:**
 - [Basic Client Usage](examples/01_basic_client.py) - Authentication and health checks
 - [Target Management](examples/02_target_management.py) - Register and manage targets
-- [Solution Deployment](examples/03_solution_deployment.py) - Deploy solutions and instances
+- [SolutionVersion Deployment](examples/03_solutionversion_deployment.py) - Deploy solutionversions and instances
 - [COA Provider](examples/04_coa_provider.py) - Work with COA requests/responses
 - [Summary Tracking](examples/05_summary_tracking.py) - Track deployment status
 
@@ -199,9 +199,9 @@ client = SymphonyAPI(
 
 **Methods:**
 - Target Management: `register_target()`, `unregister_target()`, `list_targets()`, `get_target()`, `ping_target()`
-- Solution Management: `create_solution()`, `get_solution()`, `delete_solution()`, `list_solutions()`
+- SolutionVersion Management: `create_solutionversion()`, `get_solutionversion()`, `delete_solutionversion()`, `list_solutionversions()`
 - Instance Management: `create_instance()`, `get_instance()`, `delete_instance()`, `list_instances()`
-- Deployment: `apply_deployment()`, `reconcile_solution()`, `get_instance_status()`
+- Deployment: `apply_deployment()`, `reconcile_solutionversion()`, `get_instance_status()`
 - Utilities: `authenticate()`, `health_check()`,
 
 ### Data Models
@@ -209,7 +209,7 @@ client = SymphonyAPI(
 Comprehensive data models for Symphony resources:
 
 - **Target Models**: `TargetSpec`, `TargetState`, `TargetStatus`, `TargetSelector`
-- **Solution Models**: `SolutionSpec`, `SolutionState`, `ComponentSpec`, `RouteSpec`
+- **SolutionVersion Models**: `SolutionVersionSpec`, `SolutionVersionState`, `ComponentSpec`, `RouteSpec`
 - **Instance Models**: `InstanceSpec`, `DeploymentSpec`, `TopologySpec`, `PipelineSpec`
 - **COA Models**: `COARequest`, `COAResponse`, `State`
 - **Summary Models**: `SummaryResult`, `SummarySpec`, `ComponentResultSpec`, `TargetResultSpec`

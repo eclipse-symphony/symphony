@@ -35,15 +35,15 @@ func getTestApiClient() *apiClient {
 	return apiClient
 }
 
-func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
+func TestGetInstancesWhenSolutionVersionTargetHaveSameComps(t *testing.T) {
 	testSymphonyApi := os.Getenv("TEST_SYMPHONY_API")
 	if testSymphonyApi != "yes" {
 		t.Skip("Skipping becasue TEST_SYMPHONY_API is missing or not set to 'yes'")
 	}
 
-	solutionName := "solution1"
-	solution1JsonObj := map[string]interface{}{
-		"name": "nginx-solution",
+	solutionversionName := "solutionversion1"
+	solutionversion1JsonObj := map[string]interface{}{
+		"name": "nginx-solutionversion",
 		"type": "helm.v3",
 		"properties": map[string]interface{}{
 			"chart": map[string]interface{}{
@@ -56,12 +56,12 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 		},
 	}
 
-	solution1, err := json.Marshal(solution1JsonObj)
+	solutionversion1, err := json.Marshal(solutionversion1JsonObj)
 	if err != nil {
 		panic(err)
 	}
 
-	err = getTestApiClient().CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	err = getTestApiClient().CreateSolutionVersion(context.Background(), solutionversionName, solutionversion1, "default", user, password)
 	require.NoError(t, err)
 
 	targetName := "target1"
@@ -122,7 +122,7 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	instanceName := "instance1"
 	instance1JsonObj := map[string]interface{}{
 		"scope":    "default",
-		"solution": solutionName,
+		"solutionversion": solutionversionName,
 		"target": map[string]interface{}{
 			"name": targetName,
 		},
@@ -144,7 +144,7 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 
 	require.Equal(t, 1, len(instancesRes))
 	require.Equal(t, instanceName, instancesRes[0].Spec.DisplayName)
-	require.Equal(t, solutionName, instancesRes[0].Spec.Solution)
+	require.Equal(t, solutionversionName, instancesRes[0].Spec.SolutionVersion)
 	require.Equal(t, targetName, instancesRes[0].Spec.Target.Name)
 	require.Equal(t, 1, instancesRes[0].Status.Targets)
 	require.Equal(t, "OK", instancesRes[0].Status.Status)
@@ -153,7 +153,7 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, instanceName, instanceRes.Spec.DisplayName)
-	require.Equal(t, solutionName, instanceRes.Spec.Solution)
+	require.Equal(t, solutionversionName, instanceRes.Spec.SolutionVersion)
 	require.Equal(t, targetName, instanceRes.Spec.Target.Name)
 	// require.Equal(t, "1", instanceRes.Status.Properties["targets"])
 	require.Equal(t, "OK", instanceRes.Status.Status)
@@ -161,43 +161,43 @@ func TestGetInstancesWhenSolutionTargetHaveSameComps(t *testing.T) {
 	err = getTestApiClient().DeleteTarget(context.Background(), targetName, "default", user, password)
 	require.NoError(t, err)
 
-	err = getTestApiClient().DeleteSolution(context.Background(), solutionName, "default", user, password)
+	err = getTestApiClient().DeleteSolutionVersion(context.Background(), solutionversionName, "default", user, password)
 	require.NoError(t, err)
 
 	err = getTestApiClient().DeleteInstance(context.Background(), instanceName, "default", user, password)
 	require.NoError(t, err)
 }
 
-func TestGetSolutionsWhenSomeSolution(t *testing.T) {
+func TestGetSolutionVersionsWhenSomeSolutionVersion(t *testing.T) {
 	testSymphonyApi := os.Getenv("TEST_SYMPHONY_API")
 	if testSymphonyApi != "yes" {
 		t.Skip("Skipping becasue TEST_SYMPHONY_API is missing or not set to 'yes'")
 	}
 
-	solutionContainerName := "solution"
-	solutionContainer := model.SolutionContainerState{
+	solutionversionContainerName := "solutionversion"
+	solutionversionContainer := model.SolutionState{
 		ObjectMeta: model.ObjectMeta{
-			Name: solutionContainerName,
+			Name: solutionversionContainerName,
 		},
-		Spec: &model.SolutionContainerSpec{},
+		Spec: &model.SolutionSpec{},
 	}
 
-	solutionContainer1, err := json.Marshal(solutionContainer)
+	solutionversionContainer1, err := json.Marshal(solutionversionContainer)
 	if err != nil {
 		panic(err)
 	}
 
-	err = getTestApiClient().CreateSolutionContainer(context.Background(), solutionContainerName, solutionContainer1, "default", user, password)
+	err = getTestApiClient().CreateSolution(context.Background(), solutionversionContainerName, solutionversionContainer1, "default", user, password)
 	require.NoError(t, err)
 
-	solutionName := fmt.Sprintf("%s%s%s", solutionContainerName, constants.ResourceSeperator, "v1")
-	solution := model.SolutionState{
+	solutionversionName := fmt.Sprintf("%s%s%s", solutionversionContainerName, constants.ResourceSeperator, "v1")
+	solutionversion := model.SolutionVersionState{
 		ObjectMeta: model.ObjectMeta{
-			Name: solutionName,
+			Name: solutionversionName,
 		},
-		Spec: &model.SolutionSpec{
-			RootResource: solutionContainerName,
-			DisplayName:  solutionName,
+		Spec: &model.SolutionVersionSpec{
+			RootResource: solutionversionContainerName,
+			DisplayName:  solutionversionName,
 			Components: []model.ComponentSpec{
 				{
 					Name: "simple-chart-1",
@@ -213,29 +213,29 @@ func TestGetSolutionsWhenSomeSolution(t *testing.T) {
 		},
 	}
 
-	solution1, err := json.Marshal(solution)
+	solutionversion1, err := json.Marshal(solutionversion)
 	if err != nil {
 		panic(err)
 	}
 
-	err = getTestApiClient().CreateSolution(context.Background(), solutionName, solution1, "default", user, password)
+	err = getTestApiClient().CreateSolutionVersion(context.Background(), solutionversionName, solutionversion1, "default", user, password)
 	require.NoError(t, err)
 
-	solutionsRes, err := getTestApiClient().GetSolutions(context.Background(), "default", user, password)
+	solutionversionsRes, err := getTestApiClient().GetSolutionVersions(context.Background(), "default", user, password)
 	require.NoError(t, err)
 
-	require.Equal(t, 1, len(solutionsRes))
-	require.Equal(t, solutionName, solutionsRes[0].Spec.DisplayName)
+	require.Equal(t, 1, len(solutionversionsRes))
+	require.Equal(t, solutionversionName, solutionversionsRes[0].Spec.DisplayName)
 
-	solutionRes, err := getTestApiClient().GetSolution(context.Background(), solutionName, "default", user, password)
+	solutionversionRes, err := getTestApiClient().GetSolutionVersion(context.Background(), solutionversionName, "default", user, password)
 	require.NoError(t, err)
 
-	require.Equal(t, solutionName, solutionRes.Spec.DisplayName)
+	require.Equal(t, solutionversionName, solutionversionRes.Spec.DisplayName)
 
-	err = getTestApiClient().DeleteSolution(context.Background(), solutionName, "default", user, password)
+	err = getTestApiClient().DeleteSolutionVersion(context.Background(), solutionversionName, "default", user, password)
 	require.NoError(t, err)
 
-	err = getTestApiClient().DeleteSolutionContainer(context.Background(), solutionContainerName, "default", user, password)
+	err = getTestApiClient().DeleteSolution(context.Background(), solutionversionContainerName, "default", user, password)
 	require.NoError(t, err)
 }
 
@@ -500,12 +500,12 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 	require.NoError(t, err)
 
 	ret, err := res.DeepEquals(model.DeploymentSpec{
-		SolutionName: "target-runtime-someTargetName",
-		Solution: model.SolutionState{
+		SolutionVersionName: "target-runtime-someTargetName",
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "target-runtime-someTargetName",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "target-runtime-someTargetName",
 				Components: []model.ComponentSpec{
 					{
@@ -533,7 +533,7 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 			Spec: &model.InstanceSpec{
 				Scope:       "targetScope",
 				DisplayName: "target-runtime-someTargetName",
-				Solution:    "target-runtime-someTargetName",
+				SolutionVersion:    "target-runtime-someTargetName",
 				Target: model.TargetSelector{
 					Name: "someTargetName",
 				},
@@ -601,12 +601,12 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 			},
 		},
 		Status: model.InstanceStatus{},
-	}, model.SolutionState{
+	}, model.SolutionVersionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "someOtherId",
-			Namespace: "solutionsScope",
+			Namespace: "solutionversionsScope",
 		},
-		Spec: &model.SolutionSpec{
+		Spec: &model.SolutionVersionSpec{
 			DisplayName: "someDisplayName",
 			Components: []model.ComponentSpec{
 				{
@@ -663,13 +663,13 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 	jData, _ := json.Marshal(res)
 	t.Log(string(jData))
 	ret, err := res.DeepEquals(model.DeploymentSpec{ //require.Equal( doesn't seem to compare pointer fields correctly
-		SolutionName: "someOtherId",
-		Solution: model.SolutionState{
+		SolutionVersionName: "someOtherId",
+		SolutionVersion: model.SolutionVersionState{
 			ObjectMeta: model.ObjectMeta{
 				Name:      "someOtherId",
-				Namespace: "solutionsScope",
+				Namespace: "solutionversionsScope",
 			},
-			Spec: &model.SolutionSpec{
+			Spec: &model.SolutionVersionSpec{
 				DisplayName: "someDisplayName",
 				Components: []model.ComponentSpec{
 					{
@@ -701,7 +701,7 @@ func TestCreateSymphonyDeployment(t *testing.T) {
 				},
 			},
 			Spec: &model.InstanceSpec{
-				Solution: "",
+				SolutionVersion: "",
 				Target: model.TargetSelector{
 					Name: "someTargetName",
 					Selector: map[string]string{

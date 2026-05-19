@@ -23,7 +23,7 @@ const (
 	//resource type
 	TargetResourceType     string = "Target"
 	InstanceResourceType   string = "Instance"
-	CatalogResourceType    string = "Catalog"
+	CatalogVersionResourceType    string = "CatalogVersion"
 	ContainerResourceType  string = "Container"
 	ModelResourceType      string = "Model"
 	SkillResourceType      string = "Skill"

@@ -30,11 +30,11 @@ jobs:
         - "02.basic"
         - "03.basicWithNsDelete"
         - "04.workflow-false"
-        - "05.catalogNconfigmap"
+        - "05.catalogversionNconfigmap"
         - "07.maestroTest"
         - "08.webhook"
         - "09.stress"
-        - "10.catalogEval"
+        - "10.catalogversionEval"
         - "12.naming"
         - "13.createStage"
     steps:

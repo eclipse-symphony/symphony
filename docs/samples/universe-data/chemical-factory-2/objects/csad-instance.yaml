@@ -1,8 +1,8 @@
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: csad-site-instance
 spec:
-  solution: csad:version1
+  solutionversion: csad:version1
   target: 
     name: k8s-target

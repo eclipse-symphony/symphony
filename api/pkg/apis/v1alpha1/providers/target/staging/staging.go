@@ -109,7 +109,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 	containerName := deployment.Instance.ObjectMeta.Name + "-" + i.Config.TargetName
 	versionName := containerName + constants.ResourceSeperator + "version1"
 
-	catalog, err := i.ApiClient.GetCatalog(
+	catalogversion, err := i.ApiClient.GetCatalogVersion(
 		ctx,
 		versionName,
 		scope,
@@ -125,7 +125,7 @@ func (i *StagingTargetProvider) Get(ctx context.Context, deployment model.Deploy
 		return nil, err
 	}
 
-	if spec, ok := catalog.Spec.Properties["reported"]; ok {
+	if spec, ok := catalogversion.Spec.Properties["reported"]; ok {
 		var components []model.ComponentSpec
 		jData, _ := json.Marshal(spec)
 		err = json.Unmarshal(jData, &components)
@@ -174,9 +174,9 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		scope = "default"
 	}
 
-	var catalog model.CatalogState
+	var catalogversion model.CatalogVersionState
 
-	catalog, err = i.ApiClient.GetCatalog(
+	catalogversion, err = i.ApiClient.GetCatalogVersion(
 		ctx,
 		versionName,
 		scope,
@@ -188,39 +188,39 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		return ret, err
 	}
 
-	if catalog.Spec == nil {
-		catalog.ObjectMeta.Name = versionName
-		catalog.Spec = &model.CatalogSpec{
+	if catalogversion.Spec == nil {
+		catalogversion.ObjectMeta.Name = versionName
+		catalogversion.Spec = &model.CatalogVersionSpec{
 			CatalogType: "staged",
 		}
 	}
-	if catalog.Spec.Properties == nil {
-		catalog.Spec.Properties = make(map[string]interface{})
+	if catalogversion.Spec.Properties == nil {
+		catalogversion.Spec.Properties = make(map[string]interface{})
 	}
-	if catalog.Spec.Metadata == nil {
-		catalog.Spec.Metadata = make(map[string]string)
+	if catalogversion.Spec.Metadata == nil {
+		catalogversion.Spec.Metadata = make(map[string]string)
 	}
-	if catalog.ObjectMeta.Annotations == nil {
-		catalog.ObjectMeta.Annotations = make(map[string]string)
+	if catalogversion.ObjectMeta.Annotations == nil {
+		catalogversion.ObjectMeta.Annotations = make(map[string]string)
 	}
 
-	if catalog.ObjectMeta.Labels == nil {
-		catalog.ObjectMeta.Labels = make(map[string]string)
+	if catalogversion.ObjectMeta.Labels == nil {
+		catalogversion.ObjectMeta.Labels = make(map[string]string)
 	}
-	catalog.ObjectMeta.Labels[constants.StagedTarget] = i.Config.TargetName
+	catalogversion.ObjectMeta.Labels[constants.StagedTarget] = i.Config.TargetName
 
 	var existing []model.ComponentSpec
-	if v, ok := catalog.Spec.Properties["components"]; ok {
+	if v, ok := catalogversion.Spec.Properties["components"]; ok {
 		jData, _ := json.Marshal(v)
 		err = json.Unmarshal(jData, &existing)
 		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Staging Target): failed to unmarshall catalog components: %v", err)
+			sLog.ErrorfCtx(ctx, "  P (Staging Target): failed to unmarshall catalogversion components: %v", err)
 			return ret, err
 		}
 	}
 
 	var deleted []model.ComponentSpec
-	if v, ok := catalog.Spec.Properties["removed-components"]; ok {
+	if v, ok := catalogversion.Spec.Properties["removed-components"]; ok {
 		jData, _ := json.Marshal(v)
 		err = json.Unmarshal(jData, &deleted)
 		if err != nil {
@@ -278,30 +278,30 @@ func (i *StagingTargetProvider) Apply(ctx context.Context, deployment model.Depl
 		}
 	}
 
-	catalog.Spec.Properties["deployment"] = deployment
-	catalog.Spec.Properties["staged"] = map[string]interface{}{
+	catalogversion.Spec.Properties["deployment"] = deployment
+	catalogversion.Spec.Properties["staged"] = map[string]interface{}{
 		"components":         existing,
 		"removed-components": deleted,
 	}
-	catalog.Spec.RootResource = containerName
-	jData, _ := json.Marshal(catalog)
+	catalogversion.Spec.RootResource = containerName
+	jData, _ := json.Marshal(catalogversion)
 
-	_, err = i.ApiClient.GetCatalogContainer(ctx, containerName, scope, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
+	_, err = i.ApiClient.GetCatalog(ctx, containerName, scope, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
 	if err != nil && utils.IsNotFound(err) {
-		sLog.DebugfCtx(ctx, "Catalog container %s doesn't exist: %s", containerName, err.Error())
-		catalogContainerState := model.CatalogContainerState{ObjectMeta: model.ObjectMeta{Name: containerName, Namespace: catalog.ObjectMeta.Namespace, Labels: catalog.ObjectMeta.Labels}}
-		containerObjectData, _ := json.Marshal(catalogContainerState)
-		err = i.ApiClient.CreateCatalogContainer(ctx, containerName, containerObjectData, catalog.ObjectMeta.Namespace, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
+		sLog.DebugfCtx(ctx, "CatalogVersion container %s doesn't exist: %s", containerName, err.Error())
+		catalogState := model.CatalogState{ObjectMeta: model.ObjectMeta{Name: containerName, Namespace: catalogversion.ObjectMeta.Namespace, Labels: catalogversion.ObjectMeta.Labels}}
+		containerObjectData, _ := json.Marshal(catalogState)
+		err = i.ApiClient.CreateCatalog(ctx, containerName, containerObjectData, catalogversion.ObjectMeta.Namespace, i.Context.SiteInfo.CurrentSite.Username, i.Context.SiteInfo.CurrentSite.Password)
 		if err != nil {
-			sLog.ErrorfCtx(ctx, "Failed to create catalog container %s: %s", containerName, err.Error())
+			sLog.ErrorfCtx(ctx, "Failed to create catalogversion container %s: %s", containerName, err.Error())
 			return ret, err
 		}
 	} else if err != nil {
-		sLog.ErrorfCtx(ctx, "Failed to get catalog container %s: %s", containerName, err.Error())
+		sLog.ErrorfCtx(ctx, "Failed to get catalogversion container %s: %s", containerName, err.Error())
 		return ret, err
 	}
 
-	err = i.ApiClient.UpsertCatalog(
+	err = i.ApiClient.UpsertCatalogVersion(
 		ctx,
 		versionName,
 		jData,

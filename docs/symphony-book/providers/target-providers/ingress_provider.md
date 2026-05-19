@@ -45,14 +45,14 @@ topologies:
 ```
 
 
-## Solution component example
-Here is a simple example for using ingress target provider in solution deployment. The below solution will create a kubernetes Ingress object in the kubernetes clusters for all the targets where the solution is invoked. 
+## SolutionVersion component example
+Here is a simple example for using ingress target provider in solutionversion deployment. The below solutionversion will create a kubernetes Ingress object in the kubernetes clusters for all the targets where the solutionversion is invoked. 
 
 ```
-apiVersion: solution.symphony/v1
-kind: Solution
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
 metadata: 
-  name: ingress-solution
+  name: ingress-solutionversion
 spec:  
   components:
   - name: minimal-ingress
@@ -72,4 +72,4 @@ spec:
                 port:
                   number: 80        
 ```
-Find full scenarios at [this location](../../../samples/canary/solution.yaml)
+Find full scenarios at [this location](../../../samples/canary/solutionversion.yaml)

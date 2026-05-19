@@ -8,15 +8,15 @@ type (
 		Namespace   string            `yaml:"namespace,omitempty"`
 	}
 
-	// Solution describes the structure of symphony solution yaml file
-	Solution struct {
+	// SolutionVersion describes the structure of symphony solutionversion yaml file
+	SolutionVersion struct {
 		ApiVersion string       `yaml:"apiVersion"`
 		Kind       string       `yaml:"kind"`
 		Metadata   Metadata     `yaml:"metadata"`
-		Spec       SolutionSpec `yaml:"spec"`
+		Spec       SolutionVersionSpec `yaml:"spec"`
 	}
 
-	SolutionSpec struct {
+	SolutionVersionSpec struct {
 		DisplayName  string            `yaml:"displayName,omitempty"`
 		Scope        string            `yaml:"scope,omitempty"`
 		Metadata     map[string]string `yaml:"metadata,omitempty"`
@@ -75,7 +75,7 @@ type (
 	InstanceSpec struct {
 		DisplayName string                 `yaml:"displayName"`
 		Target      TargetSelector         `yaml:"target"`
-		Solution    string                 `yaml:"solution"`
+		SolutionVersion    string                 `yaml:"solutionversion"`
 		Scope       string                 `yaml:"scope"`
 		Parameters  map[string]interface{} `yaml:"parameters,omitempty"`
 	}
@@ -90,13 +90,13 @@ type (
 		DefaultValue interface{} `yaml:"default"`
 	}
 
-	SolutionContainer struct {
+	Solution struct {
 		ApiVersion string                `yaml:"apiVersion"`
 		Kind       string                `yaml:"kind"`
 		Metadata   Metadata              `yaml:"metadata"`
-		Spec       SolutionContainerSpec `yaml:"spec"`
+		Spec       SolutionSpec `yaml:"spec"`
 	}
 
-	SolutionContainerSpec struct {
+	SolutionSpec struct {
 	}
 )

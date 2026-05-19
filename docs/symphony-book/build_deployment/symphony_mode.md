@@ -14,7 +14,7 @@ However, when running in a standalone mode, Symphony takes over object state man
 
 Under Kubernetes mode, users interact with Symphony Kubernetes CRDs using Kubernetes APIs and tools. Symphony controller queries Symphony API (via `/queue GET`), calculates the deployment spec, and check its parity, then decide if a new reconciliation job needs to be queued. 
 
-If requeue is needed, Symphony controller queues a new deployment job through the `/queue POST` route. The queued job is forward to a event bus, to which a [job vendor](../vendors/job.md) subscribes. When a reconcile job is received, the job vendor uses the Symphony deployment spec generated in Symphony controller and calls the `/reconcile` route of a solution vendor.
+If requeue is needed, Symphony controller queues a new deployment job through the `/queue POST` route. The queued job is forward to a event bus, to which a [job vendor](../vendors/job.md) subscribes. When a reconcile job is received, the job vendor uses the Symphony deployment spec generated in Symphony controller and calls the `/reconcile` route of a solutionversion vendor.
 
 And Symphony controller exposes fine-grained reonciliation policy control to let users decide how to reconciliate when current spec is converged to termination state. 
 
@@ -39,7 +39,7 @@ Whenever an instance or a target is changed, The generation is bumped by the kub
 
 When running under the standalone mode, Symphony REST API queues reconciliation jobs when it updates Symphony objects. In addition, the job vendor is configured to periodically trigger reconciliation events by itself at configured intervals.
 
-Once the job vendor subscribes the new reconciliation event, it will generate the deployment spec and calls the `/reconcile` route of a solution vendor.
+Once the job vendor subscribes the new reconciliation event, it will generate the deployment spec and calls the `/reconcile` route of a solutionversion vendor.
 
 And under standalone mode, the reconciliation policy is not configured on individual resource, which is different from Kubernetes mode.
 

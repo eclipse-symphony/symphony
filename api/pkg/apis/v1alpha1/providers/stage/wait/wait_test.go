@@ -130,21 +130,21 @@ func TestWaitProcess(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to wait for")
 
-	// catalogs exist
+	// catalogversions exist
 	input = map[string]interface{}{
-		"objectType": "catalogs",
-		"names":      []interface{}{"catalog1"},
+		"objectType": "catalogversions",
+		"names":      []interface{}{"catalogversion1"},
 		"__origin":   "hq",
 	}
 	output, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, input)
 	assert.Nil(t, err)
 	assert.Equal(t, "200", output["status"])
-	assert.Equal(t, "catalogs", output["objectType"])
+	assert.Equal(t, "catalogversions", output["objectType"])
 
-	// catalogs not exist
+	// catalogversions not exist
 	input = map[string]interface{}{
-		"objectType": "catalogs",
-		"names":      []interface{}{"catalog2"},
+		"objectType": "catalogversions",
+		"names":      []interface{}{"catalogversion2"},
 		"__origin":   "hq",
 	}
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, input)
@@ -173,12 +173,12 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 				},
 				Status: &model.SiteStatus{},
 			}}
-		case "/catalogs/registry":
-			response = []model.CatalogState{{
+		case "/catalogversions/registry":
+			response = []model.CatalogVersionState{{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-catalog1",
+					Name: "hq-catalogversion1",
 				},
-				Spec: &model.CatalogSpec{},
+				Spec: &model.CatalogVersionSpec{},
 			}}
 		default:
 			response = utils.AuthResponse{

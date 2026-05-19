@@ -46,7 +46,7 @@ func (r *InstanceHistory) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-solution-symphony-v1-instancehistory,mutating=true,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create,versions=v1,name=minstancehistory.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-solutionversion-symphony-v1-instancehistory,mutating=true,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instancehistories,verbs=create,versions=v1,name=minstancehistory.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &InstanceHistory{}
 
@@ -80,9 +80,9 @@ func (r *InstanceHistory) Default() {
 				delete(r.Labels, api_constants.RootResource)
 			}
 			var instance Instance
-			err := mySolutionReaderClient.Get(ctx, client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instance)
+			err := mySolutionVersionReaderClient.Get(ctx, client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instance)
 			if err != nil {
-				diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to get instance", "name", r.Name, "namespace", r.Namespace)
+				diagnostic.ErrorWithCtx(solutionversionlog, ctx, err, "failed to get instance", "name", r.Name, "namespace", r.Namespace)
 			}
 			r.Labels[api_constants.RootResourceUid] = string(instance.UID)
 		}
@@ -93,7 +93,7 @@ func (r *InstanceHistory) Default() {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations = utils.GenerateSystemDataAnnotations(ctx, annotations, r.Spec.SolutionId)
+	annotations = utils.GenerateSystemDataAnnotations(ctx, annotations, r.Spec.SolutionVersionId)
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 	if annotation_name != "" {
 		parts := strings.Split(r.Name, constants.ResourceSeperator)
@@ -102,7 +102,7 @@ func (r *InstanceHistory) Default() {
 	r.ObjectMeta.SetAnnotations(annotations)
 }
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create;update;delete,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solutionversion-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instancehistories,verbs=create;update;delete,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &InstanceHistory{}
 

@@ -3,7 +3,7 @@
 ## Licensed under the MIT license.
 ## SPDX-License-Identifier: MIT
 ##
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Campaign
 metadata:
   labels:

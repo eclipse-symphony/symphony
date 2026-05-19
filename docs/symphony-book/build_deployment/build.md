@@ -186,7 +186,7 @@ mage helmTemplate
 # To modify the symphony-k8s deployment yaml, please modify `../packages/helm/symphony/templates/symphony-core/symphony-k8s-controller.yaml` directly.
 ```
 
-> **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solution is found.
+> **IMPORTANT**: With current Kustomize, empty `creationTimestamp` properties are inserted into the generated artifacts somehow, causing Helm chart to fail. You'll need to manually remove all occurrence of `creationTimestamp` properties with `null` or `"null"` from the artifacts, until a proper solutionversion is found.
 
 ## 5. Package and push Helm chart (optional)
 

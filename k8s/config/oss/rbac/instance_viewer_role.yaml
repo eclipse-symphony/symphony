@@ -11,7 +11,7 @@ metadata:
   name: instance-viewer-role
 rules:
 - apiGroups:
-  - solution.symphony
+  - solutionversion.symphony
   resources:
   - instances
   verbs:
@@ -19,7 +19,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - solution.symphony
+  - solutionversion.symphony
   resources:
   - instances/status
   verbs:

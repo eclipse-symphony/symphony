@@ -1,5 +1,5 @@
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: siteinstance-v-version1
 spec:
@@ -9,7 +9,7 @@ spec:
     metadata:
       name: siteinstance
     spec: 
-      solution: siteapp:version1
+      solutionversion: siteapp:version1
       scope: nondefault
       target:
         selector:

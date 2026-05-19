@@ -11,7 +11,7 @@ Symphony API can be hosted and scaled on cloud behind a load balancer or an API 
 For more details, see:
 
 * [Instances API](./instances-api.md)
-* [Solutions API](./solutions-api.md)
+* [SolutionVersions API](./solutionversions-api.md)
 * [Targets API](./targets-api.md)
 
 You can find an Open API definition of Symphony API in [symphony-api-openapi.yaml](./symphony-api-openapi.yaml).

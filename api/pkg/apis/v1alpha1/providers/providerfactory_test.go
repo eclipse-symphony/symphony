@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	catalogconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	catalogversionconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalogversion"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
@@ -83,9 +83,9 @@ func TestCreateProvider(t *testing.T) {
 	}
 
 	if getTestMiniKubeEnabled == "" {
-		t.Log("Skipping providers.config.k8scatalog test as TEST_MINIKUBE_ENABLED is not set")
+		t.Log("Skipping providers.config.k8scatalogversion test as TEST_MINIKUBE_ENABLED is not set")
 	} else {
-		provider, err = providerfactory.CreateProvider("providers.config.k8scatalog", k8sstate.K8sStateProviderConfig{})
+		provider, err = providerfactory.CreateProvider("providers.config.k8scatalogversion", k8sstate.K8sStateProviderConfig{})
 		assert.Nil(t, err)
 		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
 	}
@@ -214,9 +214,9 @@ func TestCreateProvider(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mockconfig.MockConfigProvider))
 
-	provider, err = providerfactory.CreateProvider("providers.config.catalog", catalogconfig.CatalogConfigProviderConfig{})
+	provider, err = providerfactory.CreateProvider("providers.config.catalogversion", catalogversionconfig.CatalogVersionConfigProviderConfig{})
 	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*catalogconfig.CatalogConfigProvider))
+	assert.NotNil(t, *provider.(*catalogversionconfig.CatalogVersionConfigProvider))
 
 	provider, err = providerfactory.CreateProvider("providers.secret.mock", mocksecret.MockSecretProviderConfig{})
 	assert.Nil(t, err)
@@ -300,8 +300,8 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 							Config:   map[string]string{},
 						},
 						{
-							Role:     "k8scatalog",
-							Provider: "providers.config.k8scatalog",
+							Role:     "k8scatalogversion",
+							Provider: "providers.config.k8scatalogversion",
 							Config:   map[string]string{},
 						},
 						{
@@ -445,8 +445,8 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 							Config:   map[string]string{},
 						},
 						{
-							Role:     "catalogconfig",
-							Provider: "providers.config.catalog",
+							Role:     "catalogversionconfig",
+							Provider: "providers.config.catalogversion",
 							Config: map[string]string{
 								"baseUrl":  "fakeuri",
 								"user":     "fake",
@@ -587,9 +587,9 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	}
 
 	if getTestMiniKubeEnabled == "" {
-		t.Log("Skipping k8scatalog test as TEST_MINIKUBE_ENABLED is not set")
+		t.Log("Skipping k8scatalogversion test as TEST_MINIKUBE_ENABLED is not set")
 	} else {
-		provider, err = CreateProviderForTargetRole(nil, "k8scatalog", targetState, nil)
+		provider, err = CreateProviderForTargetRole(nil, "k8scatalogversion", targetState, nil)
 		assert.Nil(t, err)
 		assert.NotNil(t, *provider.(*k8sstate.K8sStateProvider))
 	}
@@ -698,9 +698,9 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, *provider.(*mockconfig.MockConfigProvider))
 
-	provider, err = CreateProviderForTargetRole(nil, "catalogconfig", targetState, nil)
+	provider, err = CreateProviderForTargetRole(nil, "catalogversionconfig", targetState, nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*catalogconfig.CatalogConfigProvider))
+	assert.NotNil(t, *provider.(*catalogversionconfig.CatalogVersionConfigProvider))
 
 	provider, err = CreateProviderForTargetRole(nil, "mocksecret", targetState, nil)
 	assert.Nil(t, err)

@@ -41,7 +41,7 @@ var (
 	campaignContainerMinNameLength  = 1
 	campaignlog                     = logf.Log.WithName("campaign-resource")
 	myCampaignReaderClient          client.Reader
-	catalogWebhookValidationMetrics *metrics.Metrics
+	catalogversionWebhookValidationMetrics *metrics.Metrics
 	campaignValidator               validation.CampaignValidator
 )
 
@@ -53,12 +53,12 @@ func (r *Campaign) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	})
 
 	// initialize the controller operation metrics
-	if catalogWebhookValidationMetrics == nil {
+	if catalogversionWebhookValidationMetrics == nil {
 		metrics, err := metrics.New()
 		if err != nil {
 			return err
 		}
-		catalogWebhookValidationMetrics = metrics
+		catalogversionWebhookValidationMetrics = metrics
 	}
 
 	campaignValidator = validation.NewCampaignValidator(
@@ -165,17 +165,17 @@ func (r *Campaign) ValidateCreate() (admission.Warnings, error) {
 	validateCreateTime := time.Now()
 	validationError := r.validateCreateCampaign(ctx)
 	if validationError != nil {
-		catalogWebhookValidationMetrics.ControllerValidationLatency(
+		catalogversionWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.InvalidResource,
-			metrics.CatalogResourceType)
+			metrics.CatalogVersionResourceType)
 	} else {
-		catalogWebhookValidationMetrics.ControllerValidationLatency(
+		catalogversionWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.ValidResource,
-			metrics.CatalogResourceType)
+			metrics.CatalogVersionResourceType)
 	}
 
 	return nil, validationError

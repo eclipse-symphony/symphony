@@ -1,0 +1,17 @@
+apiVersion: solutionversion.symphony/v1
+kind: Solution
+metadata:
+  name: redis  
+spec:
+---
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
+metadata: 
+  name: redis-v-version1
+spec:
+  rootResource: redis
+  components:
+  - name: redis
+    type: container
+    properties:
+      container.image: "redis:latest"

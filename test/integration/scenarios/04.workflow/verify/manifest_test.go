@@ -36,9 +36,9 @@ var (
 	ExpectedKeyValue = "localtest"
 )
 
-// Verify catalog created
-func TestBasic_Catalogs(t *testing.T) {
-	fmt.Printf("Checking Catalogs\n")
+// Verify catalogversion created
+func TestBasic_CatalogVersions(t *testing.T) {
+	fmt.Printf("Checking CatalogVersions\n")
 	namespace := os.Getenv("NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
@@ -47,7 +47,7 @@ func TestBasic_Catalogs(t *testing.T) {
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "federation.symphony",
 		Version: "v1",
-		Kind:    "Catalog",
+		Kind:    "CatalogVersion",
 	})
 
 	cfg, err := testhelpers.RestConfig()
@@ -60,15 +60,15 @@ func TestBasic_Catalogs(t *testing.T) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogs",
+			Resource: "catalogversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		catalogs := []string{}
+		catalogversions := []string{}
 		for _, item := range resources.Items {
-			catalogs = append(catalogs, item.GetName())
+			catalogversions = append(catalogversions, item.GetName())
 		}
-		fmt.Printf("Catalogs: %v\n", catalogs)
+		fmt.Printf("CatalogVersions: %v\n", catalogversions)
 		if len(resources.Items) == 7 {
 			break
 		}
@@ -78,7 +78,7 @@ func TestBasic_Catalogs(t *testing.T) {
 	}
 }
 
-// Verify catalog created
+// Verify catalogversion created
 func TestBasic_Campaign(t *testing.T) {
 	fmt.Printf("Checking Campaign\n")
 	namespace := os.Getenv("NAMESPACE")
@@ -156,22 +156,22 @@ func TestBasic_ActivationStatus(t *testing.T) {
 			require.Equal(t, "list", state.Status.StageHistory[0].NextStage)
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
-			require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
-			require.Equal(t, []interface{}{"sitecatalog:version1", "sitecatalog2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
-			require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
+			require.Equal(t, "catalogversions", state.Status.StageHistory[0].Inputs["objectType"])
+			require.Equal(t, []interface{}{"sitecatalogversion:version1", "sitecatalogversion2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			require.Equal(t, "catalogversions", state.Status.StageHistory[0].Outputs["objectType"])
 			require.Equal(t, "list", state.Status.StageHistory[1].Stage)
 			require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
-			require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
+			require.Equal(t, "catalogversions", state.Status.StageHistory[1].Inputs["objectType"])
 			require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
-			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
-			require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
+			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalogversion-v-version1", "sitecatalogversion2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			require.Equal(t, "catalogversions", state.Status.StageHistory[1].Outputs["objectType"])
 			require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
 			require.Equal(t, "", state.Status.StageHistory[2].NextStage)
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
-			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
+			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalogversion-v-version1", "sitecatalogversion2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 
@@ -267,7 +267,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solution.symphony",
+			Group:    "solutionversion.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
@@ -307,7 +307,7 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	require.NoError(t, err)
 
 	resource, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "solution.symphony",
+		Group:    "solutionversion.symphony",
 		Version:  "v1",
 		Resource: "instances",
 	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
@@ -318,8 +318,8 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	require.Equal(t, expectedResult, result)
 }
 
-// Verify solution has correct labels
-func TestAdvance_SolutionLabel(t *testing.T) {
+// Verify solutionversion has correct labels
+func TestAdvance_SolutionVersionLabel(t *testing.T) {
 	fmt.Printf("Checking Target\n")
 	namespace := os.Getenv("NAMESPACE")
 	labelingEnabled := os.Getenv("labelingEnabled")
@@ -338,14 +338,14 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	require.NoError(t, err)
 
 	resource, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "solution.symphony",
+		Group:    "solutionversion.symphony",
 		Version:  "v1",
-		Resource: "solutions",
+		Resource: "solutionversions",
 	}).Namespace(namespace).Get(context.Background(), "siteapp-v-version1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result := getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
-	fmt.Printf("The solution is labeled with: %s\n", result)
+	fmt.Printf("The solutionversion is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 
 	annotations := getAnnotations(*resource)
@@ -353,19 +353,19 @@ func TestAdvance_SolutionLabel(t *testing.T) {
 	require.Equal(t, expectedResult, annotations)
 
 	resource, err = dyn.Resource(schema.GroupVersionResource{
-		Group:    "solution.symphony",
+		Group:    "solutionversion.symphony",
 		Version:  "v1",
-		Resource: "solutioncontainers",
+		Resource: "solutions",
 	}).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result = getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
-	fmt.Printf("The solution container is labeled with: %s\n", result)
+	fmt.Printf("The solutionversion container is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
 
-// Verify Catalog has correct labels
-func TestAdvance_CatalogLabel(t *testing.T) {
+// Verify CatalogVersion has correct labels
+func TestAdvance_CatalogVersionLabel(t *testing.T) {
 	fmt.Printf("Checking Target\n")
 	namespace := os.Getenv("NAMESPACE")
 	labelingEnabled := os.Getenv("labelingEnabled")
@@ -386,15 +386,15 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	resource, err := dyn.Resource(schema.GroupVersionResource{
 		Group:    "federation.symphony",
 		Version:  "v1",
-		Resource: "catalogs",
+		Resource: "catalogversions",
 	}).Namespace(namespace).Get(context.Background(), "webappconfig-v-version1", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	//print out resource
-	fmt.Printf("The catalog is: %v\n", resource)
+	fmt.Printf("The catalogversion is: %v\n", resource)
 
 	result := getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
-	fmt.Printf("The catalog is labeled with: %s\n", result)
+	fmt.Printf("The catalogversion is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 
 	annotations := getAnnotations(*resource)
@@ -404,12 +404,12 @@ func TestAdvance_CatalogLabel(t *testing.T) {
 	resource, err = dyn.Resource(schema.GroupVersionResource{
 		Group:    "federation.symphony",
 		Version:  "v1",
-		Resource: "catalogcontainers",
+		Resource: "catalogs",
 	}).Namespace(namespace).Get(context.Background(), "webappconfig", metav1.GetOptions{})
 	require.NoError(t, err)
 
 	result = getLabels(*resource, ExpectedKeyValue, ExpectedKeyValue)
-	fmt.Printf("The catalog container is labeled with: %s\n", result)
+	fmt.Printf("The catalogversion container is labeled with: %s\n", result)
 	require.Equal(t, expectedResult, result)
 }
 

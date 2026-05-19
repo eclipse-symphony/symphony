@@ -23,7 +23,7 @@ import (
 
 // Test config
 const (
-	TEST_NAME    = "Symphony Catalog Evaluation test scenario"
+	TEST_NAME    = "Symphony CatalogVersion Evaluation test scenario"
 	TEST_TIMEOUT = "4m"
 )
 
@@ -35,13 +35,13 @@ var (
 )
 
 var (
-	// catalogs to deploy
-	testCatalogs = []string{
-		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog-container.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog2.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog3.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog4.yaml",
+	// catalogversions to deploy
+	testCatalogVersions = []string{
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalogversion-container.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalogversion.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalogversion2.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalogversion3.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalogversion4.yaml",
 	}
 
 	// Tests to run
@@ -49,15 +49,15 @@ var (
 		"./verify/...",
 	}
 
-	testEval = "test/integration/scenarios/10.catalogEval/manifest/eval.yaml"
+	testEval = "test/integration/scenarios/10.catalogversionEval/manifest/eval.yaml"
 
-	testWrongEval = "test/integration/scenarios/10.catalogEval/manifest/wrongEval.yaml"
+	testWrongEval = "test/integration/scenarios/10.catalogversionEval/manifest/wrongEval.yaml"
 
-	testEvalUpdate = "test/integration/scenarios/10.catalogEval/manifest/evalUpdate.yaml"
+	testEvalUpdate = "test/integration/scenarios/10.catalogversionEval/manifest/evalUpdate.yaml"
 
-	testEval03 = "test/integration/scenarios/10.catalogEval/manifest/eval03.yaml"
+	testEval03 = "test/integration/scenarios/10.catalogversionEval/manifest/eval03.yaml"
 
-	testEval04 = "test/integration/scenarios/10.catalogEval/manifest/eval04.yaml"
+	testEval04 = "test/integration/scenarios/10.catalogversionEval/manifest/eval04.yaml"
 )
 
 // Entry point for running the tests
@@ -87,11 +87,11 @@ func DeployManifests() error {
 		repoPath = "../../../../"
 	}
 	namespace := "default"
-	// Deploy the catalogs
-	for _, catalog := range testCatalogs {
-		absCatalog := filepath.Join(repoPath, catalog)
+	// Deploy the catalogversions
+	for _, catalogversion := range testCatalogVersions {
+		absCatalogVersion := filepath.Join(repoPath, catalogversion)
 
-		data, err := os.ReadFile(absCatalog)
+		data, err := os.ReadFile(absCatalogVersion)
 		if err != nil {
 			return err
 		}
@@ -109,39 +109,39 @@ func DeployManifests() error {
 		os.Remove("./test.yaml")
 	}
 
-	// wait for 2 seconds to make sure catalog is created
+	// wait for 2 seconds to make sure catalogversion is created
 	time.Sleep(time.Second * 2)
-	// deploy eval catalog evaluateevalcatalog01
+	// deploy eval catalogversion evaluateevalcatalogversion01
 	evalC := filepath.Join(repoPath, testEval)
 	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", evalC, namespace)).Run()
 	if err != nil {
 		return err
 	}
 
-	// wait for 2 seconds to make sure evaluateevalcatalog01 is created
+	// wait for 2 seconds to make sure evaluateevalcatalogversion01 is created
 	time.Sleep(time.Second * 2)
-	// update eval catalog evaluateevalcatalog01
+	// update eval catalogversion evaluateevalcatalogversion01
 	evalUpdateC := filepath.Join(repoPath, testEvalUpdate)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", evalUpdateC, namespace)).Run()
 	if err == nil {
 		return errors.New("Update should not be successful")
 	}
 
-	// create eval catalog evaluateevalcatalog02
+	// create eval catalogversion evaluateevalcatalogversion02
 	evalWrongC := filepath.Join(repoPath, testWrongEval)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", evalWrongC, namespace)).Run()
 	if err != nil {
 		return err
 	}
 
-	// create eval catalog evaluateevalcatalog03
+	// create eval catalogversion evaluateevalcatalogversion03
 	eval03C := filepath.Join(repoPath, testEval03)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", eval03C, namespace)).Run()
 	if err != nil {
 		return err
 	}
 
-	// create eval catalog evaluateevalcatalog04
+	// create eval catalogversion evaluateevalcatalogversion04
 	eval04C := filepath.Join(repoPath, testEval04)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", eval04C, namespace)).Run()
 	if err != nil {

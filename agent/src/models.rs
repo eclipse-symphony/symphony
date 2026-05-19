@@ -41,16 +41,16 @@ pub struct StagedProperties {
     removed_components: Option<Vec<ComponentSpec>>,
 }
 #[derive(Serialize, Deserialize)]
-pub struct CatalogSpec {
+pub struct CatalogVersionSpec {
     #[serde(rename = "type")]
-    pub catalog_type: String,
+    pub catalogversion_type: String,
     pub properties: StagedProperties,
     #[serde(rename = "objectRef")]
     object_ref: Option<ObjectRef>,
     generation: String,
 }
 #[derive(Serialize, Deserialize)]
-pub struct CatalogStatus {
+pub struct CatalogVersionStatus {
     properties: Option<HashMap<String, String>>,
 }
 #[derive(Serialize, Deserialize)]
@@ -61,8 +61,8 @@ pub struct ObjectMeta {
     annotations: Option<HashMap<String, String>>,
 }
 #[derive(Serialize, Deserialize)]
-pub struct CatalogState {
+pub struct CatalogVersionState {
     pub metadata: ObjectMeta,
-    pub spec: CatalogSpec,
-    status: Option<CatalogStatus>,
+    pub spec: CatalogVersionSpec,
+    status: Option<CatalogVersionStatus>,
 }

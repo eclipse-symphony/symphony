@@ -29,7 +29,7 @@ spec:
               metadata:
                 name: "instance"
               spec:
-                solution: SOLUTIONREFNAME
+                solutionversion: SOLUTIONREFNAME
             objectName: "instance"
             objectType: "instance"
         - name: "task2"
@@ -44,6 +44,6 @@ spec:
               metadata:
                 name: "instance"
               spec:
-                solution: SOLUTIONREFNAME
+                solutionversion: SOLUTIONREFNAME
             objectName: "instance"
             objectType: "instance"

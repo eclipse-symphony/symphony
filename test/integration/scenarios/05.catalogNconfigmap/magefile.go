@@ -25,15 +25,15 @@ import (
 
 // Test config
 const (
-	TEST_NAME    = "Symphony Catalog CRUD test scenario"
+	TEST_NAME    = "Symphony CatalogVersion CRUD test scenario"
 	TEST_TIMEOUT = "10m"
 )
 
 var (
-	// catalogs to deploy
-	testCatalogs = []string{
+	// catalogversions to deploy
+	testCatalogVersions = []string{
 		"manifests/instance-container.yaml",
-		"manifests/solution-container.yaml",
+		"manifests/solutionversion-container.yaml",
 		"manifests/target-container.yaml",
 		"manifests/asset-container.yaml",
 		"manifests/config-container.yaml",
@@ -41,12 +41,12 @@ var (
 		"manifests/schema-container.yaml",
 
 		"manifests/instance.yaml",
-		"manifests/solution.yaml",
+		"manifests/solutionversion.yaml",
 		"manifests/target.yaml",
 		"manifests/asset.yaml",
 	}
 
-	// catalogs for namespace test
+	// catalogversions for namespace test
 	testNamespace = []string{
 		"namespace/config1-container.yaml",
 		"namespace/config1.yaml",
@@ -59,14 +59,14 @@ var (
 	}
 
 	testActivation = "namespace/activation.yaml"
-	schemaCatalog  = "manifests/schema.yaml"
-	configCatalog  = "manifests/config.yaml"
-	wrongCatalog   = "manifests/wrongconfig.yaml"
+	schemaCatalogVersion  = "manifests/schema.yaml"
+	configCatalogVersion  = "manifests/config.yaml"
+	wrongCatalogVersion   = "manifests/wrongconfig.yaml"
 
 	testManifests = []string{
-		"manifests/CatalogforConfigMap1.yaml",
-		"manifests/CatalogforConfigMap2.yaml",
-		"manifests/solution3.yaml",
+		"manifests/CatalogVersionforConfigMap1.yaml",
+		"manifests/CatalogVersionforConfigMap2.yaml",
+		"manifests/solutionversion3.yaml",
 		"manifests/target3.yaml",
 		"manifests/instanceForConfigMap.yaml",
 	}
@@ -105,7 +105,7 @@ func Test() error {
 
 // Run tests
 func Verify() error {
-	//CATALOG CRUD, needs to create a catalog yaml
+	//CATALOG CRUD, needs to create a catalogversion yaml
 	for _, namespace := range NAMESPACES {
 		os.Setenv("NAMESPACE", namespace)
 		err := testhelpers.EnsureNamespace(namespace)
@@ -118,12 +118,12 @@ func Verify() error {
 			return err
 		}
 
-		// Deploy solution, target and instance catalogs
-		err = createCatalogs(namespace)
+		// Deploy solutionversion, target and instance catalogversions
+		err = createCatalogVersions(namespace)
 		if err != nil {
 			return err
 		}
-		// List catalogs
+		// List catalogversions
 		config, err := testhelpers.RestConfig()
 		if err != nil {
 			return err
@@ -132,37 +132,37 @@ func Verify() error {
 		if err != nil {
 			return err
 		}
-		err, catalogs := listCatalogs(namespace, dynamicClient)
+		err, catalogversions := listCatalogVersions(namespace, dynamicClient)
 		if err != nil {
 			return err
 		}
-		if len(catalogs.Items) < 4 {
-			fmt.Printf("Catalogs not created. Expected 4, got %d\n", len(catalogs.Items))
-			return errors.New("Catalogs not created")
+		if len(catalogversions.Items) < 4 {
+			fmt.Printf("CatalogVersions not created. Expected 4, got %d\n", len(catalogversions.Items))
+			return errors.New("CatalogVersions not created")
 		}
-		// read catalog
-		err, catalog := readCatalog("asset-v-version1", namespace, dynamicClient)
+		// read catalogversion
+		err, catalogversion := readCatalogVersion("asset-v-version1", namespace, dynamicClient)
 		if err != nil {
 			return err
 		}
-		if catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] != "東京" {
-			return errors.New("Catalog not created correctly.")
+		if catalogversion.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] != "東京" {
+			return errors.New("CatalogVersion not created correctly.")
 		}
-		// Update catalog
-		catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] = "大阪"
-		err, catalog = updateCatalog("asset-v-version1", namespace, catalog, dynamicClient)
+		// Update catalogversion
+		catalogversion.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] = "大阪"
+		err, catalogversion = updateCatalogVersion("asset-v-version1", namespace, catalogversion, dynamicClient)
 		if err != nil {
 			return err
 		}
-		if catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] != "大阪" {
-			return errors.New("Catalog not updated.")
+		if catalogversion.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["name"] != "大阪" {
+			return errors.New("CatalogVersion not updated.")
 		}
-		// Delete catalog
-		err = shellcmd.Command(fmt.Sprintf("kubectl delete catalog asset-v-version1 -n %s", namespace)).Run()
+		// Delete catalogversion
+		err = shellcmd.Command(fmt.Sprintf("kubectl delete catalogversion asset-v-version1 -n %s", namespace)).Run()
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Catalog integration test finished for namespace: %s\n", namespace)
+		fmt.Printf("CatalogVersion integration test finished for namespace: %s\n", namespace)
 
 		// Deploy manifests for configmap
 		currentPath, err := os.Getwd()
@@ -190,7 +190,7 @@ func Verify() error {
 		}
 
 	}
-	fmt.Printf("Catalog & configmap integration test finished successfully\n")
+	fmt.Printf("CatalogVersion & configmap integration test finished successfully\n")
 	return nil
 }
 
@@ -219,69 +219,69 @@ func deployNamespaceManifests(namespace string) error {
 	return nil
 }
 
-// Create catalogs
-func createCatalogs(namespace string) error {
+// Create catalogversions
+func createCatalogVersions(namespace string) error {
 	currentPath, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	for _, catalog := range testCatalogs {
-		absCatalog := filepath.Join(currentPath, catalog)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalog, namespace)).Run()
+	for _, catalogversion := range testCatalogVersions {
+		absCatalogVersion := filepath.Join(currentPath, catalogversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalogVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
 	}
-	// Deploy config catalog before schema catalog
-	configPath := filepath.Join(currentPath, configCatalog)
+	// Deploy config catalogversion before schema catalogversion
+	configPath := filepath.Join(currentPath, configCatalogVersion)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", configPath, namespace)).Run()
 	if err == nil {
-		return errors.New("Catalog using schema should not be deployed before schema catalog being deployed.")
+		return errors.New("CatalogVersion using schema should not be deployed before schema catalogversion being deployed.")
 	}
-	// Deploy schema catalog
-	schemaPath := filepath.Join(currentPath, schemaCatalog)
+	// Deploy schema catalogversion
+	schemaPath := filepath.Join(currentPath, schemaCatalogVersion)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", schemaPath, namespace)).Run()
 	if err != nil {
 		return err
 	}
-	// Deploy config catalog
-	configPath = filepath.Join(currentPath, configCatalog)
+	// Deploy config catalogversion
+	configPath = filepath.Join(currentPath, configCatalogVersion)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", configPath, namespace)).Run()
 	if err != nil {
 		return err
 	}
-	//Deploy wrong catalog
-	wrongPath := filepath.Join(currentPath, wrongCatalog)
+	//Deploy wrong catalogversion
+	wrongPath := filepath.Join(currentPath, wrongCatalogVersion)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", wrongPath, namespace)).Run()
 	if err == nil {
-		return errors.New("Wrong catalog should not be deployed")
+		return errors.New("Wrong catalogversion should not be deployed")
 	}
 	return nil
 }
 
-func readCatalog(catalogName string, namespace string, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
-	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
-	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), catalogName, metav1.GetOptions{})
+func readCatalogVersion(catalogversionName string, namespace string, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogversions"}
+	catalogversion, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), catalogversionName, metav1.GetOptions{})
 	if err != nil {
 		return err, nil
 	}
-	return nil, catalog
+	return nil, catalogversion
 }
 
-func updateCatalog(catalogName string, namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
-	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
-	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Update(context.TODO(), object, metav1.UpdateOptions{})
+func updateCatalogVersion(catalogversionName string, namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (error, *unstructured.Unstructured) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogversions"}
+	catalogversion, err := dynamicClient.Resource(gvr).Namespace(namespace).Update(context.TODO(), object, metav1.UpdateOptions{})
 	if err != nil {
 		return err, nil
 	}
-	return nil, catalog
+	return nil, catalogversion
 }
 
-func listCatalogs(namespace string, dynamicClient dynamic.Interface) (error, *unstructured.UnstructuredList) {
-	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
-	catalogs, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+func listCatalogVersions(namespace string, dynamicClient dynamic.Interface) (error, *unstructured.UnstructuredList) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogversions"}
+	catalogversions, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err, nil
 	}
-	return nil, catalogs
+	return nil, catalogversions
 }

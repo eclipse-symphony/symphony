@@ -69,15 +69,15 @@ client.ping_target("gateway-001")
 client.unregister_target("gateway-001")
 ```
 
-### 3. Deploy Solutions
+### 3. Deploy SolutionVersions
 
-Solutions define application components to be deployed.
+SolutionVersions define application components to be deployed.
 
 ```python
 import yaml
 
-# Define a solution
-solution = {
+# Define a solutionversion
+solutionversion = {
     "displayName": "Web Application",
     "scope": "default",
     "components": [
@@ -92,13 +92,13 @@ solution = {
     ]
 }
 
-# Create the solution
-solution_yaml = yaml.dump(solution)
-client.create_solution("web-app", solution_yaml)
+# Create the solutionversion
+solutionversion_yaml = yaml.dump(solutionversion)
+client.create_solutionversion("web-app", solutionversion_yaml)
 
 # Create an instance (deployment)
 instance_spec = {
-    "solution": "web-app",
+    "solutionversion": "web-app",
     "target": {"name": "gateway-001"},
     "scope": "default",
     "displayName": "Production Web App"
@@ -261,7 +261,7 @@ target = TargetState(
 # Create instance with dataclasses
 instance = InstanceSpec(
     name="my-app",
-    solution="web-app",
+    solutionversion="web-app",
     target=TargetSelector(name="gateway-001"),
     parameters={"replicas": "3"}
 )

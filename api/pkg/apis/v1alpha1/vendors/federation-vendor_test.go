@@ -38,9 +38,9 @@ func federationVendorInit() FederationVendor {
 	graphProvider := &memorygraph.MemoryGraphProvider{}
 	graphProvider.Init(memorygraph.MemoryGraphProviderConfig{})
 
-	catalogProviders := make(map[string]providers.IProvider)
-	catalogProviders["StateProvider"] = stateProvider
-	catalogProviders["GraphProvider"] = graphProvider
+	catalogversionProviders := make(map[string]providers.IProvider)
+	catalogversionProviders["StateProvider"] = stateProvider
+	catalogversionProviders["GraphProvider"] = graphProvider
 
 	queueProvider := &memoryqueue.MemoryQueueProvider{}
 	queueProvider.Init(memoryqueue.MemoryQueueProvider{})
@@ -73,8 +73,8 @@ func federationVendorInit() FederationVendor {
 		Route: "federation",
 		Managers: []managers.ManagerConfig{
 			{
-				Name: "catalog-manager",
-				Type: "managers.symphony.catalogs",
+				Name: "catalogversion-manager",
+				Type: "managers.symphony.catalogversions",
 				Properties: map[string]string{
 					"providers.persistentstate": "StateProvider",
 				},
@@ -106,7 +106,7 @@ func federationVendorInit() FederationVendor {
 	}, []managers.IManagerFactroy{
 		&sym_mgr.SymphonyManagerFactory{},
 	}, map[string]map[string]providers.IProvider{
-		"catalog-manager": catalogProviders,
+		"catalogversion-manager": catalogversionProviders,
 		"trails-manager":  trailsProviders,
 		"sites-manager":   siteProviders,
 		"staging-manager": stagingProviders,
@@ -302,7 +302,7 @@ func TestFederationOnSyncPost(t *testing.T) {
 
 func TestFederationOnSyncGet(t *testing.T) {
 	vendor := federationVendorInit()
-	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogVersionsManager.CatalogVersionValidator = validation.NewCatalogVersionValidator(vendor.CatalogVersionsManager.CatalogVersionLookup, nil, vendor.CatalogVersionsManager.ChildCatalogVersionLookup)
 	SiteSpec.Name = "test1"
 	SiteState := model.SiteState{
 		Spec: &SiteSpec,
@@ -352,12 +352,12 @@ func TestFederationOnSyncGet(t *testing.T) {
 		}
 	}
 
-	vendor.Context.PubsubProvider.Publish("catalog", v1alpha2.Event{
+	vendor.Context.PubsubProvider.Publish("catalogversion", v1alpha2.Event{
 		Metadata: map[string]string{
 			"site": SiteSpec.Name,
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1-v-version1",
+			Id:     "catalogversion1-v-version1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
@@ -378,12 +378,12 @@ func TestFederationOnSyncGet(t *testing.T) {
 		}
 	}
 
-	var catalogState = model.CatalogState{
+	var catalogversionState = model.CatalogVersionState{
 		ObjectMeta: model.ObjectMeta{
-			Name: "catalog1-v-version1",
+			Name: "catalogversion1-v-version1",
 		},
-		Spec: &model.CatalogSpec{
-			CatalogType: "catalog",
+		Spec: &model.CatalogVersionSpec{
+			CatalogType: "catalogversion",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
@@ -393,17 +393,17 @@ func TestFederationOnSyncGet(t *testing.T) {
 				"metadata1": "value1",
 				"metadata2": "value2",
 			},
-			RootResource: "catalog1",
+			RootResource: "catalogversion1",
 		},
 	}
-	err = vendor.CatalogsManager.UpsertState(context.Background(), catalogState.ObjectMeta.Name, catalogState)
+	err = vendor.CatalogVersionsManager.UpsertState(context.Background(), catalogversionState.ObjectMeta.Name, catalogversionState)
 	assert.Nil(t, err)
-	vendor.Context.PubsubProvider.Publish("catalog", v1alpha2.Event{
+	vendor.Context.PubsubProvider.Publish("catalogversion", v1alpha2.Event{
 		Metadata: map[string]string{
 			"site": SiteSpec.Name,
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1-v-version1",
+			Id:     "catalogversion1-v-version1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
@@ -421,8 +421,8 @@ func TestFederationOnSyncGet(t *testing.T) {
 		var summary model.SyncPackage
 		err = json.Unmarshal(response.Body, &summary)
 		assert.Nil(t, err)
-		if len(summary.Catalogs) == 1 {
-			assert.Equal(t, catalogState.ObjectMeta.Name, summary.Catalogs[0].ObjectMeta.Name)
+		if len(summary.CatalogVersions) == 1 {
+			assert.Equal(t, catalogversionState.ObjectMeta.Name, summary.CatalogVersions[0].ObjectMeta.Name)
 			break
 		} else {
 			time.Sleep(time.Second)
@@ -473,12 +473,12 @@ func TestFederationOnSyncGet(t *testing.T) {
 func TestFederationOnK8SHook(t *testing.T) {
 	vendor := federationVendorInit()
 
-	var catalogState = model.CatalogState{
+	var catalogversionState = model.CatalogVersionState{
 		ObjectMeta: model.ObjectMeta{
-			Name: "catalog1",
+			Name: "catalogversion1",
 		},
-		Spec: &model.CatalogSpec{
-			CatalogType: "catalog",
+		Spec: &model.CatalogVersionSpec{
+			CatalogType: "catalogversion",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
@@ -491,13 +491,13 @@ func TestFederationOnK8SHook(t *testing.T) {
 		},
 	}
 
-	b, err := json.Marshal(catalogState)
+	b, err := json.Marshal(catalogversionState)
 	assert.Nil(t, err)
 	requestPost := &v1alpha2.COARequest{
 		Method:  fasthttp.MethodPost,
 		Context: context.Background(),
 		Parameters: map[string]string{
-			"objectType": "catalog",
+			"objectType": "catalogversion",
 		},
 		Body: b,
 	}

@@ -42,14 +42,14 @@ type (
 const (
 	Target            ResourceType = "target"
 	Device            ResourceType = "device"
-	Solution          ResourceType = "solution"
+	SolutionVersion          ResourceType = "solutionversion"
 	Instance          ResourceType = "instance"
 	Campaign          ResourceType = "campaign"
 	Activation        ResourceType = "activation"
-	Catalog           ResourceType = "catalog"
-	SolutionContainer ResourceType = "solutioncontainer"
+	CatalogVersion           ResourceType = "catalogversion"
+	Solution ResourceType = "solution"
 	CampaignContainer ResourceType = "campaigncontainer"
-	CatalogContainer  ResourceType = "catalogcontainer"
+	Catalog  ResourceType = "catalog"
 )
 
 func GetResourceMetadata(resourceType ResourceType) (string, string, string, string) {
@@ -58,18 +58,18 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 	var resource string
 	var kind string
 	switch resourceType {
+	case SolutionVersion:
+		group = "solutionversion.symphony"
+		version = "v1"
+		resource = "solutionversions"
+		kind = "SolutionVersion"
 	case Solution:
-		group = "solution.symphony"
+		group = "solutionversion.symphony"
 		version = "v1"
 		resource = "solutions"
 		kind = "Solution"
-	case SolutionContainer:
-		group = "solution.symphony"
-		version = "v1"
-		resource = "solutioncontainers"
-		kind = "SolutionContainer"
 	case Instance:
-		group = "solution.symphony"
+		group = "solutionversion.symphony"
 		version = "v1"
 		resource = "instances"
 		kind = "Instance"
@@ -98,16 +98,16 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 		version = "v1"
 		resource = "activations"
 		kind = "Activation"
+	case CatalogVersion:
+		group = "federation.symphony"
+		version = "v1"
+		resource = "catalogversions"
+		kind = "CatalogVersion"
 	case Catalog:
 		group = "federation.symphony"
 		version = "v1"
 		resource = "catalogs"
 		kind = "Catalog"
-	case CatalogContainer:
-		group = "federation.symphony"
-		version = "v1"
-		resource = "catalogcontainers"
-		kind = "CatalogContainer"
 	default:
 		group = ""
 		version = ""
@@ -198,7 +198,7 @@ func ValidateDeleteWrapper(ctx context.Context, validator IValidator, obj interf
 	}
 }
 
-// Validate rootResource exists for versioned objects - solutions, campaigns and catalogs
+// Validate rootResource exists for versioned objects - solutionversions, campaigns and catalogversions
 func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource string, lookupFunc ObjectLookupFunc) *ErrorField {
 	if lookupFunc == nil {
 		return nil

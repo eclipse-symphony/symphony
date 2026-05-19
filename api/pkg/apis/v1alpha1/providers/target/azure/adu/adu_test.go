@@ -114,8 +114,8 @@ func TestGetFailed(t *testing.T) {
 		Name: "test",
 	}
 	deployment := model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -164,8 +164,8 @@ func TestApplyFailed(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

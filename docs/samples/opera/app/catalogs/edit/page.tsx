@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { getServerSession } from 'next-auth';
 import { options } from '../../api/auth/[...nextauth]/options';
-import CatalogEditor from '@/components/editors/CatalogEditor';
-import {CatalogState, User} from '../../types';
+import CatalogVersionEditor from '@/components/editors/CatalogVersionEditor';
+import {CatalogVersionState, User} from '../../types';
 
-const getCatalogs = async (type: string) => {
+const getCatalogVersions = async (type: string) => {
     const session = await getServerSession(options);    
     const symphonyApi = process.env.SYMPHONY_API;
     const userObj: User | undefined = session?.user?? undefined;
-    const res = await fetch( `${symphonyApi}catalogs/registry`, {
+    const res = await fetch( `${symphonyApi}catalogversions/registry`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${userObj?.accessToken}`,
@@ -16,15 +16,15 @@ const getCatalogs = async (type: string) => {
     });
     const data = await res.json();
     //map each element and do some transformation
-    const catalogs = data
-    .filter((catalog: CatalogState) => catalog.spec.catalogType === type);
-    return catalogs;
+    const catalogversions = data
+    .filter((catalogversion: CatalogVersionState) => catalogversion.spec.catalogType === type);
+    return catalogversions;
   }
 
-async function CatalogEditPage() {
-    const [schemas] = await Promise.all([getCatalogs('schema')]);
-    return <CatalogEditor schemas={schemas} />
+async function CatalogVersionEditPage() {
+    const [schemas] = await Promise.all([getCatalogVersions('schema')]);
+    return <CatalogVersionEditor schemas={schemas} />
 }
 
 
-export default CatalogEditPage;
+export default CatalogVersionEditPage;

@@ -4,9 +4,9 @@ In this scenario, you roll out a new application from your HQ office to multiple
 
 ## Generic flow
 
-1. Define your application structure as a `catalog` object that contains Symphony `solution` definition.
-2. Define your application deployment topology as a `catalog` object that contains a Symphony `instance` definition.
-3. (Optionally) Define deployment targets as a `catalog` object that contains a Symphony `target` definition.
+1. Define your application structure as a `catalogversion` object that contains Symphony `solutionversion` definition.
+2. Define your application deployment topology as a `catalogversion` object that contains a Symphony `instance` definition.
+3. (Optionally) Define deployment targets as a `catalogversion` object that contains a Symphony `target` definition.
 4. Define and activate a `campaign` that drives multi-site deployment from the HQ.
 
 ## Sample artifacts
@@ -15,9 +15,9 @@ You can find sample artifacts in this repository under the `docs/samples/multisi
 
 | Artifact | Purpose |
 |--------|--------|
-| [instance-catalog.yaml](../../samples/multisite/instance-catalog.yaml) | Instance definition (wrapped in a catalog) |
-| [solution-catalog.yaml](../../samples/multisite/solution-catalog.yaml) | Solution definition (wrapped in a catalog) |
-| [target-catalog.yaml](../../samples/multisite/target-catalog.yaml) | Target definition (wrapped in a catalog) |
+| [instance-catalogversion.yaml](../../samples/multisite/instance-catalogversion.yaml) | Instance definition (wrapped in a catalogversion) |
+| [solutionversion-catalogversion.yaml](../../samples/multisite/solutionversion-catalogversion.yaml) | SolutionVersion definition (wrapped in a catalogversion) |
+| [target-catalogversion.yaml](../../samples/multisite/target-catalogversion.yaml) | Target definition (wrapped in a catalogversion) |
 
 The following diagram illustrates how the stages in the multi-site deployment workflow are defined, with corresponding stage names in `campaign.yaml`.
 
@@ -27,13 +27,13 @@ The following diagram illustrates how the stages in the multi-site deployment wo
 
 ## Deployment steps
 
-1. On HQ site, create all catalog objects:
+1. On HQ site, create all catalogversion objects:
 
    ```bash
    # make sure kubectl context is set to HQ
-   kubectl apply -f solution-catalog.yaml
-   kubectl apply -f instance-catalog.yaml
-   kubectl apply -f target-catalog.yaml
+   kubectl apply -f solutionversion-catalogversion.yaml
+   kubectl apply -f instance-catalogversion.yaml
+   kubectl apply -f target-catalogversion.yaml
    ```
 
 2. Also on HQ site, define and activate the multi-site deployment campaign:
@@ -44,22 +44,22 @@ The following diagram illustrates how the stages in the multi-site deployment wo
    kubectl apply -f activation.yaml
    ```
 
-3. Examine what's happening on the site. First, you should see that all catalogs are synchronized to the site (with `hq-` prefixes added):
+3. Examine what's happening on the site. First, you should see that all catalogversions are synchronized to the site (with `hq-` prefixes added):
 
    ```bash
    # make sure kubectl context is set to the site
-   kubectl get catalog
+   kubectl get catalogversion
    NAME                       AGE
    hq-site-app                7m38s
    hq-site-instance           7m38s
    hq-site-k8s-target         7m38s
    ```
 
-   In a few minutes, you should also see that the corresponding solution, target, and instance objects are created:
+   In a few minutes, you should also see that the corresponding solutionversion, target, and instance objects are created:
 
    ```bash
    # make sure kubectl context is set to the site
-   kubectl get solution
+   kubectl get solutionversion
    NAME             AGE
    site-app         3m51s
 

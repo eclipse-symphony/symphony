@@ -1,0 +1,21 @@
+apiVersion: solutionversion.symphony/v1
+kind: Solution
+metadata:
+  name: solutionversion03
+spec:
+---
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
+metadata:
+  name: solutionversion03-v-version3
+spec:
+  rootResource: solutionversion03
+  components:
+    - name: testconfigmap1
+      type: config
+      properties: 
+        top: ${{$config(config2:vmap1, '')}}
+    - name: testconfigmap2
+      type: config
+      properties: 
+        top: ${{$config(config2:vmap2, 'further')}}

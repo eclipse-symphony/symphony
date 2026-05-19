@@ -23,7 +23,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var uLog = logger.NewLogger("coa.runtime")
+var scLog = logger.NewLogger("coa.runtime")
 
 type SolutionsVendor struct {
 	vendors.Vendor
@@ -49,7 +49,7 @@ func (e *SolutionsVendor) Init(config vendors.VendorConfig, factories []managers
 		}
 	}
 	if e.SolutionsManager == nil {
-		return v1alpha2.NewCOAError(nil, "solutions manager is not supplied", v1alpha2.MissingConfig)
+		return v1alpha2.NewCOAError(nil, "solutionversion container manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
 }
@@ -71,17 +71,18 @@ func (o *SolutionsVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	pCtx, span := observability.StartSpan("Solutions Vendor", request.Context, &map[string]string{
+	pCtx, span := observability.StartSpan("onSolutions", request.Context, &map[string]string{
 		"method": "onSolutions",
 	})
 	defer span.End()
-	uLog.InfofCtx(pCtx, "V (Solutions): onSolutions, method: %s", request.Method)
+	scLog.InfofCtx(pCtx, "V (Solutions): onSolutions, method: %s", request.Method)
 
 	id := request.Parameters["__name"]
 	namespace, exist := request.Parameters["namespace"]
 	if !exist {
 		namespace = constants.DefaultScope
 	}
+
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onSolutions-GET", pCtx, nil)
@@ -89,7 +90,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			// Change namespace back to empty to indicate ListSpec need to query all namespaces
+			// Change partition back to empty to indicate ListSpec need to query all namespaces
 			if !exist {
 				namespace = ""
 			}
@@ -99,7 +100,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = c.SolutionsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
+			scLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
@@ -117,75 +118,28 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onSolutions-POST", pCtx, nil)
-		embed_type := request.Parameters["embed-type"]
-		embed_component := request.Parameters["embed-component"]
-		embed_property := request.Parameters["embed-property"]
-
-		var solution model.SolutionState
-
-		if embed_type != "" && embed_component != "" && embed_property != "" {
-			solution = model.SolutionState{
-				ObjectMeta: model.ObjectMeta{
-					Name:      id,
-					Namespace: namespace,
-				},
-				Spec: &model.SolutionSpec{
-					DisplayName: id,
-					Components: []model.ComponentSpec{
-						{
-							Name: embed_component,
-							Type: embed_type,
-							Properties: map[string]interface{}{
-								embed_property: string(request.Body),
-							},
-						},
-					},
-				},
-			}
-		} else {
-			err := utils2.UnmarshalJson(request.Body, &solution)
-			if err != nil {
-				uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
-				return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-					State: v1alpha2.InternalError,
-					Body:  []byte(err.Error()),
-				})
-			}
-			if solution.ObjectMeta.Name == "" {
-				solution.ObjectMeta.Name = id
-			}
-		}
-		err := c.SolutionsManager.UpsertState(ctx, id, solution)
+		var solutionversionContainer model.SolutionState
+		err := utils2.UnmarshalJson(request.Body, &solutionversionContainer)
 		if err != nil {
-			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
+			scLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
+			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
+				State: v1alpha2.InternalError,
+				Body:  []byte(err.Error()),
+			})
+		}
+		solutionversionContainer.ObjectMeta.Name = id
+		solutionversionContainer.ObjectMeta.Namespace = namespace
+		solutionversionContainer.Spec = &model.SolutionSpec{}
+
+		err = c.SolutionsManager.UpsertState(ctx, id, solutionversionContainer)
+		if err != nil {
+			scLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
-		// TODO: this is a PoC of publishing trails when an object is updated
-		strCat := ""
-		if solution.Spec.Metadata != nil {
-			if v, ok := solution.Spec.Metadata["catalog"]; ok {
-				strCat = v
-			}
-		}
-		c.Vendor.Context.Publish("trail", v1alpha2.Event{
-			Body: []v1alpha2.Trail{
-				{
-					Origin:  c.Vendor.Context.SiteInfo.SiteId,
-					Catalog: strCat,
-					Type:    "solutions.solution.symphony/v1",
-					Properties: map[string]interface{}{
-						"spec": solution,
-					},
-				},
-			},
-			Metadata: map[string]string{
-				"namespace": namespace,
-			},
-			Context: ctx,
-		})
+
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
@@ -193,7 +147,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onSolutions-DELETE", pCtx, nil)
 		err := c.SolutionsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			uLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
+			scLog.ErrorfCtx(ctx, "V (Solutions): onSolutions failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
@@ -203,7 +157,7 @@ func (c *SolutionsVendor) onSolutions(request v1alpha2.COARequest) v1alpha2.COAR
 			State: v1alpha2.OK,
 		})
 	}
-	uLog.ErrorCtx(pCtx, "V (Solutions): onSolutions failed - 405 method not allowed")
+	scLog.ErrorCtx(pCtx, "V (Solutions): onSolutions failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

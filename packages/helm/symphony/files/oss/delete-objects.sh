@@ -3,7 +3,7 @@ set -e
 TIMEOUTDEPLOYMENT="15m"
 TIMEOUT="1m"
 TIMEOUTFINALIZER=60
-SOLUTION_GROUP=solution.symphony
+SOLUTION_GROUP=solutionversion.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
 WORKFLOW_GROUP=workflow.symphony
@@ -28,11 +28,11 @@ function delete_crds_instances {
     echo "Failed to delete CRD instances.$SOLUTION_GROUP, invoking remove_finalizers"
     remove_finalizers "instances.$SOLUTION_GROUP"
   fi
-  echo "Deleting solutions.$SOLUTION_GROUP"
-  kubectl delete crds "solutions.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
+  echo "Deleting solutionversions.$SOLUTION_GROUP"
+  kubectl delete crds "solutionversions.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
-    echo "Failed to delete CRD solutions.$SOLUTION_GROUP, invoking remove_finalizers"
-    remove_finalizers "solutions.$SOLUTION_GROUP"
+    echo "Failed to delete CRD solutionversions.$SOLUTION_GROUP, invoking remove_finalizers"
+    remove_finalizers "solutionversions.$SOLUTION_GROUP"
   fi
   echo "Deleting targets.$FABRIC_GROUP"
   kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
@@ -148,7 +148,7 @@ resource_types=(
   "skills.$AI_GROUP"
   "skillpackages.$AI_GROUP"
   "sites.$FEDERATION_GROUP"
-  "catalogs.$FEDERATION_GROUP"
+  "catalogversions.$FEDERATION_GROUP"
 )
 
 delete_crds_campaigns 

@@ -11,7 +11,7 @@ metadata:
   name: instance-editor-role
 rules:
 - apiGroups:
-  - solution.symphony
+  - solutionversion.symphony
   resources:
   - instances
   verbs:
@@ -23,7 +23,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solution.symphony
+  - solutionversion.symphony
   resources:
   - instances/status
   verbs:

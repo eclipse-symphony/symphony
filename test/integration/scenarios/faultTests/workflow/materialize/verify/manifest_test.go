@@ -28,18 +28,18 @@ import (
 )
 
 var (
-	testCatalogs = []string{
-		"./manifest/catalog-catalog-container.yaml",
-		"./manifest/catalog-catalog-container-2.yaml",
-		"./manifest/instance-catalog-container.yaml",
-		"./manifest/solution-catalog-container.yaml",
-		"./manifest/target-catalog-container.yaml",
+	testCatalogVersions = []string{
+		"./manifest/catalogversion-catalogversion-container.yaml",
+		"./manifest/catalogversion-catalogversion-container-2.yaml",
+		"./manifest/instance-catalogversion-container.yaml",
+		"./manifest/solutionversion-catalogversion-container.yaml",
+		"./manifest/target-catalogversion-container.yaml",
 
-		"./manifest/catalog-catalog.yaml",
-		"./manifest/catalog-catalog-2.yaml",
-		"./manifest/instance-catalog.yaml",
-		"./manifest/solution-catalog.yaml",
-		"./manifest/target-catalog.yaml",
+		"./manifest/catalogversion-catalogversion.yaml",
+		"./manifest/catalogversion-catalogversion-2.yaml",
+		"./manifest/instance-catalogversion.yaml",
+		"./manifest/solutionversion-catalogversion.yaml",
+		"./manifest/target-catalogversion.yaml",
 	}
 
 	testCampaign = []string{
@@ -57,7 +57,7 @@ func TestMaterializeWorkflow(t *testing.T) {
 	err := utils.InjectPodFailure()
 	require.NoError(t, err)
 	DeployManifests(t, namespace)
-	CheckCatalogs(t, namespace)
+	CheckCatalogVersions(t, namespace)
 	CheckActivationStatus(t, namespace)
 	CheckTargetStatus(t, namespace)
 	CheckInstanceStatus(t, namespace)
@@ -77,10 +77,10 @@ func DeployManifests(t *testing.T, namespace string) error {
 			}
 		}
 	}
-	// Deploy the catalogs
-	for _, catalog := range testCatalogs {
-		absCatalog := filepath.Join(repoPath, catalog)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalog, namespace)).Run()
+	// Deploy the catalogversions
+	for _, catalogversion := range testCatalogVersions {
+		absCatalogVersion := filepath.Join(repoPath, catalogversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalogVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
@@ -107,9 +107,9 @@ func DeployManifests(t *testing.T, namespace string) error {
 	return nil
 }
 
-// Verify catalog created
-func CheckCatalogs(t *testing.T, namespace string) {
-	fmt.Printf("Checking Catalogs\n")
+// Verify catalogversion created
+func CheckCatalogVersions(t *testing.T, namespace string) {
+	fmt.Printf("Checking CatalogVersions\n")
 	if namespace == "" {
 		namespace = "default"
 	}
@@ -117,7 +117,7 @@ func CheckCatalogs(t *testing.T, namespace string) {
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "federation.symphony",
 		Version: "v1",
-		Kind:    "Catalog",
+		Kind:    "CatalogVersion",
 	})
 
 	cfg, err := testhelpers.RestConfig()
@@ -130,15 +130,15 @@ func CheckCatalogs(t *testing.T, namespace string) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogs",
+			Resource: "catalogversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		catalogs := []string{}
+		catalogversions := []string{}
 		for _, item := range resources.Items {
-			catalogs = append(catalogs, item.GetName())
+			catalogversions = append(catalogversions, item.GetName())
 		}
-		fmt.Printf("Catalogs: %v\n", catalogs)
+		fmt.Printf("CatalogVersions: %v\n", catalogversions)
 		if len(resources.Items) == 7 {
 			break
 		}
@@ -225,22 +225,22 @@ func CheckActivationStatus(t *testing.T, namespace string) {
 			// require.Equal(t, "list", state.Status.StageHistory[0].NextStage)
 			// require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
 			// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
-			// require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
-			// require.Equal(t, []interface{}{"sitecatalog:version1", "sitecatalog2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
-			// require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[0].Inputs["objectType"])
+			// require.Equal(t, []interface{}{"sitecatalogversion:version1", "sitecatalogversion2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[0].Outputs["objectType"])
 			// require.Equal(t, "list", state.Status.StageHistory[1].Stage)
 			// require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
 			// require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
 			// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
-			// require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[1].Inputs["objectType"])
 			// require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
-			// require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
-			// require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
+			// require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalogversion-v-version1", "sitecatalogversion2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[1].Outputs["objectType"])
 			// require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
 			// require.Equal(t, "", state.Status.StageHistory[2].NextStage)
 			// require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
 			// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
-			// require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
+			// require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalogversion-v-version1", "sitecatalogversion2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 
@@ -304,7 +304,7 @@ func CheckInstanceStatus(t *testing.T, namespace string) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solution.symphony",
+			Group:    "solutionversion.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})

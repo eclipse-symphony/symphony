@@ -29,9 +29,9 @@ import (
 
 var (
 	testManifests = []string{
-		"../manifest/oss/solution-container.yaml",
+		"../manifest/oss/solutionversion-container.yaml",
 		"../manifest/oss/target.yaml",
-		"../manifest/oss/solution.yaml",
+		"../manifest/oss/solutionversion.yaml",
 		"../manifest/oss/instance.yaml",
 	}
 )
@@ -260,7 +260,7 @@ func testBasic_InstanceStatus(t *testing.T, successCount string) {
 		sleepDuration, _ := time.ParseDuration("10s")
 		time.Sleep(sleepDuration)
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solution.symphony",
+			Group:    "solutionversion.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
@@ -375,7 +375,7 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 			}
 		}
 	}
-	stringYaml, err := testhelpers.ReplacePlaceHolderInManifestWithString(fileName, namespace+"target", namespace+"solution", "version1", namespace+"instance", "")
+	stringYaml, err := testhelpers.ReplacePlaceHolderInManifestWithString(fileName, namespace+"target", namespace+"solutionversion", "version1", namespace+"instance", "")
 
 	if err != nil {
 		return []byte(stringYaml), err
@@ -399,7 +399,7 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 
 func CleanUpSymphonyObjects(namespace string) error {
 	// Get all instances in the namespace
-	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solution.symphony -n %s -o name", namespace)).Output()
+	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solutionversion.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
 		return fmt.Errorf("failed to list instances: %v", err)
 	}
@@ -417,7 +417,7 @@ func CleanUpSymphonyObjects(namespace string) error {
 		}
 	}
 
-	// Repeat similar logic for targets and solutions if needed
+	// Repeat similar logic for targets and solutionversions if needed
 	output, err = shellcmd.Command(fmt.Sprintf("kubectl get targets.fabric.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
 		return fmt.Errorf("failed to list targets: %v", err)
@@ -434,19 +434,19 @@ func CleanUpSymphonyObjects(namespace string) error {
 		}
 	}
 
-	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutions.solution.symphony -n %s -o name", namespace)).Output()
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutionversions.solutionversion.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
-		return fmt.Errorf("failed to list solutions: %v", err)
+		return fmt.Errorf("failed to list solutionversions: %v", err)
 	}
 
-	solutions := strings.Split(strings.TrimSpace(string(output)), "\n")
-	for _, solution := range solutions {
-		if solution == "" {
+	solutionversions := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, solutionversion := range solutionversions {
+		if solutionversion == "" {
 			continue
 		}
-		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", solution, namespace)).Run()
+		err := shellcmd.Command(fmt.Sprintf("kubectl delete %s -n %s", solutionversion, namespace)).Run()
 		if err != nil {
-			return fmt.Errorf("failed to delete solution %s: %v", solution, err)
+			return fmt.Errorf("failed to delete solutionversion %s: %v", solutionversion, err)
 		}
 	}
 	return nil

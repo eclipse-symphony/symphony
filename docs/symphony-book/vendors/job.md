@@ -20,7 +20,7 @@ For example:
 }
 ```
 
-Upon receiving a job, the job vendor creates a [deployment](../concepts/unified-object-model/deployment.md) object and sends the object to the Symphony solution vendor.
+Upon receiving a job, the job vendor creates a [deployment](../concepts/unified-object-model/deployment.md) object and sends the object to the Symphony solutionversion vendor.
 
 The job vendor can also trigger periodical reconciliation jobs by enabling the `poll.enabled` property of the `managers.symphony.jobs`:
 

@@ -17,13 +17,13 @@ import "github.com/eclipse-symphony/symphony/packages/testutils/expectations/kub
   - [func AbsentInstance\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#AbsentInstance>)
   - [func AbsentPod\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#AbsentPod>)
   - [func AbsentResource\(name, namespace string, gvk schema.GroupVersionKind, opts ...Option\) \(\*KubeExpectation, error\)](<#AbsentResource>)
-  - [func AbsentSolution\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#AbsentSolution>)
+  - [func AbsentSolutionVersion\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#AbsentSolutionVersion>)
   - [func AbsentTarget\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#AbsentTarget>)
   - [func Instance\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#Instance>)
   - [func Must\(resource \*KubeExpectation, err error\) \*KubeExpectation](<#Must>)
   - [func Pod\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#Pod>)
   - [func Resource\(pattern, namespace string, gvk schema.GroupVersionKind, opts ...Option\) \(\*KubeExpectation, error\)](<#Resource>)
-  - [func Solution\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#Solution>)
+  - [func SolutionVersion\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#SolutionVersion>)
   - [func Target\(name, namespace string, opts ...Option\) \(\*KubeExpectation, error\)](<#Target>)
   - [func \(e \*KubeExpectation\) AsGomegaSubject\(\) func\(context.Context\) \(interface\{\}, error\)](<#KubeExpectation.AsGomegaSubject>)
   - [func \(re \*KubeExpectation\) Description\(\) string](<#KubeExpectation.Description>)
@@ -150,14 +150,14 @@ func AbsentResource(name, namespace string, gvk schema.GroupVersionKind, opts ..
 
 AbsentResource returns an expectation for the resources is/are absent from the cluster
 
-<a name="AbsentSolution"></a>
-### func [AbsentSolution](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L167>)
+<a name="AbsentSolutionVersion"></a>
+### func [AbsentSolutionVersion](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L167>)
 
 ```go
-func AbsentSolution(name, namespace string, opts ...Option) (*KubeExpectation, error)
+func AbsentSolutionVersion(name, namespace string, opts ...Option) (*KubeExpectation, error)
 ```
 
-AbsentSolution returns an expectation that the solution\(s\) is/are absent from the cluster
+AbsentSolutionVersion returns an expectation that the solutionversion\(s\) is/are absent from the cluster
 
 <a name="AbsentTarget"></a>
 ### func [AbsentTarget](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L147>)
@@ -204,14 +204,14 @@ func Resource(pattern, namespace string, gvk schema.GroupVersionKind, opts ...Op
 
 
 
-<a name="Solution"></a>
-### func [Solution](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L162>)
+<a name="SolutionVersion"></a>
+### func [SolutionVersion](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L162>)
 
 ```go
-func Solution(name, namespace string, opts ...Option) (*KubeExpectation, error)
+func SolutionVersion(name, namespace string, opts ...Option) (*KubeExpectation, error)
 ```
 
-Solution returns an expectation for a solution\(s\) in the cluster
+SolutionVersion returns an expectation for a solutionversion\(s\) in the cluster
 
 <a name="Target"></a>
 ### func [Target](<https://github.com/eclipse-symphony/symphony/blob/main/packages/testutils/expectations/kube/commons.go#L142>)

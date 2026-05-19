@@ -16,7 +16,7 @@ The log should give you a pretty good idea of where the API might have failed. I
 
 ## Check Symphony object status
 
-Objects like `solutions`, `catalogs`, and `campaigns` rarely have problems with themselves, as they don’t trigger additional system operations. On the other hand, `instances`, `targets`, and `activations` are often where errors are observed. When you see an object is at error state, you can dump the YAML document and observe recorded status, which should contain the error information. For example:
+Objects like `solutionversions`, `catalogversions`, and `campaigns` rarely have problems with themselves, as they don’t trigger additional system operations. On the other hand, `instances`, `targets`, and `activations` are often where errors are observed. When you see an object is at error state, you can dump the YAML document and observe recorded status, which should contain the error information. For example:
 
 ```bash
 # examine an instance

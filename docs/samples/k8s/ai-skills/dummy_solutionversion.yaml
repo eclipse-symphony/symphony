@@ -1,0 +1,24 @@
+apiVersion: solutionversion.symphony/v1
+kind: Solution
+metadata:
+  name: dummy-solutionversion  
+spec:
+---
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
+metadata: 
+  name: dummy-solutionversion-v-version1
+spec:
+  rootResource: dummy-solutionversion
+  metadata:
+  components:
+  - name: simulated-sensor
+    properties:
+      container.version: "1.0"
+      container.type: "docker"
+      container.image: "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
+      container.createOptions: ""
+      container.restartPolicy: "always"  
+      env.INSTANCE: ${{$instance()}}
+    skills:
+    - cv-skill

@@ -1,11 +1,11 @@
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: config2
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config2-v-vmap1
 spec: 

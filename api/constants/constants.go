@@ -84,7 +84,7 @@ func SystemReservedLabels() []string {
 		ManagerMetaKey,
 		ParentName,
 		RootResource,
-		Solution,
+		SolutionVersion,
 		StagedTarget,
 		StatusMessage,
 		Target,
@@ -105,8 +105,8 @@ const (
 	RootResourceUid    = "rootResourceUid"
 	ParentName         = "parentName"
 	StatusMessage      = "statusMessage"
-	Solution           = "solution"
-	SolutionUid        = "solutionUid"
+	SolutionVersion           = "solutionversion"
+	SolutionVersionUid        = "solutionversionUid"
 	Target             = "target"
 	TargetUid          = "targetUid"
 	Campaign           = "campaign"

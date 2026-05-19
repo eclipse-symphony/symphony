@@ -27,7 +27,7 @@ Symphony is designed from the ground up for heterogeneous, dynamic, and distribu
 
 * **Built for constrained and disconnected environments.** Symphony minimizes network traffic and management overhead. Its smallest agent is only 4 KB and can be configured to phone home rarely, or not at all, with a tiny payload. For many scenarios, Symphony also supports agentless deployment, requiring no Symphony components on target devices.
 
-* **End-to-end orchestration capabilities.** Symphony includes device management, workload management, configuration management, workflow management, policy management, template management, and more, providing a unified control layer for complex edge solutions.
+* **End-to-end orchestration capabilities.** Symphony includes device management, workload management, configuration management, workflow management, policy management, template management, and more, providing a unified control layer for complex edge solutionversions.
 
 * **Deeply extensible.** Symphony uses providers to integrate with different platforms, protocols, and tools. Its internal system components, including the state store, pub-sub channel, and identity provider, can also be replaced or customized to match the needs of your environment.
 

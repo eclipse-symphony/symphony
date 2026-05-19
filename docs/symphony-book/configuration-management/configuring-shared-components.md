@@ -3,15 +3,15 @@ Many enterprises use services that are shared among multiple applications, such 
 
 ## Modeling shared components
 
-Symphony allows the shared components to be modeled in different ways depending on specific scenarios. Users can model shared components either as part of a Target stack, or a dedicated shared service Solution.
+Symphony allows the shared components to be modeled in different ways depending on specific scenarios. Users can model shared components either as part of a Target stack, or a dedicated shared service SolutionVersion.
 
 ### As part of a Target stack
 
 If users consider the shared components part of the enterprise platform, they can model these components as parts of a Target specification. For example, on a Target representing a database server, it’s natural to expect the database service is described as a component of that Target. 
 
-### As a dedicated shared service Solution
+### As a dedicated shared service SolutionVersion
 
-Users can also capture shared services in a dedicated Solution object. This is a more flexible and preferred way of modeling as it decouples shared services from the infrastructure and allows flexible topologies of deployments, especially when multiple groups of shared services are scoped to support different sets of applications. 
+Users can also capture shared services in a dedicated SolutionVersion object. This is a more flexible and preferred way of modeling as it decouples shared services from the infrastructure and allows flexible topologies of deployments, especially when multiple groups of shared services are scoped to support different sets of applications. 
 
 ## Updating configuration of shared components
 
@@ -25,7 +25,7 @@ The following is an example of updating a shared Ingress controller to shift all
 finalize:
       ...
       inputs:
-        objectType: solution
+        objectType: solutionversion
         objectName: test-app
         patchSource: inline
         patchContent:

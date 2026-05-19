@@ -5,8 +5,8 @@ Symphony breaks away from the file-based mindset. Operations can model and manag
 You can refer to fields in multiple configuration objects in your artifacts, for example:
 
 ```yaml
-apiVersion: solution.symphony/v1
-kind: Solution
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
 metadata: 
   name: csad-featurizer
 spec:  
@@ -25,11 +25,11 @@ You can also use recursive expressions to resolve for complex configuration scen
 ${{$config(line-config, $config(scenario-config, active-scenario))}}
 ```
 
-Such late assembly can happen directly in any artifact formats (such as Solutions). So, you don't have to explicitly define an unified configuration (Catalog) object. On the other hand, if you do want the combined configuration to be explicitly managed (such as to be versioned independently from the application), you can always create a combined configuration object that assembles other configuration objects, or parts of other configuration objects into an unified object:
+Such late assembly can happen directly in any artifact formats (such as SolutionVersions). So, you don't have to explicitly define an unified configuration (CatalogVersion) object. On the other hand, if you do want the combined configuration to be explicitly managed (such as to be versioned independently from the application), you can always create a combined configuration object that assembles other configuration objects, or parts of other configuration objects into an unified object:
 
 ```yaml
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: robot-config
 spec:  

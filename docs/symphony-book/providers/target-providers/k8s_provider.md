@@ -1,12 +1,12 @@
 # providers.target.k8s
 
-This is a Kubernetes native target provider that translates solution component to Kubernetes native types.
+This is a Kubernetes native target provider that translates solutionversion component to Kubernetes native types.
 
 ## Deployment strategy
 
 The K8s target provider supports three deployment strategies:
 
-* **Single pod:** All components in a solution are deployed into a single pod.
+* **Single pod:** All components in a solutionversion are deployed into a single pod.
 * **Services:** Each component is deployed as a separate service in a user-specified namespace.
 * **Services with instance namespace:** Each component is deployed as a separate service in a namespace named after the instance name.
 

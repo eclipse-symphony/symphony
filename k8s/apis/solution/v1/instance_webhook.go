@@ -57,9 +57,9 @@ var instanceHistory history.InstanceHistory
 func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	myInstanceClient = mgr.GetAPIReader()
 	k8sClient = mgr.GetClient()
-	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solution", func(rawObj client.Object) []string {
+	mgr.GetFieldIndexer().IndexField(context.Background(), &Instance{}, "spec.solutionversion", func(rawObj client.Object) []string {
 		instance := rawObj.(*Instance)
-		return []string{instance.Spec.Solution}
+		return []string{instance.Spec.SolutionVersion}
 	})
 	myConfig, err := configutils.GetProjectConfig()
 	if err != nil {
@@ -79,16 +79,16 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	uniqueNameInstanceLookupFunc := func(ctx context.Context, displayName string, namespace string) (interface{}, error) {
 		return dynamicclient.GetObjectWithUniqueName(ctx, validation.Instance, displayName, namespace)
 	}
-	solutionLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(ctx, validation.Solution, name, namespace)
+	solutionversionLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
+		return dynamicclient.Get(ctx, validation.SolutionVersion, name, namespace)
 	}
 	targetLookupFunc := func(ctx context.Context, name string, namespace string) (interface{}, error) {
 		return dynamicclient.Get(ctx, validation.Target, name, namespace)
 	}
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
-		instanceValidator = validation.NewInstanceValidator(uniqueNameInstanceLookupFunc, solutionLookupFunc, targetLookupFunc)
+	if instanceProjectConfig.UniqueDisplayNameForSolutionVersion {
+		instanceValidator = validation.NewInstanceValidator(uniqueNameInstanceLookupFunc, solutionversionLookupFunc, targetLookupFunc)
 	} else {
-		instanceValidator = validation.NewInstanceValidator(nil, solutionLookupFunc, targetLookupFunc)
+		instanceValidator = validation.NewInstanceValidator(nil, solutionversionLookupFunc, targetLookupFunc)
 	}
 
 	saveInstanceHistoryFunc := func(ctx context.Context, objectName string, object interface{}) error {
@@ -101,17 +101,17 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		currentTime := time.Now()
 		diagnostic.InfoWithCtx(instancelog, ctx, "Saving old instance history", "Current time", currentTime, "name", instance.Name)
 
-		// get solution spec
-		var solutionSpec k8smodel.SolutionSpec
-		res, err := dynamicclient.Get(ctx, validation.Solution, validation.ConvertReferenceToObjectName(instance.Spec.Solution), instance.Namespace)
+		// get solutionversion spec
+		var solutionversionSpec k8smodel.SolutionVersionSpec
+		res, err := dynamicclient.Get(ctx, validation.SolutionVersion, validation.ConvertReferenceToObjectName(instance.Spec.SolutionVersion), instance.Namespace)
 		if err != nil {
-			err := fmt.Errorf("failed to get solution, instance: %s, error: %v", instance.Name, err)
-			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solution spec for instance", "name", r.Name, "namespace", r.Namespace)
+			err := fmt.Errorf("failed to get solutionversion, instance: %s, error: %v", instance.Name, err)
+			diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solutionversion spec for instance", "name", r.Name, "namespace", r.Namespace)
 		} else if res.Object != nil {
 			jsonData, _ := json.Marshal(res.Object["spec"])
-			err = utils.UnmarshalJson(jsonData, &solutionSpec)
+			err = utils.UnmarshalJson(jsonData, &solutionversionSpec)
 			if err != nil {
-				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solution spec for instance", "name", r.Name, "namespace", r.Namespace)
+				diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solutionversion spec for instance", "name", r.Name, "namespace", r.Namespace)
 			}
 		}
 
@@ -141,8 +141,8 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			Scope:                instance.Spec.Scope,
 			Parameters:           instance.Spec.Parameters,
 			Metadata:             instance.Spec.Metadata,
-			Solution:             solutionSpec,
-			SolutionId:           instance.Spec.Solution,
+			SolutionVersion:             solutionversionSpec,
+			SolutionVersionId:           instance.Spec.SolutionVersion,
 			Target:               targetSpec,
 			TargetSelector:       instance.Spec.Target.Selector,
 			TargetId:             instance.Spec.Target.Name,
@@ -191,7 +191,7 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-solution-symphony-v1-instance,mutating=true,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update,versions=v1,name=minstance.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-solutionversion-symphony-v1-instance,mutating=true,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instances,verbs=create;update,versions=v1,name=minstance.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Instance{}
 
@@ -217,24 +217,24 @@ func (r *Instance) Default() {
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)
 	}
-	if instanceProjectConfig.UniqueDisplayNameForSolution {
+	if instanceProjectConfig.UniqueDisplayNameForSolutionVersion {
 		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
 
-	// Remove api_constants.Solution and api_constants.Targetfrom r.Labels if it exists
-	if _, exists := r.Labels[api_constants.Solution]; exists {
-		delete(r.Labels, api_constants.Solution)
+	// Remove api_constants.SolutionVersion and api_constants.Targetfrom r.Labels if it exists
+	if _, exists := r.Labels[api_constants.SolutionVersion]; exists {
+		delete(r.Labels, api_constants.SolutionVersion)
 	}
 	if _, exists := r.Labels[api_constants.Target]; exists {
 		delete(r.Labels, api_constants.Target)
 	}
 
-	var solutionResult Solution
-	err := k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Solution), Namespace: r.Namespace}, &solutionResult)
+	var solutionversionResult SolutionVersion
+	err := k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.SolutionVersion), Namespace: r.Namespace}, &solutionversionResult)
 	if err != nil {
-		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solution", "name", r.Name, "namespace", r.Namespace)
+		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solutionversion", "name", r.Name, "namespace", r.Namespace)
 	}
-	r.Labels[api_constants.SolutionUid] = string(solutionResult.UID)
+	r.Labels[api_constants.SolutionVersionUid] = string(solutionversionResult.UID)
 
 	var targetResult fabric.Target
 	err = k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Target.Name), Namespace: r.Namespace}, &targetResult)
@@ -246,7 +246,7 @@ func (r *Instance) Default() {
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update;delete,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solutionversion-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instances,verbs=create;update;delete,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Instance{}
 
@@ -358,7 +358,7 @@ func (r *Instance) validateCreateInstance(ctx context.Context) error {
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "Instance"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate create instance", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
@@ -386,7 +386,7 @@ func (r *Instance) validateUpdateInstance(ctx context.Context, old *Instance) er
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "Instance"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
@@ -412,7 +412,7 @@ func (r *Instance) validateReconciliationPolicy() *field.Error {
 }
 
 func (r *Instance) ConvertInstanceState() (model.InstanceState, error) {
-	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name,
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "Instance"}, r.Name,
 		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to instance state", v1alpha2.BadRequest))})
 	bytes, err := json.Marshal(r)
 	if err != nil {

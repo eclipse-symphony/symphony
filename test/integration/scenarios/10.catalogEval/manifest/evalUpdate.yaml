@@ -1,12 +1,12 @@
 apiVersion: federation.symphony/v1
-kind: CatalogEvalExpression
+kind: CatalogVersionEvalExpression
 metadata:
-  name: evaluateevalcatalog01
+  name: evaluateevalcatalogversion01
   annotations:
     management.azure.com/operationId: "1"
 spec:
   resourceRef:
     apiGroup: federation.symphony
-    kind: Catalog
-    name: evalcatalog-v-version3
+    kind: CatalogVersion
+    name: evalcatalogversion-v-version3
     namespace: default

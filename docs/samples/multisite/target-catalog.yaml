@@ -1,11 +1,11 @@
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: site-k8s-target
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: site-k8s-target-v-version1
 spec:

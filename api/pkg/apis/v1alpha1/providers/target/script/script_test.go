@@ -82,8 +82,8 @@ func TestGet(t *testing.T) {
 	})
 	require.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "com1",
@@ -117,8 +117,8 @@ func TestRemoveScript(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "com1",
@@ -153,8 +153,8 @@ func TestApplyScript(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	_, err = provider.Apply(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "com1",

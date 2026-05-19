@@ -124,8 +124,8 @@ func TestDockerTargetProviderInstall(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -158,8 +158,8 @@ func TestDockerTargetProviderGet(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "redis-test",
@@ -209,8 +209,8 @@ func TestDockerTargetProviderRemove(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -249,8 +249,8 @@ func TestUpdateGetDelete(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -271,8 +271,8 @@ func TestUpdateGetDelete(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "alpine-test",
@@ -331,8 +331,8 @@ func TestApplyFailed(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -361,8 +361,8 @@ func TestApplyFailed(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -400,8 +400,8 @@ func TestApplyAlreadyRunning(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

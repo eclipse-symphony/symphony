@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solution_test
+package solutionversion_test
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	api "gopls-workspace/apis/solution/v1"
 	controllers "gopls-workspace/controllers/solution"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	//+kubebuilder:scaffold:imports
 )
@@ -49,11 +49,11 @@ func TestAPIs(t *testing.T) {
 	RunGinkgoSpecs(t, "Controller Suite")
 }
 
-func TestUnmarshalSolution(t *testing.T) {
-	solutionYaml := `apiVersion: solution.symphony/v1
-kind: Solution
+func TestUnmarshalSolutionVersion(t *testing.T) {
+	solutionversionYaml := `apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
 metadata: 
-  name: sample-staged-solution
+  name: sample-staged-solutionversion
 spec:  
   components:
   - name: staged-component
@@ -62,8 +62,8 @@ spec:
       bar:
         baz: "qux"
 `
-	solution := &api.Solution{}
-	err := yaml.Unmarshal([]byte(solutionYaml), solution)
+	solutionversion := &api.SolutionVersion{}
+	err := yaml.Unmarshal([]byte(solutionversionYaml), solutionversion)
 	assert.NoError(t, err)
 
 	expectedProperties := map[string]interface{}{
@@ -73,7 +73,7 @@ spec:
 		},
 	}
 	actualProperties := map[string]interface{}{}
-	err = json.Unmarshal(solution.Spec.Components[0].Properties.Raw, &actualProperties)
+	err = json.Unmarshal(solutionversion.Spec.Components[0].Properties.Raw, &actualProperties)
 	assert.NoError(t, err)
 
 	assert.Equal(t, expectedProperties, actualProperties)
@@ -117,7 +117,7 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cfg).NotTo(BeNil())
 
-		err = solutionv1.AddToScheme(scheme.Scheme)
+		err = solutionversionv1.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 
 		//+kubebuilder:scaffold:scheme

@@ -2,7 +2,7 @@
 
 You can assemble multiple Symphony control planes to form a cascaded control plane tree. For example, if you have an HQ office and two site offices, you can set up Symphony control plane on all three locations and link site offices as children of the HQ control plane.
 
-Once a control plane is linked to a parent control plane, it synchronizes `catalogs` from the parent. And it can be influenced by a campaign running on the parent control plane. One typical usage is to use the HQ office to control deployment of a standardized application across multiple site offices.
+Once a control plane is linked to a parent control plane, it synchronizes `catalogversions` from the parent. And it can be influenced by a campaign running on the parent control plane. One typical usage is to use the HQ office to control deployment of a standardized application across multiple site offices.
 
 ## Configure a parent site
 
@@ -43,8 +43,8 @@ kubectl get sites
 
 ## Synchronize with the parent site
 
-Once a child site is connected to its parent, it starts to gradually copy down catalog objects from the parent site. The local copy of the catalog objects are prefixed with the original site id. For example, an `app-config` catalog copied from an HQ site is named as `hq-app-config`.
+Once a child site is connected to its parent, it starts to gradually copy down catalogversion objects from the parent site. The local copy of the catalogversion objects are prefixed with the original site id. For example, an `app-config` catalogversion copied from an HQ site is named as `hq-app-config`.
 
-A catalog can then be “materialized” by a campaign into “solid” Symphony objects like `solutions`, `targets` and `instances`.
+A catalogversion can then be “materialized” by a campaign into “solid” Symphony objects like `solutionversions`, `targets` and `instances`.
 
 This mechanism allows standardized templates, such as standardized applications, to be defined on HQ, synchronized to site offices, and deployed locally. See the [Multi-site app deployment scenario](../scenarios/multisite-deployment.md) for more details.

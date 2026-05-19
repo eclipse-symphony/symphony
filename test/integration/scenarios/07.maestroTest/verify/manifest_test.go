@@ -66,7 +66,7 @@ func Test_VerifyInstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solution.symphony",
+			Group:    "solutionversion.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
@@ -139,13 +139,13 @@ func TestBasic_VerifyCatelogExist(t *testing.T) {
 			resources, err := dyn.Resource(schema.GroupVersionResource{
 				Group:    "federation.symphony",
 				Version:  "v1",
-				Resource: "catalogs",
+				Resource: "catalogversions",
 			}).Namespace("default").List(context.TODO(), metav1.ListOptions{})
 			require.NoError(t, err)
 
 			found := false
-			for _, catalog := range resources.Items {
-				if strings.Contains(catalog.GetName(), "sample-staged-instance") {
+			for _, catalogversion := range resources.Items {
+				if strings.Contains(catalogversion.GetName(), "sample-staged-instance") {
 					found = true
 					break
 				}

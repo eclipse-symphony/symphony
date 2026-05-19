@@ -1,6 +1,6 @@
 # Scenario: Deploy a Linux container with a UWP frontend
 
-In this scenario, you deploy a **solution** with a Linux container backend running on a Linux **target** and a UWP frontend running on a Windows 10 machine.
+In this scenario, you deploy a **solutionversion** with a Linux container backend running on a Linux **target** and a UWP frontend running on a Windows 10 machine.
 
 ![uwp](../images/uwp.png)
 
@@ -16,7 +16,7 @@ In this scenario, you deploy a **solution** with a Linux container backend runni
 
 You can use any UWP application package of your choice. The signing certificate must be trusted on the target machine.
 
-Or, you can build the sample **Home Hub** UWP app from this repository. You can find the Visual Studio solution under the `samples/scenarios/homehub/uwp-app` folder. Simply open the solution and rebuild the application package. Note you may need to switch to your own signing certificate.
+Or, you can build the sample **Home Hub** UWP app from this repository. You can find the Visual Studio solutionversion under the `samples/scenarios/homehub/uwp-app` folder. Simply open the solutionversion and rebuild the application package. Note you may need to switch to your own signing certificate.
 
 Once the package is created, you should have something like `HomeHub.Package_1.0.x.0_x64_Debug.appxbundle` under the build directory. When you configure your Python provider, you need to enter this path to your Python code.
 
@@ -53,13 +53,13 @@ spec:
         serverUrl: "http://<your gateway where Python provider is running>:8090/"
 ```
 
-## 4. Define the solution
+## 4. Define the solutionversion
 
-The following solution defines a nginx container and a UWP app. The `app.package.pth` should point to the full path to the`appxbundle` file.
+The following solutionversion defines a nginx container and a UWP app. The `app.package.pth` should point to the full path to the`appxbundle` file.
 
 ```yaml
-apiVersion: solution.symphony/v1
-kind: Solution
+apiVersion: solutionversion.symphony/v1
+kind: SolutionVersion
 metadata:
   name: home-hub
 spec:
@@ -76,15 +76,15 @@ spec:
 
 ## 5. Define the instance
 
-The instance simply maps the solution to your target. Note that the Windows 10 target is not explicitly specified as it's proxied.
+The instance simply maps the solutionversion to your target. Note that the Windows 10 target is not explicitly specified as it's proxied.
 
 ```yaml
-apiVersion: solution.symphony/v1
+apiVersion: solutionversion.symphony/v1
 kind: Instance
 metadata:
   name: homehub-instance
 spec:
-  solution: home-hub
+  solutionversion: home-hub
   target:
     name: mac-book
 ```
@@ -110,6 +110,6 @@ Observe the app is removed from the target Windows 10 machine.
 ## 8. Clean up
 
 ```bash
-kubectl delete solution home-hub
+kubectl delete solutionversion home-hub
 kubectl delete target mac-book
 ```
