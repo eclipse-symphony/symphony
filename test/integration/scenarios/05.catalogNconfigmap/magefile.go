@@ -54,8 +54,8 @@ var (
 		"namespace/config2.yaml",
 		"namespace/config3-container.yaml",
 		"namespace/config3.yaml",
-		"namespace/campaign-container.yaml",
 		"namespace/campaign.yaml",
+		"namespace/campaignversion.yaml",
 	}
 
 	testActivation = "namespace/activation.yaml"
@@ -196,7 +196,7 @@ func Verify() error {
 
 // Deploy manifests for namespace
 func deployNamespaceManifests(namespace string) error {
-	// setup campaign
+	// setup campaignversion
 	currentPath, err := os.Getwd()
 	if err != nil {
 		return err

@@ -81,7 +81,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	pubSubProvider.Init(memory.InMemoryPubSubConfig{Name: "test"})
 	vendor.Context.Init(&pubSubProvider)
 	activationName := "activation1"
-	campaignName := "campaign1"
+	campaignversionName := "campaignversion1"
 	succeededCount := 0
 	sigs := make(chan bool)
 	vendor.Context.Subscribe("activation", v1alpha2.EventHandler{
@@ -90,7 +90,7 @@ func TestActivationsOnActivations(t *testing.T) {
 			jData, _ := json.Marshal(event.Body)
 			err := json.Unmarshal(jData, &activation)
 			assert.Nil(t, err)
-			assert.Equal(t, campaignName, activation.Campaign)
+			assert.Equal(t, campaignversionName, activation.CampaignVersion)
 			assert.Equal(t, activationName, activation.Activation)
 			succeededCount += 1
 			sigs <- true
@@ -107,7 +107,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	assert.Equal(t, v1alpha2.NotFound, resp.State)
 	activationState := model.ActivationState{
 		Spec: &model.ActivationSpec{
-			Campaign: campaignName,
+			CampaignVersion: campaignversionName,
 		},
 		ObjectMeta: model.ObjectMeta{
 			Name: activationName,
@@ -138,7 +138,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	err := json.Unmarshal(resp.Body, &activation)
 	assert.Nil(t, err)
 	assert.Equal(t, activationName, activation.ObjectMeta.Name)
-	assert.Equal(t, campaignName, activation.Spec.Campaign)
+	assert.Equal(t, campaignversionName, activation.Spec.CampaignVersion)
 
 	resp = vendor.onActivations(v1alpha2.COARequest{
 		Method:  fasthttp.MethodGet,
@@ -149,7 +149,7 @@ func TestActivationsOnActivations(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(activations))
 	assert.Equal(t, activationName, activations[0].ObjectMeta.Name)
-	assert.Equal(t, campaignName, activations[0].Spec.Campaign)
+	assert.Equal(t, campaignversionName, activations[0].Spec.CampaignVersion)
 
 	status := model.ActivationStatus{
 		Status:        v1alpha2.Done,

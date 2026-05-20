@@ -42,9 +42,9 @@ var (
 		"./manifest/target-catalogversion.yaml",
 	}
 
-	testCampaign = []string{
-		"./manifest/campaign-container.yaml",
+	testCampaignVersion = []string{
 		"./manifest/campaign.yaml",
+		"./manifest/campaignversion.yaml",
 	}
 
 	testActivations = []string{
@@ -86,15 +86,15 @@ func DeployManifests(t *testing.T, namespace string) error {
 		}
 	}
 
-	for _, campaign := range testCampaign {
-		absCampaign := filepath.Join(repoPath, campaign)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaign, namespace)).Run()
+	for _, campaignversion := range testCampaignVersion {
+		absCampaignVersion := filepath.Join(repoPath, campaignversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaignVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
 	}
 
-	CheckCampaign(t, namespace)
+	CheckCampaignVersion(t, namespace)
 
 	for _, activation := range testActivations {
 		absActivation := filepath.Join(repoPath, activation)
@@ -148,9 +148,9 @@ func CheckCatalogVersions(t *testing.T, namespace string) {
 	}
 }
 
-// Verify campaign created
-func CheckCampaign(t *testing.T, namespace string) {
-	fmt.Printf("Checking Campaign\n")
+// Verify campaignversion created
+func CheckCampaignVersion(t *testing.T, namespace string) {
+	fmt.Printf("Checking CampaignVersion\n")
 	if namespace == "" {
 		namespace = "default"
 	}
@@ -158,7 +158,7 @@ func CheckCampaign(t *testing.T, namespace string) {
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "workflow.symphony",
 		Version: "v1",
-		Kind:    "Campaign",
+		Kind:    "CampaignVersion",
 	})
 
 	cfg, err := testhelpers.RestConfig()
@@ -171,7 +171,7 @@ func CheckCampaign(t *testing.T, namespace string) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "workflow.symphony",
 			Version:  "v1",
-			Resource: "campaigns",
+			Resource: "campaignversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 

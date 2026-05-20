@@ -14,7 +14,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
   * Instances manager
   * SolutionVersions manager
   * Targets manager
-  * Campaigns manager
+  * CampaignVersions manager
   * Activations manager
   * CatalogVersions manager
 
@@ -54,7 +54,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
   | manager | state provider |
   |---|---|
   | jobs manager | persistent, volatile |
-  | object manager <br> ( instances manager, solutionversions manager, <br> targets manager, device manager, <br> campaigns manager, activations manager, <br> catalogversions manager)  | persistent |
+  | object manager <br> ( instances manager, solutionversions manager, <br> targets manager, device manager, <br> campaignversions manager, activations manager, <br> catalogversions manager)  | persistent |
   | solutionversion manager | persistent |
   | reference manager | volatile |
   | stage manager | volatile |

@@ -460,7 +460,7 @@ func (s StageSpec) MarshalJSON() ([]byte, error) {
 
 // +kubebuilder:object:generate=true
 type ActivationSpec struct {
-	Campaign string `json:"campaign,omitempty"`
+	CampaignVersion string `json:"campaignversion,omitempty"`
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
@@ -497,7 +497,7 @@ func (a ActivationSpec) MarshalJSON() ([]byte, error) {
 }
 
 // +kubebuilder:object:generate=true
-type CampaignSpec struct {
+type CampaignVersionSpec struct {
 	Name         string               `json:"name,omitempty"`
 	FirstStage   string               `json:"firstStage,omitempty"`
 	Stages       map[string]StageSpec `json:"stages,omitempty"`
@@ -507,7 +507,7 @@ type CampaignSpec struct {
 }
 
 // +kubebuilder:object:generate=true
-type CampaignContainerSpec struct {
+type CampaignSpec struct {
 }
 
 // +kubebuilder:object:generate=true

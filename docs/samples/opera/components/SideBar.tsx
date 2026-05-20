@@ -62,8 +62,8 @@ function SideBar() {
             icon: HiOutlineCamera,
         },
         {
-            name: "Campaigns",
-            href: "/campaigns",
+            name: "CampaignVersions",
+            href: "/campaignversions",
             icon: GoWorkflow,
         },
         {

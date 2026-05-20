@@ -1344,10 +1344,10 @@
 			]
 		},
 		{
-			"name": "Campaigns",
+			"name": "CampaignVersions",
 			"item": [
 				{
-					"name": "Create Campaign",
+					"name": "Create CampaignVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1371,13 +1371,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							]
 						}
@@ -1385,7 +1385,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Campaign",
+					"name": "Get CampaignVersion",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1412,13 +1412,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							]
 						}
@@ -1426,7 +1426,7 @@
 					"response": []
 				},
 				{
-					"name": "List Campaigns",
+					"name": "List CampaignVersions",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1453,20 +1453,20 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns"
+								"campaignversions"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Campaign",
+					"name": "Delete CampaignVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1490,13 +1490,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							]
 						}
@@ -1504,7 +1504,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Campaign spec YAML",
+					"name": "Get CampaignVersion spec YAML",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1531,13 +1531,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}?doc-type=yaml&path=$.spec",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}?doc-type=yaml&path=$.spec",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							],
 							"query": [
@@ -1576,7 +1576,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"spec\": {\r\n        \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n        \"name\": \"{{ACTIVATION_NAME}}\",\r\n        \"stage\": \"\",\r\n        \"inputs\": {\r\n            \"foo\": 0\r\n        }    \r\n    }\r\n}",
+							"raw": "{\r\n    \"spec\": {\r\n        \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n        \"name\": \"{{ACTIVATION_NAME}}\",\r\n        \"stage\": \"\",\r\n        \"inputs\": {\r\n            \"foo\": 0\r\n        }    \r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1618,7 +1618,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1660,7 +1660,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1698,7 +1698,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaign\": \"test-campaign\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
+							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaignversion\": \"test-campaignversion\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2654,7 +2654,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\"\r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2842,7 +2842,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3440,7 +3440,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3867,7 +3867,7 @@
 		},
 		{
 			"key": "CAMPAIGN_NAME",
-			"value": "test-campaign",
+			"value": "test-campaignversion",
 			"type": "string"
 		},
 		{

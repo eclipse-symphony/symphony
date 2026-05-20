@@ -49,9 +49,9 @@ var (
 		"test/integration/scenarios/04.workflow/manifest/target-catalogversion.yaml",
 	}
 
-	testCampaign = []string{
-		"test/integration/scenarios/04.workflow/manifest/campaign-container.yaml",
+	testCampaignVersion = []string{
 		"test/integration/scenarios/04.workflow/manifest/campaign.yaml",
+		"test/integration/scenarios/04.workflow/manifest/campaignversion.yaml",
 	}
 
 	testActivations = []string{
@@ -132,15 +132,15 @@ func DeployManifests(namespace string) error {
 		os.Remove("./test.yaml")
 	}
 
-	for _, campaign := range testCampaign {
-		absCampaign := filepath.Join(repoPath, campaign)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaign, namespace)).Run()
+	for _, campaignversion := range testCampaignVersion {
+		absCampaignVersion := filepath.Join(repoPath, campaignversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaignVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
 	}
 
-	// wait for 5 seconds to make sure campaign is created
+	// wait for 5 seconds to make sure campaignversion is created
 	time.Sleep(time.Second * 5)
 	for _, activation := range testActivations {
 		absActivation := filepath.Join(repoPath, activation)

@@ -31,8 +31,8 @@ var (
 	catalog = "test/integration/scenarios/12.naming/manifest/catalogversion-container.yaml"
 	catalogversion          = "test/integration/scenarios/12.naming/manifest/catalogversion.yaml"
 
-	campaign          = "test/integration/scenarios/12.naming/manifest/campaign.yaml"
-	campaigncontainer = "test/integration/scenarios/12.naming/manifest/campaign-container.yaml"
+	campaignversion          = "test/integration/scenarios/12.naming/manifest/campaignversion.yaml"
+	campaign = "test/integration/scenarios/12.naming/manifest/campaign.yaml"
 	activation        = "test/integration/scenarios/12.naming/manifest/activation.yaml"
 
 	diagnostic = "test/integration/scenarios/12.naming/manifest/diagnostic.yaml"
@@ -130,7 +130,7 @@ func createRootLinkedResource(file string, nameLength int, special bool, rootRes
 	return resourceName, output, err
 }
 
-func createActivationResource(file string, nameLength int, special bool, campaignResource string) (string, []byte, error) {
+func createActivationResource(file string, nameLength int, special bool, campaignversionResource string) (string, []byte, error) {
 	// read the manifest
 	manifest, err := os.ReadFile(path.Join(getRepoPath(), file))
 	if err != nil {
@@ -139,7 +139,7 @@ func createActivationResource(file string, nameLength int, special bool, campaig
 	// randomly generate a name with length as a param and replace ${PLACEHOLDER_NAME} with the actual name
 	resourceName := generateRandomName(nameLength, special) // Generate a random name with length characters
 	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_NAME}", resourceName))
-	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_CAMPAIGN_NAME}", campaignResource))
+	manifest = []byte(strings.ReplaceAll(string(manifest), "${PLACEHOLDER_CAMPAIGN_NAME}", campaignversionResource))
 
 	output, err := applyManifest(manifest)
 	return resourceName, output, err
@@ -191,7 +191,7 @@ func TestLongResourceName(t *testing.T) {
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	if testhelpers.IsTestInAzure() {
-		// skip the campaign and catalogversion tests in azure
+		// skip the campaignversion and catalogversion tests in azure
 		return
 	}
 	// do the same for the catalogversion container manifest
@@ -205,19 +205,19 @@ func TestLongResourceName(t *testing.T) {
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
-	// do the same for the campaign container manifest
-	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, longLength, false)
+	// do the same for the campaignversion container manifest
+	campaignversionContainerName, output, err := createNonLinkedResource(campaign, longLength, false)
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
 	outputString = strings.ToLower(string(output))
 	assert.True(t, strings.Contains(outputString, "name length"))
 
-	// do the same for the campaign manifest
-	campaignName, output, err := createRootLinkedResource(campaign, longLength, false, campaignContainerName)
+	// do the same for the campaignversion manifest
+	campaignversionName, output, err := createRootLinkedResource(campaignversion, longLength, false, campaignversionContainerName)
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 
 	// do the same for the activation manifest
-	_, output, err = createActivationResource(activation, longLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	_, output, err = createActivationResource(activation, longLength, false, fmt.Sprintf("%s:%s", campaignversionContainerName, campaignversionName))
 	assert.NotNil(t, err, fmt.Sprintf("Error exepected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "Name length"))
 }
@@ -265,7 +265,7 @@ func TestLabelLengthResourceName(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	if testhelpers.IsTestInAzure() {
-		// skip the campaign and catalogversion tests in azure
+		// skip the campaignversion and catalogversion tests in azure
 		return
 	}
 	// do the same for the catalogversion container manifest
@@ -274,14 +274,14 @@ func TestLabelLengthResourceName(t *testing.T) {
 	// do the same for the catalogversion manifest
 	_, output, err = createRootLinkedResource(catalogversion, labelLength, false, catalogName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
-	// do the same for the campaign container manifest
-	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, labelLength, false)
+	// do the same for the campaignversion container manifest
+	campaignversionContainerName, output, err := createNonLinkedResource(campaign, labelLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
-	// do the same for the campaign manifest
-	campaignName, output, err := createRootLinkedResource(campaign, labelLength, false, campaignContainerName)
+	// do the same for the campaignversion manifest
+	campaignversionName, output, err := createRootLinkedResource(campaignversion, labelLength, false, campaignversionContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the activation manifest
-	_, output, err = createActivationResource(activation, labelLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	_, output, err = createActivationResource(activation, labelLength, false, fmt.Sprintf("%s:%s", campaignversionContainerName, campaignversionName))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 }
 
@@ -324,7 +324,7 @@ func TestForShortResourceName(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("No error exepected, got %s", string(output)))
 
 	if testhelpers.IsTestInAzure() {
-		// skip the campaign and catalogversion tests in azure
+		// skip the campaignversion and catalogversion tests in azure
 		return
 	}
 	// do the same for the catalogversion container manifest
@@ -333,14 +333,14 @@ func TestForShortResourceName(t *testing.T) {
 	// do the same for the catalogversion manifest
 	_, output, err = createRootLinkedResource(catalogversion, shortLength, false, catalogName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
-	// do the same for the campaign container manifest
-	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, shortLength, false)
+	// do the same for the campaignversion container manifest
+	campaignversionContainerName, output, err := createNonLinkedResource(campaign, shortLength, false)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
-	// do the same for the campaign manifest
-	campaignName, output, err := createRootLinkedResource(campaign, shortLength, false, campaignContainerName)
+	// do the same for the campaignversion manifest
+	campaignversionName, output, err := createRootLinkedResource(campaignversion, shortLength, false, campaignversionContainerName)
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	// do the same for the activation manifest
-	_, output, err = createActivationResource(activation, shortLength, false, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	_, output, err = createActivationResource(activation, shortLength, false, fmt.Sprintf("%s:%s", campaignversionContainerName, campaignversionName))
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 }
 
@@ -391,7 +391,7 @@ func TestForSpecialResourceName(t *testing.T) {
 	assert.True(t, strings.Contains(string(output), "invalid"))
 
 	if testhelpers.IsTestInAzure() {
-		// skip the campaign and catalogversion tests in azure
+		// skip the campaignversion and catalogversion tests in azure
 		return
 	}
 	// do the same for the catalogversion container manifest
@@ -403,16 +403,16 @@ func TestForSpecialResourceName(t *testing.T) {
 	_, output, err = createRootLinkedResource(catalogversion, specialLength, true, catalogName)
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
-	// do the same for the campaign container manifest
-	campaignContainerName, output, err := createNonLinkedResource(campaigncontainer, specialLength, true)
+	// do the same for the campaignversion container manifest
+	campaignversionContainerName, output, err := createNonLinkedResource(campaign, specialLength, true)
 	assert.NotNil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
-	// do the same for the campaign manifest
-	campaignName, output, err := createRootLinkedResource(campaign, specialLength, true, campaignContainerName)
+	// do the same for the campaignversion manifest
+	campaignversionName, output, err := createRootLinkedResource(campaignversion, specialLength, true, campaignversionContainerName)
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 	// do the same for the activation manifest
-	_, output, err = createActivationResource(activation, specialLength, true, fmt.Sprintf("%s:%s", campaignContainerName, campaignName))
+	_, output, err = createActivationResource(activation, specialLength, true, fmt.Sprintf("%s:%s", campaignversionContainerName, campaignversionName))
 	assert.NotNil(t, err, fmt.Sprintf("Error expected, got %s", string(output)))
 	assert.True(t, strings.Contains(string(output), "invalid"))
 }

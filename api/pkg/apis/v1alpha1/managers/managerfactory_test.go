@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaignversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
@@ -53,7 +53,7 @@ func TestCreateManager(t *testing.T) {
 	testCreateManager[*instances.InstancesManager](t, getInstancesManagerConfig())
 	testCreateManager[*users.UsersManager](t, getUsersManagerConfig())
 	testCreateManager[*jobs.JobsManager](t, getJobsManagerConfig())
-	testCreateManager[*campaigns.CampaignsManager](t, getCampaignsManagerConfig())
+	testCreateManager[*campaignversions.CampaignVersionsManager](t, getCampaignVersionsManagerConfig())
 	testCreateManager[*catalogversions.CatalogVersionsManager](t, getCatalogVersionsManagerConfig())
 	testCreateManager[*activations.ActivationsManager](t, getActivationsManagerConfig())
 	testCreateManager[*activations.ActivationsCleanupManager](t, getActivationsCleanupManagerConfig())
@@ -254,10 +254,10 @@ func getJobsManagerConfig() cm.ManagerConfig {
 	}
 }
 
-func getCampaignsManagerConfig() cm.ManagerConfig {
+func getCampaignVersionsManagerConfig() cm.ManagerConfig {
 	// symphony-api-no-k8s.json
 	return cm.ManagerConfig{
-		Type: "managers.symphony.campaigns",
+		Type: "managers.symphony.campaignversions",
 		Properties: map[string]string{
 			"providers.persistentstate": "mem-state",
 			"singleton":                 "true",

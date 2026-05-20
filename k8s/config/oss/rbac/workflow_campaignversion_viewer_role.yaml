@@ -4,23 +4,23 @@
 ## SPDX-License-Identifier: MIT
 ##
 
-# permissions for end users to view campaigncontainers.
+# permissions for end users to view campaignversions.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: campaigncontainer-viewer-role
+    app.kubernetes.io/instance: campaignversion-viewer-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: symphony-k8s
     app.kubernetes.io/part-of: symphony-k8s
     app.kubernetes.io/managed-by: kustomize
-  name: campaigncontainer-viewer-role
+  name: campaignversion-viewer-role
 rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers
+  - campaignversions
   verbs:
   - get
   - list
@@ -28,6 +28,20 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers/status
+  - campaignversions/status
+  verbs:
+  - get
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations/status
   verbs:
   - get

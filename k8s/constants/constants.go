@@ -34,8 +34,8 @@ const (
 	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
 	CatalogVersionOperationNamePrefix           = "catalogversions.federation." + FullGroupName
 	CatalogVersionEvalOperationNamePrefix       = "catalogversionevalexpression.federation." + FullGroupName
-	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
-	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
+	CampaignVersionOperationNamePrefix          = "campaignversions.workflow." + FullGroupName
+	CampaignOperationNamePrefix = "campaigns.workflow." + FullGroupName
 	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
 )
 

@@ -101,7 +101,7 @@ func TestJobsonHello(t *testing.T) {
 			err := json.Unmarshal(jData, &activation)
 			assert.Nil(t, err)
 			assert.Equal(t, "activation1", activation.Activation)
-			assert.Equal(t, "campaign1", activation.Campaign)
+			assert.Equal(t, "campaignversion1", activation.CampaignVersion)
 			succeededCount += 1
 			sig <- true
 			return nil
@@ -109,7 +109,7 @@ func TestJobsonHello(t *testing.T) {
 	})
 	activation := v1alpha2.ActivationData{
 		Activation: "activation1",
-		Campaign:   "campaign1",
+		CampaignVersion:   "campaignversion1",
 	}
 	data, _ := json.Marshal(activation)
 	resp := vendor.onHello(v1alpha2.COARequest{

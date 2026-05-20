@@ -322,7 +322,7 @@ func TestPreserveSystemMetadata_AllSystemReservedLabels(t *testing.T) {
 	source := ObjectMeta{
 		Name: "source-object",
 		Labels: map[string]string{
-			constants.Campaign:       "test-campaign",
+			constants.CampaignVersion:       "test-campaignversion",
 			constants.DisplayName:    "Test Display",
 			constants.ProviderName:   "test-provider",
 			constants.ManagerMetaKey: "test-manager",
@@ -338,7 +338,7 @@ func TestPreserveSystemMetadata_AllSystemReservedLabels(t *testing.T) {
 	current.PreserveSystemMetadata(source)
 
 	// Verify all system reserved labels were preserved
-	assert.Equal(t, "test-campaign", current.Labels[constants.Campaign])
+	assert.Equal(t, "test-campaignversion", current.Labels[constants.CampaignVersion])
 	assert.Equal(t, "Test Display", current.Labels[constants.DisplayName])
 	assert.Equal(t, "test-provider", current.Labels[constants.ProviderName])
 	assert.Equal(t, "test-manager", current.Labels[constants.ManagerMetaKey])

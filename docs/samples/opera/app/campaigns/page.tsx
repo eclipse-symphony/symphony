@@ -3,18 +3,18 @@ import { getServerSession } from 'next-auth';
 import { options } from '../api/auth/[...nextauth]/options';
 import { User } from '../types';
 
-const getCampaigns = async () => {
+const getCampaignVersions = async () => {
     const session = await getServerSession(options);  
     const userObj: User | undefined = session?.user?? undefined;
     const symphonyApi = process.env.SYMPHONY_API;
-    const res = await fetch( `${symphonyApi}campaigns`, {
+    const res = await fetch( `${symphonyApi}campaignversions`, {
         method: 'GET',
         headers: {
         'Authorization': `Bearer ${userObj?.accessToken}`,
         }
     });    
-    const campaigns = await res.json();
-    return campaigns;
+    const campaignversions = await res.json();
+    return campaignversions;
 }
 const getActivations = async () => {
     const session = await getServerSession(options);  
@@ -29,18 +29,18 @@ const getActivations = async () => {
     const activations = await res.json();
     return activations;
 }
-async function CampaignsPage() {
-    const [campaigns, activations] = await Promise.all([getCampaigns(), getActivations()]);  
+async function CampaignVersionsPage() {
+    const [campaignversions, activations] = await Promise.all([getCampaignVersions(), getActivations()]);  
     const params = {
-        type: 'campaigns',
+        type: 'campaignversions',
         menuItems: [
             {
-                name: 'Add Campaign',
-                href: '/campaigns/add',                
+                name: 'Add CampaignVersion',
+                href: '/campaignversions/add',                
             }
         ],
         views: ['cards', 'table'],
-        items: campaigns,
+        items: campaignversions,
         refItems: activations,
         columns: []
     }
@@ -51,4 +51,4 @@ async function CampaignsPage() {
     );
 }
 
-export default CampaignsPage;
+export default CampaignVersionsPage;

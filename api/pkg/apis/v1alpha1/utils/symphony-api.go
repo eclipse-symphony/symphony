@@ -264,15 +264,15 @@ func GetCatalogVersion(context context.Context, baseUrl string, catalogversion s
 	}
 	return ret, nil
 }
-func GetCampaign(context context.Context, baseUrl string, campaign string, user string, password string, namespace string) (model.CampaignState, error) {
-	ret := model.CampaignState{}
+func GetCampaignVersion(context context.Context, baseUrl string, campaignversion string, user string, password string, namespace string) (model.CampaignVersionState, error) {
+	ret := model.CampaignVersionState{}
 	token, err := auth(context, baseUrl, user, password)
 
 	if err != nil {
 		return ret, err
 	}
 
-	path := "campaigns/" + url.QueryEscape(campaign)
+	path := "campaignversions/" + url.QueryEscape(campaignversion)
 	if namespace != "" {
 		path = path + "?namespace=" + url.QueryEscape(namespace)
 

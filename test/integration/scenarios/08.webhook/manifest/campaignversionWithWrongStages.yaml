@@ -1,5 +1,5 @@
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignVersion
 metadata:
   name: 04campaign-v-version2
 spec:  

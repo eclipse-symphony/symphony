@@ -129,6 +129,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-workflow-symphony-v1-campaignversion
+  failurePolicy: Fail
+  name: mcampaignversion.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaignversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-workflow-symphony-v1-campaign
   failurePolicy: Fail
   name: mcampaign.kb.io
@@ -142,26 +162,6 @@ webhooks:
     - UPDATE
     resources:
     - campaigns
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-workflow-symphony-v1-campaigncontainer
-  failurePolicy: Fail
-  name: mcampaigncontainer.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - campaigncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -382,6 +382,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-workflow-symphony-v1-campaignversion
+  failurePolicy: Fail
+  name: vcampaignversion.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaignversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-workflow-symphony-v1-campaign
   failurePolicy: Fail
   name: vcampaign.kb.io
@@ -396,27 +417,6 @@ webhooks:
     - DELETE
     resources:
     - campaigns
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-workflow-symphony-v1-campaigncontainer
-  failurePolicy: Fail
-  name: vcampaigncontainer.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - campaigncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1

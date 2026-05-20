@@ -1,6 +1,6 @@
 # Activations
 
-An activation is a workflow trigger for a campaign. An activation can trigger a campaign from a middle stage by defining its initial stage in the spec and also with customized input values.
+An activation is a workflow trigger for a campaignversion. An activation can trigger a campaignversion from a middle stage by defining its initial stage in the spec and also with customized input values.
 
 For more information about how Symphony approaches workflows, see [Workflows](../workflows.md).
 

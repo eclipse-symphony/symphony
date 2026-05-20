@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	CampaignNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignnotexist.yaml"
+	CampaignVersionNotExistActivation = "test/integration/scenarios/04.workflow/manifest/activation-campaignversionnotexist.yaml"
 
 	WithStageActivation = "test/integration/scenarios/04.workflow/manifest/activation-stage.yaml"
 
@@ -79,8 +79,8 @@ func TestBasic_CatalogVersions(t *testing.T) {
 }
 
 // Verify catalogversion created
-func TestBasic_Campaign(t *testing.T) {
-	fmt.Printf("Checking Campaign\n")
+func TestBasic_CampaignVersion(t *testing.T) {
+	fmt.Printf("Checking CampaignVersion\n")
 	namespace := os.Getenv("NAMESPACE")
 	if namespace == "" {
 		namespace = "default"
@@ -89,7 +89,7 @@ func TestBasic_Campaign(t *testing.T) {
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "workflow.symphony",
 		Version: "v1",
-		Kind:    "Campaign",
+		Kind:    "CampaignVersion",
 	})
 
 	cfg, err := testhelpers.RestConfig()
@@ -102,7 +102,7 @@ func TestBasic_Campaign(t *testing.T) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "workflow.symphony",
 			Version:  "v1",
-			Resource: "campaigns",
+			Resource: "campaignversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
@@ -526,12 +526,12 @@ func TestFaultScenario(t *testing.T) {
 	if namespace == "" {
 		namespace = "default"
 	}
-	CampaignNotExistActivationAbs := filepath.Join(repoPath, CampaignNotExistActivation)
-	output, err := exec.Command("kubectl", "apply", "-f", CampaignNotExistActivationAbs, "-n", namespace).CombinedOutput()
-	assert.Contains(t, string(output), "campaign reference must be a valid Campaign object in the same namespace")
-	assert.NotNil(t, err, "fault test failed for non-existing campaign")
+	CampaignVersionNotExistActivationAbs := filepath.Join(repoPath, CampaignVersionNotExistActivation)
+	output, err := exec.Command("kubectl", "apply", "-f", CampaignVersionNotExistActivationAbs, "-n", namespace).CombinedOutput()
+	assert.Contains(t, string(output), "campaignversion reference must be a valid CampaignVersion object in the same namespace")
+	assert.NotNil(t, err, "fault test failed for non-existing campaignversion")
 	WithStageActivationAbs := filepath.Join(repoPath, WithStageActivation)
 	output, err = exec.Command("kubectl", "apply", "-f", WithStageActivationAbs, "-n", namespace).CombinedOutput()
 	assert.Contains(t, string(output), "spec is immutable: stage doesn't match")
-	assert.NotNil(t, err, "fault test failed for non-existing campaign")
+	assert.NotNil(t, err, "fault test failed for non-existing campaignversion")
 }

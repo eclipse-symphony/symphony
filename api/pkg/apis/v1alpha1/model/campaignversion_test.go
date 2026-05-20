@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCampaignMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
+func TestCampaignVersionMatch(t *testing.T) {
+	campaignversion1 := CampaignVersionSpec{
 		FirstStage:  "list",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -33,7 +33,7 @@ func TestCampaignMatch(t *testing.T) {
 			},
 		},
 	}
-	campaign2 := CampaignSpec{
+	campaignversion2 := CampaignVersionSpec{
 		FirstStage:  "list",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -53,46 +53,46 @@ func TestCampaignMatch(t *testing.T) {
 			},
 		},
 	}
-	equal, err := campaign1.DeepEquals(campaign2)
+	equal, err := campaignversion1.DeepEquals(campaignversion2)
 	assert.Nil(t, err)
 	assert.True(t, equal)
 }
 
-func TestCampaignMatchOneEmpty(t *testing.T) {
-	campaign1 := CampaignSpec{}
-	res, err := campaign1.DeepEquals(nil)
-	assert.EqualError(t, err, "parameter is not a CampaignSpec type")
+func TestCampaignVersionMatchOneEmpty(t *testing.T) {
+	campaignversion1 := CampaignVersionSpec{}
+	res, err := campaignversion1.DeepEquals(nil)
+	assert.EqualError(t, err, "parameter is not a CampaignVersionSpec type")
 	assert.False(t, res)
 }
 
-func TestCampaignFirstStageNotMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
+func TestCampaignVersionFirstStageNotMatch(t *testing.T) {
+	campaignversion1 := CampaignVersionSpec{
 		FirstStage: "list",
 	}
-	campaign2 := CampaignSpec{
+	campaignversion2 := CampaignVersionSpec{
 		FirstStage: "list1",
 	}
-	equal, err := campaign1.DeepEquals(campaign2)
+	equal, err := campaignversion1.DeepEquals(campaignversion2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
 
-func TestCampaignSelfDrivingNotMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
+func TestCampaignVersionSelfDrivingNotMatch(t *testing.T) {
+	campaignversion1 := CampaignVersionSpec{
 		FirstStage:  "list",
 		SelfDriving: true,
 	}
-	campaign2 := CampaignSpec{
+	campaignversion2 := CampaignVersionSpec{
 		FirstStage:  "list",
 		SelfDriving: false,
 	}
-	equal, err := campaign1.DeepEquals(campaign2)
+	equal, err := campaignversion1.DeepEquals(campaignversion2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
 
-func TestCampaignStagesLengthNotMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
+func TestCampaignVersionStagesLengthNotMatch(t *testing.T) {
+	campaignversion1 := CampaignVersionSpec{
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -102,7 +102,7 @@ func TestCampaignStagesLengthNotMatch(t *testing.T) {
 			},
 		},
 	}
-	campaign2 := CampaignSpec{
+	campaignversion2 := CampaignVersionSpec{
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -116,13 +116,13 @@ func TestCampaignStagesLengthNotMatch(t *testing.T) {
 			},
 		},
 	}
-	equal, err := campaign1.DeepEquals(campaign2)
+	equal, err := campaignversion1.DeepEquals(campaignversion2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
 
-func TestCampaignStagesNotMatch(t *testing.T) {
-	campaign1 := CampaignSpec{
+func TestCampaignVersionStagesNotMatch(t *testing.T) {
+	campaignversion1 := CampaignVersionSpec{
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -132,7 +132,7 @@ func TestCampaignStagesNotMatch(t *testing.T) {
 			},
 		},
 	}
-	campaign2 := CampaignSpec{
+	campaignversion2 := CampaignVersionSpec{
 		FirstStage:  "mock1",
 		SelfDriving: true,
 		Stages: map[string]StageSpec{
@@ -142,7 +142,7 @@ func TestCampaignStagesNotMatch(t *testing.T) {
 			},
 		},
 	}
-	equal, err := campaign1.DeepEquals(campaign2)
+	equal, err := campaignversion1.DeepEquals(campaignversion2)
 	assert.Nil(t, err)
 	assert.False(t, equal)
 }
@@ -241,14 +241,14 @@ func TestActivationMatchOneEmpty(t *testing.T) {
 
 func TestActivationMatch(t *testing.T) {
 	activation1 := ActivationSpec{
-		Campaign: "site-apps",
+		CampaignVersion: "site-apps",
 		Stage:    "deploy",
 		Inputs: map[string]interface{}{
 			"site": "site1",
 		},
 	}
 	activation2 := ActivationSpec{
-		Campaign: "site-apps",
+		CampaignVersion: "site-apps",
 		Stage:    "deploy",
 		Inputs: map[string]interface{}{
 			"site": "site1",
@@ -261,19 +261,19 @@ func TestActivationMatch(t *testing.T) {
 
 func TestActivationNotMatch(t *testing.T) {
 	activation1 := ActivationSpec{
-		Campaign: "site-apps",
+		CampaignVersion: "site-apps",
 	}
 	activation2 := ActivationSpec{
-		Campaign: "site-apps2",
+		CampaignVersion: "site-apps2",
 	}
 
 	// compaign not match
 	equal, err := activation1.DeepEquals(activation2)
-	assert.Equal(t, err.Error(), "campaign doesn't match")
+	assert.Equal(t, err.Error(), "campaignversion doesn't match")
 	assert.False(t, equal)
 
 	// stage not match
-	activation2.Campaign = "site-apps"
+	activation2.CampaignVersion = "site-apps"
 	activation1.Stage = "deploy"
 	activation2.Stage = "deploy2"
 	equal, err = activation1.DeepEquals(activation2)

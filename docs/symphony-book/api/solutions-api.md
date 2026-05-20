@@ -8,7 +8,7 @@
 
 >**NOTE**: 
 - `{}` indicates a path parameter; `<>` indicates a query parameter; `[]` indicates a optional parameter
-- Other container objects `catalogversion container`, `campaign container` support the same REST APIs.
+- Other container objects `catalogversion container`, `campaignversion container` support the same REST APIs.
 
 ## Query solutionversion containers
 

@@ -89,11 +89,11 @@ This scenario demonstrates Piccolo's capabilities. You will deploy a WebAssembly
    clang -target bpf -I/usr/include -I/usr/include/x86_64-linux-gnu -g -O2 -o hello.bpf.o -c hello.bpf.c
    ```
 
-9. Update `solutionversion.yaml`, `solutionversion-patch.yaml`, `campaign.yaml` and `campaign-schedule.yaml` to use correct addresses of `http-wasm.wasm` and `hello.bpf.o`.
+9. Update `solutionversion.yaml`, `solutionversion-patch.yaml`, `campaignversion.yaml` and `campaignversion-schedule.yaml` to use correct addresses of `http-wasm.wasm` and `hello.bpf.o`.
 
 10. Create a Logic Apps workflow that sends an email for a designated approver for approval. You can use `approval-logic-apps.json` as a reference.
 
-11. Update `campaign.yaml` and `campaign-schedule.yaml` to use the correct URL of Logic Apps.
+11. Update `campaignversion.yaml` and `campaignversion-schedule.yaml` to use the correct URL of Logic Apps.
 
 ## Demo setup
 
@@ -150,12 +150,12 @@ This scenario demonstrates Piccolo's capabilities. You will deploy a WebAssembly
 
 ### IV. Deploy eBFP module
 
-1. Open `campaign.yaml`. Point out that since deploying a Linux Kernel moudle may have high impact, this workflow requires the deployment to be approved through email first. Then, the solutionversion object is patched to include the eBPF module, which is a simple eBPF module that outputs a "Hello, World!" string upon events.
+1. Open `campaignversion.yaml`. Point out that since deploying a Linux Kernel moudle may have high impact, this workflow requires the deployment to be approved through email first. Then, the solutionversion object is patched to include the eBPF module, which is a simple eBPF module that outputs a "Hello, World!" string upon events.
 
-2. Deploy the campaign and then activate it:
+2. Deploy the campaignversion and then activate it:
 
    ```bash
-   kubectl apply -f campaign.yaml
+   kubectl apply -f campaignversion.yaml
    kubectl apply -f activation.yaml
    ```
 3. An email should be sent to the designated email address in the Logic Apps flow. Click on the "Approval" button to continue.
@@ -164,7 +164,7 @@ This scenario demonstrates Piccolo's capabilities. You will deploy a WebAssembly
 
    ![web-wasm](../images/webserver-wasm.png)
 
-Optionally, point out that you can use the `campaign-schedule.yaml` campaign instead. This campaign creates a two-hour window after approval for the eBPF module to run, and automatically removes the moudle when the window expires.
+Optionally, point out that you can use the `campaignversion-schedule.yaml` campaignversion instead. This campaignversion creates a two-hour window after approval for the eBPF module to run, and automatically removes the moudle when the window expires.
 
 ## Demo clean up
 
@@ -176,7 +176,7 @@ Optionally, point out that you can use the `campaign-schedule.yaml` campaign ins
    kubectl delete solutionversion tiny-app
    kubectl delete catalogversion tiny-app-tiny-edge
    kubectl delete activation ebpf-approval
-   kubectl delete campaign ebpf-approval
+   kubectl delete campaignversion ebpf-approval
    ```
 2. Shut down Flatcar VM.
 

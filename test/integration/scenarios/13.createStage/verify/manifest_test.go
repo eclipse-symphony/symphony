@@ -34,8 +34,8 @@ var (
 	dyn dynamic.Interface
 
 	// Sample workflow manifests to deploy
-	testCampaign           = "../manifest/campaign.yaml"
-	campaigncontainer      = "../manifest/campaign-container.yaml"
+	testCampaignVersion           = "../manifest/campaignversion.yaml"
+	campaign      = "../manifest/campaign.yaml"
 	testActivation         = "../manifest/activation.yaml"
 	helmTarget             = "../manifest/target.yaml"
 	solutionversionContainer      = "../manifest/solutionversion-container.yaml"
@@ -227,7 +227,7 @@ func readSolutionVersion(filePath string, name string, targetName string, contai
 	return string(modifiedDoc), nil
 }
 
-func readCampaignContainer(filePath string, name string) (string, error) {
+func readCampaign(filePath string, name string) (string, error) {
 	doc, err := readYamlFile(filePath)
 	if err != nil {
 		return "", err
@@ -255,14 +255,14 @@ func readCampaignContainer(filePath string, name string) (string, error) {
 	return string(modifiedDoc), nil
 }
 
-func readActivation(filePath, name, campaignContainerName, campaignName string) (string, error) {
+func readActivation(filePath, name, campaignversionContainerName, campaignversionName string) (string, error) {
 	doc, err := readYamlFile(filePath)
 	if err != nil {
 		return "", err
 	}
 
 	// Modify the fields with the new name
-	doc.Metadata.Name = fmt.Sprintf("context1-v-%s-v-%s-v-%s", campaignContainerName, campaignName, name)
+	doc.Metadata.Name = fmt.Sprintf("context1-v-%s-v-%s-v-%s", campaignversionContainerName, campaignversionName, name)
 
 	// Initialize annotations if nil
 	if doc.Metadata.Annotations == nil {
@@ -270,16 +270,16 @@ func readActivation(filePath, name, campaignContainerName, campaignName string) 
 	}
 
 	// Update the resource ID annotation
-	resourceId := fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/%s/versions/%s/executions/%s", campaignContainerName, campaignName, name)
+	resourceId := fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/%s/versions/%s/executions/%s", campaignversionContainerName, campaignversionName, name)
 	doc.Metadata.Annotations["management.azure.com/resourceId"] = resourceId
 
 	if doc.Spec == nil {
 		doc.Spec = make(map[string]interface{})
 	}
 	if testhelpers.IsTestInAzure() {
-		doc.Spec["campaign"] = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/%s/versions/%s", campaignContainerName, campaignName)
+		doc.Spec["campaignversion"] = fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/%s/versions/%s", campaignversionContainerName, campaignversionName)
 	} else {
-		doc.Spec["campaign"] = fmt.Sprintf("context1-v-%s:%s", campaignContainerName, campaignName)
+		doc.Spec["campaignversion"] = fmt.Sprintf("context1-v-%s:%s", campaignversionContainerName, campaignversionName)
 	}
 	// Marshal the modified document back to YAML
 	modifiedDoc, err := yaml.Marshal(doc)
@@ -291,14 +291,14 @@ func readActivation(filePath, name, campaignContainerName, campaignName string) 
 	return string(modifiedDoc), nil
 }
 
-func readCampaign(filePath, name, campaignContainerName string, spec map[string]interface{}) (string, error) {
+func readCampaignVersion(filePath, name, campaignversionContainerName string, spec map[string]interface{}) (string, error) {
 	doc, err := readYamlFile(filePath)
 	if err != nil {
 		return "", err
 	}
 
 	// Modify the fields with the new name
-	doc.Metadata.Name = fmt.Sprintf("context1-v-%s-v-%s", campaignContainerName, name)
+	doc.Metadata.Name = fmt.Sprintf("context1-v-%s-v-%s", campaignversionContainerName, name)
 
 	// Initialize annotations if nil
 	if doc.Metadata.Annotations == nil {
@@ -306,7 +306,7 @@ func readCampaign(filePath, name, campaignContainerName string, spec map[string]
 	}
 
 	// Update the resource ID annotation
-	resourceId := fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/%s/versions/%s", campaignContainerName, name)
+	resourceId := fmt.Sprintf("/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Edge/contexts/context1/workflows/%s/versions/%s", campaignversionContainerName, name)
 	doc.Metadata.Annotations["management.azure.com/resourceId"] = resourceId
 
 	doc.Spec = spec
@@ -408,17 +408,17 @@ func TestParallelErrorContinue(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -465,13 +465,13 @@ func TestParallelErrorContinue(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
 	os.Remove("./test.yaml")
 
 	// Create activation
@@ -592,17 +592,17 @@ func TestParallelErrorStop(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -649,13 +649,13 @@ func TestParallelErrorStop(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
 	os.Remove("./test.yaml")
 
 	// Create activation
@@ -776,17 +776,17 @@ func TestParallelReconcileContinue(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -830,14 +830,14 @@ func TestParallelReconcileContinue(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -961,16 +961,16 @@ func TestParallelReconcileStop(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -1014,14 +1014,14 @@ func TestParallelReconcileStop(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -1143,17 +1143,17 @@ func TestParallelStopN(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -1199,14 +1199,14 @@ func TestParallelStopN(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -1326,17 +1326,17 @@ func TestParallelStopN1(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -1382,14 +1382,14 @@ func TestParallelStopN1(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -1509,16 +1509,16 @@ func TestParallelSuccess(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -1561,14 +1561,14 @@ func TestParallelSuccess(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -1689,17 +1689,17 @@ func TestParallel2Success(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	task1 := generateTaskConfig()
 	task1.Name = "task1"
@@ -1742,14 +1742,14 @@ func TestParallel2Success(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -1870,17 +1870,17 @@ func TestStageReconcileTimeout(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	stage1 := generateStageConfig()
 	stage1.Name = "stage1"
@@ -1917,14 +1917,14 @@ func TestStageReconcileTimeout(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -2041,17 +2041,17 @@ func TestStageError(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	stage1 := generateStageConfig()
 	stage1.Name = "stage1"
@@ -2089,14 +2089,14 @@ func TestStageError(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)
@@ -2212,17 +2212,17 @@ func TestStageSuccess(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absSolutionVersion, output))
 	os.Remove("./test.yaml")
 
-	// create campaign container
-	absCampaignContainer := filepath.Join(repoPath, campaigncontainer)
-	output, err = readCampaignContainer(absCampaignContainer, ccName)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaignContainer, output))
+	// create campaignversion container
+	absCampaign := filepath.Join(repoPath, campaign)
+	output, err = readCampaign(absCampaign, ccName)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read cc manifest %s: %s", absCampaign, output))
 	err = testhelpers.WriteYamlStringsToFile(output, "./test.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to write target manifest %s: %s", absCampaign, output))
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./test.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaignContainer, output))
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy target manifest %s: %s", absCampaign, output))
 	os.Remove("./test.yaml")
 
-	absCampaign := filepath.Join(repoPath, testCampaign)
+	absCampaignVersion := filepath.Join(repoPath, testCampaignVersion)
 	// Create task configurations using structs
 	stage1 := generateStageConfig()
 	stage1.Name = "stage1"
@@ -2259,14 +2259,14 @@ func TestStageSuccess(t *testing.T) {
 		"stages":       stages,
 	}
 
-	// Create campaign
-	output, err = readCampaign(absCampaign, cName, ccName, spec)
-	assert.Nil(t, err, fmt.Sprintf("Failed to read campaign manifest %s: %s", absCampaign, output))
-	err = testhelpers.WriteYamlStringsToFile(output, "./campaigntest.yaml")
-	assert.Nil(t, err, fmt.Sprintf("Failed to write campaign manifest %s: %s", absCampaign, output))
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaigntest.yaml -n %s", namespace)).Run()
-	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaign manifest %s: %s", absCampaign, output))
-	os.Remove("./campaigntest.yaml")
+	// Create campaignversion
+	output, err = readCampaignVersion(absCampaignVersion, cName, ccName, spec)
+	assert.Nil(t, err, fmt.Sprintf("Failed to read campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = testhelpers.WriteYamlStringsToFile(output, "./campaignversiontest.yaml")
+	assert.Nil(t, err, fmt.Sprintf("Failed to write campaignversion manifest %s: %s", absCampaignVersion, output))
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f ./campaignversiontest.yaml -n %s", namespace)).Run()
+	assert.Nil(t, err, fmt.Sprintf("Failed to deploy campaignversion manifest %s: %s", absCampaignVersion, output))
+	os.Remove("./campaignversiontest.yaml")
 
 	// Create activation
 	absActivation := filepath.Join(repoPath, testActivation)

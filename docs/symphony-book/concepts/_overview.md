@@ -28,11 +28,11 @@ For more information, see:
 
 ### Federation objects
 
-Federation objects support your business processes as you define and roll out Symphony deployments. A `campaign` object is Symphony's representation of a deployment workflow. You can use campaigns to define multi-stage deployments. A `catalogversion` object is a generic graph data structure that you can use to create information models for your organization.
+Federation objects support your business processes as you define and roll out Symphony deployments. A `campaignversion` object is Symphony's representation of a deployment workflow. You can use campaignversions to define multi-stage deployments. A `catalogversion` object is a generic graph data structure that you can use to create information models for your organization.
 
 For more information, see:
 
-* [Campaign](./unified-object-model/campaign.md)
+* [CampaignVersion](./unified-object-model/campaignversion.md)
 * [CatalogVersion](./unified-object-model/catalogversion.md)
 
 ## AI objects

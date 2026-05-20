@@ -95,9 +95,9 @@ type (
 		CreateCatalog(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
 		DeleteCatalog(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
 		GetCatalog(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CatalogState, error)
-		CreateCampaignContainer(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
-		DeleteCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
-		GetCampaignContainer(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignContainerState, error)
+		CreateCampaign(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
+		DeleteCampaign(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
+		GetCampaign(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignState, error)
 		GetParsedCatalogVersionProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
 	}
 )
@@ -1053,13 +1053,13 @@ func (a *apiClient) GetCatalog(ctx context.Context, catalog string, namespace st
 	return ret, nil
 }
 
-func (a *apiClient) CreateCampaignContainer(ctx context.Context, campaignContainer string, payload []byte, namespace string, user string, password string) error {
+func (a *apiClient) CreateCampaign(ctx context.Context, campaignversionContainer string, payload []byte, namespace string, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "campaigncontainers/"+url.QueryEscape(campaignContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -1067,13 +1067,13 @@ func (a *apiClient) CreateCampaignContainer(ctx context.Context, campaignContain
 	return nil
 }
 
-func (a *apiClient) DeleteCampaignContainer(ctx context.Context, campaignContainer string, namespace string, user string, password string) error {
+func (a *apiClient) DeleteCampaign(ctx context.Context, campaignversionContainer string, namespace string, user string, password string) error {
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "campaigncontainers/"+url.QueryEscape(campaignContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -1081,15 +1081,15 @@ func (a *apiClient) DeleteCampaignContainer(ctx context.Context, campaignContain
 	return nil
 }
 
-func (a *apiClient) GetCampaignContainer(ctx context.Context, campaignContainer string, namespace string, user string, password string) (model.CampaignContainerState, error) {
-	ret := model.CampaignContainerState{}
+func (a *apiClient) GetCampaign(ctx context.Context, campaignversionContainer string, namespace string, user string, password string) (model.CampaignState, error) {
+	ret := model.CampaignState{}
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 
 	if err != nil {
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "campaigncontainers/"+url.QueryEscape(campaignContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}

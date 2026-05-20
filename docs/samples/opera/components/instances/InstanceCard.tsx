@@ -43,7 +43,7 @@ function InstanceCard(props: InstanceCardProps) {
     //   ];
     // const initialEdges = [{ id: 'e1-2', source: '1', target: '2' }];
     
-    // get json from campaign with new lines
+    // get json from campaignversion with new lines
     const json = JSON.stringify(instance, null, 2);    
 
     const updateActiveView = (key: any) => {

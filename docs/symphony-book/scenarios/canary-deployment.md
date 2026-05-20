@@ -27,14 +27,14 @@ You can find sample artifacts in this repository in the `docs/samples/canary` fo
 | Artifact | Purpose |
 |--------|--------|
 | [activation.yaml](../../samples/canary/activation.yaml) | Activate the canary workflow |
-| [campaign.yaml](../../samples/canary/campaign.yaml) | Canary workflow definition |
+| [campaignversion.yaml](../../samples/canary/campaignversion.yaml) | Canary workflow definition |
 | [instance.yaml](../../samples/canary/instance.yaml) | Initial application deployment (front-end + backend (v1)) |
 | [solutionversion.yaml](../../samples/canary/solutionversion.yaml) | Initial application definition (front-end + backend (v1)) |
 | [target.yaml](../../samples/canary/target.yaml) | Target definition (current K8s cluster) |
 
-The following diagram illustrates how the stages in the canary workflow are defined, with corresponding stage names in `campaign.yaml`.
+The following diagram illustrates how the stages in the canary workflow are defined, with corresponding stage names in `campaignversion.yaml`.
 
-![campaign](../images/canary-flow.png)
+![campaignversion](../images/canary-flow.png)
 
 ## Deployment steps
 
@@ -58,14 +58,14 @@ The following diagram illustrates how the stages in the canary workflow are defi
 
    Keep this terminal window open. You can observe how backend traffic is gradually shifted to v2 without interrupting the front-end.
 
-1. Define and activate the campaign
+1. Define and activate the campaignversion
 
    ```bash
-   kubectl apply -f campaign.yaml
+   kubectl apply -f campaignversion.yaml
    kubectl apply -f activation.yaml
    ```
 
-1. The campaign takes a few minutes to run. Eventually, you should see that all traffic is shifted to v2 in the above terminal window. Optionally, in a separate terminal window, you can examine various objects:
+1. The campaignversion takes a few minutes to run. Eventually, you should see that all traffic is shifted to v2 in the above terminal window. Optionally, in a separate terminal window, you can examine various objects:
 
    ```bash
    # check how the solutionversion is patched

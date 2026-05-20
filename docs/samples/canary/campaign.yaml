@@ -1,11 +1,11 @@
 apiVersion: workflow.symphony/v1
-kind: CampaignContainer
+kind: Campaign
 metadata:
   name: canary
 spec:  
 ---
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignVersion
 metadata:
   name: canary-v-version1
 spec:

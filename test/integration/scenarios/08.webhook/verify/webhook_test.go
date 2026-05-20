@@ -26,11 +26,11 @@ var (
 	testSolutionVersion          = "test/integration/scenarios/01.update/manifestTemplates/oss/solutionversion.yaml"
 	testTarget            = "test/integration/scenarios/01.update/manifestTemplates/oss/target.yaml"
 	testInstance          = "test/integration/scenarios/01.update/manifestTemplates/oss/instance.yaml"
-	testCampaign          = "test/integration/scenarios/04.workflow/manifest/campaign.yaml"
-	testCampaignContainer = "test/integration/scenarios/04.workflow/manifest/campaign-container.yaml"
+	testCampaignVersion          = "test/integration/scenarios/04.workflow/manifest/campaignversion.yaml"
+	testCampaign = "test/integration/scenarios/04.workflow/manifest/campaign.yaml"
 
-	testCampaignWithWrongStage     = "test/integration/scenarios/08.webhook/manifest/campaignWithWrongStages.yaml"
-	testCampaignWithLongRunning    = "test/integration/scenarios/08.webhook/manifest/campaignLongRunning.yaml"
+	testCampaignVersionWithWrongStage     = "test/integration/scenarios/08.webhook/manifest/campaignversionWithWrongStages.yaml"
+	testCampaignVersionWithLongRunning    = "test/integration/scenarios/08.webhook/manifest/campaignversionLongRunning.yaml"
 	testActivationsWithWrongStage  = "test/integration/scenarios/08.webhook/manifest/activationWithWrongStage.yaml"
 	testActivationsWithLongRunning = "test/integration/scenarios/08.webhook/manifest/activationLongRunning.yaml"
 
@@ -149,7 +149,7 @@ func TestTargetSolutionVersionDeletionWithInstance(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCreateActivationWithoutCampaign(t *testing.T) {
+func TestCreateActivationWithoutCampaignVersion(t *testing.T) {
 	// Already covered in 04.workflow tests
 }
 
@@ -157,42 +157,42 @@ func TestCreateActivationWithWrongFirstStage(t *testing.T) {
 	if testhelpers.IsTestInAzure() {
 		return
 	}
-	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignContainer))).Run()
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaign))).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaign))).Run()
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignVersion))).Run()
 	assert.Nil(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testActivationsWithWrongStage)).CombinedOutput()
-	assert.Contains(t, string(output), "spec.stage must be a valid stage in the campaign")
+	assert.Contains(t, string(output), "spec.stage must be a valid stage in the campaignversion")
 	assert.NotNil(t, err, "activation creation with wrong stage should fail")
-	output, err = exec.Command("kubectl", "delete", "campaigncontainers.workflow.symphony", "04campaign").CombinedOutput()
-	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
-	assert.NotNil(t, err, "campaign container deletion with campaign should fail")
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-version1").Run()
+	output, err = exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaignversion").CombinedOutput()
+	assert.Contains(t, string(output), "nested resources with root resource '04campaignversion' are not empty")
+	assert.NotNil(t, err, "campaignversion container deletion with campaignversion should fail")
+	err = shellcmd.Command("kubectl delete campaignversions.workflow.symphony 04campaignversion-v-version1").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaignversion").Run()
 	assert.Nil(t, err)
 }
 
-func TestCreateCampaignWithWrongStages(t *testing.T) {
+func TestCreateCampaignVersionWithWrongStages(t *testing.T) {
 	if testhelpers.IsTestInAzure() {
 		return
 	}
-	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignContainer))).Run()
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaign))).Run()
 	assert.Nil(t, err)
-	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCampaignWithWrongStage)).CombinedOutput()
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCampaignVersionWithWrongStage)).CombinedOutput()
 	assert.Contains(t, string(output), "stageSelector must be one of the stages in the stages list")
-	assert.NotNil(t, err, "campaign creation with wrong stages should fail")
-	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
+	assert.NotNil(t, err, "campaignversion creation with wrong stages should fail")
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaignversion").Run()
 	assert.Nil(t, err)
 }
 
-func TestDeleteCampaignWithRunningActivation(t *testing.T) {
+func TestDeleteCampaignVersionWithRunningActivation(t *testing.T) {
 	if testhelpers.IsTestInAzure() {
 		return
 	}
-	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignContainer))).Run()
+	err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaign))).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignWithLongRunning))).Run()
+	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testCampaignVersionWithLongRunning))).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testActivationsWithLongRunning))).Run()
 	assert.Nil(t, err)
@@ -211,20 +211,20 @@ func TestDeleteCampaignWithRunningActivation(t *testing.T) {
 		}
 		time.Sleep(5 * time.Second)
 	}
-	output, err := exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign-v-version3").CombinedOutput()
-	assert.Contains(t, string(output), "Campaign has one or more running activations. Update or Deletion is not allowed")
-	assert.NotNil(t, err, "campaign deletion with running activation should fail")
+	output, err := exec.Command("kubectl", "delete", "campaignversions.workflow.symphony", "04campaignversion-v-version3").CombinedOutput()
+	assert.Contains(t, string(output), "CampaignVersion has one or more running activations. Update or Deletion is not allowed")
+	assert.NotNil(t, err, "campaignversion deletion with running activation should fail")
 	time.Sleep(15 * time.Second)
-	// Campaign can be deleted once the activation is DONE
-	output, err = exec.Command("kubectl", "delete", "campaigncontainers.workflow.symphony", "04campaign").CombinedOutput()
-	assert.NotNil(t, err, "campaign container deletion with campaign should fail")
-	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
+	// CampaignVersion can be deleted once the activation is DONE
+	output, err = exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaignversion").CombinedOutput()
+	assert.NotNil(t, err, "campaignversion container deletion with campaignversion should fail")
+	assert.Contains(t, string(output), "nested resources with root resource '04campaignversion' are not empty")
 
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign-v-version3").Run()
+	err = shellcmd.Command("kubectl delete campaignversions.workflow.symphony 04campaignversion-v-version3").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete campaigncontainers.workflow.symphony 04campaign").Run()
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaignversion").Run()
 	assert.Nil(t, err)
 }
 

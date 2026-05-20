@@ -51,10 +51,10 @@ func TestCreateVendor(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, vendor.(*SolutionVersionsVendor))
 
-	config.Type = "vendors.campaigns"
+	config.Type = "vendors.campaignversions"
 	vendor, err = factory.CreateVendor(config)
 	assert.Nil(t, err)
-	assert.NotNil(t, vendor.(*CampaignsVendor))
+	assert.NotNil(t, vendor.(*CampaignVersionsVendor))
 
 	config.Type = "vendors.catalogversions"
 	vendor, err = factory.CreateVendor(config)

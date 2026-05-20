@@ -7,7 +7,7 @@ In this scenario, you roll out a new application from your HQ office to multiple
 1. Define your application structure as a `catalogversion` object that contains Symphony `solutionversion` definition.
 2. Define your application deployment topology as a `catalogversion` object that contains a Symphony `instance` definition.
 3. (Optionally) Define deployment targets as a `catalogversion` object that contains a Symphony `target` definition.
-4. Define and activate a `campaign` that drives multi-site deployment from the HQ.
+4. Define and activate a `campaignversion` that drives multi-site deployment from the HQ.
 
 ## Sample artifacts
 
@@ -19,9 +19,9 @@ You can find sample artifacts in this repository under the `docs/samples/multisi
 | [solutionversion-catalogversion.yaml](../../samples/multisite/solutionversion-catalogversion.yaml) | SolutionVersion definition (wrapped in a catalogversion) |
 | [target-catalogversion.yaml](../../samples/multisite/target-catalogversion.yaml) | Target definition (wrapped in a catalogversion) |
 
-The following diagram illustrates how the stages in the multi-site deployment workflow are defined, with corresponding stage names in `campaign.yaml`.
+The following diagram illustrates how the stages in the multi-site deployment workflow are defined, with corresponding stage names in `campaignversion.yaml`.
 
-![campaign](../images/multisite-flow.png)
+![campaignversion](../images/multisite-flow.png)
 
 > **NOTE**: The `wait-sync` stage and the `deploy` stage are automatically fanned out to all connected sites because they have an associated `contexts` attribute, which serves as a replicator of a stage. And these stages are handled by a `providers.stage.remote` provider that delegates stage execution to a remote site.
 
@@ -36,11 +36,11 @@ The following diagram illustrates how the stages in the multi-site deployment wo
    kubectl apply -f target-catalogversion.yaml
    ```
 
-2. Also on HQ site, define and activate the multi-site deployment campaign:
+2. Also on HQ site, define and activate the multi-site deployment campaignversion:
 
    ```bash
    # make sure kubectl context is set to HQ
-   kubectl apply -f campaign.yaml
+   kubectl apply -f campaignversion.yaml
    kubectl apply -f activation.yaml
    ```
 

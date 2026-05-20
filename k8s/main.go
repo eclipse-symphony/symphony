@@ -287,11 +287,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "SolutionVersion")
 		os.Exit(1)
 	}
-	if err = (&workflowcontrollers.CampaignReconciler{
+	if err = (&workflowcontrollers.CampaignVersionReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Campaign")
+		setupLog.Error(err, "unable to create controller", "controller", "CampaignVersion")
 		os.Exit(1)
 	}
 	if err = (&workflowcontrollers.ActivationReconciler{
@@ -455,8 +455,8 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CatalogVersionEvalExpression")
 			os.Exit(1)
 		}
-		if err = (&workflowv1.Campaign{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
+		if err = (&workflowv1.CampaignVersion{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "CampaignVersion")
 			os.Exit(1)
 		}
 		if err = (&monitorv1.Diagnostic{}).SetupWebhookWithManager(mgr); err != nil {
@@ -467,8 +467,8 @@ func main() {
 			setupLog.Error(err, "unable to Init Common Conainer", "webhook", "Common Conainer")
 			os.Exit(1)
 		}
-		if err = commoncontainer.SetupWebhookWithManager(mgr, &workflowv1.CampaignContainer{}); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "CampaignContainer")
+		if err = commoncontainer.SetupWebhookWithManager(mgr, &workflowv1.Campaign{}); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Campaign")
 			os.Exit(1)
 		}
 		if err = commoncontainer.SetupWebhookWithManager(mgr, &federationv1.Catalog{}); err != nil {
@@ -494,11 +494,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Catalog")
 		os.Exit(1)
 	}
-	if err = (&workflowcontrollers.CampaignContainerReconciler{
+	if err = (&workflowcontrollers.CampaignReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CampaignContainer")
+		setupLog.Error(err, "unable to create controller", "controller", "Campaign")
 		os.Exit(1)
 	}
 	if err = (&monitorcontrollers.DiagnosticReconciler{

@@ -143,7 +143,7 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns
+  - campaignversions
   verbs:
   - create
   - delete
@@ -155,13 +155,13 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/finalizers
+  - campaignversions/finalizers
   verbs:
   - update
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/status
+  - campaignversions/status
   verbs:
   - get
   - patch
@@ -423,7 +423,7 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers
+  - campaigns
   verbs:
   - create
   - delete
@@ -435,13 +435,13 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers/finalizers
+  - campaigns/finalizers
   verbs:
   - update
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers/status
+  - campaigns/status
   verbs:
   - get
   - patch

@@ -17,7 +17,7 @@ Users can also capture shared services in a dedicated SolutionVersion object. Th
 
 Regardless of how the shared components are modeled, Symphony uses coordinated desired state mutation to manage shared component configurations. Coordinated desired mutation means when Symphony updates one artifact, it can use its workflow to automatically trigger mutation of other related artifacts. 
 
-For example, when a new application is deployed (by creating a new Instance object), a Symphony workflow can update configurations of a shared database server configuration as part of the deployment flow. For this purposes, Symphony workflow (Campaign) supports a `patch` stage type that can patch up Symphony objects through declarative code. 
+For example, when a new application is deployed (by creating a new Instance object), a Symphony workflow can update configurations of a shared database server configuration as part of the deployment flow. For this purposes, Symphony workflow (CampaignVersion) supports a `patch` stage type that can patch up Symphony objects through declarative code. 
 
 The following is an example of updating a shared Ingress controller to shift all traffic to a newly deployed service version:
 

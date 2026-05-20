@@ -8,7 +8,7 @@ Because some customers have expressed desire to use a versioned API instead of n
 
 ## Create a versioned object - Symphony API standalone 
 
-Symphony introduces a series of new versioned objects, such as versioned solutionversions, versioned catalogversions and versioned campaigns, on top of the existing objects. Container objects hold multiple versions. For example, a “`my-config`” object may hold multiple versions of a configuration CatalogVersion objects.
+Symphony introduces a series of new versioned objects, such as versioned solutionversions, versioned catalogversions and versioned campaignversions, on top of the existing objects. Container objects hold multiple versions. For example, a “`my-config`” object may hold multiple versions of a configuration CatalogVersion objects.
 
 To create a versioned object in a standalone mode, a user needs to send below requests:
 1. Create a container object, for example solutionversion container using Create API in the [solutionversion container API doc](../api/solutions-api.md)

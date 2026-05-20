@@ -80,8 +80,8 @@ func TestScenario_Stress_AllNamespaces(t *testing.T) {
 	cleanOnly = false
 	mapKindResource = map[string]string{
 		"Activation":        "activations",
-		"Campaign":          "campaigns",
-		"CampaignContainer": "campaigncontainers",
+		"CampaignVersion":          "campaignversions",
+		"Campaign": "campaigns",
 		"CatalogVersion":           "catalogversions",
 		"Catalog":  "catalogs",
 		"Solution": "solutions",

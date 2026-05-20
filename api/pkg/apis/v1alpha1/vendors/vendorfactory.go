@@ -31,10 +31,10 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &SolutionVersionsVendor{}, nil
 	case "vendors.solutions":
 		return &SolutionsVendor{}, nil
+	case "vendors.campaignversions":
+		return &CampaignVersionsVendor{}, nil
 	case "vendors.campaigns":
 		return &CampaignsVendor{}, nil
-	case "vendors.campaigncontainers":
-		return &CampaignContainersVendor{}, nil
 	case "vendors.catalogversions":
 		return &CatalogVersionsVendor{}, nil
 	case "vendors.catalogs":

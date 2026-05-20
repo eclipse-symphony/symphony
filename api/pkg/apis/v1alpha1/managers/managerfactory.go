@@ -8,8 +8,8 @@ package managers
 
 import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigncontainers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaignversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
@@ -69,10 +69,10 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &users.UsersManager{}
 	case "managers.symphony.jobs":
 		manager = &jobs.JobsManager{}
+	case "managers.symphony.campaignversions":
+		manager = &campaignversions.CampaignVersionsManager{}
 	case "managers.symphony.campaigns":
 		manager = &campaigns.CampaignsManager{}
-	case "managers.symphony.campaigncontainers":
-		manager = &campaigncontainers.CampaignContainersManager{}
 	case "managers.symphony.catalogversions":
 		manager = &catalogversions.CatalogVersionsManager{}
 	case "managers.symphony.catalogs":

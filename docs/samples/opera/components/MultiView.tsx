@@ -14,7 +14,7 @@ import {PiCards} from 'react-icons/pi';
 import {PiTable} from 'react-icons/pi';
 import {PiMapTrifold} from 'react-icons/pi';
 import {useState} from 'react';
-import CampaignCardList from "./campaigns/CampaignCardList";
+import CampaignVersionCardList from "./campaignversions/CampaignVersionCardList";
 import SiteCardList from "./sites/SiteCardList";
 import SolutionVersionCardList from "./solutionversions/SolutionVersionCardList";
 import TargetCardList from "./targets/TargetCardList";
@@ -142,7 +142,7 @@ function MultiView(props: MultiViewProps) {
                                     {view === 'map' && <PiMapTrifold />}
                                     <span>{view}</span>
                                     </div>}>
-                            {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
+                            {view === 'cards' && params.type === 'campaignversions' && <CampaignVersionCardList campaignversions={params.items} activations={params.refItems} />}
                             {view === 'cards' && params.type === 'solutionversions' && <SolutionVersionCardList solutionversions={params.items}  />}
                             {view === 'cards' && params.type === 'targets' && <TargetCardList targets={params.items} filter={selectedFilter} />}
                             {view === 'cards' && params.type === 'instances' && <InstanceCardList instances={params.items} filter={selectedFilter} />}

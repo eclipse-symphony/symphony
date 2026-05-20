@@ -9,7 +9,7 @@ Selected Symphony CatalogVersion objects are automatically synchronized from a p
 ## Configuration distribution process
 
 1.	A HQ user defines a standardized configuration CatalogVersion object
-2.	This object is synchronized to all connected child Symphony instances. There’s a continuous synchronization background process. And when a Campaign requires specific CatalogVersion objects, the priority of these objects are raised so that they are synchronized earlier.
+2.	This object is synchronized to all connected child Symphony instances. There’s a continuous synchronization background process. And when a CampaignVersion requires specific CatalogVersion objects, the priority of these objects are raised so that they are synchronized earlier.
 3.	Once the object is synchronized, it can be “materialized” into solid object types like SolutionVersions or local CatalogVersion objects.
 
 See the [multi-site example](../scenarios/multisite-deployment.md) for more details.

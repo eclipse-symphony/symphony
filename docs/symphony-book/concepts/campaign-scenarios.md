@@ -1,6 +1,6 @@
-# Campaign scenarios
+# CampaignVersion scenarios
 
-A [campaign](./unified-object-model/campaign.md) is a versatile type that can be used to implement many useful workflows. This section contains a few typical use cases of campaigns.
+A [campaignversion](./unified-object-model/campaignversion.md) is a versatile type that can be used to implement many useful workflows. This section contains a few typical use cases of campaignversions.
 
 For more information about how Symphony approaches workflows, see [Workflows](workflows.md).
 
@@ -28,9 +28,9 @@ You have several options to model your application:
 
 You can adjust the traffic pattern by adjusting your `ingress` settings, for instance to send 10% of traffic to the new version. Then, based on validation results, you can gradually shift the traffic to the new version, or roll back to the original version if validation fails.
 
-### Automate canary deployment with a campaign
+### Automate canary deployment with a campaignversion
 
-You can factor deployments, validations, and ingress updates into a campaign to automate the canary deployments. Conceptually, the campaign contains the following stages:
+You can factor deployments, validations, and ingress updates into a campaignversion to automate the canary deployments. Conceptually, the campaignversion contains the following stages:
 
 1. Add `backend(v2)` to your solutionversion object. This can be done at a stage using a `patch` provider that patches your existing solutionversion to add a new component.
 2.	Patch your ingress configuration to shift a portion of traffic to the new version. The workflow jumps to stage 4 if all traffic has been shifted to the new version. Or it jumps to stage 5 if all traffic has been reverted to the original version.
@@ -40,5 +40,5 @@ You can factor deployments, validations, and ingress updates into a campaign to 
 
 ## Gated deployment
 
-Symphony campaigns support gated deployments. You can add a stage that invokes an HTTP endpoint (such as an [Azure Logic Apps](https://learn.microsoft.com/azure/logic-apps/logic-apps-overview)) to trigger a custom approval flow – such as sending an email to an approver and waiting for the approver to click on an “Approve” button in the email using Office 365 features. When the external approval flow succeeds, the campaign progresses to the next stage, which is to deploy the `instance`.
+Symphony campaignversions support gated deployments. You can add a stage that invokes an HTTP endpoint (such as an [Azure Logic Apps](https://learn.microsoft.com/azure/logic-apps/logic-apps-overview)) to trigger a custom approval flow – such as sending an email to an approver and waiting for the approver to click on an “Approve” button in the email using Office 365 features. When the external approval flow succeeds, the campaignversion progresses to the next stage, which is to deploy the `instance`.
 

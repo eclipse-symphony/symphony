@@ -1,0 +1,239 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+package campaignversions
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/eclipse-symphony/symphony/api/constants"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
+	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
+	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
+	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
+)
+
+var log = logger.NewLogger("coa.runtime")
+
+type CampaignVersionsManager struct {
+	managers.Manager
+	StateProvider     states.IStateProvider
+	needValidate      bool
+	CampaignVersionValidator validation.CampaignVersionValidator
+}
+
+func (s *CampaignVersionsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
+	err := s.Manager.Init(context, config, providers)
+	if err != nil {
+		return err
+	}
+	stateprovider, err := managers.GetPersistentStateProvider(config, providers)
+	if err == nil {
+		s.StateProvider = stateprovider
+	} else {
+		return err
+	}
+	s.needValidate = managers.NeedObjectValidate(config, providers)
+	if s.needValidate {
+		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
+		//s.CampaignVersionValidator = validation.NewCampaignVersionValidator(s.CampaignLookup, s.CampaignVersionActivationsLookup)
+		s.CampaignVersionValidator = validation.NewCampaignVersionValidator(nil, nil)
+	}
+	return nil
+}
+
+// GetCampaignVersion retrieves a CampaignVersionSpec object by name
+func (m *CampaignVersionsManager) GetState(ctx context.Context, name string, namespace string) (model.CampaignVersionState, error) {
+	ctx, span := observability.StartSpan("CampaignVersions Manager", ctx, &map[string]string{
+		"method": "GetState",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Get campaignversion state %s in namespace", name, namespace)
+
+	getRequest := states.GetRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaignversions",
+			"namespace": namespace,
+			"kind":      "CampaignVersion",
+		},
+	}
+	var entry states.StateEntry
+	entry, err = m.StateProvider.Get(ctx, getRequest)
+	if err != nil {
+		return model.CampaignVersionState{}, err
+	}
+	var ret model.CampaignVersionState
+	ret, err = getCampaignVersionState(entry.Body)
+	if err != nil {
+		log.ErrorfCtx(ctx, "Failed to convert to campaignversion state for %s in namespace %s: %v", name, namespace, err)
+		return model.CampaignVersionState{}, err
+	}
+	ret.ObjectMeta.UpdateEtag(entry.ETag)
+	return ret, nil
+}
+
+func getCampaignVersionState(body interface{}) (model.CampaignVersionState, error) {
+	var campaignversionState model.CampaignVersionState
+	bytes, _ := json.Marshal(body)
+	err := json.Unmarshal(bytes, &campaignversionState)
+	if err != nil {
+		return model.CampaignVersionState{}, err
+	}
+	if campaignversionState.Spec == nil {
+		campaignversionState.Spec = &model.CampaignVersionSpec{}
+	}
+	return campaignversionState, nil
+}
+
+func (m *CampaignVersionsManager) UpsertState(ctx context.Context, name string, state model.CampaignVersionState) error {
+	ctx, span := observability.StartSpan("CampaignVersions Manager", ctx, &map[string]string{
+		"method": "UpsertState",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Upsert campaignversion state %s in namespace %s", name, state.ObjectMeta.Namespace)
+	if state.ObjectMeta.Name != "" && state.ObjectMeta.Name != name {
+		return v1alpha2.NewCOAError(nil, fmt.Sprintf("Name in metadata (%s) does not match name in request (%s)", state.ObjectMeta.Name, name), v1alpha2.BadRequest)
+	}
+	state.ObjectMeta.FixNames(name)
+
+	oldState, getStateErr := m.GetState(ctx, state.ObjectMeta.Name, state.ObjectMeta.Namespace)
+	if getStateErr == nil {
+		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
+	}
+
+	if m.needValidate {
+		if state.ObjectMeta.Labels == nil {
+			state.ObjectMeta.Labels = make(map[string]string)
+		}
+		if state.Spec != nil {
+			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
+		}
+		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.CampaignVersionValidator, state, oldState, getStateErr); err != nil {
+			return err
+		}
+	}
+
+	upsertRequest := states.UpsertRequest{
+		Value: states.StateEntry{
+			ID: name,
+			Body: map[string]interface{}{
+				"apiVersion": model.WorkflowGroup + "/v1",
+				"kind":       "CampaignVersion",
+				"metadata":   state.ObjectMeta,
+				"spec":       state.Spec,
+			},
+			ETag: state.ObjectMeta.ETag,
+		},
+		Metadata: map[string]interface{}{
+			"namespace": state.ObjectMeta.Namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaignversions",
+			"kind":      "CampaignVersion",
+		},
+	}
+
+	_, err = m.StateProvider.Upsert(ctx, upsertRequest)
+	return err
+}
+
+func (m *CampaignVersionsManager) DeleteState(ctx context.Context, name string, namespace string) error {
+	ctx, span := observability.StartSpan("CampaignVersions Manager", ctx, &map[string]string{
+		"method": "DeleteState",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+
+	log.InfofCtx(ctx, "Delete campaignversion state %s in namespace %s", name, namespace)
+	if m.needValidate {
+		if err = m.ValidateDelete(ctx, name, namespace); err != nil {
+			return err
+		}
+	}
+
+	err = m.StateProvider.Delete(ctx, states.DeleteRequest{
+		ID: name,
+		Metadata: map[string]interface{}{
+			"namespace": namespace,
+			"group":     model.WorkflowGroup,
+			"version":   "v1",
+			"resource":  "campaignversions",
+			"kind":      "CampaignVersion",
+		},
+	})
+	return err
+}
+
+func (t *CampaignVersionsManager) ListState(ctx context.Context, namespace string) ([]model.CampaignVersionState, error) {
+	ctx, span := observability.StartSpan("CampaignVersions Manager", ctx, &map[string]string{
+		"method": "ListState",
+	})
+	var err error = nil
+	defer observ_utils.CloseSpanWithError(span, &err)
+	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
+	log.InfofCtx(ctx, "List campaignversion state for namespace %s", namespace)
+	listRequest := states.ListRequest{
+		Metadata: map[string]interface{}{
+			"version":   "v1",
+			"group":     model.WorkflowGroup,
+			"resource":  "campaignversions",
+			"namespace": namespace,
+			"kind":      "CampaignVersion",
+		},
+	}
+	var campaignversions []states.StateEntry
+	campaignversions, _, err = t.StateProvider.List(ctx, listRequest)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]model.CampaignVersionState, 0)
+	for _, t := range campaignversions {
+		var rt model.CampaignVersionState
+		rt, err = getCampaignVersionState(t.Body)
+		if err != nil {
+			return nil, err
+		}
+		rt.ObjectMeta.UpdateEtag(t.ETag)
+		ret = append(ret, rt)
+	}
+	log.InfofCtx(ctx, "List campaignversion state for namespace %s get total count %d", namespace, len(ret))
+	return ret, nil
+}
+
+func (t *CampaignVersionsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
+	state, err := t.GetState(ctx, name, namespace)
+	return validation.ValidateDeleteWrapper(ctx, &t.CampaignVersionValidator, state, err)
+}
+
+func (t *CampaignVersionsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.Campaign, name, namespace)
+}
+
+func (t *CampaignVersionsManager) CampaignVersionActivationsLookup(ctx context.Context, name string, namespace string) (bool, error) {
+	activationList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Activation, namespace, map[string]string{constants.CampaignVersion: name, constants.StatusMessage: v1alpha2.Running.String()}, 1)
+	if err != nil {
+		return false, err
+	}
+	return len(activationList) > 0, nil
+}

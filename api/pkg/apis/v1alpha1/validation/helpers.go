@@ -44,11 +44,11 @@ const (
 	Device            ResourceType = "device"
 	SolutionVersion          ResourceType = "solutionversion"
 	Instance          ResourceType = "instance"
-	Campaign          ResourceType = "campaign"
+	CampaignVersion          ResourceType = "campaignversion"
 	Activation        ResourceType = "activation"
 	CatalogVersion           ResourceType = "catalogversion"
 	Solution ResourceType = "solution"
-	CampaignContainer ResourceType = "campaigncontainer"
+	Campaign ResourceType = "campaign"
 	Catalog  ResourceType = "catalog"
 )
 
@@ -83,16 +83,16 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 		version = "v1"
 		resource = "devices"
 		kind = "Device"
+	case CampaignVersion:
+		group = "workflow.symphony"
+		version = "v1"
+		resource = "campaignversions"
+		kind = "CampaignVersion"
 	case Campaign:
 		group = "workflow.symphony"
 		version = "v1"
 		resource = "campaigns"
 		kind = "Campaign"
-	case CampaignContainer:
-		group = "workflow.symphony"
-		version = "v1"
-		resource = "campaigncontainers"
-		kind = "CampaignContainer"
 	case Activation:
 		group = "workflow.symphony"
 		version = "v1"
@@ -198,7 +198,7 @@ func ValidateDeleteWrapper(ctx context.Context, validator IValidator, obj interf
 	}
 }
 
-// Validate rootResource exists for versioned objects - solutionversions, campaigns and catalogversions
+// Validate rootResource exists for versioned objects - solutionversions, campaignversions and catalogversions
 func ValidateRootResource(ctx context.Context, o model.ObjectMeta, rootResource string, lookupFunc ObjectLookupFunc) *ErrorField {
 	if lookupFunc == nil {
 		return nil

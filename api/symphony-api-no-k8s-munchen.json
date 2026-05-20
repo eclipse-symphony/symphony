@@ -87,8 +87,8 @@
             }
           },
           {
-            "name": "campaigns-manager",
-            "type": "managers.symphony.campaigns",
+            "name": "campaignversions-manager",
+            "type": "managers.symphony.campaignversions",
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true"
@@ -145,12 +145,12 @@
         ]
       },
       {
-        "type": "vendors.campaigns",
-        "route": "campaigns",
+        "type": "vendors.campaignversions",
+        "route": "campaignversions",
         "managers": [
           {
-            "name": "campaigns-manager",
-            "type": "managers.symphony.campaigns",
+            "name": "campaignversions-manager",
+            "type": "managers.symphony.campaignversions",
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true"
@@ -165,12 +165,12 @@
         ]
       },
       {
-        "type": "vendors.campaigncontainers",
-        "route": "campaigncontainers",
+        "type": "vendors.campaigns",
+        "route": "campaigns",
         "managers": [
           {
-            "name": "campaign-container-manager",
-            "type": "managers.symphony.campaigncontainers",
+            "name": "campaignversion-container-manager",
+            "type": "managers.symphony.campaigns",
             "properties": {
               "providers.persistentstate": "k8s-state"
             },

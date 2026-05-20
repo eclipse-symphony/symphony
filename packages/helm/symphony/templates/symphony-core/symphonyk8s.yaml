@@ -53,7 +53,7 @@ spec:
             type: object
           spec:
             properties:
-              campaign:
+              campaignversion:
                 type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
@@ -103,20 +103,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: campaigncontainers.workflow.symphony
+  name: campaigns.workflow.symphony
 spec:
   group: workflow.symphony
   names:
-    kind: CampaignContainer
-    listKind: CampaignContainerList
-    plural: campaigncontainers
-    singular: campaigncontainer
+    kind: Campaign
+    listKind: CampaignList
+    plural: campaigns
+    singular: campaign
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CampaignContainer is the Schema for the CampaignContainers API
+        description: Campaign is the Schema for the Campaigns API
         properties:
           apiVersion:
             description: |-
@@ -159,7 +159,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: campaigns.workflow.symphony
+  name: campaignversions.workflow.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -173,16 +173,16 @@ spec:
       - v1
   group: workflow.symphony
   names:
-    kind: Campaign
-    listKind: CampaignList
-    plural: campaigns
-    singular: campaign
+    kind: CampaignVersion
+    listKind: CampaignVersionList
+    plural: campaignversions
+    singular: campaignversion
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Campaign is the Schema for the campaigns API
+        description: CampaignVersion is the Schema for the campaignversions API
         properties:
           apiVersion:
             description: |-
@@ -2665,7 +2665,7 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns
+  - campaignversions
   verbs:
   - create
   - delete
@@ -2677,13 +2677,13 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/finalizers
+  - campaignversions/finalizers
   verbs:
   - update
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/status
+  - campaignversions/status
   verbs:
   - get
   - patch
@@ -2945,7 +2945,7 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers
+  - campaigns
   verbs:
   - create
   - delete
@@ -2957,13 +2957,13 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers/finalizers
+  - campaigns/finalizers
   verbs:
   - update
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigncontainers/status
+  - campaigns/status
   verbs:
   - get
   - patch
@@ -3342,6 +3342,26 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /mutate-workflow-symphony-v1-campaignversion
+  failurePolicy: Fail
+  name: mcampaignversion.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaignversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-workflow-symphony-v1-campaign
   failurePolicy: Fail
   name: mcampaign.kb.io
@@ -3355,26 +3375,6 @@ webhooks:
     - UPDATE
     resources:
     - campaigns
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /mutate-workflow-symphony-v1-campaigncontainer
-  failurePolicy: Fail
-  name: mcampaigncontainer.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - campaigncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -3598,6 +3598,27 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /validate-workflow-symphony-v1-campaignversion
+  failurePolicy: Fail
+  name: vcampaignversion.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaignversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /validate-workflow-symphony-v1-campaign
   failurePolicy: Fail
   name: vcampaign.kb.io
@@ -3612,27 +3633,6 @@ webhooks:
     - DELETE
     resources:
     - campaigns
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /validate-workflow-symphony-v1-campaigncontainer
-  failurePolicy: Fail
-  name: vcampaigncontainer.kb.io
-  rules:
-  - apiGroups:
-    - workflow.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - campaigncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1

@@ -20,9 +20,9 @@ export interface Site {
     lng: number,
 }
 
-export interface CampaignState {
+export interface CampaignVersionState {
     id: string;
-    spec: CampaignSpec;
+    spec: CampaignVersionSpec;
     status: CampainStatus;
 }
 
@@ -39,7 +39,7 @@ export interface StageSpec {
     contexts: string;
 }
 
-export interface CampaignSpec {
+export interface CampaignVersionSpec {
     id: string;
     firstStage: string;
     stages: Record<string, StageSpec>;
@@ -230,7 +230,7 @@ export interface GroupInfo {
 }
 
 export interface ActivationSpec {
-    campaign: string;
+    campaignversion: string;
     name: string;
     stage: string;
     inputs: Record<string, any>;

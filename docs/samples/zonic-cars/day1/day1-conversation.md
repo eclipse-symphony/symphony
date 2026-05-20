@@ -96,7 +96,7 @@ kubectl get crds | grep symphony
 **George:** You can see a list of Symphony resource types like:
 ```bash
 activations.workflow.symphony 
-campaigns.workflow.symphony
+campaignversions.workflow.symphony
 devices.fabric.symphony
 instances.solutionversion.symphony
 models.ai.symphony

@@ -78,7 +78,7 @@ func SystemReservedAnnotationsByPostfixes() []string {
 
 func SystemReservedLabels() []string {
 	return []string{
-		Campaign,
+		CampaignVersion,
 		DisplayName,
 		ProviderName,
 		ManagerMetaKey,
@@ -109,8 +109,8 @@ const (
 	SolutionVersionUid        = "solutionversionUid"
 	Target             = "target"
 	TargetUid          = "targetUid"
-	Campaign           = "campaign"
-	CampaignUid        = "campaignUid"
+	CampaignVersion           = "campaignversion"
+	CampaignVersionUid        = "campaignversionUid"
 	StagedTarget       = "staged_target"
 )
 

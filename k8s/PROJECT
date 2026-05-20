@@ -110,7 +110,7 @@ resources:
   controller: true
   domain: symphony
   group: solutionversion
-  kind: Campaign
+  kind: CampaignVersion
   path: gopls-workspace/apis/solution/v1
   version: v1
 - api:
@@ -176,7 +176,7 @@ resources:
   controller: true
   domain: symphony
   group: workflow
-  kind: CampaignContainer
+  kind: Campaign
   path: gopls-workspace/apis/workflow/v1
   version: v1
 - api:

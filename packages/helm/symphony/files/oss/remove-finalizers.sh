@@ -53,7 +53,7 @@ function remove_finalizers {
 echo "Removing finalizers from Symphony resources"
 
 remove_finalizers "activations.$WORKFLOW_GROUP"
-remove_finalizers "campaigns.$WORKFLOW_GROUP"
+remove_finalizers "campaignversions.$WORKFLOW_GROUP"
 remove_finalizers "instances.$SOLUTION_GROUP"
 remove_finalizers "solutionversions.$SOLUTION_GROUP"
 remove_finalizers "targets.$FABRIC_GROUP"

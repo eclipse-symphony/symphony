@@ -41,6 +41,6 @@ Symphony offers several key platform-agnostic capabilities for modeling such a c
 * Modeling applications using SolutionVersions.
 * Modeling application deployment topologies using Instances.
 * Modeling AI pipelines using AI Skill.
-* Modeling distributed workflows using Campaigns.
+* Modeling distributed workflows using CampaignVersions.
 
 And because Symphony allows live states to be associated with the information graph, you can use these information graphs to gain live insights of your systems from different perspectives of your choice.

@@ -18,7 +18,7 @@ tags:
   - name: Instances
   - name: CatalogVersions
   - name: Users
-  - name: Campaigns
+  - name: CampaignVersions
   - name: Activations
   - name: Agent
   - name: Devices
@@ -558,11 +558,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /campaigns/{CAMPAIGN_NAME}:
+  /campaignversions/{CAMPAIGN_NAME}:
     post:
       tags:
-        - Campaigns
-      summary: Create Campaign
+        - CampaignVersions
+      summary: Create CampaignVersion
       requestBody:
         content:
           application/json:
@@ -593,8 +593,8 @@ paths:
             application/json: {}
     get:
       tags:
-        - Campaigns
-      summary: Get Campaign spec YAML
+        - CampaignVersions
+      summary: Get CampaignVersion spec YAML
       security:
         - bearerAuth: []
       parameters:
@@ -620,8 +620,8 @@ paths:
             application/json: {}
     delete:
       tags:
-        - Campaigns
-      summary: Delete Campaign
+        - CampaignVersions
+      summary: Delete CampaignVersion
       security:
         - bearerAuth: []
       parameters:
@@ -635,11 +635,11 @@ paths:
           description: Successful response
           content:
             application/json: {}
-  /campaigns:
+  /campaignversions:
     get:
       tags:
-        - Campaigns
-      summary: List Campaigns
+        - CampaignVersions
+      summary: List CampaignVersions
       security:
         - bearerAuth: []
       responses:
@@ -658,7 +658,7 @@ paths:
             schema:
               type: object
               example:
-                campaign: '{{CAMPAIGN_NAME}}'
+                campaignversion: '{{CAMPAIGN_NAME}}'
                 name: '{{ACTIVATION_NAME}}'
                 stage: ''
                 inputs:
@@ -737,7 +737,7 @@ paths:
                 outputs:
                   __activation: test-activation
                   __activationGeneration: '1'
-                  __campaign: test-campaign
+                  __campaignversion: test-campaignversion
                   __previousStage: mock
                   __site: hq
                   __stage: mock
@@ -1152,7 +1152,7 @@ paths:
             schema:
               type: object
               example:
-                campaign: '{{CAMPAIGN_NAME}}'
+                campaignversion: '{{CAMPAIGN_NAME}}'
                 activation: '{{ACTIVATION_NAME}}'
                 activationGeneration: '1'
                 stage: first-stage
@@ -1398,7 +1398,7 @@ paths:
             schema:
               type: object
               example:
-                campaign: '{{CAMPAIGN_NAME}}'
+                campaignversion: '{{CAMPAIGN_NAME}}'
                 activation: '{{ACTIVATION_NAME}}'
                 activationGeneration: '1'
                 stage: first-stage

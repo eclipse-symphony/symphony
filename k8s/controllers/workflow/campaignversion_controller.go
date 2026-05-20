@@ -18,26 +18,26 @@ import (
 	workflowv1 "gopls-workspace/apis/workflow/v1"
 )
 
-// CampaignContainerReconciler reconciles a CampaignContainer object
-type CampaignContainerReconciler struct {
+// CampaignVersionReconciler reconciles a CampaignVersion object
+type CampaignVersionReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=workflow.symphony,resources=campaigncontainers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=workflow.symphony,resources=campaigncontainers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=workflow.symphony,resources=campaigncontainers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=workflow.symphony,resources=campaignversions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=workflow.symphony,resources=campaignversions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=workflow.symphony,resources=campaignversions/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the CampaignContainer object against the actual cluster state, and then
+// the CampaignVersion object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.4/pkg/reconcile
-func (r *CampaignContainerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
+func (r *CampaignVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -46,12 +46,12 @@ func (r *CampaignContainerReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CampaignContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CampaignVersionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// We need to re-able recoverPanic once the behavior is tested #691
 	recoverPanic := false
 	return ctrl.NewControllerManagedBy(mgr).
-		Named("CampaignContainer").
+		Named("CampaignVersion").
 		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
-		For(&workflowv1.CampaignContainer{}).
+		For(&workflowv1.CampaignVersion{}).
 		Complete(r)
 }
