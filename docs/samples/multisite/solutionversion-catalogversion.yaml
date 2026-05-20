@@ -10,7 +10,7 @@ metadata:
   name: site-app-v-version1
 spec:
   rootResource: site-app
-  catalogType: solutionversion
+  catalogType: solution
   properties:
     metadata:
       name: site-app:version1

@@ -17,14 +17,14 @@ The `resourceRef` object under `spec` is the catalogversion you want to be evalu
 apiVersion: federation.symphony/v1
 kind: CatalogVersionEvalExpression
 metadata:
-  name: evaluateevalcatalogversion01
+  name: evaluateevalcatalog01
   annotations:
     management.azure.com/operationId: "1"
 spec:
   resourceRef:
     apiGroup: federation.symphony
     kind: CatalogVersion
-    name: evalcatalogversion-v-version1
+    name: evalcatalog-v-version1
     namespace: default
 ```
 ## Clean Evaluation
@@ -36,11 +36,11 @@ kind: CatalogVersionEvalExpression
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"federation.symphony/v1","kind":"CatalogVersionEvalExpression","metadata":{"annotations":{"management.azure.com/operationId":"3"},"name":"evaluateevalcatalogversion03","namespace":"default"},"spec":{"resourceRef":{"apiGroup":"federation.symphony","kind":"CatalogVersion","name":"evalcatalogversion-v-version3","namespace":"default"}}}
+      {"apiVersion":"federation.symphony/v1","kind":"CatalogVersionEvalExpression","metadata":{"annotations":{"management.azure.com/operationId":"3"},"name":"evaluateevalcatalog03","namespace":"default"},"spec":{"resourceRef":{"apiGroup":"federation.symphony","kind":"CatalogVersion","name":"evalcatalog-v-version3","namespace":"default"}}}
     management.azure.com/operationId: "3"
   creationTimestamp: "2024-09-06T05:35:50Z"
   generation: 2
-  name: evaluateevalcatalogversion03
+  name: evaluateevalcatalog03
   namespace: default
   resourceVersion: "565765"
   uid: 823b68e8-0234-4942-be46-6b95b65ce004
@@ -48,7 +48,7 @@ spec:
   resourceRef:
     apiGroup: federation.symphony
     kind: CatalogVersion
-    name: evalcatalogversion-v-version3
+    name: evalcatalog-v-version3
     namespace: default
 status:
   actionStatus:
@@ -69,11 +69,11 @@ kind: CatalogVersionEvalExpression
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"federation.symphony/v1","kind":"CatalogVersionEvalExpression","metadata":{"annotations":{"management.azure.com/operationId":"1"},"name":"evaluateevalcatalogversion01","namespace":"default"},"spec":{"resourceRef":{"apiGroup":"federation.symphony","kind":"CatalogVersion","name":"evalcatalogversion-v-version1","namespace":"default"}}}
+      {"apiVersion":"federation.symphony/v1","kind":"CatalogVersionEvalExpression","metadata":{"annotations":{"management.azure.com/operationId":"1"},"name":"evaluateevalcatalog01","namespace":"default"},"spec":{"resourceRef":{"apiGroup":"federation.symphony","kind":"CatalogVersion","name":"evalcatalog-v-version1","namespace":"default"}}}
     management.azure.com/operationId: "1"
   creationTimestamp: "2024-09-06T05:39:59Z"
   generation: 2
-  name: evaluateevalcatalogversion01
+  name: evaluateevalcatalog01
   namespace: default
   resourceVersion: "566372"
   uid: 5c693730-c61c-48c6-9297-24cba7cebdbd
@@ -81,7 +81,7 @@ spec:
   resourceRef:
     apiGroup: federation.symphony
     kind: CatalogVersion
-    name: evalcatalogversion-v-version1
+    name: evalcatalog-v-version1
     namespace: default
 status:
   actionStatus:
@@ -94,6 +94,6 @@ status:
       evaluationStatus: Failed
       from:
         country: Australia
-      zipcode: 'Not Found: field ''zipcode'' is not found in configuration ''evalcatalogversion-v-version2'''
+      zipcode: 'Not Found: field ''zipcode'' is not found in configuration ''evalcatalog-v-version2'''
     status: Succeeded
 ```

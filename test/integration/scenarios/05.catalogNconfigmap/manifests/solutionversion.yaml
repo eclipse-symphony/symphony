@@ -4,7 +4,7 @@ metadata:
   name: solutionversion-v-version1
 spec:
   rootResource: solutionversion
-  catalogType: solutionversion
+  catalogType: solution
   properties:
     metadata:
       name: solutionversion:version1

@@ -17,7 +17,7 @@ spec:
       inputs:
         objectType: catalogversions
         names:
-        - sitecatalogversion:version1
+        - sitecatalog:version1
         - siteapp:version1
         - sitek8starget:version1
         - siteinstance:version1

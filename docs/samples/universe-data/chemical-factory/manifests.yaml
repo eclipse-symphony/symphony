@@ -36,7 +36,7 @@ kind: CatalogVersion
 metadata:
   name: site-app-v-version1
 spec:
-  catalogType: solutionversion
+  catalogType: solution
   properties:
     metadata:
       name: site-app:version1
@@ -67,7 +67,7 @@ kind: CatalogVersion
 metadata:
   name: line-app-v-version1
 spec:
-  catalogType: solutionversion
+  catalogType: solution
   properties:
     metadata:
       name: line-app:version1
@@ -161,7 +161,7 @@ kind: CatalogVersion
 metadata:
   name: smart-fridge-v-version1
 spec:
-  catalogType: solutionversion
+  catalogType: solution
   properties:
     metadata:
       name: smart-fridge:version1

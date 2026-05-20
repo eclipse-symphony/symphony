@@ -157,7 +157,7 @@ func TestBasic_ActivationStatus(t *testing.T) {
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
 			require.Equal(t, "catalogversions", state.Status.StageHistory[0].Inputs["objectType"])
-			require.Equal(t, []interface{}{"sitecatalogversion:version1", "sitecatalogversion2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
+			require.Equal(t, []interface{}{"sitecatalog:version1", "sitecatalog2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
 			require.Equal(t, "catalogversions", state.Status.StageHistory[0].Outputs["objectType"])
 			require.Equal(t, "list", state.Status.StageHistory[1].Stage)
 			require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
@@ -165,13 +165,13 @@ func TestBasic_ActivationStatus(t *testing.T) {
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
 			require.Equal(t, "catalogversions", state.Status.StageHistory[1].Inputs["objectType"])
 			require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
-			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalogversion-v-version1", "sitecatalogversion2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
+			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
 			require.Equal(t, "catalogversions", state.Status.StageHistory[1].Outputs["objectType"])
 			require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
 			require.Equal(t, "", state.Status.StageHistory[2].NextStage)
 			require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)
 			require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[2].StatusMessage)
-			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalogversion-v-version1", "sitecatalogversion2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
+			require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[2].Inputs["names"].([]interface{}))
 			break
 		}
 

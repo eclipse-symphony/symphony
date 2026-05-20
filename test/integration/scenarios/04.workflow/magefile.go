@@ -36,14 +36,14 @@ var (
 var (
 	// catalogversions to deploy
 	testCatalogVersions = []string{
-		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion-container.yaml",
-		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion-container-2.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container-2.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalogversion-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solutionversion-catalogversion-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalogversion-container.yaml",
 
-		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion.yaml",
-		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalogversion-2.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalog-2.yaml",
 		"test/integration/scenarios/04.workflow/manifest/instance-catalogversion.yaml",
 		"test/integration/scenarios/04.workflow/manifest/solutionversion-catalogversion.yaml",
 		"test/integration/scenarios/04.workflow/manifest/target-catalogversion.yaml",
