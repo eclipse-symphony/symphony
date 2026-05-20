@@ -148,7 +148,7 @@ func TestInit(t *testing.T) {
 func TestUpsertAndGet(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 
 	err = manager.UpsertState(context.Background(), catalogversionState.ObjectMeta.Name, catalogversionState)
 	assert.Nil(t, err)
@@ -176,7 +176,7 @@ func TestUpsertAndGet(t *testing.T) {
 func TestList(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 
 	err = manager.UpsertState(context.Background(), catalogversionState.ObjectMeta.Name, catalogversionState)
 	assert.Nil(t, err)
@@ -206,7 +206,7 @@ func TestList(t *testing.T) {
 func TestDelete(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 
 	err = manager.UpsertState(context.Background(), catalogversionState.ObjectMeta.Name, catalogversionState)
 	assert.Nil(t, err)
@@ -241,7 +241,7 @@ func TestDelete(t *testing.T) {
 func TestGetChains(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 	err = CreateSimpleChain("root-v-version1", 4, manager, catalogversionState)
 	assert.Nil(t, err)
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogversionState.ObjectMeta.Namespace)
@@ -261,7 +261,7 @@ func TestGetChains(t *testing.T) {
 func TestGetTrees(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 	err = CreateSimpleBinaryTree("root-v-version1", 3, manager, catalogversionState)
 	assert.Nil(t, err)
 	err = manager.setProviderDataIfNecessary(context.Background(), catalogversionState.ObjectMeta.Namespace)
@@ -275,7 +275,7 @@ func TestGetTrees(t *testing.T) {
 func TestSchemaCheck(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 	schema := utils.Schema{
 		Rules: map[string]utils.Rule{
 			"email": {
@@ -325,7 +325,7 @@ func TestSchemaCheck(t *testing.T) {
 func TestParentCatalogVersion(t *testing.T) {
 	err := initalizeManager()
 	assert.Nil(t, err)
-	manager.CatalogVersionValidator.CatalogVersionLookupFunc = nil
+	manager.CatalogVersionValidator.CatalogLookupFunc = nil
 	childCatalogVersion := model.CatalogVersionState{
 		ObjectMeta: model.ObjectMeta{
 			Name:      "EmailCheckSchema-v-version1",
