@@ -5,25 +5,34 @@
  */
 
 use core::ffi::c_char;
-use libloading::Library;
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::fs::File;
-use std::io;
+use std::io::Read;
 use std::ptr;
+
+use libloading::Library;
+use sha2::{Digest, Sha256};
 use tracing::{debug, error, warn};
 
 pub mod models;
 use crate::models::*;
 
 /// Computes the SHA-256 hash of a file.
-fn compute_sha256_hash(file_path: &str) -> Result<String, io::Error> {
+fn compute_sha256_hash(file_path: &str) -> Result<String, std::io::Error> {
     let mut file = File::open(file_path)?;
     let mut hasher = Sha256::new();
-    io::copy(&mut file, &mut hasher)?;
+    let mut buffer = [0u8; 8192];
+    loop {
+        let n = file.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buffer[..n]);
+    }
     let hash = hasher.finalize();
-    Ok(format!("{:x}", hash))
+    let hex_string: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    Ok(hex_string)
 }
 
 /// Validates the computed hash against the expected hash value.
