@@ -4,7 +4,7 @@
 
 [package]
 name = "symphony"
-version = "0.1.4"
+version = "0.1.5"
 edition = { workspace = true }
 license = "MIT"
 description = "Eclipse Symphony Target Provider Rust binding"
@@ -15,7 +15,7 @@ keywords = ["orchestration"]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-libloading = { version = "0.8" }
+libloading = { version = "0.9" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sha2 = { version = "0.11" }
