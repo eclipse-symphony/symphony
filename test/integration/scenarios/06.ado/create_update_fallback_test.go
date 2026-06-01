@@ -17,12 +17,12 @@ import (
 
 var _ = Describe("Create/update resources for rollback testing", Ordered, func() {
 	type TestCase struct {
-		TargetComponents      []string
-		SolutionVersionComponents    []string
-		SolutionVersionComponentsV2  []string
-		PostUpdateExpectation types.Expectation
-		PostRevertExpectation types.Expectation
-		TargetProperties      map[string]string
+		TargetComponents            []string
+		SolutionVersionComponents   []string
+		SolutionVersionComponentsV2 []string
+		PostUpdateExpectation       types.Expectation
+		PostRevertExpectation       types.Expectation
+		TargetProperties            map[string]string
 	}
 	var instanceBytes []byte
 	var targetBytes []byte
@@ -98,8 +98,8 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("setting the components for SolutionVersion V2, an invalid solutionversion")
 		solutionversionBytesV2, err = testhelpers.PatchSolutionVersion(defaultSolutionVersionManifest, testhelpers.SolutionVersionOptions{
-			ComponentNames: testcase.SolutionVersionComponentsV2,
-			SolutionVersionName:   "solutionversion-v-version2",
+			ComponentNames:      testcase.SolutionVersionComponentsV2,
+			SolutionVersionName: "solution-v-version2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -109,7 +109,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("preparing the instance bytes with a new operation id for SolutionVersion V2")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			SolutionVersion: "solutionversion:version2",
+			SolutionVersion: "solution:version2",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -123,7 +123,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 		By("reverting the Instance to use SolutionVersion V1")
 		instanceBytes, err = testhelpers.PatchInstance(defaultInstanceManifest, testhelpers.InstanceOptions{
-			SolutionVersion: "solutionversion:version1",
+			SolutionVersion: "solution:version1",
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -138,7 +138,7 @@ var _ = Describe("Create/update resources for rollback testing", Ordered, func()
 
 	DescribeTable("fail to deploy solutionversion v2 then rollback to v1", Ordered, runner,
 		Entry("with a single component", TestCase{
-			TargetComponents:     []string{"simple-chart-1"},
+			TargetComponents:            []string{"simple-chart-1"},
 			SolutionVersionComponents:   []string{"simple-chart-2"},
 			SolutionVersionComponentsV2: []string{"simple-chart-2-nonexistent"},
 			PostUpdateExpectation: expectations.All(
