@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutionversion
+package solution
 
 import (
 	"context"
 
-	solutionversionv1 "gopls-workspace/apis/solution/v1"
+	solutionv1 "gopls-workspace/apis/solution/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,6 +52,6 @@ func (r *SolutionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("Solution").
 		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
-		For(&solutionversionv1.Solution{}).
+		For(&solutionv1.Solution{}).
 		Complete(r)
 }

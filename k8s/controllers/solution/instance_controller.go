@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutionversion
+package solution
 
 import (
 	"context"
@@ -99,7 +99,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 
 	deploymentResources := &utils.DeploymentResources{
 		Instance:         *instance,
-		SolutionVersion:         solutionversion_v1.SolutionVersion{},
+		SolutionVersion:  solutionversion_v1.SolutionVersion{},
 		TargetList:       fabric_v1.TargetList{},
 		TargetCandidates: []fabric_v1.Target{},
 	}

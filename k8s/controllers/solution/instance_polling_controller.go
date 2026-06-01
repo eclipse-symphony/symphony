@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutionversion
+package solution
 
 import (
 	"context"

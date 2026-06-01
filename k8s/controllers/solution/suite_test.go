@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutionversion_test
+package solution_test
 
 import (
 	"context"
@@ -35,7 +35,8 @@ import (
 	api "gopls-workspace/apis/solution/v1"
 	controllers "gopls-workspace/controllers/solution"
 
-	solutionversionv1 "gopls-workspace/apis/solution/v1"
+	solutionv1 "gopls-workspace/apis/solution/v1"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	//+kubebuilder:scaffold:imports
 )
@@ -117,7 +118,7 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cfg).NotTo(BeNil())
 
-		err = solutionversionv1.AddToScheme(scheme.Scheme)
+		err = solutionv1.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 
 		//+kubebuilder:scaffold:scheme

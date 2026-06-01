@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutionversion
+package solution
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	solutionversionv1 "gopls-workspace/apis/solution/v1"
+	solutionv1 "gopls-workspace/apis/solution/v1"
 )
 
 // SolutionVersionReconciler reconciles a SolutionVersion object
@@ -52,6 +52,6 @@ func (r *SolutionVersionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("SolutionVersion").
 		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
-		For(&solutionversionv1.SolutionVersion{}).
+		For(&solutionv1.SolutionVersion{}).
 		Complete(r)
 }

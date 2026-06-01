@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solutionversion
+package solution
 
 import (
 	"context"
 	"errors"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionversionv1 "gopls-workspace/apis/solution/v1"
+	solutionv1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	. "gopls-workspace/testing"
 	"gopls-workspace/utils"
@@ -29,9 +29,9 @@ var _ = Describe("Instance controller", Ordered, func() {
 	var kubeClient client.Client
 	var controllerQueueing *InstanceQueueingReconciler
 	var controllerPolling *InstancePollingReconciler
-	var instance *solutionversionv1.Instance
+	var instance *solutionv1.Instance
 	var target *fabricv1.Target
-	var solutionversion *solutionversionv1.SolutionVersion
+	var solutionversion *solutionv1.SolutionVersion
 	var reconcileError error
 	var reconcileResult ctrl.Result
 	var reconcileErrorPolling error
@@ -79,13 +79,13 @@ var _ = Describe("Instance controller", Ordered, func() {
 
 	BeforeEach(func(ctx context.Context) {
 		By("fetching resources")
-		instance = &solutionversionv1.Instance{}
+		instance = &solutionv1.Instance{}
 		Expect(kubeClient.Get(ctx, DefaultInstanceNamespacedName, instance)).To(Succeed())
 
 		target = &fabricv1.Target{}
 		Expect(kubeClient.Get(ctx, DefaultTargetNamepsacedName, target)).To(Succeed())
 
-		solutionversion = &solutionversionv1.SolutionVersion{}
+		solutionversion = &solutionv1.SolutionVersion{}
 		Expect(kubeClient.Get(ctx, DefaultSolutionVersionNamespacedName, solutionversion)).To(Succeed())
 	})
 
