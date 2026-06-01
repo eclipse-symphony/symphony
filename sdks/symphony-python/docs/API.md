@@ -116,46 +116,46 @@ Update target status.
 
 **Returns:** API response data
 
-### Solution Management Methods
+### SolutionVersion Management Methods
 
-#### `create_solution(solution_name: str, solution_spec: str, embed_type: Optional[str] = None, embed_component: Optional[str] = None, embed_property: Optional[str] = None) -> Dict[str, Any]`
+#### `create_solutionversion(solutionversion_name: str, solutionversion_spec: str, embed_type: Optional[str] = None, embed_component: Optional[str] = None, embed_property: Optional[str] = None) -> Dict[str, Any]`
 
-Create a solution with embedded specification.
+Create a solutionversion with embedded specification.
 
 **Parameters:**
-- `solution_name`: Name of the solution
-- `solution_spec`: Solution specification as text (usually YAML)
+- `solutionversion_name`: Name of the solutionversion
+- `solutionversion_spec`: SolutionVersion specification as text (usually YAML)
 - `embed_type`: Optional embed type
 - `embed_component`: Optional embed component
 - `embed_property`: Optional embed property
 
 **Returns:** API response data
 
-#### `get_solution(solution_name: str, doc_type: str = 'yaml', path: str = '$.spec') -> Dict[str, Any]`
+#### `get_solutionversion(solutionversion_name: str, doc_type: str = 'yaml', path: str = '$.spec') -> Dict[str, Any]`
 
-Get solution specification.
+Get solutionversion specification.
 
 **Parameters:**
-- `solution_name`: Name of the solution
+- `solutionversion_name`: Name of the solutionversion
 - `doc_type`: Document type ('yaml' or 'json')
 - `path`: JSONPath to extract from response
 
-**Returns:** Solution specification data
+**Returns:** SolutionVersion specification data
 
-#### `delete_solution(solution_name: str) -> Dict[str, Any]`
+#### `delete_solutionversion(solutionversion_name: str) -> Dict[str, Any]`
 
-Delete a solution.
+Delete a solutionversion.
 
 **Parameters:**
-- `solution_name`: Name of the solution to delete
+- `solutionversion_name`: Name of the solutionversion to delete
 
 **Returns:** API response data
 
-#### `list_solutions() -> Dict[str, Any]`
+#### `list_solutionversions() -> Dict[str, Any]`
 
-List all solutions.
+List all solutionversions.
 
-**Returns:** List of solutions
+**Returns:** List of solutionversions
 
 ### Instance Management Methods
 
@@ -218,7 +218,7 @@ Delete deployment components.
 
 **Returns:** API response data
 
-#### `reconcile_solution(deployment_spec: Dict[str, Any], delete: bool = False) -> Dict[str, Any]`
+#### `reconcile_solutionversion(deployment_spec: Dict[str, Any], delete: bool = False) -> Dict[str, Any]`
 
 Direct reconcile/delete deployment.
 
@@ -301,13 +301,13 @@ class ComponentSpec:
     parameters: Dict[str, str] = None
 ```
 
-### SolutionSpec
+### SolutionVersionSpec
 
-Specification for a solution.
+Specification for a solutionversion.
 
 ```python
 @dataclass
-class SolutionSpec:
+class SolutionVersionSpec:
     components: List[ComponentSpec] = None
     scope: str = ""
     displayName: str = ""
@@ -323,7 +323,7 @@ Specification for an instance deployment.
 class InstanceSpec:
     name: str = ""
     parameters: Optional[Dict[str, str]] = None
-    solution: str = ""
+    solutionversion: str = ""
     target: Optional[TargetSelector] = None
     topologies: Optional[List[TopologySpec]] = None
     pipelines: Optional[List[PipelineSpec]] = None
@@ -342,8 +342,8 @@ Complete deployment specification.
 ```python
 @dataclass
 class DeploymentSpec:
-    solutionName: str = ""
-    solution: SolutionState = None
+    solutionversionName: str = ""
+    solutionversion: SolutionVersionState = None
     instance: InstanceSpec = None
     targets: Dict[str, TargetState] = None
     devices: List[DeviceSpec] = None

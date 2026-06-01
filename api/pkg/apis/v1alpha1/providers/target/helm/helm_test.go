@@ -160,8 +160,8 @@ func TestHelmTargetProviderInstall(t *testing.T) {
 				},
 			}
 			deployment := model.DeploymentSpec{
-				Solution: model.SolutionState{
-					Spec: &model.SolutionSpec{
+				SolutionVersion: model.SolutionVersionState{
+					Spec: &model.SolutionVersionSpec{
 						Components: []model.ComponentSpec{component},
 					},
 				},
@@ -209,8 +209,8 @@ func TestHelmTargetProviderGet(t *testing.T) {
 				Scope: defaultTestScope,
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "odoo",
@@ -319,8 +319,8 @@ func TestHelmTargetProvider_NonOciChart(t *testing.T) {
 				},
 			}
 			deployment := model.DeploymentSpec{
-				Solution: model.SolutionState{
-					Spec: &model.SolutionSpec{
+				SolutionVersion: model.SolutionVersionState{
+					Spec: &model.SolutionVersionSpec{
 						Components: []model.ComponentSpec{component},
 					},
 				},
@@ -398,8 +398,8 @@ func TestHelmTargetProviderInstallNginxIngress(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -459,8 +459,8 @@ func TestHelmTargetProviderInstallDirectDownload(t *testing.T) {
 				Scope: defaultTestScope,
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -507,8 +507,8 @@ func TestHelmTargetProviderRemove(t *testing.T) {
 				Scope: defaultTestScope,
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -593,8 +593,8 @@ func TestHelmTargetProviderUpdateDelete(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -647,8 +647,8 @@ func TestHelmTargetProviderWithNegativeTimeout(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -694,8 +694,8 @@ func TestHelmTargetProviderWithPositiveTimeout(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -740,8 +740,8 @@ func TestHelmTargetProviderWithInvalidTimeout(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -789,8 +789,8 @@ func TestHelmTargetProviderUpdateFailed(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -820,8 +820,8 @@ func TestHelmTargetProviderGetEmpty(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "odoo",
@@ -989,8 +989,8 @@ func TestHelmTargetProviderApplyWithCustomReleaseName(t *testing.T) {
 				Scope: defaultTestScope,
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -1063,8 +1063,8 @@ func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
 				Scope: defaultTestScope,
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

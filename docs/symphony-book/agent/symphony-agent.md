@@ -80,7 +80,7 @@ export TARGET_NAME=<target name> #the name of the Target object representing the
 
 ## Get object reference
 
-You can get Symphony object specs, such as AI [skill](../concepts/unified-object-model/ai-skill.md) and [solution](../concepts/unified-object-model/solution.md), through the Symphony agent:
+You can get Symphony object specs, such as AI [skill](../concepts/unified-object-model/ai-skill.md) and [solutionversion](../concepts/unified-object-model/solutionversion.md), through the Symphony agent:
 
 * **Route**: `http://<Symphony agent endpoint>:8088/v1alpha2/agent/references`
 * **Method**: GET
@@ -92,8 +92,8 @@ You can get Symphony object specs, such as AI [skill](../concepts/unified-object
   | field-selector | Field selector (optional), for example: `metadata.name=redis-server`|
   | group | Resource group, like `ai.symphony`, `solution.symphony` and `fabric.symphony`|
   | id | Resource name (optional)|
-  | instance | Solution instance id<sup>1</sup>|
-  | kind | Resource kind, like `skills`, `solutions` and `devices`|
+  | instance | SolutionVersion instance id<sup>1</sup>|
+  | kind | Resource kind, like `skills`, `solutionversions` and `devices`|
   | label-selector | Label selector (optional), for example: `foo=bar`|
   | ref | Reference provider type. Use `v1alpha2.ReferenceK8sCRD` to query K8s objects |
   | namespace | Namespace, like `default`|
@@ -143,7 +143,7 @@ You can report object state through Symphony agent.
   |--------|--------|
   | group | Resource group, like `ai.symphony`, `solution.symphony`, and `fabric.symphony` |
   | id | Resource name (optional)|
-  | kind | Resource type, like `skills`, `solutions`, and `devices`|
+  | kind | Resource type, like `skills`, `solutionversions`, and `devices`|
   | overwrite | If set to true, the object state will be reset to reported properties. Otherwise, the reported properties are merged into existing state (optional, default = false) |
   | namespace | Namespace, like `default` |
   | version | resource version, like `v1` |

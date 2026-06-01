@@ -1,6 +1,6 @@
 # Instance
 
-`instance.solution.symphony` maps a [`solution.solution.symphony`](./solution.md) object to one or more [`target.fabric.symphony`](./target.md) objects. Creating an instance object triggers deployments to targets.
+`instance.solution.symphony` maps a [`solutionversion.solution.symphony`](./solutionversion.md) object to one or more [`target.fabric.symphony`](./target.md) objects. Creating an instance object triggers deployments to targets.
 
 ## Schema
 
@@ -12,7 +12,7 @@
 | `Pipelines` | `[]PipelineSpec` | AI pipeline references |
 | `Schedule` | `string` | Deployment schedule |
 | `Scope` | `string` | Deployment scope (such as Kubernetes namespace) |
-| `Solution` | `string` | Solution name |
+| `SolutionVersion` | `string` | SolutionVersion name |
 | `Stage` | `string` | Deployment stage |
 | `Target` | `TargetSelector` | Targets (see [Target selection](#target-selection)) |
 | `Topologies` | `[]TopologySpec` | Device topologies |

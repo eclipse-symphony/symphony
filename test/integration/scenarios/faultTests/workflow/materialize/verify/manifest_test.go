@@ -28,23 +28,23 @@ import (
 )
 
 var (
-	testCatalogs = []string{
+	testCatalogVersions = []string{
 		"./manifest/catalog-catalog-container.yaml",
 		"./manifest/catalog-catalog-container-2.yaml",
-		"./manifest/instance-catalog-container.yaml",
-		"./manifest/solution-catalog-container.yaml",
-		"./manifest/target-catalog-container.yaml",
+		"./manifest/instance-catalogversion-container.yaml",
+		"./manifest/solutionversion-catalogversion-container.yaml",
+		"./manifest/target-catalogversion-container.yaml",
 
-		"./manifest/catalog-catalog.yaml",
-		"./manifest/catalog-catalog-2.yaml",
-		"./manifest/instance-catalog.yaml",
-		"./manifest/solution-catalog.yaml",
-		"./manifest/target-catalog.yaml",
+		"./manifest/catalogversion-catalog.yaml",
+		"./manifest/catalogversion-catalog-2.yaml",
+		"./manifest/instance-catalogversion.yaml",
+		"./manifest/solutionversion-catalogversion.yaml",
+		"./manifest/target-catalogversion.yaml",
 	}
 
-	testCampaign = []string{
-		"./manifest/campaign-container.yaml",
+	testCampaignVersion = []string{
 		"./manifest/campaign.yaml",
+		"./manifest/campaignversion.yaml",
 	}
 
 	testActivations = []string{
@@ -57,7 +57,7 @@ func TestMaterializeWorkflow(t *testing.T) {
 	err := utils.InjectPodFailure()
 	require.NoError(t, err)
 	DeployManifests(t, namespace)
-	CheckCatalogs(t, namespace)
+	CheckCatalogVersions(t, namespace)
 	CheckActivationStatus(t, namespace)
 	CheckTargetStatus(t, namespace)
 	CheckInstanceStatus(t, namespace)
@@ -77,24 +77,24 @@ func DeployManifests(t *testing.T, namespace string) error {
 			}
 		}
 	}
-	// Deploy the catalogs
-	for _, catalog := range testCatalogs {
-		absCatalog := filepath.Join(repoPath, catalog)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalog, namespace)).Run()
+	// Deploy the catalogversions
+	for _, catalogversion := range testCatalogVersions {
+		absCatalogVersion := filepath.Join(repoPath, catalogversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCatalogVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, campaign := range testCampaign {
-		absCampaign := filepath.Join(repoPath, campaign)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaign, namespace)).Run()
+	for _, campaignversion := range testCampaignVersion {
+		absCampaignVersion := filepath.Join(repoPath, campaignversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaignVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
 	}
 
-	CheckCampaign(t, namespace)
+	CheckCampaignVersion(t, namespace)
 
 	for _, activation := range testActivations {
 		absActivation := filepath.Join(repoPath, activation)
@@ -107,9 +107,9 @@ func DeployManifests(t *testing.T, namespace string) error {
 	return nil
 }
 
-// Verify catalog created
-func CheckCatalogs(t *testing.T, namespace string) {
-	fmt.Printf("Checking Catalogs\n")
+// Verify catalogversion created
+func CheckCatalogVersions(t *testing.T, namespace string) {
+	fmt.Printf("Checking CatalogVersions\n")
 	if namespace == "" {
 		namespace = "default"
 	}
@@ -117,7 +117,7 @@ func CheckCatalogs(t *testing.T, namespace string) {
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "federation.symphony",
 		Version: "v1",
-		Kind:    "Catalog",
+		Kind:    "CatalogVersion",
 	})
 
 	cfg, err := testhelpers.RestConfig()
@@ -130,15 +130,15 @@ func CheckCatalogs(t *testing.T, namespace string) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "federation.symphony",
 			Version:  "v1",
-			Resource: "catalogs",
+			Resource: "catalogversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
-		catalogs := []string{}
+		catalogversions := []string{}
 		for _, item := range resources.Items {
-			catalogs = append(catalogs, item.GetName())
+			catalogversions = append(catalogversions, item.GetName())
 		}
-		fmt.Printf("Catalogs: %v\n", catalogs)
+		fmt.Printf("CatalogVersions: %v\n", catalogversions)
 		if len(resources.Items) == 7 {
 			break
 		}
@@ -148,9 +148,9 @@ func CheckCatalogs(t *testing.T, namespace string) {
 	}
 }
 
-// Verify campaign created
-func CheckCampaign(t *testing.T, namespace string) {
-	fmt.Printf("Checking Campaign\n")
+// Verify campaignversion created
+func CheckCampaignVersion(t *testing.T, namespace string) {
+	fmt.Printf("Checking CampaignVersion\n")
 	if namespace == "" {
 		namespace = "default"
 	}
@@ -158,7 +158,7 @@ func CheckCampaign(t *testing.T, namespace string) {
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "workflow.symphony",
 		Version: "v1",
-		Kind:    "Campaign",
+		Kind:    "CampaignVersion",
 	})
 
 	cfg, err := testhelpers.RestConfig()
@@ -171,7 +171,7 @@ func CheckCampaign(t *testing.T, namespace string) {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "workflow.symphony",
 			Version:  "v1",
-			Resource: "campaigns",
+			Resource: "campaignversions",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 		require.NoError(t, err)
 
@@ -225,17 +225,17 @@ func CheckActivationStatus(t *testing.T, namespace string) {
 			// require.Equal(t, "list", state.Status.StageHistory[0].NextStage)
 			// require.Equal(t, v1alpha2.Done, state.Status.StageHistory[0].Status)
 			// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[0].StatusMessage)
-			// require.Equal(t, "catalogs", state.Status.StageHistory[0].Inputs["objectType"])
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[0].Inputs["objectType"])
 			// require.Equal(t, []interface{}{"sitecatalog:version1", "sitecatalog2:version1", "siteapp:version1", "sitek8starget:version1", "siteinstance:version1"}, state.Status.StageHistory[0].Inputs["names"].([]interface{}))
-			// require.Equal(t, "catalogs", state.Status.StageHistory[0].Outputs["objectType"])
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[0].Outputs["objectType"])
 			// require.Equal(t, "list", state.Status.StageHistory[1].Stage)
 			// require.Equal(t, "deploy", state.Status.StageHistory[1].NextStage)
 			// require.Equal(t, v1alpha2.Done, state.Status.StageHistory[1].Status)
 			// require.Equal(t, v1alpha2.Done.String(), state.Status.StageHistory[1].StatusMessage)
-			// require.Equal(t, "catalogs", state.Status.StageHistory[1].Inputs["objectType"])
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[1].Inputs["objectType"])
 			// require.Equal(t, true, state.Status.StageHistory[1].Inputs["namesOnly"])
 			// require.Equal(t, []interface{}{"siteapp-v-version1", "sitecatalog-v-version1", "sitecatalog2-v-version1", "siteinstance-v-version1", "sitek8starget-v-version1"}, state.Status.StageHistory[1].Outputs["items"].([]interface{}))
-			// require.Equal(t, "catalogs", state.Status.StageHistory[1].Outputs["objectType"])
+			// require.Equal(t, "catalogversions", state.Status.StageHistory[1].Outputs["objectType"])
 			// require.Equal(t, "deploy", state.Status.StageHistory[2].Stage)
 			// require.Equal(t, "", state.Status.StageHistory[2].NextStage)
 			// require.Equal(t, v1alpha2.Done, state.Status.StageHistory[2].Status)

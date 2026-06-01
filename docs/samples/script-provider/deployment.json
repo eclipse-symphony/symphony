@@ -1,6 +1,6 @@
 {
-    "solutionName": "redis-server",
-    "solution": {
+    "solutionversionName": "redis-server",
+    "solutionversion": {
      "displayName": "redis-server",
      "scope": "default",
      "metadata": {
@@ -25,7 +25,7 @@
      "name": "redis-instance",
      "displayName": "redis-instance",
      "scope": "default",
-     "solution": "redis-server",
+     "solutionversion": "redis-server",
      "metadata": {
       "deployment.replicas": "#1",
       "service.ports": "[{\"name\":\"port6379\",\"port\": 6379}]",

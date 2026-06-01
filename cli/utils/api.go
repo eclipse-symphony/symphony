@@ -35,12 +35,12 @@ func Remove(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
-	case "solution-container", "solution-containers":
-		route = "/solutioncontainers"
+	case "solutionversion-container", "solutionversion-containers":
+		route = "/solutions"
 	case "target", "targets":
 		route = "/targets/registry"
-	case "solution", "solutions":
-		route = "/solutions"
+	case "solutionversion", "solutionversions":
+		route = "/solutionversions"
 	case "instance", "instances":
 		route = "/instances"
 	}
@@ -61,12 +61,12 @@ func Upsert(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
-	case "solution-container", "solution-containers":
-		route = "/solutioncontainers"
+	case "solutionversion-container", "solutionversion-containers":
+		route = "/solutions"
 	case "target", "targets":
 		route = "/targets/registry"
-	case "solution", "solutions":
-		route = "/solutions"
+	case "solutionversion", "solutionversions":
+		route = "/solutionversions"
 	case "instance", "instances":
 		route = "/instances"
 	}
@@ -106,12 +106,12 @@ func Get(url string, username string, password string, objType string, path stri
 		route = "/targets/registry"
 	case "device", "devices":
 		route = "/devices"
-	case "solution", "solutions":
-		route = "/solutions"
+	case "solutionversion", "solutionversions":
+		route = "/solutionversions"
 	case "instance", "instances":
 		route = "/instances"
-	case "catalog", "catalogs":
-		route = "/catalogs/registry"
+	case "catalogversion", "catalogversions":
+		route = "/catalogversions/registry"
 	default:
 		return nil, fmt.Errorf("unsupported object type: %s", objType)
 	}

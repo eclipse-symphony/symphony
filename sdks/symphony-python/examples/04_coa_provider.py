@@ -199,8 +199,8 @@ def example_deployment_spec():
         ComponentSpec,
         DeploymentSpec,
         ObjectMeta,
-        SolutionSpec,
-        SolutionState,
+        SolutionVersionSpec,
+        SolutionVersionState,
         to_dict,
     )
 
@@ -211,16 +211,16 @@ def example_deployment_spec():
 
     component2 = ComponentSpec(name="backend", type="container", properties={"image": "node:18"})
 
-    solution = SolutionState(
+    solutionversion = SolutionVersionState(
         metadata=ObjectMeta(name="my-app"),
-        spec=SolutionSpec(components=[component1, component2], displayName="My Application"),
+        spec=SolutionVersionSpec(components=[component1, component2], displayName="My Application"),
     )
 
-    deployment = DeploymentSpec(solutionName="my-app", solution=solution, activeTarget="target-001")
+    deployment = DeploymentSpec(solutionversionName="my-app", solutionversion=solutionversion, activeTarget="target-001")
 
     print("✓ Created deployment spec")
-    print(f"  Solution: {deployment.solutionName}")
-    print(f"  Components: {len(deployment.solution.spec.components)}")
+    print(f"  SolutionVersion: {deployment.solutionversionName}")
+    print(f"  Components: {len(deployment.solutionversion.spec.components)}")
 
     # Get component slice
     components = deployment.get_components_slice()

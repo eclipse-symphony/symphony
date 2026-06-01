@@ -27,12 +27,12 @@ func TestGet(t *testing.T) {
 	provider := ProxyUpdateProvider{}
 	err := provider.Init(ProxyUpdateProviderConfig{
 		Name:      "proxy",
-		ServerURL: "http://localhost:8090/v1alpha2/solution/",
+		ServerURL: "http://localhost:8090/v1alpha2/solutionversion/",
 	})
 	assert.Nil(t, err)
 	components, err := provider.Get(context.Background(), model.DeploymentSpec{
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{
 					{
 						Name: "HomeHub_1.0.4.0_x64",
@@ -90,7 +90,7 @@ func TestRemove(t *testing.T) {
 	provider := ProxyUpdateProvider{}
 	err := provider.Init(ProxyUpdateProviderConfig{
 		Name:      "proxy",
-		ServerURL: "http://localhost:8090/v1alpha2/solution/",
+		ServerURL: "http://localhost:8090/v1alpha2/solutionversion/",
 	})
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
@@ -103,8 +103,8 @@ func TestRemove(t *testing.T) {
 		Assignments: map[string]string{
 			"target1": "{HomeHub_1.0.4.0_x64}",
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -149,7 +149,7 @@ func TestApply(t *testing.T) {
 	provider := ProxyUpdateProvider{}
 	err := provider.Init(ProxyUpdateProviderConfig{
 		Name:      "proxy",
-		ServerURL: "http://localhost:8090/v1alpha2/solution/",
+		ServerURL: "http://localhost:8090/v1alpha2/solutionversion/",
 	})
 	assert.Nil(t, err)
 	component := model.ComponentSpec{
@@ -162,8 +162,8 @@ func TestApply(t *testing.T) {
 		Assignments: map[string]string{
 			"target1": "{HomeHub_1.0.4.0_x64}",
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -258,8 +258,8 @@ func TestProxyUpdateProviderApplyGet(t *testing.T) {
 		Assignments: map[string]string{
 			"target1": "test",
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

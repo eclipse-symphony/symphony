@@ -3,7 +3,7 @@
         "name": "ankaios-app-instance"    
     },
     "spec": {
-        "solution": "ankaios-app:v1",
+        "solutionversion": "ankaios-app:v1",
         "target": {
             "name": "ankaios-target"
         },

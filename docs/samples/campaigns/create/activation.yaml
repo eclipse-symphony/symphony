@@ -3,4 +3,4 @@ kind: Activation
 metadata:
   name: create-activation
 spec:
-  campaign: "create-campaign:version1"
+  campaignversion: "create-campaign:version1"

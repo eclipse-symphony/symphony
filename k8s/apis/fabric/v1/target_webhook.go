@@ -98,7 +98,7 @@ func (r *Target) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		}
 		return false, nil
 	}
-	if projectConfig.UniqueDisplayNameForSolution {
+	if projectConfig.UniqueDisplayNameForSolutionVersion {
 		targetValidator = validation.NewTargetValidator(targetInstanceLookupFunc, uniqueNameTargetLookupFunc)
 	} else {
 		targetValidator = validation.NewTargetValidator(targetInstanceLookupFunc, nil)
@@ -142,7 +142,7 @@ func (r *Target) Default() {
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)
 	}
-	if projectConfig.UniqueDisplayNameForSolution {
+	if projectConfig.UniqueDisplayNameForSolutionVersion {
 		r.Labels[api_constants.DisplayName] = utils.ConvertStringToValidLabel(r.Spec.DisplayName)
 	}
 }

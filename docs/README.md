@@ -8,16 +8,16 @@ Welcome to Symphony!
   <img src="./symphony-book/images/symphony.png" alt="Symphony" width="200" height="200">
 </div>
 
-Have you encountered the complexities of manually orchestrating multiple toolchains to oversee your edge infrastructure and solutions? Symphony orchestrates existing services and tools to form an end-to-end, consistent intelligent edge experience. Symphony unites various device classes, software artifacts, and service toolchains, seamlessly harmonizing them into a unified system. With Symphony, you become the maestro, holding the complete vision and exerting precise control while enabling each component to realize its full potential, regardless of whether it's on heavy edge, light edge, or tiny edge, and irrespective of whether it's running on Kubernetes, in the cloud, or on-premises services.
+Have you encountered the complexities of manually orchestrating multiple toolchains to oversee your edge infrastructure and solutionversions? Symphony orchestrates existing services and tools to form an end-to-end, consistent intelligent edge experience. Symphony unites various device classes, software artifacts, and service toolchains, seamlessly harmonizing them into a unified system. With Symphony, you become the maestro, holding the complete vision and exerting precise control while enabling each component to realize its full potential, regardless of whether it's on heavy edge, light edge, or tiny edge, and irrespective of whether it's running on Kubernetes, in the cloud, or on-premises services.
 
 ## Features
 
-To enable your edge solution orchestration, Symphony:
+To enable your edge solutionversion orchestration, Symphony:
 
 * Projects resources as Kubernetes custom resources, allowing the control plane to be managed using K8s native tools such as kubectl.
 * Supports different application model formats, including Helm charts, and a ModuleGroup format that is designed to group multiple Azure IoT Edge modules.
 * Supports hardware-accelerated AI payloads using media pipelines through Live AI, OpenVINO, etc.
-* Shares the same solution management, security management, and device management logic to ensure consistent behavior across cloud and edge.
+* Shares the same solutionversion management, security management, and device management logic to ensure consistent behavior across cloud and edge.
 * Works well with AKS, Arc, IoT Hub and other Azure services.
 * Supports dynamic device discovery and update through Akri.
 * Supports additional computational nodes such as Azure Sphere through Virtual Kubelet.
@@ -42,13 +42,13 @@ First, install Symphony on your device using one of the following methods:
 
 * [Use Symphony as a self-contained binary](./symphony-book/get-started/quick_start_binary.md)
 
-Then, try one of the quickstart scenarios that use Symphony to deploy a sample solution:
+Then, try one of the quickstart scenarios that use Symphony to deploy a sample solutionversion:
 
 | Scenario | Requires K8s | Requires Azure | Requires Azure IoT Edge| Requires Docker | Requires RTSP Camera |
 |--------|--------|--------|--------|--------|--------|
 | [Deploy a Prometheus server to a K8s cluster](./symphony-book/get-started/deploy_prometheus_k8s.md) | **Yes** | - | - | - | - |
 | [Deploy a Redis container with standalone Symphony](./symphony-book/get-started/deploy_redis_no_k8s.md)| - | - | - | **Yes** | - |
-| [Deploy a simulated temperature sensor Solution to an Azure IoT Edge device](./symphony-book/get-started/deploy_solution_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
+| [Deploy a simulated temperature sensor SolutionVersion to an Azure IoT Edge device](./symphony-book/get-started/deploy_solutionversion_to_azure_iot_edge.md) | **Yes** | **Yes** | **Yes** | - | - |
 | [Manage RTSP cameras connected to a gateway](./symphony-book/get-started/manage_rtsp_cameras.md) | **Yes** | **Yes** | - | - | **Yes** |
 
 ## Concepts
@@ -64,7 +64,7 @@ Then, try one of the quickstart scenarios that use Symphony to deploy a sample s
 * [Deploy Symphony to a single site](./symphony-book/build_deployment/deploy.md)
 * [Multi-cluster and multi-site management](./symphony-book/multi-site/_overview.md)
 * [Troubleshoot](./symphony-book/dev-guide/troubleshoot.md)
-* [Model applications](./symphony-book/concepts/unified-object-model/solution.md)
+* [Model applications](./symphony-book/concepts/unified-object-model/solutionversion.md)
 * [Symphony agents](./symphony-book/agent/_overview.md)
 * [Configuration management](./symphony-book/configuration-management/_overview.md)
 ## Sample scenarios

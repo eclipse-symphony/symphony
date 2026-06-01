@@ -33,9 +33,9 @@ var (
 var (
 	// Manifests to deploy
 	testManifests = []string{
-		"manifest/%s/solution-container.yaml",
+		"manifest/%s/solutionversion-container.yaml",
 		"manifest/%s/target.yaml",
-		"manifest/%s/solution.yaml",
+		"manifest/%s/solutionversion.yaml",
 		"manifest/%s/instance.yaml",
 	}
 

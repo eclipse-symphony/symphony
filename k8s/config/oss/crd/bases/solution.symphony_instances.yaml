@@ -98,7 +98,7 @@ spec:
                 type: object
               scope:
                 type: string
-              solution:
+              solutionversion:
                 type: string
               target:
                 description: TargertRefSpec defines the target the instance will deploy
@@ -141,7 +141,7 @@ spec:
                   type: object
                 type: array
             required:
-            - solution
+            - solutionversion
             type: object
           status:
             properties:

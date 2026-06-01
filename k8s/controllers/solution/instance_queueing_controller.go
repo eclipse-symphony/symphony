@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solution
+package solutionversion
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"time"
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
-	solution_v1 "gopls-workspace/apis/solution/v1"
+	solutionversion_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
@@ -55,7 +55,7 @@ func (r *InstanceQueueingReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	reconcileTime := time.Now()
 
 	// Get instance
-	instance := &solution_v1.Instance{}
+	instance := &solutionversion_v1.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since this CR has been deleted")
@@ -145,10 +145,10 @@ func (r *InstanceQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstanceQueueing").
 		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
-		For(&solution_v1.Instance{}).
+		For(&solutionversion_v1.Instance{}).
 		WithEventFilter(predicate.Or(generationChange, operationIdPredicate)).
-		Watches(new(solution_v1.Solution), handler.EnqueueRequestsFromMapFunc(
-			r.handleSolution)).
+		Watches(new(solutionversion_v1.SolutionVersion), handler.EnqueueRequestsFromMapFunc(
+			r.handleSolutionVersion)).
 		Watches(new(fabric_v1.Target), handler.EnqueueRequestsFromMapFunc(
 			r.handleTarget)).
 		Complete(r)
@@ -161,7 +161,7 @@ func (r *InstanceQueueingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // What if the instance changes from inactive -> active (not summary reported) -> inactive
 // "removed" property will be removed before making queuedeployment calls to symphony API server
 // so that later inactive instance can be reconciled again.
-func checkSkipReconcile(log logr.Logger, ctx context.Context, instance *solution_v1.Instance) bool {
+func checkSkipReconcile(log logr.Logger, ctx context.Context, instance *solutionversion_v1.Instance) bool {
 	if instance.Spec.ActiveState != model.ActiveState_Inactive {
 		return false
 	}

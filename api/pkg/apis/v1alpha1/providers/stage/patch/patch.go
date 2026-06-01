@@ -200,27 +200,27 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		objectNamespace = "default"
 	}
 
-	var catalog model.CatalogState
+	var catalogversion model.CatalogVersionState
 
 	switch patchSource {
-	case "", "catalog":
+	case "", "catalogversion":
 		if v, ok := patchContent.(string); ok {
 			v := api_utils.ConvertReferenceToObjectName(v)
-			catalog, err = i.ApiClient.GetCatalog(ctx, v, objectNamespace, i.Config.User, i.Config.Password)
+			catalogversion, err = i.ApiClient.GetCatalogVersion(ctx, v, objectNamespace, i.Config.User, i.Config.Password)
 
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalogversion %s", v)
 				providerOperationMetrics.ProviderOperationErrors(
 					patch,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.CatalogsGetFailed.String(),
+					v1alpha2.CatalogVersionsGetFailed.String(),
 				)
 				return nil, false, err
 			}
 		} else {
-			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalogversion %s", v)
 			err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
 			providerOperationMetrics.ProviderOperationErrors(
 				patch,
@@ -234,13 +234,13 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 	case "inline":
 		if componentName != "" {
 			if v, ok := patchContent.(map[string]interface{}); ok {
-				catalog = model.CatalogState{
-					Spec: &model.CatalogSpec{
+				catalogversion = model.CatalogVersionState{
+					Spec: &model.CatalogVersionSpec{
 						Properties: v,
 					},
 				}
 			} else {
-				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalog %s", v)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting catalogversion %s", v)
 				err = v1alpha2.NewCOAError(nil, "patchContent is not valid", v1alpha2.BadConfig)
 				providerOperationMetrics.ProviderOperationErrors(
 					patch,
@@ -265,8 +265,8 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 				)
 				return nil, false, err
 			}
-			catalog = model.CatalogState{
-				Spec: &model.CatalogSpec{
+			catalogversion = model.CatalogVersionState{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"spec": componentSpec,
 					},
@@ -286,59 +286,59 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 		return nil, false, err
 	}
 
-	for k, v := range catalog.Spec.Properties {
+	for k, v := range catalogversion.Spec.Properties {
 		var tv interface{}
 		tv, err = i.traceValue(ctx, v, inputs["context"])
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error tracing value %s", k)
 			return nil, false, err
 		}
-		catalog.Spec.Properties[k] = tv
+		catalogversion.Spec.Properties[k] = tv
 	}
 
 	switch objectType {
-	case "solution":
-		var solution model.SolutionState
-		solution, err = i.ApiClient.GetSolution(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
+	case "solutionversion":
+		var solutionversion model.SolutionVersionState
+		solutionversion, err = i.ApiClient.GetSolutionVersion(ctx, objectName, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting solution %s", objectName)
+			sLog.ErrorfCtx(ctx, "  P (Patch Stage): error getting solutionversion %s", objectName)
 			providerOperationMetrics.ProviderOperationErrors(
 				patch,
 				functionName,
 				metrics.ProcessOperation,
 				metrics.RunOperationType,
-				v1alpha2.SolutionGetFailed.String(),
+				v1alpha2.SolutionVersionGetFailed.String(),
 			)
 			return nil, false, err
 		}
 
 		if componentName == "" {
-			componentSpec, ok := catalog.Spec.Properties["spec"].(model.ComponentSpec)
+			componentSpec, ok := catalogversion.Spec.Properties["spec"].(model.ComponentSpec)
 			if !ok {
-				sLog.ErrorfCtx(ctx, "  P (Patch Stage): catalog spec is not valid")
-				err = v1alpha2.NewCOAError(nil, "catalog spec is not valid", v1alpha2.BadConfig)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): catalogversion spec is not valid")
+				err = v1alpha2.NewCOAError(nil, "catalogversion spec is not valid", v1alpha2.BadConfig)
 				return nil, false, err
 			}
-			if solution.Spec.Components == nil {
-				solution.Spec.Components = make([]model.ComponentSpec, 0)
+			if solutionversion.Spec.Components == nil {
+				solutionversion.Spec.Components = make([]model.ComponentSpec, 0)
 			}
-			for i, c := range solution.Spec.Components {
+			for i, c := range solutionversion.Spec.Components {
 				if c.Name == componentSpec.Name {
 					if patchAction == "remove" {
-						solution.Spec.Components = append(solution.Spec.Components[:i], solution.Spec.Components[i+1:]...)
+						solutionversion.Spec.Components = append(solutionversion.Spec.Components[:i], solutionversion.Spec.Components[i+1:]...)
 					} else {
-						solution.Spec.Components[i] = componentSpec
+						solutionversion.Spec.Components[i] = componentSpec
 					}
 					updated = true
 					break
 				}
 			}
 			if !updated && patchAction != "remove" {
-				solution.Spec.Components = append(solution.Spec.Components, componentSpec)
+				solutionversion.Spec.Components = append(solutionversion.Spec.Components, componentSpec)
 				updated = true
 			}
 		} else {
-			for i, c := range solution.Spec.Components {
+			for i, c := range solutionversion.Spec.Components {
 				if c.Name == componentName {
 					for k, p := range c.Properties {
 						if k == propertyName {
@@ -350,11 +350,11 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 											if dedupKey != "" {
 												for i, v := range targetMap {
 													if vmap, ok := v.(map[string]interface{}); ok {
-														if vmap[dedupKey] == catalog.Spec.Properties[dedupKey] {
+														if vmap[dedupKey] == catalogversion.Spec.Properties[dedupKey] {
 															if patchAction == "remove" {
 																targetMap = append(targetMap[:i], targetMap[i+1:]...)
 															} else {
-																targetMap[i] = catalog.Spec.Properties
+																targetMap[i] = catalogversion.Spec.Properties
 															}
 															replaced = true
 															break
@@ -363,10 +363,10 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 												}
 											}
 											if !replaced && patchAction != "remove" {
-												targetMap = append(targetMap, catalog.Spec.Properties)
+												targetMap = append(targetMap, catalogversion.Spec.Properties)
 											}
 											detailedTarget[subKey] = targetMap
-											solution.Spec.Components[i].Properties[propertyName] = detailedTarget
+											solutionversion.Spec.Components[i].Properties[propertyName] = detailedTarget
 											updated = true
 										} else {
 											sLog.ErrorfCtx(ctx, "  P (Patch Stage): target properties is not valid")
@@ -410,11 +410,11 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 									if dedupKey != "" {
 										for i, v := range targetMap {
 											if vmap, ok := v.(map[string]interface{}); ok {
-												if vmap[dedupKey] == catalog.Spec.Properties[dedupKey] {
+												if vmap[dedupKey] == catalogversion.Spec.Properties[dedupKey] {
 													if patchAction == "remove" {
 														targetMap = append(targetMap[:i], targetMap[i+1:]...)
 													} else {
-														targetMap[i] = catalog.Spec.Properties
+														targetMap[i] = catalogversion.Spec.Properties
 													}
 													replaced = true
 													break
@@ -423,9 +423,9 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 										}
 									}
 									if !replaced && patchAction != "remove" {
-										targetMap = append(targetMap, catalog.Spec.Properties)
+										targetMap = append(targetMap, catalogversion.Spec.Properties)
 									}
-									solution.Spec.Components[i].Properties[propertyName] = targetMap
+									solutionversion.Spec.Components[i].Properties[propertyName] = targetMap
 									updated = true
 								} else {
 									sLog.ErrorfCtx(ctx, "  P (Patch Stage): target properties is not valid")
@@ -448,11 +448,11 @@ func (i *PatchStageProvider) Process(ctx context.Context, mgrContext contexts.Ma
 			}
 		}
 		if updated {
-			jData, _ := json.Marshal(solution)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Patch Stage): updating solution name: %s namespace: %s", objectName, objectNamespace)
-			err = i.ApiClient.UpsertSolution(ctx, objectName, jData, objectNamespace, i.Config.User, i.Config.Password)
+			jData, _ := json.Marshal(solutionversion)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Patch Stage): updating solutionversion name: %s namespace: %s", objectName, objectNamespace)
+			err = i.ApiClient.UpsertSolutionVersion(ctx, objectName, jData, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error updating solution %s", objectName)
+				sLog.ErrorfCtx(ctx, "  P (Patch Stage): error updating solutionversion %s", objectName)
 				providerOperationMetrics.ProviderOperationErrors(
 					patch,
 					functionName,

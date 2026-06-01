@@ -1,12 +1,12 @@
-# Catalog
+# CatalogVersion
 
-A Symphony catalog is a piece of indexed information. It can contain a key-value pair collection itself, or it can be used as an index of a piece of external data, such as a document at a URL or a record in a database. Symphony saves Catalog objects in a non-SQL store and puts a graph engine on top to provide graph query capabilities.
+A Symphony catalogversion is a piece of indexed information. It can contain a key-value pair collection itself, or it can be used as an index of a piece of external data, such as a document at a URL or a record in a database. Symphony saves CatalogVersion objects in a non-SQL store and puts a graph engine on top to provide graph query capabilities.
 
-The following is an example of a simple Symphony `catalog` that holds information about an office as a collection of key-value pairs. You can put any key-value pairs in a `catalog` object. This object represents a node in a graph.
+The following is an example of a simple Symphony `catalogversion` that holds information about an office as a collection of key-value pairs. You can put any key-value pairs in a `catalogversion` object. This object represents a node in a graph.
 
 ```yaml
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq
 spec:  
@@ -24,13 +24,13 @@ spec:
     lng: "-122.12826"
 ```
 
-To represent a collection of edges, you can use an `edge` catalog:
+To represent a collection of edges, you can use an `edge` catalogversion:
 
 > **NOTE**: In the current version, all edges are assumed to be directional, pointing from the key to the value in a key-value pair.
 
 ```yaml
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: edges
 spec:  
@@ -40,13 +40,13 @@ spec:
     node2: node3
 ```
 
-Symphony also provides an easier way to construct tree views with a `parentName` property, which can be used to point to a parent node/Catalog.
+Symphony also provides an easier way to construct tree views with a `parentName` property, which can be used to point to a parent node/CatalogVersion.
 
-In any of the property values, you can refer to another catalog using a `<catalog-name>` expression. In the following example, the `line` property refers to another catalog object named `line-config`. All properties from the `line-config` object will be copied into the `line` property as child attributes. The sample also shows how you can use a `parentName` to set the parent node to a `global-config` catalog.
+In any of the property values, you can refer to another catalogversion using a `<catalogversion-name>` expression. In the following example, the `line` property refers to another catalogversion object named `line-config`. All properties from the `line-config` object will be copied into the `line` property as child attributes. The sample also shows how you can use a `parentName` to set the parent node to a `global-config` catalogversion.
 
 ```yaml
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: app-config
 spec:  

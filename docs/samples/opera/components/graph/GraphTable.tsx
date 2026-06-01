@@ -1,7 +1,7 @@
 'use client';
 import TreeView from '@mui/lab/TreeView'
 import TreeItem from '@mui/lab/TreeItem';
-import { CatalogState } from '@/app/types';
+import { CatalogVersionState } from '@/app/types';
 import { AiOutlineMinusSquare, AiOutlinePlusSquare } from 'react-icons/ai';
 import { SiKubernetes } from 'react-icons/si';
 import { TbBuildingCommunity } from 'react-icons/tb';
@@ -13,49 +13,49 @@ import {Table, TableHeader, TableColumn, TableBody} from "@nextui-org/react";
 import TableContainer from '@mui/material/TableContainer';
 
 interface GraphTableProps {
-    catalogs: CatalogState[];
+    catalogversions: CatalogVersionState[];
     columns: any[] | undefined;
 }
 
-function BuildForest(catalogs: Record<string, CatalogState[]>) {
+function BuildForest(catalogversions: Record<string, CatalogVersionState[]>) {
     const forest: any = [];
-    console.log(catalogs);
-    for (const [_, cats] of Object.entries(catalogs)) {
-        cats.forEach((catalog: CatalogState) => {
-            if (catalog.spec.parentName==="" || catalog.spec.parentName===undefined) {
-                forest.push(BuildTree(cats, catalog));
+    console.log(catalogversions);
+    for (const [_, cats] of Object.entries(catalogversions)) {
+        cats.forEach((catalogversion: CatalogVersionState) => {
+            if (catalogversion.spec.parentName==="" || catalogversion.spec.parentName===undefined) {
+                forest.push(BuildTree(cats, catalogversion));
             }
         });    
     }
 
     return forest;
 }
-function BuildTree(catalogs: CatalogState[], catalog: CatalogState) {
+function BuildTree(catalogversions: CatalogVersionState[], catalogversion: CatalogVersionState) {
     const nodes: any = [];
-    catalogs.forEach((cat: CatalogState) => {
-        if (cat.spec.parentName===catalog.spec.name) {
-            nodes.push(BuildTree(catalogs, cat));
+    catalogversions.forEach((cat: CatalogVersionState) => {
+        if (cat.spec.parentName===catalogversion.spec.name) {
+            nodes.push(BuildTree(catalogversions, cat));
         }
     });        
-    return BuildTreeNode(catalog, nodes);  
+    return BuildTreeNode(catalogversion, nodes);  
 }
-function BuildTreeNode(catalog: CatalogState, children: any) {
-    return <TreeItem nodeId={catalog.spec.name} label={BuildTreeNodeLabel(catalog)}>{children}</TreeItem>    
+function BuildTreeNode(catalogversion: CatalogVersionState, children: any) {
+    return <TreeItem nodeId={catalogversion.spec.name} label={BuildTreeNodeLabel(catalogversion)}>{children}</TreeItem>    
 }
-function BuildTreeNodeLabel(catalog: CatalogState) {
+function BuildTreeNodeLabel(catalogversion: CatalogVersionState) {
     return <div className='treenode'>
-        {(catalog.spec.parentName === '' || catalog.spec.parentName === undefined) && <TbBuildingCommunity />}
-        {catalog.spec.objectRef?.kind === 'arc' && <SiKubernetes />}
-        {catalog.spec.objectRef?.kind === 'adr' && <FaDatabase />}
-        {catalog.spec.objectRef?.kind === 'iot-hub' && <MdHub />}
-        {catalog.spec.objectRef?.kind === 'site' && <FaSitemap />}
-        {catalog.spec.properties.name}
+        {(catalogversion.spec.parentName === '' || catalogversion.spec.parentName === undefined) && <TbBuildingCommunity />}
+        {catalogversion.spec.objectRef?.kind === 'arc' && <SiKubernetes />}
+        {catalogversion.spec.objectRef?.kind === 'adr' && <FaDatabase />}
+        {catalogversion.spec.objectRef?.kind === 'iot-hub' && <MdHub />}
+        {catalogversion.spec.objectRef?.kind === 'site' && <FaSitemap />}
+        {catalogversion.spec.properties.name}
     </div>
 }
 
 function GraphTable(props: GraphTableProps) {
     const [visibleNodes, setVisibleNodes] = useState<string[]>([]);
-    const { catalogs, columns } = props;
+    const { catalogversions, columns } = props;
     const treeViewRef = useRef<HTMLDivElement>(null);
     
     const updateVisibleNodes = () => {
@@ -68,7 +68,7 @@ function GraphTable(props: GraphTableProps) {
         setVisibleNodes(visibleNodes);
     }
 
-    const mergedCatalogs: CatalogState[] = [];
+    const mergedCatalogVersions: CatalogVersionState[] = [];
    
     const mergedColumns: any[] = [];
     if (columns) {
@@ -76,10 +76,10 @@ function GraphTable(props: GraphTableProps) {
             mergedColumns.push(cols);
         }
     }
-    //for (const [_, cats] of Object.entries(catalogs)) {
-    //    mergedCatalogs.push(...cats);
+    //for (const [_, cats] of Object.entries(catalogversions)) {
+    //    mergedCatalogVersions.push(...cats);
     //}
-    mergedCatalogs.push(...catalogs);
+    mergedCatalogVersions.push(...catalogversions);
 
     useEffect(() => {
         const observer = new MutationObserver(() => {
@@ -89,7 +89,7 @@ function GraphTable(props: GraphTableProps) {
         if (treeview) {
             observer.observe(treeview, { childList: true, subtree: true });
         }
-      }, [mergedCatalogs, mergedColumns]);
+      }, [mergedCatalogVersions, mergedColumns]);
 
     useEffect(() => {
         const tableBody = document.querySelector('#tree-table tbody');
@@ -97,14 +97,14 @@ function GraphTable(props: GraphTableProps) {
             tableBody?.removeChild(node);
         });
         visibleNodes.forEach((nodeId: string) => {
-            const catalog = mergedCatalogs.find((catalog: CatalogState) => "tree-" + catalog.spec.name === nodeId);
-            if (catalog) {        
+            const catalogversion = mergedCatalogVersions.find((catalogversion: CatalogVersionState) => "tree-" + catalogversion.spec.name === nodeId);
+            if (catalogversion) {        
                 const row = document.createElement('tr');
                 mergedColumns?.forEach((column: any) => {
                     const cell = document.createElement('td');
                     cell.innerText = "...";
                     column.forEach((col: any) => {
-                        if (col.spec.metadata?.asset == catalog.spec.name) {
+                        if (col.spec.metadata?.asset == catalogversion.spec.name) {
                             cell.innerText = col.spec.name;                            
                         }                        
                     });
@@ -113,7 +113,7 @@ function GraphTable(props: GraphTableProps) {
                 tableBody?.appendChild(row);
             }
         });
-      }, [visibleNodes, mergedCatalogs, mergedColumns]);
+      }, [visibleNodes, mergedCatalogVersions, mergedColumns]);
     useEffect(() => {
         updateVisibleNodes();
     }, []);    
@@ -121,7 +121,7 @@ function GraphTable(props: GraphTableProps) {
        updateVisibleNodes();
     };
 
-    const treeNodes = BuildForest({"FIX-ME": catalogs});
+    const treeNodes = BuildForest({"FIX-ME": catalogversions});
     if (mergedColumns?.length) {
     return (
         <div className='graph_container'>

@@ -10,23 +10,23 @@ A polling agent can be deployed off the cluster where Symphony is running. It ca
 
 ## Workflow to configure a polling agent
 1.  Configure and launch a polling agent process. A polling agent can run as a single process, a Docker container, or a Kubernetes service (while running on a Kubernetes cluster). The polling agent uses the same binary that is used by Symphony API. It’s just loaded with a different configuration file that puts itself into the agent mode.
-2.  Define your target definition. The target should use a staged provider (either `providers.target.stage`. This provider writes the target desired state to a `Catalog` object, which can be then queried by a polling agent through Symphony API.
-3.  Define your solutions and instances as usual. When the solution is deployed to the target, Symphony realizes that the desired state of the components needs to be staged on the control plane itself as a `Catalog` object. Once the object is written, it can be queried by a polling agent through the Symphony API.
+2.  Define your target definition. The target should use a staged provider (either `providers.target.stage`. This provider writes the target desired state to a `CatalogVersion` object, which can be then queried by a polling agent through Symphony API.
+3.  Define your solutionversions and instances as usual. When the solutionversion is deployed to the target, Symphony realizes that the desired state of the components needs to be staged on the control plane itself as a `CatalogVersion` object. Once the object is written, it can be queried by a polling agent through the Symphony API.
 
 ## Polling agent configuration file
 
 > **NOTE:** You can see a polling agent configuration for off-cluster agent here: [api/symphony-api-poll-agent.json](../../../api/symphony-api-poll-agent.json), and a polling agent configuration for on-cluster agent here: [api/symphony-k8s-poll-agent.json](../../../api/symphony-k8s-poll-agent.json).
 
-The core polling agent functionality is delivered by the `vendors.solution` vendor (a vendor is a microservice in Symphony's architecture).
+The core polling agent functionality is delivered by the `vendors.solutionversion` vendor (a vendor is a microservice in Symphony's architecture).
 ```json
 {
-        "type": "vendors.solution",
+        "type": "vendors.solutionversion",
         "loopInterval": 15,
-        "route": "solution",
+        "route": "solutionversion",
         "managers": [
           {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
+            "name": "solutionversion-manager",
+            "type": "managers.symphony.solutionversion",
             "properties": {
               ...
               "isTarget": "true",
@@ -61,7 +61,7 @@ The core polling agent functionality is delivered by the `vendors.solution` vend
         ]
       }
 ```
-The vendor loads a `managers.symphony.solution` (a manager is a reusable business logic unit in Symphony's architecture), which defines how the agent represents on or more Symphony targets.
+The vendor loads a `managers.symphony.solutionversion` (a manager is a reusable business logic unit in Symphony's architecture), which defines how the agent represents on or more Symphony targets.
 
 * **isTarget**: This is the flag that puts the process into the target agent mode. Like mentioned earlier, target agent is the same binary as what's used by the Symphony API. This flag puts the process into agent mode.
 * **targetNames**: This is a comma-separate list that lists out Symphony target names the agent represents. An agent can represent one or more Symphony targets. **The names listed here must match with target names defined on the Symphony control plane.**
@@ -71,7 +71,7 @@ The vendor loads a `managers.symphony.solution` (a manager is a reusable busines
 > **NOTE**: You don't need to define any protocol bindings as you do for the [target agent](target-agent.md), because the polling agent always uses HTTPS.
 
 ## Target definition
-Your target definition needs to use a `providers.target.staging` to stage the target desired state on the control plane as a `Catalog` object, named as `<target-name>-state`. For example:
+Your target definition needs to use a `providers.target.staging` to stage the target desired state on the control plane as a `CatalogVersion` object, named as `<target-name>-state`. For example:
 
 ```yaml
 apiVersion: fabric.symphony/v1

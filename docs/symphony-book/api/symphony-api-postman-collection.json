@@ -7,10 +7,10 @@
 	},
 	"item": [
 		{
-			"name": "Solutions",
+			"name": "SolutionVersions",
 			"item": [
 				{
-					"name": "Create Solution",
+					"name": "Create SolutionVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -34,13 +34,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversions/{{SOLUTION_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solutions",
+								"solutionversions",
 								"{{SOLUTION_NAME}}"
 							]
 						}
@@ -48,7 +48,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Solution",
+					"name": "Get SolutionVersion",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -75,13 +75,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversions/{{SOLUTION_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solutions",
+								"solutionversions",
 								"{{SOLUTION_NAME}}"
 							]
 						}
@@ -89,7 +89,7 @@
 					"response": []
 				},
 				{
-					"name": "List Solutions",
+					"name": "List SolutionVersions",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -116,20 +116,20 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversions",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solutions"
+								"solutionversions"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Solution",
+					"name": "Delete SolutionVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -153,13 +153,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversions/{{SOLUTION_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solutions",
+								"solutionversions",
 								"{{SOLUTION_NAME}}"
 							]
 						}
@@ -167,7 +167,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Solution spec Yaml",
+					"name": "Get SolutionVersion spec Yaml",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -194,13 +194,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}?doc-type=yaml&path=$.spec",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversions/{{SOLUTION_NAME}}?doc-type=yaml&path=$.spec",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solutions",
+								"solutionversions",
 								"{{SOLUTION_NAME}}"
 							],
 							"query": [
@@ -218,7 +218,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Solution with embedded spec",
+					"name": "Create SolutionVersion with embedded spec",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -242,13 +242,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solutions/{{SOLUTION_NAME}}?embed-type=some-type&embed-component=some-component&embed-property=some-property",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversions/{{SOLUTION_NAME}}?embed-type=some-type&embed-component=some-component&embed-property=some-property",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solutions",
+								"solutionversions",
 								"{{SOLUTION_NAME}}"
 							],
 							"query": [
@@ -764,7 +764,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{ \r\n    \"metadata\": {\r\n        \"labels\": {\r\n            \"foo\": \"bar\"\r\n        }        \r\n    },\r\n    \"spec\": {\r\n        \"name\": \"{{INSTANCE_NAME}}\",\r\n        \"displayName\": \"{{INSTANCE_NAME}}\",\r\n        \"solution\": \"{{SOLUTION_NAME}}\",\r\n        \"target\": {\r\n            \"name\": \"{{TARGET_NAME}}\"\r\n        }\r\n    }\r\n}",
+							"raw": "{ \r\n    \"metadata\": {\r\n        \"labels\": {\r\n            \"foo\": \"bar\"\r\n        }        \r\n    },\r\n    \"spec\": {\r\n        \"name\": \"{{INSTANCE_NAME}}\",\r\n        \"displayName\": \"{{INSTANCE_NAME}}\",\r\n        \"solutionversion\": \"{{SOLUTION_NAME}}\",\r\n        \"target\": {\r\n            \"name\": \"{{TARGET_NAME}}\"\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -958,10 +958,10 @@
 			]
 		},
 		{
-			"name": "Catalogs",
+			"name": "CatalogVersions",
 			"item": [
 				{
-					"name": "List Catalogs",
+					"name": "List CatalogVersions",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -976,13 +976,13 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/registry",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"registry"
 							]
 						}
@@ -990,7 +990,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Catalog",
+					"name": "Create CatalogVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1014,13 +1014,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/registry/{{CATALOG_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"registry",
 								"{{CATALOG_NAME}}"
 							]
@@ -1029,7 +1029,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Catalog",
+					"name": "Get CatalogVersion",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1056,13 +1056,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/registry/{{CATALOG_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"registry",
 								"{{CATALOG_NAME}}"
 							]
@@ -1071,7 +1071,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Catalog spec YAML",
+					"name": "Get CatalogVersion spec YAML",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1098,13 +1098,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}?doc-type=yaml&path=$.spec",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/registry/{{CATALOG_NAME}}?doc-type=yaml&path=$.spec",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"registry",
 								"{{CATALOG_NAME}}"
 							],
@@ -1123,7 +1123,7 @@
 					"response": []
 				},
 				{
-					"name": "Delete Catalog",
+					"name": "Delete CatalogVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1147,13 +1147,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/registry/{{CATALOG_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"registry",
 								"{{CATALOG_NAME}}"
 							]
@@ -1162,7 +1162,7 @@
 					"response": []
 				},
 				{
-					"name": "List Catalogs - Asset Tree Template",
+					"name": "List CatalogVersions - Asset Tree Template",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1177,13 +1177,13 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/graph?template=asset-trees",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/graph?template=asset-trees",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"graph"
 							],
 							"query": [
@@ -1197,7 +1197,7 @@
 					"response": []
 				},
 				{
-					"name": "List Catalogs - Config Chains",
+					"name": "List CatalogVersions - Config Chains",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1212,13 +1212,13 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/graph?template=config-chains",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/graph?template=config-chains",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"graph"
 							],
 							"query": [
@@ -1232,7 +1232,7 @@
 					"response": []
 				},
 				{
-					"name": "Validate Catalog",
+					"name": "Validate CatalogVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1256,13 +1256,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/check",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/check",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"check"
 							]
 						}
@@ -1270,7 +1270,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Catalog 2",
+					"name": "Create CatalogVersion 2",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1294,13 +1294,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogs/registry/{{CATALOG_NAME}}-2",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/catalogversions/registry/{{CATALOG_NAME}}-2",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"catalogs",
+								"catalogversions",
 								"registry",
 								"{{CATALOG_NAME}}-2"
 							]
@@ -1344,10 +1344,10 @@
 			]
 		},
 		{
-			"name": "Campaigns",
+			"name": "CampaignVersions",
 			"item": [
 				{
-					"name": "Create Campaign",
+					"name": "Create CampaignVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1371,13 +1371,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							]
 						}
@@ -1385,7 +1385,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Campaign",
+					"name": "Get CampaignVersion",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1412,13 +1412,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							]
 						}
@@ -1426,7 +1426,7 @@
 					"response": []
 				},
 				{
-					"name": "List Campaigns",
+					"name": "List CampaignVersions",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1453,20 +1453,20 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns"
+								"campaignversions"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Campaign",
+					"name": "Delete CampaignVersion",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1490,13 +1490,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							]
 						}
@@ -1504,7 +1504,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Campaign spec YAML",
+					"name": "Get CampaignVersion spec YAML",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1531,13 +1531,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/campaigns/{{CAMPAIGN_NAME}}?doc-type=yaml&path=$.spec",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/campaignversions/{{CAMPAIGN_NAME}}?doc-type=yaml&path=$.spec",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"campaigns",
+								"campaignversions",
 								"{{CAMPAIGN_NAME}}"
 							],
 							"query": [
@@ -1576,7 +1576,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"spec\": {\r\n        \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n        \"name\": \"{{ACTIVATION_NAME}}\",\r\n        \"stage\": \"\",\r\n        \"inputs\": {\r\n            \"foo\": 0\r\n        }    \r\n    }\r\n}",
+							"raw": "{\r\n    \"spec\": {\r\n        \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n        \"name\": \"{{ACTIVATION_NAME}}\",\r\n        \"stage\": \"\",\r\n        \"inputs\": {\r\n            \"foo\": 0\r\n        }    \r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1618,7 +1618,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1660,7 +1660,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"name\": \"{{ACTIVATION_NAME}}\",\r\n    \"stage\": \"\",\r\n    \"inputs\": {\r\n        \"foo\": 0\r\n    }    \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1698,7 +1698,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaign\": \"test-campaign\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
+							"raw": "{\r\n    \"stage\": \"mock\",\r\n    \"outputs\": {\r\n        \"__activation\": \"test-activation\",\r\n        \"__activationGeneration\": \"1\",\r\n        \"__campaignversion\": \"test-campaignversion\",\r\n        \"__previousStage\": \"mock\",\r\n        \"__site\": \"hq\",\r\n        \"__stage\": \"mock\",\r\n        \"status\": 200,\r\n        \"foo\": 5\r\n    },\r\n    \"status\": 9996\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1789,7 +1789,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{CATALOG_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=catalogs&group=federation.symphony&version=v1",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{CATALOG_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=catalogversions&group=federation.symphony&version=v1",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
@@ -1809,7 +1809,7 @@
 								},
 								{
 									"key": "kind",
-									"value": "catalogs"
+									"value": "catalogversions"
 								},
 								{
 									"key": "group",
@@ -1825,7 +1825,7 @@
 					"response": []
 				},
 				{
-					"name": "Get object reference - solution",
+					"name": "Get object reference - solutionversion",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -1852,7 +1852,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{SOLUTION_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=solutions&group=solution.symphony&version=v1",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{SOLUTION_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=solutionversions&group=solution.symphony&version=v1",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
@@ -1872,7 +1872,7 @@
 								},
 								{
 									"key": "kind",
-									"value": "solutions"
+									"value": "solutionversions"
 								},
 								{
 									"key": "group",
@@ -2654,7 +2654,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\"\r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2842,7 +2842,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2930,7 +2930,7 @@
 			]
 		},
 		{
-			"name": "Solution",
+			"name": "SolutionVersion",
 			"item": [
 				{
 					"name": "Direct deployment",
@@ -2949,7 +2949,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionversionName\": \"redis\",\r\n    \"solutionversion\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2957,13 +2957,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/reconcile",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/reconcile",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"reconcile"
 							]
 						}
@@ -2990,7 +2990,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionversionName\": \"redis\",\r\n    \"solutionversion\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2998,13 +2998,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/instances",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/instances",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"instances"
 							]
 						}
@@ -3028,7 +3028,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionversionName\": \"redis\",\r\n    \"solutionversion\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3036,13 +3036,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/instances",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/instances",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"instances"
 							]
 						}
@@ -3066,7 +3066,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionversionName\": \"redis\",\r\n    \"solutionversion\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3074,13 +3074,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/instances",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/instances",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"instances"
 							]
 						}
@@ -3104,7 +3104,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionversionName\": \"redis\",\r\n    \"solutionversion\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3112,13 +3112,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/reconcile?delete=true",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/reconcile?delete=true",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"reconcile"
 							],
 							"query": [
@@ -3151,7 +3151,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionName\": \"redis\",\r\n    \"solution\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
+							"raw": "{\r\n    \"instance\": {\r\n        \"id\": \"direct-instance\",\r\n        \"spec\": {           \r\n            \"name\": \"direct-instance\"     \r\n        }\r\n    },\r\n    \"solutionversionName\": \"redis\",\r\n    \"solutionversion\": {\r\n        \"id\": \"redis\",\r\n        \"spec\": {\r\n            \"components\": [\r\n                {\r\n                    \"name\": \"redis\",                \r\n                    \"type\": \"container\",\r\n                    \"properties\": {\r\n                        \"container.image\": \"redis\"\r\n                    }\r\n                }\r\n            ]\r\n        }\r\n    },\r\n    \"targets\": {\r\n        \"local\": {\r\n            \"id\": \"local\",\r\n            \"spec\": {\r\n                \"topologies\": [\r\n                    {                    \r\n                        \"bindings\": [\r\n                            {\r\n                                \"role\": \"instance\",\r\n                                \"provider\": \"providers.target.docker\",\r\n                                \"config\": {                                \r\n                                }\r\n                            }\r\n                        ]                    \r\n                    }\r\n                ]\r\n            }\r\n        }\r\n    },\r\n    \"assignments\": {\r\n        \"local\": \"{redis}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3159,13 +3159,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{INSTANCE_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/queue?instance={{INSTANCE_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"queue"
 							],
 							"query": [
@@ -3203,13 +3203,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{INSTANCE_NAME}}",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/queue?instance={{INSTANCE_NAME}}",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"queue"
 							],
 							"query": [
@@ -3247,13 +3247,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{TARGET_NAME}}&target=true",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/queue?instance={{TARGET_NAME}}&target=true",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"queue"
 							],
 							"query": [
@@ -3295,13 +3295,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{INSTANCE_NAME}}&delete=true",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/queue?instance={{INSTANCE_NAME}}&delete=true",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"queue"
 							],
 							"query": [
@@ -3343,13 +3343,13 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/solution/queue?instance={{TARGET_NAME}}&target=true&delete=true",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/solutionversion/queue?instance={{TARGET_NAME}}&target=true&delete=true",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
 							],
 							"path": [
-								"solution",
+								"solutionversion",
 								"queue"
 							],
 							"query": [
@@ -3440,7 +3440,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"campaign\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
+							"raw": "{\r\n    \"campaignversion\": \"{{CAMPAIGN_NAME}}\",\r\n    \"activation\": \"{{ACTIVATION_NAME}}\",\r\n    \"activationGeneration\": \"1\",\r\n    \"stage\": \"first-stage\"       \r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3758,7 +3758,7 @@
 					"response": []
 				},
 				{
-					"name": "Create catalog hook",
+					"name": "Create catalogversion hook",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -3782,7 +3782,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/k8shook?objectType=catalog",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/federation/k8shook?objectType=catalogversion",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
@@ -3794,7 +3794,7 @@
 							"query": [
 								{
 									"key": "objectType",
-									"value": "catalog"
+									"value": "catalogversion"
 								}
 							]
 						}
@@ -3842,7 +3842,7 @@
 		},
 		{
 			"key": "SOLUTION_NAME",
-			"value": "test-solution",
+			"value": "test-solutionversion",
 			"type": "string"
 		},
 		{
@@ -3862,12 +3862,12 @@
 		},
 		{
 			"key": "CATALOG_NAME",
-			"value": "test-catalog",
+			"value": "test-catalogversion",
 			"type": "string"
 		},
 		{
 			"key": "CAMPAIGN_NAME",
-			"value": "test-campaign",
+			"value": "test-campaignversion",
 			"type": "string"
 		},
 		{

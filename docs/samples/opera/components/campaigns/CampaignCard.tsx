@@ -1,7 +1,7 @@
 'use client';
 
 import {Card, CardHeader, CardBody, CardFooter, Divider, Link, Image} from '@nextui-org/react';
-import { CampaignState, StageSpec, ActivationState } from '../../app/types';
+import { CampaignVersionState, StageSpec, ActivationState } from '../../app/types';
 import { BsArrowRightShort } from 'react-icons/bs';
 import { GoDot } from 'react-icons/go';
 import { Chip } from "@nextui-org/react";
@@ -12,50 +12,50 @@ import {CgArrowLongRightC} from 'react-icons/cg';
 import {LuFileJson2} from 'react-icons/lu';
 import {stateToString} from "../../app/utils";
 
-interface CampaignCardProps {
-    campaign: CampaignState;
+interface CampaignVersionCardProps {
+    campaignversion: CampaignVersionState;
     activation?: ActivationState;
 }
-async function ActivateCampaign(campaign: CampaignState) {
-    const response = await fetch(`/api/campaigns/${campaign.id}/activate`, {
+async function ActivateCampaignVersion(campaignversion: CampaignVersionState) {
+    const response = await fetch(`/api/campaignversions/${campaignversion.id}/activate`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(campaign),
+        body: JSON.stringify(campaignversion),
     });
     const data = await response.json();    
 }
-function CampaignCard(props: CampaignCardProps) {
+function CampaignVersionCard(props: CampaignVersionCardProps) {
 
-    const { campaign, activation } = props;
+    const { campaignversion, activation } = props;
     const stages = [];
-    const stageName = campaign.spec.firstStage;
+    const stageName = campaignversion.spec.firstStage;
     const [isSelected, setIsSelected] = useState(false);
 
     if (stageName != "") {
-        let currentStage = campaign.spec.stages[stageName];
+        let currentStage = campaignversion.spec.stages[stageName];
         while (currentStage) {
             stages.push(currentStage);
-            currentStage = campaign.spec.stages[currentStage.stageSelector];
+            currentStage = campaignversion.spec.stages[currentStage.stageSelector];
         }
     }
-    for (const name in campaign.spec.stages) {
-        if (campaign.spec.stages.hasOwnProperty(name)) {
-          const stage = campaign.spec.stages[name];
+    for (const name in campaignversion.spec.stages) {
+        if (campaignversion.spec.stages.hasOwnProperty(name)) {
+          const stage = campaignversion.spec.stages[name];
           if (!stages.includes(stage)) {
             stages.push(stage);
           }
         }
     }
 
-    // get json from campaign with new lines
-    const json = JSON.stringify(campaign, null, 2);    
+    // get json from campaignversion with new lines
+    const json = JSON.stringify(campaignversion, null, 2);    
 
     return (
         <Card>
             <CardHeader className="flex gap-3 justify-between">
-               {campaign.id}
+               {campaignversion.id}
                <Switch size="sm" color="success" thumbIcon={({ isSelected, className }) =>
                     isSelected ? (
                         <LuFileJson2 className={className} />
@@ -83,7 +83,7 @@ function CampaignCard(props: CampaignCardProps) {
             </CardBody>
             <Divider/>
             <CardFooter  className="flex gap-3 justify-between">                
-                <button className="btn btn-primary" onClick={()=>ActivateCampaign(campaign)}><BiPlay/></button>
+                <button className="btn btn-primary" onClick={()=>ActivateCampaignVersion(campaignversion)}><BiPlay/></button>
                 {activation && (
                     <div className="flex gap-2">{` ${activation.status.statusMessage} ${activation.status.stage === '' ? '': 'stage (' + activation.status.stage + ')'}`}</div>
                 )}
@@ -91,4 +91,4 @@ function CampaignCard(props: CampaignCardProps) {
         </Card>
     );
 }
-export default CampaignCard;
+export default CampaignVersionCard;

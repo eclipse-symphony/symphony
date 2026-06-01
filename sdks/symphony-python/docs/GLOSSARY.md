@@ -5,19 +5,19 @@ This glossary defines commonly used terms and concepts in the Symphony Python SD
 ## Core Resource Concepts
 
 ### Target
-A device, edge node, or compute resource that can execute solutions. Examples include IoT devices, edge gateways, or Kubernetes clusters. Targets must be registered with Symphony before deploying instances to them. Managed through lifecycle operations: register, unregister, list, get, and ping.
+A device, edge node, or compute resource that can execute solutionversions. Examples include IoT devices, edge gateways, or Kubernetes clusters. Targets must be registered with Symphony before deploying instances to them. Managed through lifecycle operations: register, unregister, list, get, and ping.
 
-### Solution
-A deployment specification that defines application components to be deployed. Solutions are YAML-based templates containing component definitions, properties, and metadata. They serve as reusable templates for creating multiple instances.
+### SolutionVersion
+A deployment specification that defines application components to be deployed. SolutionVersions are YAML-based templates containing component definitions, properties, and metadata. They serve as reusable templates for creating multiple instances.
 
 ### Instance
-A concrete deployment of a solution onto specific targets. Instances bind solutions to targets and track deployment status. The actual deployment orchestration happens at the instance level.
+A concrete deployment of a solutionversion onto specific targets. Instances bind solutionversions to targets and track deployment status. The actual deployment orchestration happens at the instance level.
 
 ### Component
-Individual units within a solution, such as containers, configurations, or scripts. Each component has a name, type, properties, and optional dependencies. Components can be container-based, config-based, or custom types.
+Individual units within a solutionversion, such as containers, configurations, or scripts. Each component has a name, type, properties, and optional dependencies. Components can be container-based, config-based, or custom types.
 
 ### Deployment
-The execution context that ties together solutions, instances, targets, and devices. DeploymentSpec contains the complete state including solution definition, instance configuration, target information, and device assignments.
+The execution context that ties together solutionversions, instances, targets, and devices. DeploymentSpec contains the complete state including solutionversion definition, instance configuration, target information, and device assignments.
 
 ## Configuration and Metadata
 
@@ -30,11 +30,11 @@ Specifies which targets a component or instance should be deployed to. Supports 
 ### ComponentSpec
 Detailed specification for a component including name, type, properties, constraints, dependencies, skills, routes, and parameters.
 
-### SolutionSpec
-The specification of a solution containing components, scope, display name, and metadata.
+### SolutionVersionSpec
+The specification of a solutionversion containing components, scope, display name, and metadata.
 
 ### InstanceSpec
-Specification for an instance deployment including solution reference, target selector, parameters, topologies, pipelines, and version information.
+Specification for an instance deployment including solutionversion reference, target selector, parameters, topologies, pipelines, and version information.
 
 ### Scope
 A namespace or partition for organizing Symphony resources. Allows multi-tenancy and resource isolation (e.g., "default" scope).
@@ -51,7 +51,7 @@ Specifies how components are bound to providers or roles. Contains role, provide
 A data processing or orchestration pipeline specification. Can reference skills and parameters for component workflows or data transformations.
 
 ### VersionSpec
-Manages solution versioning with percentage-based canary deployments. Supports multi-version deployments with traffic/load distribution percentages.
+Manages solutionversion versioning with percentage-based canary deployments. Supports multi-version deployments with traffic/load distribution percentages.
 
 ### Device
 Physical hardware entities within a target. DeviceSpec contains device properties, bindings, and display information.
@@ -124,7 +124,7 @@ Bearer token returned by `authenticate()` method. Automatically managed and cach
 ## Lifecycle and Operations
 
 ### Reconciliation
-The process of ensuring actual state matches desired state. Triggered via `reconcile_solution()` to synchronize deployments with target state.
+The process of ensuring actual state matches desired state. Triggered via `reconcile_solutionversion()` to synchronize deployments with target state.
 
 ### Force Redeploy
 A target property indicating components should be redeployed even if already present. Part of TargetSpec configuration.
@@ -146,11 +146,11 @@ InstanceSpec property allowing instances to skip automatic reconciliation when e
 ### Register Target
 Initial operation to register a device or edge node with Symphony. Must be done before deploying instances to a target.
 
-### Create Solution
-Define a template of components and resources. Solutions are reusable across multiple instances.
+### Create SolutionVersion
+Define a template of components and resources. SolutionVersions are reusable across multiple instances.
 
 ### Create Instance
-Instantiate a solution on specific target(s). Triggers deployment orchestration.
+Instantiate a solutionversion on specific target(s). Triggers deployment orchestration.
 
 ### Monitor Status
 Track instance and deployment progress via `get_instance_status()` and SummaryResult tracking.
@@ -159,4 +159,4 @@ Track instance and deployment progress via `get_instance_status()` and SummaryRe
 Force synchronization between desired (instance spec) and actual (deployed) state on targets.
 
 ### Cleanup
-Remove instances, solutions, and unregister targets. Supports direct delete option to bypass cleanup pipelines.
+Remove instances, solutionversions, and unregister targets. Supports direct delete option to bypass cleanup pipelines.

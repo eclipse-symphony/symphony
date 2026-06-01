@@ -49,4 +49,4 @@ parameters:
   cv-skill.model_flavor: "TensorFlowMobile"
 ```
 
-When a solution instance uses multiple references to a same AI skill, it can use aliases to distinguish between different AI skill instances.
+When a solutionversion instance uses multiple references to a same AI skill, it can use aliases to distinguish between different AI skill instances.

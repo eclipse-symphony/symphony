@@ -1,11 +1,11 @@
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: hq
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-version1
 spec:
@@ -24,13 +24,13 @@ spec:
     lng: "-122.12826"
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: infrastructure
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: infrastructure-v-version1
 spec:
@@ -41,13 +41,13 @@ spec:
   parentName: hq-v-version1
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: asset
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: asset-v-13
 spec: 
@@ -58,7 +58,7 @@ spec:
   parentName: infrastructure-v-version1
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: asset-v-14
 spec: 
@@ -69,13 +69,13 @@ spec:
   parentName: infrastructure-v-version1
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: use
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: use-v-cases
 spec: 
@@ -86,13 +86,13 @@ spec:
   parentName: hq-v-version1
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: csad
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: csad-v-version1
 spec: 
@@ -103,13 +103,13 @@ spec:
   parentName: use-v-cases
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: site
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: site-v-version1
 spec: 
@@ -120,13 +120,13 @@ spec:
   parentName: csad-v-version1
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: line
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: line-v-a
 spec: 
@@ -137,7 +137,7 @@ spec:
   parentName: site-v-version1
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: line-v-b
 spec: 

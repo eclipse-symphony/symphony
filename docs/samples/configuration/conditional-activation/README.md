@@ -43,9 +43,9 @@ This is an example template that utilizes that variable.  This block is included
 
 [Symphony property expressions](../../../symphony-book/concepts/unified-object-model/property-expressions.md#functions) allow for conditional inclusion.  
 
-1. Define variables and values per line in a configuration object (catalog).  See [line1](./catalogs/line1.yml) where `IS_PREMIUM_LINE` is true and [line2](./catalogs/line2.yml) where `IS_PREMIUM_LINE` is false.  
-1. Define settings to be included based on those variables.  This sample has some settings that are only included on premium lines where `IS_PREMIUM_LINE` is true.  See [premium-properties](./catalogs/premium-properties.yml).
-1. In the final configuration object, use the `$if()` function described in the property expressions documentation to conditionally include the `premium` configuration object.  See [line-config](./catalogs/line-config.yml).
+1. Define variables and values per line in a configuration object (catalogversion).  See [line1](./catalogversions/line1.yml) where `IS_PREMIUM_LINE` is true and [line2](./catalogversions/line2.yml) where `IS_PREMIUM_LINE` is false.  
+1. Define settings to be included based on those variables.  This sample has some settings that are only included on premium lines where `IS_PREMIUM_LINE` is true.  See [premium-properties](./catalogversions/premium-properties.yml).
+1. In the final configuration object, use the `$if()` function described in the property expressions documentation to conditionally include the `premium` configuration object.  See [line-config](./catalogversions/line-config.yml).
 
     ```yml
     spec:

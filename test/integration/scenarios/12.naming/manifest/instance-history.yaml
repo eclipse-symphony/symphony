@@ -8,7 +8,7 @@ spec:
     interval: 30m
     state: active
   rootResource: INSTANCEFULLNAME
-  solution:
+  solutionversion:
     components:
     - name: configmap
       properties:
@@ -16,7 +16,7 @@ spec:
       type: config
     displayName: SOLUTIONFULLNAME
     rootResource: SOLUTIONCONTAINERFULLNAME
-  solutionId: SOLUTIONREFNAME
+  solutionversionId: SOLUTIONREFNAME
   target:
     displayName: history-target
     scope: default

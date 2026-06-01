@@ -1,11 +1,11 @@
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: config
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-influx-db
 spec:
@@ -22,7 +22,7 @@ spec:
     ssl: true
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-grafana
 spec:
@@ -36,7 +36,7 @@ spec:
     ssl: true
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-e4k
 spec:
@@ -50,7 +50,7 @@ spec:
     ssl: true
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-luefin
 spec:
@@ -64,7 +64,7 @@ spec:
     ssl: true
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-ai
 spec:
@@ -78,7 +78,7 @@ spec:
     flavor: cloud
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-ai-site
 spec:
@@ -92,7 +92,7 @@ spec:
     version: "3.3"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-ai-line
 spec:
@@ -105,7 +105,7 @@ spec:
     flavor: mobile
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-combined
 spec:
@@ -122,7 +122,7 @@ spec:
     e4k: "<e4k-config>"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-combined1
 spec:
@@ -133,7 +133,7 @@ spec:
     loop: <combined-2>.loop
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-combined2
 spec: 
@@ -144,7 +144,7 @@ spec:
     loop: <combined>.loop
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-external
 spec:

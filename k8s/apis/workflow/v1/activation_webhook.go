@@ -57,7 +57,7 @@ func (r *Activation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 
 	activationValidator = validation.NewActivationValidator(func(ctx context.Context, name string, namespace string) (interface{}, error) {
-		return dynamicclient.Get(ctx, validation.Campaign, name, namespace)
+		return dynamicclient.Get(ctx, validation.CampaignVersion, name, namespace)
 	})
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -78,19 +78,19 @@ func (r *Activation) Default() {
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)
 	}
-	if r.Spec.Campaign != "" {
-		diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec.campaign", r.Spec.Campaign)
-		// Remove api_constants.Campaign from r.Labels if it exists
-		if _, exists := r.Labels[api_constants.Campaign]; exists {
-			delete(r.Labels, api_constants.Campaign)
+	if r.Spec.CampaignVersion != "" {
+		diagnostic.InfoWithCtx(activationlog, ctx, "default", "name", r.Name, "namespace", r.Namespace, "spec.campaignversion", r.Spec.CampaignVersion)
+		// Remove api_constants.CampaignVersion from r.Labels if it exists
+		if _, exists := r.Labels[api_constants.CampaignVersion]; exists {
+			delete(r.Labels, api_constants.CampaignVersion)
 		}
-		var campaignResult Campaign
-		err := myActivationClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Campaign), Namespace: r.Namespace}, &campaignResult)
+		var campaignversionResult CampaignVersion
+		err := myActivationClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.CampaignVersion), Namespace: r.Namespace}, &campaignversionResult)
 		if err != nil {
-			diagnostic.ErrorWithCtx(activationlog, ctx, err, "failed to get campaign", "name", r.Name, "namespace", r.Namespace)
+			diagnostic.ErrorWithCtx(activationlog, ctx, err, "failed to get campaignversion", "name", r.Name, "namespace", r.Namespace)
 			return
 		}
-		r.Labels[api_constants.CampaignUid] = string(campaignResult.UID)
+		r.Labels[api_constants.CampaignVersionUid] = string(campaignversionResult.UID)
 
 	}
 }
@@ -116,13 +116,13 @@ func (r *Activation) ValidateCreate() (admission.Warnings, error) {
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.InvalidResource,
-			metrics.CatalogResourceType)
+			metrics.CatalogVersionResourceType)
 	} else {
 		activationWebhookValidationMetrics.ControllerValidationLatency(
 			validateCreateTime,
 			metrics.CreateOperationType,
 			metrics.ValidResource,
-			metrics.CatalogResourceType)
+			metrics.CatalogVersionResourceType)
 	}
 
 	return nil, validationError

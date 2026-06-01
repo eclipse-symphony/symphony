@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-// Package v1 contains API Schema definitions for the solution v1 API group
+// Package v1 contains API Schema definitions for the solutionversion v1 API group
 // +kubebuilder:object:generate=true
 // +groupName=solution.symphony
 package v1

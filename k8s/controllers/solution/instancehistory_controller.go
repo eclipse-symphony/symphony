@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solution
+package solutionversion
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 )
 
 // InstanceHistoryReconciler reconciles a InstanceHistory object
@@ -52,6 +52,6 @@ func (r *InstanceHistoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstanceHistory").
 		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
-		For(&solutionv1.InstanceHistory{}).
+		For(&solutionversionv1.InstanceHistory{}).
 		Complete(r)
 }

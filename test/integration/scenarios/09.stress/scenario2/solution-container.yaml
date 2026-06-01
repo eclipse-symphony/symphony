@@ -1,5 +1,0 @@
-apiVersion: solution.symphony/v1
-kind: SolutionContainer
-metadata:
-  name: scenario2solutioncontainer
-spec:  

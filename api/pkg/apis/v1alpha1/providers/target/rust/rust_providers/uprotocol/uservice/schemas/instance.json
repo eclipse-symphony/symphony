@@ -22,7 +22,7 @@
                 },
                 "parameters": { "$ref": "common.json#/$defs/StringMap" },
                 "metadata": { "$ref": "common.json#/$defs/StringMap" },
-                "solution": {
+                "solutionversion": {
                     "type": "string"
                 },
                 "target": { "$ref": "#/$defs/TargetSelector" },

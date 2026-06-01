@@ -159,27 +159,27 @@ func TestTrailsVendorOnTrails_PostTrailsArrayAsBody(t *testing.T) {
 	trails := []v1alpha2.Trail{
 		{
 			Origin:  "site1",
-			Catalog: "catalog1",
-			Type:    "solutions.solution.symphony/v1",
+			CatalogVersion: "catalogversion1",
+			Type:    "solutionversions.solution.symphony/v1",
 			Properties: map[string]interface{}{
-				"post": model.CatalogState{
+				"post": model.CatalogVersionState{
 					ObjectMeta: model.ObjectMeta{
 						Name: "test1",
 					},
-					Spec: &model.CatalogSpec{},
+					Spec: &model.CatalogVersionSpec{},
 				},
 			},
 		},
 		{
 			Origin:  "site2",
-			Catalog: "catalog2",
-			Type:    "solutions.solution.symphony/v1",
+			CatalogVersion: "catalogversion2",
+			Type:    "solutionversions.solution.symphony/v1",
 			Properties: map[string]interface{}{
-				"post": model.CatalogState{
+				"post": model.CatalogVersionState{
 					ObjectMeta: model.ObjectMeta{
 						Name: "test2",
 					},
-					Spec: &model.CatalogSpec{},
+					Spec: &model.CatalogVersionSpec{},
 				},
 			},
 		},

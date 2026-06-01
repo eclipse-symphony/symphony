@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-package solution
+package solutionversion
 
 import (
 	"context"
 	"errors"
 	fabricv1 "gopls-workspace/apis/fabric/v1"
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	. "gopls-workspace/testing"
 	"gopls-workspace/utils"
@@ -29,9 +29,9 @@ var _ = Describe("Instance controller", Ordered, func() {
 	var kubeClient client.Client
 	var controllerQueueing *InstanceQueueingReconciler
 	var controllerPolling *InstancePollingReconciler
-	var instance *solutionv1.Instance
+	var instance *solutionversionv1.Instance
 	var target *fabricv1.Target
-	var solution *solutionv1.Solution
+	var solutionversion *solutionversionv1.SolutionVersion
 	var reconcileError error
 	var reconcileResult ctrl.Result
 	var reconcileErrorPolling error
@@ -45,10 +45,10 @@ var _ = Describe("Instance controller", Ordered, func() {
 		// This means we'll need to mock out the api client and kube client
 		var err error
 		apiClient = &MockApiClient{}
-		kubeClient = CreateFakeKubeClientForSolutionAndFabricGroup(
+		kubeClient = CreateFakeKubeClientForSolutionVersionAndFabricGroup(
 			BuildDefaultInstance(),
 			BuildDefaultTarget(),
-			BuildDefaultSolution(),
+			BuildDefaultSolutionVersion(),
 		)
 		controllerQueueing = &InstanceQueueingReconciler{
 			InstanceReconciler: InstanceReconciler{
@@ -79,14 +79,14 @@ var _ = Describe("Instance controller", Ordered, func() {
 
 	BeforeEach(func(ctx context.Context) {
 		By("fetching resources")
-		instance = &solutionv1.Instance{}
+		instance = &solutionversionv1.Instance{}
 		Expect(kubeClient.Get(ctx, DefaultInstanceNamespacedName, instance)).To(Succeed())
 
 		target = &fabricv1.Target{}
 		Expect(kubeClient.Get(ctx, DefaultTargetNamepsacedName, target)).To(Succeed())
 
-		solution = &solutionv1.Solution{}
-		Expect(kubeClient.Get(ctx, DefaultSolutionNamespacedName, solution)).To(Succeed())
+		solutionversion = &solutionversionv1.SolutionVersion{}
+		Expect(kubeClient.Get(ctx, DefaultSolutionVersionNamespacedName, solutionversion)).To(Succeed())
 	})
 
 	Describe("Reconcile", func() {
@@ -114,7 +114,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 				Context("and the deployment completed successfully", func() {
 					BeforeEach(func() {
 						By("mocking the get summary call to return a successful deployment")
-						hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
+						hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, SolutionVersion: *solutionversion, TargetCandidates: []fabricv1.Target{*target}})
 						apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 						jobID = uuid.New().String()
 						apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(MockSucessSummaryResultWithJobID(instance, hash, jobID), nil)
@@ -146,10 +146,10 @@ var _ = Describe("Instance controller", Ordered, func() {
 				})
 			})
 
-			Context("and the solution is not present in the cluster", func() {
+			Context("and the solutionversion is not present in the cluster", func() {
 				BeforeEach(func(ctx context.Context) {
-					By("deleting the solution")
-					Expect(kubeClient.Delete(ctx, solution)).To(Succeed())
+					By("deleting the solutionversion")
+					Expect(kubeClient.Delete(ctx, solutionversion)).To(Succeed())
 
 					By("mocking a successful deployment to the api")
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -224,7 +224,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a completed delete deployment from the api")
 					jobID = uuid.New().String()
-					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
+					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, SolutionVersion: *solutionversion, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockSucessSummaryResult(instance, hash)
 					summary.Summary.IsRemoval = true
 					summary.Summary.JobID = jobID
@@ -246,7 +246,7 @@ var _ = Describe("Instance controller", Ordered, func() {
 			Context("and the deletion deployment is still in progress", func() {
 				BeforeEach(func(ctx context.Context) {
 					By("simulating a pending delete deployment from the api")
-					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, Solution: *solution, TargetCandidates: []fabricv1.Target{*target}})
+					hash := utils.HashObjects(utils.DeploymentResources{Instance: *instance, SolutionVersion: *solutionversion, TargetCandidates: []fabricv1.Target{*target}})
 					summary := MockInProgressDeleteSummaryResult(instance, hash)
 					apiClient.On("QueueDeploymentJob", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 					apiClient.On("GetSummary", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(summary, nil)
@@ -297,12 +297,12 @@ var _ = Describe("Instance controller", Ordered, func() {
 		})
 	})
 
-	Describe("Solution Events", func() {
-		When("the solution referenced by the instance is changed", func() {
+	Describe("SolutionVersion Events", func() {
+		When("the solutionversion referenced by the instance is changed", func() {
 			var requests []ctrl.Request
 			BeforeEach(func(ctx context.Context) {
-				By("simulating a call to the handleSolution function")
-				requests = controllerQueueing.handleSolution(ctx, solution)
+				By("simulating a call to the handleSolutionVersion function")
+				requests = controllerQueueing.handleSolutionVersion(ctx, solutionversion)
 			})
 
 			It("should return a request for the instance", func() {

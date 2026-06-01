@@ -68,9 +68,9 @@ class PipelineSpec:
 
 @dataclass
 class VersionSpec:
-    """Version specification for solutions."""
+    """Version specification for solutionversions."""
 
-    solution: str = ""
+    solutionversion: str = ""
     percentage: int = 100
 
 
@@ -80,7 +80,7 @@ class InstanceSpec:
 
     name: str = ""
     parameters: Optional[Dict[str, str]] = None
-    solution: str = ""
+    solutionversion: str = ""
     target: Optional[TargetSelector] = None
     topologies: Optional[List[TopologySpec]] = None
     pipelines: Optional[List[PipelineSpec]] = None
@@ -123,7 +123,7 @@ class ComponentSpec:
 
 
 @dataclass
-class SolutionSpec:
+class SolutionVersionSpec:
     components: List[ComponentSpec] = None
     scope: str = ""
     displayName: str = ""
@@ -131,9 +131,9 @@ class SolutionSpec:
 
 
 @dataclass
-class SolutionState:
+class SolutionVersionState:
     metadata: ObjectMeta = None
-    spec: SolutionSpec = None
+    spec: SolutionVersionSpec = None
 
 
 @dataclass
@@ -204,8 +204,8 @@ class DeviceSpec:
 
 @dataclass
 class DeploymentSpec:
-    solutionName: str = ""
-    solution: SolutionState = None
+    solutionversionName: str = ""
+    solutionversion: SolutionVersionState = None
     instance: InstanceSpec = None
     targets: Dict[str, TargetState] = None
     devices: List[DeviceSpec] = None
@@ -215,16 +215,16 @@ class DeploymentSpec:
     activeTarget: str = ""
 
     def get_components_slice(self) -> List[ComponentSpec]:
-        if self.solution != None:
+        if self.solutionversion != None:
             if (
                 self.componentStartIndex >= 0
                 and self.componentEndIndex >= 0
                 and self.componentEndIndex > self.componentStartIndex
             ):
-                return self.solution.spec.components[
+                return self.solutionversion.spec.components[
                     self.componentStartIndex : self.componentEndIndex
                 ]
-            return self.solution.spec.components
+            return self.solutionversion.spec.components
         return []
 
 
@@ -521,11 +521,11 @@ def deserialize_components(json_str: str) -> List[ComponentSpec]:
         return []
 
 
-def deserialize_solution(json_str: str) -> List[SolutionState]:
+def deserialize_solutionversion(json_str: str) -> List[SolutionVersionState]:
     """Deserialize JSON string to components list."""
     try:
         data = json.loads(json_str)
-        return [from_dict(item, SolutionState) for item in data]
+        return [from_dict(item, SolutionVersionState) for item in data]
     except Exception:
         return []
 
@@ -627,8 +627,8 @@ __all__ = [
     "FilterSpec",
     "RouteSpec",
     "ComponentSpec",
-    "SolutionSpec",
-    "SolutionState",
+    "SolutionVersionSpec",
+    "SolutionVersionState",
     "TargetSpec",
     "ComponentError",
     "TargetError",
@@ -646,7 +646,7 @@ __all__ = [
     "from_dict",
     "serialize_components",
     "deserialize_components",
-    "deserialize_solution",
+    "deserialize_solutionversion",
     "deserialize_deployment",
     "serialize_coa_request",
     "deserialize_coa_request",

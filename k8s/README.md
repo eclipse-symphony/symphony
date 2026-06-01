@@ -120,7 +120,7 @@ If you just ran the `symphony-extension-setup.sh` you will need to configure the
 
 ## Directory Breakdown in Postman Collection
 ### CRUD on Resources
-Just as the name implies this directory holds the CRUD operations for the resource types. Within the Symphony directory you can find examples of solution, instance, & target resource creation. Feel free to play around with the resources and payloads. If the desire is to have full resource orchestration make sure the solution and target names specified within the instance payload match with the resources you create.
+Just as the name implies this directory holds the CRUD operations for the resource types. Within the Symphony directory you can find examples of solutionversion, instance, & target resource creation. Feel free to play around with the resources and payloads. If the desire is to have full resource orchestration make sure the solutionversion and target names specified within the instance payload match with the resources you create.
 ### RP Administration
-This directory is primarily used for registering the resource provider and resource types for RPaaS. Included here is the registrations for all the resource such as solution, targets, instances as well as ARM specific resource type registrations such as operationStatuses for LRO.
+This directory is primarily used for registering the resource provider and resource types for RPaaS. Included here is the registrations for all the resource such as solutionversion, targets, instances as well as ARM specific resource type registrations such as operationStatuses for LRO.
 

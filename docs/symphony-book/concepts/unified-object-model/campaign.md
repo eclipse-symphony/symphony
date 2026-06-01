@@ -1,6 +1,6 @@
-# Campaigns
+# CampaignVersions
 
-A campaign describes a workflow of multiple stages. When a stage finishes execution, the stage runs a `StageSelector` to select the next stage. The campaign stops execution if no next stage is selected.
+A campaignversion describes a workflow of multiple stages. When a stage finishes execution, the stage runs a `StageSelector` to select the next stage. The campaignversion stops execution if no next stage is selected.
 
 For more information about how Symphony approaches workflows, see [Workflows](../workflows.md).
 
@@ -13,11 +13,11 @@ Actions in each stage are carried out by a stage provider. Symphony ships with a
 | provider | description |
 |--------|--------|
 | `providers.stage.counter` | Keeps track of multiple variables. For more information, see [Counter stage provider](../../providers/stage-providers/counter.md). |
-| `providers.stage.create` | Creates a Symphony object like `Solutions` and `Instances`. |
+| `providers.stage.create` | Creates a Symphony object like `SolutionVersions` and `Instances`. |
 | `providers.stage.delay` | Delay execution. For more information, see [Delay stage provider](../../providers/stage-providers/delay.md). |
 | `providers.stage.http` | Sends a HTTP request and wait for a response. |
 | `providers.stage.list` | Lists objects like `Instances` and sites. |
-| `providers.stage.materialize` | Materializes a `Catalog` as a Symphony object. |
+| `providers.stage.materialize` | Materializes a `CatalogVersion` as a Symphony object. |
 | `providers.stage.mock` | A mock provider for testing purposes. |
 | `providers.stage.patch` | Patches an existing Symphony object. |
 | `providers.stage.remote` | Executes an action on a remote Symphony control plane. |
@@ -35,7 +35,7 @@ type IStageProvider interface {
 }
 ```
 
-Essentially, a stage provider takes the inputs, performs any actions, and returns the outputs. When a stage is invoked, activation inputs are provided through the `inputs` parameter, plus any input parameter declared on the stage itself. For example, if a campaign is activated with inputs `foo` and `bar`, and the stage definition contains an input `baz`, the `inputs` parameter will contain all the three values. 
+Essentially, a stage provider takes the inputs, performs any actions, and returns the outputs. When a stage is invoked, activation inputs are provided through the `inputs` parameter, plus any input parameter declared on the stage itself. For example, if a campaignversion is activated with inputs `foo` and `bar`, and the stage definition contains an input `baz`, the `inputs` parameter will contain all the three values. 
 
 > **NOTE**: In current version, inputs defined in stage definition. If you do want to get value from the activation input, you can use expression `$trigger(<field name>, <default value>)` in your stage definition to carry over activation input.
 
@@ -72,9 +72,9 @@ deploy:
       - site-instance
 ```
 
-### inputs parsing from campaign stages and activation
+### inputs parsing from campaignversion stages and activation
 
-For the `inputs` field of each stage, we can leverage `$input()` function to get values for variables. It will take one parameter: the variable name. e.g. we can retrieve built-in information, like `$input(__previousStage)` can help us get the previous stage's name. Another function `$trigger()` will be used (available for all stages in the campaign) to get the inputs variables from the activation inputs field. It will take two parameters: the variable name and the default value (we will try to find the variable from the activation input, if it not exist, return the default value). Below is an example to demonstrate the usage of those two functions.
+For the `inputs` field of each stage, we can leverage `$input()` function to get values for variables. It will take one parameter: the variable name. e.g. we can retrieve built-in information, like `$input(__previousStage)` can help us get the previous stage's name. Another function `$trigger()` will be used (available for all stages in the campaignversion) to get the inputs variables from the activation inputs field. It will take two parameters: the variable name and the default value (we will try to find the variable from the activation input, if it not exist, return the default value). Below is an example to demonstrate the usage of those two functions.
 
 Activation
 ```yaml
@@ -83,25 +83,25 @@ kind: Activation
 metadata:
   name: workflow
 spec:
-  campaign: "campaign:version1"
+  campaignversion: "campaignversion:version1"
   inputs:
     foo: 1
 ```
 
-Campaign
+CampaignVersion
 ```yaml
-apiVersion: workflow.symphony/v1
-kind: CampaignContainer
-metadata:
-  name: campaign
-spec:  
----
 apiVersion: workflow.symphony/v1
 kind: Campaign
 metadata:
-  name: campaign-v-version1
+  name: campaignversion
 spec:  
-  rootResource: campaign
+---
+apiVersion: workflow.symphony/v1
+kind: CampaignVersion
+metadata:
+  name: campaignversion-v-version1
+spec:  
+  rootResource: campaignversion
   firstStage: mock1
   stages:
     mock1:

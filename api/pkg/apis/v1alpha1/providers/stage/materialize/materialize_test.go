@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const catalogNotFoundMsg = "catalog not found"
+const catalogversionNotFoundMsg = "catalogversion not found"
 
 func TestMaterializeInitForNonServiceAccount(t *testing.T) {
 	UseServiceAccountTokenEnvName := os.Getenv(constants.UseServiceAccountTokenEnvName)
@@ -86,7 +86,7 @@ func TestMaterializeProcessWithStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":           []interface{}{"instance1:version1", "target1:version1", "solution1:version1", "catalog1:version1"},
+		"names":           []interface{}{"instance1:version1", "target1:version1", "solutionversion1:version1", "catalogversion1:version1"},
 		"__origin":        "hq",
 		"objectNamespace": stageNs,
 	})
@@ -112,7 +112,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1:version1", "target1:version1", "solution1:version1", "catalog1:version1"},
+		"names":    []interface{}{"instance1:version1", "target1:version1", "solutionversion1:version1", "catalogversion1:version1"},
 		"__origin": "hq",
 	})
 	assert.Nil(t, err)
@@ -136,7 +136,7 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 		"__origin": "hq",
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), catalogNotFoundMsg)
+	assert.Contains(t, err.Error(), catalogversionNotFoundMsg)
 }
 
 func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
@@ -189,18 +189,18 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 				target.ObjectMeta.SetSummaryJobId("2")
 			}
 			response = target
-		case "/solutions/solution1-v-version1":
-			var solution model.SolutionState
-			err := json.Unmarshal(body, &solution)
+		case "/solutionversions/solutionversion1-v-version1":
+			var solutionversion model.SolutionVersionState
+			err := json.Unmarshal(body, &solutionversion)
 			assert.Nil(t, err)
-			assert.Equal(t, expectNs, solution.ObjectMeta.Namespace)
-			response = solution
-		case "/catalogs/registry/hq-target1-v-version1":
-			catalog := model.CatalogState{
+			assert.Equal(t, expectNs, solutionversion.ObjectMeta.Namespace)
+			response = solutionversion
+		case "/catalogversions/registry/hq-target1-v-version1":
+			catalogversion := model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "hq-target1-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					CatalogType: "target",
 					Properties: map[string]interface{}{
 						"spec": &model.TargetSpec{
@@ -213,13 +213,13 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 				},
 			}
-			response = catalog
-		case "/catalogs/registry/hq-instance1-v-version1":
-			catalog := model.CatalogState{
+			response = catalogversion
+		case "/catalogversions/registry/hq-instance1-v-version1":
+			catalogversion := model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "hq-instance1-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					CatalogType: "instance",
 					Properties: map[string]interface{}{
 						"spec": model.InstanceSpec{},
@@ -230,17 +230,17 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 				},
 			}
-			response = catalog
-		case "/catalogs/registry/hq-solution1-v-version1":
-			catalog := model.CatalogState{
+			response = catalogversion
+		case "/catalogversions/registry/hq-solutionversion1-v-version1":
+			catalogversion := model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-solution1-v-version1",
+					Name: "hq-solutionversion1-v-version1",
 				},
-				Spec: &model.CatalogSpec{
-					CatalogType: "solution",
+				Spec: &model.CatalogVersionSpec{
+					CatalogType: "solutionVersion",
 					Properties: map[string]interface{}{
-						"spec": model.SolutionSpec{
-							DisplayName: "solution1",
+						"spec": model.SolutionVersionSpec{
+							DisplayName: "solutionversion1",
 						},
 						"metadata": &model.ObjectMeta{
 							Namespace: "objNS",
@@ -249,35 +249,35 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					},
 				},
 			}
-			response = catalog
-		case "/catalogs/registry/hq-catalog1-v-version1":
-			catalog := model.CatalogState{
+			response = catalogversion
+		case "/catalogversions/registry/hq-catalogversion1-v-version1":
+			catalogversion := model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "hq-catalog1-v-version1",
+					Name: "hq-catalogversion1-v-version1",
 				},
-				Spec: &model.CatalogSpec{
-					CatalogType: "catalog",
+				Spec: &model.CatalogVersionSpec{
+					CatalogType: "catalogVersion",
 					Properties: map[string]interface{}{
-						"spec": model.CatalogSpec{
+						"spec": model.CatalogVersionSpec{
 							CatalogType: "config",
 							Properties:  map[string]interface{}{},
 						},
 						"metadata": &model.ObjectMeta{
 							Namespace: "objNS",
-							Name:      "catalog1:version1",
+							Name:      "catalogversion1:version1",
 						},
 					},
 				},
 			}
-			response = catalog
-		case "/catalogs/registry/catalog1-v-version1":
-			var catalog model.CatalogState
-			err := json.Unmarshal(body, &catalog)
+			response = catalogversion
+		case "/catalogversions/registry/catalogversion1-v-version1":
+			var catalogversion model.CatalogVersionState
+			err := json.Unmarshal(body, &catalogversion)
 			assert.Nil(t, err)
-			assert.Equal(t, expectNs, catalog.ObjectMeta.Namespace)
-			response = catalog
-		case "/catalogs/registry/hq-notexist":
-			http.Error(w, catalogNotFoundMsg, http.StatusNotFound)
+			assert.Equal(t, expectNs, catalogversion.ObjectMeta.Namespace)
+			response = catalogversion
+		case "/catalogversions/registry/hq-notexist":
+			http.Error(w, catalogversionNotFoundMsg, http.StatusNotFound)
 			return
 		default:
 			response = utils.AuthResponse{

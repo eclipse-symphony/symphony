@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	testSolution_WithEmptyComponentProperties = "test/integration/scenarios/11.marshal/manifest/empty-solution-properties.yaml"
+	testSolutionVersion_WithEmptyComponentProperties = "test/integration/scenarios/11.marshal/manifest/empty-solutionversion-properties.yaml"
 	testTarget_WithEmptyComponentProperties   = "test/integration/scenarios/11.marshal/manifest/empty-target-properties.yaml"
 )
 
@@ -30,17 +30,17 @@ func getRepoPath() string {
 	return repoPath
 }
 
-func TestSolution_WithEmptyComponentProperties(t *testing.T) {
+func TestSolutionVersion_WithEmptyComponentProperties(t *testing.T) {
 	// first apply - generation 1
-	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution_WithEmptyComponentProperties)).CombinedOutput()
+	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolutionVersion_WithEmptyComponentProperties)).CombinedOutput()
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// second apply - generation 1
-	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolution_WithEmptyComponentProperties)).CombinedOutput()
+	output, err = exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testSolutionVersion_WithEmptyComponentProperties)).CombinedOutput()
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// validating metadata.generation
-	output, err = exec.Command("kubectl", "get", "solution", "empty-solution-v-version1", "-o=jsonpath='{.metadata.generation}'").CombinedOutput()
+	output, err = exec.Command("kubectl", "get", "solutionversion", "empty-solutionversion-v-version1", "-o=jsonpath='{.metadata.generation}'").CombinedOutput()
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	assert.Equal(t, "'1'", string(output), fmt.Sprintf("Expected generation '1', got %s", string(output)))
 }

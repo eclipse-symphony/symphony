@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+package solutionversion
+
+import (
+	"context"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
+)
+
+// SolutionVersionReconciler reconciles a SolutionVersion object
+type SolutionVersionReconciler struct {
+	client.Client
+	Scheme *runtime.Scheme
+}
+
+//+kubebuilder:rbac:groups=solution.symphony,resources=solutionversions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=solution.symphony,resources=solutionversions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=solution.symphony,resources=solutionversions/finalizers,verbs=update
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the SolutionVersion object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
+func (r *SolutionVersionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	_ = ctrllog.FromContext(ctx)
+
+	// TODO(user): your logic here
+
+	return ctrl.Result{}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *SolutionVersionReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// We need to re-able recoverPanic once the behavior is tested #691
+	recoverPanic := false
+	return ctrl.NewControllerManagedBy(mgr).
+		Named("SolutionVersion").
+		WithOptions((controller.Options{RecoverPanic: &recoverPanic})).
+		For(&solutionversionv1.SolutionVersion{}).
+		Complete(r)
+}

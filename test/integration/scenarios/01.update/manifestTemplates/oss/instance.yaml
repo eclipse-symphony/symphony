@@ -11,6 +11,6 @@ metadata:
 spec:
   displayName: instance01
   scope: test-scope
-  solution: solution01:version1
+  solutionversion: solution01:version1
   target:
     name: target01

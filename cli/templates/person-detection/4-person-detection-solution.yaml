@@ -4,13 +4,13 @@
 ## SPDX-License-Identifier: MIT
 ##
 apiVersion: solution.symphony/v1
-kind: SolutionContainer
+kind: Solution
 metadata:
   name: person-detection  
 spec:
 ---
 apiVersion: solution.symphony/v1
-kind: Solution
+kind: SolutionVersion
 metadata:
   name: person-detection-v-version1
 spec:

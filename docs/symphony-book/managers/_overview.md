@@ -4,7 +4,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
 * Jobs manager
 
-  Listens to `job` events and invokes Symphony reconcile API (offered by the solution vendor). It can also be configured with a timer that triggers periodical reconciliations.
+  Listens to `job` events and invokes Symphony reconcile API (offered by the solutionversion vendor). It can also be configured with a timer that triggers periodical reconciliations.
 
 * Object managers
 
@@ -12,21 +12,21 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
   * Devices manager
   * Instances manager
-  * Solutions manager
+  * SolutionVersions manager
   * Targets manager
-  * Campaigns manager
+  * CampaignVersions manager
   * Activations manager
-  * Catalogs manager
+  * CatalogVersions manager
 
   These managers implement CRUD operations on corresponding object types, and they are hosted by corresponding vendors such as the devices vendor and target vendor. These vendors collectively offer Symphony REST API to manage Symphony objects.
 
   When hosted on Kubernetes, such object operations are delegated to Kubernetes API. In such a case, users interact with Symphony objects through native Kubernetes API instead of through these REST API routes. For an example, see [Run Symphony in kubernetes mode](../build_deployment/symphony_mode.md).
 
-* Solution manager
+* SolutionVersion manager
 
-  [Solution manager](./solution-manager.md) implements the core Symphony state-seeking logic.
+  [SolutionVersion manager](./solutionversion-manager.md) implements the core Symphony state-seeking logic.
 
-  > **NOTE**: Solution manager is not necessarily a good name. A more appropriate name would be deployment manager.
+  > **NOTE**: SolutionVersion manager is not necessarily a good name. A more appropriate name would be deployment manager.
 
 * Reference manager
 
@@ -46,7 +46,7 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
 
 * Staging manager
 
-  A staging manager is used for catalog synchronization and remote job distribution between symphony parent and child sites.
+  A staging manager is used for catalogversion synchronization and remote job distribution between symphony parent and child sites.
 
 ## Choose appropriate state providers for managers
 
@@ -54,8 +54,8 @@ In Symphony's [HB-MVP pattern](https://www.linkedin.com/pulse/hb-mvp-design-patt
   | manager | state provider |
   |---|---|
   | jobs manager | persistent, volatile |
-  | object manager <br> ( instances manager, solutions manager, <br> targets manager, device manager, <br> campaigns manager, activations manager, <br> catalogs manager)  | persistent |
-  | solution manager | persistent |
+  | object manager <br> ( instances manager, solutionversions manager, <br> targets manager, device manager, <br> campaignversions manager, activations manager, <br> catalogversions manager)  | persistent |
+  | solutionversion manager | persistent |
   | reference manager | volatile |
   | stage manager | volatile |
   | staging manager | volatile |

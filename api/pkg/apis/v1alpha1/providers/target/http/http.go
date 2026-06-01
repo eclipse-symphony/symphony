@@ -143,7 +143,7 @@ func (i *HttpTargetProvider) Apply(ctx context.Context, deployment model.Deploym
 
 	injections := &model.ValueInjections{
 		InstanceId: deployment.Instance.ObjectMeta.Name,
-		SolutionId: deployment.Instance.Spec.Solution,
+		SolutionVersionId: deployment.Instance.Spec.SolutionVersion,
 		TargetId:   deployment.ActiveTarget,
 	}
 	components := step.GetComponents()

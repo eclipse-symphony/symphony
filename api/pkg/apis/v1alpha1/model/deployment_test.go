@@ -14,10 +14,10 @@ import (
 
 func TestDeploymentDeepEquals(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -44,10 +44,10 @@ func TestDeploymentDeepEquals(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -80,10 +80,10 @@ func TestDeploymentDeepEquals(t *testing.T) {
 
 func TestDeploymentDeepEqualsOneEmpty(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -114,12 +114,12 @@ func TestDeploymentDeepEqualsOneEmpty(t *testing.T) {
 	assert.False(t, res)
 }
 
-func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
+func TestDeploymentDeepEqualsSolutionVersionNameNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -146,10 +146,10 @@ func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName1",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName1",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -180,12 +180,12 @@ func TestDeploymentDeepEqualsSolutionNameNotMatch(t *testing.T) {
 	assert.False(t, res)
 }
 
-func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
+func TestDeploymentDeepEqualsSolutionVersionNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -212,10 +212,10 @@ func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName1",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName1",
 			},
 		},
 		Instance: InstanceState{
@@ -248,10 +248,10 @@ func TestDeploymentDeepEqualsSolutionNotMatch(t *testing.T) {
 
 func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -278,10 +278,10 @@ func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -314,10 +314,10 @@ func TestDeploymentDeepEqualsInstanceNotMatch(t *testing.T) {
 
 func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -344,10 +344,10 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -380,10 +380,10 @@ func TestDeploymentDeepEqualsTargetsNotMatch(t *testing.T) {
 
 func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -410,10 +410,10 @@ func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -446,10 +446,10 @@ func TestDeploymentDeepEqualsDevicesNotMatch(t *testing.T) {
 
 func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -476,10 +476,10 @@ func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -512,10 +512,10 @@ func TestDeploymentDeepEqualsComponentStartIndexNotMatch(t *testing.T) {
 
 func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -542,10 +542,10 @@ func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -578,10 +578,10 @@ func TestDeploymentDeepEqualsComponentEndIndexNotMatch(t *testing.T) {
 
 func TestDeploymentDeepEqualsActiveTargetNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -608,10 +608,10 @@ func TestDeploymentDeepEqualsActiveTargetNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -655,8 +655,8 @@ func TestGetComponentSliceWithValues(t *testing.T) {
 	deployment := DeploymentSpec{
 		ComponentStartIndex: 1,
 		ComponentEndIndex:   2,
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
 				Components: []ComponentSpec{
 					{Name: "Component1"},
 					{Name: "Component2"},
@@ -673,13 +673,13 @@ func TestGetComponentSliceWithValues(t *testing.T) {
 
 func TestGetDeploymentSpecForLog(t *testing.T) {
 	deployment := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
 			ObjectMeta: ObjectMeta{
-				Name: "SolutionName",
+				Name: "SolutionVersionName",
 			},
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -711,20 +711,20 @@ func TestGetDeploymentSpecForLog(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	output := GetDeploymentSpecForLog(&deployment)
-	assert.Contains(t, output, "SolutionName")
+	assert.Contains(t, output, "SolutionVersionName")
 	assert.Contains(t, output, "InstanceName")
 	assert.Contains(t, output, "TargetName")
-	assert.NotContains(t, output, "SolutionDisplayName")
+	assert.NotContains(t, output, "SolutionVersionDisplayName")
 	assert.NotContains(t, output, "InstanceDisplayName")
 	assert.NotContains(t, output, "TargetDisplayName")
 }
 
 func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 	deployment1 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{
@@ -751,10 +751,10 @@ func TestDeploymentDeepEqualsAssignmentsNotMatch(t *testing.T) {
 		ActiveTarget:        "ActiveTarget",
 	}
 	deployment2 := DeploymentSpec{
-		SolutionName: "SolutionName",
-		Solution: SolutionState{
-			Spec: &SolutionSpec{
-				DisplayName: "SolutionDisplayName",
+		SolutionVersionName: "SolutionVersionName",
+		SolutionVersion: SolutionVersionState{
+			Spec: &SolutionVersionSpec{
+				DisplayName: "SolutionVersionDisplayName",
 			},
 		},
 		Instance: InstanceState{

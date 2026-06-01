@@ -173,14 +173,14 @@ func TestUpdateStageStatusRemote(t *testing.T) {
 }
 
 /*
-func TestCreateActivationWithMissingCampaign(t *testing.T) {
+func TestCreateActivationWithMissingCampaignVersion(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := ActivationsManager{
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	manager.Validator.CampaignLookupFunc = manager.CampaignLookup
+	manager.Validator.CampaignVersionLookupFunc = manager.CampaignVersionLookup
 
 	err := manager.UpsertState(context.Background(), "testactivation", model.ActivationState{
 		ObjectMeta: model.ObjectMeta{
@@ -188,32 +188,32 @@ func TestCreateActivationWithMissingCampaign(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: &model.ActivationSpec{
-			Campaign: "testcampaign",
+			CampaignVersion: "testcampaignversion",
 		},
 	})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "campaign reference must be a valid Campaign object in the same namespace")
+	assert.Contains(t, err.Error(), "campaignversion reference must be a valid CampaignVersion object in the same namespace")
 }
 
-func TestCreateActivationWithCampaign(t *testing.T) {
+func TestCreateActivationWithCampaignVersion(t *testing.T) {
 	stateProvider := &memorystate.MemoryStateProvider{}
 	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
 	manager := ActivationsManager{
 		StateProvider: stateProvider,
 		needValidate:  true,
 	}
-	manager.Validator.CampaignLookupFunc = manager.CampaignLookup
+	manager.Validator.CampaignVersionLookupFunc = manager.CampaignVersionLookup
 	stateProvider.Upsert(context.Background(), states.UpsertRequest{
 		Value: states.StateEntry{
-			ID: "testcampaign",
+			ID: "testcampaignversion",
 			Body: map[string]interface{}{
 				"apiVersion": model.WorkflowGroup + "/v1",
-				"kind":       "Campaign",
+				"kind":       "CampaignVersion",
 				"metadata": model.ObjectMeta{
-					Name:      "testcampaign",
+					Name:      "testcampaignversion",
 					Namespace: "default",
 				},
-				"spec": model.CampaignSpec{
+				"spec": model.CampaignVersionSpec{
 					Stages: map[string]model.StageSpec{},
 				},
 			},
@@ -223,8 +223,8 @@ func TestCreateActivationWithCampaign(t *testing.T) {
 			"namespace": "default",
 			"group":     model.WorkflowGroup,
 			"version":   "v1",
-			"resource":  "campaigns",
-			"kind":      "Campaign",
+			"resource":  "campaignversions",
+			"kind":      "CampaignVersion",
 		},
 	})
 
@@ -234,7 +234,7 @@ func TestCreateActivationWithCampaign(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: &model.ActivationSpec{
-			Campaign: "testcampaign",
+			CampaignVersion: "testcampaignversion",
 		},
 	})
 	assert.Nil(t, err)
@@ -256,7 +256,7 @@ func TestUpdateActivationWithRunningStatus(t *testing.T) {
 			},
 		},
 		Spec: &model.ActivationSpec{
-			Campaign: "testcampaign",
+			CampaignVersion: "testcampaignversion",
 		},
 	})
 	assert.Nil(t, err)
@@ -270,7 +270,7 @@ func TestUpdateActivationWithRunningStatus(t *testing.T) {
 			},
 		},
 		Spec: &model.ActivationSpec{
-			Campaign: "testcampaign",
+			CampaignVersion: "testcampaignversion",
 			Stage:    "test",
 		},
 	})

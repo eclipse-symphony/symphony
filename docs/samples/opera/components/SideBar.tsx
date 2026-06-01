@@ -7,7 +7,7 @@ import { AiOutlineHome } from 'react-icons/ai';
 import { FiMail } from 'react-icons/fi';
 import { MdOutlineKeyboardArrowLeft } from 'react-icons/md';
 import { useState } from 'react';
-import { GrCatalog } from 'react-icons/gr';
+import { GrCatalogVersion } from 'react-icons/gr';
 import { TbBuildingCommunity } from 'react-icons/tb';
 import { HiOutlineTemplate } from 'react-icons/hi';
 import { IoLogoAppleAr }   from 'react-icons/io5';
@@ -37,13 +37,13 @@ function SideBar() {
             icon: TbBuildingCommunity,
         },
         {
-            name: "Catalogs",
-            href: "/catalogs",
-            icon: GrCatalog,
+            name: "CatalogVersions",
+            href: "/catalogversions",
+            icon: GrCatalogVersion,
         },
         {
-            name: "Solutions",
-            href: "/solutions",
+            name: "SolutionVersions",
+            href: "/solutionversions",
             icon: HiOutlineTemplate,
         },
         {
@@ -62,8 +62,8 @@ function SideBar() {
             icon: HiOutlineCamera,
         },
         {
-            name: "Campaigns",
-            href: "/campaigns",
+            name: "CampaignVersions",
+            href: "/campaignversions",
             icon: GoWorkflow,
         },
         {

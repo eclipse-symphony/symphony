@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	AzureSolutionVersionIdPattern = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutions/([^/]+)/versions/([^/]+)$"
+	AzureSolutionVersionIdPattern = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)/solutionversions/([^/]+)/versions/([^/]+)$"
 	AzureTargetIdPattern          = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/targets/([^/]+)$"
 	AzureWorkflowVersionIdPattern = "(?i)^/subscriptions/([0-9a-fA-F-]+)/resourcegroups/([^/]+)/providers/([^/]+)/contexts/([^/]+)/workflows/([^/]+)/versions/([^/]+)$"
 )
 
 func ConvertAzureSolutionVersionReferenceToObjectName(name string) (string, bool) {
-	log.Infof("Azure: convert solution version reference to object name: %s", name)
+	log.Infof("Azure: convert solutionversion version reference to object name: %s", name)
 	r := regexp.MustCompile(AzureSolutionVersionIdPattern)
 	if !r.MatchString(name) {
 		return "", false
@@ -53,9 +53,9 @@ func ConvertAzureWorkflowVersionReferenceToObjectName(name string) (string, bool
 	return r.ReplaceAllString(name, fmt.Sprintf("$4%s$5%s$6", constants.ResourceSeperator, constants.ResourceSeperator)), true
 }
 
-func GetInstanceName(solutionContainerName, objectName string) string {
+func GetInstanceName(solutionversionContainerName, objectName string) string {
 
-	return fmt.Sprintf("%s-v-%s", solutionContainerName, objectName)
+	return fmt.Sprintf("%s-v-%s", solutionversionContainerName, objectName)
 }
 
 func GetInstanceTargetName(name string) string {
@@ -66,7 +66,7 @@ func GetInstanceTargetName(name string) string {
 	return parts[len(parts)-1]
 }
 
-func GetSolutionAndContainerName(name string) (string, string) {
+func GetSolutionVersionAndContainerName(name string) (string, string) {
 	parts := strings.Split(name, "/")
 	if len(parts) < 5 {
 
@@ -89,22 +89,22 @@ func GenerateOperationId() string {
 	return uuid.New().String()
 }
 
-func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
-	sc, err := apiClient.GetSolutionContainer(ctx, solutionContainer, objectNamespace, user, pwd)
+func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionversionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+	sc, err := apiClient.GetSolution(ctx, solutionversionContainer, objectNamespace, user, pwd)
 	if err != nil {
 		return nil, err
 	}
 	return []metav1.OwnerReference{
 		{
-			APIVersion: fmt.Sprintf("%s/%s", model.SolutionGroup, "v1"),
-			Kind:       "SolutionContainer",
+			APIVersion: fmt.Sprintf("%s/%s", model.SolutionVersionGroup, "v1"),
+			Kind:       "Solution",
 			Name:       sc.ObjectMeta.Name,
 			UID:        sc.ObjectMeta.UID,
 		},
 	}, nil
 }
 
-func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GetSolutionOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	target, err := apiClient.GetTarget(ctx, objectName, objectNamespace, user, pwd)
 	if err != nil {
 		return nil, err

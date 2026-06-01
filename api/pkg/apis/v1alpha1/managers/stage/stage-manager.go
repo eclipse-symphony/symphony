@@ -61,15 +61,15 @@ type TaskHandler interface {
 	HandleTask(ctx context.Context, task model.TaskSpec, inputs map[string]interface{}, siteName string) (map[string]interface{}, error)
 }
 
-// CampaignTaskHandler implements TaskHandler for campaign-specific task processing
-type CampaignTaskHandler struct {
+// CampaignVersionTaskHandler implements TaskHandler for campaignversion-specific task processing
+type CampaignVersionTaskHandler struct {
 	manager     *StageManager
 	triggerData v1alpha2.ActivationData
 	triggers    map[string]interface{}
 }
 
-func NewCampaignTaskHandler(manager *StageManager, triggerData v1alpha2.ActivationData, triggers map[string]interface{}) *CampaignTaskHandler {
-	return &CampaignTaskHandler{
+func NewCampaignVersionTaskHandler(manager *StageManager, triggerData v1alpha2.ActivationData, triggers map[string]interface{}) *CampaignVersionTaskHandler {
+	return &CampaignVersionTaskHandler{
 		manager:     manager,
 		triggerData: triggerData,
 		triggers:    triggers,
@@ -96,7 +96,7 @@ func mapToStruct(m map[string]interface{}, dst any) error {
 	return json.Unmarshal(b, dst)
 }
 
-func (h *CampaignTaskHandler) HandleTask(ctx context.Context, task model.TaskSpec, inputs map[string]interface{}, siteName string) (map[string]interface{}, error) {
+func (h *CampaignVersionTaskHandler) HandleTask(ctx context.Context, task model.TaskSpec, inputs map[string]interface{}, siteName string) (map[string]interface{}, error) {
 	// Create task-specific inputs
 	taskInputs := utils.MergeCollection_StringAny(inputs, task.Inputs)
 
@@ -357,7 +357,7 @@ func (s *StageManager) processTasks(ctx context.Context, currentStage model.Stag
 
 	// Create task processor and handler
 	processor := NewGoRoutineTaskProcessor(s, ctx)
-	handler := NewCampaignTaskHandler(s, triggerData, triggers)
+	handler := NewCampaignVersionTaskHandler(s, triggerData, triggers)
 
 	// Process tasks using the processor
 	return processor.Process(ctx, currentStage.Tasks, inputCopy, handler, currentStage.TaskOption.ErrorAction, currentStage.TaskOption.Concurrency, siteName)
@@ -460,12 +460,12 @@ func (s *StageManager) Poll() []error {
 func (s *StageManager) Reconcil() []error {
 	return nil
 }
-func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus, cam model.CampaignSpec) (*v1alpha2.ActivationData, error) {
+func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus, cam model.CampaignVersionSpec) (*v1alpha2.ActivationData, error) {
 	log.InfofCtx(ctx, " M (Stage): ResumeStage: %v\n", status)
-	campaign, ok := status.Outputs["__campaign"].(string)
+	campaignversion, ok := status.Outputs["__campaignversion"].(string)
 	if !ok {
-		log.ErrorfCtx(ctx, " M (Stage): ResumeStage: campaign (%v) is not valid from output", status.Outputs["__campaign"])
-		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: campaign is not valid", v1alpha2.BadRequest)
+		log.ErrorfCtx(ctx, " M (Stage): ResumeStage: campaignversion (%v) is not valid from output", status.Outputs["__campaignversion"])
+		return nil, v1alpha2.NewCOAError(nil, "ResumeStage: campaignversion is not valid", v1alpha2.BadRequest)
 	}
 	activation, ok := status.Outputs["__activation"].(string)
 	if !ok {
@@ -493,7 +493,7 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 	}
 
 	entry, err := s.StateProvider.Get(ctx, states.GetRequest{
-		ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
+		ID: fmt.Sprintf("%s-%s-%s", campaignversion, activation, activationGeneration),
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
 		},
@@ -526,7 +526,7 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 		if len(newSites) == 0 {
 			log.InfofCtx(ctx, " M (Stage): ResumeStage: all sites are done for activation %s stage %s. Check if we need to move to next stage", activation, stage)
 			err := s.StateProvider.Delete(ctx, states.DeleteRequest{
-				ID: fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
+				ID: fmt.Sprintf("%s-%s-%s", campaignversion, activation, activationGeneration),
 				Metadata: map[string]interface{}{
 					"namespace": namespace,
 				},
@@ -585,7 +585,7 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 				}
 				if nextStage != "" {
 					activationData := &v1alpha2.ActivationData{
-						Campaign:             campaign,
+						CampaignVersion:             campaignversion,
 						Activation:           activation,
 						ActivationGeneration: activationGeneration,
 						Stage:                nextStage,
@@ -612,7 +612,7 @@ func (s *StageManager) ResumeStage(ctx context.Context, status model.StageStatus
 			// TODO: clean up the remote job status entry for multi-site
 			_, err := s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
-					ID:   fmt.Sprintf("%s-%s-%s", campaign, activation, activationGeneration),
+					ID:   fmt.Sprintf("%s-%s-%s", campaignversion, activation, activationGeneration),
 					Body: p,
 				},
 				Metadata: map[string]interface{}{
@@ -637,13 +637,13 @@ func (s *StageManager) HandleDirectTriggerEvent(ctx context.Context, triggerData
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Stage): HandleDirectTriggerEvent for campaign %s, activation %s, stage %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage)
+	log.InfofCtx(ctx, " M (Stage): HandleDirectTriggerEvent for campaignversion %s, activation %s, stage %s", triggerData.CampaignVersion, triggerData.Activation, triggerData.Stage)
 
 	status := model.StageStatus{
 		Stage:     "",
 		NextStage: "",
 		Outputs: map[string]interface{}{
-			"__campaign":             triggerData.Campaign,
+			"__campaignversion":             triggerData.CampaignVersion,
 			"__namespace":            triggerData.Namespace,
 			"__activation":           triggerData.Activation,
 			"__activationGeneration": triggerData.ActivationGeneration,
@@ -786,7 +786,7 @@ func carryOutPutsToErrorStatus(outputs map[string]interface{}, err error, siteOr
 	return ret
 }
 
-func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.CampaignSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
+func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaignversion model.CampaignVersionSpec, triggerData v1alpha2.ActivationData) (model.StageStatus, *v1alpha2.ActivationData) {
 	ctx, span := observability.StartSpan("Stage Manager", ctx, &map[string]string{
 		"method": "HandleTriggerEvent",
 	})
@@ -794,7 +794,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	log.InfofCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s, selfDriving %s", triggerData.Campaign, triggerData.Activation, triggerData.Stage, campaign.SelfDriving)
+	log.InfofCtx(ctx, " M (Stage): HandleTriggerEvent for campaignversion %s, activation %s, stage %s, selfDriving %s", triggerData.CampaignVersion, triggerData.Activation, triggerData.Stage, campaignversion.SelfDriving)
 	status := model.StageStatus{
 		Stage:         triggerData.Stage,
 		NextStage:     "",
@@ -805,13 +805,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		IsActive:      true,
 	}
 	var activationData *v1alpha2.ActivationData
-	if currentStage, ok := campaign.Stages[triggerData.Stage]; ok {
+	if currentStage, ok := campaignversion.Stages[triggerData.Stage]; ok {
 		if triggerData.Proxy == nil {
 			triggerData.Proxy = currentStage.Proxy
 		}
 
 		sites := make([]string, 0)
-		// 1. According to campaign.Contexts, find out which sites will be executed
+		// 1. According to campaignversion.Contexts, find out which sites will be executed
 		if currentStage.Contexts != "" {
 			log.InfofCtx(ctx, " M (Stage): evaluating context %s", currentStage.Contexts)
 			parser := utils.NewParser(currentStage.Contexts)
@@ -857,7 +857,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		} else {
 			sites = append(sites, s.VendorContext.SiteInfo.SiteId)
 		}
-		log.DebugfCtx(ctx, " M (Stage): HandleTriggerEvent for campaign %s, activation %s, stage %s, executed on sites {%s}", triggerData.Campaign, triggerData.Activation, triggerData.Stage, strings.Join(sites, ", "))
+		log.DebugfCtx(ctx, " M (Stage): HandleTriggerEvent for campaignversion %s, activation %s, stage %s, executed on sites {%s}", triggerData.CampaignVersion, triggerData.Activation, triggerData.Stage, strings.Join(sites, ", "))
 
 		// 2. According to triggerData.Inputs and currentStage.Inputs, together with default inputs to generate the runtime inputs
 		triggers := triggerData.Inputs
@@ -870,7 +870,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		}
 
 		// inject default inputs
-		inputs["__campaign"] = triggerData.Campaign
+		inputs["__campaignversion"] = triggerData.CampaignVersion
 		inputs["__namespace"] = triggerData.Namespace
 		inputs["__activation"] = triggerData.Activation
 		inputs["__stage"] = triggerData.Stage
@@ -907,7 +907,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		// 3. Snapshot the inputs from #2
 		snapshotInputs := utils.DeepCopyCollection(inputs)
 
-		// 4. Duplicate inputs from #2, then iterate campaign.task.inputs
+		// 4. Duplicate inputs from #2, then iterate campaignversion.task.inputs
 		inputsWithStageAndTasks := utils.DeepCopyCollectionWithPrefixExclude(inputs, "__")
 		if len(currentStage.Tasks) > 0 {
 			for _, task := range currentStage.Tasks {
@@ -929,7 +929,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 		}
 		status.Inputs = inputsWithStageAndTasks
 
-		// 5. If campaign.provider exists, initialize a provider
+		// 5. If campaignversion.provider exists, initialize a provider
 		var provider providers.IProvider
 		if triggerData.Provider != "" {
 
@@ -1219,7 +1219,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			}
 			_, err = s.StateProvider.Upsert(ctx, states.UpsertRequest{
 				Value: states.StateEntry{
-					ID:   fmt.Sprintf("%s-%s-%s", triggerData.Campaign, triggerData.Activation, triggerData.ActivationGeneration),
+					ID:   fmt.Sprintf("%s-%s-%s", triggerData.CampaignVersion, triggerData.Activation, triggerData.ActivationGeneration),
 					Body: pendingTask,
 				},
 				Metadata: map[string]interface{}{
@@ -1240,7 +1240,7 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 			return status, activationData
 		}
 
-		if campaign.SelfDriving {
+		if campaignversion.SelfDriving {
 			parser := utils.NewParser(currentStage.StageSelector)
 			eCtx := s.VendorContext.EvaluationContext.Clone()
 			eCtx.Context = ctx
@@ -1271,11 +1271,11 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaign model.Ca
 
 			log.InfofCtx(ctx, " M (Stage): stage %s finished. has error? %t", triggerData.Stage, hasStageError)
 			if nextStageName != "" {
-				if nextStage, ok := campaign.Stages[nextStageName]; ok || hasStageError {
+				if nextStage, ok := campaignversion.Stages[nextStageName]; ok || hasStageError {
 					if !hasStageError || nextStage.HandleErrors {
 						status.NextStage = nextStageName
 						activationData = &v1alpha2.ActivationData{
-							Campaign:             triggerData.Campaign,
+							CampaignVersion:             triggerData.CampaignVersion,
 							Activation:           triggerData.Activation,
 							ActivationGeneration: triggerData.ActivationGeneration,
 							Stage:                nextStageName,
@@ -1387,15 +1387,15 @@ func (s *StageManager) traceValue(ctx context.Context, v interface{}, namespace 
 	}
 }
 
-func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alpha2.ActivationData, campaign model.CampaignSpec, activation model.ActivationState) (*v1alpha2.ActivationData, error) {
+func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alpha2.ActivationData, campaignversion model.CampaignVersionSpec, activation model.ActivationState) (*v1alpha2.ActivationData, error) {
 	stage := actData.Stage
-	if _, ok := campaign.Stages[stage]; !ok {
-		stage = campaign.FirstStage
+	if _, ok := campaignversion.Stages[stage]; !ok {
+		stage = campaignversion.FirstStage
 	}
 	if stage == "" {
 		return nil, v1alpha2.NewCOAError(nil, "no stage found", v1alpha2.BadRequest)
 	}
-	if stageSpec, ok := campaign.Stages[stage]; ok {
+	if stageSpec, ok := campaignversion.Stages[stage]; ok {
 		// There could be rare case where a stage is triggered twice and the history may contain two entries.
 		// Skip the following check until we have stage dedup
 		// if activation.Status != nil && activation.Status.StageHistory != nil && len(activation.Status.StageHistory) != 0 &&
@@ -1408,7 +1408,7 @@ func (s *StageManager) HandleActivationEvent(ctx context.Context, actData v1alph
 		// 	return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("stage %s is not the next stage", stage), v1alpha2.BadRequest)
 		// }
 		return &v1alpha2.ActivationData{
-			Campaign:             actData.Campaign,
+			CampaignVersion:             actData.CampaignVersion,
 			Activation:           actData.Activation,
 			ActivationGeneration: actData.ActivationGeneration,
 			Stage:                stage,

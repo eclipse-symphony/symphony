@@ -121,13 +121,13 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onInstances-POST", pCtx, nil)
-		solution := request.Parameters["solution"]
+		solutionversion := request.Parameters["solutionversion"]
 		target := request.Parameters["target"]
 		target_selector := request.Parameters["target-selector"]
 
 		var instance model.InstanceState
 
-		if solution != "" && (target != "" || target_selector != "") {
+		if solutionversion != "" && (target != "" || target_selector != "") {
 			instance = model.InstanceState{
 				ObjectMeta: model.ObjectMeta{
 					Name:      id,
@@ -135,7 +135,7 @@ func (c *InstancesVendor) onInstances(request v1alpha2.COARequest) v1alpha2.COAR
 				},
 				Spec: &model.InstanceSpec{
 					DisplayName: id,
-					Solution:    solution,
+					SolutionVersion:    solutionversion,
 				},
 			}
 			if target != "" {

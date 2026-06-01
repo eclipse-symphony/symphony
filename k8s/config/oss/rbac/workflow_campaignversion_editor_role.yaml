@@ -1,0 +1,55 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
+# permissions for end users to edit campaignversions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: campaignversion-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: symphony-k8s
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+  name: campaignversion-editor-role
+rules:
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaignversions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaignversions/status
+  verbs:
+  - get
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - activations/status
+  verbs:
+  - get

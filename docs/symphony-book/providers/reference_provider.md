@@ -1,6 +1,6 @@
 # Reference provider
 
-A reference provider resolves an object reference to the actual object spec. For example, you can use a Kubernetes reference project to query a `solution` object by name, or list `targets` by a label selector or a field selector.
+A reference provider resolves an object reference to the actual object spec. For example, you can use a Kubernetes reference project to query a `solutionversion` object by name, or list `targets` by a label selector or a field selector.
 
 Symphony API uses a reference manager to resolve references. The reference manager has a built-in cache so that it doesn't repeatedly query the underlying system. The lifespan of cached items is controlled by the `cacheLifespan` setting, which is in seconds.
 

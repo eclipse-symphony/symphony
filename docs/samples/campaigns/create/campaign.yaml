@@ -1,11 +1,11 @@
 apiVersion: workflow.symphony/v1
-kind: CampaignContainer
+kind: Campaign
 metadata:
   name: create-campaign
 spec:  
 ---
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignVersion
 metadata:
   name: create-campaign-v-version1
 spec:
@@ -28,7 +28,7 @@ spec:
           metadata: 
             name: site-instance
           spec: 
-            solution: site-app:version1
+            solutionversion: site-app:version1
             target:
               name: site-k8s-target
     succeeded:

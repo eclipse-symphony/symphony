@@ -1,11 +1,11 @@
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: hq
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-version1
 spec:
@@ -24,13 +24,13 @@ spec:
     lng: "-122.12826"
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: tokyo
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: tokyo-v-version1
 spec:
@@ -49,13 +49,13 @@ spec:
     lng: "139.74043"  
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: new-york
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: new-york-v-version1
 spec:
@@ -74,13 +74,13 @@ spec:
     lng: "-73.98076"
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: munchen
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: munchen-v-version1
 spec:
@@ -99,7 +99,7 @@ spec:
     lng: "11.59385"
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-adr
 spec:
@@ -120,7 +120,7 @@ spec:
       foo: bar
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-arc1
 spec:
@@ -141,7 +141,7 @@ spec:
       foo: bar
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-arc2
 spec:
@@ -162,7 +162,7 @@ spec:
       foo: bar
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-doe-site
 spec:
@@ -183,7 +183,7 @@ spec:
       foo: bar
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: hq-v-iot-hub
 spec:
@@ -204,13 +204,13 @@ spec:
       foo: bar
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: area
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: area-v-1
 spec:
@@ -221,7 +221,7 @@ spec:
   parentName: hq-doe-site
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: area-v-2
 spec:
@@ -232,13 +232,13 @@ spec:
   parentName: hq-doe-site
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: line
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: line-v-1
 spec:
@@ -249,7 +249,7 @@ spec:
   parentName: area-1
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: line-v-2
 spec:

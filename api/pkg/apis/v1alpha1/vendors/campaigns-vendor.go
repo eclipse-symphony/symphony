@@ -7,6 +7,7 @@
 package vendors
 
 import (
+	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
@@ -16,13 +17,12 @@ import (
 	observ_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/pubsub"
-	utils2 "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/vendors"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 	"github.com/valyala/fasthttp"
 )
 
-var cLog = logger.NewLogger("coa.runtime")
+var ccLog = logger.NewLogger("coa.runtime")
 
 type CampaignsVendor struct {
 	vendors.Vendor
@@ -48,7 +48,7 @@ func (e *CampaignsVendor) Init(config vendors.VendorConfig, factories []managers
 		}
 	}
 	if e.CampaignsManager == nil {
-		return v1alpha2.NewCOAError(nil, "campaigns manager is not supplied", v1alpha2.MissingConfig)
+		return v1alpha2.NewCOAError(nil, "CampaignVersion container manager is not supplied", v1alpha2.MissingConfig)
 	}
 	return nil
 }
@@ -70,18 +70,19 @@ func (o *CampaignsVendor) GetEndpoints() []v1alpha2.Endpoint {
 }
 
 func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAResponse {
-	pCtx, span := observability.StartSpan("Campaigns Vendor", request.Context, &map[string]string{
+	pCtx, span := observability.StartSpan("onCampaigns", request.Context, &map[string]string{
 		"method": "onCampaigns",
 	})
 	defer span.End()
-	cLog.InfofCtx(pCtx, "V (Campaigns): onCampaigns, method: %s", string(request.Method))
+	ccLog.InfofCtx(pCtx, "V (Campaigns): onCampaigns, method: %s", request.Method)
 
 	id := request.Parameters["__name"]
-	namespace, namespaceSupplied := request.Parameters["namespace"]
-	if !namespaceSupplied {
-		namespace = "default"
+	namespace, exist := request.Parameters["namespace"]
+	if !exist {
+		namespace = constants.DefaultScope
 	}
 
+	ccLog.InfofCtx(pCtx, "V (Campaigns): onCampaigns, method: %s", string(request.Method))
 	switch request.Method {
 	case fasthttp.MethodGet:
 		ctx, span := observability.StartSpan("onCampaigns-GET", pCtx, nil)
@@ -89,7 +90,8 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		var state interface{}
 		isArray := false
 		if id == "" {
-			if !namespaceSupplied {
+			// Change partition back to empty to indicate ListSpec need to query all namespaces
+			if !exist {
 				namespace = ""
 			}
 			state, err = c.CampaignsManager.ListState(ctx, namespace)
@@ -98,7 +100,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 			state, err = c.CampaignsManager.GetState(ctx, id, namespace)
 		}
 		if err != nil {
-			cLog.InfofCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
+			ccLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
@@ -116,25 +118,23 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		return resp
 	case fasthttp.MethodPost:
 		ctx, span := observability.StartSpan("onCampaigns-POST", pCtx, nil)
-		var campaign model.CampaignState
-
-		err := utils2.UnmarshalJson(request.Body, &campaign)
-		if err != nil {
-			cLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
-			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
-				State: v1alpha2.InternalError,
-				Body:  []byte(err.Error()),
-			})
+		campaignversion := model.CampaignState{
+			ObjectMeta: model.ObjectMeta{
+				Name:      id,
+				Namespace: namespace,
+			},
+			Spec: &model.CampaignSpec{},
 		}
 
-		err = c.CampaignsManager.UpsertState(ctx, id, campaign)
+		err := c.CampaignsManager.UpsertState(ctx, id, campaignversion)
 		if err != nil {
-			cLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
+			ccLog.InfofCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
 			})
 		}
+
 		return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 			State: v1alpha2.OK,
 		})
@@ -142,7 +142,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 		ctx, span := observability.StartSpan("onCampaigns-DELETE", pCtx, nil)
 		err := c.CampaignsManager.DeleteState(ctx, id, namespace)
 		if err != nil {
-			cLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
+			ccLog.ErrorfCtx(ctx, "V (Campaigns): onCampaigns failed - %s", err.Error())
 			return observ_utils.CloseSpanWithCOAResponse(span, v1alpha2.COAResponse{
 				State: v1alpha2.GetErrorState(err),
 				Body:  []byte(err.Error()),
@@ -152,7 +152,7 @@ func (c *CampaignsVendor) onCampaigns(request v1alpha2.COARequest) v1alpha2.COAR
 			State: v1alpha2.OK,
 		})
 	}
-	cLog.InfoCtx(pCtx, "V (Campaigns): onCampaigns failed - 405 method not allowed")
+	ccLog.InfoCtx(pCtx, "V (Campaigns): onCampaigns failed - 405 method not allowed")
 	resp := v1alpha2.COAResponse{
 		State:       v1alpha2.MethodNotAllowed,
 		Body:        []byte("{\"result\":\"405 - method not allowed\"}"),

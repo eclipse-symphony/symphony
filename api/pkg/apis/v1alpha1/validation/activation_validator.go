@@ -16,8 +16,8 @@ import (
 )
 
 type ActivationValidator struct {
-	// Check Campaign existence
-	CampaignLookupFunc ObjectLookupFunc
+	// Check CampaignVersion existence
+	CampaignVersionLookupFunc ObjectLookupFunc
 }
 
 var (
@@ -25,15 +25,15 @@ var (
 	activationMinNameLength = 1
 )
 
-func NewActivationValidator(campaignLookupFunc ObjectLookupFunc) ActivationValidator {
+func NewActivationValidator(campaignversionLookupFunc ObjectLookupFunc) ActivationValidator {
 	return ActivationValidator{
-		CampaignLookupFunc: campaignLookupFunc,
+		CampaignVersionLookupFunc: campaignversionLookupFunc,
 	}
 }
 
 // Validate Activation creation or update
-// 1. Campaign exists
-// 2. If initial stage is provided in the activation spec, validate it is a valid stage in the campaign
+// 1. CampaignVersion exists
+// 2. If initial stage is provided in the activation spec, validate it is a valid stage in the campaignversion
 // 3. Spec is immutable for update
 func (a *ActivationValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
 	new := a.ConvertInterfaceToActivation(newRef)
@@ -41,7 +41,7 @@ func (a *ActivationValidator) ValidateCreateOrUpdate(ctx context.Context, newRef
 
 	errorFields := []ErrorField{}
 	if oldRef == nil {
-		if err := a.ValidateCampaignAndStage(ctx, new); err != nil {
+		if err := a.ValidateCampaignVersionAndStage(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 
@@ -67,19 +67,19 @@ func (a *ActivationValidator) ValidateDelete(ctx context.Context, activation int
 	return []ErrorField{}
 }
 
-// Validate Campaign exists for the activation
-// And if initial stage is provided in the activation spec, validate it is a valid stage in the campaign
-func (a *ActivationValidator) ValidateCampaignAndStage(ctx context.Context, new model.ActivationState) *ErrorField {
-	if a.CampaignLookupFunc == nil {
+// Validate CampaignVersion exists for the activation
+// And if initial stage is provided in the activation spec, validate it is a valid stage in the campaignversion
+func (a *ActivationValidator) ValidateCampaignVersionAndStage(ctx context.Context, new model.ActivationState) *ErrorField {
+	if a.CampaignVersionLookupFunc == nil {
 		return nil
 	}
-	campaignName := ConvertReferenceToObjectName(new.Spec.Campaign)
-	Campaign, err := a.CampaignLookupFunc(ctx, campaignName, new.ObjectMeta.Namespace)
+	campaignversionName := ConvertReferenceToObjectName(new.Spec.CampaignVersion)
+	CampaignVersion, err := a.CampaignVersionLookupFunc(ctx, campaignversionName, new.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
-			FieldPath:       "spec.campaign",
-			Value:           campaignName,
-			DetailedMessage: "campaign reference must be a valid Campaign object in the same namespace",
+			FieldPath:       "spec.campaignversion",
+			Value:           campaignversionName,
+			DetailedMessage: "campaignversion reference must be a valid CampaignVersion object in the same namespace",
 		}
 	}
 	if new.Spec.Stage == "" || strings.Contains(new.Spec.Stage, "$") {
@@ -87,23 +87,23 @@ func (a *ActivationValidator) ValidateCampaignAndStage(ctx context.Context, new 
 		return nil
 	}
 
-	marshalResult, err := json.Marshal(Campaign)
+	marshalResult, err := json.Marshal(CampaignVersion)
 	if err != nil {
 		return nil
 	}
-	var campaign model.CampaignState
-	err = json.Unmarshal(marshalResult, &campaign)
+	var campaignversion model.CampaignVersionState
+	err = json.Unmarshal(marshalResult, &campaignversion)
 	if err != nil {
 		return nil
 	}
-	if new.ObjectMeta.Labels[api_constants.CampaignUid] != string(campaign.ObjectMeta.UID) {
+	if new.ObjectMeta.Labels[api_constants.CampaignVersionUid] != string(campaignversion.ObjectMeta.UID) {
 		return &ErrorField{
-			FieldPath:       "metadata.labels.campaignUid",
-			Value:           string(campaign.ObjectMeta.UID),
-			DetailedMessage: "metadata.labels.campaignUid is empty or doesn't match with the campaign.",
+			FieldPath:       "metadata.labels.campaignversionUid",
+			Value:           string(campaignversion.ObjectMeta.UID),
+			DetailedMessage: "metadata.labels.campaignversionUid is empty or doesn't match with the campaignversion.",
 		}
 	}
-	for _, stage := range campaign.Spec.Stages {
+	for _, stage := range campaignversion.Spec.Stages {
 		if stage.Name == new.Spec.Stage {
 			return nil
 		}
@@ -111,7 +111,7 @@ func (a *ActivationValidator) ValidateCampaignAndStage(ctx context.Context, new 
 	return &ErrorField{
 		FieldPath:       "spec.stage",
 		Value:           new.Spec.Stage,
-		DetailedMessage: "spec.stage must be a valid stage in the campaign",
+		DetailedMessage: "spec.stage must be a valid stage in the campaignversion",
 	}
 }
 

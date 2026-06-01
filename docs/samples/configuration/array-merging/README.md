@@ -37,9 +37,9 @@ As a simple example of this problem, there are two regions which each have a "Ta
 
 #### Solving with Symphony configuration management
 
-[Symphony property expressions](../../../symphony-book/concepts/unified-object-model/property-expressions.md#functions) enable the assembly of a configuration object (catalog) by integrating multiple distinct objects.
+[Symphony property expressions](../../../symphony-book/concepts/unified-object-model/property-expressions.md#functions) enable the assembly of a configuration object (catalogversion) by integrating multiple distinct objects.
 
-1. Break the shared tags out into a segment to be shared.  See [shared-tags](./catalogs/shared-tags.yml).
+1. Break the shared tags out into a segment to be shared.  See [shared-tags](./catalogversions/shared-tags.yml).
 
     ```yml
     spec:
@@ -52,7 +52,7 @@ As a simple example of this problem, there are two regions which each have a "Ta
         ]
     ```
 
-1. Define site/region specific additional tags.  See [region1-tags](./catalogs/region1-tags.yml) and [region2-tags](./catalogs/region2-tags.yml).
+1. Define site/region specific additional tags.  See [region1-tags](./catalogversions/region1-tags.yml) and [region2-tags](./catalogversions/region2-tags.yml).
 
     Region 1 Example:
 
@@ -66,7 +66,7 @@ As a simple example of this problem, there are two regions which each have a "Ta
             ]
     ```
 
-1. Combine the two arrays with the following expression.  See [region1-tags](./catalogs/region1-tags.yml) and [region2-tags](./catalogs/region2-tags.yml).
+1. Combine the two arrays with the following expression.  See [region1-tags](./catalogversions/region1-tags.yml) and [region2-tags](./catalogversions/region2-tags.yml).
 .
 
     ```yml

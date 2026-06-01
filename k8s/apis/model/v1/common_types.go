@@ -139,7 +139,7 @@ type TargetSpec struct {
 	DisplayName   string               `json:"displayName,omitempty"`
 	Metadata      map[string]string    `json:"metadata,omitempty"`
 	Scope         string               `json:"scope,omitempty"`
-	SolutionScope string               `json:"solutionScope,omitempty"`
+	SolutionVersionScope string               `json:"solutionversionScope,omitempty"`
 	Properties    map[string]string    `json:"properties,omitempty"`
 	Components    []ComponentSpec      `json:"components,omitempty"`
 	Constraints   string               `json:"constraints,omitempty"`
@@ -163,7 +163,7 @@ func (c TargetSpec) DeepEquals(other TargetSpec) bool {
 	if c.Scope != other.Scope {
 		return false
 	}
-	if c.SolutionScope != other.SolutionScope {
+	if c.SolutionVersionScope != other.SolutionVersionScope {
 		return false
 	}
 	if !model.StringMapsEqual(c.Properties, other.Properties, nil) {
@@ -203,7 +203,7 @@ type InstanceSpec struct {
 	Scope       string               `json:"scope,omitempty"`
 	Parameters  map[string]string    `json:"parameters,omitempty"` //TODO: Do we still need this?
 	Metadata    map[string]string    `json:"metadata,omitempty"`
-	Solution    string               `json:"solution"`
+	SolutionVersion    string               `json:"solutionversion"`
 	Target      model.TargetSelector `json:"target,omitempty"`
 	Topologies  []model.TopologySpec `json:"topologies,omitempty"`
 	Pipelines   []model.PipelineSpec `json:"pipelines,omitempty"`
@@ -232,7 +232,7 @@ func (c InstanceSpec) DeepEquals(other InstanceSpec) bool {
 		return false
 	}
 
-	if c.Solution != other.Solution {
+	if c.SolutionVersion != other.SolutionVersion {
 		return false
 	}
 
@@ -280,8 +280,8 @@ type InstanceHistorySpec struct {
 	Scope                string                    `json:"scope,omitempty"`
 	Parameters           map[string]string         `json:"parameters,omitempty"` //TODO: Do we still need this?
 	Metadata             map[string]string         `json:"metadata,omitempty"`
-	Solution             SolutionSpec              `json:"solution"`
-	SolutionId           string                    `json:"solutionId"`
+	SolutionVersion             SolutionVersionSpec              `json:"solutionversion"`
+	SolutionVersionId           string                    `json:"solutionversionId"`
 	Target               TargetSpec                `json:"target,omitempty"`
 	TargetId             string                    `json:"targetId,omitempty"`
 	TargetSelector       map[string]string         `json:"targetSelector,omitempty"`
@@ -307,10 +307,10 @@ func (c InstanceHistorySpec) DeepEquals(other InstanceHistorySpec) bool {
 	if !model.StringMapsEqual(c.Metadata, other.Metadata, nil) {
 		return false
 	}
-	if !c.Solution.DeepEquals(other.Solution) {
+	if !c.SolutionVersion.DeepEquals(other.SolutionVersion) {
 		return false
 	}
-	if c.SolutionId != other.SolutionId {
+	if c.SolutionVersionId != other.SolutionVersionId {
 		return false
 	}
 	if !c.Target.DeepEquals(other.Target) {
@@ -345,7 +345,7 @@ func (c InstanceHistorySpec) DeepEquals(other InstanceHistorySpec) bool {
 }
 
 // +kubebuilder:object:generate=true
-type SolutionSpec struct {
+type SolutionVersionSpec struct {
 	DisplayName  string            `json:"displayName,omitempty"`
 	Metadata     map[string]string `json:"metadata,omitempty"`
 	Components   []ComponentSpec   `json:"components,omitempty"`
@@ -353,7 +353,7 @@ type SolutionSpec struct {
 	RootResource string            `json:"rootResource,omitempty"`
 }
 
-func (c SolutionSpec) DeepEquals(other SolutionSpec) bool {
+func (c SolutionVersionSpec) DeepEquals(other SolutionVersionSpec) bool {
 	if c.DisplayName != other.DisplayName {
 		return false
 	}
@@ -370,7 +370,7 @@ func (c SolutionSpec) DeepEquals(other SolutionSpec) bool {
 }
 
 // +kubebuilder:object:generate=true
-type SolutionContainerSpec struct {
+type SolutionSpec struct {
 }
 
 // +kubebuilder:object:generate=true
@@ -460,7 +460,7 @@ func (s StageSpec) MarshalJSON() ([]byte, error) {
 
 // +kubebuilder:object:generate=true
 type ActivationSpec struct {
-	Campaign string `json:"campaign,omitempty"`
+	CampaignVersion string `json:"campaignversion,omitempty"`
 	Stage    string `json:"stage,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
@@ -497,7 +497,7 @@ func (a ActivationSpec) MarshalJSON() ([]byte, error) {
 }
 
 // +kubebuilder:object:generate=true
-type CampaignSpec struct {
+type CampaignVersionSpec struct {
 	Name         string               `json:"name,omitempty"`
 	FirstStage   string               `json:"firstStage,omitempty"`
 	Stages       map[string]StageSpec `json:"stages,omitempty"`
@@ -507,11 +507,11 @@ type CampaignSpec struct {
 }
 
 // +kubebuilder:object:generate=true
-type CampaignContainerSpec struct {
+type CampaignSpec struct {
 }
 
 // +kubebuilder:object:generate=true
-type CatalogSpec struct {
+type CatalogVersionSpec struct {
 	CatalogType string            `json:"catalogType"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
@@ -523,9 +523,9 @@ type CatalogSpec struct {
 	RootResource string               `json:"rootResource,omitempty"`
 }
 
-// UnmarshalJSON customizes the JSON unmarshalling for CatalogSpec
-func (c *CatalogSpec) UnmarshalJSON(data []byte) error {
-	type Alias CatalogSpec
+// UnmarshalJSON customizes the JSON unmarshalling for CatalogVersionSpec
+func (c *CatalogVersionSpec) UnmarshalJSON(data []byte) error {
+	type Alias CatalogVersionSpec
 	aux := &struct {
 		Properties json.RawMessage `json:"properties"`
 		*Alias
@@ -540,9 +540,9 @@ func (c *CatalogSpec) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON customizes the JSON marshalling for CatalogSpec
-func (c CatalogSpec) MarshalJSON() ([]byte, error) {
-	type Alias CatalogSpec
+// MarshalJSON customizes the JSON marshalling for CatalogVersionSpec
+func (c CatalogVersionSpec) MarshalJSON() ([]byte, error) {
+	type Alias CatalogVersionSpec
 	return json.Marshal(&struct {
 		Properties json.RawMessage `json:"properties"`
 		*Alias
@@ -553,7 +553,7 @@ func (c CatalogSpec) MarshalJSON() ([]byte, error) {
 }
 
 // +kubebuilder:object:generate=true
-type CatalogContainerSpec struct {
+type CatalogSpec struct {
 }
 
 // +kubebuilder:object:generate=true
@@ -758,7 +758,7 @@ type InstanceStatus = DeployableStatusV2
 // TargetStatus defines the observed state of Target
 type TargetStatus = DeployableStatusV2
 
-// InstanceHistoryStatus defines the observed state of Solution
+// InstanceHistoryStatus defines the observed state of SolutionVersion
 type InstanceHistoryStatus = DeployableStatusV2
 
 // +kubebuilder:object:generate=true

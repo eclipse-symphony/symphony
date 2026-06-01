@@ -1,0 +1,30 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+
+# permissions for end users to edit solutionversions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solutionversion-editor-role
+rules:
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutionversions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutionversions/status
+  verbs:
+  - get

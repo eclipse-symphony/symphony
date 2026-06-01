@@ -38,8 +38,8 @@ func HashObjects(deploymentResources DeploymentResources) string {
 		return deploymentResources.TargetCandidates[i].GetName() < deploymentResources.TargetCandidates[j].GetName()
 	})
 
-	// Add the solution and instance to the hasher
-	writeObjectHash(hasher, &deploymentResources.Solution)
+	// Add the solutionversion and instance to the hasher
+	writeObjectHash(hasher, &deploymentResources.SolutionVersion)
 	writeObjectHash(hasher, &deploymentResources.Instance)
 
 	// Add the sorted targets to the hasher

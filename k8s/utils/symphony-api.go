@@ -22,7 +22,7 @@ import (
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	federation_v1 "gopls-workspace/apis/federation/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
-	solution_v1 "gopls-workspace/apis/solution/v1"
+	solutionversion_v1 "gopls-workspace/apis/solution/v1"
 )
 
 var (
@@ -36,8 +36,8 @@ type (
 	}
 
 	DeploymentResources struct {
-		Instance         solution_v1.Instance
-		Solution         solution_v1.Solution
+		Instance         solutionversion_v1.Instance
+		SolutionVersion         solutionversion_v1.SolutionVersion
 		TargetList       fabric_v1.TargetList
 		TargetCandidates []fabric_v1.Target
 	}
@@ -86,7 +86,7 @@ func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, e
 			DisplayName:   target.Spec.DisplayName,
 			Metadata:      target.Spec.Metadata,
 			Scope:         target.Spec.Scope,
-			SolutionScope: target.Spec.SolutionScope,
+			SolutionVersionScope: target.Spec.SolutionVersionScope,
 			Properties:    target.Spec.Properties,
 			Constraints:   target.Spec.Constraints,
 			ForceRedeploy: target.Spec.ForceRedeploy,
@@ -106,7 +106,7 @@ func K8STargetToAPITargetState(target fabric_v1.Target) (apimodel.TargetState, e
 	return ret, nil
 }
 
-func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.InstanceState, error) {
+func K8SInstanceToAPIInstanceState(instance solutionversion_v1.Instance) (apimodel.InstanceState, error) {
 	ret := apimodel.InstanceState{
 		ObjectMeta: apimodel.ObjectMeta{
 			Name:        instance.ObjectMeta.Name,
@@ -117,7 +117,7 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 		Spec: &apimodel.InstanceSpec{
 			Scope:       instance.Spec.Scope,
 			DisplayName: instance.Spec.DisplayName,
-			Solution:    instance.Spec.Solution,
+			SolutionVersion:    instance.Spec.SolutionVersion,
 			Target:      instance.Spec.Target,
 			Parameters:  instance.Spec.Parameters,
 			Metadata:    instance.Spec.Metadata,
@@ -129,55 +129,55 @@ func K8SInstanceToAPIInstanceState(instance solution_v1.Instance) (apimodel.Inst
 	return ret, nil
 }
 
-func K8SCatalogToAPICatalogState(catalog federation_v1.Catalog) (apimodel.CatalogState, error) {
-	ret := apimodel.CatalogState{
+func K8SCatalogVersionToAPICatalogVersionState(catalogversion federation_v1.CatalogVersion) (apimodel.CatalogVersionState, error) {
+	ret := apimodel.CatalogVersionState{
 		ObjectMeta: apimodel.ObjectMeta{
-			Name:        catalog.ObjectMeta.Name,
-			Namespace:   catalog.ObjectMeta.Namespace,
-			Labels:      catalog.ObjectMeta.Labels,
-			Annotations: catalog.ObjectMeta.Annotations,
+			Name:        catalogversion.ObjectMeta.Name,
+			Namespace:   catalogversion.ObjectMeta.Namespace,
+			Labels:      catalogversion.ObjectMeta.Labels,
+			Annotations: catalogversion.ObjectMeta.Annotations,
 		},
-		Spec: &apimodel.CatalogSpec{
-			CatalogType:  catalog.Spec.CatalogType,
-			Metadata:     catalog.Spec.Metadata,
-			ParentName:   catalog.Spec.ParentName,
-			ObjectRef:    catalog.Spec.ObjectRef,
-			Version:      catalog.Spec.Version,
-			RootResource: catalog.Spec.RootResource,
+		Spec: &apimodel.CatalogVersionSpec{
+			CatalogType:  catalogversion.Spec.CatalogType,
+			Metadata:     catalogversion.Spec.Metadata,
+			ParentName:   catalogversion.Spec.ParentName,
+			ObjectRef:    catalogversion.Spec.ObjectRef,
+			Version:      catalogversion.Spec.Version,
+			RootResource: catalogversion.Spec.RootResource,
 		},
 	}
 
-	if catalog.Spec.Properties.Raw != nil {
+	if catalogversion.Spec.Properties.Raw != nil {
 		ret.Spec.Properties = make(map[string]interface{})
-		err := json.Unmarshal(catalog.Spec.Properties.Raw, &catalog.Spec.Properties)
+		err := json.Unmarshal(catalogversion.Spec.Properties.Raw, &catalogversion.Spec.Properties)
 		if err != nil {
-			return apimodel.CatalogState{}, err
+			return apimodel.CatalogVersionState{}, err
 		}
 	}
 
 	return ret, nil
 }
 
-func K8SSolutionToAPISolutionState(solution solution_v1.Solution) (apimodel.SolutionState, error) {
-	ret := apimodel.SolutionState{
+func K8SSolutionVersionToAPISolutionVersionState(solutionversion solutionversion_v1.SolutionVersion) (apimodel.SolutionVersionState, error) {
+	ret := apimodel.SolutionVersionState{
 		ObjectMeta: apimodel.ObjectMeta{
-			Name:        solution.ObjectMeta.Name,
-			Namespace:   solution.ObjectMeta.Namespace,
-			Labels:      solution.ObjectMeta.Labels,
-			Annotations: solution.ObjectMeta.Annotations,
+			Name:        solutionversion.ObjectMeta.Name,
+			Namespace:   solutionversion.ObjectMeta.Namespace,
+			Labels:      solutionversion.ObjectMeta.Labels,
+			Annotations: solutionversion.ObjectMeta.Annotations,
 		},
-		Spec: &apimodel.SolutionSpec{
-			DisplayName: solution.Spec.DisplayName,
-			Metadata:    solution.Spec.Metadata,
+		Spec: &apimodel.SolutionVersionSpec{
+			DisplayName: solutionversion.Spec.DisplayName,
+			Metadata:    solutionversion.Spec.Metadata,
 		},
 	}
 
 	var err error
-	ret.Spec.Components = make([]apimodel.ComponentSpec, len(solution.Spec.Components))
-	for i, t := range solution.Spec.Components {
+	ret.Spec.Components = make([]apimodel.ComponentSpec, len(solutionversion.Spec.Components))
+	for i, t := range solutionversion.Spec.Components {
 		ret.Spec.Components[i], err = K8SComponentSpecToAPIComponentSpec(t)
 		if err != nil {
-			return apimodel.SolutionState{}, err
+			return apimodel.SolutionVersionState{}, err
 		}
 	}
 	return ret, nil
@@ -207,7 +207,7 @@ func matchString(src string, target string) bool {
 	}
 }
 
-func MatchTargets(instance solution_v1.Instance, targets fabric_v1.TargetList) []fabric_v1.Target {
+func MatchTargets(instance solutionversion_v1.Instance, targets fabric_v1.TargetList) []fabric_v1.Target {
 	ret := make(map[string]fabric_v1.Target)
 	if instance.Spec.Target.Name != "" {
 		for _, t := range targets.Items {
@@ -259,13 +259,13 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target fabric_v1.Ta
 	return ret, err
 }
 
-func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance, solution solution_v1.Solution, targets []fabric_v1.Target, objectNamespace string) (apimodel.DeploymentSpec, error) {
+func CreateSymphonyDeployment(ctx context.Context, instance solutionversion_v1.Instance, solutionversion solutionversion_v1.SolutionVersion, targets []fabric_v1.Target, objectNamespace string) (apimodel.DeploymentSpec, error) {
 	instanceState, err := K8SInstanceToAPIInstanceState(instance)
 	if err != nil {
 		return apimodel.DeploymentSpec{}, err
 	}
 
-	solutionState, err := K8SSolutionToAPISolutionState(solution)
+	solutionversionState, err := K8SSolutionVersionToAPISolutionVersionState(solutionversion)
 	if err != nil {
 		return apimodel.DeploymentSpec{}, err
 	}
@@ -279,10 +279,10 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	}
 
 	var ret apimodel.DeploymentSpec
-	ret, err = api_utils.CreateSymphonyDeployment(ctx, instanceState, solutionState, targetStates, nil, objectNamespace)
+	ret, err = api_utils.CreateSymphonyDeployment(ctx, instanceState, solutionversionState, targetStates, nil, objectNamespace)
 	ret.Hash = HashObjects(DeploymentResources{
 		Instance:         instance,
-		Solution:         solution,
+		SolutionVersion:         solutionversion,
 		TargetCandidates: targets,
 	})
 
@@ -293,7 +293,7 @@ func CreateSymphonyDeployment(ctx context.Context, instance solution_v1.Instance
 	return ret, err
 }
 
-func NeedWatchInstance(instance solution_v1.Instance) bool {
+func NeedWatchInstance(instance solutionversion_v1.Instance) bool {
 	var interval time.Duration = 30
 	if instance.Spec.ReconciliationPolicy != nil && instance.Spec.ReconciliationPolicy.Interval != nil {
 		parsedInterval, err := time.ParseDuration(*instance.Spec.ReconciliationPolicy.Interval)

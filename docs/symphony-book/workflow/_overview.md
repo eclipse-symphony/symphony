@@ -8,7 +8,7 @@ Symphony has a built-in workflow engine that captures complex operational workfl
 
 ## Fundamentals
 
-* [Defining and running a workflow](./define-campaigns.md)
+* [Defining and running a workflow](./define-campaignversions.md)
 * Inputs and outputs
 * States
 * Branches and loops

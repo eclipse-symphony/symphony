@@ -3,6 +3,6 @@ kind: Activation
 metadata:
   name: mqtt-runner-activation
 spec:
-  campaign: "mqtt-runner:v1"
+  campaignversion: "mqtt-runner:v1"
   inputs:
         foo: "bar"        

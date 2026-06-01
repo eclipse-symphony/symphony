@@ -11,8 +11,8 @@ function InstanceSpecCard(props: InstanceSpecCardProps) {
     const { instance } = props;
     return (
         <>
-            <div className="components-header">Solution:</div>
-            <div className="components-label">{instance.solution}</div>                        
+            <div className="components-header">SolutionVersion:</div>
+            <div className="components-label">{instance.solutionversion}</div>                        
             <Table removeWrapper>
                 <TableHeader>
                     <TableColumn>TARGET</TableColumn>                    

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogs"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaignversions"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/catalogversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/configs"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/devices"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/instances"
@@ -20,8 +20,8 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/reference"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sites"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/skills"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solution"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutionversion"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutionversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/staging"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sync"
@@ -44,17 +44,17 @@ func testCreateManager[T cm.IManager](t *testing.T, config cm.ManagerConfig) {
 }
 
 func TestCreateManager(t *testing.T) {
-	testCreateManager[*solution.SolutionManager](t, getSolutionManagerConfig())
+	testCreateManager[*solutionversion.SolutionVersionManager](t, getSolutionVersionManagerConfig())
 	testCreateManager[*reference.ReferenceManager](t, getReferenceManagerConfig())
 	testCreateManager[*target.TargetManager](t, getTargetManagerConfig())
 	testCreateManager[*targets.TargetsManager](t, getTargetsManagerConfig())
 	testCreateManager[*devices.DevicesManager](t, getDevicesManagerConfig())
-	testCreateManager[*solutions.SolutionsManager](t, getSolutionsManagerConfig())
+	testCreateManager[*solutionversions.SolutionVersionsManager](t, getSolutionVersionsManagerConfig())
 	testCreateManager[*instances.InstancesManager](t, getInstancesManagerConfig())
 	testCreateManager[*users.UsersManager](t, getUsersManagerConfig())
 	testCreateManager[*jobs.JobsManager](t, getJobsManagerConfig())
-	testCreateManager[*campaigns.CampaignsManager](t, getCampaignsManagerConfig())
-	testCreateManager[*catalogs.CatalogsManager](t, getCatalogsManagerConfig())
+	testCreateManager[*campaignversions.CampaignVersionsManager](t, getCampaignVersionsManagerConfig())
+	testCreateManager[*catalogversions.CatalogVersionsManager](t, getCatalogVersionsManagerConfig())
 	testCreateManager[*activations.ActivationsManager](t, getActivationsManagerConfig())
 	testCreateManager[*activations.ActivationsCleanupManager](t, getActivationsCleanupManagerConfig())
 	testCreateManager[*stage.StageManager](t, getStageManagerConfig())
@@ -67,10 +67,10 @@ func TestCreateManager(t *testing.T) {
 	testCreateManager[*trails.TrailsManager](t, getTrailsManagerConfig())
 }
 
-func getSolutionManagerConfig() cm.ManagerConfig {
+func getSolutionVersionManagerConfig() cm.ManagerConfig {
 	// symphony-api-no-k8s.json
 	return cm.ManagerConfig{
-		Type: "managers.symphony.solution",
+		Type: "managers.symphony.solutionversion",
 		Properties: map[string]string{
 			"providers.volatilestate": "mem-state",
 			"providers.config":        "mock-config",
@@ -188,10 +188,10 @@ func getDevicesManagerConfig() cm.ManagerConfig {
 	}
 }
 
-func getSolutionsManagerConfig() cm.ManagerConfig {
+func getSolutionVersionsManagerConfig() cm.ManagerConfig {
 	// symphony-api-no-k8s.json
 	return cm.ManagerConfig{
-		Type: "managers.symphony.solutions",
+		Type: "managers.symphony.solutionversions",
 		Properties: map[string]string{
 			"providers.persistentstate": "mem-state",
 		},
@@ -254,10 +254,10 @@ func getJobsManagerConfig() cm.ManagerConfig {
 	}
 }
 
-func getCampaignsManagerConfig() cm.ManagerConfig {
+func getCampaignVersionsManagerConfig() cm.ManagerConfig {
 	// symphony-api-no-k8s.json
 	return cm.ManagerConfig{
-		Type: "managers.symphony.campaigns",
+		Type: "managers.symphony.campaignversions",
 		Properties: map[string]string{
 			"providers.persistentstate": "mem-state",
 			"singleton":                 "true",
@@ -270,10 +270,10 @@ func getCampaignsManagerConfig() cm.ManagerConfig {
 	}
 }
 
-func getCatalogsManagerConfig() cm.ManagerConfig {
+func getCatalogVersionsManagerConfig() cm.ManagerConfig {
 	// symphony-api-no-k8s.json
 	return cm.ManagerConfig{
-		Type: "managers.symphony.catalogs",
+		Type: "managers.symphony.catalogversions",
 		Properties: map[string]string{
 			"providers.persistentstate": "mem-state",
 			"singleton":                 "true",
@@ -345,8 +345,8 @@ func getConfigsManagerConfig() cm.ManagerConfig {
 			"singleton": "true",
 		},
 		Providers: map[string]cm.ProviderConfig{
-			"catalog": {
-				Type: "providers.config.catalog",
+			"catalogversion": {
+				Type: "providers.config.catalogversion",
 				Config: map[string]string{
 					"baseUrl":  "http://localhost:8082/v1alpha2/",
 					"user":     "admin",

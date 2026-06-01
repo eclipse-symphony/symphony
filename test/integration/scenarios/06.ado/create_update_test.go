@@ -22,15 +22,15 @@ import (
 var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	type TestCase struct {
 		TargetComponents   []string
-		SolutionComponents []string
+		SolutionVersionComponents []string
 		Expectation        types.Expectation
 		TargetProperties   map[string]string
 		InstanceParameters map[string]interface{}
 	}
 	var instanceBytes []byte
 	var targetBytes []byte
-	var solutionBytes []byte
-	var solutionContainerBytes []byte
+	var solutionversionBytes []byte
+	var solutionversionContainerBytes []byte
 	var specTimeout = 120 * time.Second
 	var targetProps map[string]string
 	var instanceParams map[string]interface{}
@@ -60,10 +60,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	runner := func(ctx context.Context, testcase TestCase) {
 		var err error
 
-		By("deploy solution container")
-		solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+		By("deploy solutionversion container")
+		solutionversionContainerBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.ContainerOptions{})
 		Expect(err).ToNot(HaveOccurred())
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionContainerBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("setting the components for the target")
@@ -82,9 +82,9 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		By("setting the components for the solution")
-		solutionBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
-			ComponentNames: testcase.SolutionComponents,
+		By("setting the components for the solutionversion")
+		solutionversionBytes, err = testhelpers.PatchSolutionVersion(defaultSolutionVersionManifest, testhelpers.SolutionVersionOptions{
+			ComponentNames: testcase.SolutionVersionComponents,
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -98,8 +98,8 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("deploying the solution")
-		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+		By("deploying the solutionversion")
+		err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionBytes)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("deploying the instance")
@@ -113,7 +113,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 	DescribeTable("when performing create/update operations", Ordered, runner,
 
 		Entry(
-			"it should deploy empty target and solution", SpecTimeout(specTimeout),
+			"it should deploy empty target and solutionversion", SpecTimeout(specTimeout),
 			TestCase{
 				Expectation: expectations.All(
 					successfullInstanceExpectation,
@@ -126,7 +126,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"it should update the target with a simple helm chart", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1"},
-				SolutionComponents: []string{},
+				SolutionVersionComponents: []string{},
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -140,10 +140,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		),
 
 		Entry(
-			"it should deploy another simple helm chart in the solution so there are 2 helm releases", SpecTimeout(specTimeout),
+			"it should deploy another simple helm chart in the solutionversion so there are 2 helm releases", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1"}, // (same as previous entry)
-				SolutionComponents: []string{"simple-chart-2"},
+				SolutionVersionComponents: []string{"simple-chart-2"},
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -153,7 +153,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                             // and the status operation id matches the metadata operation id
-						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", "Updated"), // and the solution component 'simple-chart-2' is created
+						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", "Updated"), // and the solutionversion component 'simple-chart-2' is created
 					)))),
 
 					helm.MustNew("simple-chart-.*", "azure-iot-operations", // releases beginning with 'simple-chart-' in the 'azure-iot-operations' namespace
@@ -167,10 +167,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		),
 
 		Entry(
-			"it should add a kubernetes config map in the solution", SpecTimeout(specTimeout),
+			"it should add a kubernetes config map in the solutionversion", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1"},                      // (same as previous entry)
-				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, //
+				SolutionVersionComponents: []string{"simple-chart-2", "basic-configmap-1"}, //
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -181,7 +181,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						////kube.OperationIdMatchCondition,                                                // and the status operation id matches the metadata operation id
 						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", nil),          // Because the component didn't change
-						//kube.ProvisioningStatusComponentOutput("target.basic-configmap-1", "Updated"), // and the solution component 'basic-configmap-1' is created
+						//kube.ProvisioningStatusComponentOutput("target.basic-configmap-1", "Updated"), // and the solutionversion component 'basic-configmap-1' is created
 					)))),
 					helm.MustNew("simple-chart-.*", "azure-iot-operations", // releases beginning with 'simple-chart-' in the 'azure-iot-operations' namespace
 						helm.WithReleaseListCondition(conditions.Count(2)), // there should be only 2 releases present
@@ -196,7 +196,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"it should add a kubernetes clusterrole in the target", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1", "basic-clusterrole"}, //
-				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
+				SolutionVersionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -224,7 +224,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"it should should just update the operation id when a no-op change is made", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1", "basic-clusterrole"}, // (same as previous entry)
-				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
+				SolutionVersionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -252,7 +252,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"It should update remove the clusterrole from the target",
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1"},
-				SolutionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
+				SolutionVersionComponents: []string{"simple-chart-2", "basic-configmap-1"}, // (same as previous entry)
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -277,10 +277,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		),
 
 		Entry(
-			"It should update remove the simple-helmchart-2 from the solution", SpecTimeout(specTimeout),
+			"It should update remove the simple-helmchart-2 from the solutionversion", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1"}, // (same as previous entry)
-				SolutionComponents: []string{"basic-configmap-1"},
+				SolutionVersionComponents: []string{"basic-configmap-1"},
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -291,7 +291,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                             // and the status operation id matches the metadata operation id
-						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", "Deleted"), // and the solution component 'simple-chart-2' is deleted
+						//kube.ProvisioningStatusComponentOutput("target.simple-chart-2", "Deleted"), // and the solutionversion component 'simple-chart-2' is deleted
 						//kube.ProvisioningStatusComponentOutput("target.basic-configmap-1", nil),    // Because the component didn't change
 					)))),
 					helm.MustNew("simple-chart-.*", "azure-iot-operations", // releases beginning with 'simple-chart-' in the 'azure-iot-operations' namespace
@@ -309,7 +309,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"It should update the simple-config-map-1 with new data", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1"},             // (same as previous entry)
-				SolutionComponents: []string{"basic-configmap-1-modified"}, // (same as previous entry but with new data)
+				SolutionVersionComponents: []string{"basic-configmap-1-modified"}, // (same as previous entry but with new data)
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -319,7 +319,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 					kube.Must(kube.Instance("instance", "default", kube.WithCondition(conditions.All( // make sure the instance named 'instance' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
 						//kube.OperationIdMatchCondition,                                                // and the status operation id matches the metadata operation id
-						//kube.ProvisioningStatusComponentOutput("target.basic-configmap-1", "Updated"), // and the solution component 'basic-configmap-1' is updated
+						//kube.ProvisioningStatusComponentOutput("target.basic-configmap-1", "Updated"), // and the solutionversion component 'basic-configmap-1' is updated
 					)))),
 					helm.MustNew("simple-chart-.*", "azure-iot-operations", // releases beginning with 'simple-chart-' in the 'azure-iot-operations' namespace
 						helm.WithReleaseListCondition(conditions.Count(1)), // make sure there is only 1 release left
@@ -341,7 +341,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"it should fail the target when component is invalid", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1-nonexistent"}, //
-				SolutionComponents: []string{"basic-configmap-1-modified"}, // (same as previous entry)
+				SolutionVersionComponents: []string{"basic-configmap-1-modified"}, // (same as previous entry)
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
@@ -354,10 +354,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 		),
 
 		Entry(
-			"it should fail the solution when component is invalid", SpecTimeout(100*time.Second),
+			"it should fail the solutionversion when component is invalid", SpecTimeout(100*time.Second),
 			TestCase{
 				TargetComponents:   []string{"simple-chart-1-nonexistent"}, // (same as previous entry)
-				SolutionComponents: []string{"simple-chart-2-nonexistent"}, //
+				SolutionVersionComponents: []string{"simple-chart-2-nonexistent"}, //
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
@@ -376,7 +376,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"it should update the target with a simple http", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-http"},
-				SolutionComponents: []string{},
+				SolutionVersionComponents: []string{},
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningSucceededCondition, // and it is successfully provisioned
@@ -391,7 +391,7 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 			"it should fail to update target with an invalid simple http", SpecTimeout(specTimeout),
 			TestCase{
 				TargetComponents:   []string{"simple-http-invalid-url"},
-				SolutionComponents: []string{},
+				SolutionVersionComponents: []string{},
 				Expectation: expectations.All(
 					kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All( // make sure the target named 'target' is present in the 'default' namespace
 						kube.ProvisioningFailedCondition, // and it is failed
@@ -491,10 +491,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				},
 			),
 			Entry(
-				"it should succeed when solution component has a valid expression", SpecTimeout(specTimeout),
+				"it should succeed when solutionversion component has a valid expression", SpecTimeout(specTimeout),
 				TestCase{
 					TargetComponents:   []string{"expressions-1"},
-					SolutionComponents: []string{"expressions-1-soln"},
+					SolutionVersionComponents: []string{"expressions-1-soln"},
 					Expectation: expectations.All(
 						successfullTargetExpectation,
 						successfullInstanceExpectation,
@@ -502,10 +502,10 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 				},
 			),
 			Entry(
-				"it should fail solution component has an invalid expression", SpecTimeout(specTimeout),
+				"it should fail solutionversion component has an invalid expression", SpecTimeout(specTimeout),
 				TestCase{
 					TargetComponents:   []string{"expressions-1"},
-					SolutionComponents: []string{"expressions-1-soln-failed"},
+					SolutionVersionComponents: []string{"expressions-1-soln-failed"},
 					Expectation: expectations.All(
 						successfullTargetExpectation,
 						failedInstanceExpectation,
@@ -531,16 +531,16 @@ var _ = Describe("Create resources with sequential changes", Ordered, func() {
 
 		DescribeTable("when performing create/update operations", Ordered, runner,
 			Entry(
-				"should succeed when the solution component is deployed to a target with the instance parameters", SpecTimeout(specTimeout),
+				"should succeed when the solutionversion component is deployed to a target with the instance parameters", SpecTimeout(specTimeout),
 				TestCase{
-					SolutionComponents: []string{"basic-configmap-1-params"},
+					SolutionVersionComponents: []string{"basic-configmap-1-params"},
 					Expectation:        successfullInstanceExpectation,
 				},
 			),
 			Entry(
-				"should fail when the solution component with missing parameter is deployed to a target", SpecTimeout(specTimeout),
+				"should fail when the solutionversion component with missing parameter is deployed to a target", SpecTimeout(specTimeout),
 				TestCase{
-					SolutionComponents: []string{"basic-configmap-1-params-modified"},
+					SolutionVersionComponents: []string{"basic-configmap-1-params-modified"},
 					Expectation:        failedInstanceExpectation,
 				},
 			),

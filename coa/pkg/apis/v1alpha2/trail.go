@@ -8,7 +8,7 @@ package v1alpha2
 
 type Trail struct {
 	Origin     string                 `json:"origin"`
-	Catalog    string                 `json:"catalog"`
+	CatalogVersion    string                 `json:"catalogversion"`
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
 }

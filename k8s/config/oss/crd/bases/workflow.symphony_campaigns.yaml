@@ -17,7 +17,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Campaign is the Schema for the campaigns API
+        description: Campaign is the Schema for the Campaigns API
         properties:
           apiVersion:
             description: |-
@@ -37,79 +37,18 @@ spec:
           metadata:
             type: object
           spec:
+            type: object
+          status:
             properties:
-              firstStage:
-                type: string
-              name:
-                type: string
-              rootResource:
-                type: string
-              selfDriving:
-                type: boolean
-              stages:
+              properties:
                 additionalProperties:
-                  properties:
-                    config:
-                      x-kubernetes-preserve-unknown-fields: true
-                    contexts:
-                      type: string
-                    inputs:
-                      x-kubernetes-preserve-unknown-fields: true
-                    name:
-                      type: string
-                    provider:
-                      type: string
-                    proxy:
-                      properties:
-                        config:
-                          x-kubernetes-preserve-unknown-fields: true
-                        provider:
-                          type: string
-                      type: object
-                    schedule:
-                      type: string
-                    stageSelector:
-                      type: string
-                    target:
-                      type: string
-                    taskOption:
-                      properties:
-                        concurrency:
-                          type: integer
-                        errorAction:
-                          properties:
-                            maxToleratedFailures:
-                              type: integer
-                            mode:
-                              enum:
-                              - stopOnAnyFailure
-                              - stopOnNFailures
-                              - silentlyContinue
-                              type: string
-                          type: object
-                      type: object
-                    tasks:
-                      items:
-                        properties:
-                          config:
-                            x-kubernetes-preserve-unknown-fields: true
-                          inputs:
-                            x-kubernetes-preserve-unknown-fields: true
-                          name:
-                            type: string
-                          provider:
-                            type: string
-                          target:
-                            type: string
-                        type: object
-                      type: array
-                    triggeringStage:
-                      type: string
-                  type: object
+                  type: string
                 type: object
-              version:
-                type: string
+            required:
+            - properties
             type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

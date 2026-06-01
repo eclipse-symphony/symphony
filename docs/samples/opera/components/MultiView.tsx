@@ -14,9 +14,9 @@ import {PiCards} from 'react-icons/pi';
 import {PiTable} from 'react-icons/pi';
 import {PiMapTrifold} from 'react-icons/pi';
 import {useState} from 'react';
-import CampaignCardList from "./campaigns/CampaignCardList";
+import CampaignVersionCardList from "./campaignversions/CampaignVersionCardList";
 import SiteCardList from "./sites/SiteCardList";
-import SolutionCardList from "./solutions/SolutionCardList";
+import SolutionVersionCardList from "./solutionversions/SolutionVersionCardList";
 import TargetCardList from "./targets/TargetCardList";
 import SiteMap from "./sites/SiteMap";
 import AssetList from "./assets/AssetList";
@@ -117,7 +117,7 @@ function MultiView(props: MultiViewProps) {
                                     title={
                                         <div className="flex items-center space-x-2">
                                             {column.name === 'configs' && <PiCards />}  
-                                            {column.name === 'solutions' && <PiTable />}
+                                            {column.name === 'solutionversions' && <PiTable />}
                                             {column.name === 'instances' && <PiMapTrifold />}
                                             {column.name === 'targets' && <PiMapTrifold />}
                                             <span>{column.name}</span>
@@ -142,14 +142,14 @@ function MultiView(props: MultiViewProps) {
                                     {view === 'map' && <PiMapTrifold />}
                                     <span>{view}</span>
                                     </div>}>
-                            {view === 'cards' && params.type === 'campaigns' && <CampaignCardList campaigns={params.items} activations={params.refItems} />}
-                            {view === 'cards' && params.type === 'solutions' && <SolutionCardList solutions={params.items}  />}
+                            {view === 'cards' && params.type === 'campaignversions' && <CampaignVersionCardList campaignversions={params.items} activations={params.refItems} />}
+                            {view === 'cards' && params.type === 'solutionversions' && <SolutionVersionCardList solutionversions={params.items}  />}
                             {view === 'cards' && params.type === 'targets' && <TargetCardList targets={params.items} filter={selectedFilter} />}
                             {view === 'cards' && params.type === 'instances' && <InstanceCardList instances={params.items} filter={selectedFilter} />}
                             {view === 'cards' && params.type === 'sites' && <SiteCardList sites={params.items} />}
                             {view === 'map' && params.type === 'sites' && <SiteMap sites={params.items} />}
-                            {view === "cards" && params.type === "assets" && <AssetList catalogs={params.items} />}
-                            {view === "table" && params.type === "assets" && <GraphTable catalogs={params.items} columns = {params.columns.find((column: ColumnSet) => column.name === selectedColumn)?.data} />}
+                            {view === "cards" && params.type === "assets" && <AssetList catalogversions={params.items} />}
+                            {view === "table" && params.type === "assets" && <GraphTable catalogversions={params.items} columns = {params.columns.find((column: ColumnSet) => column.name === selectedColumn)?.data} />}
                         </Tab>
                     ))}
                 </Tabs>

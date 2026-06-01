@@ -218,15 +218,15 @@ type JobData struct {
 	Data   []byte      `json:"data"`
 }
 type ActivationData struct {
-	Campaign             string                            `json:"campaign"`
+	CampaignVersion             string                            `json:"campaignversion"`
 	Namespace            string                            `json:"namespace,omitempty"`
 	Activation           string                            `json:"activation"`
 	ActivationGeneration string                            `json:"activationGeneration"`
 	Stage                string                            `json:"stage"`
 	Inputs               map[string]interface{}            `json:"inputs,omitempty"`
 	Outputs              map[string]map[string]interface{} `json:"outputs,omitempty"`
-	Provider             string                            `json:"provider,omitempty"` // dup from campaign.currentStage
-	Config               interface{}                       `json:"config,omitempty"`   // dup from campaign.currentStage
+	Provider             string                            `json:"provider,omitempty"` // dup from campaignversion.currentStage
+	Config               interface{}                       `json:"config,omitempty"`   // dup from campaignversion.currentStage
 	TriggeringStage      string                            `json:"triggeringStage,omitempty"`
 	Schedule             string                            `json:"schedule,omitempty"`
 	NeedsReport          bool                              `json:"needsReport,omitempty"`

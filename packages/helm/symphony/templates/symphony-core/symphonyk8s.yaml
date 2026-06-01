@@ -53,7 +53,7 @@ spec:
             type: object
           spec:
             properties:
-              campaign:
+              campaignversion:
                 type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true
@@ -103,20 +103,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: campaigncontainers.workflow.symphony
+  name: campaigns.workflow.symphony
 spec:
   group: workflow.symphony
   names:
-    kind: CampaignContainer
-    listKind: CampaignContainerList
-    plural: campaigncontainers
-    singular: campaigncontainer
+    kind: Campaign
+    listKind: CampaignList
+    plural: campaigns
+    singular: campaign
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CampaignContainer is the Schema for the CampaignContainers API
+        description: Campaign is the Schema for the Campaigns API
         properties:
           apiVersion:
             description: |-
@@ -159,7 +159,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: campaigns.workflow.symphony
+  name: campaignversions.workflow.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -173,16 +173,16 @@ spec:
       - v1
   group: workflow.symphony
   names:
-    kind: Campaign
-    listKind: CampaignList
-    plural: campaigns
-    singular: campaign
+    kind: CampaignVersion
+    listKind: CampaignVersionList
+    plural: campaignversions
+    singular: campaignversion
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Campaign is the Schema for the campaigns API
+        description: CampaignVersion is the Schema for the campaignversions API
         properties:
           apiVersion:
             description: |-
@@ -284,20 +284,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: catalogcontainers.federation.symphony
+  name: catalogs.federation.symphony
 spec:
   group: federation.symphony
   names:
-    kind: CatalogContainer
-    listKind: CatalogContainerList
-    plural: catalogcontainers
-    singular: catalogcontainer
+    kind: Catalog
+    listKind: CatalogList
+    plural: catalogs
+    singular: catalog
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CatalogContainer is the Schema for the CatalogContainers API
+        description: Catalog is the Schema for the Catalogs API
         properties:
           apiVersion:
             description: |-
@@ -338,20 +338,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: catalogevalexpressions.federation.symphony
+  name: catalogversionevalexpressions.federation.symphony
 spec:
   group: federation.symphony
   names:
-    kind: CatalogEvalExpression
-    listKind: CatalogEvalExpressionList
-    plural: catalogevalexpressions
-    singular: catalogevalexpression
+    kind: CatalogVersionEvalExpression
+    listKind: CatalogVersionEvalExpressionList
+    plural: catalogversionevalexpressions
+    singular: catalogversionevalexpression
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: CatalogEvalExpressionAction is the Schema for the CatalogEvalExpressionactions
+        description: CatalogVersionEvalExpressionAction is the Schema for the CatalogVersionEvalExpressionactions
           API.
         properties:
           apiVersion:
@@ -372,8 +372,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: CatalogEvalExpressionActionSpec defines the desired state
-              of CatalogEvalExpressionActionSpec.
+            description: CatalogVersionEvalExpressionActionSpec defines the desired state
+              of CatalogVersionEvalExpressionActionSpec.
             properties:
               resourceRef:
                 description: ParentRef is a reference to Resource on which this action
@@ -396,8 +396,8 @@ spec:
             - resourceRef
             type: object
           status:
-            description: CatalogEvalExpressionActionStatus defines the observed state
-              of CatalogEvalExpressionAction.
+            description: CatalogVersionEvalExpressionActionStatus defines the observed state
+              of CatalogVersionEvalExpressionAction.
             properties:
               actionStatus:
                 description: ActionStatus contains information about result of performing
@@ -470,7 +470,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: catalogs.federation.symphony
+  name: catalogversions.federation.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -484,16 +484,16 @@ spec:
       - v1
   group: federation.symphony
   names:
-    kind: Catalog
-    listKind: CatalogList
-    plural: catalogs
-    singular: catalog
+    kind: CatalogVersion
+    listKind: CatalogVersionList
+    plural: catalogversions
+    singular: catalogversion
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Catalog is the Schema for the catalogs API
+        description: CatalogVersion is the Schema for the catalogversions API
         properties:
           apiVersion:
             description: |-
@@ -832,7 +832,7 @@ spec:
                 type: string
               scope:
                 type: string
-              solution:
+              solutionversion:
                 properties:
                   components:
                     items:
@@ -917,7 +917,7 @@ spec:
                   version:
                     type: string
                 type: object
-              solutionId:
+              solutionversionId:
                 type: string
               target:
                 description: Defines the desired state of Target
@@ -1029,7 +1029,7 @@ spec:
                     type: object
                   scope:
                     type: string
-                  solutionScope:
+                  solutionversionScope:
                     type: string
                   topologies:
                     items:
@@ -1097,8 +1097,8 @@ spec:
                   type: object
                 type: array
             required:
-            - solution
-            - solutionId
+            - solutionversion
+            - solutionversionId
             type: object
           status:
             properties:
@@ -1320,7 +1320,7 @@ spec:
                 type: object
               scope:
                 type: string
-              solution:
+              solutionversion:
                 type: string
               target:
                 description: TargertRefSpec defines the target the instance will deploy
@@ -1363,7 +1363,7 @@ spec:
                   type: object
                 type: array
             required:
-            - solution
+            - solutionversion
             type: object
           status:
             properties:
@@ -1979,20 +1979,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: solutioncontainers.solution.symphony
+  name: solutions.solution.symphony
 spec:
   group: solution.symphony
   names:
-    kind: SolutionContainer
-    listKind: SolutionContainerList
-    plural: solutioncontainers
-    singular: solutioncontainer
+    kind: Solution
+    listKind: SolutionList
+    plural: solutions
+    singular: solution
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: SolutionContainer is the Schema for the SolutionContainers API
+        description: Solution is the Schema for the Solutions API
         properties:
           apiVersion:
             description: |-
@@ -2035,7 +2035,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: solutions.solution.symphony
+  name: solutionversions.solution.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -2049,16 +2049,16 @@ spec:
       - v1
   group: solution.symphony
   names:
-    kind: Solution
-    listKind: SolutionList
-    plural: solutions
-    singular: solution
+    kind: SolutionVersion
+    listKind: SolutionVersionList
+    plural: solutionversions
+    singular: solutionversion
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Solution is the Schema for the solutions API
+        description: SolutionVersion is the Schema for the solutionversions API
         properties:
           apiVersion:
             description: |-
@@ -2163,7 +2163,7 @@ spec:
                 type: string
             type: object
           status:
-            description: SolutionStatus defines the observed state of Solution
+            description: SolutionVersionStatus defines the observed state of SolutionVersion
             properties:
               properties:
                 additionalProperties:
@@ -2341,7 +2341,7 @@ spec:
                 type: object
               scope:
                 type: string
-              solutionScope:
+              solutionversionScope:
                 type: string
               topologies:
                 items:
@@ -2665,7 +2665,7 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns
+  - campaignversions
   verbs:
   - create
   - delete
@@ -2677,13 +2677,13 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/finalizers
+  - campaignversions/finalizers
   verbs:
   - update
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/status
+  - campaignversions/status
   verbs:
   - get
   - patch
@@ -2743,7 +2743,7 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions
+  - solutionversions
   verbs:
   - create
   - delete
@@ -2781,13 +2781,13 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/finalizers
+  - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/status
+  - solutionversions/status
   verbs:
   - get
   - patch
@@ -2821,7 +2821,7 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions
+  - solutionversions
   verbs:
   - create
   - delete
@@ -2833,13 +2833,13 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/finalizers
+  - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/status
+  - solutionversions/status
   verbs:
   - get
   - patch
@@ -2899,6 +2899,104 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
+  - catalogversions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversionevalexpressions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversionevalexpressions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigns
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigns/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigns/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
   - catalogs
   verbs:
   - create
@@ -2911,26 +3009,6 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
-  - catalogevalexpressions
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogevalexpressions/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - federation.symphony
-  resources:
   - catalogs/finalizers
   verbs:
   - update
@@ -2938,84 +3016,6 @@ rules:
   - federation.symphony
   resources:
   - catalogs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - campaigncontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - campaigncontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - campaigncontainers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - solution.symphony
-  resources:
-  - solutioncontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - solution.symphony
-  resources:
-  - solutioncontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - solution.symphony
-  resources:
-  - solutioncontainers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogcontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogcontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogcontainers/status
   verbs:
   - get
   - patch
@@ -3135,7 +3135,7 @@ data:
       leaderElect: true
       resourceName: 33405cb8.symphony
     syncIntervalSeconds: 180
-    uniqueDisplayNameForSolution: {{ default false .Values.symphony.uniqueDisplayNameForSolution }}
+    uniqueDisplayNameForSolutionVersion: {{ default false .Values.symphony.uniqueDisplayNameForSolutionVersion }}
     validationPolicies:
       model:
       - selectorType: properties
@@ -3282,6 +3282,26 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /mutate-solution-symphony-v1-solutionversion
+  failurePolicy: Fail
+  name: msolutionversion.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - solutionversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
@@ -3295,26 +3315,6 @@ webhooks:
     - UPDATE
     resources:
     - solutions
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solution-symphony-v1-solutioncontainer
-  failurePolicy: Fail
-  name: msolutioncontainer.kb.io
-  rules:
-  - apiGroups:
-    - solution.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - solutioncontainers
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -3342,6 +3342,26 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /mutate-workflow-symphony-v1-campaignversion
+  failurePolicy: Fail
+  name: mcampaignversion.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - campaignversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /mutate-workflow-symphony-v1-campaign
   failurePolicy: Fail
   name: mcampaign.kb.io
@@ -3362,19 +3382,19 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-workflow-symphony-v1-campaigncontainer
+      path: /mutate-federation-symphony-v1-catalogversion
   failurePolicy: Fail
-  name: mcampaigncontainer.kb.io
+  name: mcatalogversion.kb.io
   rules:
   - apiGroups:
-    - workflow.symphony
+    - federation.symphony
     apiVersions:
     - v1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - campaigncontainers
+    - catalogversions
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -3402,29 +3422,9 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-federation-symphony-v1-catalogcontainer
+      path: /mutate-federation-symphony-v1-catalogversionevalexpression
   failurePolicy: Fail
-  name: mcatalogcontainer.kb.io
-  rules:
-  - apiGroups:
-    - federation.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - catalogcontainers
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /mutate-federation-symphony-v1-catalogevalexpression
-  failurePolicy: Fail
-  name: mcatalogevalexpression.kb.io
+  name: mcatalogversionevalexpression.kb.io
   rules:
   - apiGroups:
     - federation.symphony
@@ -3435,7 +3435,7 @@ webhooks:
     - UPDATE
     - DELETE
     resources:
-    - catalogevalexpressions
+    - catalogversionevalexpressions
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -3536,6 +3536,27 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
+      path: /validate-solution-symphony-v1-solutionversion
+  failurePolicy: Fail
+  name: vsolutionversion.kb.io
+  rules:
+  - apiGroups:
+    - solution.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - solutionversions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
       path: /validate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
@@ -3557,27 +3578,6 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-solution-symphony-v1-solutioncontainer
-  failurePolicy: Fail
-  name: vsolutioncontainer.kb.io
-  rules:
-  - apiGroups:
-    - solution.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - solutioncontainers
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
       path: /validate-workflow-symphony-v1-activation
   failurePolicy: Fail
   name: vactivation.kb.io
@@ -3591,6 +3591,27 @@ webhooks:
     - UPDATE
     resources:
     - activations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "symphony.fullname" . }}-webhook-service'
+      namespace: '{{ .Release.Namespace }}'
+      path: /validate-workflow-symphony-v1-campaignversion
+  failurePolicy: Fail
+  name: vcampaignversion.kb.io
+  rules:
+  - apiGroups:
+    - workflow.symphony
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - campaignversions
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -3619,12 +3640,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-workflow-symphony-v1-campaigncontainer
+      path: /validate-federation-symphony-v1-catalogversion
   failurePolicy: Fail
-  name: vcampaigncontainer.kb.io
+  name: vcatalogversion.kb.io
   rules:
   - apiGroups:
-    - workflow.symphony
+    - federation.symphony
     apiVersions:
     - v1
     operations:
@@ -3632,7 +3653,7 @@ webhooks:
     - UPDATE
     - DELETE
     resources:
-    - campaigncontainers
+    - catalogversions
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -3661,9 +3682,9 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-federation-symphony-v1-catalogcontainer
+      path: /validate-federation-symphony-v1-catalogversionevalexpression
   failurePolicy: Fail
-  name: vcatalogcontainer.kb.io
+  name: vcatalogversionevalexpression.kb.io
   rules:
   - apiGroups:
     - federation.symphony
@@ -3674,28 +3695,7 @@ webhooks:
     - UPDATE
     - DELETE
     resources:
-    - catalogcontainers
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "symphony.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace }}'
-      path: /validate-federation-symphony-v1-catalogevalexpression
-  failurePolicy: Fail
-  name: vcatalogevalexpression.kb.io
-  rules:
-  - apiGroups:
-    - federation.symphony
-    apiVersions:
-    - v1
-    operations:
-    - CREATE
-    - UPDATE
-    - DELETE
-    resources:
-    - catalogevalexpressions
+    - catalogversionevalexpressions
   sideEffects: None
 - admissionReviewVersions:
   - v1

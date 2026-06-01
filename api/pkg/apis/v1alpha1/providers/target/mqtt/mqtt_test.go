@@ -590,15 +590,15 @@ func TestApplyMTLS(t *testing.T) {
 	}
 
 	deploymentSpec := model.DeploymentSpec{
-		SolutionName: "test-solution",
-		Solution:     model.SolutionState{},
+		SolutionVersionName: "test-solutionversion",
+		SolutionVersion:     model.SolutionVersionState{},
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "test-instance",
 			},
 			Spec: &model.InstanceSpec{
 				DisplayName: "test-instance",
-				Solution:    "test-solution",
+				SolutionVersion:    "test-solutionversion",
 				Target: model.TargetSelector{
 					Name: "test-target",
 				},
@@ -776,15 +776,15 @@ func TestApply(t *testing.T) {
 	}
 
 	deploymentSpec := model.DeploymentSpec{
-		SolutionName: "test-solution",
-		Solution:     model.SolutionState{},
+		SolutionVersionName: "test-solutionversion",
+		SolutionVersion:     model.SolutionVersionState{},
 		Instance: model.InstanceState{
 			ObjectMeta: model.ObjectMeta{
 				Name: "test-instance",
 			},
 			Spec: &model.InstanceSpec{
 				DisplayName: "test-instance",
-				Solution:    "test-solution",
+				SolutionVersion:    "test-solutionversion",
 				Target: model.TargetSelector{
 					Name: "test-target",
 				},

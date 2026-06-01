@@ -1,6 +1,6 @@
 # Contextualization and calculated configurations 
 
-Symphony separates application configuration concerns from infrastructural concerns: you model your applications with Solutions and you manage your compute infrastructure with Targets. And with Symphony expressions, you can assemble both relevant infrastructural information and application settings into a context-aware configuration file.
+Symphony separates application configuration concerns from infrastructural concerns: you model your applications with SolutionVersions and you manage your compute infrastructure with Targets. And with Symphony expressions, you can assemble both relevant infrastructural information and application settings into a context-aware configuration file.
  
 This means instead of creating m X n configurations for m applications on n machines, you can create m application configurations and n machine configurations and combine them together on-the-fly. This method reduces duplications and improves consistency. 
 

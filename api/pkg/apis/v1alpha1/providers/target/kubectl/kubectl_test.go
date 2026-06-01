@@ -175,8 +175,8 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 				Scope: "nginx-deployment",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -270,8 +270,8 @@ func TestKubectlTargetProviderInlineApply(t *testing.T) {
 				Scope: "default",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -353,8 +353,8 @@ func TestKubectlTargetProviderInlineUpdate(t *testing.T) {
 				Scope: "test-scope-iu",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -458,8 +458,8 @@ func TestKubectlTargetProviderInlineStatusProbeApply(t *testing.T) {
 				Scope: "test-scope-spa",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -566,8 +566,8 @@ func TestKubectlTargetProviderClusterLevelInlineApply(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -614,8 +614,8 @@ func TestKubectlTargetProviderApplyPolicy(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -695,8 +695,8 @@ func TestKubectlTargetProviderDeleteInline(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -743,8 +743,8 @@ func TestKubectlTargetProviderDeletePolicies(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -818,8 +818,8 @@ func TestKubectlTargetProviderApplyFailed(t *testing.T) {
 				Scope: "nginx-system",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -881,8 +881,8 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 			},
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -918,8 +918,8 @@ func TestKubectlTargetProviderGet(t *testing.T) {
 				Scope: "nginx-system",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

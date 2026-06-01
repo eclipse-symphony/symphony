@@ -126,17 +126,17 @@ func TestBasic_DetectCircularReference(t *testing.T) {
 	})
 
 	namespace := "default"
-	// read catalog
-	catalog, err := readCatalog("config1-v-version1", namespace, dyn)
+	// read catalogversion
+	catalogversion, err := readCatalogVersion("config1-v-version1", namespace, dyn)
 	require.NoError(t, err)
 
-	// Update catalog
-	catalog.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["image"] = "prom/prometheus"
-	_, err = updateCatalog(namespace, catalog, dyn)
+	// Update catalogversion
+	catalogversion.Object["spec"].(map[string]interface{})["properties"].(map[string]interface{})["image"] = "prom/prometheus"
+	_, err = updateCatalogVersion(namespace, catalogversion, dyn)
 	require.NoError(t, err)
 
-	// Deploy the updated solution manifest
-	manifest := "../manifest/oss/solution-new.yaml"
+	// Deploy the updated solutionversion manifest
+	manifest := "../manifest/oss/solutionversion-new.yaml"
 	fullPath, err := filepath.Abs(manifest)
 	require.NoError(t, err)
 
@@ -241,8 +241,8 @@ func TestBasic_VerifyPodUpdatedInNamespace(t *testing.T) {
 		}
 	}
 
-	// Deploy the updated solution manifest
-	manifest := "../manifest/oss/solution-update.yaml"
+	// Deploy the updated solutionversion manifest
+	manifest := "../manifest/oss/solutionversion-update.yaml"
 	fullPath, err := filepath.Abs(manifest)
 	require.NoError(t, err)
 
@@ -366,7 +366,7 @@ func TestBasic_InstanceDeletion(t *testing.T) {
 func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 	// Manifests to deploy
 	var testManifests = []string{
-		"../manifest/oss/solution2.yaml",
+		"../manifest/oss/solutionversion2.yaml",
 		"../manifest/oss/target2.yaml",
 		"../manifest/oss/instance-recreate.yaml",
 	}
@@ -419,10 +419,10 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 	}
 }
 
-func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
+func TestBasic_VerifyTargetSolutionVersionScope(t *testing.T) {
 	// Manifests to deploy
 	var testDefaultManifests = []string{
-		"../manifest/oss/solution-configmap.yaml",
+		"../manifest/oss/solutionversion-configmap.yaml",
 		"../manifest/oss/target-configmap-default.yaml",
 		"../manifest/oss/instance-configmap-default.yaml",
 	}
@@ -455,13 +455,13 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 		time.Sleep(sleepDuration)
 	}
 
-	// test update target solutionScope, expect error
+	// test update target solutionversionScope, expect error
 	targetFile := "../manifest/oss/target-configmap-error.yaml"
 	fullPath, err := filepath.Abs(targetFile)
 	require.NoError(t, err)
 	output, err := exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
 	require.Error(t, err)
-	require.Contains(t, string(output), "Target has one or more associated instances. Cannot change SolutionScope of the target.")
+	require.Contains(t, string(output), "Target has one or more associated instances. Cannot change SolutionVersionScope of the target.")
 
 	// test update instance scope, expect error
 	instanceFile := "../manifest/oss/instance-configmap-error.yaml"
@@ -475,19 +475,19 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 	err = shellcmd.Command(fmt.Sprintf("kubectl delete instance.solution.symphony %s", "instance-configmap")).Run()
 	require.NoError(t, err)
 
-	// test update target solutionScope with no associated instance, expect no error
+	// test update target solutionversionScope with no associated instance, expect no error
 	fullPath, _ = filepath.Abs(targetFile)
 	output, err = exec.Command("kubectl", "apply", "-f", fullPath).CombinedOutput()
 	require.NoError(t, err)
 
-	// deploy new instance and target with solutionScope
-	var testSolutionScopeManifests = []string{
+	// deploy new instance and target with solutionversionScope
+	var testSolutionVersionScopeManifests = []string{
 		"../manifest/oss/target-configmap-update.yaml",
 		"../manifest/oss/instance-configmap-update.yaml",
 	}
 
 	// Deploy the manifests in default namespace
-	for _, manifest := range testSolutionScopeManifests {
+	for _, manifest := range testSolutionVersionScopeManifests {
 		fullPath, err := filepath.Abs(manifest)
 		require.NoError(t, err)
 
@@ -495,7 +495,7 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// Verify configmp in target solutionScope
+	// Verify configmp in target solutionversionScope
 	for {
 		namespace := "target-scope"
 		configMapName := "configmap"
@@ -510,15 +510,15 @@ func TestBasic_VerifyTargetSolutionScope(t *testing.T) {
 	}
 }
 
-func TestBasic_VerifySolutionScopePrecedence(t *testing.T) {
-	// Create instance with scope and target with solution scope
-	var testSolutionScopeManifests = []string{
+func TestBasic_VerifySolutionVersionScopePrecedence(t *testing.T) {
+	// Create instance with scope and target with solutionversion scope
+	var testSolutionVersionScopeManifests = []string{
 		"../manifest/oss/target-configmap-update.yaml",
 		"../manifest/oss/instance-configmap-with-scope.yaml",
 	}
 
 	// Deploy the manifests in default namespace
-	for _, manifest := range testSolutionScopeManifests {
+	for _, manifest := range testSolutionVersionScopeManifests {
 		fullPath, err := filepath.Abs(manifest)
 		require.NoError(t, err)
 
@@ -546,24 +546,24 @@ func TestBasic_VerifySolutionScopePrecedence(t *testing.T) {
 	}
 }
 
-// Helper for read catalog
-func readCatalog(catalogName string, namespace string, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
-	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
-	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), catalogName, metav1.GetOptions{})
+// Helper for read catalogversion
+func readCatalogVersion(catalogversionName string, namespace string, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogversions"}
+	catalogversion, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), catalogversionName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return catalog, nil
+	return catalogversion, nil
 }
 
-// Helper for update catalog
-func updateCatalog(namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
-	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogs"}
-	catalog, err := dynamicClient.Resource(gvr).Namespace(namespace).Update(context.TODO(), object, metav1.UpdateOptions{})
+// Helper for update catalogversion
+func updateCatalogVersion(namespace string, object *unstructured.Unstructured, dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	gvr := schema.GroupVersionResource{Group: "federation.symphony", Version: "v1", Resource: "catalogversions"}
+	catalogversion, err := dynamicClient.Resource(gvr).Namespace(namespace).Update(context.TODO(), object, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return catalog, nil
+	return catalogversion, nil
 }
 
 // Helper for finding the status

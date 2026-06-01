@@ -59,11 +59,11 @@ func TestPoll(t *testing.T) {
 	jobData, err := queueProvider.Dequeue("fake")
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
-	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
+	assert.Equal(t, "catalogversion1", jobData.(v1alpha2.JobData).Id)
 	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
 	item, err := stateProvider.Get(context.Background(), states.GetRequest{
-		ID: "fake-catalog1",
+		ID: "fake-catalogversion1",
 	})
 	assert.Nil(t, err)
 	assert.NotNil(t, item)
@@ -100,7 +100,7 @@ func TestHandleJobEvent(t *testing.T) {
 			"site": "fake",
 		},
 		Body: v1alpha2.JobData{
-			Id:     "catalog1",
+			Id:     "catalogversion1",
 			Action: v1alpha2.JobUpdate,
 		},
 	})
@@ -109,7 +109,7 @@ func TestHandleJobEvent(t *testing.T) {
 	jobData, err := queueProvider.Dequeue("fake")
 	assert.Nil(t, err)
 	assert.NotNil(t, jobData)
-	assert.Equal(t, "catalog1", jobData.(v1alpha2.JobData).Id)
+	assert.Equal(t, "catalogversion1", jobData.(v1alpha2.JobData).Id)
 	assert.Equal(t, v1alpha2.JobUpdate, jobData.(v1alpha2.JobData).Action)
 
 	site, err := queueProvider.Dequeue("site-job-queue")
@@ -129,23 +129,23 @@ func TestGetABatchForSite(t *testing.T) {
 	}
 
 	queueProvider.Enqueue("fake", v1alpha2.JobData{
-		Id:     "catalog1",
+		Id:     "catalogversion1",
 		Action: v1alpha2.JobUpdate,
 	})
 	queueProvider.Enqueue("fake", v1alpha2.JobData{
-		Id:     "catalog2",
+		Id:     "catalogversion2",
 		Action: v1alpha2.JobUpdate,
 	})
 	jobs, err := manager.GetABatchForSite("fake", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
-	assert.Equal(t, "catalog1", jobs[0].Id)
+	assert.Equal(t, "catalogversion1", jobs[0].Id)
 	assert.Equal(t, v1alpha2.JobUpdate, jobs[0].Action)
 
 	jobs, err = manager.GetABatchForSite("fake", 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
-	assert.Equal(t, "catalog2", jobs[0].Id)
+	assert.Equal(t, "catalogversion2", jobs[0].Id)
 	assert.Equal(t, v1alpha2.JobUpdate, jobs[0].Action)
 }
 
@@ -154,15 +154,15 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 		var response interface{}
 		log.Info("Mock Symphony API called", "path", r.URL.Path)
 		switch r.URL.Path {
-		case "/catalogs/registry":
-			response = []model.CatalogState{{
+		case "/catalogversions/registry":
+			response = []model.CatalogVersionState{{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
+					Name: "catalogversion1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					ParentName: "fakeparent",
 				},
-				Status: &model.CatalogStatus{
+				Status: &model.CatalogVersionStatus{
 					Properties: map[string]string{},
 				},
 			}}

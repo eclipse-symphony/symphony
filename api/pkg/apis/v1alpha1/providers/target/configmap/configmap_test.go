@@ -168,8 +168,8 @@ func TestConfigMapTargetProviderApply(t *testing.T) {
 				Scope: "configs",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -215,8 +215,8 @@ func TestConfigMapTargetProviderGet(t *testing.T) {
 				Scope: "configs",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -274,8 +274,8 @@ func TestConfigMapTargetProviderDelete(t *testing.T) {
 				Scope: "configs",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -325,8 +325,8 @@ func TestConfigMapTargetProviderApplyGetDelete(t *testing.T) {
 				Scope: "configs",
 			},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},

@@ -17,7 +17,7 @@ spec:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Catalog is the Schema for the catalogs API
+        description: Catalog is the Schema for the Catalogs API
         properties:
           apiVersion:
             description: |-
@@ -37,54 +37,6 @@ spec:
           metadata:
             type: object
           spec:
-            properties:
-              catalogType:
-                type: string
-              metadata:
-                additionalProperties:
-                  type: string
-                type: object
-              objectRef:
-                properties:
-                  address:
-                    type: string
-                  generation:
-                    type: string
-                  group:
-                    type: string
-                  kind:
-                    type: string
-                  metadata:
-                    additionalProperties:
-                      type: string
-                    type: object
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                  siteId:
-                    type: string
-                  version:
-                    type: string
-                required:
-                - group
-                - kind
-                - name
-                - namespace
-                - siteId
-                - version
-                type: object
-              parentName:
-                type: string
-              properties:
-                x-kubernetes-preserve-unknown-fields: true
-              rootResource:
-                type: string
-              version:
-                type: string
-            required:
-            - catalogType
-            - properties
             type: object
           status:
             properties:

@@ -3,5 +3,5 @@ kind: Activation
 metadata:
   name: multisite-deploy
 spec:
-  campaign: "site-apps:version1"
+  campaignversion: "site-apps:version1"
   

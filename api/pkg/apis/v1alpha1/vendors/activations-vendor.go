@@ -204,7 +204,7 @@ func (c *ActivationsVendor) onActivations(request v1alpha2.COARequest) v1alpha2.
 			if entry.Status.UpdateTime == "" && entry.ObjectMeta.Labels[constants.StatusMessage] == "" {
 				err = c.Context.Publish("activation", v1alpha2.Event{
 					Body: v1alpha2.ActivationData{
-						Campaign:             activation.Spec.Campaign,
+						CampaignVersion:             activation.Spec.CampaignVersion,
 						ActivationGeneration: entry.ObjectMeta.ETag,
 						Activation:           id,
 						Stage:                activation.Spec.Stage,

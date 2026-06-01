@@ -72,7 +72,7 @@ api:
   labelValue:
   annotationKey: 
 symphony:
-  uniqueDisplayNameForSolution: false
+  uniqueDisplayNameForSolutionVersion: false
   incluster:
     httpsport: 8081
     httpport: 8080

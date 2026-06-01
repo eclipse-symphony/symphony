@@ -150,7 +150,7 @@ spec:
                 type: object
               scope:
                 type: string
-              solutionScope:
+              solutionversionScope:
                 type: string
               topologies:
                 items:

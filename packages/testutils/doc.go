@@ -54,7 +54,7 @@
 //   - kube.Pod: an expectation for a pod(s) in the cluster
 //   - kube.AbsentPod: an expectation for a pod(s) that is not present in the cluster
 //   - kube.Target: an expectation for a target(s) in the cluster
-//   - kube.Solution: an expectation for a solution(s) in the cluster
+//   - kube.SolutionVersion: an expectation for a solutionversion(s) in the cluster
 //   - kube.Instance: an expectation for an instance(s) in the cluster
 //
 // # HelmExpectation

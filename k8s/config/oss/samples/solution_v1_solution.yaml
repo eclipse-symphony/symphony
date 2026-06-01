@@ -1,11 +1,12 @@
-##
-## Copyright (c) Microsoft Corporation.
-## Licensed under the MIT license.
-## SPDX-License-Identifier: MIT
-##
 apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
+  labels:
+    app.kubernetes.io/name: solution
+    app.kubernetes.io/instance: solution-sample
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: symphony-k8s
   name: solution-sample
 spec:
   # TODO(user): Add fields here

@@ -14,8 +14,8 @@ import (
 )
 
 type DeploymentSpec struct {
-	SolutionName        string                 `json:"solutionName"`
-	Solution            SolutionState          `json:"solution"`
+	SolutionVersionName        string                 `json:"solutionversionName"`
+	SolutionVersion            SolutionVersionState          `json:"solutionversion"`
 	Instance            InstanceState          `json:"instance"`
 	Targets             map[string]TargetState `json:"targets"`
 	Devices             []DeviceSpec           `json:"devices,omitempty"`
@@ -32,10 +32,10 @@ type DeploymentSpec struct {
 }
 
 func (d DeploymentSpec) GetComponentSlice() []ComponentSpec {
-	if d.Solution.Spec == nil {
+	if d.SolutionVersion.Spec == nil {
 		return nil
 	}
-	components := d.Solution.Spec.Components
+	components := d.SolutionVersion.Spec.Components
 	if d.ComponentStartIndex >= 0 && d.ComponentEndIndex >= 0 && d.ComponentEndIndex > d.ComponentStartIndex {
 		components = components[d.ComponentStartIndex:d.ComponentEndIndex]
 	}
@@ -48,11 +48,11 @@ func (c DeploymentSpec) DeepEquals(other IDeepEquals) (bool, error) {
 		return false, errors.New("parameter is not a DeploymentSpec type")
 	}
 
-	if c.SolutionName != otherC.SolutionName {
+	if c.SolutionVersionName != otherC.SolutionVersionName {
 		return false, nil
 	}
 
-	equal, err := c.Solution.DeepEquals(otherC.Solution)
+	equal, err := c.SolutionVersion.DeepEquals(otherC.SolutionVersion)
 	if err != nil {
 		return false, err
 	}
@@ -144,11 +144,11 @@ func GetDeploymentSpecForLog(d *DeploymentSpec) string {
 			},
 		}
 	}
-	solution := SolutionState{
+	solutionversion := SolutionVersionState{
 		ObjectMeta: ObjectMeta{
-			Name:        d.Solution.ObjectMeta.Name,
-			Namespace:   d.Solution.ObjectMeta.Namespace,
-			Annotations: getAnnotationsForLog(d.Solution.ObjectMeta.Annotations),
+			Name:        d.SolutionVersion.ObjectMeta.Name,
+			Namespace:   d.SolutionVersion.ObjectMeta.Namespace,
+			Annotations: getAnnotationsForLog(d.SolutionVersion.ObjectMeta.Annotations),
 		},
 	}
 	instance := InstanceState{
@@ -159,8 +159,8 @@ func GetDeploymentSpecForLog(d *DeploymentSpec) string {
 		},
 	}
 	deployment := DeploymentSpec{
-		SolutionName:        d.SolutionName,
-		Solution:            solution,
+		SolutionVersionName:        d.SolutionVersionName,
+		SolutionVersion:            solutionversion,
 		Instance:            instance,
 		Targets:             targets,
 		Devices:             d.Devices,

@@ -64,7 +64,7 @@ func TestStateString(t *testing.T) {
 		HelmChartLoadFailed:           "Helm Chart Load Failed",
 		HelmChartApplyFailed:          "Helm Chart Apply Failed",
 		HelmChartUninstallFailed:      "Helm Chart Uninstall Failed",
-		SolutionGetFailed:             "Solution does not exist",
+		SolutionVersionGetFailed:             "SolutionVersion does not exist",
 		TargetCandidatesNotFound:      "Target does not exist",
 		TargetListGetFailed:           "Target list does not exist",
 		ObjectInstanceCoversionFailed: "Object to Instance conversion failed",

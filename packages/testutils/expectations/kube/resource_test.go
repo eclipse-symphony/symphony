@@ -359,10 +359,10 @@ func TestCommonCommonConstructors(t *testing.T) {
 	_, err = AbsentInstance("test-1", "namespace-1")
 	require.NoError(t, err)
 
-	_, err = Solution("test-1", "namespace-1")
+	_, err = SolutionVersion("test-1", "namespace-1")
 	require.NoError(t, err)
 
-	_, err = AbsentSolution("test-1", "namespace-1")
+	_, err = AbsentSolutionVersion("test-1", "namespace-1")
 	require.NoError(t, err)
 }
 

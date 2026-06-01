@@ -4,7 +4,7 @@ In this walkthrough, we’ll use the implementation of a Rust provider for [Ecli
 
 ## Deciding on the integration point 
 
-Ankaios aims to bring cloud-native practices to automated HPCs while meeting the safety and real-time requirements of the automotive industry. It consists of an Ankaios server that manages multiple Ankaios agents. As a toolchain orchestrator, Symphony does not interfere with the internal workings of Ankaios components. Instead, Symphony treats the entire Ankaios system as a Target that provides in-vehicle orchestration. The Ankaios Target can be annotated with feature flags, enabling Symphony—acting as a fleet management layer in this case—to make fleet-level decisions based on these flags. For example, a Solution component can request installation on an Ankaios-enabled Target.
+Ankaios aims to bring cloud-native practices to automated HPCs while meeting the safety and real-time requirements of the automotive industry. It consists of an Ankaios server that manages multiple Ankaios agents. As a toolchain orchestrator, Symphony does not interfere with the internal workings of Ankaios components. Instead, Symphony treats the entire Ankaios system as a Target that provides in-vehicle orchestration. The Ankaios Target can be annotated with feature flags, enabling Symphony—acting as a fleet management layer in this case—to make fleet-level decisions based on these flags. For example, a SolutionVersion component can request installation on an Ankaios-enabled Target.
 
 ## Setting up local test environment
 
@@ -125,7 +125,7 @@ Symphony periodically calls the `get()` method to retrieve the current system st
 
 ### Decide on what constitutes a `Component`
 
-A Symphony `Solution` consists of one or more `Components`. When a system integrates with Symphony, it can choose to represent its entire (relevant) system state as a single Symphony `Component` or expose a more granular construct.
+A Symphony `SolutionVersion` consists of one or more `Components`. When a system integrates with Symphony, it can choose to represent its entire (relevant) system state as a single Symphony `Component` or expose a more granular construct.
 
 For Ankaios, you can either treat the entire Ankaios system state as a single `Component` or represent each Ankaios workload as a separate `Component`.
 
@@ -135,7 +135,7 @@ In this walkthrough, we'll treat an Ankaios workload as a `Component`.
 
 A Symphony `Component` consists of a name, a type, and a key-value property bag.
 
-* Component **name**: A unique identifier within a Solution.
+* Component **name**: A unique identifier within a SolutionVersion.
 * Component **type**: An arbitrary string. However, for a specific system, it's best to use a consistent type string, such as `ankaios-workload`. Symphony uses this type string to identify the corresponding `TargetProvider` that claims to handle that component type.
 * Component **properties**: A collection of key-value pairs that can store any relevant information. However, you must ensure that these properties can be reliably reconstructed when requested by Symphony. Symphony uses these properties—along with validation rules (covered in the next section)—to determine whether an update is required. If the property values are unstable, you may trigger constant reconciliations.
 
@@ -209,7 +209,7 @@ mod tests {
 
 ## Implementing the `apply()` method
 
-The `apply()` method applies the new desired state to the system. Symphony sends the current deployment (`DeploymentSpec`) that contains all information about the current `Solution` and `Targets`. It also sends the current deployment step (`DeploymentStep`) that contains the current operations the provider needs to do, i.e. updating components or deleting components. Most provider only need to access the deployment step parameter, while some providers may need to consult the whole deployment object for additional context.
+The `apply()` method applies the new desired state to the system. Symphony sends the current deployment (`DeploymentSpec`) that contains all information about the current `SolutionVersion` and `Targets`. It also sends the current deployment step (`DeploymentStep`) that contains the current operations the provider needs to do, i.e. updating components or deleting components. Most provider only need to access the deployment step parameter, while some providers may need to consult the whole deployment object for additional context.
 When handling the deployment step, your provider should loop through the step components and perform corresponding actions, such as:
 
 ```rust
@@ -286,9 +286,9 @@ let component_result = ComponentResultSpec {
     # Note the last segment of path needs to match with the metadata.name field in your JSON file, in this case ankaios-target
     curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @target.json http://localhost:8082/v1alpha2/targets/registry/ankaios-target
     ```
-5. Define the `SolutionContainer` object and the `Solution` object.
+5. Define the `Solution` object and the `SolutionVersion` object.
 
-    SolutionContainer:
+    Solution:
     ```json
     {
         "metadata": {
@@ -297,7 +297,7 @@ let component_result = ComponentResultSpec {
     }
     ```
 
-    Solution:
+    SolutionVersion:
     ```json
     {
         "metadata": {
@@ -319,12 +319,12 @@ let component_result = ComponentResultSpec {
         }
     }
     ```
-6. Apply the `SolutionContainer` and `Solution` object:
+6. Apply the `Solution` and `SolutionVersion` object:
     ```bash
-    # SolutionContainer
-    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @solution_container.json http://localhost:8082/v1alpha2/solutioncontainers/ankaios-app
     # Solution
-    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @solution.json http://localhost:8082/v1alpha2/solutions/ankaios-app-v-v1
+    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @solutionversion_container.json http://localhost:8082/v1alpha2/solutions/ankaios-app
+    # SolutionVersion
+    curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @solutionversion.json http://localhost:8082/v1alpha2/solutionversions/ankaios-app-v-v1
     ```
 7. Define the `Instance` object:
     ```json
@@ -333,7 +333,7 @@ let component_result = ComponentResultSpec {
             "name": "ankaios-app-instance"    
         },
         "spec": {
-            "solution": "ankaios-app:v1",
+            "solutionversion": "ankaios-app:v1",
             "target": {
                 "name": "ankaios-target"
             },

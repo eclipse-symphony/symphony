@@ -143,7 +143,7 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns
+  - campaignversions
   verbs:
   - create
   - delete
@@ -155,13 +155,13 @@ rules:
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/finalizers
+  - campaignversions/finalizers
   verbs:
   - update
 - apiGroups:
   - workflow.symphony
   resources:
-  - campaigns/status
+  - campaignversions/status
   verbs:
   - get
   - patch
@@ -221,7 +221,7 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions
+  - solutionversions
   verbs:
   - create
   - delete
@@ -259,13 +259,13 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/finalizers
+  - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/status
+  - solutionversions/status
   verbs:
   - get
   - patch
@@ -299,7 +299,7 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions
+  - solutionversions
   verbs:
   - create
   - delete
@@ -311,13 +311,13 @@ rules:
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/finalizers
+  - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
   - solution.symphony
   resources:
-  - solutions/status
+  - solutionversions/status
   verbs:
   - get
   - patch
@@ -377,6 +377,104 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
+  - catalogversions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversionevalexpressions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversionevalexpressions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
+  - catalogversions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigns
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigns/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - workflow.symphony
+  resources:
+  - campaigns/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - solution.symphony
+  resources:
+  - solutions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - federation.symphony
+  resources:
   - catalogs
   verbs:
   - create
@@ -389,26 +487,6 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
-  - catalogevalexpressions
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogevalexpressions/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - federation.symphony
-  resources:
   - catalogs/finalizers
   verbs:
   - update
@@ -416,84 +494,6 @@ rules:
   - federation.symphony
   resources:
   - catalogs/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - campaigncontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - campaigncontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - campaigncontainers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - solution.symphony
-  resources:
-  - solutioncontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - solution.symphony
-  resources:
-  - solutioncontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - solution.symphony
-  resources:
-  - solutioncontainers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogcontainers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogcontainers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - federation.symphony
-  resources:
-  - catalogcontainers/status
   verbs:
   - get
   - patch

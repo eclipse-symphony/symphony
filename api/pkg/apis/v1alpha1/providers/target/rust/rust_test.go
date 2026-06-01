@@ -179,7 +179,7 @@ func TestMockRustProviderApply(t *testing.T) {
 
 	// Create a mock deployment spec and deployment step
 	deployment := model.DeploymentSpec{
-		SolutionName: "test_solution",
+		SolutionVersionName: "test_solutionversion",
 		Targets:      map[string]model.TargetState{},
 	}
 	step := model.DeploymentStep{

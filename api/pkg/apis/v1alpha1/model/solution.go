@@ -10,39 +10,20 @@ import (
 	"errors"
 )
 
-type (
-	SolutionState struct {
-		ObjectMeta ObjectMeta    `json:"metadata,omitempty"`
-		Spec       *SolutionSpec `json:"spec,omitempty"`
-	}
+type SolutionState struct {
+	ObjectMeta ObjectMeta               `json:"metadata,omitempty"`
+	Spec       *SolutionSpec   `json:"spec,omitempty"`
+	Status     *SolutionStatus `json:"status,omitempty"`
+}
 
-	SolutionSpec struct {
-		DisplayName  string            `json:"displayName,omitempty"`
-		Metadata     map[string]string `json:"metadata,omitempty"`
-		Components   []ComponentSpec   `json:"components,omitempty"`
-		Version      string            `json:"version,omitempty"`
-		RootResource string            `json:"rootResource,omitempty"`
-	}
-)
+type SolutionSpec struct {
+}
+
+type SolutionStatus struct {
+	Properties map[string]string `json:"properties"`
+}
 
 func (c SolutionSpec) DeepEquals(other IDeepEquals) (bool, error) {
-	otherC, ok := other.(SolutionSpec)
-	if !ok {
-		return false, errors.New("parameter is not a SolutionSpec type")
-	}
-
-	if c.DisplayName != otherC.DisplayName {
-		return false, nil
-	}
-
-	if !StringMapsEqual(c.Metadata, otherC.Metadata, nil) {
-		return false, nil
-	}
-
-	if !SlicesEqual(c.Components, otherC.Components) {
-		return false, nil
-	}
-
 	return true, nil
 }
 

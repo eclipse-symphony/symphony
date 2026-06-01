@@ -23,7 +23,7 @@ type FaultTestCase struct {
 
 var (
 	TestCases = map[string]string{
-		"solutionUpdate":      "./solution/update/verify/...",
+		"solutionversionUpdate":      "./solutionversion/update/verify/...",
 		"workflowMaterialize": "./workflow/materialize/verify/...",
 	}
 
@@ -33,61 +33,61 @@ var (
 	}
 	Faults = []FaultTestCase{
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["api"],
 			Fault:     "onQueueError",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["api"],
 			Fault:     "beforeProviders",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["api"],
 			Fault:     "beforeDeploymentError",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["api"],
 			Fault:     "afterDeploymentError",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["api"],
 			Fault:     "beforeConcludeSummary",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["api"],
 			Fault:     "beforeConcludeSummary",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["k8s"],
 			Fault:     "beforePollingResult",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["k8s"],
 			Fault:     "afterPollingResult",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["k8s"],
 			Fault:     "beforeQueueJob",
 			FaultType: DefaultFaultType,
 		},
 		{
-			TestCase:  TestCases["solutionUpdate"],
+			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["k8s"],
 			Fault:     "afterQueueJob",
 			FaultType: DefaultFaultType,

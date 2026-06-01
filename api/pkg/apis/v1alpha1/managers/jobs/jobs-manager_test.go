@@ -129,10 +129,10 @@ func TestHandleScheduleEvent(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	jobManager.HandleScheduleEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1"},
+		Body: v1alpha2.ActivationData{CampaignVersion: "campaignversion1", Activation: "activation1"},
 	})
 
-	schedule, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "sch_campaign1-activation1"})
+	schedule, err := stateProvider.Get(context.Background(), states.GetRequest{ID: "sch_campaignversion1-activation1"})
 	assert.Nil(t, err)
 	assert.NotNil(t, schedule)
 }
@@ -188,7 +188,7 @@ func TestPoll(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	jobManager.HandleScheduleEvent(context.Background(), v1alpha2.Event{
-		Body: v1alpha2.ActivationData{Campaign: "campaign1", Activation: "activation1", Schedule: "2006-01-02T15:04:05Z"},
+		Body: v1alpha2.ActivationData{CampaignVersion: "campaignversion1", Activation: "activation1", Schedule: "2006-01-02T15:04:05Z"},
 	})
 	enabled := jobManager.Enabled()
 	assert.True(t, enabled)
@@ -243,7 +243,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Solution: "solution1",
+					SolutionVersion: "solutionversion1",
 				},
 			}
 		case "/instances":
@@ -253,7 +253,7 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					Namespace: "default",
 				},
 				Spec: &model.InstanceSpec{
-					Solution: "solution1",
+					SolutionVersion: "solutionversion1",
 				},
 			}}
 		case "/targets/registry":
@@ -276,13 +276,13 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					DisplayName: "target1",
 				},
 			}
-		case "/solutions/solution1":
-			response = model.SolutionState{
+		case "/solutionversions/solutionversion1":
+			response = model.SolutionVersionState{
 				ObjectMeta: model.ObjectMeta{
-					Name:      "solution1",
+					Name:      "solutionversion1",
 					Namespace: "default",
 				},
-				Spec: &model.SolutionSpec{},
+				Spec: &model.SolutionVersionSpec{},
 			}
 		default:
 			response = utils.AuthResponse{

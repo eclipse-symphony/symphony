@@ -20,7 +20,7 @@ func TestInstanceDeepEquals(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -42,7 +42,7 @@ func TestInstanceDeepEquals(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -70,7 +70,7 @@ func TestInstanceDeepEqualsOneEmpty(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -98,7 +98,7 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -120,7 +120,7 @@ func TestInstanceDeepEqualsNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -148,7 +148,7 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -170,7 +170,7 @@ func TestInstanceDeepEqualsDisplayNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName1",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -198,7 +198,7 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -220,7 +220,7 @@ func TestInstanceDeepEqualsNamespaceNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -248,7 +248,7 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -270,7 +270,7 @@ func TestInstanceDeepEqualsTargetNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName1",
 			},
@@ -298,7 +298,7 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -320,7 +320,7 @@ func TestInstanceDeepEqualsTopologiestNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -348,7 +348,7 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},
@@ -370,7 +370,7 @@ func TestInstanceEqualsPipelineNameNotMatch(t *testing.T) {
 		},
 		Spec: &InstanceSpec{
 			DisplayName: "InstanceDisplayName",
-			Solution:    "SolutionName",
+			SolutionVersion:    "SolutionVersionName",
 			Target: TargetSelector{
 				Name: "TargetName",
 			},

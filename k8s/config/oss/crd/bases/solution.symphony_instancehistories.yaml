@@ -86,7 +86,7 @@ spec:
                 type: string
               scope:
                 type: string
-              solution:
+              solutionversion:
                 properties:
                   components:
                     items:
@@ -171,7 +171,7 @@ spec:
                   version:
                     type: string
                 type: object
-              solutionId:
+              solutionversionId:
                 type: string
               target:
                 description: Defines the desired state of Target
@@ -283,7 +283,7 @@ spec:
                     type: object
                   scope:
                     type: string
-                  solutionScope:
+                  solutionversionScope:
                     type: string
                   topologies:
                     items:
@@ -351,8 +351,8 @@ spec:
                   type: object
                 type: array
             required:
-            - solution
-            - solutionId
+            - solutionversion
+            - solutionversionId
             type: object
           status:
             properties:

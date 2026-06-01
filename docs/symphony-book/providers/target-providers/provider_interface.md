@@ -34,7 +34,7 @@ The `Apply()` method runs a `DeploymentStep`, which contains a list of `Componen
 
 A `ComponentStep` can be either an `"update"` or `"delete"` step. Your provider should perform the corresponding actions based on this flag.
 
-> **NOTE**: A provider is expected to operate only on components affected by the deployment descriptions. Some providers may need to wipe the whole device during deployment. In such cases, the development description is expected to contain the entire software stack. Or a device image can be treated as a single component in a solution. If a provider maintains a collection resource that holds components, it should remove the collection resource when the collection becomes empty.
+> **NOTE**: A provider is expected to operate only on components affected by the deployment descriptions. Some providers may need to wipe the whole device during deployment. In such cases, the development description is expected to contain the entire software stack. Or a device image can be treated as a single component in a solutionversion. If a provider maintains a collection resource that holds components, it should remove the collection resource when the collection becomes empty.
 
 ## Get validation rule
 

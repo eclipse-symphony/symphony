@@ -17,11 +17,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetInstanceName(solutionContainerName, objectName string) string {
+func GetInstanceName(solutionversionContainerName, objectName string) string {
 	return objectName
 }
 
-func GetSolutionAndContainerName(name string) (string, string) {
+func GetSolutionVersionAndContainerName(name string) (string, string) {
 	parts := strings.Split(name, ":")
 	if len(parts) == 2 {
 		return parts[0], parts[1]
@@ -41,15 +41,15 @@ func GetInstanceRootResource(name string) string {
 	return ""
 }
 
-func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GetInstanceOwnerReferences(apiClient ApiClient, ctx context.Context, solutionversionContainer string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	return nil, nil
 }
 
-func GetSolutionContainerOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
+func GetSolutionOwnerReferences(apiClient ApiClient, ctx context.Context, objectName string, objectNamespace string, user string, pwd string) ([]metav1.OwnerReference, error) {
 	return nil, nil
 }
 
-func GenerateSystemDataAnnotations(ctx context.Context, annotations map[string]string, solutionId string) map[string]string {
+func GenerateSystemDataAnnotations(ctx context.Context, annotations map[string]string, solutionversionId string) map[string]string {
 	return annotations
 }
 

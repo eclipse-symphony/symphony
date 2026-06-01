@@ -34,7 +34,7 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
-  - catalogs
+  - catalogversions
   verbs:
   - get
   - list
@@ -42,6 +42,6 @@ rules:
 - apiGroups:
   - federation.symphony
   resources:
-  - catalogs/status
+  - catalogversions/status
   verbs:
   - get

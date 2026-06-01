@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import {CampaignState} from "../../../../types";
+import {CampaignVersionState} from "../../../../types";
 import { getServerSession } from 'next-auth';
 import { options } from '../../../auth/[...nextauth]/options';
 import { User } from '../../../../types';
@@ -11,18 +11,18 @@ export async function POST(
     }
 ) {
     const body = await request.json();
-    const campaignState: CampaignState = body;
+    const campaignversionState: CampaignVersionState = body;
     const session = await getServerSession(options);  
     const symphonyApi = process.env.SYMPHONY_API;
     const userObj: User | undefined = session?.user?? undefined;
-    const res = await fetch( `${symphonyApi}activations/registry/${campaignState.id}`, {
+    const res = await fetch( `${symphonyApi}activations/registry/${campaignversionState.id}`, {
         method: 'POST',
         headers: {
         'Authorization': `Bearer ${userObj?.accessToken}`,
         },
         body: JSON.stringify({
-            campaign: campaignState.id,
-            name: campaignState.id,
+            campaignversion: campaignversionState.id,
+            name: campaignversionState.id,
             inputs: {}
         })
     });       

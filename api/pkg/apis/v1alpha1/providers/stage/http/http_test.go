@@ -116,10 +116,10 @@ func TestCallLogicApp(t *testing.T) {
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
 		"body": map[string]interface{}{ // this is a sample request body
-			"solution": "solution1",
+			"solutionversion": "solutionversion1",
 			"instance": "instance1",
 			"target":   "target1",
-			"id":       "instance1-solution1-target1",
+			"id":       "instance1-solutionversion1-target1",
 		},
 	})
 	assert.Nil(t, err)

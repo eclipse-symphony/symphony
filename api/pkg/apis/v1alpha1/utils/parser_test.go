@@ -2219,9 +2219,9 @@ func TestEvaulateInstance(t *testing.T) {
 				},
 				Spec: &model.InstanceSpec{},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2243,9 +2243,9 @@ func TestEvaulateParamNoComponent(t *testing.T) {
 	_, err := parser.Eval(utils.EvaluationContext{
 		Context: ctx,
 		DeploymentSpec: model.DeploymentSpec{
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2268,12 +2268,12 @@ func TestEvaulateParamNoArgument(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2298,12 +2298,12 @@ func TestEvaulateParamArgumentOverride(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2328,12 +2328,12 @@ func TestEvaulateParamWrongComponentName(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2357,12 +2357,12 @@ func TestEvaulateParamMissing(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2386,12 +2386,12 @@ func TestEvaulateParamExpressionArgumentOverride(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2414,12 +2414,12 @@ func TestEvaluateDeployment(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2440,8 +2440,8 @@ func TestEvaluateDeployment(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "b", deployment.Solution.Spec.Components[0].Properties["foo"])
-	assert.Equal(t, "d b", deployment.Solution.Spec.Components[0].Properties["bar"])
+	assert.Equal(t, "b", deployment.SolutionVersion.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "d b", deployment.SolutionVersion.Spec.Components[0].Properties["bar"])
 }
 
 func TestEvaluateDeploymentMetadata(t *testing.T) {
@@ -2449,12 +2449,12 @@ func TestEvaluateDeploymentMetadata(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2479,10 +2479,10 @@ func TestEvaluateDeploymentMetadata(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "b", deployment.Solution.Spec.Components[0].Properties["foo"])
-	assert.Equal(t, "d b", deployment.Solution.Spec.Components[0].Properties["bar"])
-	assert.Equal(t, "b", deployment.Solution.Spec.Components[0].Metadata["foo"])
-	assert.Equal(t, "d b", deployment.Solution.Spec.Components[0].Metadata["bar"])
+	assert.Equal(t, "b", deployment.SolutionVersion.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "d b", deployment.SolutionVersion.Spec.Components[0].Properties["bar"])
+	assert.Equal(t, "b", deployment.SolutionVersion.Spec.Components[0].Metadata["foo"])
+	assert.Equal(t, "d b", deployment.SolutionVersion.Spec.Components[0].Metadata["bar"])
 }
 func TestEvaluateDeploymentConfig(t *testing.T) {
 	configProvider := &mock.MockConfigProvider{}
@@ -2494,12 +2494,12 @@ func TestEvaluateDeploymentConfig(t *testing.T) {
 		DeploymentSpec: model.DeploymentSpec{
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{
-					Solution: "fake-solution",
+					SolutionVersion: "fake-solutionversion",
 				},
 			},
-			SolutionName: "fake-solution",
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersionName: "fake-solutionversion",
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: []model.ComponentSpec{
 						{
 							Name: "component-1",
@@ -2516,8 +2516,8 @@ func TestEvaluateDeploymentConfig(t *testing.T) {
 	}
 	deployment, err := EvaluateDeployment(context)
 	assert.Nil(t, err)
-	assert.Equal(t, "a::b", deployment.Solution.Spec.Components[0].Properties["foo"])
-	assert.Equal(t, "c::d", deployment.Solution.Spec.Components[0].Properties["bar"])
+	assert.Equal(t, "a::b", deployment.SolutionVersion.Spec.Components[0].Properties["foo"])
+	assert.Equal(t, "c::d", deployment.SolutionVersion.Spec.Components[0].Properties["bar"])
 }
 func TestEqualNumbers(t *testing.T) {
 	parser := NewParser("${{$equal(123, 123)}}")

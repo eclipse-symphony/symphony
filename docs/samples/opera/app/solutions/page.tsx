@@ -2,12 +2,12 @@ import React from 'react'
 import { getServerSession } from 'next-auth';
 import MultiView from '@/components/MultiView';
 import { options } from '../api/auth/[...nextauth]/options';
-import {SolutionState, User} from '../types';
-const getSolutions = async () => {
+import {SolutionVersionState, User} from '../types';
+const getSolutionVersions = async () => {
   const session = await getServerSession(options);    
   const symphonyApi = process.env.SYMPHONY_API;
   const userObj: User | undefined = session?.user?? undefined;
-  const res = await fetch( `${symphonyApi}solutions`, {
+  const res = await fetch( `${symphonyApi}solutionversions`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${userObj?.accessToken}`,
@@ -16,18 +16,18 @@ const getSolutions = async () => {
   const data = await res.json();
   return data;
 }
-async function SolutionsPage() {
-  const solutions = await getSolutions();
+async function SolutionVersionsPage() {
+  const solutionversions = await getSolutionVersions();
   const params = {
-    type: 'solutions',
+    type: 'solutionversions',
     menuItems: [
       {
-        name: 'Add Solution',
-        href: '/solutions/add',                
+        name: 'Add SolutionVersion',
+        href: '/solutionversions/add',                
       }
     ],
     views: ['cards', 'table'],
-    items: solutions,
+    items: solutionversions,
     columns: []
   }
   return (
@@ -37,4 +37,4 @@ async function SolutionsPage() {
 );
 }
 
-export default SolutionsPage;
+export default SolutionVersionsPage;

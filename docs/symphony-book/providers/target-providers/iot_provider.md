@@ -1,6 +1,6 @@
 # providers.target.azure.iotedge
 
-This provider maps components to Azure IoT Edge module definitions. Symphony allows multiple solutions, as well as multiple solution instances, to be deployed on the same IoT Edge device. It does this by prefixing module names with an instance prefix. And it also automatically rewrites any route definitions so that routes are resolved correctly within an instance.
+This provider maps components to Azure IoT Edge module definitions. Symphony allows multiple solutionversions, as well as multiple solutionversion instances, to be deployed on the same IoT Edge device. It does this by prefixing module names with an instance prefix. And it also automatically rewrites any route definitions so that routes are resolved correctly within an instance.
 
 ## Component property mappings
 

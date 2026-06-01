@@ -50,7 +50,7 @@ type Activation struct {
 }
 
 // +kubebuilder:object:root=true
-// CampaignList contains a list of Activation
+// CampaignVersionList contains a list of Activation
 type ActivationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

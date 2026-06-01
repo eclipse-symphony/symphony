@@ -5,23 +5,23 @@
  */
 
 use serde_json::json;
-use crate::models::{Token, CatalogState};
+use crate::models::{Token, CatalogVersionState};
 
 static BASE_URL: &str = "http://localhost:8080/v1alpha2";
 
-pub fn get_catalogs(token: &str) -> Vec<CatalogState> {
-    let req = attohttpc::get(format!("{}/catalogs/registry", BASE_URL)).bearer_auth(token).send();
+pub fn get_catalogversions(token: &str) -> Vec<CatalogVersionState> {
+    let req = attohttpc::get(format!("{}/catalogversions/registry", BASE_URL)).bearer_auth(token).send();
     if req.is_err() {
         return vec![];
     }
     let resp = req.unwrap();
     if resp.is_success() {        
-        let catalogs = resp.json::<Vec<CatalogState>>();
-        if catalogs.is_err() {
-            println!("catalogs error: {:?}", catalogs.err().unwrap());
+        let catalogversions = resp.json::<Vec<CatalogVersionState>>();
+        if catalogversions.is_err() {
+            println!("catalogversions error: {:?}", catalogversions.err().unwrap());
             return vec![];
         }
-        return catalogs.unwrap();
+        return catalogversions.unwrap();
     }
     vec![]
 }

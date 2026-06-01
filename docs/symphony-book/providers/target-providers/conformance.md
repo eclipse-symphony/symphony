@@ -6,7 +6,7 @@ The Symphony object model allows arbitrary properties to be attached to a compon
 
 One challenge of this approach is how to provide predictable, consistent behaviors across providers. To achieve this, Symphony requires each provider to explicitly define what properties it needs to operate. For example, a provider that handles container-based workloads may declare that it requires a `container.image` property to be present to handle the component correctly. 
 
-In addition, Symphony defines a few conformances levels that are designed to help users to pick desired providers to use. For example, if a user wants to manage container-based workloads, she can pick a container-conformant provider and deploy her solution to any supported systems like Docker, Kubernetes and Azure IoT Edge.
+In addition, Symphony defines a few conformances levels that are designed to help users to pick desired providers to use. For example, if a user wants to manage container-based workloads, she can pick a container-conformant provider and deploy her solutionversion to any supported systems like Docker, Kubernetes and Azure IoT Edge.
 
 | Provider |Container simple|Container standard|Container service| Scope | Isolation|
 |--------|--------|--------|--------|--------|--------|
