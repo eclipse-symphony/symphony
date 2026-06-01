@@ -112,7 +112,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1:version1", "target1:version1", "solution1:version1", "catalog1:version1"},
+		"names":    []interface{}{"instance1:version1", "target1:version1", "solutionversion1:version1", "catalogversion1:version1"},
 		"__origin": "hq",
 	})
 	assert.Nil(t, err)
