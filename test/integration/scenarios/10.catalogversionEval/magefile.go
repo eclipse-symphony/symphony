@@ -37,11 +37,11 @@ var (
 var (
 	// catalogversions to deploy
 	testCatalogVersions = []string{
-		"test/integration/scenarios/10.catalogEval/manifest/catalog-catalog-container.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalogversion-catalog.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalogversion-catalog2.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalogversion-catalog3.yaml",
-		"test/integration/scenarios/10.catalogEval/manifest/catalogversion-catalog4.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalog-catalog-container.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalog.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalog2.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalog3.yaml",
+		"test/integration/scenarios/10.catalogversionEval/manifest/catalogversion-catalog4.yaml",
 	}
 
 	// Tests to run
@@ -49,15 +49,15 @@ var (
 		"./verify/...",
 	}
 
-	testEval = "test/integration/scenarios/10.catalogEval/manifest/eval.yaml"
+	testEval = "test/integration/scenarios/10.catalogversionEval/manifest/eval.yaml"
 
-	testWrongEval = "test/integration/scenarios/10.catalogEval/manifest/wrongEval.yaml"
+	testWrongEval = "test/integration/scenarios/10.catalogversionEval/manifest/wrongEval.yaml"
 
-	testEvalUpdate = "test/integration/scenarios/10.catalogEval/manifest/evalUpdate.yaml"
+	testEvalUpdate = "test/integration/scenarios/10.catalogversionEval/manifest/evalUpdate.yaml"
 
-	testEval03 = "test/integration/scenarios/10.catalogEval/manifest/eval03.yaml"
+	testEval03 = "test/integration/scenarios/10.catalogversionEval/manifest/eval03.yaml"
 
-	testEval04 = "test/integration/scenarios/10.catalogEval/manifest/eval04.yaml"
+	testEval04 = "test/integration/scenarios/10.catalogversionEval/manifest/eval04.yaml"
 )
 
 // Entry point for running the tests
