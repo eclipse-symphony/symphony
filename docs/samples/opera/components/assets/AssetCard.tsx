@@ -19,7 +19,7 @@ function AssetCard(props: AssetCardProps) {
                 {catalogversion.spec.catalogType === 'config' && (
                     <FcSettings className="text-[#F6B519] text-3xl"/>
                 )}
-                {catalogversion.spec.catalogType === 'solutionversion' && (
+                {catalogversion.spec.catalogType === 'solutionVersion' && (
                     <FcTemplate className="text-[#F6B519] text-3xl"/>
                 )}
                 <div className="flex flex-col">
@@ -35,7 +35,7 @@ function AssetCard(props: AssetCardProps) {
                 {(catalogversion.spec.catalogType === 'config' && catalogversion.spec.objectRef?.name) && (
                     <div style={{ whiteSpace: 'nowrap' , display: 'inline-flex', gap: '0.5rem', color: 'darkolivegreen'}}><FaGithub />{catalogversion.spec.objectRef.address}</div>                    
                 )}
-                {catalogversion.spec.catalogType === 'solutionversion' && (
+                {catalogversion.spec.catalogType === 'solutionVersion' && (
                     <SolutionVersionSpecCard solutionversion={catalogversion.spec.properties['spec']} />
                 )}
             </CardBody>

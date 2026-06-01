@@ -29,7 +29,7 @@ var catalogversionState = model.CatalogVersionState{
 		Name: "name1-v-version1",
 	},
 	Spec: &model.CatalogVersionSpec{
-		CatalogType: "catalogversion",
+		CatalogType: "catalogVersion",
 		Properties: map[string]interface{}{
 			"property1": "value1",
 			"property2": "value2",
@@ -177,7 +177,7 @@ func TestCatalogVersionOnCheck(t *testing.T) {
 
 	var catalogversionState = model.CatalogVersionState{
 		Spec: &model.CatalogVersionSpec{
-			CatalogType: "catalogversion",
+			CatalogType: "catalogVersion",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",

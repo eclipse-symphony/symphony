@@ -107,9 +107,9 @@ func federationVendorInit() FederationVendor {
 		&sym_mgr.SymphonyManagerFactory{},
 	}, map[string]map[string]providers.IProvider{
 		"catalogversion-manager": catalogversionProviders,
-		"trails-manager":  trailsProviders,
-		"sites-manager":   siteProviders,
-		"staging-manager": stagingProviders,
+		"trails-manager":         trailsProviders,
+		"sites-manager":          siteProviders,
+		"staging-manager":        stagingProviders,
 	}, &pubSubProvider)
 	return vendor
 }
@@ -383,7 +383,7 @@ func TestFederationOnSyncGet(t *testing.T) {
 			Name: "catalogversion1-v-version1",
 		},
 		Spec: &model.CatalogVersionSpec{
-			CatalogType: "catalogversion",
+			CatalogType: "catalogVersion",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",
@@ -478,7 +478,7 @@ func TestFederationOnK8SHook(t *testing.T) {
 			Name: "catalogversion1",
 		},
 		Spec: &model.CatalogVersionSpec{
-			CatalogType: "catalogversion",
+			CatalogType: "catalogVersion",
 			Properties: map[string]interface{}{
 				"property1": "value1",
 				"property2": "value2",

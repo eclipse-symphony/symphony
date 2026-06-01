@@ -112,7 +112,7 @@ func TestMaterializeProcessWithoutStageNs(t *testing.T) {
 		},
 	})
 	_, paused, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"names":    []interface{}{"instance1:version1", "target1:version1", "solutionversion1:version1", "catalogversion1:version1"},
+		"names":    []interface{}{"instance1:version1", "target1:version1", "solution1:version1", "catalog1:version1"},
 		"__origin": "hq",
 	})
 	assert.Nil(t, err)
@@ -237,7 +237,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					Name: "hq-solutionversion1-v-version1",
 				},
 				Spec: &model.CatalogVersionSpec{
-					CatalogType: "solutionversion",
+					CatalogType: "solutionVersion",
 					Properties: map[string]interface{}{
 						"spec": model.SolutionVersionSpec{
 							DisplayName: "solutionversion1",
@@ -256,7 +256,7 @@ func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {
 					Name: "hq-catalogversion1-v-version1",
 				},
 				Spec: &model.CatalogVersionSpec{
-					CatalogType: "catalogversion",
+					CatalogType: "catalogVersion",
 					Properties: map[string]interface{}{
 						"spec": model.CatalogVersionSpec{
 							CatalogType: "config",

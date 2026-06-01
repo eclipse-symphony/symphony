@@ -307,7 +307,7 @@ func TestSchemaCheck(t *testing.T) {
 		},
 		Spec: &model.CatalogVersionSpec{
 			RootResource: "Email",
-			CatalogType:  "catalogversion",
+			CatalogType:  "catalogVersion",
 			Metadata: map[string]string{
 				"schema": "EmailCheckSchema:version1",
 			},
@@ -349,7 +349,7 @@ func TestParentCatalogVersion(t *testing.T) {
 		},
 		Spec: &model.CatalogVersionSpec{
 			RootResource: "parent",
-			CatalogType:  "catalogversion",
+			CatalogType:  "catalogVersion",
 		},
 	}
 
@@ -366,7 +366,7 @@ func TestParentCatalogVersion(t *testing.T) {
 		},
 		Spec: &model.CatalogVersionSpec{
 			RootResource: "parent",
-			CatalogType:  "catalogversion",
+			CatalogType:  "catalogVersion",
 			ParentName:   "EmailCheckSchema:version1",
 		},
 	}
