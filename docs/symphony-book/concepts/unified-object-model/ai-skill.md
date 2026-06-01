@@ -40,7 +40,7 @@ nodes:
 
 ## Overwrite parameters
 
-An `instance.solutionversion.symphony` object can overwrite AI skill parameter values in its own `parameters` section.
+An `instance.solution.symphony` object can overwrite AI skill parameter values in its own `parameters` section.
 
 ```yaml
 parameters:

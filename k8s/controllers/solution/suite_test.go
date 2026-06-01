@@ -50,7 +50,7 @@ func TestAPIs(t *testing.T) {
 }
 
 func TestUnmarshalSolutionVersion(t *testing.T) {
-	solutionversionYaml := `apiVersion: solutionversion.symphony/v1
+	solutionversionYaml := `apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: sample-staged-solutionversion

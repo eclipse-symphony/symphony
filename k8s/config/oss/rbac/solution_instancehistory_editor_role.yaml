@@ -12,7 +12,7 @@ metadata:
   name: instancehistory-editor-role
 rules:
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories
   verbs:
@@ -24,7 +24,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories/status
   verbs:

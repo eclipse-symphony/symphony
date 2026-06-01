@@ -1852,7 +1852,7 @@
 							}
 						},
 						"url": {
-							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{SOLUTION_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=solutionversions&group=solutionversion.symphony&version=v1",
+							"raw": "http://{{SYMPHONY_BASE_URL}}/agent/references?id={{SOLUTION_NAME}}&ref=v1alpha2.ReferenceK8sCRD&kind=solutionversions&group=solution.symphony&version=v1",
 							"protocol": "http",
 							"host": [
 								"{{SYMPHONY_BASE_URL}}"
@@ -1876,7 +1876,7 @@
 								},
 								{
 									"key": "group",
-									"value": "solutionversion.symphony"
+									"value": "solution.symphony"
 								},
 								{
 									"key": "version",

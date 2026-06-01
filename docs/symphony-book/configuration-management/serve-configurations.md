@@ -9,7 +9,7 @@ Configurations can be injected into solutionversion components as environment va
 A solutionversion component can inject configuration settings as environment variables by defining properties with an `env.` prefix. For example, the following definition injects a `MY_CONFIG` environment variable into the app-container component. The value is a `config-key` field from a `config-obj` catalogversion.
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: csad-featurizer
@@ -27,7 +27,7 @@ spec:
 When deploying applications on Kubernetes, Symphony can assemble a configuration file and mount the file to a pod. To do this, declare a configuration component, and then a container component that has the configuration component as a dependency, as shown in the following example:
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: my-app

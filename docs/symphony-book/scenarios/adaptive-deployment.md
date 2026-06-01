@@ -58,7 +58,7 @@ spec:
 Create a simple [solutionversion](../concepts/unified-object-model/solutionversion.md) with a single component:
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: redis-server
@@ -84,7 +84,7 @@ spec:
 To deploy the solutionversion to both targets, create an [instance](../concepts/unified-object-model/instance.md) object that applies the `redis-server` solutionversion to the `demo` group of targets:
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: my-instance

@@ -8,7 +8,7 @@ package model
 
 const (
 	FabricGroup     = "fabric.symphony"
-	SolutionVersionGroup   = "solutionversion.symphony"
+	SolutionVersionGroup   = "solution.symphony"
 	WorkflowGroup   = "workflow.symphony"
 	FederationGroup = "federation.symphony"
 	AIGroup         = "ai.symphony"

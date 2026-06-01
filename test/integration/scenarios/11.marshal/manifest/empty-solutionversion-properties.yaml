@@ -1,15 +1,15 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: empty-solutionversion
+  name: empty-solution
 spec:
 ---
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
-  name: empty-solutionversion-v-version1
+  name: empty-solution-v-version1
 spec:
-  rootResource: empty-solutionversion
+  rootResource: empty-solution
   components:
   - name: anything
     type: anything

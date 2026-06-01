@@ -18,7 +18,7 @@ metadata:
   name: solution-viewer-role
 rules:
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions
   verbs:
@@ -26,7 +26,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions/status
   verbs:

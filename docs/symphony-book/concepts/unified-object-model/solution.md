@@ -8,7 +8,7 @@ When modeling a microservice application, components are assumed to be independe
 
 ## SolutionVersion schema
 
-SolutionVersion objects, `solutionversion.solutionversion.symphony`, define an intelligent edge solutionversion.
+SolutionVersion objects, `solutionversion.solution.symphony`, define an intelligent edge solutionversion.
 
 | Field | Type | Description |
 |--------|--------|--------|

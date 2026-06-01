@@ -58,7 +58,7 @@ spec:
 The following solutionversion defines a nginx container and a UWP app. The `app.package.pth` should point to the full path to the`appxbundle` file.
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
   name: home-hub
@@ -79,7 +79,7 @@ spec:
 The instance simply maps the solutionversion to your target. Note that the Windows 10 target is not explicitly specified as it's proxied.
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: homehub-instance

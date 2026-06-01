@@ -8,9 +8,9 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/solutionversion.symphony_solutionversions.yaml
-- bases/solutionversion.symphony_instances.yaml
-- bases/solutionversion.symphony_instancehistories.yaml
+- bases/solution.symphony_solutionversions.yaml
+- bases/solution.symphony_instances.yaml
+- bases/solution.symphony_instancehistories.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 - bases/ai.symphony_skills.yaml
 - bases/ai.symphony_skillpackages.yaml
@@ -22,7 +22,7 @@ resources:
 - bases/fabric.symphony_devices.yaml
 - bases/federation.symphony_sites.yaml
 - bases/federation.symphony_catalogversions.yaml
-- bases/solutionversion.symphony_solutions.yaml
+- bases/solution.symphony_solutions.yaml
 - bases/workflow.symphony_campaigns.yaml
 - bases/federation.symphony_catalogs.yaml
 - bases/monitor.symphony_diagnostics.yaml

@@ -4,7 +4,7 @@ metadata:
   name: siteapp-v-version1
 spec:
   rootResource: siteapp
-  catalogType: solution
+  catalogType: solutionVersion
   properties:
     metadata:
       name: siteapp:version1

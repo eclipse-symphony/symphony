@@ -17,7 +17,7 @@ import (
 )
 
 func TestK8SSolutionVersionToAPISolutionVersionState(t *testing.T) {
-	solutionversionYaml := `apiVersion: solutionversion.symphony/v1
+	solutionversionYaml := `apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: sample-staged-solutionversion
@@ -80,7 +80,7 @@ spec:
 }
 
 func TestK8SSolutionVersionToAPISolutionVersionStateNullProperty(t *testing.T) {
-	solutionversionYaml := `apiVersion: solutionversion.symphony/v1
+	solutionversionYaml := `apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: sample-staged-solutionversion
@@ -109,7 +109,7 @@ spec:
 }
 
 func TestK8SSidecarSpecToAPISidecarSpecNullProperty(t *testing.T) {
-	solutionversionYaml := `apiVersion: solutionversion.symphony/v1
+	solutionversionYaml := `apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: sample-staged-solutionversion

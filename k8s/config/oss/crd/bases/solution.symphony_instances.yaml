@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: instances.solutionversion.symphony
+  name: instances.solution.symphony
 spec:
-  group: solutionversion.symphony
+  group: solution.symphony
   names:
     kind: Instance
     listKind: InstanceList

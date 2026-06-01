@@ -1,10 +1,10 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   name: myapplication-httpd  
 spec:
 ---
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
   name: myapplication-httpd-v-version1

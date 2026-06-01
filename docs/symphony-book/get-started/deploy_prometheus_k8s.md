@@ -71,7 +71,7 @@ A Symphony *solutionversion* is a template that defies an application workload t
 Create a YAML file that describes a Symphony solutionversion with a single Redis server component.
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: sample-prometheus-server
@@ -101,7 +101,7 @@ A Symphony *solutionversion instance* maps a *solutionversion* to one or multipl
 Create a YAML file that maps the `sample-prometheus-server` solutionversion to the `sample-k8s-target` target:
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: sample-prometheus-instance

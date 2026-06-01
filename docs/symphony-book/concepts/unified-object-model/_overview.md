@@ -6,8 +6,8 @@ Symphony defines a common object model that describes the full stack of intellig
 * [AI Skill](./ai-skill.md) (`skill.ai.symphony`)
 * [Device](./device.md) (`device.fabric.symphony`)
 * [Target](./target.md) (`target.fabric.symphony`)
-* [SolutionVersion](./solutionversion.md) (`solutionversion.solutionversion.symphony`)
-* [Instance](./instance.md) (`instance.solutionversion.symphony`)
+* [SolutionVersion](./solutionversion.md) (`solutionversion.solution.symphony`)
+* [Instance](./instance.md) (`instance.solution.symphony`)
 
 ## Typical workflows
 

@@ -34,13 +34,13 @@ type SolutionList struct {
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solutionversion-symphony-v1-solution,mutating=false,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=solutions,verbs=create;update;delete,versions=v1,name=vsolution.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-solution,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=solutions,verbs=create;update;delete,versions=v1,name=vsolution.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Solution{}
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-solutionversion-symphony-v1-solution,mutating=true,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=solutions,verbs=create;update,versions=v1,name=msolution.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-solution-symphony-v1-solution,mutating=true,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=solutions,verbs=create;update,versions=v1,name=msolution.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Solution{}
 

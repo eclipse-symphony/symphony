@@ -1,10 +1,10 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   name: factory-ai-vision  
 spec:
 ---
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: factory-ai-vision-v-version1

@@ -1,9 +1,9 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
-  name: solutionversion03-v-version1
+  name: solution03-v-version1
 spec:
-  rootResource: solutionversion03
+  rootResource: solution03
   metadata:
     deployment.replicas: "#1"
     service.ports: "[{\"name\":\"port9900\",\"port\": 9900}]"

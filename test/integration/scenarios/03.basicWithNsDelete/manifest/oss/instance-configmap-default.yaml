@@ -1,8 +1,8 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: instance-configmap
 spec:
-  solutionversion: solutionversion-configmap:version1
+  solutionversion: solution-configmap:version1
   target: 
     name: target-configmap

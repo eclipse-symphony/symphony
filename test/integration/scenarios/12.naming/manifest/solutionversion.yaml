@@ -3,7 +3,7 @@
 ## Licensed under the MIT license.
 ## SPDX-License-Identifier: MIT
 ##
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
   annotations: {}

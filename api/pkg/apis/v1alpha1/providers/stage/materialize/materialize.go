@@ -367,7 +367,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 			}
 			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
 			createdObjectList[catalogversion.ObjectMeta.Name] = true
-		case "solutionversion":
+		case "solutionVersion":
 			var solutionversionState model.SolutionVersionState
 			err = utils2.UnmarshalJson(objectData, &solutionversionState)
 			if err != nil {
@@ -741,7 +741,7 @@ func checkCatalogVersion(catalogversion *model.CatalogVersionState) bool {
 	if catalogversion.Spec == nil {
 		return false
 	}
-	if catalogversion.Spec.CatalogType == "instance" || catalogversion.Spec.CatalogType == "solutionversion" || catalogversion.Spec.CatalogType == "target" || catalogversion.Spec.CatalogType == "catalogversion" || catalogversion.Spec.CatalogType == "config" {
+	if catalogversion.Spec.CatalogType == "instance" || catalogversion.Spec.CatalogType == "solutionVersion" || catalogversion.Spec.CatalogType == "target" || catalogversion.Spec.CatalogType == "catalogVersion" || catalogversion.Spec.CatalogType == "config" {
 		return true
 	}
 	return false

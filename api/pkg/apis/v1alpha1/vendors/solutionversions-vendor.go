@@ -175,7 +175,7 @@ func (c *SolutionVersionsVendor) onSolutionVersions(request v1alpha2.COARequest)
 				{
 					Origin:  c.Vendor.Context.SiteInfo.SiteId,
 					CatalogVersion: strCat,
-					Type:    "solutionversions.solutionversion.symphony/v1",
+					Type:    "solutionversions.solution.symphony/v1",
 					Properties: map[string]interface{}{
 						"spec": solutionversion,
 					},

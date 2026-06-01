@@ -30,12 +30,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-solutionversion-symphony-v1-instance
+      path: /mutate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -50,12 +50,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-solutionversion-symphony-v1-instancehistory
+      path: /mutate-solution-symphony-v1-instancehistory
   failurePolicy: Fail
   name: minstancehistory.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -69,12 +69,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-solutionversion-symphony-v1-solutionversion
+      path: /mutate-solution-symphony-v1-solutionversion
   failurePolicy: Fail
   name: msolutionversion.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -89,12 +89,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-solutionversion-symphony-v1-solution
+      path: /mutate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -278,12 +278,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-solutionversion-symphony-v1-instance
+      path: /validate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -299,12 +299,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-solutionversion-symphony-v1-instancehistory
+      path: /validate-solution-symphony-v1-instancehistory
   failurePolicy: Fail
   name: vinstancehistory.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -320,12 +320,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-solutionversion-symphony-v1-solutionversion
+      path: /validate-solution-symphony-v1-solutionversion
   failurePolicy: Fail
   name: vsolutionversion.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -341,12 +341,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-solutionversion-symphony-v1-solution
+      path: /validate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:

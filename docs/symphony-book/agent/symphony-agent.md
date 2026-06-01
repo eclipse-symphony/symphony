@@ -90,7 +90,7 @@ You can get Symphony object specs, such as AI [skill](../concepts/unified-object
   |--------|--------|
   | alias | AI Skill alias<sup>1</sup>|
   | field-selector | Field selector (optional), for example: `metadata.name=redis-server`|
-  | group | Resource group, like `ai.symphony`, `solutionversion.symphony` and `fabric.symphony`|
+  | group | Resource group, like `ai.symphony`, `solution.symphony` and `fabric.symphony`|
   | id | Resource name (optional)|
   | instance | SolutionVersion instance id<sup>1</sup>|
   | kind | Resource kind, like `skills`, `solutionversions` and `devices`|
@@ -141,7 +141,7 @@ You can report object state through Symphony agent.
 * **Parameters**:
   | Parameter | Comment |
   |--------|--------|
-  | group | Resource group, like `ai.symphony`, `solutionversion.symphony`, and `fabric.symphony` |
+  | group | Resource group, like `ai.symphony`, `solution.symphony`, and `fabric.symphony` |
   | id | Resource name (optional)|
   | kind | Resource type, like `skills`, `solutionversions`, and `devices`|
   | overwrite | If set to true, the object state will be reset to reported properties. Otherwise, the reported properties are merged into existing state (optional, default = false) |

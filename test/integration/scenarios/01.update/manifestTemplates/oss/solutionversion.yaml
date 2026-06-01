@@ -3,12 +3,12 @@
 ## Licensed under the MIT license.
 ## SPDX-License-Identifier: MIT
 ##
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
   annotations: 
-    management.azure.com/resourceId: solutionversion01:version1
-  name: solutionversion01-v-version1
+    management.azure.com/resourceId: solution01:version1
+  name: solution01-v-version1
 spec:
-  rootResource: solutionversion01
-  displayName: solutionversion01-v-version1
+  rootResource: solution01
+  displayName: solution01-v-version1

@@ -160,7 +160,7 @@ func TestTrailsVendorOnTrails_PostTrailsArrayAsBody(t *testing.T) {
 		{
 			Origin:  "site1",
 			CatalogVersion: "catalogversion1",
-			Type:    "solutionversions.solutionversion.symphony/v1",
+			Type:    "solutionversions.solution.symphony/v1",
 			Properties: map[string]interface{}{
 				"post": model.CatalogVersionState{
 					ObjectMeta: model.ObjectMeta{
@@ -173,7 +173,7 @@ func TestTrailsVendorOnTrails_PostTrailsArrayAsBody(t *testing.T) {
 		{
 			Origin:  "site2",
 			CatalogVersion: "catalogversion2",
-			Type:    "solutionversions.solutionversion.symphony/v1",
+			Type:    "solutionversions.solution.symphony/v1",
 			Properties: map[string]interface{}{
 				"post": model.CatalogVersionState{
 					ObjectMeta: model.ObjectMeta{

@@ -828,7 +828,7 @@ paths:
           in: query
           schema:
             type: string
-          example: solutionversion.symphony
+          example: solution.symphony
         - name: version
           in: query
           schema:

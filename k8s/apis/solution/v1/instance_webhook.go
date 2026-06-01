@@ -191,7 +191,7 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-solutionversion-symphony-v1-instance,mutating=true,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instances,verbs=create;update,versions=v1,name=minstance.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-solution-symphony-v1-instance,mutating=true,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update,versions=v1,name=minstance.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Instance{}
 
@@ -246,7 +246,7 @@ func (r *Instance) Default() {
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solutionversion-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instances,verbs=create;update;delete,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instance,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instances,verbs=create;update;delete,versions=v1,name=vinstance.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Instance{}
 
@@ -358,7 +358,7 @@ func (r *Instance) validateCreateInstance(ctx context.Context) error {
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate create instance", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
@@ -386,7 +386,7 @@ func (r *Instance) validateUpdateInstance(ctx context.Context, old *Instance) er
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "Instance"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(instancelog, ctx, err, "validate update instance", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
@@ -412,7 +412,7 @@ func (r *Instance) validateReconciliationPolicy() *field.Error {
 }
 
 func (r *Instance) ConvertInstanceState() (model.InstanceState, error) {
-	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "Instance"}, r.Name,
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "Instance"}, r.Name,
 		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to instance state", v1alpha2.BadRequest))})
 	bytes, err := json.Marshal(r)
 	if err != nil {

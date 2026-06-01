@@ -213,7 +213,7 @@ A Symphony *solutionversion* is a template that defies an application workload t
 Create a YAML file called `solutionversion.yaml` that describes a Symphony SolutionVersion with a single component, which is based on the `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` container.
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
   name: sample-simulated-temperature-sensor
@@ -242,7 +242,7 @@ A Symphony *solutionversion instance* maps a *solutionversion* to one or multipl
 Create a YAML file called `instance-1.yaml` that maps the `sample-simulated-temperature-sensor` soltuion to the `sample-iot-edge-target` target above:
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: sample-iot-edge-instance-1

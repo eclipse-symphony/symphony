@@ -59,17 +59,17 @@ func GetResourceMetadata(resourceType ResourceType) (string, string, string, str
 	var kind string
 	switch resourceType {
 	case SolutionVersion:
-		group = "solutionversion.symphony"
+		group = "solution.symphony"
 		version = "v1"
 		resource = "solutionversions"
 		kind = "SolutionVersion"
 	case Solution:
-		group = "solutionversion.symphony"
+		group = "solution.symphony"
 		version = "v1"
 		resource = "solutions"
 		kind = "Solution"
 	case Instance:
-		group = "solutionversion.symphony"
+		group = "solution.symphony"
 		version = "v1"
 		resource = "instances"
 		kind = "Instance"

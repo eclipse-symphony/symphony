@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: instancehistories.solutionversion.symphony
+  name: instancehistories.solution.symphony
 spec:
-  group: solutionversion.symphony
+  group: solution.symphony
   names:
     kind: InstanceHistory
     listKind: InstanceHistoryList

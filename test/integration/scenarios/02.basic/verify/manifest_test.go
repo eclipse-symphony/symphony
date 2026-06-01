@@ -260,7 +260,7 @@ func testBasic_InstanceStatus(t *testing.T, successCount string) {
 		sleepDuration, _ := time.ParseDuration("10s")
 		time.Sleep(sleepDuration)
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
@@ -399,7 +399,7 @@ func DeployManifests(fileName string, namespace string, dryrun string, activesta
 
 func CleanUpSymphonyObjects(namespace string) error {
 	// Get all instances in the namespace
-	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solutionversion.symphony -n %s -o name", namespace)).Output()
+	output, err := shellcmd.Command(fmt.Sprintf("kubectl get instances.solution.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
 		return fmt.Errorf("failed to list instances: %v", err)
 	}
@@ -434,7 +434,7 @@ func CleanUpSymphonyObjects(namespace string) error {
 		}
 	}
 
-	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutionversions.solutionversion.symphony -n %s -o name", namespace)).Output()
+	output, err = shellcmd.Command(fmt.Sprintf("kubectl get solutionversions.solution.symphony -n %s -o name", namespace)).Output()
 	if err != nil {
 		return fmt.Errorf("failed to list solutionversions: %v", err)
 	}

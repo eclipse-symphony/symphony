@@ -22,24 +22,24 @@ import (
 )
 
 var (
-	testSolution = "test/integration/scenarios/01.update/manifestTemplates/oss/solutionversion-container.yaml"
-	testSolutionVersion          = "test/integration/scenarios/01.update/manifestTemplates/oss/solutionversion.yaml"
-	testTarget            = "test/integration/scenarios/01.update/manifestTemplates/oss/target.yaml"
-	testInstance          = "test/integration/scenarios/01.update/manifestTemplates/oss/instance.yaml"
-	testCampaignVersion          = "test/integration/scenarios/04.workflow/manifest/campaignversion.yaml"
-	testCampaign = "test/integration/scenarios/04.workflow/manifest/campaign.yaml"
+	testSolution        = "test/integration/scenarios/01.update/manifestTemplates/oss/solutionversion-container.yaml"
+	testSolutionVersion = "test/integration/scenarios/01.update/manifestTemplates/oss/solutionversion.yaml"
+	testTarget          = "test/integration/scenarios/01.update/manifestTemplates/oss/target.yaml"
+	testInstance        = "test/integration/scenarios/01.update/manifestTemplates/oss/instance.yaml"
+	testCampaignVersion = "test/integration/scenarios/04.workflow/manifest/campaignversion.yaml"
+	testCampaign        = "test/integration/scenarios/04.workflow/manifest/campaign.yaml"
 
-	testCampaignVersionWithWrongStage     = "test/integration/scenarios/08.webhook/manifest/campaignversionWithWrongStages.yaml"
-	testCampaignVersionWithLongRunning    = "test/integration/scenarios/08.webhook/manifest/campaignversionLongRunning.yaml"
-	testActivationsWithWrongStage  = "test/integration/scenarios/08.webhook/manifest/activationWithWrongStage.yaml"
-	testActivationsWithLongRunning = "test/integration/scenarios/08.webhook/manifest/activationLongRunning.yaml"
+	testCampaignVersionWithWrongStage  = "test/integration/scenarios/08.webhook/manifest/campaignversionWithWrongStages.yaml"
+	testCampaignVersionWithLongRunning = "test/integration/scenarios/08.webhook/manifest/campaignversionLongRunning.yaml"
+	testActivationsWithWrongStage      = "test/integration/scenarios/08.webhook/manifest/activationWithWrongStage.yaml"
+	testActivationsWithLongRunning     = "test/integration/scenarios/08.webhook/manifest/activationLongRunning.yaml"
 
-	testCatalogVersion          = "test/integration/scenarios/05.catalogversionNconfigmap/manifests/config.yaml"
-	testCatalog = "test/integration/scenarios/05.catalogversionNconfigmap/manifests/config-container.yaml"
-	testSchema           = "test/integration/scenarios/05.catalogversionNconfigmap/manifests/schema.yaml"
-	testSchemaContainer  = "test/integration/scenarios/05.catalogversionNconfigmap/manifests/schema-container.yaml"
-	testWrongSchema      = "test/integration/scenarios/05.catalogversionNconfigmap/manifests/wrongconfig.yaml"
-	testChildCatalogVersion     = "test/integration/scenarios/08.webhook/manifest/childCatalogVersion.yaml"
+	testCatalogVersion      = "test/integration/scenarios/05.catalogNconfigmap/manifests/config.yaml"
+	testCatalog             = "test/integration/scenarios/05.catalogNconfigmap/manifests/config-container.yaml"
+	testSchema              = "test/integration/scenarios/05.catalogNconfigmap/manifests/schema.yaml"
+	testSchemaContainer     = "test/integration/scenarios/05.catalogNconfigmap/manifests/schema-container.yaml"
+	testWrongSchema         = "test/integration/scenarios/05.catalogNconfigmap/manifests/wrongconfig.yaml"
+	testChildCatalogVersion = "test/integration/scenarios/08.webhook/manifest/childCatalogVersion.yaml"
 
 	testCircularParentContainer = "test/integration/scenarios/08.webhook/manifest/parent-container.yaml"
 	testCircularParent          = "test/integration/scenarios/08.webhook/manifest/parent-config.yaml"
@@ -54,20 +54,20 @@ var (
 	diagnostic_04_WithAnotherName         = "test/integration/scenarios/08.webhook/manifest/diagnostic_04.WithAnotherName.yaml"
 	diagnostic_05_UpdateOtherAnnotations  = "test/integration/scenarios/08.webhook/manifest/diagnostic_05.UpdateOtherAnnotations.yaml"
 
-	historyCreate         = "test/integration/scenarios/08.webhook/manifest/history.yaml"
-	historyUpdate         = "test/integration/scenarios/08.webhook/manifest/history-update.yaml"
-	historyTarget         = "test/integration/scenarios/08.webhook/manifest/history-target.yaml"
+	historyCreate                = "test/integration/scenarios/08.webhook/manifest/history.yaml"
+	historyUpdate                = "test/integration/scenarios/08.webhook/manifest/history-update.yaml"
+	historyTarget                = "test/integration/scenarios/08.webhook/manifest/history-target.yaml"
 	historySolutionVersion       = "test/integration/scenarios/08.webhook/manifest/history-solutionversion.yaml"
-	historyInstance       = "test/integration/scenarios/08.webhook/manifest/history-instance.yaml"
+	historyInstance              = "test/integration/scenarios/08.webhook/manifest/history-instance.yaml"
 	historySolutionVersionUpdate = "test/integration/scenarios/08.webhook/manifest/history-solutionversion-update.yaml"
-	historyInstanceUpdate = "test/integration/scenarios/08.webhook/manifest/history-instance-update.yaml"
+	historyInstanceUpdate        = "test/integration/scenarios/08.webhook/manifest/history-instance-update.yaml"
 )
 
 var (
-	solutionversionContainerFullName = "solutionversion01"
-	solutionversionFullName          = "solutionversion01-v-version1"
-	targetName                = "target01"
-	instanceFullName          = "instance01"
+	solutionversionContainerFullName = "solution01"
+	solutionversionFullName          = "solution01-v-version1"
+	targetName                       = "target01"
+	instanceFullName                 = "instance01"
 )
 
 // Define a struct to parse the JSON output
@@ -76,16 +76,16 @@ type HistoryList struct {
 }
 
 func TestPrepare(t *testing.T) {
-	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionVersion), "target01", "solutionversion01", "version1", "instance01", "")
+	err := testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolutionVersion), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "target01", "solutionversion01", "version1", "instance01", "")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testSolution), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "target01", "solutionversion01", "version1", "instance01", "")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testTarget), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
-	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "target01", "solutionversion01", "version1", "instance01", "")
+	err = testhelpers.ReplacePlaceHolderInManifest(path.Join(getRepoPath(), testInstance), "target01", "solution01", "version1", "instance01", "")
 	assert.Nil(t, err)
 	if testhelpers.IsTestInAzure() {
-		solutionversionContainerFullName = "target01-v-solutionversion01"
+		solutionversionContainerFullName = "target01-v-solution01"
 		solutionversionFullName = solutionversionContainerFullName + "-v-version1"
 		instanceFullName = solutionversionContainerFullName + "-v-instance01"
 	}
@@ -115,12 +115,12 @@ func TestInstanceWithoutTarget(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testInstance)).CombinedOutput()
 	assert.Contains(t, string(output), "target does not exist")
 	assert.NotNil(t, err, "instance creation without target should fail")
-	output, err = exec.Command("kubectl", "delete", "solutions.solutionversion.symphony", solutionversionContainerFullName).CombinedOutput()
+	output, err = exec.Command("kubectl", "delete", "solutions.solution.symphony", solutionversionContainerFullName).CombinedOutput()
 	assert.Contains(t, string(output), "nested resources with root resource '"+solutionversionContainerFullName+"' are not empty")
 	assert.NotNil(t, err, "solutionversion container deletion with solutionversion should fail")
-	err = shellcmd.Command("kubectl delete solutionversions.solutionversion.symphony " + solutionversionFullName).Run()
+	err = shellcmd.Command("kubectl delete solutionversions.solution.symphony " + solutionversionFullName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutions.solutionversion.symphony " + solutionversionContainerFullName).Run()
+	err = shellcmd.Command("kubectl delete solutions.solution.symphony " + solutionversionContainerFullName).Run()
 	assert.Nil(t, err)
 }
 
@@ -133,19 +133,19 @@ func TestTargetSolutionVersionDeletionWithInstance(t *testing.T) {
 	assert.Nil(t, err)
 	err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s", path.Join(getRepoPath(), testInstance))).Run()
 	assert.Nil(t, err)
-	output, err := exec.Command("kubectl", "delete", "solutionversions.solutionversion.symphony", solutionversionFullName).CombinedOutput()
+	output, err := exec.Command("kubectl", "delete", "solutionversions.solution.symphony", solutionversionFullName).CombinedOutput()
 	assert.Contains(t, string(output), "SolutionVersion has one or more associated instances. Deletion is not allowed.")
 	assert.NotNil(t, err)
 	output, err = exec.Command("kubectl", "delete", "targets.fabric.symphony", targetName).CombinedOutput()
 	assert.Contains(t, string(output), "Target has one or more associated instances. Deletion is not allowed.")
 	assert.NotNil(t, err, "target deletion with instance should fail")
-	err = shellcmd.Command("kubectl delete instances.solutionversion.symphony " + instanceFullName).Run()
+	err = shellcmd.Command("kubectl delete instances.solution.symphony " + instanceFullName).Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete targets.fabric.symphony " + targetName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutionversions.solutionversion.symphony " + solutionversionFullName).Run()
+	err = shellcmd.Command("kubectl delete solutionversions.solution.symphony " + solutionversionFullName).Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete solutions.solutionversion.symphony " + solutionversionContainerFullName).Run()
+	err = shellcmd.Command("kubectl delete solutions.solution.symphony " + solutionversionContainerFullName).Run()
 	assert.Nil(t, err)
 }
 
@@ -164,12 +164,12 @@ func TestCreateActivationWithWrongFirstStage(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testActivationsWithWrongStage)).CombinedOutput()
 	assert.Contains(t, string(output), "spec.stage must be a valid stage in the campaignversion")
 	assert.NotNil(t, err, "activation creation with wrong stage should fail")
-	output, err = exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaignversion").CombinedOutput()
-	assert.Contains(t, string(output), "nested resources with root resource '04campaignversion' are not empty")
+	output, err = exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign").CombinedOutput()
+	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
 	assert.NotNil(t, err, "campaignversion container deletion with campaignversion should fail")
-	err = shellcmd.Command("kubectl delete campaignversions.workflow.symphony 04campaignversion-v-version1").Run()
+	err = shellcmd.Command("kubectl delete campaignversions.workflow.symphony 04campaign-v-version1").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaignversion").Run()
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign").Run()
 	assert.Nil(t, err)
 }
 
@@ -182,7 +182,7 @@ func TestCreateCampaignVersionWithWrongStages(t *testing.T) {
 	output, err := exec.Command("kubectl", "apply", "-f", path.Join(getRepoPath(), testCampaignVersionWithWrongStage)).CombinedOutput()
 	assert.Contains(t, string(output), "stageSelector must be one of the stages in the stages list")
 	assert.NotNil(t, err, "campaignversion creation with wrong stages should fail")
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaignversion").Run()
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign").Run()
 	assert.Nil(t, err)
 }
 
@@ -211,20 +211,20 @@ func TestDeleteCampaignVersionWithRunningActivation(t *testing.T) {
 		}
 		time.Sleep(5 * time.Second)
 	}
-	output, err := exec.Command("kubectl", "delete", "campaignversions.workflow.symphony", "04campaignversion-v-version3").CombinedOutput()
+	output, err := exec.Command("kubectl", "delete", "campaignversions.workflow.symphony", "04campaign-v-version3").CombinedOutput()
 	assert.Contains(t, string(output), "CampaignVersion has one or more running activations. Update or Deletion is not allowed")
 	assert.NotNil(t, err, "campaignversion deletion with running activation should fail")
 	time.Sleep(15 * time.Second)
 	// CampaignVersion can be deleted once the activation is DONE
-	output, err = exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaignversion").CombinedOutput()
+	output, err = exec.Command("kubectl", "delete", "campaigns.workflow.symphony", "04campaign").CombinedOutput()
 	assert.NotNil(t, err, "campaignversion container deletion with campaignversion should fail")
-	assert.Contains(t, string(output), "nested resources with root resource '04campaignversion' are not empty")
+	assert.Contains(t, string(output), "nested resources with root resource '04campaign' are not empty")
 
-	err = shellcmd.Command("kubectl delete campaignversions.workflow.symphony 04campaignversion-v-version3").Run()
+	err = shellcmd.Command("kubectl delete campaignversions.workflow.symphony 04campaign-v-version3").Run()
 	assert.Nil(t, err)
 	err = shellcmd.Command("kubectl delete activations.workflow.symphony activationlongrunning").Run()
 	assert.Nil(t, err)
-	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaignversion").Run()
+	err = shellcmd.Command("kubectl delete campaigns.workflow.symphony 04campaign").Run()
 	assert.Nil(t, err)
 }
 
@@ -441,11 +441,11 @@ func TestUpdateInstanceCreateInstanceHistory(t *testing.T) {
 	}
 	// wait until instance deployed
 	for {
-		output, err := exec.Command("kubectl", "get", "instances.solutionversion.symphony", instanceName, "-o", "jsonpath={.status.status}").CombinedOutput()
+		output, err := exec.Command("kubectl", "get", "instances.solution.symphony", instanceName, "-o", "jsonpath={.status.status}").CombinedOutput()
 		if err != nil {
 			assert.Fail(t, "failed to get instance %s state: %s", instanceName, err.Error())
 		}
-		err = shellcmd.Command("kubectl get instances.solutionversion.symphony " + instanceName).Run()
+		err = shellcmd.Command("kubectl get instances.solution.symphony " + instanceName).Run()
 		assert.Nil(t, err)
 		status := string(output)
 		if status == "Succeeded" {

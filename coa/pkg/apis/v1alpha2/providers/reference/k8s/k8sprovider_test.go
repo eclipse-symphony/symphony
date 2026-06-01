@@ -43,7 +43,7 @@ func TestGet(t *testing.T) {
 	provider := K8sReferenceProvider{}
 	err := provider.Init(K8sReferenceProviderConfig{})
 	assert.Nil(t, err)
-	_, err = provider.Get(symphonySolutionVersion, "default", "solutionversion.symphony", "solutionversions", "v1", "")
+	_, err = provider.Get(symphonySolutionVersion, "default", "solution.symphony", "solutionversions", "v1", "")
 	assert.NotNil(t, err)
 }
 func TestK8sReferenceProviderConfigFromMapMapNil(t *testing.T) {

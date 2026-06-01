@@ -12,7 +12,7 @@ metadata:
   name: solution-editor-role
 rules:
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions
   verbs:
@@ -24,7 +24,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions/status
   verbs:

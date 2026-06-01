@@ -49,7 +49,7 @@ topologies:
 Here is a simple example for using ingress target provider in solutionversion deployment. The below solutionversion will create a kubernetes Ingress object in the kubernetes clusters for all the targets where the solutionversion is invoked. 
 
 ```
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: ingress-solutionversion

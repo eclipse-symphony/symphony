@@ -98,11 +98,11 @@ kubectl get crds | grep symphony
 activations.workflow.symphony 
 campaignversions.workflow.symphony
 devices.fabric.symphony
-instances.solutionversion.symphony
+instances.solution.symphony
 models.ai.symphony
 skillpackages.ai.symphony
 skills.ai.symphony
-solutionversions.solutionversion.symphony
+solutionversions.solution.symphony
 targets.fabric.symphony
 ```
 **George:** There are certainly a lot more than the basic deployments we've done! But we can go through these later...

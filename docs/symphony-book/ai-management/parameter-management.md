@@ -38,7 +38,7 @@ An `instance` can define multiple overrides of a parameter, in the format of `<A
 For example, the following instance defines three sets of parameters of `cv-skill`. Two of them are aliased as `abc` and `def`, respectively.
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: dummy-instance

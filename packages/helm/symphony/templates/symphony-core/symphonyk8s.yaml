@@ -740,7 +740,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: instancehistories.solutionversion.symphony
+  name: instancehistories.solution.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -752,7 +752,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: solutionversion.symphony
+  group: solution.symphony
   names:
     kind: InstanceHistory
     listKind: InstanceHistoryList
@@ -1216,7 +1216,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: instances.solutionversion.symphony
+  name: instances.solution.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -1228,7 +1228,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: solutionversion.symphony
+  group: solution.symphony
   names:
     kind: Instance
     listKind: InstanceList
@@ -1979,9 +1979,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: solutions.solutionversion.symphony
+  name: solutions.solution.symphony
 spec:
-  group: solutionversion.symphony
+  group: solution.symphony
   names:
     kind: Solution
     listKind: SolutionList
@@ -2035,7 +2035,7 @@ metadata:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "symphony.fullname"
       . }}-serving-cert'
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: solutionversions.solutionversion.symphony
+  name: solutionversions.solution.symphony
 spec:
   conversion:
     strategy: Webhook
@@ -2047,7 +2047,7 @@ spec:
           path: /convert
       conversionReviewVersions:
       - v1
-  group: solutionversion.symphony
+  group: solution.symphony
   names:
     kind: SolutionVersion
     listKind: SolutionVersionList
@@ -2715,7 +2715,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances
   verbs:
@@ -2727,13 +2727,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/status
   verbs:
@@ -2741,7 +2741,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions
   verbs:
@@ -2753,7 +2753,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories
   verbs:
@@ -2765,13 +2765,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories/status
   verbs:
@@ -2779,13 +2779,13 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/status
   verbs:
@@ -2793,7 +2793,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances
   verbs:
@@ -2805,13 +2805,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/status
   verbs:
@@ -2819,7 +2819,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions
   verbs:
@@ -2831,13 +2831,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/status
   verbs:
@@ -2969,7 +2969,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions
   verbs:
@@ -2981,13 +2981,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions/status
   verbs:
@@ -3243,12 +3243,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solutionversion-symphony-v1-instance
+      path: /mutate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: minstance.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3263,12 +3263,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solutionversion-symphony-v1-instancehistory
+      path: /mutate-solution-symphony-v1-instancehistory
   failurePolicy: Fail
   name: minstancehistory.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3282,12 +3282,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solutionversion-symphony-v1-solutionversion
+      path: /mutate-solution-symphony-v1-solutionversion
   failurePolicy: Fail
   name: msolutionversion.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3302,12 +3302,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /mutate-solutionversion-symphony-v1-solution
+      path: /mutate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: msolution.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3494,12 +3494,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-solutionversion-symphony-v1-instance
+      path: /validate-solution-symphony-v1-instance
   failurePolicy: Fail
   name: vinstance.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3515,12 +3515,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-solutionversion-symphony-v1-instancehistory
+      path: /validate-solution-symphony-v1-instancehistory
   failurePolicy: Fail
   name: vinstancehistory.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3536,12 +3536,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-solutionversion-symphony-v1-solutionversion
+      path: /validate-solution-symphony-v1-solutionversion
   failurePolicy: Fail
   name: vsolutionversion.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:
@@ -3557,12 +3557,12 @@ webhooks:
     service:
       name: '{{ include "symphony.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace }}'
-      path: /validate-solutionversion-symphony-v1-solution
+      path: /validate-solution-symphony-v1-solution
   failurePolicy: Fail
   name: vsolution.kb.io
   rules:
   - apiGroups:
-    - solutionversion.symphony
+    - solution.symphony
     apiVersions:
     - v1
     operations:

@@ -22,13 +22,13 @@ type: Opaque
 ### Create solution/solutionversion with $secret
 The $secret refers to the kubenetes secret. $secret("SECRETNAME", "FIELDNAME"). And the secret should be in the same namespace as the solutionversion is.
 ```
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
   name: test-app  
 spec:
 ---
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: test-app-v-version1
@@ -69,7 +69,7 @@ spec:
 
 ### Create the instance deployment -- make sure to have helm chart, solutionversion and target ready before deploy the instance.
 ```
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   annotations: {}

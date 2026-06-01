@@ -193,7 +193,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances
   verbs:
@@ -205,13 +205,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/status
   verbs:
@@ -219,7 +219,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions
   verbs:
@@ -231,7 +231,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories
   verbs:
@@ -243,13 +243,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories/status
   verbs:
@@ -257,13 +257,13 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/status
   verbs:
@@ -271,7 +271,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances
   verbs:
@@ -283,13 +283,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instances/status
   verbs:
@@ -297,7 +297,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions
   verbs:
@@ -309,13 +309,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutionversions/status
   verbs:
@@ -447,7 +447,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions
   verbs:
@@ -459,13 +459,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions/finalizers
   verbs:
   - update
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - solutions/status
   verbs:

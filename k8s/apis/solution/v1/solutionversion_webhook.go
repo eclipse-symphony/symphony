@@ -100,7 +100,7 @@ func (r *SolutionVersion) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-solutionversion-symphony-v1-solutionversion,mutating=true,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=solutionversions,verbs=create;update,versions=v1,name=msolutionversion.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-solution-symphony-v1-solutionversion,mutating=true,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=solutionversions,verbs=create;update,versions=v1,name=msolutionversion.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &SolutionVersion{}
 
@@ -152,7 +152,7 @@ func (r *SolutionVersion) Default() {
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 
-//+kubebuilder:webhook:path=/validate-solutionversion-symphony-v1-solutionversion,mutating=false,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=solutionversions,verbs=create;update;delete,versions=v1,name=vsolutionversion.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-solutionversion,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=solutionversions,verbs=create;update;delete,versions=v1,name=vsolutionversion.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &SolutionVersion{}
 
@@ -212,7 +212,7 @@ func (r *SolutionVersion) validateCreateSolutionVersion(ctx context.Context) err
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "SolutionVersion"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "SolutionVersion"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(solutionversionlog, ctx, err, "validate create solutionversion", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
@@ -236,7 +236,7 @@ func (r *SolutionVersion) validateUpdateSolutionVersion(ctx context.Context, old
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "SolutionVersion"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "SolutionVersion"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(solutionversionlog, ctx, err, "validate update solutionversion", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
@@ -255,13 +255,13 @@ func (r *SolutionVersion) validateDeleteSolutionVersion(ctx context.Context) err
 		return nil
 	}
 
-	err = apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "SolutionVersion"}, r.Name, allErrs)
+	err = apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "SolutionVersion"}, r.Name, allErrs)
 	diagnostic.ErrorWithCtx(solutionversionlog, ctx, err, "validate delete solutionversion", "name", r.Name, "namespace", r.Namespace)
 	return err
 }
 
 func (r *SolutionVersion) ConvertSolutionVersionState() (model.SolutionVersionState, error) {
-	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solutionversion.symphony", Kind: "SolutionVersion"}, r.Name,
+	retErr := apierrors.NewInvalid(schema.GroupKind{Group: "solution.symphony", Kind: "SolutionVersion"}, r.Name,
 		field.ErrorList{field.InternalError(nil, v1alpha2.NewCOAError(nil, "Unable to convert to solutionversion state", v1alpha2.BadRequest))})
 	bytes, err := json.Marshal(r)
 	if err != nil {

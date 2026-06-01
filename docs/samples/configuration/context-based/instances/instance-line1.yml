@@ -1,5 +1,5 @@
 ---
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Instance
 metadata:
   name: context-based-instance-line1

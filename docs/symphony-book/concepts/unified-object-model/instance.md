@@ -1,6 +1,6 @@
 # Instance
 
-`instance.solutionversion.symphony` maps a [`solutionversion.solutionversion.symphony`](./solutionversion.md) object to one or more [`target.fabric.symphony`](./target.md) objects. Creating an instance object triggers deployments to targets.
+`instance.solution.symphony` maps a [`solutionversion.solution.symphony`](./solutionversion.md) object to one or more [`target.fabric.symphony`](./target.md) objects. Creating an instance object triggers deployments to targets.
 
 ## Schema
 

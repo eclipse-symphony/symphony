@@ -46,7 +46,7 @@ func (r *InstanceHistory) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-solutionversion-symphony-v1-instancehistory,mutating=true,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instancehistories,verbs=create,versions=v1,name=minstancehistory.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-solution-symphony-v1-instancehistory,mutating=true,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create,versions=v1,name=minstancehistory.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &InstanceHistory{}
 
@@ -102,7 +102,7 @@ func (r *InstanceHistory) Default() {
 	r.ObjectMeta.SetAnnotations(annotations)
 }
 
-//+kubebuilder:webhook:path=/validate-solutionversion-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solutionversion.symphony,resources=instancehistories,verbs=create;update;delete,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-solution-symphony-v1-instancehistory,mutating=false,failurePolicy=fail,sideEffects=None,groups=solution.symphony,resources=instancehistories,verbs=create;update;delete,versions=v1,name=vinstancehistory.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &InstanceHistory{}
 

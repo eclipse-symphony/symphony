@@ -5,7 +5,7 @@ Symphony breaks away from the file-based mindset. Operations can model and manag
 You can refer to fields in multiple configuration objects in your artifacts, for example:
 
 ```yaml
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata: 
   name: csad-featurizer

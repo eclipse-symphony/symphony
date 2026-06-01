@@ -30,21 +30,33 @@ import (
 
 var (
 	yamlFiles = map[string]string{
-		"target":            "scenario2/target",
+		"target":                   "scenario2/target",
 		"solutionversion":          "scenario2/solutionversion",
-		"instance":          "scenario2/instance",
-		"solution": "scenario2/solutionversion-container",
+		"instance":                 "scenario2/instance",
+		"solutionversioncontainer": "scenario2/solutionversion-container",
 	}
 	AzureIdFormat = map[string]string{
-		"target":   "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX",
+		"target":          "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX",
 		"solutionversion": "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/scenario2targetINDEX/solutionversions/scenario2solutionINDEX/versions/version1",
-		"instance": "",
+		"instance":        "",
 	}
 	objectAzureName = map[string]string{
-		"target":            "scenario2targetINDEX",
+		"target":                   "scenario2targetINDEX",
 		"solutionversion":          "scenario2targetINDEX-v-scenario2solutionINDEX-v-version1",
-		"instance":          "scenario2targetINDEX-v-scenario2solutionINDEX-v-instanceINDEX",
-		"solution": "scenario2targetINDEX-v-scenario2solutionINDEX",
+		"instance":                 "scenario2targetINDEX-v-scenario2solutionINDEX-v-instanceINDEX",
+		"solutionversioncontainer": "scenario2targetINDEX-v-scenario2solutionINDEX",
+	}
+	// containerBaseName is the local (non-Azure) base name used for the container CR.
+	// The leaf CR is created as "<base><index>-v-version1" and must match the reference
+	// in the instance manifest (e.g. spec.solutionversion).
+	containerBaseName = map[string]string{
+		"solutionversion": "scenario2solution",
+	}
+	// leafKindOfContainer maps a container CR kind to its corresponding leaf CR kind.
+	leafKindOfContainer = map[string]string{
+		"Solution": "SolutionVersion",
+		"Catalog":  "CatalogVersion",
+		"Campaign": "CampaignVersion",
 	}
 )
 
@@ -79,15 +91,15 @@ var (
 func TestScenario_Stress_AllNamespaces(t *testing.T) {
 	cleanOnly = false
 	mapKindResource = map[string]string{
-		"Activation":        "activations",
-		"CampaignVersion":          "campaignversions",
-		"Campaign": "campaigns",
-		"CatalogVersion":           "catalogversions",
-		"Catalog":  "catalogs",
-		"Solution": "solutions",
-		"SolutionVersion":          "solutionversions",
-		"Instance":          "instances",
-		"Target":            "targets",
+		"Activation":      "activations",
+		"CampaignVersion": "campaignversions",
+		"Campaign":        "campaigns",
+		"CatalogVersion":  "catalogversions",
+		"Catalog":         "catalogs",
+		"Solution":        "solutions",
+		"SolutionVersion": "solutionversions",
+		"Instance":        "instances",
+		"Target":          "targets",
 	}
 	numCRs = 200
 	basePath = ".."
@@ -160,7 +172,7 @@ func Scenario_Stress(t *testing.T, namespace string) {
 
 func watchScenario2(dynamicClient dynamic.Interface, nums int, wgTo chan int) {
 
-	watcher, err := dynamicClient.Resource(getGVR("solutionversion.symphony/v1", "Instance")).Namespace(namespace).Watch(context.TODO(), metav1.ListOptions{})
+	watcher, err := dynamicClient.Resource(getGVR("solution.symphony/v1", "Instance")).Namespace(namespace).Watch(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -309,7 +321,7 @@ func createBasicContinerAndNested(dynamicClient dynamic.Interface, objectType st
 		log.Errorf("Error unmarshalling custom resource template: %v", err)
 		return
 	}
-	containerName := strings.Replace(yamlFiles[objectType], "/", "", -1) + "container"
+	containerName := containerBaseName[objectType]
 	if testhelpers.IsTestInAzure() {
 		cr["metadata"].(map[interface{}]interface{})["name"] = strings.ReplaceAll(objectAzureName[objectType+"container"], "INDEX", fmt.Sprintf("%d", index))
 	} else {
@@ -370,18 +382,18 @@ func deleteBasicContinerAndNested(dynamicClient dynamic.Interface, objectType st
 		log.Errorf("Error unmarshalling custom resource template: %v", err)
 		return
 	}
-	objectName := fmt.Sprintf("%s%d-v-version1", strings.Replace(yamlFiles[objectType], "/", "", -1)+"container", index)
+	objectName := fmt.Sprintf("%s%d-v-version1", containerBaseName[objectType], index)
 	if testhelpers.IsTestInAzure() {
 		objectName = strings.ReplaceAll(objectAzureName[objectType], "INDEX", fmt.Sprintf("%d", index))
 	}
 
-	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), strings.Replace(cr["kind"].(string), "Container", "", -1))).Namespace(namespace).Delete(context.TODO(), objectName, metav1.DeleteOptions{})
+	err = dynamicClient.Resource(getGVR(cr["apiVersion"].(string), leafKindOfContainer[cr["kind"].(string)])).Namespace(namespace).Delete(context.TODO(), objectName, metav1.DeleteOptions{})
 	if err != nil {
 		log.Warnf("Error deleting custom resource %s,  %v", objectName, err)
 	} else {
 		log.Debugf("Successfully deleted custom resource %s", objectName)
 	}
-	containerName := strings.Replace(yamlFiles[objectType], "/", "", -1) + "container"
+	containerName := fmt.Sprintf("%s%d", containerBaseName[objectType], index)
 	if testhelpers.IsTestInAzure() {
 		containerName = strings.ReplaceAll(objectAzureName[objectType+"container"], "INDEX", fmt.Sprintf("%d", index))
 	}

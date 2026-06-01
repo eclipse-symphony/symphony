@@ -69,7 +69,7 @@ func TestBasic_CatalogVersions(t *testing.T) {
 			catalogversions = append(catalogversions, item.GetName())
 		}
 		fmt.Printf("CatalogVersions: %v\n", catalogversions)
-		if len(resources.Items) == 7 {
+		if len(resources.Items) == 5 {
 			break
 		}
 
@@ -267,7 +267,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
@@ -307,7 +307,7 @@ func TestAdvance_InstanceLabel(t *testing.T) {
 	require.NoError(t, err)
 
 	resource, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "solutionversion.symphony",
+		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "instances",
 	}).Namespace(namespace).Get(context.Background(), "siteinstance", metav1.GetOptions{})
@@ -338,7 +338,7 @@ func TestAdvance_SolutionVersionLabel(t *testing.T) {
 	require.NoError(t, err)
 
 	resource, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "solutionversion.symphony",
+		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "solutionversions",
 	}).Namespace(namespace).Get(context.Background(), "siteapp-v-version1", metav1.GetOptions{})
@@ -353,7 +353,7 @@ func TestAdvance_SolutionVersionLabel(t *testing.T) {
 	require.Equal(t, expectedResult, annotations)
 
 	resource, err = dyn.Resource(schema.GroupVersionResource{
-		Group:    "solutionversion.symphony",
+		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "solutions",
 	}).Namespace(namespace).Get(context.Background(), "siteapp", metav1.GetOptions{})

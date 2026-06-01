@@ -97,7 +97,7 @@ func TestBasic_DetectCircularReference(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -155,7 +155,7 @@ func TestBasic_InstanceStatus(t *testing.T) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -257,7 +257,7 @@ func TestBasic_VerifyPodUpdatedInNamespace(t *testing.T) {
 	// Verify instance status
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -337,7 +337,7 @@ func TestBasic_InstanceDeletion(t *testing.T) {
 	fmt.Println("Get namespace before deletion: ", len(namespacesBefore.Items))
 
 	// Run a mage command to delete instance
-	execCmd := exec.Command("sh", "-c", "cd ../../../../localenv && mage remove instances.solutionversion.symphony instance03")
+	execCmd := exec.Command("sh", "-c", "cd ../../../../localenv && mage remove instances.solution.symphony instance03")
 	execCmd.Stdout = os.Stdout
 	execCmd.Stderr = os.Stderr
 	cmdErr := execCmd.Run()
@@ -348,7 +348,7 @@ func TestBasic_InstanceDeletion(t *testing.T) {
 
 	// Check instance count after deletion
 	resources, err := dyn.Resource(schema.GroupVersionResource{
-		Group:    "solutionversion.symphony",
+		Group:    "solution.symphony",
 		Version:  "v1",
 		Resource: "instances",
 	}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -388,7 +388,7 @@ func TestBasic_VerifySameInstanceRecreationInNamespace(t *testing.T) {
 	// Verify new instance status
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
@@ -472,7 +472,7 @@ func TestBasic_VerifyTargetSolutionVersionScope(t *testing.T) {
 	require.Contains(t, string(output), "The instance is already created. Cannot change Scope of the instance.")
 
 	// delete instance and associated deployments
-	err = shellcmd.Command(fmt.Sprintf("kubectl delete instance.solutionversion.symphony %s", "instance-configmap")).Run()
+	err = shellcmd.Command(fmt.Sprintf("kubectl delete instance.solution.symphony %s", "instance-configmap")).Run()
 	require.NoError(t, err)
 
 	// test update target solutionversionScope with no associated instance, expect no error

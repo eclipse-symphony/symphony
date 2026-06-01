@@ -1,9 +1,9 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
-  name: SOLUTIONFULLNAME
+  name: history-solutionversion-v-version2
 spec:
-  rootResource: SOLUTIONCONTAINERFULLNAME
+  rootResource: history-solutionversion
   components:
     - name: configmap
       type: config

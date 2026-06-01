@@ -12,7 +12,7 @@ metadata:
   name: instancehistory-viewer-role
 rules:
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories
   verbs:
@@ -20,7 +20,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - solutionversion.symphony
+  - solution.symphony
   resources:
   - instancehistories/status
   verbs:

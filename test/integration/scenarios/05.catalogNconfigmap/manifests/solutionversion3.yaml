@@ -1,15 +1,15 @@
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: Solution
 metadata:
-  name: solutionversion03
+  name: solution03
 spec:
 ---
-apiVersion: solutionversion.symphony/v1
+apiVersion: solution.symphony/v1
 kind: SolutionVersion
 metadata:
-  name: solutionversion03-v-version3
+  name: solution03-v-version3
 spec:
-  rootResource: solutionversion03
+  rootResource: solution03
   components:
     - name: testconfigmap1
       type: config

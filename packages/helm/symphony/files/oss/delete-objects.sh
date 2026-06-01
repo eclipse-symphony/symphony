@@ -3,7 +3,7 @@ set -e
 TIMEOUTDEPLOYMENT="15m"
 TIMEOUT="1m"
 TIMEOUTFINALIZER=60
-SOLUTION_GROUP=solutionversion.symphony
+SOLUTION_GROUP=solution.symphony
 FABRIC_GROUP=fabric.symphony
 AI_GROUP=ai.symphony
 WORKFLOW_GROUP=workflow.symphony

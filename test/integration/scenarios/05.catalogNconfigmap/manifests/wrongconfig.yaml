@@ -4,7 +4,7 @@ metadata:
   name: config-v-version2
 spec:
   rootResource: wrongconfig
-  catalogType: config
+  catalogType: configVersion
   metadata:
     schema: schema:version1
   properties:

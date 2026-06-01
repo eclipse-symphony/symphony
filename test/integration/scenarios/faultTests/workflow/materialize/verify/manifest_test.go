@@ -304,7 +304,7 @@ func CheckInstanceStatus(t *testing.T, namespace string) {
 
 	for {
 		resources, err := dyn.Resource(schema.GroupVersionResource{
-			Group:    "solutionversion.symphony",
+			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
 		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
