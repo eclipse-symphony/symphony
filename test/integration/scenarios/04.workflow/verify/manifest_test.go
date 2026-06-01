@@ -69,7 +69,7 @@ func TestBasic_CatalogVersions(t *testing.T) {
 			catalogversions = append(catalogversions, item.GetName())
 		}
 		fmt.Printf("CatalogVersions: %v\n", catalogversions)
-		if len(resources.Items) == 5 {
+		if len(resources.Items) == 7 {
 			break
 		}
 
