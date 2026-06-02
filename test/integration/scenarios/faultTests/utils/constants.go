@@ -23,8 +23,8 @@ type FaultTestCase struct {
 
 var (
 	TestCases = map[string]string{
-		"solutionversionUpdate":      "./solutionversion/update/verify/...",
-		"workflowMaterialize": "./workflow/materialize/verify/...",
+		"solutionversionUpdate": "./solution/update/verify/...",
+		"workflowMaterialize":   "./workflow/materialize/verify/...",
 	}
 
 	PodLabels = map[string]string{
