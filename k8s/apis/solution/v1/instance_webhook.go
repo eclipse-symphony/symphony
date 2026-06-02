@@ -141,8 +141,8 @@ func (r *Instance) SetupWebhookWithManager(mgr ctrl.Manager) error {
 			Scope:                instance.Spec.Scope,
 			Parameters:           instance.Spec.Parameters,
 			Metadata:             instance.Spec.Metadata,
-			SolutionVersion:             solutionversionSpec,
-			SolutionVersionId:           instance.Spec.SolutionVersion,
+			SolutionVersion:      solutionversionSpec,
+			SolutionVersionId:    instance.Spec.SolutionVersion,
 			Target:               targetSpec,
 			TargetSelector:       instance.Spec.Target.Selector,
 			TargetId:             instance.Spec.Target.Name,
@@ -233,15 +233,17 @@ func (r *Instance) Default() {
 	err := k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.SolutionVersion), Namespace: r.Namespace}, &solutionversionResult)
 	if err != nil {
 		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get solutionversion", "name", r.Name, "namespace", r.Namespace)
+	} else {
+		r.Labels[api_constants.SolutionVersionUid] = string(solutionversionResult.UID)
 	}
-	r.Labels[api_constants.SolutionVersionUid] = string(solutionversionResult.UID)
 
 	var targetResult fabric.Target
 	err = k8sClient.Get(ctx, client.ObjectKey{Name: validation.ConvertReferenceToObjectName(r.Spec.Target.Name), Namespace: r.Namespace}, &targetResult)
 	if err != nil {
 		diagnostic.ErrorWithCtx(instancelog, ctx, err, "failed to get target", "name", r.Name, "namespace", r.Namespace)
+	} else {
+		r.Labels[api_constants.TargetUid] = string(targetResult.UID)
 	}
-	r.Labels[api_constants.TargetUid] = string(targetResult.UID)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
