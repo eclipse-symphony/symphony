@@ -139,7 +139,7 @@ func CheckCatalogVersions(t *testing.T, namespace string) {
 			catalogversions = append(catalogversions, item.GetName())
 		}
 		fmt.Printf("CatalogVersions: %v\n", catalogversions)
-		if len(resources.Items) == 5 {
+		if len(resources.Items) == 7 {
 			break
 		}
 
@@ -216,9 +216,12 @@ func CheckActivationStatus(t *testing.T, namespace string) {
 		var state model.ActivationState
 		err = json.Unmarshal(bytes, &state)
 		require.NoError(t, err)
-		status := state.Status.Status
+		var status v1alpha2.State
+		if state.Status != nil {
+			status = state.Status.Status
+		}
 		fmt.Printf("Current activation status: %s\n", status)
-		if status == v1alpha2.Done {
+		if state.Status != nil && status == v1alpha2.Done {
 			// Skip checking the stageHistory since we don't have stage dedup
 			// require.Equal(t, 3, len(state.Status.StageHistory))
 			// require.Equal(t, "wait", state.Status.StageHistory[0].Stage)
