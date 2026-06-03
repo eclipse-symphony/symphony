@@ -77,7 +77,7 @@
                             "instance": {
                                 "type": "string"
                             },
-                            "solution": {
+                            "solutionversion": {
                                 "type": "string"
                             },
                             "target": {

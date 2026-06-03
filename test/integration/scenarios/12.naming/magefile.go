@@ -68,11 +68,11 @@ func PrepareManifests() error {
 	if err != nil {
 		return err
 	}
-	err = testhelpers.ReplacePlaceHolderInManifest("manifest/solution.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
+	err = testhelpers.ReplacePlaceHolderInManifest("manifest/solutionversion.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
 	if err != nil {
 		return err
 	}
-	err = testhelpers.ReplacePlaceHolderInManifest("manifest/solution-container.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
+	err = testhelpers.ReplacePlaceHolderInManifest("manifest/solutionversion-container.yaml", "${PLACEHOLDER_TARGET}", "${PLACEHOLDER_SOLUTIONCONTAINER}", "${PLACEHOLDER_SOLUTION}", "${PLACEHOLDER_INSTANCE}", "")
 	if err != nil {
 		return err
 	}

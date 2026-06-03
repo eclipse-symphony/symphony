@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	solutionv1 "gopls-workspace/apis/solution/v1"
+	solutionversionv1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/reconcilers"
@@ -31,14 +31,14 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 		var reconciler *reconcilers.DeploymentReconciler
 		var apiClient *MockApiClient
 		var kubeClient client.Client
-		var object *solutionv1.Instance
+		var object *solutionversionv1.Instance
 		var reconcileResult metrics.OperationStatus
 		var reconcileError error
 
 		BeforeEach(func() {
 			By("setting up the reconciler")
 			apiClient = &MockApiClient{}
-			kubeClient = CreateFakeKubeClientForSolutionGroup(
+			kubeClient = CreateFakeKubeClientForSolutionVersionGroup(
 				BuildDefaultInstance(),
 			)
 			var err error
@@ -52,7 +52,7 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 
 		BeforeEach(func(ctx context.Context) {
 			By("fetching the latest resources from kube api")
-			object = &solutionv1.Instance{}
+			object = &solutionversionv1.Instance{}
 			err := kubeClient.Get(ctx, DefaultInstanceNamespacedName, object)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -154,12 +154,12 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 		var reconciler *reconcilers.DeploymentReconciler
 		var apiClient *MockApiClient
 		var kubeClient client.Client
-		var object *solutionv1.Instance
+		var object *solutionversionv1.Instance
 
 		BeforeEach(func() {
 			By("setting up the reconciler")
 			apiClient = &MockApiClient{}
-			kubeClient = CreateFakeKubeClientForSolutionGroup(
+			kubeClient = CreateFakeKubeClientForSolutionVersionGroup(
 				BuildDefaultInstance(),
 			)
 			var err error
@@ -173,7 +173,7 @@ var _ = Describe("Testing timeOverDue conditions in deployment reconciler", func
 
 		BeforeEach(func(ctx context.Context) {
 			By("fetching the latest resources from kube api")
-			object = &solutionv1.Instance{}
+			object = &solutionversionv1.Instance{}
 			err := kubeClient.Get(ctx, DefaultInstanceNamespacedName, object)
 			Expect(err).NotTo(HaveOccurred())
 		})

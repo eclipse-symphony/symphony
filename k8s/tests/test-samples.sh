@@ -28,7 +28,7 @@ function adaptive_deployment {
     
     kubectl create -f ../../docs/samples/scenarios/adaptive/iot-target.yaml &> /dev/null
     kubectl create -f ../../docs/samples/scenarios/adaptive/k8s-target.yaml &> /dev/null
-    kubectl create -f ../../docs/samples/scenarios/adaptive/solution.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/scenarios/adaptive/solutionversion.yaml &> /dev/null
     kubectl create -f ../../docs/samples/scenarios/adaptive/instance.yaml &> /dev/null
 
     check_instance "my-instance" 2
@@ -36,7 +36,7 @@ function adaptive_deployment {
     kubectl delete instance my-instance &> /dev/null    
     kubectl delete target basic-k8s-target &> /dev/null
     kubectl delete target voe-target &> /dev/null
-    kubectl delete solution redis-server &> /dev/null
+    kubectl delete solutionversion redis-server &> /dev/null
 } 
 
 function k8s_hello_world {
@@ -45,13 +45,13 @@ function k8s_hello_world {
     echo "****************************************"
 
     kubectl create -f ../../docs/samples/k8s/hello-world/target.yaml &> /dev/null
-    kubectl create -f ../../docs/samples/k8s/hello-world/solution.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/k8s/hello-world/solutionversion.yaml &> /dev/null
     kubectl create -f ../../docs/samples/k8s/hello-world/instance.yaml &> /dev/null
 
     check_instance "redis-instance" 1
 
     kubectl delete instance redis-instance &> /dev/null
-    kubectl delete solution redis-server &> /dev/null
+    kubectl delete solutionversion redis-server &> /dev/null
     kubectl delete target basic-k8s-target &> /dev/null
 }
 
@@ -61,7 +61,7 @@ function iot_simulated_sensor {
     echo "****************************************"
 
     kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/target.yaml &> /dev/null
-    kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/solution.yaml &> /dev/null
+    kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/solutionversion.yaml &> /dev/null
     kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/instance-1.yaml &> /dev/null
     kubectl create -f ../../docs/samples/iot-edge/simulated-temperature-sensor/instance-2.yaml &> /dev/null
 
@@ -71,7 +71,7 @@ function iot_simulated_sensor {
     kubectl delete instance my-instance-1 &> /dev/null
     kubectl delete instance my-instance-2 &> /dev/null    
     kubectl delete target voe-target-1 &> /dev/null
-    kubectl delete solution simulated-temperature-sensor &> /dev/null
+    kubectl delete solutionversion simulated-temperature-sensor &> /dev/null
 }
 
 function k8s_symphony_agent {

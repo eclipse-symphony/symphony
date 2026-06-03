@@ -26,16 +26,16 @@ const (
 	OperationId              = "operationId"
 	DeleteTimeout            = "delete-timeout"
 
-	SolutionContainerOperationNamePrefix = "solutioncontainers.solution." + FullGroupName
-	SolutionOperationNamePrefix          = "solutions.solution." + FullGroupName
+	SolutionOperationNamePrefix = "solutions.solutionversion." + FullGroupName
+	SolutionVersionOperationNamePrefix          = "solutionversions.solutionversion." + FullGroupName
 	TargetOperationNamePrefix            = "targets.fabric." + FullGroupName
-	InstanceOperationNamePrefix          = "instances.solution." + FullGroupName
-	InstanceHistoryOperationNamePrefix   = "instancehistories.solution." + FullGroupName
+	InstanceOperationNamePrefix          = "instances.solutionversion." + FullGroupName
+	InstanceHistoryOperationNamePrefix   = "instancehistories.solutionversion." + FullGroupName
 	ActivationOperationNamePrefix        = "activations.workflow." + FullGroupName
-	CatalogOperationNamePrefix           = "catalogs.federation." + FullGroupName
-	CatalogEvalOperationNamePrefix       = "catalogevalexpression.federation." + FullGroupName
-	CampaignOperationNamePrefix          = "campaigns.workflow." + FullGroupName
-	CampaignContainerOperationNamePrefix = "campaigncontainers.workflow." + FullGroupName
+	CatalogVersionOperationNamePrefix           = "catalogversions.federation." + FullGroupName
+	CatalogVersionEvalOperationNamePrefix       = "catalogversionevalexpression.federation." + FullGroupName
+	CampaignVersionOperationNamePrefix          = "campaignversions.workflow." + FullGroupName
+	CampaignOperationNamePrefix = "campaigns.workflow." + FullGroupName
 	DiagnosticsOperationNamePrefix       = "diagnostics.monitor." + FullGroupName
 )
 

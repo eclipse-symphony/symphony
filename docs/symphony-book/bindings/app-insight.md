@@ -26,7 +26,7 @@ The middleware intercepts all Symphony API calls and records request path, metho
 
 Based on these events, you can collect usage information for questions like:
 
-* How many solutions were created/updated in the past month?
+* How many solutionversions were created/updated in the past month?
 * How many targets were deleted today?
 
-Because the API uses upsert to handle both creation and update, there's currently no easy way to distinguish between creation and update. However, given wide adoption of immutable infrastructure, the assumption is that update to solution/instance is less common. Regardless, this should be improved in future versions.
+Because the API uses upsert to handle both creation and update, there's currently no easy way to distinguish between creation and update. However, given wide adoption of immutable infrastructure, the assumption is that update to solutionversion/instance is less common. Regardless, this should be improved in future versions.

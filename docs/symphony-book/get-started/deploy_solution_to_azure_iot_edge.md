@@ -1,5 +1,5 @@
-# Symphony Quick Start - Deploying a simulated temperature sensor Solution to an Azure IoT Edge device
-This quick start walks you through the steps of deploying a new Symphony solution instance to an Azure IoT Edge device.
+# Symphony Quick Start - Deploying a simulated temperature sensor SolutionVersion to an Azure IoT Edge device
+This quick start walks you through the steps of deploying a new Symphony solutionversion instance to an Azure IoT Edge device.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
 
@@ -206,15 +206,15 @@ az iot hub connection-string show --hub-name <REPLACE_WITH_HUB_NAME>
 
 This YAML file is also available at [docs/samples/iot-edge/simulated-temperature-sensor/target.yaml](../../samples/iot-edge/simulated-temperature-sensor/target.yaml).
 
-### 2. Create the Symphony Solution
+### 2. Create the Symphony SolutionVersion
 
-A Symphony *solution* is a template that defies an application workload to be deployed on one or more *targets*.
+A Symphony *solutionversion* is a template that defies an application workload to be deployed on one or more *targets*.
 
-Create a YAML file called `solution.yaml` that describes a Symphony Solution with a single component, which is based on the `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` container.
+Create a YAML file called `solutionversion.yaml` that describes a Symphony SolutionVersion with a single component, which is based on the `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` container.
 
 ```yaml
 apiVersion: solution.symphony/v1
-kind: Solution
+kind: SolutionVersion
 metadata:
   name: sample-simulated-temperature-sensor
 spec:
@@ -233,11 +233,11 @@ spec:
         definition: "FROM /messages/modules/simulated-temperature-sensor/* INTO $upstream"
 ```
 
-This YAML file is also available at [docs/samples/iot-edge/simulated-temperature-sensor/solution.yaml](../../samples/iot-edge/simulated-temperature-sensor/solution.yaml).
+This YAML file is also available at [docs/samples/iot-edge/simulated-temperature-sensor/solutionversion.yaml](../../samples/iot-edge/simulated-temperature-sensor/solutionversion.yaml).
 
-### 3. Create the Symphony Solution Instance
+### 3. Create the Symphony SolutionVersion Instance
 
-A Symphony *solution instance* maps a *solution* to one or multiple *targets*.
+A Symphony *solutionversion instance* maps a *solutionversion* to one or multiple *targets*.
 
 Create a YAML file called `instance-1.yaml` that maps the `sample-simulated-temperature-sensor` soltuion to the `sample-iot-edge-target` target above:
 
@@ -247,7 +247,7 @@ kind: Instance
 metadata:
   name: sample-iot-edge-instance-1
 spec:
-  solution: sample-simulated-temperature-sensor            
+  solutionversion: sample-simulated-temperature-sensor            
   target:
     name: sample-iot-edge-target
 ```
@@ -257,13 +257,13 @@ This YAML file is also available at [docs/samples/iot-edge/simulated-temperature
 You can also create additional instances. Symphony does the following for each of the instances:
 
 * It generates IoT Edge module with a `<instance id>-` prefix.
-* It rewrites all IoT Edge route definitions in the solution so that messages are routed to the right instance module.
+* It rewrites all IoT Edge route definitions in the solutionversion so that messages are routed to the right instance module.
 
 ### 4. Create all objects
 
 ```bash
 kubectl create -f target.yaml
-kubectl create -f solution.yaml
+kubectl create -f solutionversion.yaml
 kubectl create -f instance-1.yaml
 kubectl create -f instance-2.yaml # if you've defined additional instances
 ```
@@ -274,7 +274,7 @@ Examine all Symphony objects have created:
 
 ```bash
 kubectl get targets
-kubectl get solutions
+kubectl get solutionversions
 kubectl get instances
 ```
 
@@ -288,6 +288,6 @@ To delete all Symphony objects:
 
 ```bash
 kubectl delete instance my-instance-1
-kubectl delete solution simulated-temperature-sensor
+kubectl delete solutionversion simulated-temperature-sensor
 kubectl delete target voe-target
 ```

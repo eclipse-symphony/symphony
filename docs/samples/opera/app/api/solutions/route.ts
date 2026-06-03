@@ -12,7 +12,7 @@ export async function GET(
     const session = await getServerSession(options);  
     const symphonyApi = process.env.SYMPHONY_API;
     const userObj: User | undefined = session?.user?? undefined;
-    const res = await fetch( `${symphonyApi}solutions`, {
+    const res = await fetch( `${symphonyApi}solutionversions`, {
         method: 'GET',
         headers: {
         'Authorization': `Bearer ${userObj?.accessToken}`,

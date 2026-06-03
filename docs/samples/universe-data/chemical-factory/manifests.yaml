@@ -1,11 +1,11 @@
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: config
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-site-app
 spec:
@@ -16,7 +16,7 @@ spec:
     port: 8080
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: config-v-line-app
 spec:
@@ -26,13 +26,13 @@ spec:
     dog: snoopy
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: site-app
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: site-app-v-version1
 spec:
@@ -57,13 +57,13 @@ spec:
           env.AI_MODEL: "$config(config:ai,model)"
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: line-app
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: line-app-v-version1
 spec:
@@ -148,16 +148,16 @@ spec:
                       x: 0
                       "y": 336
         type: yaml.k8s
-      displayName: My solution
+      displayName: My solutionversion
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: smart-fridge
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: smart-fridge-v-version1
 spec:
@@ -184,13 +184,13 @@ spec:
           container.image: "mqtt:latest"
 ---
 apiVersion: federation.symphony/v1
-kind: CatalogContainer
+kind: Catalog
 metadata:
   name: site-instance
 spec:  
 ---
 apiVersion: federation.symphony/v1
-kind: Catalog
+kind: CatalogVersion
 metadata:
   name: site-instance-v-version1
 spec:
@@ -199,7 +199,7 @@ spec:
     metadata:
       name: site-instance
     spec: 
-      solution: site-app:version1
+      solutionversion: site-app:version1
       target:
         selector:
           group: demo

@@ -14,8 +14,8 @@ resources:
     namespaced: true
   controller: true
   domain: symphony
-  group: solution
-  kind: Solution
+  group: solutionversion
+  kind: SolutionVersion
   path: gopls-workspace/apis/solution/v1
   version: v1
   webhooks:
@@ -27,7 +27,7 @@ resources:
     namespaced: true
   controller: true
   domain: symphony
-  group: solution
+  group: solutionversion
   kind: Instance
   path: gopls-workspace/apis/solution/v1
   version: v1
@@ -109,8 +109,8 @@ resources:
     namespaced: true
   controller: true
   domain: symphony
-  group: solution
-  kind: Campaign
+  group: solutionversion
+  kind: CampaignVersion
   path: gopls-workspace/apis/solution/v1
   version: v1
 - api:
@@ -119,7 +119,7 @@ resources:
   controller: true
   domain: symphony
   group: symphony.microsoft.com
-  kind: Solution
+  kind: SolutionVersion
   path: gopls-workspace/apis/symphony.microsoft.com/v1
   version: v1
   webhooks:
@@ -157,8 +157,8 @@ resources:
     namespaced: true
   controller: true
   domain: symphony
-  group: solution
-  kind: SolutionContainer
+  group: solutionversion
+  kind: Solution
   path: gopls-workspace/apis/solution/v1
   version: v1
 - api:
@@ -167,7 +167,7 @@ resources:
   controller: true
   domain: symphony
   group: federation
-  kind: CatalogContainer
+  kind: Catalog
   path: gopls-workspace/apis/federation/v1
   version: v1
 - api:
@@ -176,7 +176,7 @@ resources:
   controller: true
   domain: symphony
   group: workflow
-  kind: CampaignContainer
+  kind: Campaign
   path: gopls-workspace/apis/workflow/v1
   version: v1
 - api:
@@ -193,7 +193,7 @@ resources:
     namespaced: true
   controller: true
   domain: symphony
-  group: solution
+  group: solutionversion
   kind: InstanceHistory
   path: gopls-workspace/apis/solution/v1
   version: v1

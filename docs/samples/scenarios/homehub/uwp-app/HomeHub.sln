@@ -1,5 +1,5 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+Microsoft Visual Studio SolutionVersion File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32825.248
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -8,7 +8,7 @@ EndProject
 Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "HomeHub.Package", "HomeHub.Package\HomeHub.Package.wapproj", "{44DA90F8-9092-4D6F-9635-E521D3A4F281}"
 EndProject
 Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	GlobalSection(SolutionVersionConfigurationPlatforms) = preSolutionVersion
 		Debug|Any CPU = Debug|Any CPU
 		Debug|ARM = Debug|ARM
 		Debug|ARM64 = Debug|ARM64
@@ -20,7 +20,7 @@ Global
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+	GlobalSection(ProjectConfigurationPlatforms) = postSolutionVersion
 		{56465EDE-7057-452A-8EB4-D8707D3A0C8E}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{56465EDE-7057-452A-8EB4-D8707D3A0C8E}.Debug|Any CPU.Build.0 = Debug|x64
 		{56465EDE-7057-452A-8EB4-D8707D3A0C8E}.Debug|Any CPU.Deploy.0 = Debug|x64
@@ -82,10 +82,10 @@ Global
 		{44DA90F8-9092-4D6F-9635-E521D3A4F281}.Release|x86.Build.0 = Release|x86
 		{44DA90F8-9092-4D6F-9635-E521D3A4F281}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
+	GlobalSection(SolutionVersionProperties) = preSolutionVersion
+		HideSolutionVersionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {7CA1562D-CDCE-445C-BE77-FA96B16C2A91}
+	GlobalSection(ExtensibilityGlobals) = postSolutionVersion
+		SolutionVersionGuid = {7CA1562D-CDCE-445C-BE77-FA96B16C2A91}
 	EndGlobalSection
 EndGlobal

@@ -1,6 +1,6 @@
 # Componentization
 
-Componentization allows you to extra common, reusable parts of your configurations into reusable parts. For example, instead of repeating some global configurations in different places, you can extract these global configurations into a global configuration object and refer to it via Symphony expressions anywhere in your Symphony artifacts (such as other configurations, Solutions or Targets).
+Componentization allows you to extra common, reusable parts of your configurations into reusable parts. For example, instead of repeating some global configurations in different places, you can extract these global configurations into a global configuration object and refer to it via Symphony expressions anywhere in your Symphony artifacts (such as other configurations, SolutionVersions or Targets).
 
 ![componentization](../images/config-compontization.png)
 

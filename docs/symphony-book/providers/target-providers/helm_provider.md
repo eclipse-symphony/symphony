@@ -25,4 +25,4 @@ This provider manages a Helm chart embedded in a component. It supports packaged
 
 4：The chart name will not be use only when prefix is `http` and suffix is not `.tgz`
 
-Find full scenarios at [this location](../../../samples/canary/solution.yaml)
+Find full scenarios at [this location](../../../samples/canary/solutionversion.yaml)

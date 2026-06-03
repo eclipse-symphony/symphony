@@ -36,7 +36,7 @@ class SymphonyAPI:
     Provides methods for interacting with the Symphony API including:
     - Authentication
     - Target management (register/unregister)
-    - Solution management
+    - SolutionVersion management
     - Instance management
     - Other Symphony operations
     """
@@ -328,23 +328,23 @@ class SymphonyAPI:
 
         return self._handle_response(response)
 
-    # Solution Management Methods
+    # SolutionVersion Management Methods
 
-    def create_solution(
+    def create_solutionversion(
         self,
-        solution_name: str,
-        solution_spec: str,
+        solutionversion_name: str,
+        solutionversion_spec: str,
         namespace: str = "default",
         embed_type: Optional[str] = None,
         embed_component: Optional[str] = None,
         embed_property: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Create a solution with embedded specification.
+        """Create a solutionversion with embedded specification.
 
         Args:
-            solution_name: Name of the solution
-            solution_spec: Solution specification as YAML/JSON text (will be parsed)
-            namespace: Namespace/scope for the solution (default: "default")
+            solutionversion_name: Name of the solutionversion
+            solutionversion_spec: SolutionVersion specification as YAML/JSON text (will be parsed)
+            namespace: Namespace/scope for the solutionversion (default: "default")
             embed_type: Optional embed type
             embed_component: Optional embed component
             embed_property: Optional embed property
@@ -365,35 +365,35 @@ class SymphonyAPI:
         if embed_property:
             params["embed-property"] = embed_property
 
-        # Parse the YAML/JSON spec and wrap it in SolutionState structure
+        # Parse the YAML/JSON spec and wrap it in SolutionVersionState structure
         try:
             import yaml
 
-            spec_dict = yaml.safe_load(solution_spec)
+            spec_dict = yaml.safe_load(solutionversion_spec)
         except Exception as e:
-            raise SymphonyAPIError(f"Failed to parse solution specification: {str(e)}")
+            raise SymphonyAPIError(f"Failed to parse solutionversion specification: {str(e)}")
 
-        # Wrap in SolutionState structure expected by the API
-        solution_state = {
-            "metadata": {"name": solution_name, "namespace": namespace},
+        # Wrap in SolutionVersionState structure expected by the API
+        solutionversion_state = {
+            "metadata": {"name": solutionversion_name, "namespace": namespace},
             "spec": spec_dict,
         }
 
         response = self._make_request(
-            "POST", f"/solutions/{solution_name}", json=solution_state, params=params
+            "POST", f"/solutionversions/{solutionversion_name}", json=solutionversion_state, params=params
         )
 
         return self._handle_response(response, [200, 201])
 
-    def get_solution(self, solution_name: str, namespace: str = "default") -> Dict[str, Any]:
-        """Get solution specification.
+    def get_solutionversion(self, solutionversion_name: str, namespace: str = "default") -> Dict[str, Any]:
+        """Get solutionversion specification.
 
         Args:
-            solution_name: Name of the solution
-            namespace: Namespace/scope of the solution (default: "default")
+            solutionversion_name: Name of the solutionversion
+            namespace: Namespace/scope of the solutionversion (default: "default")
 
         Returns:
-            Solution specification data (returns the full SolutionState with metadata and spec)
+            SolutionVersion specification data (returns the full SolutionVersionState with metadata and spec)
 
         Raises:
             SymphonyAPIError: If request fails
@@ -402,16 +402,16 @@ class SymphonyAPI:
 
         params = {"namespace": namespace}
 
-        response = self._make_request("GET", f"/solutions/{solution_name}", params=params)
+        response = self._make_request("GET", f"/solutionversions/{solutionversion_name}", params=params)
 
-        # Return the full solution state (metadata + spec)
+        # Return the full solutionversion state (metadata + spec)
         return self._handle_response(response)
 
-    def delete_solution(self, solution_name: str) -> Dict[str, Any]:
-        """Delete a solution.
+    def delete_solutionversion(self, solutionversion_name: str) -> Dict[str, Any]:
+        """Delete a solutionversion.
 
         Args:
-            solution_name: Name of the solution to delete
+            solutionversion_name: Name of the solutionversion to delete
 
         Returns:
             API response data
@@ -421,21 +421,21 @@ class SymphonyAPI:
         """
         self._ensure_authenticated()
 
-        response = self._make_request("DELETE", f"/solutions/{solution_name}")
+        response = self._make_request("DELETE", f"/solutionversions/{solutionversion_name}")
         return self._handle_response(response)
 
-    def list_solutions(self) -> List[Dict[str, Any]]:
-        """List all solutions.
+    def list_solutionversions(self) -> List[Dict[str, Any]]:
+        """List all solutionversions.
 
         Returns:
-            List of solutions
+            List of solutionversions
 
         Raises:
             SymphonyAPIError: If request fails
         """
         self._ensure_authenticated()
 
-        response = self._make_request("GET", "/solutions")
+        response = self._make_request("GET", "/solutionversions")
         return self._handle_response(response)
 
     # Instance Management Methods
@@ -447,7 +447,7 @@ class SymphonyAPI:
 
         Args:
             instance_name: Name of the instance
-            instance_spec: Instance specification dictionary (should contain solution, target, etc.)
+            instance_spec: Instance specification dictionary (should contain solutionversion, target, etc.)
             namespace: Namespace/scope for the instance (default: "default")
 
         Returns:
@@ -525,10 +525,10 @@ class SymphonyAPI:
         response = self._make_request("GET", "/instances")
         return self._handle_response(response)
 
-    # Solution Operations (for deployments)
+    # SolutionVersion Operations (for deployments)
 
     def apply_deployment(self, deployment_spec: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply a deployment (POST to /solution/instances).
+        """Apply a deployment (POST to /solutionversion/instances).
 
         Args:
             deployment_spec: Deployment specification dictionary
@@ -541,11 +541,11 @@ class SymphonyAPI:
         """
         self._ensure_authenticated()
 
-        response = self._make_request("POST", "/solution/instances", json=deployment_spec)
+        response = self._make_request("POST", "/solutionversion/instances", json=deployment_spec)
         return self._handle_response(response)
 
     def get_deployment_components(self) -> Dict[str, Any]:
-        """Get deployment components (GET /solution/instances).
+        """Get deployment components (GET /solutionversion/instances).
 
         Returns:
             Components data
@@ -555,11 +555,11 @@ class SymphonyAPI:
         """
         self._ensure_authenticated()
 
-        response = self._make_request("GET", "/solution/instances")
+        response = self._make_request("GET", "/solutionversion/instances")
         return self._handle_response(response)
 
     def delete_deployment_components(self) -> Dict[str, Any]:
-        """Delete deployment components (DELETE /solution/instances).
+        """Delete deployment components (DELETE /solutionversion/instances).
 
         Returns:
             API response data
@@ -569,13 +569,13 @@ class SymphonyAPI:
         """
         self._ensure_authenticated()
 
-        response = self._make_request("DELETE", "/solution/instances")
+        response = self._make_request("DELETE", "/solutionversion/instances")
         return self._handle_response(response)
 
-    def reconcile_solution(
+    def reconcile_solutionversion(
         self, deployment_spec: Dict[str, Any], delete: bool = False
     ) -> Dict[str, Any]:
-        """Direct reconcile/delete deployment (POST to /solution/reconcile).
+        """Direct reconcile/delete deployment (POST to /solutionversion/reconcile).
 
         Args:
             deployment_spec: Deployment specification dictionary
@@ -592,13 +592,13 @@ class SymphonyAPI:
         params = {"delete": "true"} if delete else {}
 
         response = self._make_request(
-            "POST", "/solution/reconcile", json=deployment_spec, params=params
+            "POST", "/solutionversion/reconcile", json=deployment_spec, params=params
         )
 
         return self._handle_response(response)
 
     def get_instance_status(self, instance_name: str) -> Dict[str, Any]:
-        """Get instance status (GET /solution/queue).
+        """Get instance status (GET /solutionversion/queue).
 
         Args:
             instance_name: Name of the instance
@@ -613,7 +613,7 @@ class SymphonyAPI:
 
         params = {"instance": instance_name}
 
-        response = self._make_request("GET", "/solution/queue", params=params)
+        response = self._make_request("GET", "/solutionversion/queue", params=params)
         return self._handle_response(response)
 
     # Utility Methods

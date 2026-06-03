@@ -8,11 +8,11 @@ Because some customers have expressed desire to use a versioned API instead of n
 
 ## Create a versioned object - Symphony API standalone 
 
-Symphony introduces a series of new versioned objects, such as versioned solutions, versioned catalogs and versioned campaigns, on top of the existing objects. Container objects hold multiple versions. For example, a “`my-config`” object may hold multiple versions of a configuration Catalog objects.
+Symphony introduces a series of new versioned objects, such as versioned solutionversions, versioned catalogversions and versioned campaignversions, on top of the existing objects. Container objects hold multiple versions. For example, a “`my-config`” object may hold multiple versions of a configuration CatalogVersion objects.
 
 To create a versioned object in a standalone mode, a user needs to send below requests:
-1. Create a container object, for example solution container using Create API in the [solution container API doc](../api/solutioncontainers-api.md)
-2. Create a versioned resource, for exmaple solution using Create API in the [solution API doc](../api/solutions-api.md)
+1. Create a container object, for example solutionversion container using Create API in the [solutionversion container API doc](../api/solutions-api.md)
+2. Create a versioned resource, for exmaple solutionversion using Create API in the [solutionversion API doc](../api/solutionversions-api.md)
 
 <!-- TODO: add back when containers/versions APIs are supported.
 ```bash
@@ -28,11 +28,11 @@ And the following table summarizes different queries to be carried out:
 
 For example, to get `v3` of a `my-config`, uses:
 ```bash
-/versioned-catalogs/my-config/versions/v3
+/versioned-catalogversions/my-config/versions/v3
 ```  -->
 
 ## Create a versioned object - Kubernetes mode
-Under Kubernetes mode, it is required to create a `container` object before creating a versioned object. For example, to create a solution `myapp-v1`, customer needs to create a `solutioncontainer` object and then `solution` object (yaml files available at [docs/samples/k8s/hello-world/solution.yaml](../../samples/k8s/hello-world/solution.yaml).)
+Under Kubernetes mode, it is required to create a `container` object before creating a versioned object. For example, to create a solutionversion `myapp-v1`, customer needs to create a `solution` object and then `solutionversion` object (yaml files available at [docs/samples/k8s/hello-world/solutionversion.yaml](../../samples/k8s/hello-world/solutionversion.yaml).)
 
 ## Naming convention 
 When creating container and version objects, version resource creation should follow the rules bother in a standalone mode or K8s mode:

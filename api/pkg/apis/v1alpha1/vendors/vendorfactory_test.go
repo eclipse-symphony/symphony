@@ -21,10 +21,10 @@ func TestCreateVendor(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, vendor.(*EchoVendor))
 
-	config.Type = "vendors.solution"
+	config.Type = "vendors.solutionversion"
 	vendor, err = factory.CreateVendor(config)
 	assert.Nil(t, err)
-	assert.NotNil(t, vendor.(*SolutionVendor))
+	assert.NotNil(t, vendor.(*SolutionVersionVendor))
 
 	config.Type = "vendors.agent"
 	vendor, err = factory.CreateVendor(config)
@@ -46,20 +46,20 @@ func TestCreateVendor(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, vendor.(*DevicesVendor))
 
-	config.Type = "vendors.solutions"
+	config.Type = "vendors.solutionversions"
 	vendor, err = factory.CreateVendor(config)
 	assert.Nil(t, err)
-	assert.NotNil(t, vendor.(*SolutionsVendor))
+	assert.NotNil(t, vendor.(*SolutionVersionsVendor))
 
-	config.Type = "vendors.campaigns"
+	config.Type = "vendors.campaignversions"
 	vendor, err = factory.CreateVendor(config)
 	assert.Nil(t, err)
-	assert.NotNil(t, vendor.(*CampaignsVendor))
+	assert.NotNil(t, vendor.(*CampaignVersionsVendor))
 
-	config.Type = "vendors.catalogs"
+	config.Type = "vendors.catalogversions"
 	vendor, err = factory.CreateVendor(config)
 	assert.Nil(t, err)
-	assert.NotNil(t, vendor.(*CatalogsVendor))
+	assert.NotNil(t, vendor.(*CatalogVersionsVendor))
 
 	config.Type = "vendors.activations"
 	vendor, err = factory.CreateVendor(config)

@@ -1,12 +1,12 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+Microsoft Visual Studio SolutionVersion File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35506.116 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ContosoCafeteriaKiosk", "ContosoCafeteriaKiosk.csproj", "{206CE96D-EAAA-47CD-999C-9373F5B95BE4}"
 EndProject
 Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	GlobalSection(SolutionVersionConfigurationPlatforms) = preSolutionVersion
 		Debug|ARM = Debug|ARM
 		Debug|ARM64 = Debug|ARM64
 		Debug|x64 = Debug|x64
@@ -16,7 +16,7 @@ Global
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+	GlobalSection(ProjectConfigurationPlatforms) = postSolutionVersion
 		{206CE96D-EAAA-47CD-999C-9373F5B95BE4}.Debug|ARM.ActiveCfg = Debug|ARM
 		{206CE96D-EAAA-47CD-999C-9373F5B95BE4}.Debug|ARM.Build.0 = Debug|ARM
 		{206CE96D-EAAA-47CD-999C-9373F5B95BE4}.Debug|ARM.Deploy.0 = Debug|ARM
@@ -42,7 +42,7 @@ Global
 		{206CE96D-EAAA-47CD-999C-9373F5B95BE4}.Release|x86.Build.0 = Release|x86
 		{206CE96D-EAAA-47CD-999C-9373F5B95BE4}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
+	GlobalSection(SolutionVersionProperties) = preSolutionVersion
+		HideSolutionVersionNode = FALSE
 	EndGlobalSection
 EndGlobal

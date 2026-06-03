@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	solution_v1 "gopls-workspace/apis/solution/v1"
+	solutionversion_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/configutils"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
@@ -49,7 +49,7 @@ func (r *InstancePollingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	reconcileTime := time.Now()
 
 	// Get instance
-	instance := &solution_v1.Instance{}
+	instance := &solutionversion_v1.Instance{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			diagnostic.InfoWithCtx(log, ctx, "Skipping this reconcile, since this CR has been deleted")
@@ -119,7 +119,7 @@ func (r *InstancePollingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("InstancePolling").
 		WithOptions(controller.Options{RecoverPanic: &recoverPanic, MaxConcurrentReconciles: r.PollingConcurrentReconciles}).
-		For(&solution_v1.Instance{}).
+		For(&solutionversion_v1.Instance{}).
 		WithEventFilter(jobIDPredicate).
 		Complete(r)
 }

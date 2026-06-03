@@ -92,10 +92,10 @@
 
 # To run coa/pkg/apis/v1alpha2/providers/reference/k8s/k8sprovider_test.go - TestGet:
 # You'll need a Kubernetes cluster and your kubectl default context set to the cluster. 
-# You'll also need Symphony deployed to the cluster and a Symphony solution created under the default namespace. Then, set:
+# You'll also need Symphony deployed to the cluster and a Symphony solutionversion created under the default namespace. Then, set:
 
 # export TEST_K8S=yes
-# export SYMPHONY_SOLUTION=<Symphony solution name>
+# export SYMPHONY_SOLUTION=<Symphony solutionversion name>
 
 # ----------------------------------------
 
@@ -221,7 +221,7 @@ then
     cd ../../symphony-api
     go mod vendor
     test_folder "./pkg/apis/v1alpha1/managers/reference"
-    test_folder "./pkg/apis/v1alpha1/managers/solution"
+    test_folder "./pkg/apis/v1alpha1/managers/solutionversion"
     test_folder "./pkg/apis/v1alpha1/providers/states/k8s"
     test_folder "./pkg/apis/v1alpha1/providers/target/azure/adu"
     test_folder "./pkg/apis/v1alpha1/providers/target/azure/iotedge"

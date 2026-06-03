@@ -1,12 +1,12 @@
 # Scenario: Adaptive deployment
 
-In this scenario, you'll deploy a [solution](../concepts/unified-object-model/solution.md) to both a Kubernetes cluster and an Azure IoT Edge device at the same time. Symphony automatically adapts the solution to fit with the corresponding platforms.
+In this scenario, you'll deploy a [solutionversion](../concepts/unified-object-model/solutionversion.md) to both a Kubernetes cluster and an Azure IoT Edge device at the same time. Symphony automatically adapts the solutionversion to fit with the corresponding platforms.
 
 ![adaptive](../images/adaptive.png)
 
 ## Prerequisites
 
-* An [Azure IoT Edge](https://azure.microsoft.com/ products/iot-edge/) device (see instructions [here](../get-started/deploy_solution_to_azure_iot_edge.md) for setting up a new Azure IoT Edge device).
+* An [Azure IoT Edge](https://azure.microsoft.com/ products/iot-edge/) device (see instructions [here](../get-started/deploy_solutionversion_to_azure_iot_edge.md) for setting up a new Azure IoT Edge device).
 
 ## 1. Register targets
 
@@ -53,13 +53,13 @@ spec:
 
 > **NOTE:** both targets are marked with a `group: demo` property, which you'll use as the target selector in your [instance](../concepts/unified-object-model/instance.md) object.
 
-## 2. Create a solution
+## 2. Create a solutionversion
 
-Create a simple [solution](../concepts/unified-object-model/solution.md) with a single component:
+Create a simple [solutionversion](../concepts/unified-object-model/solutionversion.md) with a single component:
 
 ```yaml
 apiVersion: solution.symphony/v1
-kind: Solution
+kind: SolutionVersion
 metadata: 
   name: redis-server
 spec:  
@@ -81,7 +81,7 @@ spec:
 
 ## 3. Create an instance
 
-To deploy the solution to both targets, create an [instance](../concepts/unified-object-model/instance.md) object that applies the `redis-server` solution to the `demo` group of targets:
+To deploy the solutionversion to both targets, create an [instance](../concepts/unified-object-model/instance.md) object that applies the `redis-server` solutionversion to the `demo` group of targets:
 
 ```yaml
 apiVersion: solution.symphony/v1
@@ -90,7 +90,7 @@ metadata:
   name: my-instance
 spec:
   scope: basic-k8s
-  solution: redis-server
+  solutionversion: redis-server
   target:
     selector: 
       group: demo      
@@ -98,7 +98,7 @@ spec:
 
 > **NOTE:**: `scope` is optional. If used, your pods on Kubernetes will be deployed to the designated namespace.
 
-Observe that the solution is deployed on both targets:
+Observe that the solutionversion is deployed on both targets:
 
 ```bash
 kubectl get instance
@@ -110,7 +110,7 @@ my-instance   OK       2         2
 
 ```bash
 kubectl delete instance my-instance
-kubectl delete solution redis-server
+kubectl delete solutionversion redis-server
 kubectl delete target iot-target
 kubectl delete target k8s-target
 ```

@@ -1,26 +1,26 @@
-import { CatalogState } from '../../app/types';
+import { CatalogVersionState } from '../../app/types';
 import AssetCard from './AssetCard';
 interface AssetListProps {
-    catalogs: CatalogState[];
+    catalogversions: CatalogVersionState[];
 }
-function AssetList({ catalogs }: AssetListProps) {
-    // Create a map of catalogs by name for easy reference
-    const references: Record<string, CatalogState> = {};
-    catalogs.forEach((catalog) => {
-        references[catalog.spec.name] = catalog;
+function AssetList({ catalogversions }: AssetListProps) {
+    // Create a map of catalogversions by name for easy reference
+    const references: Record<string, CatalogVersionState> = {};
+    catalogversions.forEach((catalogversion) => {
+        references[catalogversion.spec.name] = catalogversion;
     });
 
-    // If you want to merge catalogs or perform other operations, you can do it directly with the array
-    // Assuming mergedCatalogs is supposed to be the same as catalogs in this simplified correction
-    const mergedCatalogs = [...catalogs]; // This creates a shallow copy if needed, or directly use catalogs
+    // If you want to merge catalogversions or perform other operations, you can do it directly with the array
+    // Assuming mergedCatalogVersions is supposed to be the same as catalogversions in this simplified correction
+    const mergedCatalogVersions = [...catalogversions]; // This creates a shallow copy if needed, or directly use catalogversions
 
     return (
         <div className='sitelist'>
-            {mergedCatalogs.map((catalog) => (
+            {mergedCatalogVersions.map((catalogversion) => (
                 <AssetCard 
-                    key={catalog.spec.name} // It's a good practice to provide a unique key for each child in a list
-                    catalog={catalog} 
-                    refCatalog={catalog.spec.metadata?.['override'] ? references[catalog.spec.metadata['override']] : null}
+                    key={catalogversion.spec.name} // It's a good practice to provide a unique key for each child in a list
+                    catalogversion={catalogversion} 
+                    refCatalogVersion={catalogversion.spec.metadata?.['override'] ? references[catalogversion.spec.metadata['override']] : null}
                 />
             ))}
         </div>

@@ -16,7 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalogversion"
 	api_utils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	coa_contexts "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
@@ -36,12 +36,12 @@ func getMockEvalContext() (utils.EvaluationContext, error) {
 	vendorContext := coa_contexts.VendorContext{
 		EvaluationContext: &evalContext,
 	}
-	provider := catalog.CatalogConfigProvider{}
+	provider := catalogversion.CatalogVersionConfigProvider{}
 
 	provider.Context = &coa_contexts.ManagerContext{
 		VencorContext: &vendorContext,
 	}
-	err := provider.Init(catalog.CatalogConfigProviderConfig{})
+	err := provider.Init(catalogversion.CatalogVersionConfigProviderConfig{})
 	if err != nil {
 		return utils.EvaluationContext{}, err
 	}
@@ -519,34 +519,34 @@ func TestArrayMergeConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/config-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/config-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "config-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"attribute": "${{$config('region1:version1', 'tags') $$config('region2:version1', 'tags')}}",
 					},
 				},
 			}
-		case "/catalogs/registry/region1-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/region1-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "region1-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"tags": []string{"Tag1", "Tag2", "Tag3"},
 					},
 				},
 			}
-		case "/catalogs/registry/region2-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/region2-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "region2-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"tags": []string{"Tag4", "Tag5", "Tag6"},
 					},
@@ -576,16 +576,16 @@ func TestArrayMergeConfig(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCircularCatalogReferences(t *testing.T) {
+func TestCircularCatalogVersionReferences(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/config1-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/config1-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "config1-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					ParentName: "parent:version1",
 					Properties: map[string]interface{}{
 						"image":     "${{$config('config2:version1','image')}}",
@@ -593,24 +593,24 @@ func TestCircularCatalogReferences(t *testing.T) {
 					},
 				},
 			}
-		case "/catalogs/registry/config2-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/config2-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "config2-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"attribute": "${{$config('config1:version1','attribute')}}",
 						"foo":       "bar",
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/parent-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "parent-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"parentConfig": "${{$config('config1:version1','parentAttribute')}}",
 					},
@@ -648,24 +648,24 @@ func TestParentConfigEvaluation(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/catalogs/registry/config-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/config-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "config-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					ParentName: "parent:version1",
 					Properties: map[string]interface{}{
 						"attribute": "value",
 					},
 				},
 			}
-		case "/catalogs/registry/parent-v-version1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/parent-v-version1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
 					Name: "parent-v-version1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"parentAttribute": "${{$config('config:version1','attribute')}}",
 						"parentCircular":  "${{$config('config:version1','parentCircular')}}",

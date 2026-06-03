@@ -18,13 +18,13 @@ import (
 var _ = Describe("Delete", Ordered, func() {
 	var instanceBytes []byte
 	var targetBytes []byte
-	var solutionBytes []byte
-	var solutionContainerBytes []byte
+	var solutionversionBytes []byte
+	var solutionversionContainerBytes []byte
 	var specTimeout = 2 * time.Minute
 
 	type DeleteTestCase struct {
 		TargetComponents        []string
-		SolutionComponents      []string
+		SolutionVersionComponents      []string
 		PreDeleteExpectation    types.Expectation
 		UnderlyingDeleteCommand string
 		OrcResourceToDelete     *[]byte
@@ -57,10 +57,10 @@ var _ = Describe("Delete", Ordered, func() {
 		func(ctx context.Context, testcase DeleteTestCase) {
 			var err error
 
-			By("deploy solution container")
-			solutionContainerBytes, err = testhelpers.PatchSolutionContainer(defaultSolutionContainerManifest, testhelpers.ContainerOptions{})
+			By("deploy solutionversion container")
+			solutionversionContainerBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.ContainerOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionContainerBytes)
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionContainerBytes)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("setting the components for the target")
@@ -69,9 +69,9 @@ var _ = Describe("Delete", Ordered, func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			By("setting the components for the solution")
-			solutionBytes, err = testhelpers.PatchSolution(defaultSolutionManifest, testhelpers.SolutionOptions{
-				ComponentNames: testcase.SolutionComponents,
+			By("setting the components for the solutionversion")
+			solutionversionBytes, err = testhelpers.PatchSolutionVersion(defaultSolutionVersionManifest, testhelpers.SolutionVersionOptions{
+				ComponentNames: testcase.SolutionVersionComponents,
 			})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -83,8 +83,8 @@ var _ = Describe("Delete", Ordered, func() {
 			err = shell.PipeInExec(ctx, "kubectl apply -f -", targetBytes)
 			Expect(err).ToNot(HaveOccurred())
 
-			By("deploying the solution")
-			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionBytes)
+			By("deploying the solutionversion")
+			err = shell.PipeInExec(ctx, "kubectl apply -f -", solutionversionBytes)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("deploying the instance")
@@ -113,7 +113,7 @@ var _ = Describe("Delete", Ordered, func() {
 		// 	"it should delete the target when the underlying helm release is already gone", SpecTimeout(specTimeout),
 		// 	DeleteTestCase{
 		// 		TargetComponents:   []string{"simple-chart-1"},
-		// 		SolutionComponents: []string{},
+		// 		SolutionVersionComponents: []string{},
 		// 		PreDeleteExpectation: expectations.All(
 		// 			successfullInstanceExpectation,
 		// 			successfullTargetExpectation,
@@ -132,7 +132,7 @@ var _ = Describe("Delete", Ordered, func() {
 			"it should delete the instance when the underlying helm release is already gone", SpecTimeout(specTimeout),
 			DeleteTestCase{
 				TargetComponents:   []string{},
-				SolutionComponents: []string{"simple-chart-1"},
+				SolutionVersionComponents: []string{"simple-chart-1"},
 				PreDeleteExpectation: expectations.All(
 					successfullInstanceExpectation,
 					successfullTargetExpectation,
@@ -151,7 +151,7 @@ var _ = Describe("Delete", Ordered, func() {
 		// 	"it should delete the target when the underlying kubernetes resource is already gone", SpecTimeout(specTimeout),
 		// 	DeleteTestCase{
 		// 		TargetComponents:   []string{"basic-configmap-1"},
-		// 		SolutionComponents: []string{},
+		// 		SolutionVersionComponents: []string{},
 		// 		PreDeleteExpectation: expectations.All(
 		// 			successfullInstanceExpectation,
 		// 			successfullTargetExpectation,
@@ -169,7 +169,7 @@ var _ = Describe("Delete", Ordered, func() {
 			"it should delete the instance when the underlying kubernetes resource is already gone", SpecTimeout(specTimeout),
 			DeleteTestCase{
 				TargetComponents:   []string{},
-				SolutionComponents: []string{"basic-configmap-1"},
+				SolutionVersionComponents: []string{"basic-configmap-1"},
 				PreDeleteExpectation: expectations.All(
 					successfullInstanceExpectation,
 					successfullTargetExpectation,

@@ -31,17 +31,3 @@ rules:
   - campaigns/status
   verbs:
   - get
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - activations
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - workflow.symphony
-  resources:
-  - activations/status
-  verbs:
-  - get

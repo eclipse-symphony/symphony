@@ -15,51 +15,51 @@ import (
 )
 
 var (
-	catalogMaxNameLength = 61
-	catalogMinNameLength = 1
+	catalogversionMaxNameLength = 61
+	catalogversionMinNameLength = 1
 )
 
-type CatalogValidator struct {
-	// Check Catalog existence
-	CatalogLookupFunc          ObjectLookupFunc
-	CatalogContainerLookupFunc ObjectLookupFunc
-	ChildCatalogLookupFunc     LinkedObjectLookupFunc
+type CatalogVersionValidator struct {
+	// Check CatalogVersion existence
+	CatalogVersionLookupFunc          ObjectLookupFunc
+	CatalogLookupFunc ObjectLookupFunc
+	ChildCatalogVersionLookupFunc     LinkedObjectLookupFunc
 }
 
-func NewCatalogValidator(catalogLookupFunc ObjectLookupFunc, catalogContainerLookupFunc ObjectLookupFunc, childCatalogLookupFunc LinkedObjectLookupFunc) CatalogValidator {
-	return CatalogValidator{
-		CatalogLookupFunc:          catalogLookupFunc,
-		CatalogContainerLookupFunc: catalogContainerLookupFunc,
-		ChildCatalogLookupFunc:     childCatalogLookupFunc,
+func NewCatalogVersionValidator(catalogversionLookupFunc ObjectLookupFunc, catalogLookupFunc ObjectLookupFunc, childCatalogVersionLookupFunc LinkedObjectLookupFunc) CatalogVersionValidator {
+	return CatalogVersionValidator{
+		CatalogVersionLookupFunc:          catalogversionLookupFunc,
+		CatalogLookupFunc: catalogLookupFunc,
+		ChildCatalogVersionLookupFunc:     childCatalogVersionLookupFunc,
 	}
 }
 
-// Validate Catalog creation or update
+// Validate CatalogVersion creation or update
 // 1. Schema is valid
-// 2. Parent catalog exists
-// 3. Catalog name and rootResource is valid. And rootResource is immutable
+// 2. Parent catalogversion exists
+// 3. CatalogVersion name and rootResource is valid. And rootResource is immutable
 // TODO: 4. Update won't form a cycle in the parent-child relationship
-func (c *CatalogValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
-	new := c.ConvertInterfaceToCatalog(newRef)
-	old := c.ConvertInterfaceToCatalog(oldRef)
+func (c *CatalogVersionValidator) ValidateCreateOrUpdate(ctx context.Context, newRef interface{}, oldRef interface{}) []ErrorField {
+	new := c.ConvertInterfaceToCatalogVersion(newRef)
+	old := c.ConvertInterfaceToCatalogVersion(oldRef)
 
 	errorFields := []ErrorField{}
 	if err := c.ValidateSchema(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	if new.Spec.ParentName != "" && (oldRef == nil || new.Spec.ParentName != old.Spec.ParentName) {
-		if err := c.ValidateParentCatalog(ctx, new); err != nil {
+		if err := c.ValidateParentCatalogVersion(ctx, new); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	}
 
 	if oldRef == nil {
 		// validate create specific fields
-		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource, catalogMinNameLength, catalogMaxNameLength); err != nil {
+		if err := ValidateObjectName(new.ObjectMeta.Name, new.Spec.RootResource, catalogversionMinNameLength, catalogversionMaxNameLength); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 		// validate rootResource
-		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, c.CatalogContainerLookupFunc); err != nil {
+		if err := ValidateRootResource(ctx, new.ObjectMeta, new.Spec.RootResource, c.CatalogLookupFunc); err != nil {
 			errorFields = append(errorFields, *err)
 		}
 	} else {
@@ -76,27 +76,27 @@ func (c *CatalogValidator) ValidateCreateOrUpdate(ctx context.Context, newRef in
 	return errorFields
 }
 
-// Validate Catalog deletion
-// 1. Catalog has no child catalogs
-func (c *CatalogValidator) ValidateDelete(ctx context.Context, catalog interface{}) []ErrorField {
-	new := c.ConvertInterfaceToCatalog(catalog)
-	// validate child catalogs
+// Validate CatalogVersion deletion
+// 1. CatalogVersion has no child catalogversions
+func (c *CatalogVersionValidator) ValidateDelete(ctx context.Context, catalogversion interface{}) []ErrorField {
+	new := c.ConvertInterfaceToCatalogVersion(catalogversion)
+	// validate child catalogversions
 	errorFields := []ErrorField{}
-	if err := c.ValidateChildCatalog(ctx, new); err != nil {
+	if err := c.ValidateChildCatalogVersion(ctx, new); err != nil {
 		errorFields = append(errorFields, *err)
 	}
 	return errorFields
 }
 
 // Validate Schema is valid
-func (c *CatalogValidator) ValidateSchema(ctx context.Context, new model.CatalogState) *ErrorField {
-	if c.CatalogLookupFunc == nil {
+func (c *CatalogVersionValidator) ValidateSchema(ctx context.Context, new model.CatalogVersionState) *ErrorField {
+	if c.CatalogVersionLookupFunc == nil {
 		return nil
 	}
 	if schemaName, ok := new.Spec.Metadata["schema"]; ok {
-		// 1). Lookup catalog object with schema name
+		// 1). Lookup catalogversion object with schema name
 		schemaName = ConvertReferenceToObjectName(schemaName)
-		lookupRes, err := c.CatalogLookupFunc(ctx, schemaName, new.ObjectMeta.Namespace)
+		lookupRes, err := c.CatalogVersionLookupFunc(ctx, schemaName, new.ObjectMeta.Namespace)
 
 		if err != nil {
 			return &ErrorField{
@@ -106,17 +106,17 @@ func (c *CatalogValidator) ValidateSchema(ctx context.Context, new model.Catalog
 			}
 		}
 		marshalResult, _ := json.Marshal(lookupRes)
-		var catalog model.CatalogState
-		err = json.Unmarshal(marshalResult, &catalog)
+		var catalogversion model.CatalogVersionState
+		err = json.Unmarshal(marshalResult, &catalogversion)
 		if err != nil {
 			return &ErrorField{
 				FieldPath:       "spec.metadata.schema",
 				Value:           schemaName,
-				DetailedMessage: "schema is not a valid catalog object",
+				DetailedMessage: "schema is not a valid catalogversion object",
 			}
 		}
-		if spec, ok := catalog.Spec.Properties["spec"]; ok {
-			// 2). Extract Schema object from the catalog object
+		if spec, ok := catalogversion.Spec.Properties["spec"]; ok {
+			// 2). Extract Schema object from the catalogversion object
 			var schemaObj utils.Schema
 			jData, _ := json.Marshal(spec)
 			err := json.Unmarshal(jData, &schemaObj)
@@ -128,7 +128,7 @@ func (c *CatalogValidator) ValidateSchema(ctx context.Context, new model.Catalog
 				}
 			}
 
-			// 3). Validate the schema on the catalog which is being created/updated
+			// 3). Validate the schema on the catalogversion which is being created/updated
 			result, err := schemaObj.CheckProperties(ctx, new.Spec.Properties, nil)
 			if err != nil {
 				return &ErrorField{
@@ -149,92 +149,92 @@ func (c *CatalogValidator) ValidateSchema(ctx context.Context, new model.Catalog
 	return nil
 }
 
-// Validate Parent Catalog exists if provided
-// Use CatalogLookupFunc to lookup the catalog with parentName
-func (c *CatalogValidator) ValidateParentCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
-	if c.CatalogLookupFunc == nil {
+// Validate Parent CatalogVersion exists if provided
+// Use CatalogVersionLookupFunc to lookup the catalogversion with parentName
+func (c *CatalogVersionValidator) ValidateParentCatalogVersion(ctx context.Context, catalogversion model.CatalogVersionState) *ErrorField {
+	if c.CatalogVersionLookupFunc == nil {
 		return nil
 	}
-	parentCatalogName := ConvertReferenceToObjectName(catalog.Spec.ParentName)
-	parentCatalog, err := c.CatalogLookupFunc(ctx, parentCatalogName, catalog.ObjectMeta.Namespace)
+	parentCatalogVersionName := ConvertReferenceToObjectName(catalogversion.Spec.ParentName)
+	parentCatalogVersion, err := c.CatalogVersionLookupFunc(ctx, parentCatalogVersionName, catalogversion.ObjectMeta.Namespace)
 	if err != nil {
 		return &ErrorField{
 			FieldPath:       "spec.ParentName",
-			Value:           parentCatalogName,
-			DetailedMessage: "parent catalog not found",
+			Value:           parentCatalogVersionName,
+			DetailedMessage: "parent catalogversion not found",
 		}
 	}
 
-	// if parent exists, need to check if upsert this catalog will introduce circular parent issue.
-	catalogName := catalog.ObjectMeta.Name
-	if c.hasParentCircularDependency(ctx, parentCatalog, catalogName) {
+	// if parent exists, need to check if upsert this catalogversion will introduce circular parent issue.
+	catalogversionName := catalogversion.ObjectMeta.Name
+	if c.hasParentCircularDependency(ctx, parentCatalogVersion, catalogversionName) {
 		return &ErrorField{
 			FieldPath:       "spec.ParentName",
-			Value:           parentCatalogName,
-			DetailedMessage: "parent catalog has circular dependency",
+			Value:           parentCatalogVersionName,
+			DetailedMessage: "parent catalogversion has circular dependency",
 		}
 	}
 	return nil
 }
 
-func (c *CatalogValidator) hasParentCircularDependency(ctx context.Context, parentRaw interface{}, catalogName string) bool {
+func (c *CatalogVersionValidator) hasParentCircularDependency(ctx context.Context, parentRaw interface{}, catalogversionName string) bool {
 	jsonData, err := json.Marshal(parentRaw)
 	if err != nil {
 		return false
 	}
 
-	var parentCatalog model.CatalogState
-	err = json.Unmarshal(jsonData, &parentCatalog)
+	var parentCatalogVersion model.CatalogVersionState
+	err = json.Unmarshal(jsonData, &parentCatalogVersion)
 	if err != nil {
 		return false
 	}
 
-	if parentCatalog.Spec.ParentName == "" {
+	if parentCatalogVersion.Spec.ParentName == "" {
 		return false
 	} else {
-		parentName := ConvertReferenceToObjectName(parentCatalog.Spec.ParentName)
-		if parentName == catalogName {
+		parentName := ConvertReferenceToObjectName(parentCatalogVersion.Spec.ParentName)
+		if parentName == catalogversionName {
 			return true
 		}
 
-		parentCatalog, err := c.CatalogLookupFunc(ctx, parentName, parentCatalog.ObjectMeta.Namespace)
+		parentCatalogVersion, err := c.CatalogVersionLookupFunc(ctx, parentName, parentCatalogVersion.ObjectMeta.Namespace)
 		if err == nil {
-			return c.hasParentCircularDependency(ctx, parentCatalog, catalogName)
+			return c.hasParentCircularDependency(ctx, parentCatalogVersion, catalogversionName)
 		}
 		return false
 	}
 }
 
-// Validate NO Child Catalog
-// Use ChildCatalogLookupFunc to lookup the child catalogs with labels {"parentName": catalog.ObjectMeta.Name}
-func (c *CatalogValidator) ValidateChildCatalog(ctx context.Context, catalog model.CatalogState) *ErrorField {
-	if c.ChildCatalogLookupFunc == nil {
+// Validate NO Child CatalogVersion
+// Use ChildCatalogVersionLookupFunc to lookup the child catalogversions with labels {"parentName": catalogversion.ObjectMeta.Name}
+func (c *CatalogVersionValidator) ValidateChildCatalogVersion(ctx context.Context, catalogversion model.CatalogVersionState) *ErrorField {
+	if c.ChildCatalogVersionLookupFunc == nil {
 		return nil
 	}
-	if found, err := c.ChildCatalogLookupFunc(ctx, catalog.ObjectMeta.Name, catalog.ObjectMeta.Namespace, string(catalog.ObjectMeta.UID)); err != nil || found {
+	if found, err := c.ChildCatalogVersionLookupFunc(ctx, catalogversion.ObjectMeta.Name, catalogversion.ObjectMeta.Namespace, string(catalogversion.ObjectMeta.UID)); err != nil || found {
 		return &ErrorField{
 			FieldPath:       "metadata.name",
-			Value:           catalog.ObjectMeta.Name,
-			DetailedMessage: "Catalog has one or more child catalogs. Update or Deletion is not allowed",
+			Value:           catalogversion.ObjectMeta.Name,
+			DetailedMessage: "CatalogVersion has one or more child catalogversions. Update or Deletion is not allowed",
 		}
 	}
 	return nil
 }
 
-func (c *CatalogValidator) ConvertInterfaceToCatalog(ref interface{}) model.CatalogState {
+func (c *CatalogVersionValidator) ConvertInterfaceToCatalogVersion(ref interface{}) model.CatalogVersionState {
 	if ref == nil {
-		return model.CatalogState{
-			Spec: &model.CatalogSpec{},
+		return model.CatalogVersionState{
+			Spec: &model.CatalogVersionSpec{},
 		}
 	}
-	if state, ok := ref.(model.CatalogState); ok {
+	if state, ok := ref.(model.CatalogVersionState); ok {
 		if state.Spec == nil {
-			state.Spec = &model.CatalogSpec{}
+			state.Spec = &model.CatalogVersionSpec{}
 		}
 		return state
 	} else {
-		return model.CatalogState{
-			Spec: &model.CatalogSpec{},
+		return model.CatalogVersionState{
+			Spec: &model.CatalogVersionSpec{},
 		}
 	}
 }

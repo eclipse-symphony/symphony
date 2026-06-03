@@ -105,7 +105,7 @@ func TestInstancesOnInstances(t *testing.T) {
 		Parameters: map[string]string{
 			"__name":   "instance1-v1",
 			"target":   "target1-v1",
-			"solution": "solution1-v1",
+			"solutionversion": "solutionversion1-v1",
 		},
 		Context: context.Background(),
 	})
@@ -187,7 +187,7 @@ func TestInstancesTargetSelector(t *testing.T) {
 		Parameters: map[string]string{
 			"__name":          "instance1-v1",
 			"target-selector": "property1=value1",
-			"solution":        "solution1-v1",
+			"solutionversion":        "solutionversion1-v1",
 		},
 		Context: context.Background(),
 	})

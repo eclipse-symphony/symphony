@@ -106,7 +106,7 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 		
 		// Provide specific guidance for common TLS errors
 		if strings.Contains(connErr.Error(), "certificate signed by unknown authority") {
-			log.Errorf("MQTT Binding: TLS certificate verification failed. Common solutions:")
+			log.Errorf("MQTT Binding: TLS certificate verification failed. Common solutionversions:")
 			log.Errorf("MQTT Binding: 1. Set 'caCertPath' to the path of your broker's CA certificate")
 			log.Errorf("MQTT Binding: 2. Set 'insecureSkipVerify' to 'true' for testing (not recommended for production)")
 			log.Errorf("MQTT Binding: 3. Ensure your broker certificate is issued by a trusted CA")

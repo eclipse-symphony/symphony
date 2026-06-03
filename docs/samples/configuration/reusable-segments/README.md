@@ -12,7 +12,7 @@ In this small example, there are two common keys that will be reused in multiple
 
 Composition allows for a configuration object to be made of many other objects.
 
-1. Define shared keys and values, see [segment](./catalogs/segment.yml).
+1. Define shared keys and values, see [segment](./catalogversions/segment.yml).
 
     ```yml
     spec:
@@ -22,7 +22,7 @@ Composition allows for a configuration object to be made of many other objects.
             common-key2: "common-value2"
     ```
 
-1. Define a top level configuration object that has its own properties and also uses the shared segment.  See [top-level](./catalogs/top-level.yml).
+1. Define a top level configuration object that has its own properties and also uses the shared segment.  See [top-level](./catalogversions/top-level.yml).
 
     ```yml
     spec:

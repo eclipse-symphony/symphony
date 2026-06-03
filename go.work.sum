@@ -46,8 +46,8 @@ cloud.google.com/go/assuredworkloads v1.11.4/go.mod h1:4pwwGNwy1RP0m+y12ef3Q/8Pa
 cloud.google.com/go/assuredworkloads v1.11.5/go.mod h1:FKJ3g3ZvkL2D7qtqIGnDufFkHxwIpNM9vtmhvt+6wqk=
 cloud.google.com/go/automl v1.13.4/go.mod h1:ULqwX/OLZ4hBVfKQaMtxMSTlPx0GqGbWN8uA/1EqCP8=
 cloud.google.com/go/automl v1.13.5/go.mod h1:MDw3vLem3yh+SvmSgeYUmUKqyls6NzSumDm9OJ3xJ1Y=
-cloud.google.com/go/baremetalsolution v1.2.3/go.mod h1:/UAQ5xG3faDdy180rCUv47e0jvpp3BFxT+Cl0PFjw5g=
-cloud.google.com/go/baremetalsolution v1.2.4/go.mod h1:BHCmxgpevw9IEryE99HbYEfxXkAEA3hkMJbYYsHtIuY=
+cloud.google.com/go/baremetalsolutionversion v1.2.3/go.mod h1:/UAQ5xG3faDdy180rCUv47e0jvpp3BFxT+Cl0PFjw5g=
+cloud.google.com/go/baremetalsolutionversion v1.2.4/go.mod h1:BHCmxgpevw9IEryE99HbYEfxXkAEA3hkMJbYYsHtIuY=
 cloud.google.com/go/batch v1.7.0/go.mod h1:J64gD4vsNSA2O5TtDB5AAux3nJ9iV8U3ilg3JDBYejU=
 cloud.google.com/go/batch v1.8.0/go.mod h1:k8V7f6VE2Suc0zUM4WtoibNrA6D3dqBpB+++e3vSGYc=
 cloud.google.com/go/beyondcorp v1.0.3/go.mod h1:HcBvnEd7eYr+HGDd5ZbuVmBYX019C6CEXBonXbCVwJo=
@@ -90,8 +90,8 @@ cloud.google.com/go/container v1.29.0/go.mod h1:b1A1gJeTBXVLQ6GGw9/9M4FG94BEGsqJ
 cloud.google.com/go/container v1.31.0/go.mod h1:7yABn5s3Iv3lmw7oMmyGbeV6tQj86njcTijkkGuvdZA=
 cloud.google.com/go/containeranalysis v0.11.3/go.mod h1:kMeST7yWFQMGjiG9K7Eov+fPNQcGhb8mXj/UcTiWw9U=
 cloud.google.com/go/containeranalysis v0.11.4/go.mod h1:cVZT7rXYBS9NG1rhQbWL9pWbXCKHWJPYraE8/FTSYPE=
-cloud.google.com/go/datacatalog v1.19.2/go.mod h1:2YbODwmhpLM4lOFe3PuEhHK9EyTzQJ5AXgIy7EDKTEE=
-cloud.google.com/go/datacatalog v1.19.3/go.mod h1:ra8V3UAsciBpJKQ+z9Whkxzxv7jmQg1hfODr3N3YPJ4=
+cloud.google.com/go/datacatalogversion v1.19.2/go.mod h1:2YbODwmhpLM4lOFe3PuEhHK9EyTzQJ5AXgIy7EDKTEE=
+cloud.google.com/go/datacatalogversion v1.19.3/go.mod h1:ra8V3UAsciBpJKQ+z9Whkxzxv7jmQg1hfODr3N3YPJ4=
 cloud.google.com/go/dataflow v0.9.4/go.mod h1:4G8vAkHYCSzU8b/kmsoR2lWyHJD85oMJPHMtan40K8w=
 cloud.google.com/go/dataflow v0.9.5/go.mod h1:udl6oi8pfUHnL0z6UN9Lf9chGqzDMVqcYTcZ1aPnCZQ=
 cloud.google.com/go/dataform v0.9.1/go.mod h1:pWTg+zGQ7i16pyn0bS1ruqIE91SdL2FDMvEYu/8oQxs=
@@ -200,8 +200,8 @@ cloud.google.com/go/phishingprotection v0.8.4/go.mod h1:6b3kNPAc2AQ6jZfFHioZKg9M
 cloud.google.com/go/phishingprotection v0.8.5/go.mod h1:g1smd68F7mF1hgQPuYn3z8HDbNre8L6Z0b7XMYFmX7I=
 cloud.google.com/go/policytroubleshooter v1.10.2/go.mod h1:m4uF3f6LseVEnMV6nknlN2vYGRb+75ylQwJdnOXfnv0=
 cloud.google.com/go/policytroubleshooter v1.10.3/go.mod h1:+ZqG3agHT7WPb4EBIRqUv4OyIwRTZvsVDHZ8GlZaoxk=
-cloud.google.com/go/privatecatalog v0.9.4/go.mod h1:SOjm93f+5hp/U3PqMZAHTtBtluqLygrDrVO8X8tYtG0=
-cloud.google.com/go/privatecatalog v0.9.5/go.mod h1:fVWeBOVe7uj2n3kWRGlUQqR/pOd450J9yZoOECcQqJk=
+cloud.google.com/go/privatecatalogversion v0.9.4/go.mod h1:SOjm93f+5hp/U3PqMZAHTtBtluqLygrDrVO8X8tYtG0=
+cloud.google.com/go/privatecatalogversion v0.9.5/go.mod h1:fVWeBOVe7uj2n3kWRGlUQqR/pOd450J9yZoOECcQqJk=
 cloud.google.com/go/pubsub v1.0.1/go.mod h1:R0Gpsv3s54REJCy4fxDixWD93lHJMoZTyQ2kNxGRt3I=
 cloud.google.com/go/pubsub v1.1.0/go.mod h1:EwwdRX2sKPjnvnqCa270oGRyludottCI76h+R3AArQw=
 cloud.google.com/go/pubsub v1.2.0/go.mod h1:jhfEVHT8odbXTkndysNHCcx0awwzvfOlguIAii9o8iA=

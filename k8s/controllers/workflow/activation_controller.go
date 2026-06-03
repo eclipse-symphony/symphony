@@ -29,7 +29,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ActivationReconciler reconciles a Campaign object
+// ActivationReconciler reconciles a CampaignVersion object
 
 type ActivationReconciler struct {
 	client.Client
@@ -44,7 +44,7 @@ type ActivationReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the Campaign object against the actual cluster state, and then
+// the CampaignVersion object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
@@ -81,7 +81,7 @@ func (r *ActivationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			activation.Status.Status != v1alpha2.Paused && activation.Status.Status != v1alpha2.Done && activation.Status.ActivationGeneration == "" {
 			diagnostic.InfoWithCtx(log, ctx, "Publishing activation event", "Name", activation.Name, "Namespace", activation.Namespace)
 			err := r.ApiClient.PublishActivationEvent(ctx, v1alpha2.ActivationData{
-				Campaign:             activation.Spec.Campaign,
+				CampaignVersion:             activation.Spec.CampaignVersion,
 				Activation:           activation.Name,
 				ActivationGeneration: strconv.FormatInt(activation.Generation, 10),
 				Stage:                activation.Spec.Stage,

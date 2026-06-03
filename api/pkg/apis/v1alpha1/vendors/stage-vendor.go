@@ -12,7 +12,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/activations"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaigns"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/campaignversions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
@@ -34,7 +34,7 @@ var sLog = logger.NewLogger("coa.runtime")
 type StageVendor struct {
 	vendors.Vendor
 	StageManager       *stage.StageManager
-	CampaignsManager   *campaigns.CampaignsManager
+	CampaignVersionsManager   *campaignversions.CampaignVersionsManager
 	ActivationsManager *activations.ActivationsManager
 }
 
@@ -59,8 +59,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 		if c, ok := m.(*stage.StageManager); ok {
 			s.StageManager = c
 		}
-		if c, ok := m.(*campaigns.CampaignsManager); ok {
-			s.CampaignsManager = c
+		if c, ok := m.(*campaignversions.CampaignVersionsManager); ok {
+			s.CampaignVersionsManager = c
 		}
 		if c, ok := m.(*activations.ActivationsManager); ok {
 			s.ActivationsManager = c
@@ -69,8 +69,8 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 	if s.StageManager == nil {
 		return v1alpha2.NewCOAError(nil, "stage manager is not supplied", v1alpha2.MissingConfig)
 	}
-	if s.CampaignsManager == nil {
-		return v1alpha2.NewCOAError(nil, "campaigns manager is not supplied", v1alpha2.MissingConfig)
+	if s.CampaignVersionsManager == nil {
+		return v1alpha2.NewCOAError(nil, "campaignversions manager is not supplied", v1alpha2.MissingConfig)
 	}
 	if s.ActivationsManager == nil {
 		return v1alpha2.NewCOAError(nil, "activations manager is not supplied", v1alpha2.MissingConfig)
@@ -90,11 +90,11 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				return v1alpha2.NewCOAError(nil, "event body is not an activation job", v1alpha2.BadRequest)
 			}
 			log.InfofCtx(ctx, "V (Stage): handling activation event for activation %s in namespace %s", actData.Activation, actData.Namespace)
-			campaignName := api_utils.ConvertReferenceToObjectName(actData.Campaign)
+			campaignversionName := api_utils.ConvertReferenceToObjectName(actData.CampaignVersion)
 
-			campaign, err := s.CampaignsManager.GetState(ctx, campaignName, actData.Namespace)
+			campaignversion, err := s.CampaignVersionsManager.GetState(ctx, campaignversionName, actData.Namespace)
 			if err != nil {
-				log.ErrorfCtx(ctx, "V (Stage): unable to find campaign %s with error: %+v", campaignName, err)
+				log.ErrorfCtx(ctx, "V (Stage): unable to find campaignversion %s with error: %+v", campaignversionName, err)
 				err = s.reportActivationStatusWithBadRequest(actData.Activation, actData.Namespace, err)
 				// If report status succeeded, return an empty err so the subscribe function will not be retried
 				// The actual error will be stored in Activation cr
@@ -106,7 +106,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				return nil
 			}
 
-			evt, err := s.StageManager.HandleActivationEvent(ctx, actData, *campaign.Spec, activation)
+			evt, err := s.StageManager.HandleActivationEvent(ctx, actData, *campaignversion.Spec, activation)
 			if err != nil {
 				err = s.reportActivationStatusWithBadRequest(actData.Activation, actData.Namespace, err)
 				// If report status succeeded, return an empty err so the subscribe function will not be retried
@@ -162,10 +162,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				sLog.ErrorfCtx(ctx, "V (Stage): unable to find activation: %+v", err)
 				return nil
 			}
-			campaignName := api_utils.ConvertReferenceToObjectName(triggerData.Campaign)
-			campaign, err := s.CampaignsManager.GetState(ctx, campaignName, triggerData.Namespace)
+			campaignversionName := api_utils.ConvertReferenceToObjectName(triggerData.CampaignVersion)
+			campaignversion, err := s.CampaignVersionsManager.GetState(ctx, campaignversionName, triggerData.Namespace)
 			if err != nil {
-				sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaign spec: %v", err)
+				sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaignversion spec: %v", err)
 				err = s.reportActivationStatusWithBadRequest(triggerData.Activation, triggerData.Namespace, err)
 				// If report status succeeded, return an empty err so the subscribe function will not be retried
 				// The actual error will be stored in Activation cr
@@ -189,7 +189,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 				}
 			}
 
-			status, activation := s.StageManager.HandleTriggerEvent(ctx, *campaign.Spec, triggerData)
+			status, activation := s.StageManager.HandleTriggerEvent(ctx, *campaignversion.Spec, triggerData)
 
 			if triggerData.NeedsReport {
 				sLog.DebugfCtx(ctx, "V (Stage): reporting status: %v", status)
@@ -225,10 +225,10 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			jData, _ := json.Marshal(event.Body)
 			var status model.StageStatus
 			utils2.UnmarshalJson(jData, &status)
-			campaign, ok := status.Outputs["__campaign"].(string)
+			campaignversion, ok := status.Outputs["__campaignversion"].(string)
 			if !ok {
-				sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaign name from job report")
-				return v1alpha2.NewCOAError(nil, "job-report: campaign is not valid", v1alpha2.BadRequest)
+				sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaignversion name from job report")
+				return v1alpha2.NewCOAError(nil, "job-report: campaignversion is not valid", v1alpha2.BadRequest)
 			}
 			namespace, ok := status.Outputs["__namespace"].(string)
 			if !ok {
@@ -248,14 +248,14 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			}
 
 			if status.Status == v1alpha2.Done || status.Status == v1alpha2.OK {
-				campaignName := api_utils.ConvertReferenceToObjectName(campaign)
-				campaign, err := s.CampaignsManager.GetState(ctx, campaignName, namespace)
+				campaignversionName := api_utils.ConvertReferenceToObjectName(campaignversion)
+				campaignversion, err := s.CampaignVersionsManager.GetState(ctx, campaignversionName, namespace)
 				if err != nil {
-					sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaign spec '%s': %v", campaign, err)
+					sLog.ErrorfCtx(ctx, "V (Stage): failed to get campaignversion spec '%s': %v", campaignversion, err)
 					return err
 				}
-				if campaign.Spec.SelfDriving {
-					activation, err := s.StageManager.ResumeStage(ctx, status, *campaign.Spec)
+				if campaignversion.Spec.SelfDriving {
+					activation, err := s.StageManager.ResumeStage(ctx, status, *campaignversion.Spec)
 					if err != nil {
 						status.Status = v1alpha2.InternalError
 						status.StatusMessage = v1alpha2.InternalError.String()
@@ -301,7 +301,7 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 			triggerData := v1alpha2.ActivationData{
 				Activation:           utils.FormatAsString(dataPackage.Inputs["__activation"]),
 				ActivationGeneration: utils.FormatAsString(dataPackage.Inputs["__activationGeneration"]),
-				Campaign:             utils.FormatAsString(dataPackage.Inputs["__campaign"]),
+				CampaignVersion:             utils.FormatAsString(dataPackage.Inputs["__campaignversion"]),
 				Stage:                utils.FormatAsString(dataPackage.Inputs["__stage"]),
 				Inputs:               dataPackage.Inputs,
 				Outputs:              dataPackage.Outputs,

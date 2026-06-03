@@ -4,6 +4,6 @@ metadata:
   name: redis-instance
 spec:
   scope: test
-  solution: redis-server
+  solutionversion: redis-server
   target: 
     name: k8s-target

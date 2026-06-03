@@ -11,6 +11,6 @@ metadata:
 spec:
   displayName: instance
   scope: test-scope
-  solution: SOLUTIONREFNAME
+  solutionversion: SOLUTIONREFNAME
   target:
     name: TARGETREFNAME

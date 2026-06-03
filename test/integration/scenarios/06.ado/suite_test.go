@@ -21,11 +21,11 @@ var defaultInstanceManifest []byte
 //go:embed manifest/target.yaml
 var defaultTargetManifest []byte
 
-//go:embed manifest/solution.yaml
-var defaultSolutionManifest []byte
+//go:embed manifest/solutionversion.yaml
+var defaultSolutionVersionManifest []byte
 
-//go:embed manifest/solution-container.yaml
-var defaultSolutionContainerManifest []byte
+//go:embed manifest/solutionversion-container.yaml
+var defaultSolutionManifest []byte
 
 var successfullTargetExpectation = kube.Must(kube.Target("target", "default", kube.WithCondition(conditions.All(
 	kube.ProvisioningSucceededCondition,

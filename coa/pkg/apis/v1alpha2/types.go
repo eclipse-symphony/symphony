@@ -108,17 +108,17 @@ const (
 	ScriptResultParsingFailed       State = 10037
 	WaitToGetInstancesFailed        State = 10038
 	WaitToGetSitesFailed            State = 10039
-	WaitToGetCatalogsFailed         State = 10040
+	WaitToGetCatalogVersionsFailed         State = 10040
 	InvalidWaitObjectType           State = 10041
-	CatalogsGetFailed               State = 10042
-	InvalidInstanceCatalog          State = 10043
-	CreateInstanceFromCatalogFailed State = 10044
-	InvalidSolutionCatalog          State = 10045
-	CreateSolutionFromCatalogFailed State = 10046
-	InvalidTargetCatalog            State = 10047
-	CreateTargetFromCatalogFailed   State = 10048
-	InvalidCatalogCatalog           State = 10049
-	CreateCatalogFromCatalogFailed  State = 10050
+	CatalogVersionsGetFailed               State = 10042
+	InvalidInstanceCatalogVersion          State = 10043
+	CreateInstanceFromCatalogVersionFailed State = 10044
+	InvalidSolutionVersionCatalogVersion          State = 10045
+	CreateSolutionVersionFromCatalogVersionFailed State = 10046
+	InvalidTargetCatalogVersion            State = 10047
+	CreateTargetFromCatalogVersionFailed   State = 10048
+	InvalidCatalogVersionCatalogVersion           State = 10049
+	CreateCatalogVersionFromCatalogVersionFailed  State = 10050
 	ParentObjectMissing             State = 10051
 	ParentObjectCreateFailed        State = 10052
 	MaterializeBatchFailed          State = 10053
@@ -129,15 +129,15 @@ const (
 	UnsupportedAction               State = 10058
 	InstanceGetFailed               State = 10059
 	TargetGetFailed                 State = 10060
-	DeleteSolutionFailed            State = 10061
-	CreateSolutionFailed            State = 10062
+	DeleteSolutionVersionFailed            State = 10061
+	CreateSolutionVersionFailed            State = 10062
 	GetARMDeploymentPropertyFailed  State = 10071
 	EnsureARMResourceGroupFailed    State = 10072
 	CreateARMDeploymentFailed       State = 10073
 	CleanUpARMDeploymentFailed      State = 10074
 
 	// instance controller errors
-	SolutionGetFailed             State = 11000
+	SolutionVersionGetFailed             State = 11000
 	TargetCandidatesNotFound      State = 11001
 	TargetListGetFailed           State = 11002
 	ObjectInstanceCoversionFailed State = 11003
@@ -321,28 +321,28 @@ func (s State) String() string {
 		return "Wait To Get Instances Failed"
 	case WaitToGetSitesFailed:
 		return "Wait To Get Sites Failed"
-	case WaitToGetCatalogsFailed:
-		return "Wait To Get Catalogs Failed"
+	case WaitToGetCatalogVersionsFailed:
+		return "Wait To Get CatalogVersions Failed"
 	case InvalidWaitObjectType:
 		return "Invalid Wait Object Type"
-	case CatalogsGetFailed:
-		return "Get Catalogs Failed"
-	case InvalidInstanceCatalog:
-		return "Invalid Instance Catalog"
-	case CreateInstanceFromCatalogFailed:
-		return "Create Instance From Catalog Failed"
-	case InvalidSolutionCatalog:
-		return "Invalid Solution Object in Catalog"
-	case CreateSolutionFromCatalogFailed:
-		return "Create Solution Object From Catalog Failed"
-	case InvalidTargetCatalog:
-		return "Invalid Target Object in Catalog"
-	case CreateTargetFromCatalogFailed:
-		return "Create Target Object From Catalog Failed"
-	case InvalidCatalogCatalog:
-		return "Invalid Catalog Object in Catalog"
-	case CreateCatalogFromCatalogFailed:
-		return "Create Catalog Object From Catalog Failed"
+	case CatalogVersionsGetFailed:
+		return "Get CatalogVersions Failed"
+	case InvalidInstanceCatalogVersion:
+		return "Invalid Instance CatalogVersion"
+	case CreateInstanceFromCatalogVersionFailed:
+		return "Create Instance From CatalogVersion Failed"
+	case InvalidSolutionVersionCatalogVersion:
+		return "Invalid SolutionVersion Object in CatalogVersion"
+	case CreateSolutionVersionFromCatalogVersionFailed:
+		return "Create SolutionVersion Object From CatalogVersion Failed"
+	case InvalidTargetCatalogVersion:
+		return "Invalid Target Object in CatalogVersion"
+	case CreateTargetFromCatalogVersionFailed:
+		return "Create Target Object From CatalogVersion Failed"
+	case InvalidCatalogVersionCatalogVersion:
+		return "Invalid CatalogVersion Object in CatalogVersion"
+	case CreateCatalogVersionFromCatalogVersionFailed:
+		return "Create CatalogVersion Object From CatalogVersion Failed"
 	case ParentObjectMissing:
 		return "Parent Object Missing"
 	case ParentObjectCreateFailed:
@@ -363,8 +363,8 @@ func (s State) String() string {
 		return "Get instance failed"
 	case TargetGetFailed:
 		return "Get target failed"
-	case SolutionGetFailed:
-		return "Solution does not exist"
+	case SolutionVersionGetFailed:
+		return "SolutionVersion does not exist"
 	case TargetCandidatesNotFound:
 		return "Target does not exist"
 	case TargetListGetFailed:

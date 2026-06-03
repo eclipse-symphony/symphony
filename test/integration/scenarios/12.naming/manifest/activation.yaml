@@ -3,6 +3,6 @@ kind: Activation
 metadata:
   name: ${PLACEHOLDER_NAME}
 spec:
-  campaign: ${PLACEHOLDER_CAMPAIGN_NAME}
+  campaignversion: ${PLACEHOLDER_CAMPAIGN_NAME}
   inputs:
     namesOnly: true

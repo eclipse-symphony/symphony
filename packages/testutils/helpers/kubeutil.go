@@ -25,7 +25,7 @@ var (
 
 	TargetGVK      = GVK("fabric.symphony", "v1", "Target")
 	InstanceGVK    = GVK("solution.symphony", "v1", "Instance")
-	SolutionGVK    = GVK("solution.symphony", "v1", "Solution")
+	SolutionVersionGVK    = GVK("solution.symphony", "v1", "SolutionVersion")
 	ConfigMapGVK   = GVK("", "v1", "ConfigMap")
 	PodGVK         = GVK("", "v1", "Pod")
 	NamespaceGVK   = GVK("", "v1", "Namespace")

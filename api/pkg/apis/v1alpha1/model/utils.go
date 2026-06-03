@@ -23,11 +23,11 @@ type (
 
 	ValueInjections struct {
 		InstanceId   string
-		SolutionId   string
+		SolutionVersionId   string
 		TargetId     string
 		ActivationId string
-		CatalogId    string
-		CampaignId   string
+		CatalogVersionId    string
+		CampaignVersionId   string
 		DeviceId     string
 		SkillId      string
 		ModelId      string
@@ -48,8 +48,8 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 			if bv != v {
 				if !strings.Contains(bv, "${{$instance()}}") &&
 					!strings.Contains(v, "${{$instance()}}") &&
-					!strings.Contains(bv, "${{$solution()}}") &&
-					!strings.Contains(v, "${{$solution()}}") &&
+					!strings.Contains(bv, "${{$solutionversion()}}") &&
+					!strings.Contains(v, "${{$solutionversion()}}") &&
 					!strings.Contains(bv, "${{$target()}}") &&
 					!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 					return false
@@ -67,8 +67,8 @@ func StringMapsEqual(a map[string]string, b map[string]string, ignoredMissingKey
 			if bv != v {
 				if !strings.Contains(bv, "${{$instance()}}") &&
 					!strings.Contains(v, "${{$instance()}}") &&
-					!strings.Contains(bv, "${{$solution()}}") &&
-					!strings.Contains(v, "${{$solution()}}") &&
+					!strings.Contains(bv, "${{$solutionversion()}}") &&
+					!strings.Contains(v, "${{$solutionversion()}}") &&
 					!strings.Contains(bv, "${{$target()}}") &&
 					!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 					return false
@@ -135,8 +135,8 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 				if bv != v {
 					if !strings.Contains(bv, "${{$instance()}}") &&
 						!strings.Contains(v, "${{$instance()}}") &&
-						!strings.Contains(bv, "${{$solution()}}") &&
-						!strings.Contains(v, "${{$solution()}}") &&
+						!strings.Contains(bv, "${{$solutionversion()}}") &&
+						!strings.Contains(v, "${{$solutionversion()}}") &&
 						!strings.Contains(bv, "${{$target()}}") &&
 						!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 						return false
@@ -152,8 +152,8 @@ func EnvMapsEqual(a map[string]string, b map[string]string) bool {
 				if bv != v {
 					if !strings.Contains(bv, "${{$instance()}}") &&
 						!strings.Contains(v, "${{$instance()}}") &&
-						!strings.Contains(bv, "${{$solution()}}") &&
-						!strings.Contains(v, "${{$solution()}}") &&
+						!strings.Contains(bv, "${{$solutionversion()}}") &&
+						!strings.Contains(v, "${{$solutionversion()}}") &&
 						!strings.Contains(bv, "${{$target()}}") &&
 						!strings.Contains(v, "${{$target()}}") { // Skip comparision because $instance is filled by different instances
 						return false
@@ -333,11 +333,11 @@ func ResolveString(value string, injections *ValueInjections) string {
 	//TODO: future enhancement - analyze the syntax instead of doing simply string replacement
 	if injections != nil {
 		value = strings.ReplaceAll(value, "${{$instance()}}", injections.InstanceId)
-		value = strings.ReplaceAll(value, "${{$solution()}}", injections.SolutionId)
+		value = strings.ReplaceAll(value, "${{$solutionversion()}}", injections.SolutionVersionId)
 		value = strings.ReplaceAll(value, "${{$target()}}", injections.TargetId)
 		value = strings.ReplaceAll(value, "${{$activation()}}", injections.ActivationId)
-		value = strings.ReplaceAll(value, "${{$catalog()}}", injections.CatalogId)
-		value = strings.ReplaceAll(value, "${{$campaign()}}", injections.CampaignId)
+		value = strings.ReplaceAll(value, "${{$catalogversion()}}", injections.CatalogVersionId)
+		value = strings.ReplaceAll(value, "${{$campaignversion()}}", injections.CampaignVersionId)
 		value = strings.ReplaceAll(value, "${{$device()}}", injections.DeviceId)
 		value = strings.ReplaceAll(value, "${{$model()}}", injections.ModelId)
 		value = strings.ReplaceAll(value, "${{$skill()}}", injections.SkillId)

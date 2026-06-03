@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
-// BuildManifestFile modifies the target/solution manifest files
+// BuildManifestFile modifies the target/solutionversion manifest files
 func BuildManifestFile(inputFolderPath string, outputFolderPath string, targetType string, components []string) error {
 	inputFilePath := fmt.Sprintf("%s/%s.yaml", inputFolderPath, targetType)
 	outputFilePath := fmt.Sprintf("%s/%s.yaml", outputFolderPath, targetType)
@@ -28,13 +28,13 @@ func BuildManifestFile(inputFolderPath string, outputFolderPath string, targetTy
 
 	var newData []byte
 	switch targetType {
-	case "solution":
-		fmt.Println("Building manifest file - Solution!")
-		solution, err := addComponentsToSolution(data, components)
+	case "solutionversion":
+		fmt.Println("Building manifest file - SolutionVersion!")
+		solutionversion, err := addComponentsToSolutionVersion(data, components)
 		if err != nil {
 			return err
 		}
-		newData, err = yaml.Marshal(&solution)
+		newData, err = yaml.Marshal(&solutionversion)
 		if err != nil {
 			return err
 		}
@@ -69,11 +69,11 @@ func BuildManifestFile(inputFolderPath string, outputFolderPath string, targetTy
 	return nil
 }
 
-func addComponentsToSolution(data []byte, components []string) (Solution, error) {
-	var solution Solution
-	err := yaml.Unmarshal(data, &solution)
+func addComponentsToSolutionVersion(data []byte, components []string) (SolutionVersion, error) {
+	var solutionversion SolutionVersion
+	err := yaml.Unmarshal(data, &solutionversion)
 	if err != nil {
-		return Solution{}, err
+		return SolutionVersion{}, err
 	}
 	yamlComponents := make([]ComponentSpec, 0)
 	for _, name := range components {
@@ -81,9 +81,9 @@ func addComponentsToSolution(data []byte, components []string) (Solution, error)
 			yamlComponents = append(yamlComponents, val)
 		}
 	}
-	solution.Spec.Components = yamlComponents
+	solutionversion.Spec.Components = yamlComponents
 
-	return solution, nil
+	return solutionversion, nil
 }
 
 func addComponentsToTarget(data []byte, components []string) (Target, error) {
@@ -110,15 +110,15 @@ type (
 		Namespace   string
 		Parameters  map[string]interface{}
 		PostProcess func(*Instance)
-		Solution    string
+		SolutionVersion    string
 	}
 
-	SolutionOptions struct {
+	SolutionVersionOptions struct {
 		NamePostfix    string
 		ComponentNames []string
 		Namespace      string
-		PostProcess    func(*Solution)
-		SolutionName   string
+		PostProcess    func(*SolutionVersion)
+		SolutionVersionName   string
 	}
 
 	TargetOptions = struct {
@@ -141,9 +141,9 @@ const (
 
 var leadingDash = regexp.MustCompile(`^-`)
 
-func PatchSolution(data []byte, opts SolutionOptions) ([]byte, error) {
-	var solution Solution
-	err := yaml.Unmarshal(data, &solution)
+func PatchSolutionVersion(data []byte, opts SolutionVersionOptions) ([]byte, error) {
+	var solutionversion SolutionVersion
+	err := yaml.Unmarshal(data, &solutionversion)
 	if err != nil {
 		return nil, err
 	}
@@ -156,29 +156,29 @@ func PatchSolution(data []byte, opts SolutionOptions) ([]byte, error) {
 		}
 	}
 
-	if solution.Metadata.Annotations == nil {
-		solution.Metadata.Annotations = make(map[string]string)
+	if solutionversion.Metadata.Annotations == nil {
+		solutionversion.Metadata.Annotations = make(map[string]string)
 	}
 
 	if opts.NamePostfix != "" {
-		solution.Metadata.Name = fmt.Sprintf("%s-%s", solution.Metadata.Name, opts.NamePostfix)
-		solution.Metadata.Name = leadingDash.ReplaceAllString(solution.Metadata.Name, "")
+		solutionversion.Metadata.Name = fmt.Sprintf("%s-%s", solutionversion.Metadata.Name, opts.NamePostfix)
+		solutionversion.Metadata.Name = leadingDash.ReplaceAllString(solutionversion.Metadata.Name, "")
 	}
 
 	if opts.Namespace != "" {
-		solution.Metadata.Namespace = opts.Namespace
+		solutionversion.Metadata.Namespace = opts.Namespace
 	}
 
-	if opts.SolutionName != "" {
-		solution.Metadata.Name = opts.SolutionName
+	if opts.SolutionVersionName != "" {
+		solutionversion.Metadata.Name = opts.SolutionVersionName
 	}
 
-	solution.Metadata.Annotations[AzureOperationIdKey] = string(uuid.NewUUID())
-	solution.Spec.Components = yamlComponents
+	solutionversion.Metadata.Annotations[AzureOperationIdKey] = string(uuid.NewUUID())
+	solutionversion.Spec.Components = yamlComponents
 	if opts.PostProcess != nil {
-		opts.PostProcess(&solution)
+		opts.PostProcess(&solutionversion)
 	}
-	return yaml.Marshal(solution)
+	return yaml.Marshal(solutionversion)
 }
 
 func PatchTarget(data []byte, opts TargetOptions) ([]byte, error) {
@@ -244,8 +244,8 @@ func PatchInstance(data []byte, opts InstanceOptions) ([]byte, error) {
 		instance.Spec.Scope = opts.Scope
 	}
 
-	if opts.Solution != "" {
-		instance.Spec.Solution = opts.Solution
+	if opts.SolutionVersion != "" {
+		instance.Spec.SolutionVersion = opts.SolutionVersion
 	}
 
 	if opts.Parameters != nil {
@@ -263,20 +263,20 @@ func PatchInstance(data []byte, opts InstanceOptions) ([]byte, error) {
 	return yaml.Marshal(instance)
 }
 
-func PatchSolutionContainer(data []byte, opts ContainerOptions) ([]byte, error) {
-	var solutionContainer SolutionContainer
-	err := yaml.Unmarshal(data, &solutionContainer)
+func PatchSolution(data []byte, opts ContainerOptions) ([]byte, error) {
+	var solutionversionContainer Solution
+	err := yaml.Unmarshal(data, &solutionversionContainer)
 	if err != nil {
 		return nil, err
 	}
 
 	if opts.Namespace != "" {
-		solutionContainer.Metadata.Namespace = opts.Namespace
+		solutionversionContainer.Metadata.Namespace = opts.Namespace
 	}
 
-	if solutionContainer.Metadata.Annotations == nil {
-		solutionContainer.Metadata.Annotations = make(map[string]string)
+	if solutionversionContainer.Metadata.Annotations == nil {
+		solutionversionContainer.Metadata.Annotations = make(map[string]string)
 	}
 
-	return yaml.Marshal(solutionContainer)
+	return yaml.Marshal(solutionversionContainer)
 }

@@ -1,0 +1,13 @@
+apiVersion: solution.symphony/v1
+kind: SolutionVersion
+metadata: 
+  name: redis-server
+  annotations: 
+    management.azure.com/resourceId: /subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourcegroups/test-rg/providers/Microsoft.Edge/targets/targetName/solutionversions/solutionversionName/versions/version1
+spec:  
+  rootResource: solution0
+  components:
+  - name: deployment-gate
+    type: http
+    properties:
+      http.url: "https://www.bing.com/"

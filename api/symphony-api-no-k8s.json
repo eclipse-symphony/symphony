@@ -47,8 +47,8 @@
               "singleton": "true"
             },
             "providers": {
-              "catalog": {
-                "type": "providers.config.catalog",
+              "catalogversion": {
+                "type": "providers.config.catalogversion",
                 "config": {
                   "user": "admin",
                   "password": ""
@@ -78,8 +78,8 @@
             }
           },
           {
-            "name": "campaigns-manager",
-            "type": "managers.symphony.campaigns",
+            "name": "campaignversions-manager",
+            "type": "managers.symphony.campaignversions",
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true"
@@ -160,12 +160,12 @@
         ]
       },
       {
-        "type": "vendors.campaigns",
-        "route": "campaigns",
+        "type": "vendors.campaignversions",
+        "route": "campaignversions",
         "managers": [
           {
-            "name": "campaigns-manager",
-            "type": "managers.symphony.campaigns",
+            "name": "campaignversions-manager",
+            "type": "managers.symphony.campaignversions",
             "properties": {
               "providers.persistentstate": "k8s-state",
               "singleton": "true"
@@ -180,12 +180,12 @@
         ]
       },
       {
-        "type": "vendors.campaigncontainers",
-        "route": "campaigncontainers",
+        "type": "vendors.campaigns",
+        "route": "campaigns",
         "managers": [
           {
-            "name": "campaign-container-manager",
-            "type": "managers.symphony.campaigncontainers",
+            "name": "campaignversion-container-manager",
+            "type": "managers.symphony.campaigns",
             "properties": {
               "providers.persistentstate": "k8s-state"
             },
@@ -253,13 +253,13 @@
         }
       },
       {
-        "type": "vendors.solutions",
+        "type": "vendors.solutionversions",
         "loopInterval": 15,
-        "route": "solutions",
+        "route": "solutionversions",
         "managers": [
           {
-            "name": "solutions-manager",
-            "type": "managers.symphony.solutions",
+            "name": "solutionversions-manager",
+            "type": "managers.symphony.solutionversions",
             "properties": {
               "providers.persistentstate": "k8s-state"
             },
@@ -296,12 +296,12 @@
         }
       },
 	    {
-        "type": "vendors.solutioncontainers",
-        "route": "solutioncontainers",
+        "type": "vendors.solutions",
+        "route": "solutions",
         "managers": [
           {
-            "name": "solution-container-manager",
-            "type": "managers.symphony.solutioncontainers",
+            "name": "solutionversion-container-manager",
+            "type": "managers.symphony.solutions",
             "properties": {
               "providers.persistentstate": "k8s-state"
             },
@@ -398,13 +398,13 @@
         ]
       },
       {
-        "type": "vendors.solution",
+        "type": "vendors.solutionversion",
         "loopInterval": 15,
-        "route": "solution",
+        "route": "solutionversion",
         "managers": [
           {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
+            "name": "solutionversion-manager",
+            "type": "managers.symphony.solutionversion",
             "properties": {
               "providers.persistentstate": "mem-state",
               "providers.config": "mock-config",
@@ -493,8 +493,8 @@
             }
           },
           {
-            "name": "catalogs-manager",
-            "type": "managers.symphony.catalogs",
+            "name": "catalogversions-manager",
+            "type": "managers.symphony.catalogversions",
             "properties": {
               "providers.persistentstate": "memory",
               "singleton": "true"              
@@ -540,12 +540,12 @@
         ]
       },
       {
-        "type": "vendors.catalogs",
-        "route": "catalogs",
+        "type": "vendors.catalogversions",
+        "route": "catalogversions",
         "managers": [
           {
-            "name": "catalogs-manager",
-            "type": "managers.symphony.catalogs",
+            "name": "catalogversions-manager",
+            "type": "managers.symphony.catalogversions",
             "properties": {
               "providers.persistentstate": "memory",
               "singleton": "true"
@@ -564,12 +564,12 @@
         ]
       },
       {
-        "type": "vendors.catalogcontainers",
-        "route": "catalogcontainers",
+        "type": "vendors.catalogs",
+        "route": "catalogs",
         "managers": [
           {
-            "name": "catalog-container-manager",
-            "type": "managers.symphony.catalogcontainers",
+            "name": "catalogversion-container-manager",
+            "type": "managers.symphony.catalogs",
             "properties": {
               "providers.persistentstate": "memory",
               "singleton": "true" 
@@ -588,8 +588,8 @@
         "route": "visualization",
         "managers": [
           {
-            "name": "catalogs-manager",
-            "type": "managers.symphony.catalogs",
+            "name": "catalogversions-manager",
+            "type": "managers.symphony.catalogversions",
             "properties": {
               "providers.persistentstate": "memory",
               "singleton": "true"
@@ -627,7 +627,7 @@
           {
             "type": "middleware.http.jwt",
             "properties": {
-              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solution/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
+              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solutionversion/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
               "verifyKey": "SymphonyKey",
               "enableRBAC": true,
               "roles": [
@@ -642,7 +642,7 @@
                   "value": "*"
                 },
                 {
-                  "role": "solution-creator",
+                  "role": "solutionversion-creator",
                   "claim": "user",
                   "value": "developer"
                 },
@@ -654,7 +654,7 @@
                 {
                   "role": "operator",
                   "claim": "user",
-                  "value": "solution-operator"
+                  "value": "solutionversion-operator"
                 }
               ],
               "policy": {
@@ -668,9 +668,9 @@
                     "*": "GET"
                   }
                 },
-                "solution-creator": {
+                "solutionversion-creator": {
                   "items": {
-                    "/v1alpha2/solutions": "*"
+                    "/v1alpha2/solutionversions": "*"
                   }
                 },
                 "target-manager": {
@@ -678,7 +678,7 @@
                     "/v1alpha2/targets": "*"
                   }
                 },
-                "solution-operator": {
+                "solutionversion-operator": {
                   "items": {
                     "/v1alpha2/instances": "*"
                   }

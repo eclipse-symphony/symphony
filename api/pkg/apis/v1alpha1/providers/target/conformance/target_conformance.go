@@ -53,8 +53,8 @@ func RequiredPropertiesAndMetadata[P target.ITargetProvider](t *testing.T, p P) 
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: desired,
 			},
 		},
@@ -102,8 +102,8 @@ func AnyRequiredPropertiesMissing[P target.ITargetProvider](t *testing.T, p P) {
 			Instance: model.InstanceState{
 				Spec: &model.InstanceSpec{},
 			},
-			Solution: model.SolutionState{
-				Spec: &model.SolutionSpec{
+			SolutionVersion: model.SolutionVersionState{
+				Spec: &model.SolutionVersionSpec{
 					Components: desired,
 				},
 			},

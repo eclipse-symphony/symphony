@@ -29,7 +29,7 @@ type (
 		Scope       string            `json:"scope,omitempty"`
 		Parameters  map[string]string `json:"parameters,omitempty"` //TODO: Do we still need this?
 		Metadata    map[string]string `json:"metadata,omitempty"`
-		Solution    string            `json:"solution"`
+		SolutionVersion    string            `json:"solutionversion"`
 		Target      TargetSelector    `json:"target,omitempty"`
 		Topologies  []TopologySpec    `json:"topologies,omitempty"`
 		Pipelines   []PipelineSpec    `json:"pipelines,omitempty"`

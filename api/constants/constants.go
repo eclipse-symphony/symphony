@@ -78,13 +78,13 @@ func SystemReservedAnnotationsByPostfixes() []string {
 
 func SystemReservedLabels() []string {
 	return []string{
-		Campaign,
+		CampaignVersion,
 		DisplayName,
 		ProviderName,
 		ManagerMetaKey,
 		ParentName,
 		RootResource,
-		Solution,
+		SolutionVersion,
 		StagedTarget,
 		StatusMessage,
 		Target,
@@ -105,12 +105,12 @@ const (
 	RootResourceUid    = "rootResourceUid"
 	ParentName         = "parentName"
 	StatusMessage      = "statusMessage"
-	Solution           = "solution"
-	SolutionUid        = "solutionUid"
+	SolutionVersion           = "solutionversion"
+	SolutionVersionUid        = "solutionversionUid"
 	Target             = "target"
 	TargetUid          = "targetUid"
-	Campaign           = "campaign"
-	CampaignUid        = "campaignUid"
+	CampaignVersion           = "campaignversion"
+	CampaignVersionUid        = "campaignversionUid"
 	StagedTarget       = "staged_target"
 )
 

@@ -1,0 +1,19 @@
+apiVersion: solution.symphony/v1
+kind: Solution
+metadata:
+  name: history-solutionversion
+spec:
+---
+apiVersion: solution.symphony/v1
+kind: SolutionVersion
+metadata:
+  name: history-solutionversion-v-version1
+  annotations: 
+    management.azure.com/resourceId: history-solutionversion:version1
+spec:
+  rootResource: history-solutionversion
+  components:
+    - name: configmap
+      type: config
+      properties: 
+        tags: "test-history"

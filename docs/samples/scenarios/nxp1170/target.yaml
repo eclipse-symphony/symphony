@@ -9,4 +9,4 @@ spec:
       provider: providers.target.proxy
       config:
         name: proxy
-        serverUrl: "http://192.168.50.113:8098/v1alpha2/solution/"
+        serverUrl: "http://192.168.50.113:8098/v1alpha2/solutionversion/"

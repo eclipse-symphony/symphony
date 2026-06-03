@@ -98,7 +98,7 @@ func TestActivationUpsert(t *testing.T) {
 					"name": "a1",
 				},
 				"spec": model.ActivationSpec{
-					Campaign: "c1",
+					CampaignVersion: "c1",
 					Stage:    "s1",
 				},
 			},
@@ -132,7 +132,7 @@ func TestActivationList(t *testing.T) {
 		Value: states.StateEntry{
 			ID: "a1",
 			Body: model.ActivationSpec{
-				Campaign: "c1",
+				CampaignVersion: "c1",
 				Stage:    "s1",
 			},
 		},
@@ -233,7 +233,7 @@ func TestActivationGet(t *testing.T) {
 					"name": "a1",
 				},
 				"spec": model.ActivationSpec{
-					Campaign: "c1",
+					CampaignVersion: "c1",
 					Stage:    "s1",
 				},
 			},
@@ -309,7 +309,7 @@ func TestActivationUpsertWithState(t *testing.T) {
 					"name": "a1",
 				},
 				"spec": model.ActivationSpec{
-					Campaign: "c1",
+					CampaignVersion: "c1",
 					Stage:    "s1",
 				},
 				"status": dict,
@@ -411,12 +411,12 @@ func TestActivationUpsertWithStateOnly(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCatalogSpecFilter(t *testing.T) {
+func TestCatalogVersionSpecFilter(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
-	err := checkCatalogCRDApplied()
+	err := checkCatalogVersionCRDApplied()
 	assert.Nil(t, err)
 	provider := K8sStateProvider{}
 	err = provider.Init(K8sStateProviderConfig{
@@ -429,11 +429,11 @@ func TestCatalogSpecFilter(t *testing.T) {
 			ID: "c2",
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup,
-				"kind":       "Catalog",
+				"kind":       "CatalogVersion",
 				"metadata": map[string]interface{}{
 					"name": "c2",
 				},
-				"spec": model.CatalogSpec{
+				"spec": model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -444,8 +444,8 @@ func TestCatalogSpecFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -455,8 +455,8 @@ func TestCatalogSpecFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 		FilterType:  "spec",
 		FilterValue: `[?(@.properties.foo=="bar")]`,
@@ -470,18 +470,18 @@ func TestCatalogSpecFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
 }
-func TestCatalogLabelFilter(t *testing.T) {
+func TestCatalogVersionLabelFilter(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
-	err := checkCatalogCRDApplied()
+	err := checkCatalogVersionCRDApplied()
 	assert.Nil(t, err)
 	provider := K8sStateProvider{}
 	err = provider.Init(K8sStateProviderConfig{
@@ -494,7 +494,7 @@ func TestCatalogLabelFilter(t *testing.T) {
 			ID: "c2",
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup,
-				"kind":       "Catalog",
+				"kind":       "CatalogVersion",
 				"metadata": map[string]interface{}{
 					"name": "c2",
 					"labels": map[string]interface{}{
@@ -502,7 +502,7 @@ func TestCatalogLabelFilter(t *testing.T) {
 						"foo2": "bar2",
 					},
 				},
-				"spec": model.CatalogSpec{
+				"spec": model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -513,8 +513,8 @@ func TestCatalogLabelFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -524,8 +524,8 @@ func TestCatalogLabelFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 		FilterType:  "label",
 		FilterValue: `foo=bar,foo2=bar2`,
@@ -539,18 +539,18 @@ func TestCatalogLabelFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
 }
-func TestCatalogFieldFilter(t *testing.T) {
+func TestCatalogVersionFieldFilter(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
-	err := checkCatalogCRDApplied()
+	err := checkCatalogVersionCRDApplied()
 	assert.Nil(t, err)
 	provider := K8sStateProvider{}
 	err = provider.Init(K8sStateProviderConfig{
@@ -563,11 +563,11 @@ func TestCatalogFieldFilter(t *testing.T) {
 			ID: "c2",
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup,
-				"kind":       "Catalog",
+				"kind":       "CatalogVersion",
 				"metadata": map[string]interface{}{
 					"name": "c2",
 				},
-				"spec": model.CatalogSpec{
+				"spec": model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -583,8 +583,8 @@ func TestCatalogFieldFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -594,8 +594,8 @@ func TestCatalogFieldFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 		FilterType:  "field",
 		FilterValue: `metadata.name==c2`,
@@ -609,19 +609,19 @@ func TestCatalogFieldFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
 }
 
-func TestCatalogStatusFilter(t *testing.T) {
+func TestCatalogVersionStatusFilter(t *testing.T) {
 	testK8s := os.Getenv("TEST_K8S_STATE")
 	if testK8s == "" {
 		t.Skip("Skipping because TEST_K8S_STATE enviornment variable is not set")
 	}
-	err := checkCatalogCRDApplied()
+	err := checkCatalogVersionCRDApplied()
 	assert.Nil(t, err)
 	provider := K8sStateProvider{}
 	err = provider.Init(K8sStateProviderConfig{
@@ -634,11 +634,11 @@ func TestCatalogStatusFilter(t *testing.T) {
 			ID: "c2",
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup,
-				"kind":       "Catalog",
+				"kind":       "CatalogVersion",
 				"metadata": map[string]interface{}{
 					"name": "c2",
 				},
-				"spec": model.CatalogSpec{
+				"spec": model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -654,8 +654,8 @@ func TestCatalogStatusFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -667,8 +667,8 @@ func TestCatalogStatusFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -678,11 +678,11 @@ func TestCatalogStatusFilter(t *testing.T) {
 			ID: "c2",
 			Body: map[string]interface{}{
 				"apiVersion": model.FederationGroup,
-				"kind":       "Catalog",
+				"kind":       "CatalogVersion",
 				"metadata": map[string]interface{}{
 					"name": "c2",
 				},
-				"spec": model.CatalogSpec{
+				"spec": model.CatalogVersionSpec{
 					Properties: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -699,8 +699,8 @@ func TestCatalogStatusFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -710,8 +710,8 @@ func TestCatalogStatusFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 		FilterType:  "status",
 		FilterValue: `[?(@.properties.foo=="bar")]`,
@@ -725,8 +725,8 @@ func TestCatalogStatusFilter(t *testing.T) {
 			"namespace": "default",
 			"group":     model.FederationGroup,
 			"version":   "v1",
-			"resource":  "catalogs",
-			"kind":      "Catalog",
+			"resource":  "catalogversions",
+			"kind":      "CatalogVersion",
 		},
 	})
 	assert.Nil(t, err)
@@ -737,13 +737,13 @@ func runKubectl(args ...string) ([]byte, error) {
 	return cmd.Output()
 }
 
-func checkCatalogCRDApplied() error {
+func checkCatalogVersionCRDApplied() error {
 	// Check that the CRD is applied
-	_, err := runKubectl("get", "crd", "catalogs.federation.symphony")
+	_, err := runKubectl("get", "crd", "catalogversions.federation.symphony")
 	if err != nil {
 		// apply the CRD api/pkg/apis/v1alpha1/providers/states/k8s/k8s_test.go
 		ProjectPath := os.Getenv("REPOPATH")
-		activationYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/federation.symphony_catalogs.yaml"
+		activationYamlPath := ProjectPath + "/k8s/config/oss/crd/bases/federation.symphony_catalogversions.yaml"
 		if _, err := os.Stat(activationYamlPath); err != nil {
 			return err
 		}

@@ -157,21 +157,21 @@ func (i *ListStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 		} else {
 			outputs["items"] = filteredSites
 		}
-	case "catalogs":
-		var catalogs []model.CatalogState
-		catalogs, err = i.ApiClient.GetCatalogs(ctx, objectNamespace, i.Config.User, i.Config.Password)
+	case "catalogversions":
+		var catalogversions []model.CatalogVersionState
+		catalogversions, err = i.ApiClient.GetCatalogVersions(ctx, objectNamespace, i.Config.User, i.Config.Password)
 		if err != nil {
-			log.ErrorfCtx(ctx, "  P (List Processor): failed to get catalogs: %v", err)
+			log.ErrorfCtx(ctx, "  P (List Processor): failed to get catalogversions: %v", err)
 			return nil, false, err
 		}
 		if namesOnly {
 			names := make([]string, 0)
-			for _, catalog := range catalogs {
-				names = append(names, catalog.ObjectMeta.Name)
+			for _, catalogversion := range catalogversions {
+				names = append(names, catalogversion.ObjectMeta.Name)
 			}
 			outputs["items"] = names
 		} else {
-			outputs["items"] = catalogs
+			outputs["items"] = catalogversions
 		}
 	default:
 		log.ErrorfCtx(ctx, "  P (List Processor): unsupported object type: %s", objectType)

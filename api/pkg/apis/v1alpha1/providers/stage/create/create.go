@@ -195,20 +195,20 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 		objectNamespace = "default"
 	}
 	switch objectType {
-	case "solution":
+	case "solutionversion":
 		if strings.EqualFold(action, RemoveAction) {
-			solutionName := api_utils.ConvertReferenceToObjectName(objectName)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to delete solution name %s namespace %s", solutionName, objectNamespace)
-			err = i.ApiClient.DeleteSolution(ctx, solutionName, objectNamespace, i.Config.User, i.Config.Password)
+			solutionversionName := api_utils.ConvertReferenceToObjectName(objectName)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Create Stage): Start to delete solutionversion name %s namespace %s", solutionversionName, objectNamespace)
+			err = i.ApiClient.DeleteSolutionVersion(ctx, solutionversionName, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.DeleteSolutionFailed.String(),
+					v1alpha2.DeleteSolutionVersionFailed.String(),
 				)
-				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to delete solution: %+v", err)
+				mLog.ErrorfCtx(ctx, "  P (Create Stage) process failed, failed to delete solutionversion: %+v", err)
 				return nil, false, err
 			}
 			outputs["objectType"] = objectType
@@ -216,81 +216,81 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 			return outputs, false, nil
 		} else if strings.EqualFold(action, CreateAction) {
 			objectName := stage.ReadInputString(inputs, "objectName")
-			solutionName := api_utils.ConvertReferenceToObjectName(objectName)
-			var solutionState model.SolutionState
-			err = utils2.UnmarshalJson(objectData, &solutionState)
+			solutionversionName := api_utils.ConvertReferenceToObjectName(objectName)
+			var solutionversionState model.SolutionVersionState
+			err = utils2.UnmarshalJson(objectData, &solutionversionState)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to unmarshal solution state for input %s: %s", objectName, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal solutionversion state for input %s: %s", objectName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidSolutionCatalog.String(),
+					v1alpha2.InvalidSolutionVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solution in inputs %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded solutionversion in inputs %s", objectName), v1alpha2.BadRequest)
 			}
 
-			solutionState.ObjectMeta.Namespace = objectNamespace
-			solutionState.ObjectMeta.Name = solutionName
+			solutionversionState.ObjectMeta.Namespace = objectNamespace
+			solutionversionState.ObjectMeta.Name = solutionversionName
 			parts := strings.Split(objectName, constants.ReferenceSeparator)
 			if len(parts) == 2 {
-				solutionState.Spec.RootResource = parts[0]
-				solutionState.Spec.Version = parts[1]
+				solutionversionState.Spec.RootResource = parts[0]
+				solutionversionState.Spec.Version = parts[1]
 			} else {
-				mLog.ErrorfCtx(ctx, "Solution name is invalid: solution - %s.", objectName)
+				mLog.ErrorfCtx(ctx, "SolutionVersion name is invalid: solutionversion - %s.", objectName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.InvalidSolutionCatalog.String(),
+					v1alpha2.InvalidSolutionVersionCatalogVersion.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solutionversion name: %s", objectName), v1alpha2.BadRequest)
 			}
 
 			if label_key != "" && label_value != "" {
 				// Check if labels exists within metadata, if not create it
-				labels := solutionState.ObjectMeta.Labels
+				labels := solutionversionState.ObjectMeta.Labels
 				if labels == nil {
 					labels = make(map[string]string)
-					solutionState.ObjectMeta.Labels = labels
+					solutionversionState.ObjectMeta.Labels = labels
 				}
 				// Add the label
 				labels[label_key] = label_value
 			}
 			if annotation_name != "" {
-				solutionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
+				solutionversionState.ObjectMeta.UpdateAnnotation(annotation_name, parts[1])
 			}
-			mLog.DebugfCtx(ctx, "  P (Create Processor): check solution contains %v, namespace %s", solutionState.Spec.RootResource, objectNamespace)
-			_, err := i.ApiClient.GetSolutionContainer(ctx, solutionState.Spec.RootResource, objectNamespace, i.Config.User, i.Config.Password)
+			mLog.DebugfCtx(ctx, "  P (Create Processor): check solutionversion contains %v, namespace %s", solutionversionState.Spec.RootResource, objectNamespace)
+			_, err := i.ApiClient.GetSolution(ctx, solutionversionState.Spec.RootResource, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil && api_utils.IsNotFound(err) {
-				mLog.DebugfCtx(ctx, "Solution container %s doesn't exist: %s", solutionState.Spec.RootResource, err.Error())
-				solutionContainerState := model.SolutionContainerState{ObjectMeta: model.ObjectMeta{Name: solutionState.Spec.RootResource, Namespace: objectNamespace, Labels: solutionState.ObjectMeta.Labels}}
+				mLog.DebugfCtx(ctx, "SolutionVersion container %s doesn't exist: %s", solutionversionState.Spec.RootResource, err.Error())
+				solutionversionContainerState := model.SolutionState{ObjectMeta: model.ObjectMeta{Name: solutionversionState.Spec.RootResource, Namespace: objectNamespace, Labels: solutionversionState.ObjectMeta.Labels}}
 
 				// Set the owner reference
 				target := stage.ReadInputString(inputs, "__target")
 				target = api_utils.GetInstanceTargetName(target)
-				ownerReference, err := api_utils.GetSolutionContainerOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
+				ownerReference, err := api_utils.GetSolutionOwnerReferences(i.ApiClient, ctx, target, objectNamespace, i.Config.User, i.Config.Password)
 				if err != nil {
-					mLog.ErrorfCtx(ctx, "Failed to get owner reference for solution %s: %s", objectName, err.Error())
+					mLog.ErrorfCtx(ctx, "Failed to get owner reference for solutionversion %s: %s", objectName, err.Error())
 					providerOperationMetrics.ProviderOperationErrors(
 						create,
 						functionName,
 						metrics.ProcessOperation,
 						metrics.RunOperationType,
-						v1alpha2.CreateSolutionFailed.String(),
+						v1alpha2.CreateSolutionVersionFailed.String(),
 					)
 					return outputs, false, err
 				}
 				if ownerReference != nil {
-					solutionContainerState.ObjectMeta.OwnerReferences = ownerReference
+					solutionversionContainerState.ObjectMeta.OwnerReferences = ownerReference
 				}
-				containerObjectData, _ := json.Marshal(solutionContainerState)
-				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solution container %v in namespace %s", solutionState.Spec.RootResource, objectNamespace)
-				err = i.ApiClient.CreateSolutionContainer(ctx, solutionState.Spec.RootResource, containerObjectData, objectNamespace, i.Config.User, i.Config.Password)
+				containerObjectData, _ := json.Marshal(solutionversionContainerState)
+				observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to create solutionversion container %v in namespace %s", solutionversionState.Spec.RootResource, objectNamespace)
+				err = i.ApiClient.CreateSolution(ctx, solutionversionState.Spec.RootResource, containerObjectData, objectNamespace, i.Config.User, i.Config.Password)
 				if err != nil {
-					mLog.ErrorfCtx(ctx, "Failed to create solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+					mLog.ErrorfCtx(ctx, "Failed to create solutionversion container %s: %s", solutionversionState.Spec.RootResource, err.Error())
 					providerOperationMetrics.ProviderOperationErrors(
 						create,
 						functionName,
@@ -301,7 +301,7 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					return outputs, false, err
 				}
 			} else if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to get solution container %s: %s", solutionState.Spec.RootResource, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to get solutionversion container %s: %s", solutionversionState.Spec.RootResource, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -312,23 +312,23 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				return outputs, false, err
 			}
 
-			objectData, _ := json.Marshal(solutionState)
-			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solution %v to namespace %s", solutionState.ObjectMeta.Name, solutionState.ObjectMeta.Namespace)
-			err = i.ApiClient.UpsertSolution(ctx, solutionState.ObjectMeta.Name, objectData, solutionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			objectData, _ := json.Marshal(solutionversionState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize solutionversion %v to namespace %s", solutionversionState.ObjectMeta.Name, solutionversionState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize solutionversion %v to namespace %s", solutionversionState.ObjectMeta.Name, solutionversionState.ObjectMeta.Namespace)
+			err = i.ApiClient.UpsertSolutionVersion(ctx, solutionversionState.ObjectMeta.Name, objectData, solutionversionState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				mLog.ErrorfCtx(ctx, "Failed to create solution %s: %s", solutionState.ObjectMeta.Name, err.Error())
+				mLog.ErrorfCtx(ctx, "Failed to create solutionversion %s: %s", solutionversionState.ObjectMeta.Name, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.CreateSolutionFromCatalogFailed.String(),
+					v1alpha2.CreateSolutionVersionFromCatalogVersionFailed.String(),
 				)
 				return outputs, false, err
 			}
 			outputs["objectType"] = objectType
-			outputs["objectName"] = solutionName
+			outputs["objectName"] = solutionversionName
 			return outputs, false, nil
 		} else {
 			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("Unsupported action: %s", action), v1alpha2.BadRequest)
@@ -400,10 +400,10 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 				}
 			}
 
-			// Get the solution and container name
-			solutionContainer, solutionVersion := api_utils.GetSolutionAndContainerName(instanceState.Spec.Solution)
-			if solutionContainer == "" || solutionVersion == "" {
-				mLog.ErrorfCtx(ctx, "Invalid solution name: instance - %s", objectName)
+			// Get the solutionversion and container name
+			solutionversionContainer, solutionversionVersion := api_utils.GetSolutionVersionAndContainerName(instanceState.Spec.SolutionVersion)
+			if solutionversionContainer == "" || solutionversionVersion == "" {
+				mLog.ErrorfCtx(ctx, "Invalid solutionversion name: instance - %s", objectName)
 				providerOperationMetrics.ProviderOperationErrors(
 					create,
 					functionName,
@@ -411,13 +411,13 @@ func (i *CreateStageProvider) Process(ctx context.Context, mgrContext contexts.M
 					metrics.RunOperationType,
 					v1alpha2.CreateInstanceFailed.String(),
 				)
-				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solution name: instance - %s", objectName), v1alpha2.BadRequest)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Invalid solutionversion name: instance - %s", objectName), v1alpha2.BadRequest)
 			}
 			// Get instanceName
-			instanceName := api_utils.GetInstanceName(solutionContainer, objectName)
+			instanceName := api_utils.GetInstanceName(solutionversionContainer, objectName)
 
 			// Set the owner reference
-			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, solutionContainer, objectNamespace, i.Config.User, i.Config.Password)
+			ownerReference, err := api_utils.GetInstanceOwnerReferences(i.ApiClient, ctx, solutionversionContainer, objectNamespace, i.Config.User, i.Config.Password)
 			if err != nil {
 				mLog.ErrorfCtx(ctx, "Failed to get owner reference for instance %s: %s", instanceName, err.Error())
 				providerOperationMetrics.ProviderOperationErrors(

@@ -14,7 +14,7 @@ import (
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
 	federation_v1 "gopls-workspace/apis/federation/v1"
 	k8smodel "gopls-workspace/apis/model/v1"
-	solution_v1 "gopls-workspace/apis/solution/v1"
+	solutionversion_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/reconcilers"
 	"gopls-workspace/utils"
 	"strconv"
@@ -65,8 +65,8 @@ var (
 var (
 	DefaultTargetNamepsacedName   = types.NamespacedName{Name: "testtarget", Namespace: TestNamespace}
 	DefaultInstanceNamespacedName = types.NamespacedName{Name: "testinstance", Namespace: TestNamespace}
-	DefaultSolutionNamespacedName = types.NamespacedName{Name: "solution-v-version1", Namespace: TestNamespace}
-	SolutionReferenceName         = "solution:version1"
+	DefaultSolutionVersionNamespacedName = types.NamespacedName{Name: "solutionversion-v-version1", Namespace: TestNamespace}
+	SolutionVersionReferenceName         = "solutionversion:version1"
 
 	TerminalError = v1alpha2.NewCOAError(errors.New(""), "timed out", v1alpha2.TimedOut)
 	NotFoundError = v1alpha2.NewCOAError(errors.New(""), "not found", v1alpha2.NotFound)
@@ -76,55 +76,55 @@ func (m *MockDelayer) Sleep(duration time.Duration) {
 	m.Called(duration)
 }
 
-func CreateFakeKubeClientForSolutionAndFabricGroup(objects ...client.Object) client.Client {
+func CreateFakeKubeClientForSolutionVersionAndFabricGroup(objects ...client.Object) client.Client {
 	scheme := runtime.NewScheme()
 	if objects == nil {
 		objects = []client.Object{
 			BuildDefaultInstance(),
-			BuildDefaultSolution(),
+			BuildDefaultSolutionVersion(),
 			BuildDefaultTarget(),
 		}
 	}
 
-	_ = solution_v1.AddToScheme(scheme)
+	_ = solutionversion_v1.AddToScheme(scheme)
 	_ = fabric_v1.AddToScheme(scheme)
 	clientObj := []client.Object{
-		&solution_v1.Instance{},
+		&solutionversion_v1.Instance{},
 		&fabric_v1.Target{},
-		&solution_v1.Solution{},
+		&solutionversion_v1.SolutionVersion{},
 	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
 		WithStatusSubresource(clientObj...).
-		WithIndex(&solution_v1.Instance{}, "spec.solution", func(rawObj client.Object) []string {
-			instance := rawObj.(*solution_v1.Instance)
-			return []string{instance.Spec.Solution}
+		WithIndex(&solutionversion_v1.Instance{}, "spec.solutionversion", func(rawObj client.Object) []string {
+			instance := rawObj.(*solutionversion_v1.Instance)
+			return []string{instance.Spec.SolutionVersion}
 		}).
 		Build()
 }
 
-func CreateFakeKubeClientForSolutionGroup(objects ...client.Object) client.Client {
+func CreateFakeKubeClientForSolutionVersionGroup(objects ...client.Object) client.Client {
 	scheme := runtime.NewScheme()
 	if objects == nil {
 		objects = []client.Object{
 			BuildDefaultInstance(),
-			BuildDefaultSolution(),
+			BuildDefaultSolutionVersion(),
 		}
 	}
 
-	_ = solution_v1.AddToScheme(scheme)
+	_ = solutionversion_v1.AddToScheme(scheme)
 	clientObj := []client.Object{
-		&solution_v1.Instance{},
-		&solution_v1.Solution{},
+		&solutionversion_v1.Instance{},
+		&solutionversion_v1.SolutionVersion{},
 	}
 	return fake.NewClientBuilder().
 		WithObjects(objects...).
 		WithScheme(scheme).
 		WithStatusSubresource(clientObj...).
-		WithIndex(&solution_v1.Instance{}, "spec.solution", func(rawObj client.Object) []string {
-			instance := rawObj.(*solution_v1.Instance)
-			return []string{instance.Spec.Solution}
+		WithIndex(&solutionversion_v1.Instance{}, "spec.solutionversion", func(rawObj client.Object) []string {
+			instance := rawObj.(*solutionversion_v1.Instance)
+			return []string{instance.Spec.SolutionVersion}
 		}).
 		Build()
 }
@@ -326,7 +326,7 @@ func createDeploymentBuilder(dr utils.DeploymentResources) func(ctx context.Cont
 		deployment, err := utils.CreateSymphonyDeployment(
 			ctx,
 			dr.Instance,
-			dr.Solution,
+			dr.SolutionVersion,
 			dr.TargetCandidates,
 			TestNamespace,
 		)
@@ -334,21 +334,21 @@ func createDeploymentBuilder(dr utils.DeploymentResources) func(ctx context.Cont
 	}
 }
 
-func BuildDefaultInstance() *solution_v1.Instance {
-	return &solution_v1.Instance{
+func BuildDefaultInstance() *solutionversion_v1.Instance {
+	return &solutionversion_v1.Instance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      DefaultInstanceNamespacedName.Name,
 			Namespace: DefaultInstanceNamespacedName.Namespace,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Instance",
-			APIVersion: solution_v1.GroupVersion.String(),
+			APIVersion: solutionversion_v1.GroupVersion.String(),
 		},
 		Spec: k8smodel.InstanceSpec{
 			Target: model.TargetSelector{
 				Name: DefaultTargetNamepsacedName.Name,
 			},
-			Solution: SolutionReferenceName,
+			SolutionVersion: SolutionVersionReferenceName,
 		},
 	}
 }
@@ -369,17 +369,17 @@ func BuildDefaultTarget() *fabric_v1.Target {
 	}
 }
 
-func BuildDefaultSolution() *solution_v1.Solution {
-	return &solution_v1.Solution{
+func BuildDefaultSolutionVersion() *solutionversion_v1.SolutionVersion {
+	return &solutionversion_v1.SolutionVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      DefaultSolutionNamespacedName.Name,
-			Namespace: DefaultSolutionNamespacedName.Namespace,
+			Name:      DefaultSolutionVersionNamespacedName.Name,
+			Namespace: DefaultSolutionVersionNamespacedName.Namespace,
 		},
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Solution",
-			APIVersion: solution_v1.GroupVersion.String(),
+			Kind:       "SolutionVersion",
+			APIVersion: solutionversion_v1.GroupVersion.String(),
 		},
-		Spec: k8smodel.SolutionSpec{},
+		Spec: k8smodel.SolutionVersionSpec{},
 	}
 }
 

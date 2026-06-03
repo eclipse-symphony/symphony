@@ -32,7 +32,7 @@ type (
 		// Name gives the brief introduction of each test case
 		Name string
 
-		// Target is Symphony manifest to test, e.g. solution/target
+		// Target is Symphony manifest to test, e.g. solutionversion/target
 		Target string
 
 		// ComponentsToAdd specifies the components to be added to the symphony manifest
@@ -56,19 +56,19 @@ var (
 var (
 	// Manifest templates
 	containerManifestTemplates = []string{
-		fmt.Sprintf("%s/solution-container.yaml", manifestTemplateFolder),
+		fmt.Sprintf("%s/solutionversion-container.yaml", manifestTemplateFolder),
 	}
 
 	manifestTemplates = []string{
 		fmt.Sprintf("%s/target.yaml", manifestTemplateFolder),
-		fmt.Sprintf("%s/solution.yaml", manifestTemplateFolder),
+		fmt.Sprintf("%s/solutionversion.yaml", manifestTemplateFolder),
 		fmt.Sprintf("%s/instance.yaml", manifestTemplateFolder),
 	}
 
 	// Manifests to deploy
 	testManifests = []string{
 		fmt.Sprintf("%s/target.yaml", testManifestsFolder),
-		fmt.Sprintf("%s/solution.yaml", testManifestsFolder),
+		fmt.Sprintf("%s/solutionversion.yaml", testManifestsFolder),
 		fmt.Sprintf("%s/instance.yaml", testManifestsFolder),
 	}
 
@@ -88,15 +88,15 @@ var (
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Solution to add bitnami nginx",
-			Target:              "solution",
+			Name:                "Update Symphony SolutionVersion to add bitnami nginx",
+			Target:              "solutionversion",
 			ComponentsToAdd:     []string{"bitnami-nginx"},
 			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-faultupdatetarget", "nginx"},
 			DeletedPodsToVerify: []string{},
 		},
 		{
-			Name:                "Update Symphony Solution to remove bitnami nginx and add prometheus",
-			Target:              "solution",
+			Name:                "Update Symphony SolutionVersion to remove bitnami nginx and add prometheus",
+			Target:              "solutionversion",
 			ComponentsToAdd:     []string{"prometheus-server"},
 			PodsToVerify:        []string{"proxy-nginx-ingress-controller", "target-runtime-faultupdatetarget", "faultupdateinstance"},
 			DeletedPodsToVerify: []string{"nginx"},
@@ -155,7 +155,7 @@ func Scenario_Update(t *testing.T, namespace string) {
 			fullPath, err := filepath.Abs(manifest)
 			require.NoError(t, err)
 			// skip deploying unchanged manifest to test instance Watch logic
-			// i.e. target and solution changes should trigger instance reconciler
+			// i.e. target and solutionversion changes should trigger instance reconciler
 			if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 				continue
 			}

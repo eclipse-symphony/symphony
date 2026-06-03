@@ -1,14 +1,14 @@
 'use client';
 
-import { CatalogState, CatalogSpec } from '@/app/types';
+import { CatalogVersionState, CatalogVersionSpec } from '@/app/types';
 import { useEffect, useState } from 'react';
 import { Schema, Rule} from '../../app/types';
 import { IoIosAddCircle } from 'react-icons/io';
 import { Chip } from "@nextui-org/react";
 import Button from '@mui/material/Button';
 
-interface CatalogEditorProps {
-    schemas: CatalogState[];
+interface CatalogVersionEditorProps {
+    schemas: CatalogVersionState[];
 }
 
 interface Field {
@@ -23,7 +23,7 @@ interface Error {
     error: string;
 }
 
-function CatalogEditor(props: CatalogEditorProps) {
+function CatalogVersionEditor(props: CatalogVersionEditorProps) {
     const { schemas } = props;
     const [fields, setFields] = useState<Record<string,Rule>>({});
     const [errors, setErrors] = useState<Record<string,Error>>({});
@@ -42,7 +42,7 @@ function CatalogEditor(props: CatalogEditorProps) {
             setMoreFields({});
             return
         }
-        const schema = schemas.find((schema: CatalogState) => schema.spec.name === value);
+        const schema = schemas.find((schema: CatalogVersionState) => schema.spec.name === value);
         if (schema) {
             const spec: Schema = schema.spec.properties['spec'];
             setFields(spec.rules);
@@ -53,7 +53,7 @@ function CatalogEditor(props: CatalogEditorProps) {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const data = Object.fromEntries(formData.entries());
-        const catalog: CatalogSpec = {
+        const catalogversion: CatalogVersionSpec = {
             name: typeof data.name === 'string' ? data.name : '',
             parentName: "",
             catalogType: "config",
@@ -63,42 +63,42 @@ function CatalogEditor(props: CatalogEditorProps) {
             rootResource: "",
         };
         if (data.schema) {
-            catalog.metadata = {
+            catalogversion.metadata = {
                 "schema": typeof data.schema === 'string' ? data.schema: ''
             }
         }
-        catalog.properties = {};
+        catalogversion.properties = {};
         Object.keys(data).forEach((key: string) => {
             if (key.includes("-name")) {
                 const id = key.split("-")[0];
                 const name: string = typeof data[key] === 'string' ? data[key] as string: '';
                 const value = data[`${id}-value`];
                 if (name && value) {
-                    catalog.properties[name] = value;
+                    catalogversion.properties[name] = value;
                 }
             } else if (key.includes("-value")) {
                 // ignore
             } else if (key != "name" && key != "schema") {
-                catalog.properties[key] = data[key];
+                catalogversion.properties[key] = data[key];
             } 
         });
         // post to api
-        const response = await fetch("/api/catalogs/check", {
+        const response = await fetch("/api/catalogversions/check", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(catalog),
+            body: JSON.stringify(catalogversion),
         });
         const responseData = await response.json();
         setErrors(responseData);
         if (Object.keys(responseData).length == 0) {
-            const response = await fetch("/api/catalogs/registry", {
+            const response = await fetch("/api/catalogversions/registry", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(catalog),
+                body: JSON.stringify(catalogversion),
             });
             const responseData = await response.json();
             console.log(responseData);
@@ -124,14 +124,14 @@ function CatalogEditor(props: CatalogEditorProps) {
     }
     return (
         <div className="container mx-auto max-w-sm">
-            <h1 className="text-3xl my-4">Edit Catalog</h1>
+            <h1 className="text-3xl my-4">Edit CatalogVersion</h1>
             <form className="flex flex-col gap-4 items-stretch" onSubmit={handleFormSubmit}>
                 <label htmlFor="name">Name</label>
                 <input type="text" id="name" name="name" />
                 <label htmlFor="schema">Schema</label>
                 <select id="schema" name="schema" onChange={handleSchemaChange}>
                     <option key="empty" value="">---</option>
-                    {schemas.map((schema: CatalogState) => <option key={schema.spec.name} value={schema.spec.name}>{schema.spec.name}</option>)}                
+                    {schemas.map((schema: CatalogVersionState) => <option key={schema.spec.name} value={schema.spec.name}>{schema.spec.name}</option>)}                
                 </select>
                 <label>Properties</label>
                 {fields && Object.keys(fields).map((key: string) => {
@@ -173,4 +173,4 @@ function CatalogEditor(props: CatalogEditorProps) {
     );
 }
 
-export default CatalogEditor;
+export default CatalogVersionEditor;

@@ -36,12 +36,12 @@ func TestMockLedgerProviderAppend(t *testing.T) {
 	trails := []v1alpha2.Trail{
 		{
 			Origin:  "o1",
-			Catalog: "c1",
+			CatalogVersion: "c1",
 			Type:    "t1",
 		},
 		{
 			Origin:  "o2",
-			Catalog: "c2",
+			CatalogVersion: "c2",
 			Type:    "t2",
 		},
 	}

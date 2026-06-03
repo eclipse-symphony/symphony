@@ -56,17 +56,17 @@ func (s *SyncManager) Poll() []error {
 	if err != nil {
 		return []error{err}
 	}
-	if batch.Catalogs != nil {
-		for _, catalog := range batch.Catalogs {
-			s.Context.Publish("catalog-sync", v1alpha2.Event{
+	if batch.CatalogVersions != nil {
+		for _, catalogversion := range batch.CatalogVersions {
+			s.Context.Publish("catalogversion-sync", v1alpha2.Event{
 				Metadata: map[string]string{
-					"objectType": catalog.Spec.CatalogType,
+					"objectType": catalogversion.Spec.CatalogType,
 					"origin":     batch.Origin,
 				},
 				Body: v1alpha2.JobData{
-					Id:     catalog.ObjectMeta.Name,
+					Id:     catalogversion.ObjectMeta.Name,
 					Action: v1alpha2.JobUpdate, //TODO: handle deletion, this probably requires BetBachForSites return flags
-					Body:   catalog,
+					Body:   catalogversion,
 				},
 				Context: ctx,
 			})

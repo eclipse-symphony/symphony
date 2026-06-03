@@ -66,8 +66,8 @@ func TestHttpTargetProviderApply(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -123,8 +123,8 @@ func TestHttpTargetProviderIncorrectApply(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -159,8 +159,8 @@ func TestHttpTargetProviderApplyWrongMethod(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -207,8 +207,8 @@ func TestHttpTargetProviderApplyInvalidStatusCode(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -247,8 +247,8 @@ func TestHttpTargetProviderGet(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -300,8 +300,8 @@ func TestHttpTargetProviderRemove(t *testing.T) {
 		Instance: model.InstanceState{
 			Spec: &model.InstanceSpec{},
 		},
-		Solution: model.SolutionState{
-			Spec: &model.SolutionSpec{
+		SolutionVersion: model.SolutionVersionState{
+			Spec: &model.SolutionVersionSpec{
 				Components: []model.ComponentSpec{component},
 			},
 		},
@@ -345,7 +345,7 @@ func TestReadProperty(t *testing.T) {
 		"http.url": url,
 	}, "http.url", &model.ValueInjections{
 		InstanceId: "A",
-		SolutionId: "B",
+		SolutionVersionId: "B",
 		TargetId:   "C",
 	})
 	assert.Equal(t, url, val)

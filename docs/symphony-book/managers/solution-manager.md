@@ -1,14 +1,14 @@
-# Solution manager
+# SolutionVersion manager
 
 _(last edit: 6/28/2023)_
 
-Solution manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target-providers/target_provider.md) to drive system states towards the desired state.
+SolutionVersion manager implements core Symphony state-seeking logic. It takes a [deployment](../concepts/unified-object-model/deployment.md) spec, plans deployment steps, and invokes corresponding [target providers](../providers/target-providers/target_provider.md) to drive system states towards the desired state.
 
-Solution manager is the only stateful component in the Symphony system. When you scale out solution manager, you need to configure your solution manager instances to use a shared state store.
+SolutionVersion manager is the only stateful component in the Symphony system. When you scale out solutionversion manager, you need to configure your solutionversion manager instances to use a shared state store.
 
 ## Deployment planning
 
-Because Symphony allows dependencies among [solution](../concepts/unified-object-model/solution.md) components, and supports mapping solution components to multiple [target](../concepts/unified-object-model/target.md) components, the solution manager goes through a planning process to make sure these components are applied in the desired order. This planning process builds an assignment matrix first, and then generates deployment steps. For example, a solution has three components `a`, `b` and `c`. Components `a` and `c` are Helm charts, and `b` is a container. The solution is to be deployed to two targets, `T1` and `T2`. Target `T1` is a Kubernetes cluster, and `T2` is a Docker container host. Also, in this case component `c` has a dependency on `b`. The assignment matrix looks like this:
+Because Symphony allows dependencies among [solutionversion](../concepts/unified-object-model/solutionversion.md) components, and supports mapping solutionversion components to multiple [target](../concepts/unified-object-model/target.md) components, the solutionversion manager goes through a planning process to make sure these components are applied in the desired order. This planning process builds an assignment matrix first, and then generates deployment steps. For example, a solutionversion has three components `a`, `b` and `c`. Components `a` and `c` are Helm charts, and `b` is a container. The solutionversion is to be deployed to two targets, `T1` and `T2`. Target `T1` is a Kubernetes cluster, and `T2` is a Docker container host. Also, in this case component `c` has a dependency on `b`. The assignment matrix looks like this:
 
 |  |T1|T2|
 |--|--|--|
@@ -31,13 +31,13 @@ Symphony also tries to combine deployment steps as long as the component depende
 
 ## Deployment summary
 
-Solution manager generates a deployment summary at the end of a reconciliation operation. The summary provides per-target status as well as per-component status. The summary is associated with a timestamp as well as the instance objects' generation number.
+SolutionVersion manager generates a deployment summary at the end of a reconciliation operation. The summary provides per-target status as well as per-component status. The summary is associated with a timestamp as well as the instance objects' generation number.
 
 When using a in-memory store, Symphony maintains the generation number as an ever-increasing version number whenever the object is updated. When using a Kubernetes store, Symphony takes the object generation number from Kubernetes.
 
 ## Deployment summary caching
 
-Solution manager caches the lasted deployment summary per instance and allows the summary to be queried. A client can decide to use the cache as the deployment state (within certain time window with matching generation number, for instance) instead of trying to queue additional reconciliation jobs.
+SolutionVersion manager caches the lasted deployment summary per instance and allows the summary to be queried. A client can decide to use the cache as the deployment state (within certain time window with matching generation number, for instance) instead of trying to queue additional reconciliation jobs.
 
 ```go
 summary, err := api_utils.GetSummary("http://symphony-service:8080/v1alpha2/", "admin", "", instance.ObjectMeta.GetSummaryId())
@@ -53,7 +53,7 @@ if generationMatch && time.Since(summary.Time) <= time.Duration(60)*time.Second 
 }
 ```
 
-> **NOTE**: It's still possible to queue duplicated reconciliation jobs. Symphony may consider to include a de-dup mechanism in future versions of the Solution Manager.
+> **NOTE**: It's still possible to queue duplicated reconciliation jobs. Symphony may consider to include a de-dup mechanism in future versions of the SolutionVersion Manager.
 
 ## Skip provider operations
 
@@ -61,4 +61,4 @@ Before a deployment step is sent to a provider, Symphony checks the provider's v
 
 ## Retry
 
-The solution manager has built-in retry logic to attempt a deployment step three times at a fixed interval (5 seconds) before giving up. In future versions, this retry logic will be extended to allow configurable retry counts and backoff delays.
+The solutionversion manager has built-in retry logic to attempt a deployment step three times at a fixed interval (5 seconds) before giving up. In future versions, this retry logic will be extended to allow configurable retry counts and backoff delays.

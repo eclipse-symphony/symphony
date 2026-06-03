@@ -14,7 +14,7 @@ import (
 )
 
 type TargetValidator struct {
-	// Check Instance associated with the Solution
+	// Check Instance associated with the SolutionVersion
 	TargetInstanceLookupFunc   LinkedObjectLookupFunc
 	UniqueNameTargetLookupFunc ObjectLookupFunc
 }
@@ -57,12 +57,12 @@ func (t *TargetValidator) ValidateCreateOrUpdate(ctx context.Context, newRef int
 			DetailedMessage: "The target is already created. Cannot change Scope of the target.",
 		})
 	}
-	if oldRef != nil && (old.Spec.SolutionScope != new.Spec.SolutionScope) && t.TargetInstanceLookupFunc != nil {
+	if oldRef != nil && (old.Spec.SolutionVersionScope != new.Spec.SolutionVersionScope) && t.TargetInstanceLookupFunc != nil {
 		if found, err := t.TargetInstanceLookupFunc(ctx, new.ObjectMeta.Name, new.ObjectMeta.Namespace, string(new.ObjectMeta.UID)); err != nil || found {
 			errorFields = append(errorFields, ErrorField{
-				FieldPath:       "spec.SolutionScope",
-				Value:           new.Spec.SolutionScope,
-				DetailedMessage: "Target has one or more associated instances. Cannot change SolutionScope of the target.",
+				FieldPath:       "spec.SolutionVersionScope",
+				Value:           new.Spec.SolutionVersionScope,
+				DetailedMessage: "Target has one or more associated instances. Cannot change SolutionVersionScope of the target.",
 			})
 		}
 	}

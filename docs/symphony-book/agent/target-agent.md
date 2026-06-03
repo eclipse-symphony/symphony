@@ -9,22 +9,22 @@ A Symphony target agent hosts [target providers](../providers/target-providers/t
 ## Workflow to configure a target agent
 1.  Configure and launch a target agent process. A target agent can run as a single process, a Docker container, or a Kubernetes service (while running on a Kubernetes cluster). The target agent uses the same binary that is used by Symphony API. It’s just loaded with a different configuration file that puts itself into the agent mode.
 2.  Define your target definition. The target should use a proxy provider (either `providers.target.mqtt` for MQTT or `providers.target.proxy` for HTTP).
-3.  Define your solutions and instances as usual. When the solution is deployed to the target, Symphony realizes that the components need to be deployed through a proxy provider and uses the proxy provider to communicate with the remote target agent process. 
+3.  Define your solutionversions and instances as usual. When the solutionversion is deployed to the target, Symphony realizes that the components need to be deployed through a proxy provider and uses the proxy provider to communicate with the remote target agent process. 
 
 ## Target agent configuration file
 
 > **NOTE:** You can see a sample agent configuration file at [docs/samples/multi-os/symphony-agent.json](../../samples/multi-os/symphony-agent.json)
 
-The core target agent functionality is delivered by the `vendors.solution` vendor (a vendor is a microservice in Symphony's architecture).
+The core target agent functionality is delivered by the `vendors.solutionversion` vendor (a vendor is a microservice in Symphony's architecture).
 ```json
 {
-        "type": "vendors.solution",
+        "type": "vendors.solutionversion",
         "loopInterval": 15,
-        "route": "solution",
+        "route": "solutionversion",
         "managers": [
           {
-            "name": "solution-manager",
-            "type": "managers.symphony.solution",
+            "name": "solutionversion-manager",
+            "type": "managers.symphony.solutionversion",
             "properties": {
               ...
               "isTarget": "true",
@@ -49,7 +49,7 @@ The core target agent functionality is delivered by the `vendors.solution` vendo
         ]
       }
 ```
-The vendor loads a `managers.symphony.solution` (a manager is a reusable business logic unit in Symphony's architecture), which defines how the agent represents on or more Symphony targets.
+The vendor loads a `managers.symphony.solutionversion` (a manager is a reusable business logic unit in Symphony's architecture), which defines how the agent represents on or more Symphony targets.
 
 * **isTarget**: This is the flag that puts the process into the target agent mode. Like mentioned earlier, target agent is the same binary as what's used by the Symphony API. This flag puts the process into the agent mode.
 * **targetNames"**: This is a comma-separate list that lists out Symphony target names the agent represents. An agent can represent one or more Symphony targets. **The names listed here must match with target names defined on the Symphony control plane.**

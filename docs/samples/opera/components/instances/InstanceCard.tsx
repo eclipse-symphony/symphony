@@ -21,7 +21,7 @@ interface InstanceCardProps {
     instance: InstanceState;    
 }
 
-const getSolutionTopology = async() => {
+const getSolutionVersionTopology = async() => {
     return  { nodes: [
              { id: '1', position: { x: 0, y: 0 }, data: { label: '1' } },
              { id: '2', position: { x: 0, y: 100 }, data: { label: '2' } },
@@ -43,12 +43,12 @@ function InstanceCard(props: InstanceCardProps) {
     //   ];
     // const initialEdges = [{ id: 'e1-2', source: '1', target: '2' }];
     
-    // get json from campaign with new lines
+    // get json from campaignversion with new lines
     const json = JSON.stringify(instance, null, 2);    
 
     const updateActiveView = (key: any) => {
         if (key.toString() == 'topology') {
-            getSolutionTopology().then((topology) => {                
+            getSolutionVersionTopology().then((topology) => {                
                 setNodes(topology.nodes);
                 setEdges(topology.edges);
             });

@@ -2,7 +2,7 @@
 
 _(last edit: 9/18/2023)_
 
-This quickstart walks you through the steps of deploying a new Symphony solution instance to the cluster.
+This quickstart walks you through the steps of deploying a new Symphony solutionversion instance to the cluster.
 
 > **NOTE**: The following steps are tested under a Ubuntu 20.04.4 TLS WSL system on Windows 11. However, they should work for Linux, Windows, and MacOS systems as well.
 
@@ -64,15 +64,15 @@ This YAML file is also available at [docs/samples/k8s/hello-world/target.yaml](.
 
 > **NOTE**: The above sample doesn't deploy a **Symphony agent**, which is optional.
 
-### 2. Create a Symphony solution
+### 2. Create a Symphony solutionversion
 
-A Symphony *solution* is a template that defies an application workload to be deployed on one or more *targets*.
+A Symphony *solutionversion* is a template that defies an application workload to be deployed on one or more *targets*.
 
-Create a YAML file that describes a Symphony solution with a single Redis server component.
+Create a YAML file that describes a Symphony solutionversion with a single Redis server component.
 
 ```yaml
 apiVersion: solution.symphony/v1
-kind: Solution
+kind: SolutionVersion
 metadata: 
   name: sample-prometheus-server
 spec:  
@@ -90,15 +90,15 @@ spec:
       container.image: "prom/prometheus"
 ```
 
-This YAML file is also available at [docs/samples/k8s/hello-world/solution.yaml](../../samples/k8s/hello-world/solution.yaml).
+This YAML file is also available at [docs/samples/k8s/hello-world/solutionversion.yaml](../../samples/k8s/hello-world/solutionversion.yaml).
 
-> **NOTE**: This solution uses the default deployment strategy, which is to deploy all component containers in the solution into a same pod. For details on other possible deployment strategies, see [providers.target.k8s](../providers/k8s_provider.md).
+> **NOTE**: This solutionversion uses the default deployment strategy, which is to deploy all component containers in the solutionversion into a same pod. For details on other possible deployment strategies, see [providers.target.k8s](../providers/k8s_provider.md).
 
-### 3. Create a Symphony solution instance
+### 3. Create a Symphony solutionversion instance
 
-A Symphony *solution instance* maps a *solution* to one or multiple *targets*.
+A Symphony *solutionversion instance* maps a *solutionversion* to one or multiple *targets*.
 
-Create a YAML file that maps the `sample-prometheus-server` solution to the `sample-k8s-target` target:
+Create a YAML file that maps the `sample-prometheus-server` solutionversion to the `sample-k8s-target` target:
 
 ```yaml
 apiVersion: solution.symphony/v1
@@ -107,7 +107,7 @@ metadata:
   name: sample-prometheus-instance
 spec:
   scope: sample-k8s-scope
-  solution: sample-prometheus-server
+  solutionversion: sample-prometheus-server
   target: 
     name: sample-k8s-target  
 ```
@@ -118,7 +118,7 @@ This YAML file is also available at [docs/samples/k8s/hello-world/instance.yaml]
 
 ```bash
 kubectl create -f target.yaml
-kubectl create -f solution.yaml
+kubectl create -f solutionversion.yaml
 kubectl create -f instance.yaml
 ```
 
@@ -128,7 +128,7 @@ Verify that all of the Symphony objects were created:
 
 ```bash
 kubectl get targets
-kubectl get solutions
+kubectl get solutionversions
 kubectl get instances
 ```
 
@@ -153,7 +153,7 @@ To delete all Symphony objects:
 
 ```bash
 kubectl delete instance sample-prometheus-instance
-kubectl delete solution sample-prometheus-server
+kubectl delete solutionversion sample-prometheus-server
 kubectl delete target sample-k8s-target  
 kubectl delete ns sample-k8s-scope #Symphony doesn't remove namespaces
 ```

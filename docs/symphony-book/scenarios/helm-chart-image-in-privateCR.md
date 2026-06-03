@@ -19,17 +19,17 @@ metadata:
 type: Opaque
 ```
 ## 2. Create symphony resources to do the deployment
-### Create solutioncontainer/solution with $secret
-The $secret refers to the kubenetes secret. $secret("SECRETNAME", "FIELDNAME"). And the secret should be in the same namespace as the solution is.
+### Create solution/solutionversion with $secret
+The $secret refers to the kubenetes secret. $secret("SECRETNAME", "FIELDNAME"). And the secret should be in the same namespace as the solutionversion is.
 ```
 apiVersion: solution.symphony/v1
-kind: SolutionContainer
+kind: Solution
 metadata:
   name: test-app  
 spec:
 ---
 apiVersion: solution.symphony/v1
-kind: Solution
+kind: SolutionVersion
 metadata: 
   name: test-app-v-version1
 spec:
@@ -67,7 +67,7 @@ spec:
       role: helm.v3
 ```
 
-### Create the instance deployment -- make sure to have helm chart, solution and target ready before deploy the instance.
+### Create the instance deployment -- make sure to have helm chart, solutionversion and target ready before deploy the instance.
 ```
 apiVersion: solution.symphony/v1
 kind: Instance
@@ -77,7 +77,7 @@ metadata:
 spec:
   displayName: test-instance
   scope: default
-  solution: test-app:version1
+  solutionversion: test-app:version1
   target:
     name: test-target
 ```

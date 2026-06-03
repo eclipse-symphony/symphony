@@ -1,20 +1,20 @@
-import { CatalogState } from '../../app/types';
-import CatalogCard from './CatalogCard';
+import { CatalogVersionState } from '../../app/types';
+import CatalogVersionCard from './CatalogVersionCard';
 interface CalalogListProps {
-    catalogs: CatalogState[];
+    catalogversions: CatalogVersionState[];
 }
-function CatalogList(props: CalalogListProps) {
-    const { catalogs } = props;
-    //create a map of catalogs
+function CatalogVersionList(props: CalalogListProps) {
+    const { catalogversions } = props;
+    //create a map of catalogversions
     const references: any = {};
-    catalogs.forEach((catalog: CatalogState) => {
-        references[catalog.spec.name] = catalog;
+    catalogversions.forEach((catalogversion: CatalogVersionState) => {
+        references[catalogversion.spec.name] = catalogversion;
     });
     return (
         <div className='sitelist'>
-            {catalogs.map((catalog: CatalogState) =>  
-            <CatalogCard catalog={catalog} refCatalog={catalog.spec.parentName? references[catalog.spec.parentName]: null}/>)}
+            {catalogversions.map((catalogversion: CatalogVersionState) =>  
+            <CatalogVersionCard catalogversion={catalogversion} refCatalogVersion={catalogversion.spec.parentName? references[catalogversion.spec.parentName]: null}/>)}
         </div>
     );
 }
-export default CatalogList;
+export default CatalogVersionList;

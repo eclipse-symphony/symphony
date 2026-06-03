@@ -63,7 +63,7 @@ func createSampleDeploymentPlan() DeploymentPlan {
 					{
 						Action: ComponentUpdate,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution",
+							Name: "sample-grpc-solutionversion",
 							Type: "instance",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -88,7 +88,7 @@ func createSampleDeploymentPlanForDelete() DeploymentPlan {
 					{
 						Action: ComponentDelete,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution-d1",
+							Name: "sample-grpc-solutionversion-d1",
 							Type: "instance-d1",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -105,7 +105,7 @@ func createSampleDeploymentPlanForDelete() DeploymentPlan {
 					{
 						Action: ComponentDelete,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution-d2",
+							Name: "sample-grpc-solutionversion-d2",
 							Type: "instance-d2",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -130,7 +130,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 					{
 						Action: ComponentDelete,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution-d1",
+							Name: "sample-grpc-solutionversion-d1",
 							Type: "instance",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -140,7 +140,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 					{
 						Action: ComponentUpdate,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution-u1",
+							Name: "sample-grpc-solutionversion-u1",
 							Type: "instance",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -150,7 +150,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 					{
 						Action: ComponentDelete,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution-d2",
+							Name: "sample-grpc-solutionversion-d2",
 							Type: "instance",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -160,7 +160,7 @@ func createSampleDeploymentPlanForUpdateAndDelete() DeploymentPlan {
 					{
 						Action: ComponentUpdate,
 						Component: ComponentSpec{
-							Name: "sample-grpc-solution-u2",
+							Name: "sample-grpc-solutionversion-u2",
 							Type: "instance",
 							Properties: map[string]interface{}{
 								"file.content": "hello world",
@@ -181,7 +181,7 @@ func createSampleDeploymentStepWithUpdateComponent() DeploymentStep {
 			{
 				Action: ComponentUpdate,
 				Component: ComponentSpec{
-					Name: "sample-grpc-solution",
+					Name: "sample-grpc-solutionversion",
 					Type: "instance",
 					Properties: map[string]interface{}{
 						"file.content": "hello world",
@@ -202,7 +202,7 @@ func createSampleDeploymentStepWithDeleteComponent() DeploymentStep {
 			{
 				Action: ComponentDelete,
 				Component: ComponentSpec{
-					Name: "sample-grpc-solution",
+					Name: "sample-grpc-solutionversion",
 					Type: "instance",
 					Properties: map[string]interface{}{
 						"file.content": "hello world",
@@ -219,15 +219,15 @@ func createSampleDeploymentStepWithDeleteComponent() DeploymentStep {
 func TestPrepareResultMap(t *testing.T) {
 	s := createSampleDeploymentStepWithUpdateComponent()
 	resultMap := s.PrepareResultMap()
-	assert.Equal(t, v1alpha2.Untouched, resultMap["sample-grpc-solution"].Status)
-	assert.Equal(t, fmt.Sprintf("No error. %s is untouched", "sample-grpc-solution"), resultMap["sample-grpc-solution"].Message)
+	assert.Equal(t, v1alpha2.Untouched, resultMap["sample-grpc-solutionversion"].Status)
+	assert.Equal(t, fmt.Sprintf("No error. %s is untouched", "sample-grpc-solutionversion"), resultMap["sample-grpc-solutionversion"].Message)
 }
 
 func TestGetComponents(t *testing.T) {
 	s := createSampleDeploymentStepWithUpdateComponent()
 	components := s.GetComponents()
 	assert.Equal(t, len(components), 1)
-	assert.Equal(t, components[0].Name, "sample-grpc-solution")
+	assert.Equal(t, components[0].Name, "sample-grpc-solutionversion")
 	assert.Equal(t, components[0].Type, "instance")
 	assert.Equal(t, components[0].Properties["file.content"], "hello world")
 }
@@ -236,7 +236,7 @@ func TestGetUpdatedComponents(t *testing.T) {
 	s := createSampleDeploymentStepWithUpdateComponent()
 	components := s.GetUpdatedComponents()
 	assert.Equal(t, len(components), 1)
-	assert.Equal(t, components[0].Name, "sample-grpc-solution")
+	assert.Equal(t, components[0].Name, "sample-grpc-solutionversion")
 	assert.Equal(t, components[0].Type, "instance")
 	assert.Equal(t, components[0].Properties["file.content"], "hello world")
 }
@@ -245,7 +245,7 @@ func TestGetDeletedComponents(t *testing.T) {
 	s := createSampleDeploymentStepWithDeleteComponent()
 	components := s.GetDeletedComponents()
 	assert.Equal(t, len(components), 1)
-	assert.Equal(t, components[0].Name, "sample-grpc-solution")
+	assert.Equal(t, components[0].Name, "sample-grpc-solutionversion")
 	assert.Equal(t, components[0].Type, "instance")
 	assert.Equal(t, components[0].Properties["file.content"], "hello world")
 }
@@ -255,7 +255,7 @@ func TestGetUpdatedComponentSteps(t *testing.T) {
 	components := s.GetUpdatedComponentSteps()
 	assert.Equal(t, len(components), 1)
 	assert.Equal(t, components[0].Action, ComponentUpdate)
-	assert.Equal(t, components[0].Component.Name, "sample-grpc-solution")
+	assert.Equal(t, components[0].Component.Name, "sample-grpc-solutionversion")
 	assert.Equal(t, components[0].Component.Type, "instance")
 	assert.Equal(t, components[0].Component.Properties["file.content"], "hello world")
 }
@@ -297,7 +297,7 @@ func TestCanAppendToStep(t *testing.T) {
 
 	// no dependencies, can add
 	canAppend := p.CanAppendToStep(0, ComponentSpec{
-		Name: "sample-grpc-solution2",
+		Name: "sample-grpc-solutionversion2",
 		Type: "instance",
 		Properties: map[string]interface{}{
 			"file.content": "hello world",
@@ -307,23 +307,23 @@ func TestCanAppendToStep(t *testing.T) {
 
 	// has dependencies, and dependencies include plan component, can add
 	canAppend = p.CanAppendToStep(0, ComponentSpec{
-		Name: "sample-grpc-solution2",
+		Name: "sample-grpc-solutionversion2",
 		Type: "instance",
 		Properties: map[string]interface{}{
 			"file.content": "hello world",
 		},
-		Dependencies: []string{"sample-grpc-solution"},
+		Dependencies: []string{"sample-grpc-solutionversion"},
 	})
 	assert.Equal(t, true, canAppend)
 
 	// has dependencies, but dependencies not include plan component, can not add
 	canAppend = p.CanAppendToStep(0, ComponentSpec{
-		Name: "sample-grpc-solution2",
+		Name: "sample-grpc-solutionversion2",
 		Type: "instance",
 		Properties: map[string]interface{}{
 			"file.content": "hello world",
 		},
-		Dependencies: []string{"sample-grpc-solution3"},
+		Dependencies: []string{"sample-grpc-solutionversion3"},
 	})
 	assert.Equal(t, false, canAppend)
 
@@ -335,7 +335,7 @@ func TestRevisedForDeletion(t *testing.T) {
 	p = p.RevisedForDeletion()
 	assert.Equal(t, len(p.Steps), 1)
 	assert.Equal(t, p.Steps[0].Components[0].Action, ComponentUpdate)
-	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solution")
+	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solutionversion")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Type, "instance")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Properties["file.content"], "hello world")
 
@@ -344,12 +344,12 @@ func TestRevisedForDeletion(t *testing.T) {
 	p = p.RevisedForDeletion()
 	assert.Equal(t, len(p.Steps), 2)
 	assert.Equal(t, p.Steps[0].Components[0].Action, ComponentDelete)
-	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solution-d2")
+	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solutionversion-d2")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Type, "instance-d2")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Properties["file.content"], "hello world")
 
 	assert.Equal(t, p.Steps[1].Components[0].Action, ComponentDelete)
-	assert.Equal(t, p.Steps[1].Components[0].Component.Name, "sample-grpc-solution-d1")
+	assert.Equal(t, p.Steps[1].Components[0].Component.Name, "sample-grpc-solutionversion-d1")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Type, "instance-d1")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Properties["file.content"], "hello world")
 
@@ -360,22 +360,22 @@ func TestRevisedForDeletion(t *testing.T) {
 	p = p.RevisedForDeletion()
 	assert.Equal(t, len(p.Steps), 2)
 	assert.Equal(t, p.Steps[0].Components[0].Action, ComponentUpdate)
-	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solution-u1")
+	assert.Equal(t, p.Steps[0].Components[0].Component.Name, "sample-grpc-solutionversion-u1")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Type, "instance")
 	assert.Equal(t, p.Steps[0].Components[0].Component.Properties["file.content"], "hello world")
 
 	assert.Equal(t, p.Steps[0].Components[1].Action, ComponentUpdate)
-	assert.Equal(t, p.Steps[0].Components[1].Component.Name, "sample-grpc-solution-u2")
+	assert.Equal(t, p.Steps[0].Components[1].Component.Name, "sample-grpc-solutionversion-u2")
 	assert.Equal(t, p.Steps[0].Components[1].Component.Type, "instance")
 	assert.Equal(t, p.Steps[0].Components[1].Component.Properties["file.content"], "hello world")
 
 	assert.Equal(t, p.Steps[1].Components[0].Action, ComponentDelete)
-	assert.Equal(t, p.Steps[1].Components[0].Component.Name, "sample-grpc-solution-d2")
+	assert.Equal(t, p.Steps[1].Components[0].Component.Name, "sample-grpc-solutionversion-d2")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Type, "instance")
 	assert.Equal(t, p.Steps[1].Components[0].Component.Properties["file.content"], "hello world")
 
 	assert.Equal(t, p.Steps[1].Components[1].Action, ComponentDelete)
-	assert.Equal(t, p.Steps[1].Components[1].Component.Name, "sample-grpc-solution-d1")
+	assert.Equal(t, p.Steps[1].Components[1].Component.Name, "sample-grpc-solutionversion-d1")
 	assert.Equal(t, p.Steps[1].Components[1].Component.Type, "instance")
 	assert.Equal(t, p.Steps[1].Components[1].Component.Properties["file.content"], "hello world")
 }

@@ -10,7 +10,7 @@ mod symphony_api;
 use std::{process::{Command, ExitStatus}, collections::HashMap, os::unix::process::ExitStatusExt};
 use std::sync::Mutex;
 use models::ComponentSpec;
-use crate::symphony_api::{auth, get_catalogs};
+use crate::symphony_api::{auth, get_catalogversions};
 
 lazy_static::lazy_static! {
     static ref PROCESS_HASHMAP: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
@@ -25,16 +25,16 @@ fn main()  {
         let token = auth();
         if token != "" {
             print!("get desired state >>> ");
-            let catalogs = get_catalogs(&token);
-            for catalog in catalogs {
-                if catalog.spec.catalog_type == "staged" {
-                    if let Some(components) = catalog.spec.properties.components {                
+            let catalogversions = get_catalogversions(&token);
+            for catalogversion in catalogversions {
+                if catalogversion.spec.catalogversion_type == "staged" {
+                    if let Some(components) = catalogversion.spec.properties.components {                
                         for component in components {
                             print!("reconcil {} >>> ", component.name);
                             let status: ExitStatus = ExitStatus::from_raw(0);
                             match component.component_type.as_str() {
                                 "docker" => {
-                                    let status = deploy_docker(&catalog.metadata.name, &component);
+                                    let status = deploy_docker(&catalogversion.metadata.name, &component);
                                     if status.success() {
                                         println!("Docker deployment is done.");
                                     } else {
@@ -42,7 +42,7 @@ fn main()  {
                                     }
                                 },
                                 "wasm" => {
-                                    let status = deploy_wasmedge(&catalog.metadata.name, &component);
+                                    let status = deploy_wasmedge(&catalogversion.metadata.name, &component);
                                     if status.success() {
                                         println!("WASM deployment is done.");
                                     } else {
@@ -50,7 +50,7 @@ fn main()  {
                                     }
                                 },
                                 "ebpf" => {
-                                    let status = deploy_ebpf(&catalog.metadata.name, &component);
+                                    let status = deploy_ebpf(&catalogversion.metadata.name, &component);
                                     if status.success() {
                                         println!("eBPF deployment is done.");
                                     } else {
@@ -68,7 +68,7 @@ fn main()  {
                             }
                         }
                     } else {
-                        println!("No components found in catalog {}", catalog.metadata.name);
+                        println!("No components found in catalogversion {}", catalogversion.metadata.name);
                     }
                 }
             }

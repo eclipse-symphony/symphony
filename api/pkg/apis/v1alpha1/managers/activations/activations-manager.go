@@ -61,7 +61,7 @@ func (s *ActivationsManager) Init(context *contexts.VendorContext, config manage
 	s.needValidate = managers.NeedObjectValidate(config, providers)
 	if s.needValidate {
 		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
-		// s.Validator = validation.NewActivationValidator(s.CampaignLookup)
+		// s.Validator = validation.NewActivationValidator(s.CampaignVersionLookup)
 		s.Validator = validation.NewActivationValidator(nil)
 	}
 	return nil
@@ -144,7 +144,7 @@ func (m *ActivationsManager) UpsertState(ctx context.Context, name string, state
 			state.ObjectMeta.Labels = make(map[string]string)
 		}
 		if state.Spec != nil {
-			state.ObjectMeta.Labels[constants.Campaign] = state.Spec.Campaign
+			state.ObjectMeta.Labels[constants.CampaignVersion] = state.Spec.CampaignVersion
 		}
 		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &m.Validator, state, oldState, getStateErr); err != nil {
 			return err
@@ -437,6 +437,6 @@ func mergeStageStatus(ctx context.Context, activationState *model.ActivationStat
 	return nil
 }
 
-func (t *ActivationsManager) CampaignLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
-	return states.GetObjectState(ctx, t.StateProvider, validation.Campaign, name, namespace)
+func (t *ActivationsManager) CampaignVersionLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
+	return states.GetObjectState(ctx, t.StateProvider, validation.CampaignVersion, name, namespace)
 }

@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	catalogconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalog"
+	catalogversionconfig "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/config/catalogversion"
 	memorygraph "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/graph/memory"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/secret"
 	counterstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
@@ -109,7 +109,7 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
-	case "providers.config.k8scatalog":
+	case "providers.config.k8scatalogversion":
 		mProvider := &k8sstate.K8sStateProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
@@ -289,8 +289,8 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		if err == nil {
 			return mProvider, nil
 		}
-	case "providers.config.catalog":
-		mProvider := &catalogconfig.CatalogConfigProvider{}
+	case "providers.config.catalogversion":
+		mProvider := &catalogversionconfig.CatalogVersionConfigProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -562,7 +562,7 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
-				case "providers.config.k8scatalog":
+				case "providers.config.k8scatalogversion":
 					provider := &k8sstate.K8sStateProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
@@ -650,8 +650,8 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					}
 					provider.Context = context
 					return provider, nil
-				case "providers.config.catalog":
-					provider := &catalogconfig.CatalogConfigProvider{}
+				case "providers.config.catalogversion":
+					provider := &catalogversionconfig.CatalogVersionConfigProvider{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
 						return nil, err

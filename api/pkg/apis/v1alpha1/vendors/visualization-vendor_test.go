@@ -33,8 +33,8 @@ func createVisualizationVendor(t *testing.T) VisualizationVendor {
 	err := vendor.Init(vendors.VendorConfig{
 		Managers: []managers.ManagerConfig{
 			{
-				Name: "catalogs-manager",
-				Type: "managers.symphony.catalogs",
+				Name: "catalogversions-manager",
+				Type: "managers.symphony.catalogversions",
 				Properties: map[string]string{
 					"providers.persistentstate": "mem-state",
 				},
@@ -49,12 +49,12 @@ func createVisualizationVendor(t *testing.T) VisualizationVendor {
 	}, []managers.IManagerFactroy{
 		&sym_mgr.SymphonyManagerFactory{},
 	}, map[string]map[string]providers.IProvider{
-		"catalogs-manager": {
+		"catalogversions-manager": {
 			"mem-state": &stateProvider,
 		},
 	}, &pubSubProvider)
 	assert.Nil(t, err)
-	vendor.CatalogsManager.CatalogValidator = validation.NewCatalogValidator(vendor.CatalogsManager.CatalogLookup, nil, vendor.CatalogsManager.ChildCatalogLookup)
+	vendor.CatalogVersionsManager.CatalogVersionValidator = validation.NewCatalogVersionValidator(vendor.CatalogVersionsManager.CatalogVersionLookup, nil, vendor.CatalogVersionsManager.ChildCatalogVersionLookup)
 	return vendor
 }
 
@@ -77,7 +77,7 @@ func TestHandleVisPacket(t *testing.T) {
 	vendor := createVisualizationVendor(t)
 	vendor.Context.EvaluationContext = &utils.EvaluationContext{}
 	packet := model.Packet{
-		Solution: "solution-1",
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-1",
@@ -92,20 +92,20 @@ func TestHandleVisPacket(t *testing.T) {
 		Context: context.Background(),
 	})
 	assert.Equal(t, v1alpha2.OK, response.State)
-	state, err := vendor.CatalogsManager.GetState(context.Background(), "solution-1-topology-v-version1", "default")
+	state, err := vendor.CatalogVersionsManager.GetState(context.Background(), "solutionversion-1-topology-v-version1", "default")
 	assert.Nil(t, err)
-	assert.Equal(t, "solution-1-topology-v-version1", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "target-1-topology-v-version1", "default")
+	assert.Equal(t, "solutionversion-1-topology-v-version1", state.ObjectMeta.Name)
+	state, err = vendor.CatalogVersionsManager.GetState(context.Background(), "target-1-topology-v-version1", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "target-1-topology-v-version1", state.ObjectMeta.Name)
-	state, err = vendor.CatalogsManager.GetState(context.Background(), "instance-1-topology-v-version1", "default")
+	state, err = vendor.CatalogVersionsManager.GetState(context.Background(), "instance-1-topology-v-version1", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, "instance-1-topology-v-version1", state.ObjectMeta.Name)
 }
 
-func TestConvertVisualizationPacketToCatalog(t *testing.T) {
-	catalog, err := convertVisualizationPacketToCatalog(model.Packet{
-		Solution: "solution-1",
+func TestConvertVisualizationPacketToCatalogVersion(t *testing.T) {
+	catalogversion, err := convertVisualizationPacketToCatalogVersion(model.Packet{
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-1",
@@ -114,34 +114,34 @@ func TestConvertVisualizationPacketToCatalog(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog.Spec.CatalogType)
+	assert.Equal(t, "topology", catalogversion.Spec.CatalogType)
 
-	v, ok := catalog.Spec.Properties["from-1"].(map[string]model.Packet)
+	v, ok := catalogversion.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
 	assert.Equal(t, "from-1", v["to-1"].From)
 	assert.Equal(t, "to-1", v["to-1"].To)
 	assert.Equal(t, "data-1", string(v["to-1"].Data.([]byte)))
 	assert.Equal(t, "bytes", v["to-1"].DataType)
 }
-func TestConvertVisualizationPacketToCatalogNoData(t *testing.T) {
-	catalog, err := convertVisualizationPacketToCatalog(model.Packet{
-		Solution: "solution-1",
+func TestConvertVisualizationPacketToCatalogVersionNoData(t *testing.T) {
+	catalogversion, err := convertVisualizationPacketToCatalogVersion(model.Packet{
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-1",
 		To:       "to-1",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog.Spec.CatalogType)
+	assert.Equal(t, "topology", catalogversion.Spec.CatalogType)
 
-	v, ok := catalog.Spec.Properties["from-1"].(map[string]model.Packet)
+	v, ok := catalogversion.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
 	assert.Equal(t, "from-1", v["to-1"].From)
 	assert.Equal(t, "to-1", v["to-1"].To)
 }
-func TestMergeCatalogsSameKey(t *testing.T) {
-	catalog1, err := convertVisualizationPacketToCatalog(model.Packet{
-		Solution: "solution-1",
+func TestMergeCatalogVersionsSameKey(t *testing.T) {
+	catalogversion1, err := convertVisualizationPacketToCatalogVersion(model.Packet{
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-1",
@@ -150,9 +150,9 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
-	catalog2, err := convertVisualizationPacketToCatalog(model.Packet{
-		Solution: "solution-1",
+	assert.Equal(t, "topology", catalogversion1.Spec.CatalogType)
+	catalogversion2, err := convertVisualizationPacketToCatalogVersion(model.Packet{
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-1",
@@ -161,11 +161,11 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog2.Spec.CatalogType)
+	assert.Equal(t, "topology", catalogversion2.Spec.CatalogType)
 
-	mergedCatalog, err := mergeCatalogs(catalog1, catalog2)
+	mergedCatalogVersion, err := mergeCatalogVersions(catalogversion1, catalogversion2)
 	assert.Nil(t, err)
-	v, ok := mergedCatalog.Spec.Properties["from-1"].(map[string]model.Packet)
+	v, ok := mergedCatalogVersion.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
 	assert.Equal(t, "from-1", v["to-1"].From)
 	assert.Equal(t, "to-1", v["to-1"].To)
@@ -177,9 +177,9 @@ func TestMergeCatalogsSameKey(t *testing.T) {
 	assert.Equal(t, "bytes", v["to-2"].DataType)
 }
 
-func TestMergeCatalogsDifferentKey(t *testing.T) {
-	catalog1, err := convertVisualizationPacketToCatalog(model.Packet{
-		Solution: "solution-1",
+func TestMergeCatalogVersionsDifferentKey(t *testing.T) {
+	catalogversion1, err := convertVisualizationPacketToCatalogVersion(model.Packet{
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-1",
@@ -188,9 +188,9 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog1.Spec.CatalogType)
-	catalog2, err := convertVisualizationPacketToCatalog(model.Packet{
-		Solution: "solution-1",
+	assert.Equal(t, "topology", catalogversion1.Spec.CatalogType)
+	catalogversion2, err := convertVisualizationPacketToCatalogVersion(model.Packet{
+		SolutionVersion: "solutionversion-1",
 		Target:   "target-1",
 		Instance: "instance-1",
 		From:     "from-2",
@@ -199,17 +199,17 @@ func TestMergeCatalogsDifferentKey(t *testing.T) {
 		DataType: "bytes",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "topology", catalog2.Spec.CatalogType)
+	assert.Equal(t, "topology", catalogversion2.Spec.CatalogType)
 
-	mergedCatalog, err := mergeCatalogs(catalog1, catalog2)
+	mergedCatalogVersion, err := mergeCatalogVersions(catalogversion1, catalogversion2)
 	assert.Nil(t, err)
-	v, ok := mergedCatalog.Spec.Properties["from-1"].(map[string]model.Packet)
+	v, ok := mergedCatalogVersion.Spec.Properties["from-1"].(map[string]model.Packet)
 	assert.True(t, ok)
 	assert.Equal(t, "from-1", v["to-1"].From)
 	assert.Equal(t, "to-1", v["to-1"].To)
 	assert.Equal(t, "data-1", string(v["to-1"].Data.([]byte)))
 	assert.Equal(t, "bytes", v["to-1"].DataType)
-	v, ok = mergedCatalog.Spec.Properties["from-2"].(map[string]model.Packet)
+	v, ok = mergedCatalogVersion.Spec.Properties["from-2"].(map[string]model.Packet)
 	assert.True(t, ok)
 	assert.Equal(t, "from-2", v["to-1"].From)
 	assert.Equal(t, "to-1", v["to-1"].To)

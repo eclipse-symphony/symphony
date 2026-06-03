@@ -1,0 +1,11 @@
+apiVersion: solution.symphony/v1
+kind: SolutionVersion
+metadata:
+  name: history-solutionversion-v-version2
+spec:
+  rootResource: history-solutionversion
+  components:
+    - name: configmap
+      type: config
+      properties: 
+        tags: "test-history"

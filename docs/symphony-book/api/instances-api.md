@@ -66,7 +66,7 @@
   |Parameter| Value|
   |--------|--------|
   | `{instance name}` | Name of the instance |
-  | `[<solution>]` | (optional) Solution to deploy |
+  | `[<solutionversion>]` | (optional) SolutionVersion to deploy |
   | `[<target>]` | (optional) Deployment target |
   | `[<target-selector>]` | (optional) Target selector |
 
@@ -82,7 +82,7 @@
   {
     "name": "sample-app",
     "displayName": "sample-app",
-    "solution": "sample-app-v1",
+    "solutionversion": "sample-app-v1",
     "target": {
       "selector": {
         "group": "group-1"
@@ -91,7 +91,7 @@
   }
   ```
 
-  The above query is equivalent to a query with the `solution=sample-app-v1&target-selector=group%3dgroup-1` parameter.
+  The above query is equivalent to a query with the `solutionversion=sample-app-v1&target-selector=group%3dgroup-1` parameter.
 
 * **Response body:** None
 

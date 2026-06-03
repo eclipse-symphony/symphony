@@ -13,8 +13,8 @@ from symphony_sdk.models import (
     ComponentSpec,
     DeploymentSpec,
     ObjectMeta,
-    SolutionSpec,
-    SolutionState,
+    SolutionVersionSpec,
+    SolutionVersionState,
     deserialize_coa_request,
     deserialize_coa_response,
     deserialize_components,
@@ -82,13 +82,13 @@ class TestDeploymentSpec(unittest.TestCase):
     def test_deployment_spec_creation(self):
         """Test DeploymentSpec creation with defaults."""
         deployment = DeploymentSpec()
-        self.assertEqual(deployment.solutionName, "")
-        self.assertIsNone(deployment.solution)
+        self.assertEqual(deployment.solutionversionName, "")
+        self.assertIsNone(deployment.solutionversion)
         self.assertIsNone(deployment.instance)
         self.assertEqual(deployment.activeTarget, "")
 
-    def test_deployment_spec_get_components_slice_no_solution(self):
-        """Test get_components_slice with no solution."""
+    def test_deployment_spec_get_components_slice_no_solutionversion(self):
+        """Test get_components_slice with no solutionversion."""
         deployment = DeploymentSpec()
         components = deployment.get_components_slice()
         self.assertEqual(components, [])
@@ -100,12 +100,12 @@ class TestDeploymentSpec(unittest.TestCase):
         comp2 = ComponentSpec(name="comp2")
         comp3 = ComponentSpec(name="comp3")
 
-        # Create solution with components
-        solution_spec = SolutionSpec(components=[comp1, comp2, comp3])
-        solution_state = SolutionState(spec=solution_spec)
+        # Create solutionversion with components
+        solutionversion_spec = SolutionVersionSpec(components=[comp1, comp2, comp3])
+        solutionversion_state = SolutionVersionState(spec=solutionversion_spec)
 
         deployment = DeploymentSpec(
-            solution=solution_state, componentStartIndex=1, componentEndIndex=3
+            solutionversion=solutionversion_state, componentStartIndex=1, componentEndIndex=3
         )
 
         components = deployment.get_components_slice()
@@ -118,10 +118,10 @@ class TestDeploymentSpec(unittest.TestCase):
         comp1 = ComponentSpec(name="comp1")
         comp2 = ComponentSpec(name="comp2")
 
-        solution_spec = SolutionSpec(components=[comp1, comp2])
-        solution_state = SolutionState(spec=solution_spec)
+        solutionversion_spec = SolutionVersionSpec(components=[comp1, comp2])
+        solutionversion_state = SolutionVersionState(spec=solutionversion_spec)
 
-        deployment = DeploymentSpec(solution=solution_state)
+        deployment = DeploymentSpec(solutionversion=solutionversion_state)
 
         components = deployment.get_components_slice()
         self.assertEqual(len(components), 2)
@@ -326,10 +326,10 @@ class TestUtilityFunctions(unittest.TestCase):
         """Test to_dict with nested dataclass objects."""
         meta = ObjectMeta(name="test-meta")
         comp = ComponentSpec(name="test-comp")
-        solution_spec = SolutionSpec(components=[comp])
-        solution_state = SolutionState(metadata=meta, spec=solution_spec)
+        solutionversion_spec = SolutionVersionSpec(components=[comp])
+        solutionversion_state = SolutionVersionState(metadata=meta, spec=solutionversion_spec)
 
-        result = to_dict(solution_state)
+        result = to_dict(solutionversion_state)
 
         self.assertIsInstance(result, dict)
         self.assertIn("metadata", result)
@@ -376,13 +376,13 @@ class TestUtilityFunctions(unittest.TestCase):
 
     def test_deserialize_deployment(self):
         """Test deserialize_deployment function."""
-        deployment_data = {"solutionName": "test-solution", "activeTarget": "test-target"}
+        deployment_data = {"solutionversionName": "test-solutionversion", "activeTarget": "test-target"}
         json_str = json.dumps(deployment_data)
 
         deployments = deserialize_deployment(json_str)
 
         self.assertEqual(len(deployments), 1)
-        self.assertEqual(deployments[0].solutionName, "test-solution")
+        self.assertEqual(deployments[0].solutionversionName, "test-solutionversion")
         self.assertEqual(deployments[0].activeTarget, "test-target")
 
     def test_serialize_coa_request(self):

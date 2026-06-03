@@ -42,7 +42,7 @@ spec:
             type: object
           spec:
             properties:
-              campaign:
+              campaignversion:
                 type: string
               inputs:
                 x-kubernetes-preserve-unknown-fields: true

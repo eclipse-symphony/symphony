@@ -22,8 +22,8 @@ async function InstancessPage() {
     type: 'instances',
     menuItems: [
       {
-        name: 'Add Solution',
-        href: '/solutions/add',                
+        name: 'Add SolutionVersion',
+        href: '/solutionversions/add',                
       }
     ],
     views: ['cards', 'table'],

@@ -31,7 +31,7 @@ Symphony exposes a REST API, which you can call using tools like [Postman](https
    > **NOTE**: This request assumes that your `kubectl` is configured to use your target K8s cluster as the default context. If you want to use a different cluster, either update your `kubectl` settings to use the new cluster as the default context (using `kubectl config use-context <context-name>`), or modify the Symphony API configuration file (like `symphony-api-dev.json`) and update the corresponding target provider settings.
 
    * Method: POST
-   * Path: http://localhost:8080/v1alpha2/solution/instances
+   * Path: http://localhost:8080/v1alpha2/solutionversion/instances
    * Body:
 
      ```json
@@ -39,13 +39,13 @@ Symphony exposes a REST API, which you can call using tools like [Postman](https
          "instance": {
              "scope": "default",
              "name": "redis-instance",
-             "solution": "my-solution",
+             "solutionversion": "my-solutionversion",
              "target": {
                  "name": "my-k8s"
              }                 
          },
-         "solution": {
-             "name": "my-solution",
+         "solutionversion": {
+             "name": "my-solutionversion",
              "components": [
                  {
                      "name": "redis-server",
@@ -83,7 +83,7 @@ Symphony exposes a REST API, which you can call using tools like [Postman](https
 2. Delete the above instance:
 
     * Method: DELETE
-    * Path: http://localhost:8080/v1alpha2/solution/instances?name=redis-instance
+    * Path: http://localhost:8080/v1alpha2/solutionversion/instances?name=redis-instance
     * Body: Same as above.
 
     > **NOTE**: Symphony requires the deployment object to be posted during deletion because it aims to make providers stateless. The state is played back to the provider to make decisions.

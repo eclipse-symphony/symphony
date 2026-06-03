@@ -34,7 +34,7 @@ jobs:
         - "07.maestroTest"
         - "08.webhook"
         - "09.stress"
-        - "10.catalogEval"
+        - "10.catalogversionEval"
         - "12.naming"
         - "13.createStage"
     steps:

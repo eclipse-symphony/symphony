@@ -80,9 +80,9 @@ func (r *InstanceHistory) Default() {
 				delete(r.Labels, api_constants.RootResource)
 			}
 			var instance Instance
-			err := mySolutionReaderClient.Get(ctx, client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instance)
+			err := mySolutionVersionReaderClient.Get(ctx, client.ObjectKey{Name: r.Spec.RootResource, Namespace: r.Namespace}, &instance)
 			if err != nil {
-				diagnostic.ErrorWithCtx(solutionlog, ctx, err, "failed to get instance", "name", r.Name, "namespace", r.Namespace)
+				diagnostic.ErrorWithCtx(solutionversionlog, ctx, err, "failed to get instance", "name", r.Name, "namespace", r.Namespace)
 			}
 			r.Labels[api_constants.RootResourceUid] = string(instance.UID)
 		}
@@ -93,7 +93,7 @@ func (r *InstanceHistory) Default() {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations = utils.GenerateSystemDataAnnotations(ctx, annotations, r.Spec.SolutionId)
+	annotations = utils.GenerateSystemDataAnnotations(ctx, annotations, r.Spec.SolutionVersionId)
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 	if annotation_name != "" {
 		parts := strings.Split(r.Name, constants.ResourceSeperator)

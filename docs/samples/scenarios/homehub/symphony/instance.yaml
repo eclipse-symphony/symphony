@@ -3,6 +3,6 @@ kind: Instance
 metadata:
   name: homehub-instance
 spec:
-  solution: home-hub:version1
+  solutionversion: home-hub:version1
   target:
     name: mac-book

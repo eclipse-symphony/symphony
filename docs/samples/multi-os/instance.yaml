@@ -3,7 +3,7 @@ kind: Instance
 metadata:
   name: multi-os-instance
 spec:
-  solution: multi-os-solution:version1
+  solutionversion: multi-os-solutionversion:version1
   target: 
     selector: 
       scenario: multi-os

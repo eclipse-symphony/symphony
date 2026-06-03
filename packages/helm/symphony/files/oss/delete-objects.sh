@@ -28,11 +28,11 @@ function delete_crds_instances {
     echo "Failed to delete CRD instances.$SOLUTION_GROUP, invoking remove_finalizers"
     remove_finalizers "instances.$SOLUTION_GROUP"
   fi
-  echo "Deleting solutions.$SOLUTION_GROUP"
-  kubectl delete crds "solutions.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
+  echo "Deleting solutionversions.$SOLUTION_GROUP"
+  kubectl delete crds "solutionversions.$SOLUTION_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
-    echo "Failed to delete CRD solutions.$SOLUTION_GROUP, invoking remove_finalizers"
-    remove_finalizers "solutions.$SOLUTION_GROUP"
+    echo "Failed to delete CRD solutionversions.$SOLUTION_GROUP, invoking remove_finalizers"
+    remove_finalizers "solutionversions.$SOLUTION_GROUP"
   fi
   echo "Deleting targets.$FABRIC_GROUP"
   kubectl delete crds "targets.$FABRIC_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
@@ -42,7 +42,7 @@ function delete_crds_instances {
   fi
 }
 
-function delete_crds_campaigns {
+function delete_crds_campaignversions {
   echo "Deleting activations.$WORKFLOW_GROUP"
   kubectl delete crds "activations.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
@@ -50,11 +50,11 @@ function delete_crds_campaigns {
     remove_finalizers "activations.$WORKFLOW_GROUP"
   fi
 
-  echo "Deleting campaigns.$WORKFLOW_GROUP"
-  kubectl delete crds "campaigns.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
+  echo "Deleting campaignversions.$WORKFLOW_GROUP"
+  kubectl delete crds "campaignversions.$WORKFLOW_GROUP" --wait --timeout=$TIMEOUT --ignore-not-found || true 
   if [ $? -ne 0 ]; then
-    echo "Failed to delete CRD campaigns.$WORKFLOW_GROUP, invoking remove_finalizers"
-    remove_finalizers "campaigns.$WORKFLOW_GROUP"
+    echo "Failed to delete CRD campaignversions.$WORKFLOW_GROUP, invoking remove_finalizers"
+    remove_finalizers "campaignversions.$WORKFLOW_GROUP"
   fi
 }
 
@@ -148,10 +148,10 @@ resource_types=(
   "skills.$AI_GROUP"
   "skillpackages.$AI_GROUP"
   "sites.$FEDERATION_GROUP"
-  "catalogs.$FEDERATION_GROUP"
+  "catalogversions.$FEDERATION_GROUP"
 )
 
-delete_crds_campaigns 
+delete_crds_campaignversions 
 
 delete_crds_instances
 

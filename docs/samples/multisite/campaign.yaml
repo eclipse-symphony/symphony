@@ -1,11 +1,11 @@
 apiVersion: workflow.symphony/v1
-kind: CampaignContainer
+kind: Campaign
 metadata:
   name: site-apps
 spec:  
 ---
 apiVersion: workflow.symphony/v1
-kind: Campaign
+kind: CampaignVersion
 metadata:
   name: site-apps-v-version1
 spec:  
@@ -30,7 +30,7 @@ spec:
       contexts: "${{$output(list,items)}}"
       inputs:
         operation: wait
-        objectType: catalogs
+        objectType: catalogversions
         names:
         - site-catalog:version1
         - site-app:version1

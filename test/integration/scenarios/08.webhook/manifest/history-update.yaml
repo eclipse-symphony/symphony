@@ -8,15 +8,15 @@ spec:
     interval: 30m
     state: active
   rootResource: history-instance
-  solution:
+  solutionversion:
     components:
     - name: configmap
       properties:
         tags: test-history
       type: config
-    displayName: history-solution-v-version1
-    rootResource: history-solution
-  solutionId: history-solution:version1
+    displayName: history-solutionversion-v-version1
+    rootResource: history-solutionversion
+  solutionversionId: history-solutionversion:version1
   target:
     displayName: history-target
     scope: default

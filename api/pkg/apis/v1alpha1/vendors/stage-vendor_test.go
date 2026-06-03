@@ -57,8 +57,8 @@ func createStageVendor() StageVendor {
 				},
 			},
 			{
-				Name: "campaigns-manager",
-				Type: "managers.symphony.campaigns",
+				Name: "campaignversions-manager",
+				Type: "managers.symphony.campaignversions",
 				Properties: map[string]string{
 					"providers.persistentstate": "mem-state",
 				},
@@ -89,7 +89,7 @@ func createStageVendor() StageVendor {
 		"stage-manager": {
 			"mem-state": &stateProvider,
 		},
-		"campaigns-manager": {
+		"campaignversions-manager": {
 			"mem-state": &stateProvider,
 		},
 		"activations-manager": {
@@ -100,11 +100,11 @@ func createStageVendor() StageVendor {
 }
 
 // Comment out this test temporarily due to data racing issue in memory state provider: https://github.com/eclipse-symphony/symphony/issues/84
-// func TestStageActivateCampaign(t *testing.T) {
+// func TestStageActivateCampaignVersion(t *testing.T) {
 // 	vendor := createStageVendor()
 // 	vendor.Context.EvaluationContext = &utils.EvaluationContext{}
-// 	err := vendor.CampaignsManager.UpsertSpec(context.Background(), "test-campaign", model.CampaignSpec{
-// 		Name:        "test-campaign",
+// 	err := vendor.CampaignVersionsManager.UpsertSpec(context.Background(), "test-campaignversion", model.CampaignVersionSpec{
+// 		Name:        "test-campaignversion",
 // 		SelfDriving: true,
 // 		FirstStage:  "test",
 // 		Stages: map[string]model.StageSpec{
@@ -119,7 +119,7 @@ func createStageVendor() StageVendor {
 // 	})
 // 	assert.Nil(t, err)
 // 	err = vendor.ActivationsManager.UpsertSpec(context.Background(), "test-activation", model.ActivationSpec{
-// 		Campaign: "test-campaign",
+// 		CampaignVersion: "test-campaignversion",
 // 		Name:     "test-activation",
 // 		Stage:    "test",
 // 		Inputs: map[string]interface{}{
@@ -130,7 +130,7 @@ func createStageVendor() StageVendor {
 // 	assert.Nil(t, err)
 // 	vendor.Context.Publish("activation", v1alpha2.Event{
 // 		Body: v1alpha2.ActivationData{
-// 			Campaign:   "test-campaign",
+// 			CampaignVersion:   "test-campaignversion",
 // 			Activation: "test-activation",
 // 			Stage:      "test",
 // 			Inputs: map[string]interface{}{
@@ -142,7 +142,7 @@ func createStageVendor() StageVendor {
 // 		Body: model.ActivationStatus{
 // 			Status: v1alpha2.Done,
 // 			Outputs: map[string]interface{}{
-// 				"__campaign":             "test-campaign",
+// 				"__campaignversion":             "test-campaignversion",
 // 				"__activation":           "test-activation",
 // 				"__stage":                "test",
 // 				"__activationGeneration": "1",
@@ -156,7 +156,7 @@ func createStageVendor() StageVendor {
 // 				Inputs: map[string]interface{}{
 // 					"__activation":           "test-activation",
 // 					"__activationGeneration": "1",
-// 					"__campaign":             "test-campaign",
+// 					"__campaignversion":             "test-campaignversion",
 // 					"__stage":                "test",
 // 					"operation":              "wait",
 // 				},
@@ -169,7 +169,7 @@ func createStageVendor() StageVendor {
 // 				Inputs: map[string]interface{}{
 // 					"__activation":           "test-activation",
 // 					"__activationGeneration": "1",
-// 					"__campaign":             "test-campaign",
+// 					"__campaignversion":             "test-campaignversion",
 // 					"__stage":                "test",
 // 					"operation":              "materialize",
 // 				},
@@ -182,7 +182,7 @@ func createStageVendor() StageVendor {
 // 				Inputs: map[string]interface{}{
 // 					"__activation":           "test-activation",
 // 					"__activationGeneration": "1",
-// 					"__campaign":             "test-campaign",
+// 					"__campaignversion":             "test-campaignversion",
 // 					"__stage":                "test",
 // 					"operation":              "mock",
 // 				},

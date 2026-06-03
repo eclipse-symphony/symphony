@@ -272,24 +272,24 @@ func (i *WaitStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 					}
 				}
 			}
-		case "catalogs":
-			var catalogs []model.CatalogState
-			catalogs, err = i.ApiClient.GetCatalogs(ctx, namespace, i.Config.User, i.Config.Password)
+		case "catalogversions":
+			var catalogversions []model.CatalogVersionState
+			catalogversions, err = i.ApiClient.GetCatalogVersions(ctx, namespace, i.Config.User, i.Config.Password)
 			if err != nil {
-				log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get catalogs: %v", err)
+				log.ErrorfCtx(ctx, "  P (Wait Processor): failed to get catalogversions: %v", err)
 				providerOperationMetrics.ProviderOperationErrors(
 					wait,
 					functionName,
 					metrics.ProcessOperation,
 					metrics.RunOperationType,
-					v1alpha2.WaitToGetCatalogsFailed.String(),
+					v1alpha2.WaitToGetCatalogVersionsFailed.String(),
 				)
 				return nil, false, err
 			}
-			for _, catalog := range catalogs {
+			for _, catalogversion := range catalogversions {
 				for _, object := range prefixedNames {
 					object = api_utils.ConvertReferenceToObjectName(object)
-					if catalog.ObjectMeta.Name == object {
+					if catalogversion.ObjectMeta.Name == object {
 						foundCount++
 					}
 				}

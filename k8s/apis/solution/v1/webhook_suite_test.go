@@ -91,7 +91,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&api.Solution{}).SetupWebhookWithManager(mgr)
+	err = (&api.SolutionVersion{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = (&api.Instance{}).SetupWebhookWithManager(mgr)

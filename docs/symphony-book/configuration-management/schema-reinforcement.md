@@ -1,8 +1,8 @@
 # Schema reinforcement
 
-Symphony Catalog object uses an open key-value pair schema, which provides the foundation for Symphony to carry pieces of arbitrary information as a property bag. These information snippets can then be assembled into various graphs to represent larger information ontologies like asset trees, BOMs, sites and others.
+Symphony CatalogVersion object uses an open key-value pair schema, which provides the foundation for Symphony to carry pieces of arbitrary information as a property bag. These information snippets can then be assembled into various graphs to represent larger information ontologies like asset trees, BOMs, sites and others.
 
-In the case where a stronger schema check is required – just as limiting a configuration field to a certain value range – Symphony allows a Catalog to be annotated with a `schema` metadata that points to a schema definition. Once an Catalog is annotated with a schema, it will be checked against the schema on any update operations – regardless if you are using the REST API or using K8s API calls. Any schema violations will cause the update to be rejected.
+In the case where a stronger schema check is required – just as limiting a configuration field to a certain value range – Symphony allows a CatalogVersion to be annotated with a `schema` metadata that points to a schema definition. Once an CatalogVersion is annotated with a schema, it will be checked against the schema on any update operations – regardless if you are using the REST API or using K8s API calls. Any schema violations will cause the update to be rejected.
 
 ## Schema rules
 

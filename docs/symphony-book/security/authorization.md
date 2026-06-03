@@ -66,7 +66,7 @@ Symphony REST API defines a few roles:
 
 * **Administrator**: Full access to all Symphony APIs
 * **Reader**: - Read-only access to Symphony APIs
-* **Solution creator**: CRUD on [solutions](../concepts/unified-object-model/solution.md) only
+* **SolutionVersion creator**: CRUD on [solutionversions](../concepts/unified-object-model/solutionversion.md) only
 * **Target manager**: CRUD on [targets](../concepts/unified-object-model/target.md) only
 * **Operator**: CRUD on [instances](../concepts/unified-object-model/instance.md) only
 
@@ -118,7 +118,7 @@ You can define REST API path access policies as part of the JWT handler's config
           "value": "*"
         },
         {
-          "role": "solution-creator",
+          "role": "solutionversion-creator",
           "claim": "user",
           "value": "developer"
         },
@@ -130,7 +130,7 @@ You can define REST API path access policies as part of the JWT handler's config
         {
           "role": "operator",
           "claim": "user",
-          "value": "solution-operator"
+          "value": "solutionversion-operator"
         }
       ],
       "policy": {                
@@ -144,9 +144,9 @@ You can define REST API path access policies as part of the JWT handler's config
             "*": "GET"
           }
         },
-        "solution-creator": {
+        "solutionversion-creator": {
           "items": {
-            "/v1alpha2/solutions": "*"
+            "/v1alpha2/solutionversions": "*"
           }
         },
         "target-manager": {
@@ -154,7 +154,7 @@ You can define REST API path access policies as part of the JWT handler's config
             "/v1alpha2/targets": "*"
           }
         },
-        "solution-operator": {
+        "solutionversion-operator": {
           "items": {
             "/v1alpha2/instances": "*"
           }

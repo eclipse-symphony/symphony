@@ -103,12 +103,12 @@ func InitiazlizeMockSymphonyAPI(siteId string) *httptest.Server {
 						Action: v1alpha2.JobUpdate,
 					},
 				},
-				Catalogs: []model.CatalogState{
+				CatalogVersions: []model.CatalogVersionState{
 					{
 						ObjectMeta: model.ObjectMeta{
-							Name: "catalog1",
+							Name: "catalogversion1",
 						},
-						Spec: &model.CatalogSpec{
+						Spec: &model.CatalogVersionSpec{
 							CatalogType: "Instance",
 							Properties: map[string]interface{}{
 								"foo": "bar",
@@ -166,15 +166,15 @@ func TestPoll(t *testing.T) {
 
 	sig1 := make(chan int)
 	sig2 := make(chan int)
-	catalog1 := model.CatalogState{}
+	catalogversion1 := model.CatalogVersionState{}
 	job1 := v1alpha2.JobData{}
 	// validate that the sync package was published
-	catalogCnt := 0
-	vendorContext.Subscribe("catalog-sync", v1alpha2.EventHandler{
+	catalogversionCnt := 0
+	vendorContext.Subscribe("catalogversion-sync", v1alpha2.EventHandler{
 		Handler: func(topic string, event v1alpha2.Event) error {
-			catalogCnt++
+			catalogversionCnt++
 			jobData := event.Body.(v1alpha2.JobData)
-			catalog1 = jobData.Body.(model.CatalogState)
+			catalogversion1 = jobData.Body.(model.CatalogVersionState)
 			sig1 <- 1
 			return nil
 		},
@@ -194,8 +194,8 @@ func TestPoll(t *testing.T) {
 
 	<-sig1
 	<-sig2
-	assert.Equal(t, 1, catalogCnt)
+	assert.Equal(t, 1, catalogversionCnt)
 	assert.Equal(t, 1, jobCount)
-	assert.Equal(t, "catalog1", catalog1.ObjectMeta.Name)
+	assert.Equal(t, "catalogversion1", catalogversion1.ObjectMeta.Name)
 	assert.Equal(t, "job1", job1.Id)
 }

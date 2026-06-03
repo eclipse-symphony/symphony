@@ -34,24 +34,24 @@ var (
 )
 
 var (
-	// catalogs to deploy
-	testCatalogs = []string{
+	// catalogversions to deploy
+	testCatalogVersions = []string{
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container.yaml",
 		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-container-2.yaml",
-		"test/integration/scenarios/04.workflow/manifest/instance-catalog-container.yaml",
-		"test/integration/scenarios/04.workflow/manifest/solution-catalog-container.yaml",
-		"test/integration/scenarios/04.workflow/manifest/target-catalog-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalogversion-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solutionversion-catalogversion-container.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalogversion-container.yaml",
 
-		"test/integration/scenarios/04.workflow/manifest/catalog-catalog.yaml",
-		"test/integration/scenarios/04.workflow/manifest/catalog-catalog-2.yaml",
-		"test/integration/scenarios/04.workflow/manifest/instance-catalog.yaml",
-		"test/integration/scenarios/04.workflow/manifest/solution-catalog.yaml",
-		"test/integration/scenarios/04.workflow/manifest/target-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalog.yaml",
+		"test/integration/scenarios/04.workflow/manifest/catalogversion-catalog-2.yaml",
+		"test/integration/scenarios/04.workflow/manifest/instance-catalogversion.yaml",
+		"test/integration/scenarios/04.workflow/manifest/solutionversion-catalogversion.yaml",
+		"test/integration/scenarios/04.workflow/manifest/target-catalogversion.yaml",
 	}
 
-	testCampaign = []string{
-		"test/integration/scenarios/04.workflow/manifest/campaign-container.yaml",
+	testCampaignVersion = []string{
 		"test/integration/scenarios/04.workflow/manifest/campaign.yaml",
+		"test/integration/scenarios/04.workflow/manifest/campaignversion.yaml",
 	}
 
 	testActivations = []string{
@@ -110,11 +110,11 @@ func DeployManifests(namespace string) error {
 			}
 		}
 	}
-	// Deploy the catalogs
-	for _, catalog := range testCatalogs {
-		absCatalog := filepath.Join(repoPath, catalog)
+	// Deploy the catalogversions
+	for _, catalogversion := range testCatalogVersions {
+		absCatalogVersion := filepath.Join(repoPath, catalogversion)
 
-		data, err := os.ReadFile(absCatalog)
+		data, err := os.ReadFile(absCatalogVersion)
 		if err != nil {
 			return err
 		}
@@ -132,15 +132,15 @@ func DeployManifests(namespace string) error {
 		os.Remove("./test.yaml")
 	}
 
-	for _, campaign := range testCampaign {
-		absCampaign := filepath.Join(repoPath, campaign)
-		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaign, namespace)).Run()
+	for _, campaignversion := range testCampaignVersion {
+		absCampaignVersion := filepath.Join(repoPath, campaignversion)
+		err := shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", absCampaignVersion, namespace)).Run()
 		if err != nil {
 			return err
 		}
 	}
 
-	// wait for 5 seconds to make sure campaign is created
+	// wait for 5 seconds to make sure campaignversion is created
 	time.Sleep(time.Second * 5)
 	for _, activation := range testActivations {
 		absActivation := filepath.Join(repoPath, activation)

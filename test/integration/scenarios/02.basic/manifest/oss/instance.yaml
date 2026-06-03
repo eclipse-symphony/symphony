@@ -11,7 +11,7 @@ metadata:
 spec:
   displayName: INSTANCEFULLNAME
   scope: SCOPENAME
-  solution: SOLUTIONREFNAME
+  solutionversion: SOLUTIONREFNAME
   isDryRun: DRYRUN
   activeState: ACTIVESTATE
   target:

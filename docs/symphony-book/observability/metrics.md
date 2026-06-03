@@ -28,7 +28,7 @@ Descriptor:
 NumberDataPoints #0
 Data point attributes:
      -> formatedStatusCode: Str(Not Found)
-     -> operation: Str(/v1alpha2/solution/queue)
+     -> operation: Str(/v1alpha2/solutionversion/queue)
      -> operationType: Str(GET)
      -> statusCode: Int(404)
 StartTimestamp: 2025-01-22 17:05:27.24322216 +0000 UTC
@@ -49,7 +49,7 @@ Descriptor:
 NumberDataPoints #0
 Data point attributes:
      -> formatedStatusCode: Str(Not Found)
-     -> operation: Str(/v1alpha2/solution/queue)
+     -> operation: Str(/v1alpha2/solutionversion/queue)
      -> operationType: Str(GET)
      -> statusCode: Int(404)
 StartTimestamp: 2025-01-22 16:58:48.264263035 +0000 UTC
@@ -58,7 +58,7 @@ Value: 2.000000
 NumberDataPoints #1
 Data point attributes:
      -> formatedStatusCode: Str(OK)
-     -> operation: Str(/v1alpha2/solution/queue)
+     -> operation: Str(/v1alpha2/solutionversion/queue)
      -> operationType: Str(POST)
      -> statusCode: Int(200)
 StartTimestamp: 2025-01-22 16:58:48.264263035 +0000 UTC

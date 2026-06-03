@@ -58,7 +58,7 @@ func TestPreserveSystemMetadata_EmptyCurrentMetadata(t *testing.T) {
 		},
 		Labels: map[string]string{
 			constants.DisplayName: "Test Display",
-			constants.Solution:    "test-solution",
+			constants.SolutionVersion:    "test-solutionversion",
 		},
 	}
 
@@ -73,7 +73,7 @@ func TestPreserveSystemMetadata_EmptyCurrentMetadata(t *testing.T) {
 	// Verify labels were preserved
 	assert.NotNil(t, current.Labels)
 	assert.Equal(t, "Test Display", current.Labels[constants.DisplayName])
-	assert.Equal(t, "test-solution", current.Labels[constants.Solution])
+	assert.Equal(t, "test-solutionversion", current.Labels[constants.SolutionVersion])
 }
 
 func TestPreserveSystemMetadata_ExistingAnnotationsNotOverwritten(t *testing.T) {
@@ -118,7 +118,7 @@ func TestPreserveSystemMetadata_ExistingLabelsNotOverwritten(t *testing.T) {
 		Name: "source-object",
 		Labels: map[string]string{
 			constants.DisplayName: "New Display",
-			constants.Solution:    "new-solution",
+			constants.SolutionVersion:    "new-solutionversion",
 		},
 	}
 
@@ -127,7 +127,7 @@ func TestPreserveSystemMetadata_ExistingLabelsNotOverwritten(t *testing.T) {
 	// Verify existing label was not overwritten
 	assert.Equal(t, "Existing Display", current.Labels[constants.DisplayName])
 	// Verify new label was added
-	assert.Equal(t, "new-solution", current.Labels[constants.Solution])
+	assert.Equal(t, "new-solutionversion", current.Labels[constants.SolutionVersion])
 	// Verify custom label was preserved
 	assert.Equal(t, "custom-value", current.Labels["custom-label"])
 }
@@ -182,7 +182,7 @@ func TestPreserveSystemMetadata_MixedScenario(t *testing.T) {
 		},
 		Labels: map[string]string{
 			constants.DisplayName: "New Display",
-			constants.Solution:    "new-solution",
+			constants.SolutionVersion:    "new-solutionversion",
 			"custom-label":        "should-not-overwrite",
 		},
 	}
@@ -197,7 +197,7 @@ func TestPreserveSystemMetadata_MixedScenario(t *testing.T) {
 
 	// Verify labels
 	assert.Equal(t, "Existing Display", current.Labels[constants.DisplayName]) // Not overwritten
-	assert.Equal(t, "new-solution", current.Labels[constants.Solution])        // Added
+	assert.Equal(t, "new-solutionversion", current.Labels[constants.SolutionVersion])        // Added
 	assert.Equal(t, "custom-value", current.Labels["custom-label"])            // Preserved
 }
 
@@ -322,13 +322,13 @@ func TestPreserveSystemMetadata_AllSystemReservedLabels(t *testing.T) {
 	source := ObjectMeta{
 		Name: "source-object",
 		Labels: map[string]string{
-			constants.Campaign:       "test-campaign",
+			constants.CampaignVersion:       "test-campaignversion",
 			constants.DisplayName:    "Test Display",
 			constants.ProviderName:   "test-provider",
 			constants.ManagerMetaKey: "test-manager",
 			constants.ParentName:     "parent-resource",
 			constants.RootResource:   "root-resource",
-			constants.Solution:       "test-solution",
+			constants.SolutionVersion:       "test-solutionversion",
 			constants.StagedTarget:   "staged-target",
 			constants.StatusMessage:  "status-message",
 			constants.Target:         "test-target",
@@ -338,13 +338,13 @@ func TestPreserveSystemMetadata_AllSystemReservedLabels(t *testing.T) {
 	current.PreserveSystemMetadata(source)
 
 	// Verify all system reserved labels were preserved
-	assert.Equal(t, "test-campaign", current.Labels[constants.Campaign])
+	assert.Equal(t, "test-campaignversion", current.Labels[constants.CampaignVersion])
 	assert.Equal(t, "Test Display", current.Labels[constants.DisplayName])
 	assert.Equal(t, "test-provider", current.Labels[constants.ProviderName])
 	assert.Equal(t, "test-manager", current.Labels[constants.ManagerMetaKey])
 	assert.Equal(t, "parent-resource", current.Labels[constants.ParentName])
 	assert.Equal(t, "root-resource", current.Labels[constants.RootResource])
-	assert.Equal(t, "test-solution", current.Labels[constants.Solution])
+	assert.Equal(t, "test-solutionversion", current.Labels[constants.SolutionVersion])
 	assert.Equal(t, "staged-target", current.Labels[constants.StagedTarget])
 	assert.Equal(t, "status-message", current.Labels[constants.StatusMessage])
 	assert.Equal(t, "test-target", current.Labels[constants.Target])

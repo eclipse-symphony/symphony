@@ -5,5 +5,5 @@ metadata:
   annotations:
     "management.azure.com/resourceId": ACTIVATIONNAME
 spec:
-  # campaign: "context1-v-bulk-campaign-v-version1" 
-  campaign: CAMPAIGNREFNAME
+  # campaignversion: "context1-v-bulk-campaign-v-version1" 
+  campaignversion: CAMPAIGNREFNAME

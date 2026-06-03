@@ -13,14 +13,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 
-	solution_v1 "gopls-workspace/apis/solution/v1"
+	solutionversion_v1 "gopls-workspace/apis/solution/v1"
 )
 
-func TestK8SSolutionToAPISolutionState(t *testing.T) {
-	solutionYaml := `apiVersion: solution.symphony/v1
-kind: Solution
+func TestK8SSolutionVersionToAPISolutionVersionState(t *testing.T) {
+	solutionversionYaml := `apiVersion: solution.symphony/v1
+kind: SolutionVersion
 metadata: 
-  name: sample-staged-solution
+  name: sample-staged-solutionversion
 spec:  
   components:
   - name: staged-component
@@ -37,8 +37,8 @@ spec:
         nestedEnv:
           baz: "qux"
 `
-	solution := &solution_v1.Solution{}
-	err := yaml.Unmarshal([]byte(solutionYaml), solution)
+	solutionversion := &solutionversion_v1.SolutionVersion{}
+	err := yaml.Unmarshal([]byte(solutionversionYaml), solutionversion)
 	assert.NoError(t, err)
 
 	expectedProperties := map[string]interface{}{
@@ -48,7 +48,7 @@ spec:
 		},
 	}
 	actualProperties := map[string]interface{}{}
-	err = json.Unmarshal(solution.Spec.Components[0].Properties.Raw, &actualProperties)
+	err = json.Unmarshal(solutionversion.Spec.Components[0].Properties.Raw, &actualProperties)
 	assert.NoError(t, err)
 
 	assert.Equal(t, expectedProperties, actualProperties)
@@ -61,29 +61,29 @@ spec:
 		},
 	}
 	actualSidecarProperties := map[string]interface{}{}
-	err = json.Unmarshal(solution.Spec.Components[0].Sidecars[0].Properties.Raw, &actualSidecarProperties)
+	err = json.Unmarshal(solutionversion.Spec.Components[0].Sidecars[0].Properties.Raw, &actualSidecarProperties)
 	assert.NoError(t, err)
 
 	assert.Equal(t, expectedSidecarProperties, actualSidecarProperties)
 
-	apiSolutionState, err := K8SSolutionToAPISolutionState(*solution)
+	apiSolutionVersionState, err := K8SSolutionVersionToAPISolutionVersionState(*solutionversion)
 
 	assert.NoError(t, err)
-	assert.Equal(t, solution.Name, apiSolutionState.ObjectMeta.Name)
-	assert.Equal(t, solution.Spec.Components[0].Name, apiSolutionState.Spec.Components[0].Name)
-	assert.Equal(t, solution.Spec.Components[0].Type, apiSolutionState.Spec.Components[0].Type)
-	assert.Equal(t, expectedProperties, apiSolutionState.Spec.Components[0].Properties)
+	assert.Equal(t, solutionversion.Name, apiSolutionVersionState.ObjectMeta.Name)
+	assert.Equal(t, solutionversion.Spec.Components[0].Name, apiSolutionVersionState.Spec.Components[0].Name)
+	assert.Equal(t, solutionversion.Spec.Components[0].Type, apiSolutionVersionState.Spec.Components[0].Type)
+	assert.Equal(t, expectedProperties, apiSolutionVersionState.Spec.Components[0].Properties)
 
-	assert.Equal(t, solution.Spec.Components[0].Sidecars[0].Name, apiSolutionState.Spec.Components[0].Sidecars[0].Name)
-	assert.Equal(t, solution.Spec.Components[0].Sidecars[0].Type, apiSolutionState.Spec.Components[0].Sidecars[0].Type)
-	assert.Equal(t, expectedSidecarProperties, apiSolutionState.Spec.Components[0].Sidecars[0].Properties)
+	assert.Equal(t, solutionversion.Spec.Components[0].Sidecars[0].Name, apiSolutionVersionState.Spec.Components[0].Sidecars[0].Name)
+	assert.Equal(t, solutionversion.Spec.Components[0].Sidecars[0].Type, apiSolutionVersionState.Spec.Components[0].Sidecars[0].Type)
+	assert.Equal(t, expectedSidecarProperties, apiSolutionVersionState.Spec.Components[0].Sidecars[0].Properties)
 }
 
-func TestK8SSolutionToAPISolutionStateNullProperty(t *testing.T) {
-	solutionYaml := `apiVersion: solution.symphony/v1
-kind: Solution
+func TestK8SSolutionVersionToAPISolutionVersionStateNullProperty(t *testing.T) {
+	solutionversionYaml := `apiVersion: solution.symphony/v1
+kind: SolutionVersion
 metadata: 
-  name: sample-staged-solution
+  name: sample-staged-solutionversion
 spec:  
   components:
   - name: staged-component
@@ -96,23 +96,23 @@ spec:
         nestedEnv:
           baz: "qux"
 `
-	solution := &solution_v1.Solution{}
-	err := yaml.Unmarshal([]byte(solutionYaml), solution)
+	solutionversion := &solutionversion_v1.SolutionVersion{}
+	err := yaml.Unmarshal([]byte(solutionversionYaml), solutionversion)
 	assert.NoError(t, err)
 
-	apiSolutionState, err := K8SSolutionToAPISolutionState(*solution)
+	apiSolutionVersionState, err := K8SSolutionVersionToAPISolutionVersionState(*solutionversion)
 
 	assert.NoError(t, err)
-	assert.Equal(t, solution.Name, apiSolutionState.ObjectMeta.Name)
-	assert.Equal(t, solution.Spec.Components[0].Name, apiSolutionState.Spec.Components[0].Name)
-	assert.Equal(t, solution.Spec.Components[0].Type, apiSolutionState.Spec.Components[0].Type)
+	assert.Equal(t, solutionversion.Name, apiSolutionVersionState.ObjectMeta.Name)
+	assert.Equal(t, solutionversion.Spec.Components[0].Name, apiSolutionVersionState.Spec.Components[0].Name)
+	assert.Equal(t, solutionversion.Spec.Components[0].Type, apiSolutionVersionState.Spec.Components[0].Type)
 }
 
 func TestK8SSidecarSpecToAPISidecarSpecNullProperty(t *testing.T) {
-	solutionYaml := `apiVersion: solution.symphony/v1
-kind: Solution
+	solutionversionYaml := `apiVersion: solution.symphony/v1
+kind: SolutionVersion
 metadata: 
-  name: sample-staged-solution
+  name: sample-staged-solutionversion
 spec:  
   components:
   - name: staged-component
@@ -124,10 +124,10 @@ spec:
     - name: sidecar1
       type: container
 `
-	solution := &solution_v1.Solution{}
-	err := yaml.Unmarshal([]byte(solutionYaml), solution)
+	solutionversion := &solutionversion_v1.SolutionVersion{}
+	err := yaml.Unmarshal([]byte(solutionversionYaml), solutionversion)
 	assert.NoError(t, err)
 
-	_, err = K8SSidecarSpecToAPISidecarSpec(solution.Spec.Components[0].Sidecars[0])
+	_, err = K8SSidecarSpecToAPISidecarSpec(solutionversion.Spec.Components[0].Sidecars[0])
 	assert.NoError(t, err)
 }

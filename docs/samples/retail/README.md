@@ -5,7 +5,7 @@ Before start, please [set up your own kubernetes cluster](https://kubernetes.io/
 ## Build UWP sample app (in Windows)
 0. Search for "For developer" in windows search bar, and then turn on the Developer Mode and Device discovery. Restart you PC to ensure it takes affect.
 1. Open `ContosoCafeteriaKiosk/ContosoCafeteriaKiosk.sln` with Visual Studio 2022.
-2. Build the solution for `x64` and `x86` architecture, `Debug` profile.
+2. Build the solutionversion for `x64` and `x86` architecture, `Debug` profile.
 3. Here you should create a new certificate to sign it. Please keep it and trust it on your PC. **(IMPORTANT)**
 4. Copy the `ContosoCafeteriaKiosk_1.0.0.0_Debug_Test` folder to a folder that is accessible by the proxy provider (see below).
 Reference: [Create an App Installer file with Visual Studio](https://learn.microsoft.com/en-us/windows/msix/app-installer/create-appinstallerfile-vs)
@@ -50,7 +50,7 @@ You can use the [`templates/symphony-agent.json`](./templates/symphony-agent.jso
 
 1. You can define multiple MQTT bindings, each corresponds to a Target object on the control plane side.
 2. You can increase default MQTT timeout by modifying the `timeoutSeconds` value. Because provider deployments are blocking, you need to make sure the deployment can finish in time to respond before this time window expires.
-3. On the `solution-manager` configuration, you should define local target providers you want to use. The provider name needs to match with the target name.
+3. On the `solutionversion-manager` configuration, you should define local target providers you want to use. The provider name needs to match with the target name.
 
 ## Launching the agent (in Windows)
 
@@ -79,15 +79,15 @@ You can use the [`templates/symphony-agent.json`](./templates/symphony-agent.jso
 
 ## Deploying sample applications (in WSL)
 
-1. Deploy targets and solution:
+1. Deploy targets and solutionversion:
 
     ```bash
-    kubectl apply -f ./templates/solution.yaml
+    kubectl apply -f ./templates/solutionversion.yaml
     kubectl apply -f ./templates/windows-target.yaml
     kubectl apply -f ./templates/k8s-target.yaml
     ```
 
-The docker image used for deploy the backend service is described in the `solution.yaml` file. If you want to change it to another image, you can edit the link.
+The docker image used for deploy the backend service is described in the `solutionversion.yaml` file. If you want to change it to another image, you can edit the link.
 
 In `target.yaml`, please edit the broker link as well.
 

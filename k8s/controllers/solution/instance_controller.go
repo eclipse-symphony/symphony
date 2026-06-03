@@ -13,7 +13,7 @@ import (
 	"time"
 
 	fabric_v1 "gopls-workspace/apis/fabric/v1"
-	solution_v1 "gopls-workspace/apis/solution/v1"
+	solutionversion_v1 "gopls-workspace/apis/solution/v1"
 	"gopls-workspace/constants"
 	"gopls-workspace/controllers/metrics"
 	"gopls-workspace/reconcilers"
@@ -62,9 +62,9 @@ type InstanceReconciler struct {
 }
 
 const (
-	instanceFinalizerName               = "instance.solution." + constants.FinalizerPostfix
-	instanceOperationStartTimeKey       = "instance.solution." + constants.OperationStartTimeKeyPostfix
-	instanceDeleteOperationStartTimeKey = "instance.solution." + constants.DeleteOperationStartTimeKeyPostfix
+	instanceFinalizerName               = "instance.solutionversion." + constants.FinalizerPostfix
+	instanceOperationStartTimeKey       = "instance.solutionversion." + constants.OperationStartTimeKeyPostfix
+	instanceDeleteOperationStartTimeKey = "instance.solutionversion." + constants.DeleteOperationStartTimeKeyPostfix
 )
 
 //+kubebuilder:rbac:groups=solution.symphony,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -90,7 +90,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	log := ctrllog.FromContext(ctx)
 	diagnostic.InfoWithCtx(log, ctx, "Building deployment")
 	var deployment model.DeploymentSpec
-	instance, ok := object.(*solution_v1.Instance)
+	instance, ok := object.(*solutionversion_v1.Instance)
 	if !ok {
 		err := v1alpha2.NewCOAError(nil, "not able to convert object to instance", v1alpha2.ObjectInstanceCoversionFailed)
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to convert object to instance when building deployment")
@@ -99,15 +99,15 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 
 	deploymentResources := &utils.DeploymentResources{
 		Instance:         *instance,
-		Solution:         solution_v1.Solution{},
+		SolutionVersion:  solutionversion_v1.SolutionVersion{},
 		TargetList:       fabric_v1.TargetList{},
 		TargetCandidates: []fabric_v1.Target{},
 	}
 
-	solutionName := api_utils.ConvertReferenceToObjectName(instance.Spec.Solution)
-	if err := r.Get(ctx, types.NamespacedName{Name: solutionName, Namespace: instance.Namespace}, &deploymentResources.Solution); err != nil {
-		err = v1alpha2.NewCOAError(err, "failed to get solution", v1alpha2.SolutionGetFailed)
-		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no solution found")
+	solutionversionName := api_utils.ConvertReferenceToObjectName(instance.Spec.SolutionVersion)
+	if err := r.Get(ctx, types.NamespacedName{Name: solutionversionName, Namespace: instance.Namespace}, &deploymentResources.SolutionVersion); err != nil {
+		err = v1alpha2.NewCOAError(err, "failed to get solutionversion", v1alpha2.SolutionVersionGetFailed)
+		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no solutionversion found")
 	}
 	// Get targets
 	if err := r.List(ctx, &deploymentResources.TargetList, client.InNamespace(instance.Namespace)); err != nil {
@@ -122,7 +122,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 		diagnostic.ErrorWithCtx(log, ctx, err, "proceed with no target candidates found")
 	}
 
-	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.Solution, deploymentResources.TargetCandidates, object.GetNamespace())
+	deployment, err := utils.CreateSymphonyDeployment(ctx, *instance, deploymentResources.SolutionVersion, deploymentResources.TargetCandidates, object.GetNamespace())
 	deployment.JobID = object.GetAnnotations()[constants.SummaryJobIdKey]
 	if err != nil {
 		diagnostic.ErrorWithCtx(log, ctx, err, "failed to create symphony deployment")
@@ -131,7 +131,7 @@ func (r *InstanceReconciler) deploymentBuilder(ctx context.Context, object recon
 	return &deployment, nil
 }
 
-func (r *InstanceReconciler) MatchTargetsForInstance(ctx context.Context, instance *solution_v1.Instance) []fabric_v1.Target {
+func (r *InstanceReconciler) MatchTargetsForInstance(ctx context.Context, instance *solutionversion_v1.Instance) []fabric_v1.Target {
 	if instance.Spec.Target.Name != "" {
 		// First try to get target directly with the full name
 		target := fabric_v1.Target{}
@@ -190,7 +190,7 @@ func (r *InstanceReconciler) buildDeploymentReconciler() (reconcilers.Reconciler
 func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object) []ctrl.Request {
 	ret := make([]ctrl.Request, 0)
 	tarObj := obj.(*fabric_v1.Target)
-	var instances solution_v1.InstanceList
+	var instances solutionversion_v1.InstanceList
 
 	options := []client.ListOption{client.InNamespace(tarObj.Namespace)}
 	err := r.List(context.Background(), &instances, options...)
@@ -227,8 +227,8 @@ func (r *InstanceReconciler) handleTarget(ctx context.Context, obj client.Object
 	return ret
 }
 
-func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionRef string, solutionRefNamespace string, updatedInstanceNames []string, requests []ctrl.Request) ([]ctrl.Request, []string) {
-	var instances solution_v1.InstanceList
+func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionversionRef string, solutionversionRefNamespace string, updatedInstanceNames []string, requests []ctrl.Request) ([]ctrl.Request, []string) {
+	var instances solutionversion_v1.InstanceList
 	ret := make([]ctrl.Request, 0)
 	if requests != nil {
 		ret = requests
@@ -237,8 +237,8 @@ func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionR
 		updatedInstanceNames = make([]string, 0)
 	}
 	options := []client.ListOption{
-		client.InNamespace(solutionRefNamespace),
-		client.MatchingFields{"spec.solution": solutionRef},
+		client.InNamespace(solutionversionRefNamespace),
+		client.MatchingFields{"spec.solutionversion": solutionversionRef},
 	}
 	error := r.List(context.Background(), &instances, options...)
 	if error != nil {
@@ -262,24 +262,24 @@ func (r *InstanceReconciler) findRelatedInstances(ctx context.Context, solutionR
 	}
 
 	if len(ret) > 0 {
-		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("Watched solution %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solutionRef, solutionRefNamespace, len(ret), strings.Join(updatedInstanceNames, ",")))
+		diagnostic.InfoWithCtx(log.Log, ctx, fmt.Sprintf("Watched solutionversion %s under namespace %s is updated, needs to requeue instances related, count: %d, list: %s", solutionversionRef, solutionversionRefNamespace, len(ret), strings.Join(updatedInstanceNames, ",")))
 	}
 	return ret, updatedInstanceNames
 }
 
-func (r *InstanceReconciler) handleSolution(ctx context.Context, obj client.Object) []ctrl.Request {
-	solObj := obj.(*solution_v1.Solution)
+func (r *InstanceReconciler) handleSolutionVersion(ctx context.Context, obj client.Object) []ctrl.Request {
+	solObj := obj.(*solutionversion_v1.SolutionVersion)
 	updatedInstanceNames := make([]string, 0)
 	ret := make([]ctrl.Request, 0)
 
 	// oss reference
-	solutionName := api_utils.ConvertObjectNameToReference(solObj.Name)
-	ret, updatedInstanceNames = r.findRelatedInstances(ctx, solutionName, solObj.Namespace, updatedInstanceNames, ret)
+	solutionversionName := api_utils.ConvertObjectNameToReference(solObj.Name)
+	ret, updatedInstanceNames = r.findRelatedInstances(ctx, solutionversionName, solObj.Namespace, updatedInstanceNames, ret)
 
 	// azure reference
-	azureSolutionName := strings.ToLower(solObj.Annotations[constants.AzureResourceIdKey])
-	if azureSolutionName != "" {
-		ret, updatedInstanceNames = r.findRelatedInstances(ctx, azureSolutionName, solObj.Namespace, updatedInstanceNames, ret)
+	azureSolutionVersionName := strings.ToLower(solObj.Annotations[constants.AzureResourceIdKey])
+	if azureSolutionVersionName != "" {
+		ret, updatedInstanceNames = r.findRelatedInstances(ctx, azureSolutionVersionName, solObj.Namespace, updatedInstanceNames, ret)
 	}
 
 	if len(ret) > 0 {

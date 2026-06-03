@@ -1,0 +1,19 @@
+apiVersion: solution.symphony/v1
+kind: SolutionVersion
+metadata:
+  name: sample-simulated-temperature-sensor-v-version1
+spec:
+  rootResource: sample-simulated-temperature-sensor
+  components:
+  - name: "simulated-temperature-sensor"
+    properties:
+      container.version: "1.0"
+      container.type: "docker"
+      container.image: "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0"
+      container.createOptions: ""
+      container.restartPolicy: "always"      
+    routes:
+    - route: SimulatedTemperatureSensorToIoTHub
+      type: iothub
+      properties:
+        definition: "FROM /messages/modules/simulated-temperature-sensor/* INTO $upstream"

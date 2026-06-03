@@ -7,7 +7,7 @@ This document provides a comprehensive overview of all features available in the
 - [Client Features](#client-features)
 - [Authentication & Security](#authentication--security)
 - [Target Management](#target-management)
-- [Solution Management](#solution-management)
+- [SolutionVersion Management](#solutionversion-management)
 - [Instance & Deployment](#instance--deployment)
 - [COA (Cloud Object API)](#coa-cloud-object-api)
 - [Status & Summary Tracking](#status--summary-tracking)
@@ -157,21 +157,21 @@ client.unregister_target("gateway-001", direct=True)
 
 ---
 
-## Solution Management
+## SolutionVersion Management
 
-Define and manage application solutions.
+Define and manage application solutionversions.
 
 ### Creation
 
 **Features:**
-- ✅ YAML-based solution definitions
+- ✅ YAML-based solutionversion definitions
 - ✅ Multiple component support
 - ✅ Embedded specifications
 - ✅ Component properties and routing
 
 **Example:**
 ```python
-solution_yaml = """
+solutionversion_yaml = """
 displayName: Web Application
 components:
   - name: nginx
@@ -179,7 +179,7 @@ components:
     properties:
       image: nginx:latest
 """
-client.create_solution("web-app", solution_yaml)
+client.create_solutionversion("web-app", solutionversion_yaml)
 ```
 
 ### Components
@@ -205,27 +205,27 @@ component = ComponentSpec(
 ### Querying
 
 **Features:**
-- ✅ List all solutions
-- ✅ Get solution details
+- ✅ List all solutionversions
+- ✅ Get solutionversion details
 - ✅ YAML/JSON format support
 - ✅ Component filtering
 
 **Example:**
 ```python
-solutions = client.list_solutions()
-solution = client.get_solution("web-app")
+solutionversions = client.list_solutionversions()
+solutionversion = client.get_solutionversion("web-app")
 ```
 
 ---
 
 ## Instance & Deployment
 
-Deploy solutions to targets.
+Deploy solutionversions to targets.
 
 ### Instance Creation
 
 **Features:**
-- ✅ Create instances from solutions
+- ✅ Create instances from solutionversions
 - ✅ Target selection with selectors
 - ✅ Custom parameters
 - ✅ Topology definitions
@@ -235,7 +235,7 @@ Deploy solutions to targets.
 **Example:**
 ```python
 instance_spec = {
-    "solution": "web-app",
+    "solutionversion": "web-app",
     "target": {"name": "gateway-001"},
     "parameters": {"replicas": "3"},
     "topologies": [...],
@@ -259,7 +259,7 @@ deployment_spec = {...}
 client.apply_deployment(deployment_spec)
 
 # Reconcile
-client.reconcile_solution(deployment_spec, delete=False)
+client.reconcile_solutionversion(deployment_spec, delete=False)
 
 # Get components
 components = client.get_deployment_components()
@@ -482,7 +482,7 @@ metadata = ObjectMeta(
 
 **Features:**
 - ✅ TargetSpec with full target definition
-- ✅ SolutionSpec with components
+- ✅ SolutionVersionSpec with components
 - ✅ InstanceSpec with deployment config
 - ✅ DeploymentSpec with complete state
 - ✅ ComponentSpec with properties and routing
@@ -510,7 +510,7 @@ target_spec = from_dict(spec_dict, TargetSpec)
 **Features:**
 - ✅ JSON serialization
 - ✅ Component list handling
-- ✅ Solution state serialization
+- ✅ SolutionVersion state serialization
 - ✅ Deployment spec serialization
 
 **Example:**
@@ -680,7 +680,7 @@ properties = client.get_target(
 ### Target Operations
 ✅ Register, ✅ Unregister, ✅ List, ✅ Get, ✅ Ping, ✅ Update Status
 
-### Solution Operations
+### SolutionVersion Operations
 ✅ Create, ✅ Delete, ✅ List, ✅ Get
 
 ### Instance Operations

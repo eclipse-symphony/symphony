@@ -11,15 +11,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
-	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/validation"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states"
-	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/logger"
 
 	observability "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -30,9 +27,7 @@ var log = logger.NewLogger("coa.runtime")
 
 type SolutionsManager struct {
 	managers.Manager
-	StateProvider     states.IStateProvider
-	needValidate      bool
-	SolutionValidator validation.SolutionValidator
+	StateProvider states.IStateProvider
 }
 
 func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers.ManagerConfig, providers map[string]providers.IProvider) error {
@@ -46,34 +41,22 @@ func (s *SolutionsManager) Init(context *contexts.VendorContext, config managers
 	} else {
 		return err
 	}
-	s.needValidate = managers.NeedObjectValidate(config, providers)
-	if s.needValidate {
-		// Turn off validation of differnt types: https://github.com/eclipse-symphony/symphony/issues/445
-		// s.SolutionValidator = validation.NewSolutionValidator(s.solutionInstanceLookup, s.solutionContainerLookup, s.uniqueNameSolutionLookup)
-		s.SolutionValidator = validation.NewSolutionValidator(nil, nil, s.uniqueNameSolutionLookup)
-	}
 	return nil
 }
 
 func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespace string) error {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
-		"method": "DeleteSpec",
+	ctx, span := observability.StartSpan("SolutionsManager", ctx, &map[string]string{
+		"method": "DeleteState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
-	if t.needValidate {
-		if err = t.ValidateDelete(ctx, name, namespace); err != nil {
-			return err
-		}
-	}
-
 	err = t.StateProvider.Delete(ctx, states.DeleteRequest{
 		ID: name,
 		Metadata: map[string]interface{}{
 			"namespace": namespace,
-			"group":     model.SolutionGroup,
+			"group":     model.SolutionVersionGroup,
 			"version":   "v1",
 			"resource":  "solutions",
 			"kind":      "Solution",
@@ -83,7 +66,7 @@ func (t *SolutionsManager) DeleteState(ctx context.Context, name string, namespa
 }
 
 func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state model.SolutionState) error {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("SolutionsManager", ctx, &map[string]string{
 		"method": "UpsertState",
 	})
 	var err error = nil
@@ -100,25 +83,13 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		state.ObjectMeta.PreserveSystemMetadata(oldState.ObjectMeta)
 	}
 
-	if t.needValidate {
-		if state.ObjectMeta.Labels == nil {
-			state.ObjectMeta.Labels = make(map[string]string)
-		}
-		if state.Spec != nil {
-			state.ObjectMeta.Labels[constants.DisplayName] = utils.ConvertStringToValidLabel(state.Spec.DisplayName)
-			state.ObjectMeta.Labels[constants.RootResource] = state.Spec.RootResource
-		}
-		if err = validation.ValidateCreateOrUpdateWrapper(ctx, &t.SolutionValidator, state, oldState, getStateErr); err != nil {
-			return err
-		}
-	}
-
 	body := map[string]interface{}{
-		"apiVersion": model.SolutionGroup + "/v1",
+		"apiVersion": model.SolutionVersionGroup + "/v1",
 		"kind":       "Solution",
 		"metadata":   state.ObjectMeta,
 		"spec":       state.Spec,
 	}
+
 	upsertRequest := states.UpsertRequest{
 		Value: states.StateEntry{
 			ID:   name,
@@ -127,20 +98,22 @@ func (t *SolutionsManager) UpsertState(ctx context.Context, name string, state m
 		},
 		Metadata: map[string]interface{}{
 			"namespace": state.ObjectMeta.Namespace,
-			"group":     model.SolutionGroup,
+			"group":     model.SolutionVersionGroup,
 			"version":   "v1",
 			"resource":  "solutions",
 			"kind":      "Solution",
 		},
 	}
-
 	_, err = t.StateProvider.Upsert(ctx, upsertRequest)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]model.SolutionState, error) {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
-		"method": "ListSpec",
+	ctx, span := observability.StartSpan("SolutionsManager", ctx, &map[string]string{
+		"method": "ListState",
 	})
 	var err error = nil
 	defer observ_utils.CloseSpanWithError(span, &err)
@@ -149,7 +122,7 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 	listRequest := states.ListRequest{
 		Metadata: map[string]interface{}{
 			"version":   "v1",
-			"group":     model.SolutionGroup,
+			"group":     model.SolutionVersionGroup,
 			"resource":  "solutions",
 			"namespace": namespace,
 			"kind":      "Solution",
@@ -174,20 +147,20 @@ func (t *SolutionsManager) ListState(ctx context.Context, namespace string) ([]m
 }
 
 func getSolutionState(body interface{}) (model.SolutionState, error) {
-	var solutionState model.SolutionState
+	var SolutionState model.SolutionState
 	bytes, _ := json.Marshal(body)
-	err := json.Unmarshal(bytes, &solutionState)
+	err := json.Unmarshal(bytes, &SolutionState)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
-	if solutionState.Spec == nil {
-		solutionState.Spec = &model.SolutionSpec{}
+	if SolutionState.Spec == nil {
+		SolutionState.Spec = &model.SolutionSpec{}
 	}
-	return solutionState, nil
+	return SolutionState, nil
 }
 
 func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace string) (model.SolutionState, error) {
-	ctx, span := observability.StartSpan("Solutions Manager", ctx, &map[string]string{
+	ctx, span := observability.StartSpan("SolutionsManager", ctx, &map[string]string{
 		"method": "GetSpec",
 	})
 	var err error = nil
@@ -198,43 +171,22 @@ func (t *SolutionsManager) GetState(ctx context.Context, id string, namespace st
 		ID: id,
 		Metadata: map[string]interface{}{
 			"version":   "v1",
-			"group":     model.SolutionGroup,
+			"group":     model.SolutionVersionGroup,
 			"resource":  "solutions",
 			"namespace": namespace,
 			"kind":      "Solution",
 		},
 	}
-	var entry states.StateEntry
-	entry, err = t.StateProvider.Get(ctx, getRequest)
+	var SolutionVersion states.StateEntry
+	SolutionVersion, err = t.StateProvider.Get(ctx, getRequest)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
 	var ret model.SolutionState
-	ret, err = getSolutionState(entry.Body)
+	ret, err = getSolutionState(SolutionVersion.Body)
 	if err != nil {
 		return model.SolutionState{}, err
 	}
-	ret.ObjectMeta.UpdateEtag(entry.ETag)
+	ret.ObjectMeta.UpdateEtag(SolutionVersion.ETag)
 	return ret, nil
-}
-
-func (t *SolutionsManager) ValidateDelete(ctx context.Context, name string, namespace string) error {
-	state, err := t.GetState(ctx, name, namespace)
-	return validation.ValidateDeleteWrapper(ctx, &t.SolutionValidator, state, err)
-}
-
-func (t *SolutionsManager) solutionInstanceLookup(ctx context.Context, name string, namespace string) (bool, error) {
-	instanceList, err := states.ListObjectStateWithLabels(ctx, t.StateProvider, validation.Instance, namespace, map[string]string{constants.Solution: name}, 1)
-	if err != nil {
-		return false, err
-	}
-	return len(instanceList) > 0, nil
-}
-
-func (t *SolutionsManager) solutionContainerLookup(ctx context.Context, name string, namespace string) (interface{}, error) {
-	return states.GetObjectState(ctx, t.StateProvider, validation.SolutionContainer, name, namespace)
-}
-
-func (t *SolutionsManager) uniqueNameSolutionLookup(ctx context.Context, displayName string, namespace string) (interface{}, error) {
-	return states.GetObjectStateWithUniqueName(ctx, t.StateProvider, validation.Solution, displayName, namespace)
 }

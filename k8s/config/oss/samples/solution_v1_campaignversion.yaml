@@ -1,0 +1,17 @@
+##
+## Copyright (c) Microsoft Corporation.
+## Licensed under the MIT license.
+## SPDX-License-Identifier: MIT
+##
+apiVersion: solution.symphony/v1
+kind: CampaignVersion
+metadata:
+  labels:
+    app.kubernetes.io/name: campaignversion
+    app.kubernetes.io/instance: campaignversion-sample
+    app.kubernetes.io/part-of: symphony-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: symphony-k8s
+  name: campaignversion-sample
+spec:
+  # TODO(user): Add fields here

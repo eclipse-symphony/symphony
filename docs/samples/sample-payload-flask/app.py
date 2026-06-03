@@ -13,12 +13,12 @@ def index():
 def topology():
     signal = request.form.get('signal')
     target = request.form.get('target')
-    symphony_solution = os.environ.get('SYMPHONY_SOLUTION', 'default')
+    symphony_solutionversion = os.environ.get('SYMPHONY_SOLUTION', 'default')
     symphony_component = os.environ.get('SYMPHONY_COMPONENT', 'component-a')
     data = {
         'from': symphony_component,
         'to': target,
-        'solution': symphony_solution,
+        'solutionversion': symphony_solutionversion,
         'data': signal
     }
     url = 'http://localhost:8088/v1alpha2/vis-client'

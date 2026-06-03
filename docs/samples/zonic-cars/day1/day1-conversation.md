@@ -51,17 +51,17 @@ Hello from Symphony K8s control plane (S8C)
 |||
 |----|----|
 |![anna](../images/anna-small.png)| That’s easy! But what can you do with it? |
-|![george](../images/george-small.png)| This is a single machine deployment. You can imagine this Symphony is managing a site of one machine. Now, I can register my machine with Symphony as a **Target**. Then, I can start to deploy **Solution**s to it.|
-|![anna](../images/anna-small.png)| **Solution** is like an application? |
-|![george](../images/george-small.png)| Exactly. A **Solution** consists of one more multiple **Component**s, like Docker containers in a typical microservice archtiecture.|
+|![george](../images/george-small.png)| This is a single machine deployment. You can imagine this Symphony is managing a site of one machine. Now, I can register my machine with Symphony as a **Target**. Then, I can start to deploy **SolutionVersion**s to it.|
+|![anna](../images/anna-small.png)| **SolutionVersion** is like an application? |
+|![george](../images/george-small.png)| Exactly. A **SolutionVersion** consists of one more multiple **Component**s, like Docker containers in a typical microservice archtiecture.|
 |![anna](../images/anna-small.png)| Does it have to be containers? |
 |![george](../images/george-small.png)| Not at all. Symphony support various component types and it's extensible to support more types, like binaries, app packages and OS images. You can also define depedencies among components so that they are installed in the correct order. |
 |![anna](../images/anna-small.png)| So it handles containerized applications as well as "classic" applications. |
 |![george](../images/george-small.png)| That's the idea - consistency regardless of application type or architecture. |
-|![anna](../images/anna-small.png)| Got it! So, **Solution** is your application and **Target** is your machine. How do you create a deployment? |
-|![george](../images/george-small.png)| You create a deployment by creating an **Instance** object. Basically, an **Instance** object defines which **Solution** should be put on which **Target**s. Let me show you.|
+|![anna](../images/anna-small.png)| Got it! So, **SolutionVersion** is your application and **Target** is your machine. How do you create a deployment? |
+|![george](../images/george-small.png)| You create a deployment by creating an **Instance** object. Basically, an **Instance** object defines which **SolutionVersion** should be put on which **Target**s. Let me show you.|
 ## Exercise 2: Deploying a Docker container
-**George:** Now, I'm going to deploy a Redis server as a Docker container on my machine. This happens to be one of the sample scenarios shipped with **maestro**. To create the component trio: **Solution**, **Target** and **Instance**, I can simply do:
+**George:** Now, I'm going to deploy a Redis server as a Docker container on my machine. This happens to be one of the sample scenarios shipped with **maestro**. To create the component trio: **SolutionVersion**, **Target** and **Instance**, I can simply do:
 ```bash
 maestro samples run redis-docker
 ```
@@ -89,20 +89,20 @@ maestro up
 ```
 **George:** And Symphony will be configured on your Kurbernetes cluster!
 
-**George:** Once Symphony is installed, you can see it installs a few custom resource types, or [CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/), including the resource types we've talked about - like **Solution**, **Target** and **Instance**. If you do:
+**George:** Once Symphony is installed, you can see it installs a few custom resource types, or [CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/), including the resource types we've talked about - like **SolutionVersion**, **Target** and **Instance**. If you do:
 ```bash
 kubectl get crds | grep symphony
 ```
 **George:** You can see a list of Symphony resource types like:
 ```bash
 activations.workflow.symphony 
-campaigns.workflow.symphony
+campaignversions.workflow.symphony
 devices.fabric.symphony
 instances.solution.symphony
 models.ai.symphony
 skillpackages.ai.symphony
 skills.ai.symphony
-solutions.solution.symphony
+solutionversions.solution.symphony
 targets.fabric.symphony
 ```
 **George:** There are certainly a lot more than the basic deployments we've done! But we can go through these later...

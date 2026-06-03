@@ -23,16 +23,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testSolution = model.SolutionState{
+var testSolutionVersion = model.SolutionVersionState{
 	ObjectMeta: model.ObjectMeta{
 		Namespace: "default",
 	},
-	Spec: &model.SolutionSpec{},
+	Spec: &model.SolutionVersionSpec{},
 }
 
-func TestPatchSolution(t *testing.T) {
-	testPatchSolution := os.Getenv("TEST_PATCH_SOLUTION")
-	if testPatchSolution != "yes" {
+func TestPatchSolutionVersion(t *testing.T) {
+	testPatchSolutionVersion := os.Getenv("TEST_PATCH_SOLUTION")
+	if testPatchSolutionVersion != "yes" {
 		t.Skip("Skipping becasue TEST_PATCH_SOLUTION is missing or not set to 'yes'")
 	}
 	provider := PatchStageProvider{}
@@ -45,9 +45,9 @@ func TestPatchSolution(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType":   "solution",
+		"objectType":   "solutionversion",
 		"objectName":   "test-app",
-		"patchSource":  "catalog",
+		"patchSource":  "catalogversion",
 		"patchContent": "ai-config",
 		"component":    "frontend",
 		"property":     "deployment.replicas",
@@ -59,9 +59,9 @@ func TestPatchSolution(t *testing.T) {
 	assert.NotNil(t, outputs)
 	assert.Equal(t, "OK", outputs["status"])
 }
-func TestPatchSolutionWholeComponent(t *testing.T) {
-	testPatchSolution := os.Getenv("TEST_PATCH_SOLUTION")
-	if testPatchSolution != "yes" {
+func TestPatchSolutionVersionWholeComponent(t *testing.T) {
+	testPatchSolutionVersion := os.Getenv("TEST_PATCH_SOLUTION")
+	if testPatchSolutionVersion != "yes" {
 		t.Skip("Skipping becasue TEST_PATCH_SOLUTION is missing or not set to 'yes'")
 	}
 	provider := PatchStageProvider{}
@@ -74,7 +74,7 @@ func TestPatchSolutionWholeComponent(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType":  "solution",
+		"objectType":  "solutionversion",
 		"objectName":  "test-app",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
@@ -148,15 +148,15 @@ func TestPatchProcessInline(t *testing.T) {
 	}
 	err := provider.InitWithMap(input)
 	assert.Nil(t, err)
-	testSolution = model.SolutionState{
+	testSolutionVersion = model.SolutionVersionState{
 		ObjectMeta: model.ObjectMeta{
 			Namespace: "default",
 		},
-		Spec: &model.SolutionSpec{},
+		Spec: &model.SolutionVersionSpec{},
 	}
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType":  "solution",
-		"objectName":  "solution1",
+		"objectType":  "solutionversion",
+		"objectName":  "solutionversion1",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
 			Name: "ebpf-module",
@@ -170,17 +170,17 @@ func TestPatchProcessInline(t *testing.T) {
 		"patchAction": "add",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "ebpf-module", testSolution.Spec.Components[0].Name)
-	assert.Equal(t, "ebpf", testSolution.Spec.Components[0].Type)
+	assert.Equal(t, "ebpf-module", testSolutionVersion.Spec.Components[0].Name)
+	assert.Equal(t, "ebpf", testSolutionVersion.Spec.Components[0].Type)
 	assert.Equal(t, map[string]interface{}{
 		"ebpf.url":   "https://github.com/Haishi2016/Vault818/releases/download/vtest/hello.bpf.o",
 		"ebpf.name":  "hello",
 		"ebpf.event": "xdp",
-	}, testSolution.Spec.Components[0].Properties)
+	}, testSolutionVersion.Spec.Components[0].Properties)
 
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType":  "solution",
-		"objectName":  "solution1",
+		"objectType":  "solutionversion",
+		"objectName":  "solutionversion1",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
 			Name: "ebpf-module",
@@ -194,10 +194,10 @@ func TestPatchProcessInline(t *testing.T) {
 		"patchAction": "remove",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(testSolution.Spec.Components))
+	assert.Equal(t, 0, len(testSolutionVersion.Spec.Components))
 }
 
-func TestPatchProcessCatalog(t *testing.T) {
+func TestPatchProcessCatalogVersion(t *testing.T) {
 	ts := InitializeMockSymphonyAPI()
 	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
 	provider := PatchStageProvider{}
@@ -213,16 +213,16 @@ func TestPatchProcessCatalog(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-	testSolution = model.SolutionState{
+	testSolutionVersion = model.SolutionVersionState{
 		ObjectMeta: model.ObjectMeta{
 			Namespace: "default",
 		},
-		Spec: &model.SolutionSpec{},
+		Spec: &model.SolutionVersionSpec{},
 	}
-	// Step 1: first add component to solution spec
+	// Step 1: first add component to solutionversion spec
 	provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType":  "solution",
-		"objectName":  "solution1",
+		"objectType":  "solutionversion",
+		"objectName":  "solutionversion1",
 		"patchSource": "inline",
 		"patchContent": model.ComponentSpec{
 			Name: "ebpf-module",
@@ -240,20 +240,20 @@ func TestPatchProcessCatalog(t *testing.T) {
 		"patchAction": "add",
 	})
 
-	// Step 2: update solution with config in catalog
+	// Step 2: update solutionversion with config in catalogversion
 	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
-		"objectType":   "solution",
-		"objectName":   "solution1",
-		"patchSource":  "catalog",
-		"patchContent": "catalog1",
+		"objectType":   "solutionversion",
+		"objectName":   "solutionversion1",
+		"patchSource":  "catalogversion",
+		"patchContent": "catalogversion1",
 		"patchAction":  "add",
 		"component":    "ebpf-module",
 		"property":     "input",
 		"subKey":       "adapter",
 	})
 	assert.Nil(t, err)
-	assert.Equal(t, "ebpf-module", testSolution.Spec.Components[0].Name)
-	assert.Equal(t, "ebpf", testSolution.Spec.Components[0].Type)
+	assert.Equal(t, "ebpf-module", testSolutionVersion.Spec.Components[0].Name)
+	assert.Equal(t, "ebpf", testSolutionVersion.Spec.Components[0].Type)
 	assert.Equal(t, map[string]interface{}{
 		"ebpf.url":   "https://github.com/Haishi2016/Vault818/releases/download/vtest/hello.bpf.o",
 		"ebpf.name":  "hello",
@@ -262,7 +262,7 @@ func TestPatchProcessCatalog(t *testing.T) {
 			"adapter":   []interface{}{map[string]interface{}{"testkey": "0", "testdict": []interface{}{"1"}, "testmap": map[string]interface{}{}}},
 			"namespace": []interface{}{},
 		},
-	}, testSolution.Spec.Components[0].Properties)
+	}, testSolutionVersion.Spec.Components[0].Properties)
 
 }
 
@@ -270,32 +270,32 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
 		switch r.URL.Path {
-		case "/solutions/solution1":
+		case "/solutionversions/solutionversion1":
 			if r.Method == "GET" {
-				response = model.SolutionState{
+				response = model.SolutionVersionState{
 					ObjectMeta: model.ObjectMeta{
-						Name: "solution1",
+						Name: "solutionversion1",
 					},
-					Spec: testSolution.Spec,
+					Spec: testSolutionVersion.Spec,
 				}
 			} else {
 				body, _ := io.ReadAll(r.Body)
-				newSpec := model.SolutionState{}
+				newSpec := model.SolutionVersionState{}
 				json.Unmarshal(body, &newSpec)
-				testSolution = newSpec
-				response = model.SolutionState{
+				testSolutionVersion = newSpec
+				response = model.SolutionVersionState{
 					ObjectMeta: model.ObjectMeta{
-						Name: "solution1",
+						Name: "solutionversion1",
 					},
-					Spec: testSolution.Spec,
+					Spec: testSolutionVersion.Spec,
 				}
 			}
-		case "/catalogs/registry/catalog1":
-			response = model.CatalogState{
+		case "/catalogversions/registry/catalogversion1":
+			response = model.CatalogVersionState{
 				ObjectMeta: model.ObjectMeta{
-					Name: "catalog1",
+					Name: "catalogversion1",
 				},
-				Spec: &model.CatalogSpec{
+				Spec: &model.CatalogVersionSpec{
 					CatalogType: "config",
 					Properties: map[string]interface{}{
 						"testkey":  "0",

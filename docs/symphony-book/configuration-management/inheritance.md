@@ -5,7 +5,7 @@ Inheritance allows you to capture the static part of your application configurat
 
 ![inheritance](../images/config-inheritance.png) 
 
-You can define an inheritance relationship among Symphony objects by annotating the child object with a `parentName` property, which points to the object it inherits. When a catalog inherits a parent, it automatically inherits all properties from the parent. And it can override parent value by redefining the corresponding key. 
+You can define an inheritance relationship among Symphony objects by annotating the child object with a `parentName` property, which points to the object it inherits. When a catalogversion inherits a parent, it automatically inherits all properties from the parent. And it can override parent value by redefining the corresponding key. 
 
 Although Symphony allows multiple levels of inheritance, it doesn’t allow multiple inheritance (i.e. an object has multiple parents), which in practice is hard to understand or manage. However, you can use configuration references to “blend-in” multiple configuration objects.
 

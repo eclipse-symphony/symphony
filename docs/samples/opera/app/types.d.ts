@@ -20,9 +20,9 @@ export interface Site {
     lng: number,
 }
 
-export interface CampaignState {
+export interface CampaignVersionState {
     id: string;
-    spec: CampaignSpec;
+    spec: CampaignVersionSpec;
     status: CampainStatus;
 }
 
@@ -39,7 +39,7 @@ export interface StageSpec {
     contexts: string;
 }
 
-export interface CampaignSpec {
+export interface CampaignVersionSpec {
     id: string;
     firstStage: string;
     stages: Record<string, StageSpec>;
@@ -57,7 +57,7 @@ export interface ObjectRef {
     metadata: Record<string, string>;
 }
 
-export interface CatalogSpec {
+export interface CatalogVersionSpec {
     name: string;
     catalogType: string;
     rootResource: string;
@@ -68,14 +68,14 @@ export interface CatalogSpec {
     generation: string;
 }
 
-export interface CatalogStatus{
+export interface CatalogVersionStatus{
     properties: Record<string, string>;
 }
 
-export interface CatalogState {
+export interface CatalogVersionState {
     metadata: Record<string, string>;
-    spec: CatalogSpec;
-    status: CatalogStatus;
+    spec: CatalogVersionSpec;
+    status: CatalogVersionStatus;
 }
 
 export interface BindingSpec {
@@ -173,19 +173,19 @@ export interface InstanceSpec {
     scope: string;
     parameters: Record<string, string>;
     metadata: Record<string, string>;
-    solution: string;
+    solutionversion: string;
     target: TargetSelector;
     topologies: TopologySpec[];
     pipelines: PipelineSpec[];
     isDryRun: boolean;
 }
 
-export interface SolutionState {
+export interface SolutionVersionState {
     metadata: ObjectMeta;
-    spec: SolutionSpec;
+    spec: SolutionVersionSpec;
 }
 
-export interface SolutionSpec {
+export interface SolutionVersionSpec {
     displayName: string;
     components: ComponentSpec[];
     metadata: Record<string, string>;    
@@ -224,13 +224,13 @@ export interface SidecarSpec {
 }
 
 export interface GroupInfo {
-    catalogs: Catalog[];
+    catalogversions: CatalogVersion[];
     title: string;
     type: string;
 }
 
 export interface ActivationSpec {
-    campaign: string;
+    campaignversion: string;
     name: string;
     stage: string;
     inputs: Record<string, any>;

@@ -2,6 +2,44 @@
     "package": "maestro",
     "version": "0.1",
     "samples": [
+                {
+            "name": "hello-world",
+            "path": "no-k8s/docker",
+            "artifacts": [
+                {
+                    "file": "target.yaml",
+                    "type": "target",
+                    "name": "sample-local-target"
+                },
+                {
+                    "file": "solutionversion-container.yaml",
+                    "type": "solutionversion-container",
+                    "name": "sample-prometheus-server" 
+                }, 
+                {
+                    "file": "solutionversion.yaml",
+                    "type": "solutionversion",
+                    "name": "sample-prometheus-server-v-v1" 
+                }, 
+                {
+                    "file": "instance.yaml",
+                    "type": "instance",
+                    "name": "sample-prometheus-instance"                             
+                }
+            ],            
+            "description": "Deploy a Prometheus server on Docker",
+            "description-long": "This sample registers your current machine as a <C>Target</C>, defines a <C>SolutionVersion</C> with a Prometheus component (Docker: prom/Prometheus), and deploys the SolutionVersion to the Target by creating an <C>Instance</C> object. When the Instance is deployed, a <G>sample-k8s-scoe</G> namespace is created, and a LoadBalancer service named <G>sample-prometheus-instance</G> is created.",
+            "postActions": 
+                [                                   
+                    {
+                        "command": "echo",
+                        "args": [
+                           "Navigate to http://localhost:9090/ to access the Promethus portal (it may take a few seconds for the Prometheus server to be ready)"                           
+                        ]
+                    }                    
+                ],
+            "requires":["Docker"]
+        },
         {
             "name": "hello-k8s",
             "path": "k8s/hello-world",
@@ -12,13 +50,13 @@
                     "name": "sample-k8s-target"
                 },
                 {
-                    "file": "solution-container.yaml",
-                    "type": "solution-container",
+                    "file": "solutionversion-container.yaml",
+                    "type": "solutionversion-container",
                     "name": "sample-prometheus-server" 
                 }, 
                 {
-                    "file": "solution.yaml",
-                    "type": "solution",
+                    "file": "solutionversion.yaml",
+                    "type": "solutionversion",
                     "name": "sample-prometheus-server-v-v1" 
                 }, 
                 {
@@ -28,7 +66,7 @@
                 }
             ],            
             "description": "Deploy a Prometheus server on a K8s target",
-            "description-long": "This sample registers your current K8s cluster as a <C>Target</C>, defines a <C>Solution</C> with a Prometheus component (Docker: prom/Prometheus), and deploys the Solution to the Target by creating an <C>Instance</C> object. When the Instance is deployed, a <G>sample-k8s-scoe</G> namespace is created, and a LoadBalancer service named <G>sample-prometheus-instance</G> is created.",
+            "description-long": "This sample registers your current K8s cluster as a <C>Target</C>, defines a <C>SolutionVersion</C> with a Prometheus component (Docker: prom/Prometheus), and deploys the SolutionVersion to the Target by creating an <C>Instance</C> object. When the Instance is deployed, a <G>sample-k8s-scoe</G> namespace is created, and a LoadBalancer service named <G>sample-prometheus-instance</G> is created.",
             "postActions": 
                 [
                     {
@@ -84,13 +122,13 @@
                     ]
                 },
                 {
-                    "file": "solution-container.yaml",
-                    "type": "solution-container",
+                    "file": "solutionversion-container.yaml",
+                    "type": "solutionversion-container",
                     "name": "sample-simulated-temperature-sensor" 
                 }, 
                 {
-                    "file": "solution.yaml",
-                    "type": "solution",
+                    "file": "solutionversion.yaml",
+                    "type": "solutionversion",
                     "name": "sample-simulated-temperature-sensor-v-v1"
                 }, 
                 {
@@ -106,7 +144,7 @@
             ],
             "requires":["Azure IoT Edge"],
             "description": "Deploy IoT Edge simulated sensor module",
-            "description-long": "This sample deploys two instances of IoT Edge simulated sensor module to an IoT Edge device. It creats a <C>Solution</C> with an IoT simulated sensor component (https://hub.docker.com/_/microsoft-azureiotedge-simulated-temperature-sensor), an IoT Edge <C>Target</C>, and two <C>Instance</C>s - <G>sample-iot-edge-instance-1</G> and <G>sample-iot-edge-instance-2</G> on the same IoT Edge device.",
+            "description-long": "This sample deploys two instances of IoT Edge simulated sensor module to an IoT Edge device. It creats a <C>SolutionVersion</C> with an IoT simulated sensor component (https://hub.docker.com/_/microsoft-azureiotedge-simulated-temperature-sensor), an IoT Edge <C>Target</C>, and two <C>Instance</C>s - <G>sample-iot-edge-instance-1</G> and <G>sample-iot-edge-instance-2</G> on the same IoT Edge device.",
             "postActions": 
             [
                 {
@@ -127,14 +165,14 @@
                     "name": "sample-staged-k8s"
                 },
                 {
-                    "file": "solution-container.yaml",
-                    "type": "solution-container",
-                    "name": "sample-staged-solution" 
+                    "file": "solutionversion-container.yaml",
+                    "type": "solutionversion-container",
+                    "name": "sample-staged-solutionversion" 
                 }, 
                 {
-                    "file": "solution.yaml",
-                    "type": "solution",
-                    "name": "sample-staged-solution-v-v1"
+                    "file": "solutionversion.yaml",
+                    "type": "solutionversion",
+                    "name": "sample-staged-solutionversion-v-v1"
                 }, 
                 {
                     "file": "instance.yaml",
@@ -143,7 +181,7 @@
                 }
             ],
             "description": "Stage a dummy component on a K8s target",
-            "description-long": "This sample registers your current K8s target as a Symphony <C>Target</C>, defines a dummy <C>Solution</C> with a single component with a <G>foo=bar</G> property, and stages the Solution on the Target object by creating an <C>Instance</C> object.",
+            "description-long": "This sample registers your current K8s target as a Symphony <C>Target</C>, defines a dummy <C>SolutionVersion</C> with a single component with a <G>foo=bar</G> property, and stages the SolutionVersion on the Target object by creating an <C>Instance</C> object.",
             "requires":["k8s"],
             "postActions": 
             [
@@ -151,7 +189,7 @@
                     "command": "maestro",
                     "args": [
                        "get",
-                       "catalog",
+                       "catalogversion",
                        "-n",
                        "sample-staged-instance-sample-staged-k8s-v-v1",
                        "--json-path",
@@ -162,7 +200,7 @@
                 {
                     "command": "echo",
                     "args": [
-                       "Target artifact is staged at Catalog object$(1)"                           
+                       "Target artifact is staged at CatalogVersion object$(1)"                           
                     ]
                 }                          
             ]
