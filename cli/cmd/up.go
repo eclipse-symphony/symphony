@@ -23,7 +23,7 @@ import (
 )
 
 // The version is auto updated by the release pipeline, do not change it manually
-const SymphonyAPIVersion = "0.49.1"
+const SymphonyAPIVersion = "0.49.2"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 
 var (
