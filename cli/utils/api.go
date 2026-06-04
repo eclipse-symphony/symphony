@@ -35,7 +35,7 @@ func Remove(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
-	case "solutionversion-container", "solutionversion-containers":
+	case "solution", "solutions":
 		route = "/solutions"
 	case "target", "targets":
 		route = "/targets/registry"
@@ -106,10 +106,14 @@ func Get(url string, username string, password string, objType string, path stri
 		route = "/targets/registry"
 	case "device", "devices":
 		route = "/devices"
+	case "solution", "solutions":
+		route = "/solutions"
 	case "solutionversion", "solutionversions":
 		route = "/solutionversions"
 	case "instance", "instances":
 		route = "/instances"
+	case "catalog", "catalogs":
+		route = "/catalogs"
 	case "catalogversion", "catalogversions":
 		route = "/catalogversions/registry"
 	default:

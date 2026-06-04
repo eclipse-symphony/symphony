@@ -121,7 +121,7 @@
             font-variant: normal;
             text-rendering: auto;
             -webkit-font-smoothing: antialiased;
-            font-family: "Font Awesome 5 Free";
+            font-family: "Font Awesome 6 Free";
             font-weight: 900;
             content: "\f0d9";
             padding-left: 0.5em;
@@ -176,13 +176,13 @@ nav.foldable-nav {
         font-variant: normal;
         text-rendering: auto;
         -webkit-font-smoothing: antialiased;
-        font-family: "Font Awesome 5 Free"; font-weight: 900; content: "\f0da";
+        font-family: "Font Awesome 6 Free"; font-weight: 900; content: "\f0da";
         position: absolute;
         left: 0.1em;
         padding-left: 0.4em;
         padding-right: 0.4em;
         font-size: 1em;
-        color: $gray-900;
+        color: $td-sidebar-text-color;
         transition: all 0.5s;
         &:hover{
         transform: rotate(90deg);

@@ -1,9 +1,23 @@
 {{ $imagePath := .Get "src" }}
-{{ $altText := .Get "alt" }}
-{{ $width := .Get "width" | default "600px" }}
+{{ $altText  := .Get "alt" }}
+{{ $width    := .Get "width" | default "600px" }}
+{{/* align: "" (default, inline), "center", "left" (float into text), "right" */}}
+{{ $align    := .Get "align" | default "" }}
 
 {{ $image := .Page.Resources.GetMatch $imagePath }}
 
 {{ with $image }}
-  <img src="{{ .RelPermalink }}" width="{{ $width }}">
+  {{ if eq $align "center" }}
+    <p style="text-align:center; margin: 1rem 0;">
+      <img src="{{ .RelPermalink }}"{{ with $altText }} alt="{{ . }}"{{ end }} style="width: {{ $width }}; max-width: 100%;">
+    </p>
+  {{ else if eq $align "left" }}
+    <img src="{{ .RelPermalink }}"{{ with $altText }} alt="{{ . }}"{{ end }}
+         style="float: left; width: {{ $width }}; max-width: 50%; margin: 0.25rem 1.25rem 0.5rem 0; shape-outside: margin-box;">
+  {{ else if eq $align "right" }}
+    <img src="{{ .RelPermalink }}"{{ with $altText }} alt="{{ . }}"{{ end }}
+         style="float: right; width: {{ $width }}; max-width: 50%; margin: 0.25rem 0 0.5rem 1.25rem; shape-outside: margin-box;">
+  {{ else }}
+    <img src="{{ .RelPermalink }}"{{ with $altText }} alt="{{ . }}"{{ end }} width="{{ $width }}">
+  {{ end }}
 {{ end }}

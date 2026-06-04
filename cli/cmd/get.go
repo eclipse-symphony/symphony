@@ -115,17 +115,23 @@ func addTableHeader(t table.Writer, list interface{}, objType string, path strin
 		case "target", "targets":
 			t.AppendHeader(table.Row{"Name", "Status"})
 			return []string{"Name", "Status"}
+		case "solution", "solutions":
+			t.AppendHeader(table.Row{"Name"})
+			return []string{"Name"}
+		case "catalog", "catalogs":
+			t.AppendHeader(table.Row{"Name"})
+			return []string{"Name"}
 		case "device", "devices":
 			t.AppendHeader(table.Row{"Name", "Status"})
 			return []string{"Name", "Status"}
 		case "solutionversion", "solutionversions":
-			t.AppendHeader(table.Row{"Name"})
-			return []string{"Name"}
+			t.AppendHeader(table.Row{"Solution", "Version", "Name"})
+			return []string{"Name", "Solution", "Version"}
 		case "instance", "instances":
 			t.AppendHeader(table.Row{"Name", "Status", "Targets", "Deployed"})
 			return []string{"Name", "Status", "Targets", "Deployed"}
 		case "catalogversion", "catalogversions":
-			t.AppendHeader(table.Row{"Name"})
+			t.AppendHeader(table.Row{"Catalog", "Version", "Name"})
 			return []string{"Name"}
 		}
 		return nil
@@ -197,7 +203,28 @@ func outputCatalogVersion(t table.Writer, data []byte) {
 	err := json.Unmarshal(data, &catalogversion)
 	if err == nil {
 		row := table.Row{}
+		row = append(row, catalogversion.Spec.RootResource)
+		version := strings.TrimPrefix(catalogversion.Metadata.Name, catalogversion.Spec.RootResource+"-v-")
+		row = append(row, version)
 		row = append(row, catalogversion.Metadata.Name)
+		t.AppendRow(row)
+	}
+}
+func outputCatalog(t table.Writer, data []byte) {
+	var catalog Catalog
+	err := json.Unmarshal(data, &catalog)
+	if err == nil {
+		row := table.Row{}
+		row = append(row, catalog.Metadata.Name)
+		t.AppendRow(row)
+	}
+}
+func outputSolution(t table.Writer, data []byte) {
+	var solution Solution
+	err := json.Unmarshal(data, &solution)
+	if err == nil {
+		row := table.Row{}
+		row = append(row, solution.Metadata.Name)
 		t.AppendRow(row)
 	}
 }
@@ -206,6 +233,9 @@ func outputSolutionVersion(t table.Writer, data []byte) {
 	err := json.Unmarshal(data, &solutionversion)
 	if err == nil {
 		row := table.Row{}
+		row = append(row, solutionversion.Spec.RootResource)
+		version := strings.TrimPrefix(solutionversion.Metadata.Name, solutionversion.Spec.RootResource+"-v-")
+		row = append(row, version)
 		row = append(row, solutionversion.Metadata.Name)
 		t.AppendRow(row)
 	}
@@ -248,11 +278,17 @@ func outputListItem(t table.Writer, item interface{}, objType string, path strin
 		case "target", "targets":
 			outputTarget(t, data)
 			return
+		case "solution", "solutions":
+			outputSolution(t, data)
+			return
 		case "solutionversion", "solutionversions":
 			outputSolutionVersion(t, data)
 			return
 		case "catalogversion", "catalogversions":
 			outputCatalogVersion(t, data)
+			return
+		case "catalog", "catalogs":
+			outputCatalog(t, data)
 			return
 		case "instance", "instances":
 			outputInstance(t, data)
@@ -294,9 +330,19 @@ type Device struct {
 	Status   model.DeviceStatus `json:"status,omitempty"`
 }
 type SolutionVersion struct {
-	Metadata model.ObjectMeta   `json:"metadata,omitempty"`
+	Metadata model.ObjectMeta          `json:"metadata,omitempty"`
 	Spec     model.SolutionVersionSpec `json:"spec,omitempty"`
+	Status   map[string]string         `json:"status,omitempty"`
+}
+type Solution struct {
+	Metadata model.ObjectMeta   `json:"metadata,omitempty"`
+	Spec     model.SolutionSpec `json:"spec,omitempty"`
 	Status   map[string]string  `json:"status,omitempty"`
+}
+type Catalog struct {
+	Metadata model.ObjectMeta  `json:"metadata,omitempty"`
+	Spec     model.CatalogSpec `json:"spec,omitempty"`
+	Status   map[string]string `json:"status,omitempty"`
 }
 type Instance struct {
 	Metadata model.ObjectMeta     `json:"metadata,omitempty"`
@@ -304,7 +350,7 @@ type Instance struct {
 	Status   model.InstanceStatus `json:"status,omitempty"`
 }
 type CatalogVersion struct {
-	Metadata model.ObjectMeta    `json:"metadata,omitempty"`
+	Metadata model.ObjectMeta           `json:"metadata,omitempty"`
 	Spec     model.CatalogVersionSpec   `json:"spec,omitempty"`
 	Status   model.CatalogVersionStatus `json:"status,omitempty"`
 }

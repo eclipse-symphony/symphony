@@ -11,3 +11,34 @@
 .btn {
     border-radius: 10px;
 }
+
+// Make plain markdown tables behave responsively the same way docsy's
+// `.td-table` does. Without this, bare <table> elements size to their
+// content's natural width and overflow the right side of the content area.
+.td-content {
+    table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-collapse: collapse;
+
+        // Bootstrap-style striping + cell padding for readability
+        th,
+        td {
+            padding: 0.5rem 0.75rem;
+            border-top: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+
+        thead th {
+            border-bottom: 2px solid #dee2e6;
+            text-align: left;
+        }
+
+        tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+    }
+}

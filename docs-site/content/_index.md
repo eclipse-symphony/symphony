@@ -1,15 +1,17 @@
 ---
 type: docs
-title: "Project Symphony Documentation"
+title: "Eclipse Symphony Documentation"
 linkTitle: "Home"
 description: ""
 weight: 1
 no_list: true
 ---
 
-{{< image src="symphony icon_largetext (3).png" width="250px" >}}
+{{< image src="symphony icon_largetext (3).png" width="180px" align="left" alt="Symphony logo" >}}
 
 The edge is heterogeneous, dynamic, and distributed by nature. It is not a fixed cluster with stable membership. Devices come and go. Workloads move. Networks disconnect and recover. Capabilities vary across heavy edge, light edge, and tiny edge environments. Traditional orchestration, built around static membership and centralized assumptions, is not enough for this reality.
+
+<div style="clear: both;"></div>
 
 Many assumptions made by cloud-centric orchestrators do not hold at the edge: uniform infrastructure, well-protected security boundaries, a single hardware or software vendor, stable connectivity, and uniformly scaled workloads. We want to bring cloud-like management benefits to edge environments, but that does not mean we can simply apply cloud-centric technologies and designs as-is. Edge orchestration must be designed with the edge in mind.
 

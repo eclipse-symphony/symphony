@@ -12,12 +12,12 @@
                     "name": "sample-local-target"
                 },
                 {
-                    "file": "solutionversion-container.yaml",
-                    "type": "solutionversion-container",
+                    "file": "solution.yaml",
+                    "type": "solution",
                     "name": "sample-prometheus-server" 
                 }, 
                 {
-                    "file": "solutionversion.yaml",
+                    "file": "solution-version.yaml",
                     "type": "solutionversion",
                     "name": "sample-prometheus-server-v-v1" 
                 }, 
@@ -50,12 +50,12 @@
                     "name": "sample-k8s-target"
                 },
                 {
-                    "file": "solutionversion-container.yaml",
-                    "type": "solutionversion-container",
+                    "file": "solution.yaml",
+                    "type": "solution",
                     "name": "sample-prometheus-server" 
                 }, 
                 {
-                    "file": "solutionversion.yaml",
+                    "file": "solution-version.yaml",
                     "type": "solutionversion",
                     "name": "sample-prometheus-server-v-v1" 
                 }, 
@@ -122,12 +122,12 @@
                     ]
                 },
                 {
-                    "file": "solutionversion-container.yaml",
-                    "type": "solutionversion-container",
+                    "file": "solution.yaml",
+                    "type": "solution",
                     "name": "sample-simulated-temperature-sensor" 
                 }, 
                 {
-                    "file": "solutionversion.yaml",
+                    "file": "solution-version.yaml",
                     "type": "solutionversion",
                     "name": "sample-simulated-temperature-sensor-v-v1"
                 }, 
@@ -165,12 +165,12 @@
                     "name": "sample-staged-k8s"
                 },
                 {
-                    "file": "solutionversion-container.yaml",
-                    "type": "solutionversion-container",
+                    "file": "solution.yaml",
+                    "type": "solution",
                     "name": "sample-staged-solutionversion" 
                 }, 
                 {
-                    "file": "solutionversion.yaml",
+                    "file": "solution-version.yaml",
                     "type": "solutionversion",
                     "name": "sample-staged-solutionversion-v-v1"
                 }, 
