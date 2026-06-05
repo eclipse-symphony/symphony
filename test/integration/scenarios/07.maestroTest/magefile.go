@@ -27,14 +27,14 @@ var (
 	// Manifests to deploy
 	testSamples = map[string][]string{
 		"sample-hello-world": {
-			"../../../../docs/samples/k8s/hello-world/solutionversion-container.yaml",
-			"../../../../docs/samples/k8s/hello-world/solutionversion.yaml",
+			"../../../../docs/samples/k8s/hello-world/solution.yaml",
+			"../../../../docs/samples/k8s/hello-world/solution-version.yaml",
 			"../../../../docs/samples/k8s/hello-world/target.yaml",
 			"../../../../docs/samples/k8s/hello-world/instance.yaml",
 		},
 		"sample-staged": {
-			"../../../../docs/samples/k8s/staged/solutionversion-container.yaml",
-			"../../../../docs/samples/k8s/staged/solutionversion.yaml",
+			"../../../../docs/samples/k8s/staged/solution.yaml",
+			"../../../../docs/samples/k8s/staged/solution-version.yaml",
 			"../../../../docs/samples/k8s/staged/target.yaml",
 			"../../../../docs/samples/k8s/staged/instance.yaml",
 		},
