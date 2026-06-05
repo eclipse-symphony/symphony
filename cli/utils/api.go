@@ -37,12 +37,18 @@ func Remove(url string, username string, password string, objType string, objNam
 	switch objType {
 	case "solution", "solutions":
 		route = "/solutions"
+	case "activation", "activations":
+		route = "/activations/registry"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "solutionversion", "solutionversions":
 		route = "/solutionversions"
 	case "instance", "instances":
 		route = "/instances"
+	case "campaign", "campaigns":
+		route = "/campaigns"
+	case "campaignversion", "campaignversions":
+		route = "/campaignversions"
 	}
 	if objName == "" {
 		return errors.New("object name is missing")
@@ -61,14 +67,20 @@ func Upsert(url string, username string, password string, objType string, objNam
 	}
 	route := ""
 	switch objType {
-	case "solutionversion-container", "solutionversion-containers":
+	case "solution", "solutions":
 		route = "/solutions"
+	case "activation", "activations":
+		route = "/activations/registry"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "solutionversion", "solutionversions":
 		route = "/solutionversions"
 	case "instance", "instances":
 		route = "/instances"
+	case "campaign", "campaigns":
+		route = "/campaigns"
+	case "campaignversion", "campaignversions":
+		route = "/campaignversions"
 	}
 	if objName == "" {
 		return errors.New("object name is missing")
@@ -102,12 +114,16 @@ func Get(url string, username string, password string, objType string, path stri
 	}
 	route := ""
 	switch objType {
+	case "activation", "activations":
+		route = "/activations/registry"
 	case "target", "targets":
 		route = "/targets/registry"
 	case "device", "devices":
 		route = "/devices"
 	case "solution", "solutions":
 		route = "/solutions"
+	case "campaign", "campaigns":
+		route = "/campaigns"
 	case "solutionversion", "solutionversions":
 		route = "/solutionversions"
 	case "instance", "instances":
@@ -116,6 +132,8 @@ func Get(url string, username string, password string, objType string, path stri
 		route = "/catalogs"
 	case "catalogversion", "catalogversions":
 		route = "/catalogversions/registry"
+	case "campaignversion", "campaignversions":
+		route = "/campaignversions"
 	default:
 		return nil, fmt.Errorf("unsupported object type: %s", objType)
 	}
@@ -134,6 +152,7 @@ func Get(url string, username string, password string, objType string, path stri
 		return nil, err
 	}
 	var ret []interface{}
+
 	if objName != "" {
 		var obj interface{}
 		err = json.Unmarshal(resp, &obj)

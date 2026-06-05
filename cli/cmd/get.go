@@ -133,6 +133,15 @@ func addTableHeader(t table.Writer, list interface{}, objType string, path strin
 		case "catalogversion", "catalogversions":
 			t.AppendHeader(table.Row{"Catalog", "Version", "Name"})
 			return []string{"Name"}
+		case "activation", "activations":
+			t.AppendHeader(table.Row{"Name", "Status"})
+			return []string{"Name", "Status"}
+		case "campaign", "campaigns":
+			t.AppendHeader(table.Row{"Name"})
+			return []string{"Name"}
+		case "campaignversion", "campaignversions":
+			t.AppendHeader(table.Row{"Campaign", "Version", "Name"})
+			return []string{"Name", "Campaign", "Version"}
 		}
 		return nil
 	}
@@ -293,6 +302,15 @@ func outputListItem(t table.Writer, item interface{}, objType string, path strin
 		case "instance", "instances":
 			outputInstance(t, data)
 			return
+		case "activation", "activations":
+			outputActivation(t, data)
+			return
+		case "campaign", "campaigns":
+			outputCampaign(t, data)
+			return
+		case "campaignversion", "campaignversions":
+			outputCampaignVersion(t, data)
+			return
 		}
 	}
 	err := outputAsAttributes(t, data, objType, path, keys)
@@ -306,6 +324,40 @@ func outputListItem(t table.Writer, item interface{}, objType string, path strin
 	err = outputAsArray(t, item)
 	if err == nil {
 		return
+	}
+}
+
+func outputCampaignVersion(t table.Writer, data []byte) {
+	var campaignversion CampaignVersion
+	err := json.Unmarshal(data, &campaignversion)
+	if err == nil {
+		row := table.Row{}
+		row = append(row, campaignversion.Spec.RootResource)
+		version := strings.TrimPrefix(campaignversion.Metadata.Name, campaignversion.Spec.RootResource+"-v-")
+		row = append(row, version)
+		row = append(row, campaignversion.Metadata.Name)
+		t.AppendRow(row)
+	}
+}
+
+func outputCampaign(t table.Writer, data []byte) {
+	var campaign Campaign
+	err := json.Unmarshal(data, &campaign)
+	if err == nil {
+		row := table.Row{}
+		row = append(row, campaign.Metadata.Name)
+		t.AppendRow(row)
+	}
+}
+
+func outputActivation(t table.Writer, data []byte) {
+	var activation Activation
+	err := json.Unmarshal(data, &activation)
+	if err == nil {
+		row := table.Row{}
+		row = append(row, activation.Metadata.Name)
+		row = append(row, activation.Status.Status)
+		t.AppendRow(row)
 	}
 }
 
@@ -353,4 +405,19 @@ type CatalogVersion struct {
 	Metadata model.ObjectMeta           `json:"metadata,omitempty"`
 	Spec     model.CatalogVersionSpec   `json:"spec,omitempty"`
 	Status   model.CatalogVersionStatus `json:"status,omitempty"`
+}
+type Activation struct {
+	Metadata model.ObjectMeta       `json:"metadata,omitempty"`
+	Spec     model.ActivationSpec   `json:"spec,omitempty"`
+	Status   model.ActivationStatus `json:"status,omitempty"`
+}
+type Campaign struct {
+	Metadata model.ObjectMeta     `json:"metadata,omitempty"`
+	Spec     model.CampaignSpec   `json:"spec,omitempty"`
+	Status   model.CampaignStatus `json:"status,omitempty"`
+}
+type CampaignVersion struct {
+	Metadata model.ObjectMeta           `json:"metadata,omitempty"`
+	Spec     model.CampaignVersionSpec  `json:"spec,omitempty"`
+	Status   model.CampaignVersionState `json:"status,omitempty"`
 }

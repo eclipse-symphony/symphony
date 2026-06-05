@@ -204,6 +204,84 @@
                     ]
                 }                          
             ]
+        },
+        {
+            "name": "simple-compaign",
+            "path": "campaigns/hello-world",
+            "artifacts": [
+                {
+                    "file": "campaign.yaml",
+                    "type": "campaign",
+                    "name": "hello-world"
+                },
+                {
+                    "file": "campaign-version.yaml",
+                    "type": "campaignversion",
+                    "name": "hello-world-v-version1"
+                },
+                {
+                    "file": "activation.yaml",
+                    "type": "activation",
+                    "name": "hello-world-activation" 
+                }
+            ],
+            "description": "Run a simple counter workflow",
+            "description-long": "This sample activates a simple campaign that outputs a received activation parameter.",
+            "requires":[],
+            "postActions": 
+            [
+                {
+                    "command": "maestro",
+                    "args": [
+                       "get",
+                       "activation",
+                       "-n",
+                       "hello-world-activation",
+                       "--json-path",
+                       "$.metadata.name",
+                       "--no-header"
+                    ]                    
+                }                          
+            ]
+        },
+          {
+            "name": "counter-compaign",
+            "path": "campaigns/counter",
+            "artifacts": [
+                {
+                    "file": "campaign.yaml",
+                    "type": "campaign",
+                    "name": "counter-campaign"
+                },
+                {
+                    "file": "campaign-version.yaml",
+                    "type": "campaignversion",
+                    "name": "counter-campaign-v-version1"
+                },
+                {
+                    "file": "activation.yaml",
+                    "type": "activation",
+                    "name": "counter-activation" 
+                }
+            ],
+            "description": "Run a simple counter workflow",
+            "description-long": "This sample activates a simple campaign that counts up from an initial value.",
+            "requires":[],
+            "postActions": 
+            [
+                {
+                    "command": "maestro",
+                    "args": [
+                       "get",
+                       "activation",
+                       "-n",
+                       "counter-activation",
+                       "--json-path",
+                       "$.metadata.name",
+                       "--no-header"
+                    ]                    
+                }                          
+            ]
         }
     ]
 }
