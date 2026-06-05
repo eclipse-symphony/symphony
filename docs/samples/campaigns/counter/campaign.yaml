@@ -3,20 +3,3 @@ kind: Campaign
 metadata:
   name: counter-campaign
 spec:  
----
-apiVersion: workflow.symphony/v1
-kind: CampaignVersion
-metadata:
-  name: counter-campaign-v-version1
-spec:
-  rootResource: counter-campaign
-  firstStage: "counter"
-  selfDriving: true
-  stages:
-    counter:
-      name: "counter"
-      provider: "providers.stage.counter"      
-      stageSelector: "${{$if($lt($output(counter,val), 20), counter, '')}}"
-      inputs:
-        val: "${{$trigger(val, 0)}}"
-        val.init: "${{$trigger(val.init, 0)}}"

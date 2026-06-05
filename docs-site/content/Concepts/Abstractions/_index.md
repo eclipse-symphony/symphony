@@ -1,7 +1,7 @@
 ---
 type: docs
-title: "Abstractions"
-linkTitle: "Abstractions"
+title: "Core Concepts"
+linkTitle: "Core Concepts"
 description: ""
 weight: 100
 ---
