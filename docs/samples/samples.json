@@ -206,7 +206,7 @@
             ]
         },
         {
-            "name": "simple-compaign",
+            "name": "simple-campaign",
             "path": "campaigns/hello-world",
             "artifacts": [
                 {
@@ -227,25 +227,10 @@
             ],
             "description": "Run a simple counter workflow",
             "description-long": "This sample activates a simple campaign that outputs a received activation parameter.",
-            "requires":[],
-            "postActions": 
-            [
-                {
-                    "command": "maestro",
-                    "args": [
-                       "get",
-                       "activation",
-                       "-n",
-                       "hello-world-activation",
-                       "--json-path",
-                       "$.metadata.name",
-                       "--no-header"
-                    ]                    
-                }                          
-            ]
+            "requires":[]
         },
           {
-            "name": "counter-compaign",
+            "name": "counter-campaign",
             "path": "campaigns/counter",
             "artifacts": [
                 {
@@ -266,22 +251,7 @@
             ],
             "description": "Run a simple counter workflow",
             "description-long": "This sample activates a simple campaign that counts up from an initial value.",
-            "requires":[],
-            "postActions": 
-            [
-                {
-                    "command": "maestro",
-                    "args": [
-                       "get",
-                       "activation",
-                       "-n",
-                       "counter-activation",
-                       "--json-path",
-                       "$.metadata.name",
-                       "--no-header"
-                    ]                    
-                }                          
-            ]
+            "requires":[]
         }
     ]
 }
