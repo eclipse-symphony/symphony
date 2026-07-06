@@ -53,6 +53,10 @@ func (c SymphonyVendorFactory) CreateVendor(config vendors.VendorConfig) (vendor
 		return &StagingVendor{}, nil
 	case "vendors.models":
 		return &ModelsVendor{}, nil
+	case "vendors.modelrouter":
+		return &ModelRouterVendor{}, nil
+	case "vendors.mcp":
+		return &MCPVendor{}, nil
 	case "vendors.skills":
 		return &SkillsVendor{}, nil
 	case "vendors.settings":
