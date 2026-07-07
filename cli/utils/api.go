@@ -28,6 +28,56 @@ type authResponse struct {
 	TokenType   string `json:"tokenType"`
 }
 
+// ChatMessage represents a single message in an OpenAI-compatible chat exchange.
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type chatCompletionRequest struct {
+	Model    string        `json:"model"`
+	Messages []ChatMessage `json:"messages"`
+}
+
+type chatCompletionResponse struct {
+	Choices []struct {
+		Message ChatMessage `json:"message"`
+	} `json:"choices"`
+}
+
+// ChatCompletion sends an OpenAI-compatible chat completion request to the
+// Symphony API's model router endpoint and returns the assistant's reply.
+// When endpoint is empty, the server's default model router endpoint is used.
+func ChatCompletion(url string, username string, password string, endpoint string, model string, messages []ChatMessage) (string, error) {
+	token, err := Login(url, username, password)
+	if err != nil {
+		return "", err
+	}
+	payload, err := json.Marshal(chatCompletionRequest{
+		Model:    model,
+		Messages: messages,
+	})
+	if err != nil {
+		return "", err
+	}
+	params := make(map[string]string)
+	if endpoint != "" {
+		params["endpoint"] = endpoint
+	}
+	resp, err := callRestAPI(url, "/modelrouter/chat/completions", "POST", payload, token, params)
+	if err != nil {
+		return "", err
+	}
+	var chatResp chatCompletionResponse
+	if err := json.Unmarshal(resp, &chatResp); err != nil {
+		return "", fmt.Errorf("failed to parse chat response: %v", err)
+	}
+	if len(chatResp.Choices) == 0 {
+		return "", errors.New("no response returned by the model")
+	}
+	return chatResp.Choices[0].Message.Content, nil
+}
+
 func Remove(url string, username string, password string, objType string, objName string) error {
 	token, err := Login(url, username, password)
 	if err != nil {

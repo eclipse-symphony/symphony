@@ -173,6 +173,16 @@ func wrapAsHTTPHandler(endpoint v1alpha2.Endpoint, handler v1alpha2.COAHandler) 
 			json.Unmarshal(meta, &metaMap)
 			req.Metadata = metaMap
 		}
+		// Propagate the caller's Authorization header so handlers can act on
+		// behalf of the authenticated caller instead of ambient credentials.
+		// This always reflects the real request header and overrides any value
+		// a client may have attempted to smuggle via the COA metadata header.
+		if auth := reqCtx.Request.Header.Peek("Authorization"); len(auth) > 0 {
+			if req.Metadata == nil {
+				req.Metadata = make(map[string]string)
+			}
+			req.Metadata["Authorization"] = string(auth)
+		}
 		req.Parameters = make(map[string]string)
 
 		for _, p := range endpoint.Parameters {
@@ -232,6 +242,10 @@ func toHttpState(state v1alpha2.State) int {
 	case v1alpha2.InternalError:
 		return fasthttp.StatusInternalServerError
 	default:
+		// Pass through any valid HTTP status code (e.g. proxied responses)
+		if state >= 100 && state < 600 {
+			return int(state)
+		}
 		return fasthttp.StatusInternalServerError
 	}
 }

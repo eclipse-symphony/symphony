@@ -336,6 +336,21 @@
         ]
       },
       {
+        "type": "vendors.modelrouter",
+        "route": "modelrouter",
+        "managers": [],
+        "properties": {
+          "endpoints": "[{\"name\":\"openai\",\"url\":\"https://api.openai.com\",\"key\":\"$env:OPENAI_API_KEY\"}]",
+          "defaultEndpoint": "openai"
+        }
+      },
+      {
+        "type": "vendors.mcp",
+        "route": "mcp",
+        "managers": [],
+        "properties": {}
+      },
+      {
         "type": "vendors.models",
         "loopInterval": 15,
         "route": "models",
