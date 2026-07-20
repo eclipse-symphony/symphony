@@ -66,6 +66,8 @@ var privateIPNets = func() []*net.IPNet {
 
 // scriptDownloadClient is a dedicated HTTP client used for downloading scripts.
 // It enforces a request timeout and re-validates redirect destinations to prevent SSRF.
+// The redirect handler uses the deny-list only (no per-provider whitelist) since this
+// client is package-level and cannot carry per-instance state.
 var scriptDownloadClient = &http.Client{
 	Timeout: 30 * time.Second,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -75,11 +77,41 @@ var scriptDownloadClient = &http.Client{
 		if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 			return fmt.Errorf("redirect to non-HTTP(S) scheme %q is not permitted", req.URL.Scheme)
 		}
-		if err := validateURLHost(req.URL.Hostname()); err != nil {
+		if err := validateURLHost(req.URL.Hostname(), nil, false); err != nil {
 			return fmt.Errorf("redirect blocked: %w", err)
 		}
 		return nil
 	},
+}
+
+// parseIPRanges converts a slice of CIDR strings or plain IP addresses to []*net.IPNet.
+// Plain IP addresses are treated as host routes (/32 for IPv4, /128 for IPv6).
+func parseIPRanges(ranges []string) ([]*net.IPNet, error) {
+	nets := make([]*net.IPNet, 0, len(ranges))
+	for _, r := range ranges {
+		if strings.Contains(r, "/") {
+			_, n, err := net.ParseCIDR(r)
+			if err != nil {
+				return nil, fmt.Errorf("invalid CIDR range %q: %w", r, err)
+			}
+			nets = append(nets, n)
+		} else {
+			ip := net.ParseIP(r)
+			if ip == nil {
+				return nil, fmt.Errorf("invalid IP address %q in allowedIPRanges", r)
+			}
+			bits := 32
+			if ip.To4() == nil {
+				bits = 128
+			}
+			_, n, err := net.ParseCIDR(fmt.Sprintf("%s/%d", ip.String(), bits))
+			if err != nil {
+				return nil, fmt.Errorf("invalid IP address %q: %w", r, err)
+			}
+			nets = append(nets, n)
+		}
+	}
+	return nets, nil
 }
 
 // validateScriptName ensures the script name is a safe, local filename.
@@ -99,8 +131,10 @@ func validateScriptName(name string) error {
 }
 
 // validateScriptFolderURL validates that the scriptFolder URL is safe to use.
-// It enforces http/https schemes and rejects URLs that resolve to private or loopback addresses.
-func validateScriptFolderURL(rawURL string) error {
+// It enforces http/https schemes and rejects URLs that resolve to private or loopback addresses,
+// unless the address falls within one of the allowedNets ranges.
+// When exclusiveMode is true, only IPs explicitly listed in allowedNets are permitted.
+func validateScriptFolderURL(rawURL string, allowedNets []*net.IPNet, exclusiveMode bool) error {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return v1alpha2.NewCOAError(err, "invalid scriptFolder URL", v1alpha2.BadConfig)
@@ -110,13 +144,15 @@ func validateScriptFolderURL(rawURL string) error {
 			fmt.Sprintf("invalid URL scheme %q: only http and https are permitted", u.Scheme),
 			v1alpha2.BadConfig)
 	}
-	return validateURLHost(u.Hostname())
+	return validateURLHost(u.Hostname(), allowedNets, exclusiveMode)
 }
 
-// validateURLHost resolves host and rejects loopback, link-local, and private addresses.
-func validateURLHost(host string) error {
+// validateURLHost resolves host and rejects loopback, link-local, and private addresses,
+// unless the address falls within one of the allowedNets ranges.
+// When exclusiveMode is true, only IPs explicitly listed in allowedNets are permitted.
+func validateURLHost(host string, allowedNets []*net.IPNet, exclusiveMode bool) error {
 	if ip := net.ParseIP(host); ip != nil {
-		return checkIPAllowed(ip, host)
+		return checkIPAllowed(ip, host, allowedNets, exclusiveMode)
 	}
 	addrs, err := net.LookupHost(host)
 	if err != nil {
@@ -127,15 +163,30 @@ func validateURLHost(host string) error {
 		if ip == nil {
 			continue
 		}
-		if err := checkIPAllowed(ip, host); err != nil {
+		if err := checkIPAllowed(ip, host, allowedNets, exclusiveMode); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// checkIPAllowed returns an error if the IP is a loopback, link-local, or private address.
-func checkIPAllowed(ip net.IP, host string) error {
+// checkIPAllowed returns an error if the IP is blocked by the current policy.
+// IPs in allowedNets are always permitted (they override the deny list).
+// When exclusiveMode is true, only IPs in allowedNets are permitted; all others are rejected.
+func checkIPAllowed(ip net.IP, host string, allowedNets []*net.IPNet, exclusiveMode bool) error {
+	// Whitelist check: allowedNets override the deny list.
+	for _, n := range allowedNets {
+		if n.Contains(ip) {
+			return nil
+		}
+	}
+	// In exclusive mode, reject anything not in the whitelist.
+	if exclusiveMode {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("host %q resolves to an address not in the configured allowedIPRanges", host),
+			v1alpha2.BadConfig)
+	}
+	// Standard deny-list checks.
 	if ip.IsLoopback() {
 		return v1alpha2.NewCOAError(nil,
 			fmt.Sprintf("host %q resolves to a loopback address which is not permitted", host),
@@ -162,11 +213,20 @@ type ScriptStageProviderConfig struct {
 	ScriptFolder  string `json:"scriptFolder,omitempty"`
 	StagingFolder string `json:"stagingFolder,omitempty"`
 	ScriptEngine  string `json:"scriptEngine,omitempty"`
+	// AllowedIPRanges is a server-side list of CIDR ranges (or plain IPs) that are
+	// explicitly permitted for scriptFolder URL downloads, overriding the default deny
+	// list. Set this in the TargetManager provider config; it is not read from Target CRDs.
+	AllowedIPRanges    []string `json:"allowedIPRanges,omitempty"`
+	// AllowListExclusive, when true, requires the scriptFolder host to resolve to an
+	// address within AllowedIPRanges. All other addresses are rejected regardless of
+	// the default deny list.
+	AllowListExclusive bool     `json:"allowListExclusive,omitempty"`
 }
 
 type ScriptStageProvider struct {
-	Config  ScriptStageProviderConfig
-	Context *contexts.ManagerContext
+	Config      ScriptStageProviderConfig
+	Context     *contexts.ManagerContext
+	allowedNets []*net.IPNet // parsed from Config.AllowedIPRanges during Init
 }
 
 func ScriptProviderConfigFromMap(properties map[string]string) (ScriptStageProviderConfig, error) {
@@ -224,8 +284,14 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 	}
 	i.Config = updateConfig
 
+	i.allowedNets, err = parseIPRanges(i.Config.AllowedIPRanges)
+	if err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): invalid allowedIPRanges: %+v", err)
+		return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in script provider config", v1alpha2.BadConfig)
+	}
+
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		err = validateScriptFolderURL(i.Config.ScriptFolder)
+		err = validateScriptFolderURL(i.Config.ScriptFolder, i.allowedNets, i.Config.AllowListExclusive)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Script Stage): scriptFolder URL validation failed: %+v", err)
 			return err

@@ -134,7 +134,55 @@ func TestValidateScriptFolderURLStage(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateScriptFolderURL(tc.rawURL)
+			err := validateScriptFolderURL(tc.rawURL, nil, false)
+			if tc.wantError {
+				assert.Error(t, err, "expected error for URL %q", tc.rawURL)
+			} else {
+				assert.NoError(t, err, "unexpected error for URL %q", tc.rawURL)
+			}
+		})
+	}
+}
+
+// TestValidateScriptFolderURLStageWithWhitelist checks that allowedIPRanges can permit
+// otherwise-blocked addresses, and that allowListExclusive enforces exclusive access.
+func TestValidateScriptFolderURLStageWithWhitelist(t *testing.T) {
+	_, allowedNet, _ := net.ParseCIDR("10.0.0.0/8")
+	_, otherNet, _ := net.ParseCIDR("192.168.0.0/16")
+
+	cases := []struct {
+		name          string
+		rawURL        string
+		allowedNets   []*net.IPNet
+		exclusiveMode bool
+		wantError     bool
+	}{
+		{
+			name:          "private IP whitelisted via CIDR",
+			rawURL:        "http://10.0.0.1/scripts",
+			allowedNets:   []*net.IPNet{allowedNet},
+			exclusiveMode: false,
+			wantError:     false,
+		},
+		{
+			name:          "private IP not in whitelist still blocked",
+			rawURL:        "http://172.16.0.1/scripts",
+			allowedNets:   []*net.IPNet{allowedNet},
+			exclusiveMode: false,
+			wantError:     true,
+		},
+		{
+			name:          "public IP blocked in exclusive mode when not whitelisted",
+			rawURL:        "http://8.8.8.8/scripts",
+			allowedNets:   []*net.IPNet{otherNet},
+			exclusiveMode: true,
+			wantError:     true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateScriptFolderURL(tc.rawURL, tc.allowedNets, tc.exclusiveMode)
 			if tc.wantError {
 				assert.Error(t, err, "expected error for URL %q", tc.rawURL)
 			} else {
@@ -164,7 +212,48 @@ func TestCheckIPAllowedStage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ip := net.ParseIP(tc.ip)
 			require.NotNil(t, ip)
-			err := checkIPAllowed(ip, tc.ip)
+			err := checkIPAllowed(ip, tc.ip, nil, false)
+			if tc.wantAllow {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
+}
+
+// TestCheckIPAllowedStageWithWhitelist verifies whitelist and exclusive mode behavior.
+func TestCheckIPAllowedStageWithWhitelist(t *testing.T) {
+	_, privateNet, _ := net.ParseCIDR("10.0.0.0/8")
+
+	cases := []struct {
+		name          string
+		ip            string
+		allowedNets   []*net.IPNet
+		exclusiveMode bool
+		wantAllow     bool
+	}{
+		{
+			name:          "private IP allowed when whitelisted",
+			ip:            "10.0.0.1",
+			allowedNets:   []*net.IPNet{privateNet},
+			exclusiveMode: false,
+			wantAllow:     true,
+		},
+		{
+			name:          "public IP blocked in exclusive mode",
+			ip:            "8.8.8.8",
+			allowedNets:   []*net.IPNet{privateNet},
+			exclusiveMode: true,
+			wantAllow:     false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			require.NotNil(t, ip)
+			err := checkIPAllowed(ip, tc.ip, tc.allowedNets, tc.exclusiveMode)
 			if tc.wantAllow {
 				assert.NoError(t, err)
 			} else {
