@@ -208,27 +208,20 @@ func checkIPAllowed(ip net.IP, host string, allowedNets []*net.IPNet, exclusiveM
 }
 
 type ScriptProviderConfig struct {
-	Name               string   `json:"name"`
-	ApplyScript        string   `json:"applyScript"`
-	RemoveScript       string   `json:"removeScript"`
-	GetScript          string   `json:"getScript"`
-	ScriptFolder       string   `json:"scriptFolder,omitempty"`
-	StagingFolder      string   `json:"stagingFolder,omitempty"`
-	ScriptEngine       string   `json:"scriptEngine,omitempty"`
-	// AllowedIPRanges is a server-side list of CIDR ranges (or plain IPs) that are
-	// explicitly permitted for scriptFolder URL downloads, overriding the default deny
-	// list. Set this in the TargetManager provider config; it is not read from Target CRDs.
-	AllowedIPRanges    []string `json:"allowedIPRanges,omitempty"`
-	// AllowListExclusive, when true, requires the scriptFolder host to resolve to an
-	// address within AllowedIPRanges. All other addresses are rejected regardless of
-	// the default deny list.
-	AllowListExclusive bool     `json:"allowListExclusive,omitempty"`
+	Name          string `json:"name"`
+	ApplyScript   string `json:"applyScript"`
+	RemoveScript  string `json:"removeScript"`
+	GetScript     string `json:"getScript"`
+	ScriptFolder  string `json:"scriptFolder,omitempty"`
+	StagingFolder string `json:"stagingFolder,omitempty"`
+	ScriptEngine  string `json:"scriptEngine,omitempty"`
 }
 
 type ScriptProvider struct {
-	Config      ScriptProviderConfig
-	Context     *contexts.ManagerContext
-	allowedNets []*net.IPNet // parsed from Config.AllowedIPRanges during Init
+	Config         ScriptProviderConfig
+	Context        *contexts.ManagerContext
+	scriptsReady   bool
+	scriptsReadyMu sync.Mutex
 }
 
 func ScriptProviderConfigFromMap(properties map[string]string) (ScriptProviderConfig, error) {
@@ -298,35 +291,6 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	}
 	i.Config = updateConfig
 
-	i.allowedNets, err = parseIPRanges(i.Config.AllowedIPRanges)
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "  P (Script Target): invalid allowedIPRanges: %+v", err)
-		return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in script provider config", v1alpha2.BadConfig)
-	}
-
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		err = validateScriptFolderURL(i.Config.ScriptFolder, i.allowedNets, i.Config.AllowListExclusive)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): scriptFolder URL validation failed: %+v", err)
-			return err
-		}
-		err = downloadFile(i.Config.ScriptFolder, i.Config.ApplyScript, i.Config.StagingFolder)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download apply script %s, error: %+v", i.Config.ApplyScript, err)
-			return err
-		}
-		err = downloadFile(i.Config.ScriptFolder, i.Config.RemoveScript, i.Config.StagingFolder)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download remove script %s, error: %+v", i.Config.RemoveScript, err)
-			return err
-		}
-		err = downloadFile(i.Config.ScriptFolder, i.Config.GetScript, i.Config.StagingFolder)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download get script %s, error: %+v", i.Config.GetScript, err)
-			return err
-		}
-	}
-
 	once.Do(func() {
 		if providerOperationMetrics == nil {
 			providerOperationMetrics, err = metrics.New()
@@ -337,6 +301,56 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	})
 
 	return err
+}
+
+// ensureScriptsReady validates the scriptFolder URL against the server-side SecurityPolicy
+// (obtained from ManagerContext, which is populated by the SecurityPolicyVendor) and
+// downloads all scripts into the staging folder on first call. Subsequent calls are no-ops.
+// This is called lazily from Apply/Get so that the SecurityPolicy is always available.
+func (i *ScriptProvider) ensureScriptsReady(ctx context.Context) error {
+	i.scriptsReadyMu.Lock()
+	defer i.scriptsReadyMu.Unlock()
+	if i.scriptsReady {
+		return nil
+	}
+
+	if !strings.HasPrefix(i.Config.ScriptFolder, "http") {
+		i.scriptsReady = true
+		return nil
+	}
+
+	// Obtain allow-list policy from the SecurityPolicyVendor via ManagerContext.
+	var allowedNets []*net.IPNet
+	exclusiveMode := false
+	if policy := i.Context.GetSecurityPolicy(); policy != nil {
+		var err error
+		allowedNets, err = parseIPRanges(policy.AllowedIPRanges)
+		if err != nil {
+			return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in security policy", v1alpha2.BadConfig)
+		}
+		exclusiveMode = policy.AllowListExclusive
+	}
+
+	if err := validateScriptFolderURL(i.Config.ScriptFolder, allowedNets, exclusiveMode); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): scriptFolder URL validation failed: %+v", err)
+		return err
+	}
+
+	if err := downloadFile(i.Config.ScriptFolder, i.Config.ApplyScript, i.Config.StagingFolder); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download apply script %s, error: %+v", i.Config.ApplyScript, err)
+		return err
+	}
+	if err := downloadFile(i.Config.ScriptFolder, i.Config.RemoveScript, i.Config.StagingFolder); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download remove script %s, error: %+v", i.Config.RemoveScript, err)
+		return err
+	}
+	if err := downloadFile(i.Config.ScriptFolder, i.Config.GetScript, i.Config.StagingFolder); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download get script %s, error: %+v", i.Config.GetScript, err)
+		return err
+	}
+
+	i.scriptsReady = true
+	return nil
 }
 
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
@@ -427,6 +441,10 @@ func (i *ScriptProvider) Get(ctx context.Context, deployment model.DeploymentSpe
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfofCtx(ctx, "  P (Script Target): getting artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
+	if err = i.ensureScriptsReady(ctx); err != nil {
+		return nil, err
+	}
 
 	id := uuid.New().String()
 	input := id + ".json"
@@ -552,6 +570,10 @@ func (i *ScriptProvider) Apply(ctx context.Context, deployment model.DeploymentS
 	defer observ_utils.CloseSpanWithError(span, &err)
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 	sLog.InfofCtx(ctx, "  P (Script Target): applying artifacts: %s - %s", deployment.Instance.Spec.Scope, deployment.Instance.ObjectMeta.Name)
+
+	if err = i.ensureScriptsReady(ctx); err != nil {
+		return nil, err
+	}
 
 	functionName := observ_utils.GetFunctionName()
 	startTime := time.Now().UTC()

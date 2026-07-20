@@ -53,6 +53,16 @@ func (v *ManagerContext) Subscribe(feed string, handler v1alpha2.EventHandler) e
 	return nil
 }
 
+// GetSecurityPolicy returns the SecurityPolicy set on the VendorContext, or nil if none
+// has been configured. Providers should call this at runtime (not during Init) to obtain
+// the server-side policy, since the policy is propagated after provider initialization.
+func (v *ManagerContext) GetSecurityPolicy() *SecurityPolicy {
+	if v != nil && v.VencorContext != nil {
+		return v.VencorContext.SecurityPolicy
+	}
+	return nil
+}
+
 type IWithManagerContext interface {
 	SetContext(ctx *ManagerContext)
 }

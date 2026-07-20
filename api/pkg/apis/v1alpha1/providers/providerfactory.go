@@ -472,7 +472,7 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
-					provider.Context = context
+					provider.SetContext(context)
 					return provider, nil
 				case "providers.target.http":
 					provider := &targethttp.HttpTargetProvider{}
@@ -680,7 +680,7 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					if err != nil {
 						return nil, err
 					}
-					provider.Context = context
+					provider.SetContext(context)
 					return provider, nil
 				case "providers.stage.patch":
 					provider := &patchstage.PatchStageProvider{}

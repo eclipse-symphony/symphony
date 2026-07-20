@@ -213,20 +213,13 @@ type ScriptStageProviderConfig struct {
 	ScriptFolder  string `json:"scriptFolder,omitempty"`
 	StagingFolder string `json:"stagingFolder,omitempty"`
 	ScriptEngine  string `json:"scriptEngine,omitempty"`
-	// AllowedIPRanges is a server-side list of CIDR ranges (or plain IPs) that are
-	// explicitly permitted for scriptFolder URL downloads, overriding the default deny
-	// list. Set this in the TargetManager provider config; it is not read from Target CRDs.
-	AllowedIPRanges    []string `json:"allowedIPRanges,omitempty"`
-	// AllowListExclusive, when true, requires the scriptFolder host to resolve to an
-	// address within AllowedIPRanges. All other addresses are rejected regardless of
-	// the default deny list.
-	AllowListExclusive bool     `json:"allowListExclusive,omitempty"`
 }
 
 type ScriptStageProvider struct {
-	Config      ScriptStageProviderConfig
-	Context     *contexts.ManagerContext
-	allowedNets []*net.IPNet // parsed from Config.AllowedIPRanges during Init
+	Config         ScriptStageProviderConfig
+	Context        *contexts.ManagerContext
+	scriptsReady   bool
+	scriptsReadyMu sync.Mutex
 }
 
 func ScriptProviderConfigFromMap(properties map[string]string) (ScriptStageProviderConfig, error) {
@@ -284,23 +277,6 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 	}
 	i.Config = updateConfig
 
-	i.allowedNets, err = parseIPRanges(i.Config.AllowedIPRanges)
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "  P (Script Stage): invalid allowedIPRanges: %+v", err)
-		return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in script provider config", v1alpha2.BadConfig)
-	}
-
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		err = validateScriptFolderURL(i.Config.ScriptFolder, i.allowedNets, i.Config.AllowListExclusive)
-		if err != nil {
-			sLog.ErrorfCtx(ctx, "  P (Script Stage): scriptFolder URL validation failed: %+v", err)
-			return err
-		}
-		err = downloadFile(i.Config.ScriptFolder, i.Config.Script, i.Config.StagingFolder)
-		if err != nil {
-			return err
-		}
-	}
 	once.Do(func() {
 		if providerOperationMetrics == nil {
 			providerOperationMetrics, err = metrics.New()
@@ -310,6 +286,45 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 		}
 	})
 	return err
+}
+
+// ensureScriptReady validates the scriptFolder URL against the server-side SecurityPolicy
+// (from the SecurityPolicyVendor via ManagerContext) and downloads the script on first call.
+func (i *ScriptStageProvider) ensureScriptReady(ctx context.Context) error {
+	i.scriptsReadyMu.Lock()
+	defer i.scriptsReadyMu.Unlock()
+	if i.scriptsReady {
+		return nil
+	}
+
+	if !strings.HasPrefix(i.Config.ScriptFolder, "http") {
+		i.scriptsReady = true
+		return nil
+	}
+
+	var allowedNets []*net.IPNet
+	exclusiveMode := false
+	if policy := i.Context.GetSecurityPolicy(); policy != nil {
+		var err error
+		allowedNets, err = parseIPRanges(policy.AllowedIPRanges)
+		if err != nil {
+			return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in security policy", v1alpha2.BadConfig)
+		}
+		exclusiveMode = policy.AllowListExclusive
+	}
+
+	if err := validateScriptFolderURL(i.Config.ScriptFolder, allowedNets, exclusiveMode); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): scriptFolder URL validation failed: %+v", err)
+		return err
+	}
+
+	if err := downloadFile(i.Config.ScriptFolder, i.Config.Script, i.Config.StagingFolder); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): failed to download script %s, error: %+v", i.Config.Script, err)
+		return err
+	}
+
+	i.scriptsReady = true
+	return nil
 }
 func downloadFile(scriptFolder string, script string, stagingFolder string) error {
 	sLog.Debugf("  downloadFile: scriptFolder=%q, script=%q, stagingFolder=%q", scriptFolder, script, stagingFolder)
@@ -399,6 +414,10 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (Script Stage): start process request")
+
+	if err = i.ensureScriptReady(ctx); err != nil {
+		return nil, false, err
+	}
 
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()

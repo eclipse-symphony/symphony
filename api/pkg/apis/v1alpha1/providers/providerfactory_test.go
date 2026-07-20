@@ -180,7 +180,7 @@ func TestCreateProvider(t *testing.T) {
 
 	provider, err = providerfactory.CreateProvider("providers.target.script", script.ScriptProviderConfig{})
 	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*script.ScriptProvider))
+	assert.NotNil(t, provider.(*script.ScriptProvider))
 
 	provider, err = providerfactory.CreateProvider("providers.target.http", targethttp.HttpTargetProviderConfig{})
 	assert.Nil(t, err)
@@ -240,7 +240,7 @@ func TestCreateProvider(t *testing.T) {
 
 	provider, err = providerfactory.CreateProvider("providers.stage.script", scriptstage.ScriptStageProviderConfig{})
 	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*scriptstage.ScriptStageProvider))
+	assert.NotNil(t, provider.(*scriptstage.ScriptStageProvider))
 
 	provider, err = providerfactory.CreateProvider("providers.stage.patch", patchstage.PatchStageProviderConfig{})
 	assert.Nil(t, err)
@@ -656,7 +656,7 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 
 	provider, err = CreateProviderForTargetRole(nil, "script", targetState, nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*script.ScriptProvider))
+	assert.NotNil(t, provider.(*script.ScriptProvider))
 
 	provider, err = CreateProviderForTargetRole(nil, "http", targetState, nil)
 	assert.Nil(t, err)
@@ -728,7 +728,7 @@ func TestCreateProviderForTargetRole(t *testing.T) {
 
 	provider, err = CreateProviderForTargetRole(nil, "scriptstage", targetState, nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, *provider.(*scriptstage.ScriptStageProvider))
+	assert.NotNil(t, provider.(*scriptstage.ScriptStageProvider))
 
 	provider, err = CreateProviderForTargetRole(nil, "patchstage", targetState, nil)
 	assert.Nil(t, err)

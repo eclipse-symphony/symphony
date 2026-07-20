@@ -7,10 +7,12 @@
 package script
 
 import (
+	"context"
 	"net"
 	"net/url"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -416,7 +418,73 @@ func TestCheckIPAllowedWithWhitelist(t *testing.T) {
 	}
 }
 
-// TestParseIPRanges verifies that CIDR strings and plain IPs are correctly parsed.
+// TestEnsureScriptsReadyWithSecurityPolicy verifies that ensureScriptsReady reads
+// AllowedIPRanges and AllowListExclusive from the SecurityPolicyVendor via ManagerContext,
+// rather than from the provider's own config.
+func TestEnsureScriptsReadyWithSecurityPolicy(t *testing.T) {
+	// Build a VendorContext that carries a SecurityPolicy allowing 10.0.0.0/8.
+	vc := &contexts.VendorContext{}
+	vc.SecurityPolicy = &contexts.SecurityPolicy{
+		AllowedIPRanges:    []string{"10.0.0.0/8"},
+		AllowListExclusive: false,
+	}
+	mc := &contexts.ManagerContext{}
+	_ = mc.Init(vc, nil)
+
+	t.Run("private IP whitelisted via context policy", func(t *testing.T) {
+		p := &ScriptProvider{}
+		err := p.Init(ScriptProviderConfig{
+			ApplyScript:   "apply.sh",
+			RemoveScript:  "remove.sh",
+			GetScript:     "get.sh",
+			ScriptFolder:  "http://10.0.0.1/scripts",
+			StagingFolder: "/tmp",
+		})
+		require.NoError(t, err)
+		p.SetContext(mc)
+		// ensureScriptsReady should proceed past URL validation because 10.0.0.1 is in
+		// the policy allow-list. It will fail on the actual download (no server running),
+		// but the error must not be a validation error.
+		err = p.ensureScriptsReady(context.Background())
+		// We expect a network/download error, NOT a "private address" validation error.
+		if err != nil {
+			assert.NotContains(t, err.Error(), "private address which is not permitted",
+				"URL validation should pass for whitelisted IP; error should be from download, not policy")
+		}
+	})
+
+	t.Run("private IP blocked when not in context policy", func(t *testing.T) {
+		p := &ScriptProvider{}
+		err := p.Init(ScriptProviderConfig{
+			ApplyScript:   "apply.sh",
+			RemoveScript:  "remove.sh",
+			GetScript:     "get.sh",
+			ScriptFolder:  "http://172.16.0.1/scripts",
+			StagingFolder: "/tmp",
+		})
+		require.NoError(t, err)
+		p.SetContext(mc)
+		err = p.ensureScriptsReady(context.Background())
+		assert.Error(t, err, "172.16.0.1 is not in the allow-list and should be blocked")
+		assert.Contains(t, err.Error(), "private address which is not permitted")
+	})
+
+	t.Run("nil context uses deny-list only", func(t *testing.T) {
+		p := &ScriptProvider{}
+		err := p.Init(ScriptProviderConfig{
+			ApplyScript:   "apply.sh",
+			RemoveScript:  "remove.sh",
+			GetScript:     "get.sh",
+			ScriptFolder:  "http://10.0.0.1/scripts",
+			StagingFolder: "/tmp",
+		})
+		require.NoError(t, err)
+		// No SetContext: Context is nil, so GetSecurityPolicy returns nil → deny-list only.
+		err = p.ensureScriptsReady(context.Background())
+		assert.Error(t, err, "10.0.0.1 should be blocked by the default deny-list when no policy")
+		assert.Contains(t, err.Error(), "private address which is not permitted")
+	})
+}
 func TestParseIPRanges(t *testing.T) {
 	cases := []struct {
 		name      string

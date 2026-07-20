@@ -61,6 +61,9 @@ func TestShellScriptOnline(t *testing.T) {
 		StagingFolder: "staging",
 	})
 	assert.Nil(t, err)
+	// Script download is now lazy: happens on first ensureScriptReady call, not in Init.
+	err = provider.ensureScriptReady(context.Background())
+	assert.Nil(t, err)
 	_, err = os.Stat("staging/go1.21.6.src.tar.gz")
 	assert.Nil(t, err)
 	os.Remove("staging/go1.21.6.src.tar.gz")
@@ -75,6 +78,9 @@ func TestShellScriptNotFoundOnline(t *testing.T) {
 		ScriptFolder:  "https://bing.com",
 		StagingFolder: "staging",
 	})
+	// Init no longer downloads; error surfaces on first use.
+	assert.Nil(t, err)
+	err = provider.ensureScriptReady(context.Background())
 	assert.NotNil(t, err)
 	assert.IsType(t, v1alpha2.COAError{}, err)
 }
@@ -261,4 +267,46 @@ func TestCheckIPAllowedStageWithWhitelist(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestEnsureScriptReadyWithSecurityPolicy verifies that ensureScriptReady reads
+// the SecurityPolicy from ManagerContext (populated by SecurityPolicyVendor)
+// rather than from the provider's own config.
+func TestEnsureScriptReadyWithSecurityPolicy(t *testing.T) {
+	vc := &contexts.VendorContext{}
+	vc.SecurityPolicy = &contexts.SecurityPolicy{
+		AllowedIPRanges:    []string{"10.0.0.0/8"},
+		AllowListExclusive: false,
+	}
+	mc := &contexts.ManagerContext{}
+	_ = mc.Init(vc, nil)
+
+	t.Run("private IP whitelisted via context policy", func(t *testing.T) {
+		p := &ScriptStageProvider{}
+		err := p.Init(ScriptStageProviderConfig{
+			Script:        "run.sh",
+			ScriptFolder:  "http://10.0.0.1/scripts",
+			StagingFolder: "/tmp",
+		})
+		require.NoError(t, err)
+		p.SetContext(mc)
+		err = p.ensureScriptReady(context.Background())
+		if err != nil {
+			assert.NotContains(t, err.Error(), "private address which is not permitted",
+				"URL validation should pass for whitelisted IP")
+		}
+	})
+
+	t.Run("nil context uses deny-list only", func(t *testing.T) {
+		p := &ScriptStageProvider{}
+		err := p.Init(ScriptStageProviderConfig{
+			Script:        "run.sh",
+			ScriptFolder:  "http://10.0.0.1/scripts",
+			StagingFolder: "/tmp",
+		})
+		require.NoError(t, err)
+		err = p.ensureScriptReady(context.Background())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "private address which is not permitted")
+	})
 }

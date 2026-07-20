@@ -21,6 +21,7 @@ import (
 	bindings "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings"
 	http "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings/http"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/bindings/mqtt"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	mf "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/managers"
 	pf "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providerfactory"
 	pv "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers"
@@ -231,6 +232,21 @@ func (h *APIHost) Launch(config HostConfig,
 		for _, v := range h.Vendors {
 			log.Infof("--- evaluation context is sent to vendor: %s ---", v.Vendor.GetInfo().Name)
 			v.Vendor.SetEvaluationContext(evaluationContext)
+		}
+	}
+
+	var securityPolicy *contexts.SecurityPolicy
+	for _, v := range h.Vendors {
+		if sp, ok := v.Vendor.(vendors.ISecurityPolicyVendor); ok {
+			log.Info("--- security policy established ---")
+			securityPolicy = sp.GetSecurityPolicy()
+		}
+	}
+
+	if securityPolicy != nil {
+		for _, v := range h.Vendors {
+			log.Infof("--- security policy is sent to vendor: %s ---", v.Vendor.GetInfo().Name)
+			v.Vendor.SetSecurityPolicy(securityPolicy)
 		}
 	}
 
