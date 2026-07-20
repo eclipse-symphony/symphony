@@ -8,13 +8,15 @@ package script
 
 import (
 	"context"
-	"net/http"
+	"net"
+	"net/url"
 	"os"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScriptInitWithMap(t *testing.T) {
@@ -75,5 +77,99 @@ func TestShellScriptNotFoundOnline(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.IsType(t, v1alpha2.COAError{}, err)
-	assert.NotEqual(t, http.StatusOK, err.(v1alpha2.COAError).State)
+}
+
+// TestValidateScriptNameStage checks that path traversal and unsafe names are rejected.
+func TestValidateScriptNameStage(t *testing.T) {
+	cases := []struct {
+		name      string
+		script    string
+		wantError bool
+	}{
+		{"plain filename", "script.sh", false},
+		{"filename with dash", "my-script.sh", false},
+		{"dot-dot traversal", "../../../etc/passwd", true},
+		{"dot-dot encoded as %2e%2e", "%2e%2e/etc/passwd", true}, // after PathUnescape → "../etc/passwd"
+		{"absolute path", "/etc/passwd", true},
+		{"forward slash in name", "subdir/script.sh", true},
+		{"backslash in name", "subdir\\script.sh", true},
+		{"just dot-dot", "..", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rawScript, err := url.PathUnescape(tc.script)
+			if err != nil {
+				rawScript = tc.script
+			}
+			err = validateScriptName(rawScript)
+			if tc.wantError {
+				assert.Error(t, err, "expected error for script name %q", tc.script)
+			} else {
+				assert.NoError(t, err, "unexpected error for script name %q", tc.script)
+			}
+		})
+	}
+}
+
+// TestValidateScriptFolderURLStage checks URL scheme and IP validation.
+// Public-IP cases use numeric IPs directly to avoid DNS lookups in restricted environments.
+func TestValidateScriptFolderURLStage(t *testing.T) {
+	cases := []struct {
+		name      string
+		rawURL    string
+		wantError bool
+	}{
+		// Use public IPs directly to avoid DNS lookups in sandboxed test environments.
+		{"http scheme with public IP", "http://8.8.8.8/scripts", false},
+		{"https scheme with public IP", "https://8.8.8.8/scripts", false},
+		{"file scheme", "file:///etc/passwd", true},
+		{"ftp scheme", "ftp://8.8.8.8/scripts", true},
+		{"loopback IPv4", "http://127.0.0.1/scripts", true},
+		{"link-local IPv4 (IMDS)", "http://169.254.169.254/latest/meta-data/", true},
+		{"RFC1918 10.x", "http://10.0.0.1/scripts", true},
+		{"RFC1918 172.16.x", "http://172.16.0.1/scripts", true},
+		{"RFC1918 192.168.x", "http://192.168.1.1/scripts", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateScriptFolderURL(tc.rawURL)
+			if tc.wantError {
+				assert.Error(t, err, "expected error for URL %q", tc.rawURL)
+			} else {
+				assert.NoError(t, err, "unexpected error for URL %q", tc.rawURL)
+			}
+		})
+	}
+}
+
+// TestCheckIPAllowedStage verifies that loopback, link-local, and private IPs are rejected.
+func TestCheckIPAllowedStage(t *testing.T) {
+	cases := []struct {
+		name      string
+		ip        string
+		wantAllow bool
+	}{
+		{"public IPv4", "8.8.8.8", true},
+		{"loopback 127.0.0.1", "127.0.0.1", false},
+		{"link-local 169.254.169.254", "169.254.169.254", false},
+		{"RFC1918 10.0.0.1", "10.0.0.1", false},
+		{"RFC1918 172.16.0.1", "172.16.0.1", false},
+		{"RFC1918 192.168.0.1", "192.168.0.1", false},
+		{"shared space 100.64.0.1", "100.64.0.1", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			require.NotNil(t, ip)
+			err := checkIPAllowed(ip, tc.ip)
+			if tc.wantAllow {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
 }

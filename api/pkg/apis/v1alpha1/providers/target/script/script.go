@@ -10,7 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,6 +44,117 @@ var (
 	providerOperationMetrics *metrics.Metrics
 	once                     sync.Once
 )
+
+// privateIPNets lists IP ranges that are not routable on the public internet.
+// Requests to these ranges are blocked to prevent SSRF attacks.
+var privateIPNets = func() []*net.IPNet {
+	var nets []*net.IPNet
+	for _, cidr := range []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"100.64.0.0/10", // shared address space (RFC 6598)
+		"fc00::/7",      // IPv6 unique local (RFC 4193)
+	} {
+		_, n, err := net.ParseCIDR(cidr)
+		if err == nil {
+			nets = append(nets, n)
+		}
+	}
+	return nets
+}()
+
+// scriptDownloadClient is a dedicated HTTP client used for downloading scripts.
+// It enforces a request timeout and re-validates redirect destinations to prevent SSRF.
+var scriptDownloadClient = &http.Client{
+	Timeout: 30 * time.Second,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 3 {
+			return errors.New("maximum redirect limit reached")
+		}
+		if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
+			return fmt.Errorf("redirect to non-HTTP(S) scheme %q is not permitted", req.URL.Scheme)
+		}
+		if err := validateURLHost(req.URL.Hostname()); err != nil {
+			return fmt.Errorf("redirect blocked: %w", err)
+		}
+		return nil
+	},
+}
+
+// validateScriptName ensures the script name is a safe, local filename.
+// It rejects path traversal sequences ("..", absolute paths) and directory separators.
+func validateScriptName(name string) error {
+	if !filepath.IsLocal(name) {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("invalid script name %q: must be a local relative path with no '..' components", name),
+			v1alpha2.BadConfig)
+	}
+	if strings.ContainsAny(name, "/\\") {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("invalid script name %q: directory separators are not allowed", name),
+			v1alpha2.BadConfig)
+	}
+	return nil
+}
+
+// validateScriptFolderURL validates that the scriptFolder URL is safe to use.
+// It enforces http/https schemes and rejects URLs that resolve to private or loopback addresses.
+func validateScriptFolderURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return v1alpha2.NewCOAError(err, "invalid scriptFolder URL", v1alpha2.BadConfig)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("invalid URL scheme %q: only http and https are permitted", u.Scheme),
+			v1alpha2.BadConfig)
+	}
+	return validateURLHost(u.Hostname())
+}
+
+// validateURLHost resolves host and rejects loopback, link-local, and private addresses.
+func validateURLHost(host string) error {
+	if ip := net.ParseIP(host); ip != nil {
+		return checkIPAllowed(ip, host)
+	}
+	addrs, err := net.LookupHost(host)
+	if err != nil {
+		return v1alpha2.NewCOAError(err, fmt.Sprintf("cannot resolve host %q", host), v1alpha2.BadConfig)
+	}
+	for _, addr := range addrs {
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			continue
+		}
+		if err := checkIPAllowed(ip, host); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkIPAllowed returns an error if the IP is a loopback, link-local, or private address.
+func checkIPAllowed(ip net.IP, host string) error {
+	if ip.IsLoopback() {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("host %q resolves to a loopback address which is not permitted", host),
+			v1alpha2.BadConfig)
+	}
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("host %q resolves to a link-local address which is not permitted", host),
+			v1alpha2.BadConfig)
+	}
+	for _, n := range privateIPNets {
+		if n.Contains(ip) {
+			return v1alpha2.NewCOAError(nil,
+				fmt.Sprintf("host %q resolves to a private address which is not permitted", host),
+				v1alpha2.BadConfig)
+		}
+	}
+	return nil
+}
 
 type ScriptProviderConfig struct {
 	Name          string `json:"name"`
@@ -126,6 +239,11 @@ func (i *ScriptProvider) Init(config providers.IProviderConfig) error {
 	i.Config = updateConfig
 
 	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
+		err = validateScriptFolderURL(i.Config.ScriptFolder)
+		if err != nil {
+			sLog.ErrorfCtx(ctx, "  P (Script Target): scriptFolder URL validation failed: %+v", err)
+			return err
+		}
 		err = downloadFile(i.Config.ScriptFolder, i.Config.ApplyScript, i.Config.StagingFolder)
 		if err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Script Target): failed to download apply script %s, error: %+v", i.Config.ApplyScript, err)
@@ -168,23 +286,48 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 		rawScript = script
 	}
 
-	// 2. Escape the script name for the URL path.
+	// 2. Validate the script name to prevent path traversal attacks.
+	if err := validateScriptName(rawScript); err != nil {
+		return err
+	}
+
+	// 3. Escape the script name for the URL path.
 	//    url.PathEscape handles spaces (%20), percent (%25), etc. but does NOT
 	//    escape RFC 3986 sub-delimiters ($, &, +, =). We must encode them manually
 	//    to ensure the download URL is unambiguous for all HTTP servers.
 	escapedScript := url.PathEscape(rawScript)
 	escapedScript = coa_utils.EncodeSubDelimiters(escapedScript)
 
-	// 3. Normalize and encode sub-delimiters in the scriptFolder URL path.
+	// 4. Normalize and encode sub-delimiters in the scriptFolder URL path.
 	escapedFolder := coa_utils.EscapeURLPathSubDelims(scriptFolder)
 
 	sPath, err := url.JoinPath(escapedFolder, escapedScript)
 	if err != nil {
 		return err
 	}
-	sLog.Debugf("  downloadFile: resolved URL=%q, localPath=%q", sPath, filepath.Join(stagingFolder, rawScript))
 
 	tPath := filepath.Join(stagingFolder, rawScript)
+	sLog.Debugf("  downloadFile: resolved URL=%q, localPath=%q", sPath, tPath)
+
+	// 5. Fetch the script using the dedicated client (enforces timeout and redirect policy).
+	resp, err := scriptDownloadClient.Get(sPath)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// 6. Only write the file on a successful HTTP response.
+	if resp.StatusCode != http.StatusOK {
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return readErr
+		}
+		return v1alpha2.NewCOAError(
+			nil,
+			"Response body content: "+string(body),
+			v1alpha2.State(resp.StatusCode),
+		)
+	}
 
 	out, err := os.Create(tPath)
 	if err != nil {
@@ -192,11 +335,6 @@ func downloadFile(scriptFolder string, script string, stagingFolder string) erro
 	}
 	defer out.Close()
 
-	resp, err := http.Get(sPath)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		return err
