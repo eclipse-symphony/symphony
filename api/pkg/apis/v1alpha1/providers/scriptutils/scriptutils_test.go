@@ -1,0 +1,389 @@
+/*
+ * Copyright (c) Microsoft Corporation.
+ * Licensed under the MIT license.
+ * SPDX-License-Identifier: MIT
+ */
+
+package scriptutils
+
+import (
+	"net"
+	"net/url"
+	"testing"
+
+	coa_utils "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestIsRemoteURL verifies that only http:// and https:// return true.
+func TestIsRemoteURL(t *testing.T) {
+	cases := []struct {
+		name   string
+		input  string
+		expect bool
+	}{
+		{"http URL", "http://example.com/scripts", true},
+		{"https URL", "https://example.com/scripts", true},
+		{"local path", "/opt/scripts", false},
+		{"relative path", "scripts/", false},
+		{"empty string", "", false},
+		{"ftp URL", "ftp://example.com/scripts", false},
+		{"file URL", "file:///etc/passwd", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expect, IsRemoteURL(tc.input))
+		})
+	}
+}
+
+// TestValidateScriptName checks that path traversal and unsafe names are rejected.
+func TestValidateScriptName(t *testing.T) {
+	cases := []struct {
+		name      string
+		script    string
+		wantError bool
+	}{
+		{"plain filename", "deploy.sh", false},
+		{"filename with dot", "deploy.v2.sh", false},
+		{"filename with dash", "my-script.sh", false},
+		{"dot-dot traversal", "../../../etc/passwd", true},
+		{"dot-dot encoded as %2e%2e", "%2e%2e/etc/passwd", true}, // after PathUnescape → "../etc/passwd"
+		{"absolute path", "/etc/passwd", true},
+		{"forward slash in name", "subdir/script.sh", true},
+		{"backslash in name", "subdir\\script.sh", true},
+		{"just dot-dot", "..", true},
+		{"current dir", ".", false}, // filepath.IsLocal accepts "."
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rawScript, err := url.PathUnescape(tc.script)
+			if err != nil {
+				rawScript = tc.script
+			}
+			err = ValidateScriptName(rawScript)
+			if tc.wantError {
+				assert.Error(t, err, "expected error for script name %q", tc.script)
+			} else {
+				assert.NoError(t, err, "unexpected error for script name %q", tc.script)
+			}
+		})
+	}
+}
+
+// TestValidateScriptFolderURL checks URL scheme validation.
+// Public-IP cases use numeric IPs directly to avoid DNS lookups in restricted environments.
+func TestValidateScriptFolderURL(t *testing.T) {
+	cases := []struct {
+		name      string
+		rawURL    string
+		wantError bool
+	}{
+		{"http scheme with public IP", "http://8.8.8.8/scripts", false},
+		{"https scheme with public IP", "https://8.8.8.8/scripts", false},
+		{"file scheme", "file:///etc/passwd", true},
+		{"ftp scheme", "ftp://8.8.8.8/scripts", true},
+		{"no scheme", "example.com/scripts", true},
+		{"loopback IPv4", "http://127.0.0.1/scripts", true},
+		{"loopback IPv6", "http://[::1]/scripts", true},
+		{"link-local IPv4 (IMDS)", "http://169.254.169.254/latest/meta-data/", true},
+		{"RFC1918 10.x", "http://10.0.0.1/scripts", true},
+		{"RFC1918 172.16.x", "http://172.16.0.1/scripts", true},
+		{"RFC1918 192.168.x", "http://192.168.1.1/scripts", true},
+		{"shared address space 100.64.x", "http://100.64.0.1/scripts", true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateScriptFolderURL(tc.rawURL, nil, false)
+			if tc.wantError {
+				assert.Error(t, err, "expected error for URL %q", tc.rawURL)
+			} else {
+				assert.NoError(t, err, "unexpected error for URL %q", tc.rawURL)
+			}
+		})
+	}
+}
+
+// TestValidateScriptFolderURLWithWhitelist checks that allowedIPRanges can permit
+// otherwise-blocked addresses, and that allowListExclusive enforces exclusive access.
+func TestValidateScriptFolderURLWithWhitelist(t *testing.T) {
+	_, allowedNet, _ := net.ParseCIDR("10.0.0.0/8")
+	_, otherNet, _ := net.ParseCIDR("192.168.0.0/16")
+
+	cases := []struct {
+		name          string
+		rawURL        string
+		allowedNets   []*net.IPNet
+		exclusiveMode bool
+		wantError     bool
+	}{
+		{
+			name:          "private IP whitelisted via CIDR",
+			rawURL:        "http://10.0.0.1/scripts",
+			allowedNets:   []*net.IPNet{allowedNet},
+			exclusiveMode: false,
+			wantError:     false,
+		},
+		{
+			name:          "private IP not in whitelist still blocked",
+			rawURL:        "http://172.16.0.1/scripts",
+			allowedNets:   []*net.IPNet{allowedNet},
+			exclusiveMode: false,
+			wantError:     true,
+		},
+		{
+			name:          "public IP allowed in exclusive mode when whitelisted",
+			rawURL:        "http://10.0.0.1/scripts",
+			allowedNets:   []*net.IPNet{allowedNet},
+			exclusiveMode: true,
+			wantError:     false,
+		},
+		{
+			name:          "public IP blocked in exclusive mode when not whitelisted",
+			rawURL:        "http://8.8.8.8/scripts",
+			allowedNets:   []*net.IPNet{otherNet},
+			exclusiveMode: true,
+			wantError:     true,
+		},
+		{
+			name:          "empty whitelist with exclusive mode blocks everything",
+			rawURL:        "http://8.8.8.8/scripts",
+			allowedNets:   []*net.IPNet{},
+			exclusiveMode: true,
+			wantError:     true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateScriptFolderURL(tc.rawURL, tc.allowedNets, tc.exclusiveMode)
+			if tc.wantError {
+				assert.Error(t, err, "expected error for URL %q", tc.rawURL)
+			} else {
+				assert.NoError(t, err, "unexpected error for URL %q", tc.rawURL)
+			}
+		})
+	}
+}
+
+// TestCheckIPAllowed verifies individual IP address classifications.
+func TestCheckIPAllowed(t *testing.T) {
+	cases := []struct {
+		name      string
+		ip        string
+		wantAllow bool
+	}{
+		{"public IPv4", "8.8.8.8", true},
+		{"public IPv4 (github)", "140.82.114.4", true},
+		{"loopback 127.0.0.1", "127.0.0.1", false},
+		{"loopback 127.0.0.2", "127.0.0.2", false},
+		{"loopback IPv6 ::1", "::1", false},
+		{"link-local 169.254.169.254", "169.254.169.254", false},
+		{"link-local 169.254.0.1", "169.254.0.1", false},
+		{"RFC1918 10.0.0.1", "10.0.0.1", false},
+		{"RFC1918 10.255.255.255", "10.255.255.255", false},
+		{"RFC1918 172.16.0.1", "172.16.0.1", false},
+		{"RFC1918 172.31.255.255", "172.31.255.255", false},
+		{"RFC1918 192.168.0.1", "192.168.0.1", false},
+		{"shared space 100.64.0.1", "100.64.0.1", false},
+		{"shared space 100.127.255.255", "100.127.255.255", false},
+		{"IPv6 unique local fc00::1", "fc00::1", false},
+		{"IPv6 unique local fd00::1", "fd00::1", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			require.NotNil(t, ip, "failed to parse IP %q", tc.ip)
+			err := CheckIPAllowed(ip, tc.ip, nil, false)
+			if tc.wantAllow {
+				assert.NoError(t, err, "expected IP %q to be allowed", tc.ip)
+			} else {
+				assert.Error(t, err, "expected IP %q to be blocked", tc.ip)
+			}
+		})
+	}
+}
+
+// TestCheckIPAllowedWithWhitelist verifies that allowedNets overrides the deny list
+// and that exclusiveMode rejects IPs outside the whitelist.
+func TestCheckIPAllowedWithWhitelist(t *testing.T) {
+	_, privateNet, _ := net.ParseCIDR("10.0.0.0/8")
+	_, publicNet, _ := net.ParseCIDR("8.8.8.0/24")
+
+	cases := []struct {
+		name          string
+		ip            string
+		allowedNets   []*net.IPNet
+		exclusiveMode bool
+		wantAllow     bool
+	}{
+		{
+			name:          "private IP allowed when in whitelist",
+			ip:            "10.0.0.1",
+			allowedNets:   []*net.IPNet{privateNet},
+			exclusiveMode: false,
+			wantAllow:     true,
+		},
+		{
+			name:          "private IP blocked when not in whitelist",
+			ip:            "172.16.0.1",
+			allowedNets:   []*net.IPNet{privateNet},
+			exclusiveMode: false,
+			wantAllow:     false,
+		},
+		{
+			name:          "public IP allowed in exclusive mode when whitelisted",
+			ip:            "8.8.8.8",
+			allowedNets:   []*net.IPNet{publicNet},
+			exclusiveMode: true,
+			wantAllow:     true,
+		},
+		{
+			name:          "public IP blocked in exclusive mode when not whitelisted",
+			ip:            "1.2.3.4",
+			allowedNets:   []*net.IPNet{publicNet},
+			exclusiveMode: true,
+			wantAllow:     false,
+		},
+		{
+			name:          "loopback allowed when explicitly whitelisted",
+			ip:            "127.0.0.1",
+			allowedNets:   []*net.IPNet{{IP: net.ParseIP("127.0.0.1"), Mask: net.CIDRMask(32, 32)}},
+			exclusiveMode: false,
+			wantAllow:     true,
+		},
+		{
+			name:          "nil whitelist with exclusive mode blocks all",
+			ip:            "8.8.8.8",
+			allowedNets:   nil,
+			exclusiveMode: true,
+			wantAllow:     false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip := net.ParseIP(tc.ip)
+			require.NotNil(t, ip, "failed to parse IP %q", tc.ip)
+			err := CheckIPAllowed(ip, tc.ip, tc.allowedNets, tc.exclusiveMode)
+			if tc.wantAllow {
+				assert.NoError(t, err, "expected IP %q to be allowed", tc.ip)
+			} else {
+				assert.Error(t, err, "expected IP %q to be blocked", tc.ip)
+			}
+		})
+	}
+}
+
+// TestParseIPRanges validates CIDR and plain-IP parsing.
+func TestParseIPRanges(t *testing.T) {
+	cases := []struct {
+		name      string
+		ranges    []string
+		wantError bool
+		wantCount int
+	}{
+		{"empty list", []string{}, false, 0},
+		{"single CIDR", []string{"10.0.0.0/8"}, false, 1},
+		{"multiple CIDRs", []string{"10.0.0.0/8", "192.168.0.0/16"}, false, 2},
+		{"plain IPv4 address", []string{"10.0.0.1"}, false, 1},
+		{"plain IPv6 address", []string{"::1"}, false, 1},
+		{"mixed CIDR and IP", []string{"10.0.0.0/8", "8.8.8.8"}, false, 2},
+		{"invalid CIDR", []string{"not-a-cidr"}, true, 0},
+		{"invalid IP", []string{"999.999.999.999"}, true, 0},
+		{"invalid CIDR notation", []string{"10.0.0.0/99"}, true, 0},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			nets, err := ParseIPRanges(tc.ranges)
+			if tc.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Len(t, nets, tc.wantCount)
+			}
+		})
+	}
+}
+
+// TestDownloadFileURLEscaping validates that the DownloadFile escaping logic
+// correctly percent-encodes sub-delimiters ($, &, +, =) and '%' in script names.
+func TestDownloadFileURLEscaping(t *testing.T) {
+	base := "http://example.com/scripts"
+
+	cases := []struct {
+		name           string
+		script         string
+		expectContains string
+		expectNotIn    string
+	}{
+		{"plain script", "deploy.sh", "/deploy.sh", ""},
+		{"dollar in name", "deploy$1.sh", "%241", "$1"},
+		{"ampersand in name", "deploy&1.sh", "%261", "&1"},
+		{"plus in name", "deploy+1.sh", "%2B1", "+1"},
+		{"equals in name", "deploy=1.sh", "%3D1", "=1"},
+		{"literal percent in name", "deploy%test.sh", "%25test", ""},
+		{"space in name", "deploy test.sh", "%20test", " test"},
+		{"pre-encoded dollar (%24)", "deploy%241.sh", "%241", "$1"},
+		{"pre-encoded ampersand (%26)", "deploy%261.sh", "%261", "&1"},
+		{"pre-encoded plus (%2B)", "deploy%2B1.sh", "%2B1", "+1"},
+		{"pre-encoded equals (%3D)", "deploy%3D1.sh", "%3D1", "=1"},
+		{"pre-encoded space (%20)", "deploy%20test.sh", "%20test", " test"},
+		{"pre-encoded percent (%25)", "deploy%25test.sh", "%25test", ""},
+		{"dollar and literal percent", "deploy$1%test.sh", "%241%25test", "$1"},
+		{"all sub-delims combined", "a$b&c+d=e.sh", "%24b%26c%2Bd%3De", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rawScript, err := url.PathUnescape(tc.script)
+			if err != nil {
+				rawScript = tc.script
+			}
+			escapedScript := url.PathEscape(rawScript)
+			escapedScript = coa_utils.EncodeSubDelimiters(escapedScript)
+			escapedFolder := coa_utils.EscapeURLPathSubDelims(base)
+			sPath, err := url.JoinPath(escapedFolder, escapedScript)
+			assert.NoError(t, err)
+
+			if tc.expectContains != "" {
+				assert.Contains(t, sPath, tc.expectContains)
+			}
+			if tc.expectNotIn != "" {
+				assert.NotContains(t, sPath, tc.expectNotIn)
+			}
+		})
+	}
+}
+
+// TestEscapeURLPathSubDelims validates the sub-delimiter encoding helper.
+func TestEscapeURLPathSubDelims(t *testing.T) {
+	cases := []struct {
+		name   string
+		input  string
+		expect string
+	}{
+		{"no sub-delims", "http://example.com/scripts", "http://example.com/scripts"},
+		{"literal dollar in path", "http://example.com/$scripts", "http://example.com/%24scripts"},
+		{"literal ampersand in path", "http://example.com/a&b", "http://example.com/a%26b"},
+		{"literal plus in path", "http://example.com/a+b", "http://example.com/a%2Bb"},
+		{"literal equals in path", "http://example.com/a=b", "http://example.com/a%3Db"},
+		{"pre-encoded dollar (%24)", "http://example.com/%24scripts", "http://example.com/%24scripts"},
+		{"dollar and percent-encoded space", "http://example.com/$scripts%20v2", "http://example.com/%24scripts%20v2"},
+		{"multiple dollars", "http://example.com/$a/$b", "http://example.com/%24a/%24b"},
+		{"dollar in query stays untouched", "http://example.com/scripts?v=$1", "http://example.com/scripts?v=$1"},
+		{"all sub-delims in path", "http://example.com/$a&b+c=d", "http://example.com/%24a%26b%2Bc%3Dd"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := coa_utils.EscapeURLPathSubDelims(tc.input)
+			assert.Equal(t, tc.expect, result)
+		})
+	}
+}

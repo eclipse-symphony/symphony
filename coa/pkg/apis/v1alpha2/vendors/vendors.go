@@ -35,10 +35,18 @@ type IVendor interface {
 	GetEndpoints() []v1alpha2.Endpoint
 	GetInfo() VendorInfo
 	SetEvaluationContext(context *utils.EvaluationContext)
+	SetSecurityPolicy(policy *contexts.SecurityPolicy)
 }
 
 type IEvaluationContextVendor interface {
 	GetEvaluationContext() *utils.EvaluationContext
+}
+
+// ISecurityPolicyVendor is implemented by the SecurityPolicyVendor. The host discovers
+// this vendor after initialization and propagates its policy to all other vendors via
+// SetSecurityPolicy, making it available to managers and providers through ManagerContext.
+type ISecurityPolicyVendor interface {
+	GetSecurityPolicy() *contexts.SecurityPolicy
 }
 
 type IVendorFactory interface {
@@ -61,6 +69,10 @@ type Vendor struct {
 
 func (v *Vendor) SetEvaluationContext(context *utils.EvaluationContext) {
 	v.Context.EvaluationContext = context
+}
+
+func (v *Vendor) SetSecurityPolicy(policy *contexts.SecurityPolicy) {
+	v.Context.SecurityPolicy = policy
 }
 
 func (v *Vendor) RunLoop(ctx context.Context, interval time.Duration) error {

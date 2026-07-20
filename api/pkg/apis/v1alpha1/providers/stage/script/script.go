@@ -10,9 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
-	"net/url"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +19,7 @@ import (
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/scriptutils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -52,8 +51,10 @@ type ScriptStageProviderConfig struct {
 }
 
 type ScriptStageProvider struct {
-	Config  ScriptStageProviderConfig
-	Context *contexts.ManagerContext
+	Config         ScriptStageProviderConfig
+	Context        *contexts.ManagerContext
+	scriptsReady   bool
+	scriptsReadyMu sync.Mutex
 }
 
 func ScriptProviderConfigFromMap(properties map[string]string) (ScriptStageProviderConfig, error) {
@@ -111,12 +112,6 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 	}
 	i.Config = updateConfig
 
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
-		err = downloadFile(i.Config.ScriptFolder, i.Config.Script, i.Config.StagingFolder)
-		if err != nil {
-			return err
-		}
-	}
 	once.Do(func() {
 		if providerOperationMetrics == nil {
 			providerOperationMetrics, err = metrics.New()
@@ -127,69 +122,46 @@ func (i *ScriptStageProvider) Init(config providers.IProviderConfig) error {
 	})
 	return err
 }
-func downloadFile(scriptFolder string, script string, stagingFolder string) error {
-	sLog.Debugf("  downloadFile: scriptFolder=%q, script=%q, stagingFolder=%q", scriptFolder, script, stagingFolder)
 
-	// 1. Normalize: unescape first to get a clean raw string.
-	//    If the input is already unescaped (e.g. "deploy$1.sh"), PathUnescape is a no-op.
-	//    If it was pre-encoded (e.g. "deploy%241.sh"), this yields "deploy$1.sh".
-	rawScript, err := url.PathUnescape(script)
-	if err != nil {
-		// Fallback: if unescaping fails (e.g. bare "%" like "deploy%test.sh"),
-		// use the original string as-is.
-		rawScript = script
+// ensureScriptReady validates the scriptFolder URL against the server-side SecurityPolicy
+// (from the SecurityPolicyVendor via ManagerContext) and downloads the script on first call.
+func (i *ScriptStageProvider) ensureScriptReady(ctx context.Context) error {
+	i.scriptsReadyMu.Lock()
+	defer i.scriptsReadyMu.Unlock()
+	if i.scriptsReady {
+		return nil
 	}
 
-	// 2. Escape the script name for the URL path.
-	//    url.PathEscape handles spaces (%20), percent (%25), etc. but does NOT
-	//    escape RFC 3986 sub-delimiters ($, &, +, =). We must encode them manually
-	//    to ensure the download URL is unambiguous for all HTTP servers.
-	escapedScript := url.PathEscape(rawScript)
-	escapedScript = utils2.EncodeSubDelimiters(escapedScript)
-
-	// 3. Normalize and encode sub-delimiters in the scriptFolder URL path.
-	escapedFolder := utils2.EscapeURLPathSubDelims(scriptFolder)
-
-	sPath, err := url.JoinPath(escapedFolder, escapedScript)
-	if err != nil {
-		return err
+	// If scriptFolder is a local directory, the scripts are already on disk — no download needed.
+	if !scriptutils.IsRemoteURL(i.Config.ScriptFolder) {
+		i.scriptsReady = true
+		return nil
 	}
-	sLog.Debugf("  downloadFile: resolved URL=%q, localPath=%q", sPath, filepath.Join(stagingFolder, rawScript))
 
-	// 4. Use the raw, clean string for the local file system path.
-	//    '$' and '%' are valid filesystem characters; no escaping needed.
-	tPath := filepath.Join(stagingFolder, rawScript)
-
-	resp, err := http.Get(sPath)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
+	var allowedNets []*net.IPNet
+	exclusiveMode := false
+	if policy := i.Context.GetSecurityPolicy(); policy != nil {
+		var err error
+		allowedNets, err = scriptutils.ParseIPRanges(policy.AllowedIPRanges)
 		if err != nil {
-			return err
+			return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in security policy", v1alpha2.BadConfig)
 		}
-		return v1alpha2.NewCOAError(
-			nil,
-			"Response body content: "+string(body),
-			v1alpha2.State(resp.StatusCode),
-		)
+		exclusiveMode = policy.AllowListExclusive
 	}
 
-	out, err := os.Create(tPath)
-	if err != nil {
+	if err := scriptutils.ValidateScriptFolderURL(i.Config.ScriptFolder, allowedNets, exclusiveMode); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): scriptFolder URL validation failed: %+v", err)
 		return err
 	}
-	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
+	if err := scriptutils.DownloadFile(i.Config.ScriptFolder, i.Config.Script, i.Config.StagingFolder); err != nil {
+		sLog.ErrorfCtx(ctx, "  P (Script Stage): failed to download script %s, error: %+v", i.Config.Script, err)
 		return err
 	}
-	return os.Chmod(tPath, 0755)
+
+	i.scriptsReady = true
+	return nil
 }
-
 func toScriptStageProviderConfig(config providers.IProviderConfig) (ScriptStageProviderConfig, error) {
 	ret := ScriptStageProviderConfig{}
 	data, err := json.Marshal(config)
@@ -209,6 +181,10 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 	defer observ_utils.EmitUserDiagnosticsLogs(ctx, &err)
 
 	sLog.InfoCtx(ctx, "  P (Script Stage): start process request")
+
+	if err = i.ensureScriptReady(ctx); err != nil {
+		return nil, false, err
+	}
 
 	processTime := time.Now().UTC()
 	functionName := observ_utils.GetFunctionName()
@@ -233,7 +209,7 @@ func (i *ScriptStageProvider) Process(ctx context.Context, mgrContext contexts.M
 
 	scriptAbs, _ := filepath.Abs(filepath.Join(i.Config.ScriptFolder, i.Config.Script))
 	observ_utils.EmitUserAuditsLogs(ctx, "  P (Script Stage): Start to run script %s", i.Config.Script)
-	if strings.HasPrefix(i.Config.ScriptFolder, "http") {
+	if scriptutils.IsRemoteURL(i.Config.ScriptFolder) {
 		scriptAbs, _ = filepath.Abs(filepath.Join(i.Config.StagingFolder, i.Config.Script))
 	}
 
