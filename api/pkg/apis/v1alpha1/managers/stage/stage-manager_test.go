@@ -2051,6 +2051,9 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 		Stages: map[string]model.StageSpec{
 			"test": {
 				Provider: "providers.stage.mock",
+				Inputs: map[string]interface{}{
+					"jersey24": "${{$input(jersey24)}}",
+				},
 			},
 		},
 	}
@@ -2062,9 +2065,6 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Inputs: map[string]interface{}{
-			"jersey24": "${{$input(jersey24)}}",
-		},
 		Provider:  "providers.stage.mock",
 		Namespace: "fakens",
 	})
@@ -2074,6 +2074,9 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 	assert.False(t, status.IsActive)
 
 	// The manager survives and keeps processing later activations.
+	campaignversion.Stages["test"] = model.StageSpec{
+		Provider: "providers.stage.mock",
+	}
 	var status2 model.StageStatus
 	activation2 := &v1alpha2.ActivationData{
 		CampaignVersion:             "test-campaignversion",
