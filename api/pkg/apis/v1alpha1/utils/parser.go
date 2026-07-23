@@ -605,7 +605,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			property, err := readProperty(context.Properties, FormatAsString(key), context)
+			propRef := FormatAsString(key)
+			if utils.HasCircularDependency("property", propRef, context) {
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", "property", propRef), v1alpha2.BadConfig)
+			}
+			dependencies := utils.DeepCopyDependencyList(context.ParentConfigs)
+			context.ParentConfigs = utils.UpdateDependencyList("property", propRef, dependencies)
+			property, err := readProperty(context.Properties, propRef, context)
 			if err != nil {
 				return nil, err
 			}
@@ -621,7 +627,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if err != nil {
 				return nil, err
 			}
-			property, err := readPropertyInterface(context.Inputs, FormatAsString(key), context)
+			inputRef := FormatAsString(key)
+			if utils.HasCircularDependency("input", inputRef, context) {
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", "input", inputRef), v1alpha2.BadConfig)
+			}
+			dependencies := utils.DeepCopyDependencyList(context.ParentConfigs)
+			context.ParentConfigs = utils.UpdateDependencyList("input", inputRef, dependencies)
+			property, err := readPropertyInterface(context.Inputs, inputRef, context)
 			if err != nil {
 				return nil, err
 			}
@@ -645,7 +657,14 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if _, ok := context.Outputs[FormatAsString(step)]; !ok {
 				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("step %s is not found in output collection", FormatAsString(step)), v1alpha2.BadConfig)
 			}
-			property, err := readPropertyInterface(context.Outputs[FormatAsString(step)], FormatAsString(key), context)
+			outputRef := FormatAsString(key)
+			outputObject := fmt.Sprintf("output:%s", FormatAsString(step))
+			if utils.HasCircularDependency(outputObject, outputRef, context) {
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", outputObject, outputRef), v1alpha2.BadConfig)
+			}
+			dependencies := utils.DeepCopyDependencyList(context.ParentConfigs)
+			context.ParentConfigs = utils.UpdateDependencyList(outputObject, outputRef, dependencies)
+			property, err := readPropertyInterface(context.Outputs[FormatAsString(step)], outputRef, context)
 			if err != nil {
 				return nil, err
 			}
@@ -665,7 +684,13 @@ func (n *FunctionNode) Eval(context utils.EvaluationContext) (interface{}, error
 			if context.Triggers == nil {
 				return defaultVal, nil
 			}
-			property, err := readPropertyInterface(context.Triggers, FormatAsString(key), context)
+			triggerRef := FormatAsString(key)
+			if utils.HasCircularDependency("trigger", triggerRef, context) {
+				return nil, v1alpha2.NewCOAError(nil, fmt.Sprintf("Detect circular dependency, object: %s, field: %s", "trigger", triggerRef), v1alpha2.BadConfig)
+			}
+			dependencies := utils.DeepCopyDependencyList(context.ParentConfigs)
+			context.ParentConfigs = utils.UpdateDependencyList("trigger", triggerRef, dependencies)
+			property, err := readPropertyInterface(context.Triggers, triggerRef, context)
 			if err != nil {
 				return defaultVal, nil
 			}
