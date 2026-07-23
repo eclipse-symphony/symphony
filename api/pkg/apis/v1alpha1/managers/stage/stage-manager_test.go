@@ -2027,3 +2027,73 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 	}))
 	return ts
 }
+func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	campaignversion := model.CampaignVersionSpec{
+		SelfDriving: true,
+		FirstStage:  "test",
+		Stages: map[string]model.StageSpec{
+			"test": {
+				Provider: "providers.stage.mock",
+				Inputs: map[string]interface{}{
+					"jersey24": "${{$input(jersey24)}}",
+				},
+			},
+		},
+	}
+
+	// A self-referencing input must fail the stage with an error
+	// instead of recursing until the process runs out of stack.
+	status, _ := manager.HandleTriggerEvent(context.Background(), campaignversion, v1alpha2.ActivationData{
+		CampaignVersion:             "test-campaignversion",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Provider:  "providers.stage.mock",
+		Namespace: "fakens",
+	})
+	assert.Equal(t, v1alpha2.InternalError, status.Status)
+	assert.True(t, v1alpha2.InternalError.EqualsWithString(status.StatusMessage))
+	assert.Contains(t, status.ErrorMessage, "circular dependency")
+	assert.False(t, status.IsActive)
+
+	// The manager survives and keeps processing later activations.
+	campaignversion.Stages["test"] = model.StageSpec{
+		Provider: "providers.stage.mock",
+	}
+	var status2 model.StageStatus
+	activation2 := &v1alpha2.ActivationData{
+		CampaignVersion:             "test-campaignversion",
+		Activation:           "test-activation-2",
+		Stage:                "test",
+		ActivationGeneration: "2",
+		Inputs: map[string]interface{}{
+			"sprite": "qiaolezi",
+		},
+		Provider:  "providers.stage.mock",
+		Namespace: "fakens",
+	}
+	for {
+		status2, activation2 = manager.HandleTriggerEvent(context.Background(), campaignversion, *activation2)
+		if activation2 == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.Done, status2.Status)
+}
