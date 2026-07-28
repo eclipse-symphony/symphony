@@ -55,12 +55,13 @@ func TestAPIs(t *testing.T) {
 // a manager and full operator pattern should be tested in the integration tests
 var _ = Describe("Legacy testing with envtest", Ordered, func() {
 	var (
-		cancel    context.CancelFunc
-		cfg       *rest.Config
-		k8sClient client.Client
-		testEnv   *envtest.Environment
-		ctx       context.Context
-		apiClient *MockApiClient
+		cancel      context.CancelFunc
+		cfg         *rest.Config
+		k8sClient   client.Client
+		testEnv     *envtest.Environment
+		ctx         context.Context
+		apiClient   *MockApiClient
+		managerDone chan struct{}
 	)
 
 	BeforeAll(func() {
@@ -119,7 +120,11 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 			}}).SetupWithManager(k8sManager)
 		Expect(err).ToNot(HaveOccurred())
 
+		managerDone = make(chan struct{})
 		go func() {
+			// Register close before GinkgoRecover so the channel is closed
+			// even if the Expect below panics (defers run LIFO).
+			defer close(managerDone)
 			defer GinkgoRecover()
 			err = k8sManager.Start(ctx)
 			Expect(err).ToNot(HaveOccurred(), "failed to run manager")
@@ -129,6 +134,8 @@ var _ = Describe("Legacy testing with envtest", Ordered, func() {
 
 	AfterAll(func() {
 		cancel()
+		By("waiting for the manager to shut down")
+		Eventually(managerDone, 30*time.Second, 250*time.Millisecond).Should(BeClosed())
 		By("tearing down the test environment")
 		err := testEnv.Stop()
 		Expect(err).NotTo(HaveOccurred())
