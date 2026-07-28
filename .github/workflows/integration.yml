@@ -122,7 +122,17 @@ jobs:
     - name: Build docker images
       run: |
         cd test/localenv/
-        mage build:all
+        for attempt in 1 2 3; do
+          if mage build:all; then
+            break
+          fi
+          if [ "$attempt" -eq 3 ]; then
+            echo "mage build:all failed after 3 attempts"
+            exit 1
+          fi
+          echo "mage build:all failed (attempt $attempt/3), retrying in 30s..."
+          sleep 30
+        done
         mage cluster:up
     
     - name: Go work init
