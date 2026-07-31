@@ -160,7 +160,10 @@ func Scenario_Update(t *testing.T, namespace string) {
 				continue
 			}
 
-			for i := 0; i < 10; i++ {
+			// The injected panic faults restart the api/controller-manager pod,
+			// which also takes the admission webhooks offline for up to a
+			// minute; keep retrying until the webhook endpoint is back.
+			for i := 0; i < 24; i++ {
 				err = shellcmd.Command(fmt.Sprintf("kubectl apply -f %s -n %s", fullPath, namespace)).Run()
 				if err == nil {
 					break
