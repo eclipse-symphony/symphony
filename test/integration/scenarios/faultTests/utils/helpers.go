@@ -9,88 +9,160 @@ package utils
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/transport/spdy"
 
 	"github.com/eclipse-symphony/symphony/test/integration/lib/testhelpers"
-	"github.com/princjef/mageutil/shellcmd"
 )
 
-func WaitFailpointServer(podlabel string) error {
+// failpointBaseURL dials a fresh port-forward to the current running pod for
+// the label and returns the base URL of its failpoint server plus a cleanup
+// func. The port-forward created at scenario start does not survive the pod
+// restarting after a panic fault, so every probe/injection dials a new one
+// against the live pod.
+func failpointBaseURL(podLabel string) (string, func(), error) {
+	config, err := testhelpers.RestConfig()
+	if err != nil {
+		return "", nil, err
+	}
 	clientset, err := testhelpers.KubeClient()
 	if err != nil {
-		return err
+		return "", nil, err
 	}
-	err = testhelpers.WaitPodOnline(podlabel)
+	podList, err := clientset.CoreV1().Pods("default").List(context.Background(), metav1.ListOptions{
+		LabelSelector: podLabel,
+	})
 	if err != nil {
+		return "", nil, err
+	}
+	podName := ""
+	for _, pod := range podList.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			podName = pod.Name
+			break
+		}
+	}
+	if podName == "" {
+		return "", nil, fmt.Errorf("no running pod for label %s", podLabel)
+	}
+
+	url := clientset.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Namespace("default").
+		Name(podName).
+		SubResource("portforward").
+		URL()
+	transport, upgrader, err := spdy.RoundTripperFor(config)
+	if err != nil {
+		return "", nil, err
+	}
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", url)
+	stopChan := make(chan struct{})
+	readyChan := make(chan struct{})
+	// Local port 0: let the OS pick a free port
+	forwarder, err := portforward.New(dialer, []string{"0:" + LocalPortForward}, stopChan, readyChan, io.Discard, io.Discard)
+	if err != nil {
+		return "", nil, err
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- forwarder.ForwardPorts()
+	}()
+	select {
+	case <-readyChan:
+	case err := <-errCh:
+		return "", nil, err
+	case <-time.After(15 * time.Second):
+		close(stopChan)
+		return "", nil, fmt.Errorf("timeout waiting for port-forwarding to be ready")
+	}
+	ports, err := forwarder.GetPorts()
+	if err != nil {
+		close(stopChan)
+		return "", nil, err
+	}
+	return fmt.Sprintf("http://127.0.0.1:%d", ports[0].Local), func() { close(stopChan) }, nil
+}
+
+// requestFailpoint issues a request to the pod's failpoint server, retrying
+// with a fresh port-forward each time while the pod recovers from a previous
+// fault (e.g. a panic restart).
+func requestFailpoint(podLabel string, method string, path string, body string) error {
+	var lastErr error
+	for i := 0; i < 18; i++ {
+		base, cleanup, err := failpointBaseURL(podLabel)
+		if err == nil {
+			var resp *http.Response
+			req, err := http.NewRequest(method, strings.TrimSuffix(base, "/")+"/"+path, strings.NewReader(body))
+			if err == nil {
+				client := &http.Client{Timeout: 10 * time.Second}
+				resp, err = client.Do(req)
+			}
+			if err == nil {
+				_, _ = io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+				if resp.StatusCode < 300 {
+					cleanup()
+					return nil
+				}
+				err = fmt.Errorf("failpoint server returned %s", resp.Status)
+			}
+			cleanup()
+		}
+		lastErr = err
+		fmt.Println("failed to connect to failpoint server, waiting...")
+		time.Sleep(10 * time.Second)
+	}
+	return fmt.Errorf("timeout waiting for failpoint server of %s: %v", podLabel, lastErr)
+}
+
+// WaitFailpointServer waits until the pod's failpoint server answers. GET /
+// lists the registered failpoints, which doubles as a readiness check.
+func WaitFailpointServer(podlabel string) error {
+	if err := testhelpers.WaitPodOnline(podlabel); err != nil {
 		return err
 	}
-	pods := clientset.CoreV1().Pods("default")
-	for i := 0; i < 10; i++ {
-		podList, err := pods.List(context.Background(), metav1.ListOptions{
-			LabelSelector: podlabel,
-		})
-		if err != nil {
-			return err
-		}
-		if len(podList.Items) > 0 {
-			pod := podList.Items[0]
-			if pod.Status.Phase == corev1.PodRunning {
-				// Probe from the host: a port-forward to the failpoint server
-				// is already set up for this pod label, so localhost:22381
-				// reaches the pod regardless of whether the image ships curl.
-				err = testhelpers.ShellExec("curl -sf -o /dev/null localhost:22381")
-				if err == nil {
-					return nil
-				} else {
-					fmt.Println("failed to connect to failpoint server, waiting...")
-				}
-			} else {
-				fmt.Println("pod not ready yet, waiting..." + pod.Status.Phase)
-			}
-		}
-		time.Sleep(time.Second * 10)
-	}
-	return fmt.Errorf("timeout waiting for pod to be ready")
+	return requestFailpoint(podlabel, http.MethodGet, "", "")
 }
 
 func InjectPodFailure() error {
-	InjectCommand := os.Getenv(InjectFaultEnvKey)
 	PodLabel := os.Getenv(PodEnvKey)
-	if InjectCommand == "" || PodLabel == "" {
-		fmt.Println("InjectCommand is ", InjectCommand, "and InjectPodLabel is ", PodLabel, ", skip error injection")
+	Fault := os.Getenv(FaultNameEnvKey)
+	FaultType := os.Getenv(FaultTypeEnvKey)
+	if Fault == "" || PodLabel == "" {
+		fmt.Println("Fault is ", Fault, "and InjectPodLabel is ", PodLabel, ", skip error injection")
 		return nil
 	}
 
-	if err := WaitFailpointServer(PodLabel); err != nil {
+	if err := requestFailpoint(PodLabel, http.MethodPut, Fault, FaultType); err != nil {
+		fmt.Println("Failed to inject pod failure: " + err.Error())
 		return err
 	}
-	err := shellcmd.Command(InjectCommand).Run()
-	if err != nil {
-		fmt.Println("Failed to inject pod failure: " + err.Error())
-	}
 	fmt.Println("Injected fault")
-	return err
+	return nil
 }
 
 func DeletePodFailure() error {
 	DeleteCommand := os.Getenv(DeleteFaultEnvKey)
 	PodLabel := os.Getenv(PodEnvKey)
-	if DeleteCommand == "" || PodLabel == "" {
-		fmt.Println("DeleteCommand is ", DeleteCommand, "and PodLabel is ", PodLabel, ", skip error injection")
+	Fault := os.Getenv(FaultNameEnvKey)
+	if DeleteCommand == "" || Fault == "" || PodLabel == "" {
+		fmt.Println("DeleteCommand is ", DeleteCommand, "and InjectPodLabel is ", PodLabel, ", skip error injection")
 		return nil
 	}
 
-	if err := WaitFailpointServer(PodLabel); err != nil {
+	if err := requestFailpoint(PodLabel, http.MethodDelete, Fault, ""); err != nil {
+		fmt.Println("Failed to delete pod failure: " + err.Error())
 		return err
 	}
-	err := shellcmd.Command(DeleteCommand).Run()
-	if err != nil {
-		fmt.Println("Failed to delete pod failure: " + err.Error())
-	}
 	fmt.Println("Deleted fault")
-	return err
+	return nil
 }

@@ -9,9 +9,10 @@ package utils
 const (
 	TEST_TIMEOUT      = "30m"
 	LocalPortForward  = "22381"
-	InjectFaultEnvKey = "InjectFaultCommand"
 	DeleteFaultEnvKey = "DeleteFaultCommand"
 	PodEnvKey         = "InjectPodLabel"
+	FaultNameEnvKey   = "InjectFaultName"
+	FaultTypeEnvKey   = "InjectFaultType"
 )
 
 type FaultTestCase struct {
