@@ -39,7 +39,10 @@ func WaitFailpointServer(podlabel string) error {
 		if len(podList.Items) > 0 {
 			pod := podList.Items[0]
 			if pod.Status.Phase == corev1.PodRunning {
-				err = testhelpers.ShellExec(fmt.Sprintf("kubectl exec %s -- curl localhost:22381", pod.Name))
+				// Probe from the host: a port-forward to the failpoint server
+				// is already set up for this pod label, so localhost:22381
+				// reaches the pod regardless of whether the image ships curl.
+				err = testhelpers.ShellExec("curl -sf -o /dev/null localhost:22381")
 				if err == nil {
 					return nil
 				} else {
@@ -62,7 +65,9 @@ func InjectPodFailure() error {
 		return nil
 	}
 
-	WaitFailpointServer(PodLabel)
+	if err := WaitFailpointServer(PodLabel); err != nil {
+		return err
+	}
 	err := shellcmd.Command(InjectCommand).Run()
 	if err != nil {
 		fmt.Println("Failed to inject pod failure: " + err.Error())
@@ -79,7 +84,9 @@ func DeletePodFailure() error {
 		return nil
 	}
 
-	WaitFailpointServer(PodLabel)
+	if err := WaitFailpointServer(PodLabel); err != nil {
+		return err
+	}
 	err := shellcmd.Command(DeleteCommand).Run()
 	if err != nil {
 		fmt.Println("Failed to delete pod failure: " + err.Error())

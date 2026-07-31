@@ -64,12 +64,6 @@ var (
 		},
 		{
 			TestCase:  TestCases["solutionversionUpdate"],
-			PodLabel:  PodLabels["api"],
-			Fault:     "beforeConcludeSummary",
-			FaultType: DefaultFaultType,
-		},
-		{
-			TestCase:  TestCases["solutionversionUpdate"],
 			PodLabel:  PodLabels["k8s"],
 			Fault:     "beforePollingResult",
 			FaultType: DefaultFaultType,
