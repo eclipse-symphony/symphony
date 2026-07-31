@@ -256,6 +256,8 @@ func (s *SolutionVersionManager) Reconcile(ctx context.Context, deployment model
 	defer func() {
 		if r := recover(); r == nil {
 			log.DebugfCtx(ctx, " M (SolutionVersion): Reconcile conclude Summary. Namespace: %v, deployment instance: %v, summary message: %v", namespace, deployment.Instance, summary.SummaryMessage)
+			// DO NOT REMOVE THIS COMMENT
+			// gofail: var beforeConcludeSummary string
 			s.concludeSummary(ctx, deployment.Instance.ObjectMeta.Name, summaryId, deployment.Generation, deployment.Hash, summary, namespace)
 		} else {
 			log.ErrorfCtx(ctx, " M (SolutionVersion): panic happens: %v", debug.Stack())

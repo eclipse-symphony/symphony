@@ -159,6 +159,10 @@ func (Cluster) Deploy() error {
 	fmt.Printf("Deploying symphony to minikube\n")
 	mg.Deps(ensureMinikubeUp)
 
+	if err := waitForReleaseCleanup(); err != nil {
+		return err
+	}
+
 	if enableTlsOtelSetup() {
 		err := ensureSecureOtelCollectorPrereqs()
 		if err != nil {
@@ -181,6 +185,10 @@ func (Cluster) Deploy() error {
 func (Cluster) DeployWithSettings(values string) error {
 	fmt.Printf("Deploying symphony to minikube with settings, %s\n", values)
 	mg.Deps(ensureMinikubeUp)
+
+	if err := waitForReleaseCleanup(); err != nil {
+		return err
+	}
 
 	if enableTlsOtelSetup() {
 		err := ensureSecureOtelCollectorPrereqs()
@@ -402,7 +410,28 @@ func Destroy(flags string) error {
 		}
 	}
 
-	return nil
+	return waitForReleaseCleanup()
+}
+
+// waitForReleaseCleanup waits until no helm release record (in any status)
+// remains for the chart. A leftover release in "uninstalling" or "failed"
+// state makes the next `helm upgrade --install` fail with
+// "UPGRADE FAILED: <name> has no deployed releases".
+func waitForReleaseCleanup() error {
+	for i := 0; i < 18; i++ {
+		out, err := shellcmd.Command(fmt.Sprintf("helm list -a -n %s -f '^%s$' -o json", getChartNamespace(), getReleaseName())).Output()
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(string(out)) == "[]" {
+			return nil
+		}
+		// Nudge a stuck release towards deletion; ignore errors since it may
+		// already be uninstalling
+		_ = shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", getReleaseName(), getChartNamespace())).Run()
+		time.Sleep(10 * time.Second)
+	}
+	return fmt.Errorf("timed out waiting for helm release %s to be removed", getReleaseName())
 }
 
 // Build builds all containers
