@@ -108,19 +108,20 @@ func getHostFromOCIRef(ref string) (string, error) {
 // exchangeToken exchanges an Azure AD token for an ACR refresh token.
 // This is used by the Helm registry client to authenticate to ACR.
 func exchangeToken(host, token string) (string, error) {
-	form := tokenExchangeRequest{
+	req := tokenExchangeRequest{
 		GrantType:   "access_token",
 		Service:     host,
 		AccessToken: token,
-	}.ToFormValues()
+	}
+	form := req.ToFormValues()
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(exchangeURLFormat, host), strings.NewReader(form.Encode()))
+	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf(exchangeURLFormat, host), strings.NewReader(form.Encode()))
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	body, err := apiutils.DoHTTPRequest(nil, req, 3, "exchange ACR token")
+	body, err := apiutils.DoHTTPRequest(nil, httpReq, 3, "exchange ACR token")
 	if err != nil {
 		return "", err
 	}
