@@ -18,6 +18,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/flaky"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -2096,4 +2097,114 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 		}
 	}
 	assert.Equal(t, v1alpha2.Done, status2.Status)
+}
+
+func TestStageRetryEventuallySucceeds(t *testing.T) {
+	flaky.ResetCallCount("retry-success")
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.StageStatus
+	activation := &v1alpha2.ActivationData{
+		CampaignVersion:             "test-campaignversion",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Outputs:              nil,
+		Provider:             "providers.stage.flaky",
+		Config: flaky.FlakyStageProviderConfig{
+			ID:        "retry-success",
+			FailTimes: 2,
+		},
+		Namespace: "fakens",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignVersionSpec{
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider: "providers.stage.flaky",
+					Retry: &model.RetrySpec{
+						MaxRetries: 2,
+						Interval:   "1ms",
+					},
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.Done, status.Status)
+	assert.True(t, v1alpha2.Done.EqualsWithString(status.StatusMessage))
+	// 2 failures + 1 success
+	assert.Equal(t, 3, flaky.GetCallCount("retry-success"))
+}
+
+func TestStageWithoutRetryFailsImmediately(t *testing.T) {
+	flaky.ResetCallCount("retry-none")
+	stateProvider := &memorystate.MemoryStateProvider{}
+	stateProvider.Init(memorystate.MemoryStateProviderConfig{})
+	manager := StageManager{
+		StateProvider: stateProvider,
+	}
+	manager.VendorContext = &contexts.VendorContext{
+		EvaluationContext: &coa_utils.EvaluationContext{},
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	manager.Context = &contexts.ManagerContext{
+		VencorContext: manager.VendorContext,
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	}
+	var status model.StageStatus
+	activation := &v1alpha2.ActivationData{
+		CampaignVersion:             "test-campaignversion",
+		Activation:           "test-activation",
+		Stage:                "test",
+		ActivationGeneration: "1",
+		Outputs:              nil,
+		Provider:             "providers.stage.flaky",
+		Config: flaky.FlakyStageProviderConfig{
+			ID:        "retry-none",
+			FailTimes: 5,
+		},
+		Namespace: "fakens",
+	}
+	for {
+		status, activation = manager.HandleTriggerEvent(context.Background(), model.CampaignVersionSpec{
+			SelfDriving: true,
+			FirstStage:  "test",
+			Stages: map[string]model.StageSpec{
+				"test": {
+					Provider: "providers.stage.flaky",
+				},
+			},
+		}, *activation)
+
+		if activation == nil {
+			break
+		}
+	}
+	assert.Equal(t, v1alpha2.InternalError, status.Status)
+	assert.Equal(t, 1, flaky.GetCallCount("retry-none"))
 }

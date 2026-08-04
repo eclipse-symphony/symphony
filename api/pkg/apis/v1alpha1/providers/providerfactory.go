@@ -16,6 +16,7 @@ import (
 	counterstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/counter"
 	symphonystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/create"
 	delaystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/delay"
+	flakystage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/flaky"
 	httpstage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/http"
 	liststage "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/list"
 	materialize "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage/materialize"
@@ -171,6 +172,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.stage.counter":
 		mProvider := &counterstage.CounterStageProvider{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.stage.flaky":
+		mProvider := &flakystage.FlakyStageProvider{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil

@@ -73,6 +73,15 @@ type TaskSpec struct {
 	Target   string                 `json:"target,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
+type RetrySpec struct {
+	// MaxRetries is the number of additional attempts after the first failure
+	MaxRetries int `json:"maxRetries,omitempty"`
+	// Interval is the delay between retries in duration format (e.g. "10s", "1m");
+	// empty means exponential backoff
+	Interval string `json:"interval,omitempty"`
+}
+
 type StageSpec struct {
 	Name          string                 `json:"name,omitempty"`
 	Contexts      string                 `json:"contexts,omitempty"`
@@ -82,6 +91,7 @@ type StageSpec struct {
 	Inputs        map[string]interface{} `json:"inputs,omitempty"`
 	HandleErrors  bool                   `json:"handleErrors,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
+	Retry         *RetrySpec             `json:"retry,omitempty"`
 	Proxy         *v1alpha2.ProxySpec    `json:"proxy,omitempty"`
 	Target        string                 `json:"target,omitempty"`
 	Tasks         []TaskSpec             `json:"tasks,omitempty"`

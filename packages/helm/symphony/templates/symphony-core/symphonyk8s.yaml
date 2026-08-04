@@ -231,6 +231,13 @@ spec:
                         provider:
                           type: string
                       type: object
+                    retry:
+                      properties:
+                        interval:
+                          type: string
+                        maxRetries:
+                          type: integer
+                      type: object
                     schedule:
                       type: string
                     stageSelector:

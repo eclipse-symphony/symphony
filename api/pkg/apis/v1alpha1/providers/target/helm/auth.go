@@ -11,6 +11,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	apiutils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"helm.sh/helm/v3/pkg/registry"
 	"oras.land/oras-go/v2/registry/remote/errcode"
 )
@@ -107,20 +108,25 @@ func getHostFromOCIRef(ref string) (string, error) {
 // exchangeToken exchanges an Azure AD token for an ACR refresh token.
 // This is used by the Helm registry client to authenticate to ACR.
 func exchangeToken(host, token string) (string, error) {
-	req := tokenExchangeRequest{
+	form := tokenExchangeRequest{
 		GrantType:   "access_token",
 		Service:     host,
 		AccessToken: token,
+	}.ToFormValues()
+
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(exchangeURLFormat, host), strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
 	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	res := tokenExchangeResponse{}
-
-	jsonResponse, err := http.PostForm(fmt.Sprintf(exchangeURLFormat, host), req.ToFormValues())
+	body, err := apiutils.DoHTTPRequest(nil, req, 3, "exchange ACR token")
 	if err != nil {
 		return "", err
 	}
 
-	if err := json.NewDecoder(jsonResponse.Body).Decode(&res); err != nil {
+	res := tokenExchangeResponse{}
+	if err := json.Unmarshal(body, &res); err != nil {
 		return "", err
 	}
 
