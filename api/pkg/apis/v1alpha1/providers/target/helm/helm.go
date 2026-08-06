@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"reflect"
@@ -23,6 +22,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
+	apiutils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils/metahelper"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -392,22 +392,19 @@ func isDownloadableUri(uri string) bool {
 	return strings.HasSuffix(uri, ".tgz") || strings.HasSuffix(uri, ".tar.gz")
 }
 
-// downloadFile will download a url to a local file. It's efficient because it will
+// downloadFile will download a url to a local file, with status-code checking
+// and retry on transient failures.
 func downloadFile(url string, fileName string) error {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	fileHandle, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	body, err := apiutils.DoHTTPRequest(nil, req, 3, "download helm chart")
 	if err != nil {
 		return err
 	}
-	defer fileHandle.Close()
 
-	_, err = io.Copy(fileHandle, resp.Body)
-	return err
+	return os.WriteFile(fileName, body, 0644)
 }
 
 // Apply deploys the helm chart for a given deployment

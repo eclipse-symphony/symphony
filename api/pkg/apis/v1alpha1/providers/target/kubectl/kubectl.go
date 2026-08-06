@@ -23,6 +23,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
+	apiutils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils/metahelper"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -918,14 +919,12 @@ func readYaml(yaml string) (<-chan []byte, <-chan error) {
 		chanBytes = make(chan []byte)
 	)
 	go func() {
-		response, err := http.Get(yaml)
+		req, err := http.NewRequest(http.MethodGet, yaml, nil)
 		if err != nil {
 			chanErr <- err
 			return
 		}
-		defer response.Body.Close()
-
-		data, err := io.ReadAll(response.Body)
+		data, err := apiutils.DoHTTPRequest(nil, req, 3, "download yaml")
 		if err != nil {
 			chanErr <- err
 			return

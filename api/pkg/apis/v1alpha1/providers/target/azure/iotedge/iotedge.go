@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
@@ -563,17 +562,7 @@ func (i *IoTEdgeTargetProvider) getIoTEdgeModuleTwin(ctx context.Context, id str
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", sasToken)
-	resp, err := client.Do(req)
-	if err != nil {
-		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", err)
-		return module, v1alpha2.NewCOAError(err, "failed to get IoT Edge modules", v1alpha2.InternalError)
-	}
-	if resp.StatusCode != http.StatusOK {
-		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", resp)
-		//return module, v1alpha1.NewCOAError(nil, "failed to get IoT Edge modules", v1alpha1.InternalError) //TODO: carry over HTTP status code
-	}
-	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := utils.DoHTTPRequest(client, req, 3, "get IoT Edge modules")
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (IoT Edge Target): failed to get IoT Edge modules: %v", err)
 		return module, v1alpha2.NewCOAError(err, "failed to get IoT Edge modules", v1alpha2.InternalError)

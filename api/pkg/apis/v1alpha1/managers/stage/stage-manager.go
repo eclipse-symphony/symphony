@@ -14,7 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	symproviders "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/stage"
@@ -346,6 +348,50 @@ func (p *GoRoutineTaskProcessor) Process(ctx context.Context, tasks []model.Task
 	}
 
 	return taskProcessor.TaskResults, nil
+}
+
+// processWithRetry executes fn and retries on error according to the stage's
+// retry spec. A nil spec or MaxRetries <= 0 means fn is called exactly once.
+// Interval (duration format, e.g. "10s") uses a fixed delay between attempts;
+// empty Interval falls back to exponential backoff. Panics from fn are not
+// handled; only returned errors trigger a retry.
+func processWithRetry(ctx context.Context, retry *model.RetrySpec, fn func() (map[string]interface{}, bool, error)) (map[string]interface{}, bool, error) {
+	outputs, pause, err := fn()
+	if err == nil || retry == nil || retry.MaxRetries <= 0 {
+		return outputs, pause, err
+	}
+
+	useBackoff := true
+	var fixedInterval time.Duration
+	if retry.Interval != "" {
+		if d, pErr := time.ParseDuration(retry.Interval); pErr == nil {
+			fixedInterval = d
+			useBackoff = false
+		} else {
+			log.WarnfCtx(ctx, " M (Stage): invalid retry interval %q, falling back to exponential backoff: %v", retry.Interval, pErr)
+		}
+	}
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 2 * time.Second // Initial retry interval.
+	b.MaxInterval = 30 * time.Second    // Maximum retry interval.
+
+	for attempt := 1; attempt <= retry.MaxRetries; attempt++ {
+		wait := fixedInterval
+		if useBackoff {
+			wait = b.NextBackOff()
+		}
+		log.InfofCtx(ctx, " M (Stage): retrying stage process after error (attempt %d/%d): %v", attempt, retry.MaxRetries, err)
+		select {
+		case <-ctx.Done():
+			return outputs, pause, ctx.Err()
+		case <-time.After(wait):
+		}
+		outputs, pause, err = fn()
+		if err == nil {
+			return outputs, pause, nil
+		}
+	}
+	return outputs, pause, err
 }
 
 func (s *StageManager) processTasks(ctx context.Context, currentStage model.StageSpec, inputCopy map[string]interface{}, triggerData v1alpha2.ActivationData, triggers map[string]interface{}, siteName string) (map[string]interface{}, error) {
@@ -1099,9 +1145,13 @@ func (s *StageManager) HandleTriggerEvent(ctx context.Context, campaignversion m
 						}
 						triggerDataForProxy.Inputs = proxyInputs
 
-						outputs, pause, iErr = proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerDataForProxy)
+						outputs, pause, iErr = processWithRetry(ctx, currentStage.Retry, func() (map[string]interface{}, bool, error) {
+							return proxyProvider.(stage.IProxyStageProvider).Process(ctx, *s.Manager.Context, triggerDataForProxy)
+						})
 					} else {
-						outputs, pause, iErr = provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+						outputs, pause, iErr = processWithRetry(ctx, currentStage.Retry, func() (map[string]interface{}, bool, error) {
+							return provider.(stage.IStageProvider).Process(ctx, *s.Manager.Context, inputCopy)
+						})
 					}
 					if iErr != nil {
 						log.ErrorfCtx(ctx, " M (Stage): failed to process stage %s for site %s: %v", triggerData.Stage, site, iErr)

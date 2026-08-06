@@ -11,6 +11,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	apiutils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"helm.sh/helm/v3/pkg/registry"
 	"oras.land/oras-go/v2/registry/remote/errcode"
 )
@@ -112,15 +113,21 @@ func exchangeToken(host, token string) (string, error) {
 		Service:     host,
 		AccessToken: token,
 	}
+	form := req.ToFormValues()
 
-	res := tokenExchangeResponse{}
+	httpReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf(exchangeURLFormat, host), strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
+	}
+	httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	jsonResponse, err := http.PostForm(fmt.Sprintf(exchangeURLFormat, host), req.ToFormValues())
+	body, err := apiutils.DoHTTPRequest(nil, httpReq, 3, "exchange ACR token")
 	if err != nil {
 		return "", err
 	}
 
-	if err := json.NewDecoder(jsonResponse.Body).Decode(&res); err != nil {
+	res := tokenExchangeResponse{}
+	if err := json.Unmarshal(body, &res); err != nil {
 		return "", err
 	}
 
