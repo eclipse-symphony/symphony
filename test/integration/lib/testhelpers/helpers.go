@@ -89,16 +89,42 @@ func SetupCluster() error {
 		return err
 	}
 
-	// Wait a few secs for symphony cert to be ready;
-	// otherwise we will see error when creating symphony manifests in the cluster
-	// <Error from server (InternalError): error when creating
-	// "/mnt/vss/_work/1/s/test/integration/scenarios/basic/manifest/target.yaml":
-	// Internal error occurred: failed calling webhook "mtarget.kb.io": failed to
-	// call webhook: Post
-	// "https://symphony-webhook-service.default.svc:443/mutate-symphony-microsoft-com-v1-target?timeout=10s":
-	// x509: certificate signed by unknown authority>
-	time.Sleep(time.Second * 10)
-	return nil
+	// Wait until the admission webhooks are actually serving. cert-manager's
+	// cainjector updates the webhook caBundle asynchronously; a fixed sleep is
+	// not enough on a loaded runner (observed as "InternalError: failed calling
+	// webhook" on the first CR apply after deploy).
+	return waitForWebhooksReady()
+}
+
+// waitForWebhooksReady probes the admission webhooks with a server dry-run
+// apply of a minimal Target. Output containing "failed calling webhook" or
+// "InternalError" means the webhook/caBundle is not ready yet; anything else
+// (including a validation rejection, which proves the webhook answered) is
+// treated as ready. The dry-run persists nothing.
+func waitForWebhooksReady() error {
+	probeManifest := `apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: webhook-readiness-probe
+  namespace: default
+spec:
+  displayName: probe
+`
+	probeFile := filepath.Join(os.TempDir(), "symphony-webhook-probe.yaml")
+	if err := os.WriteFile(probeFile, []byte(probeManifest), 0644); err != nil {
+		return err
+	}
+	defer os.Remove(probeFile)
+
+	ctx := context.Background()
+	for i := 0; i < 24; i++ {
+		out, _ := shell.Output(ctx, fmt.Sprintf("kubectl apply --dry-run=server -f %s 2>&1", probeFile))
+		if !strings.Contains(string(out), "failed calling webhook") && !strings.Contains(string(out), "InternalError") {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return fmt.Errorf("timed out waiting for admission webhooks to become ready")
 }
 
 // Clean up
