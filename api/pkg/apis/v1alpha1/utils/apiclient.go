@@ -65,6 +65,7 @@ type (
 		DeleteInstance(ctx context.Context, instance string, namespace string, user string, password string) error
 		DeleteTarget(ctx context.Context, target string, namespace string, user string, password string) error
 		GetSolutionVersions(ctx context.Context, namespace string, user string, password string) ([]model.SolutionVersionState, error)
+		GetSolutionVersionsForAllNamespaces(ctx context.Context, user string, password string) ([]model.SolutionVersionState, error)
 		GetSolutionVersion(ctx context.Context, solutionversion string, namespace string, user string, password string) (model.SolutionVersionState, error)
 		CreateSolutionVersion(ctx context.Context, solutionversion string, payload []byte, namespace string, user string, password string) error
 		DeleteSolutionVersion(ctx context.Context, solutionversion string, namespace string, user string, password string) error
@@ -75,7 +76,9 @@ type (
 		Reconcile(ctx context.Context, deployment model.DeploymentSpec, isDelete bool, namespace string, user string, password string) (model.SummarySpec, error)
 		CatalogVersionHook(ctx context.Context, payload []byte, user string, password string) error
 		PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error
+		CallRemoteProcessor(ctx context.Context, event v1alpha2.ActivationData, user string, password string) (model.StageStatus, error)
 		GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error)
+		ReportActivationStatus(ctx context.Context, name string, activation model.ActivationStatus, user string, password string) error
 		GetCatalogVersion(ctx context.Context, catalogversion string, namespace string, user string, password string) (model.CatalogVersionState, error)
 		UpsertCatalogVersion(ctx context.Context, catalogversion string, payload []byte, user string, password string) error
 		DeleteCatalogVersion(ctx context.Context, catalogversion string, user string, password string) error
@@ -98,6 +101,7 @@ type (
 		CreateCampaign(ctx context.Context, instanceContainer string, payload []byte, namespace string, user string, password string) error
 		DeleteCampaign(ctx context.Context, instanceContainer string, namespace string, user string, password string) error
 		GetCampaign(ctx context.Context, instanceContainer string, namespace string, user string, password string) (model.CampaignState, error)
+		GetCampaignVersion(ctx context.Context, campaignversion string, namespace string, user string, password string) (model.CampaignVersionState, error)
 		GetParsedCatalogVersionProperties(ctx context.Context, name string, namespace string, user string, password string) (map[string]interface{}, error)
 	}
 )
@@ -322,6 +326,26 @@ func (a *apiClient) GetSolutionVersions(ctx context.Context, namespace string, u
 	}
 
 	response, err := a.callRestAPI(ctx, "solutionversions?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) GetSolutionVersionsForAllNamespaces(ctx context.Context, user string, password string) ([]model.SolutionVersionState, error) {
+	ret := make([]model.SolutionVersionState, 0)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	response, err := a.callRestAPI(ctx, "solutionversions", "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -624,6 +648,28 @@ func (a *apiClient) PublishActivationEvent(ctx context.Context, event v1alpha2.A
 	return nil
 }
 
+func (a *apiClient) CallRemoteProcessor(ctx context.Context, event v1alpha2.ActivationData, user string, password string) (model.StageStatus, error) {
+	ret := model.StageStatus{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+	// the proxy config is consumed locally and must not be forwarded to the remote site
+	event.Proxy = nil
+	jData, _ := json.Marshal(event)
+	response, err := a.callRestAPI(ctx, "processor", "POST", jData, token)
+
+	if err != nil {
+		return ret, err
+	}
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
 func (a *apiClient) GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error) {
 	ret := model.ActivationState{}
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
@@ -643,6 +689,21 @@ func (a *apiClient) GetActivation(ctx context.Context, activation string, namesp
 	}
 
 	return ret, nil
+}
+
+func (a *apiClient) ReportActivationStatus(ctx context.Context, name string, activation model.ActivationStatus, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return err
+	}
+
+	jData, _ := json.Marshal(activation)
+	_, err = a.callRestAPI(ctx, "activations/status/"+url.QueryEscape(name), "POST", jData, token)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *apiClient) GetCatalogVersion(ctx context.Context, catalogversion string, namespace string, user string, password string) (model.CatalogVersionState, error) {
@@ -1099,6 +1160,30 @@ func (a *apiClient) GetCampaign(ctx context.Context, campaignversionContainer st
 		return ret, err
 	}
 
+	return ret, nil
+}
+
+func (a *apiClient) GetCampaignVersion(ctx context.Context, campaignversion string, namespace string, user string, password string) (model.CampaignVersionState, error) {
+	ret := model.CampaignVersionState{}
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+
+	if err != nil {
+		return ret, err
+	}
+
+	path := "campaignversions/" + url.QueryEscape(campaignversion)
+	if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+	}
+	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
 	return ret, nil
 }
 

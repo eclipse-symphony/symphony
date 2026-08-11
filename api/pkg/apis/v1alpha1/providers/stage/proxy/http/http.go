@@ -115,11 +115,17 @@ func (i *HTTPProxyStageProvider) Process(ctx context.Context, mgrContext context
 		return nil, false, coaError
 	}
 
-	ret, err = utils.CallRemoteProcessor(ctx,
-		proxyProperties.BaseUrl,
+	// the remote site address is only known per activation, so the API client
+	// targeting the remote site is created here instead of in Init
+	apiClient, err := utils.GetParentApiClient(proxyProperties.BaseUrl)
+	if err != nil {
+		sLog.Errorf("  P (HTTP Proxy Stage): error creating API client for remote site %s", err.Error())
+		return nil, false, err
+	}
+	ret, err = apiClient.CallRemoteProcessor(ctx,
+		activationdata,
 		proxyProperties.User,
-		proxyProperties.Password,
-		activationdata)
+		proxyProperties.Password)
 	if err != nil {
 		sLog.Errorf("  P (HTTP Proxy Stage): error calling remote stage processor %s", err.Error())
 		return nil, false, err
