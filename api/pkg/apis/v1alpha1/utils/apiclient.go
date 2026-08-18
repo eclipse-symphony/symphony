@@ -218,7 +218,7 @@ func NewApiClient(ctx context.Context, baseUrl string, opts ...ApiClientOption) 
 
 func withDefaultNamespace(namespace string) string {
 	if namespace == "" {
-		return "default"
+		return constants.DefaultScope
 	}
 	return namespace
 }
@@ -726,10 +726,7 @@ func (a *apiClient) GetCatalogVersion(ctx context.Context, catalogversion string
 		catalogversionName = catalogversionName[1 : len(catalogversionName)-1]
 	}
 
-	path := "catalogversions/registry/" + url.QueryEscape(catalogversionName)
-	if namespace != "" {
-		path = path + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
-	}
+	path := "catalogversions/registry/" + url.QueryEscape(catalogversionName) + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
 	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -750,11 +747,8 @@ func (a *apiClient) GetCatalogVersionsWithFilter(ctx context.Context, namespace 
 	}
 	path := "catalogversions/registry"
 	if filterType != "" && filterValue != "" {
-		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
-		if namespace != "" {
-			path = path + "&namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
-		}
-	} else if namespace != "" {
+		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue) + "&namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
+	} else {
 		path = path + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
 	}
 	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
