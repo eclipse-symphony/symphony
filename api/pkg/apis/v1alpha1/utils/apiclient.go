@@ -216,13 +216,20 @@ func NewApiClient(ctx context.Context, baseUrl string, opts ...ApiClientOption) 
 	return a, nil
 }
 
+func withDefaultNamespace(namespace string) string {
+	if namespace == "" {
+		return constants.DefaultScope
+	}
+	return namespace
+}
+
 func (a *apiClient) GetInstances(ctx context.Context, namespace string, user string, password string) ([]model.InstanceState, error) {
 	ret := make([]model.InstanceState, 0)
 	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
 	if err != nil {
 		return ret, err
 	}
-	response, err := a.callRestAPI(ctx, "instances?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "instances?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -263,7 +270,7 @@ func (a *apiClient) GetInstance(ctx context.Context, instance string, namespace 
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -282,7 +289,7 @@ func (a *apiClient) CreateInstance(ctx context.Context, instance string, payload
 		return err
 	}
 	//use proper url encoding in the following statement
-	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -296,7 +303,7 @@ func (a *apiClient) DeleteInstance(ctx context.Context, instance string, namespa
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "instances/"+url.QueryEscape(instance)+"?direct=true&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -310,7 +317,7 @@ func (a *apiClient) DeleteTarget(ctx context.Context, target string, namespace s
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?direct=true&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -325,7 +332,7 @@ func (a *apiClient) GetSolutionVersions(ctx context.Context, namespace string, u
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "solutionversions?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "solutionversions?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -365,7 +372,7 @@ func (a *apiClient) GetSolutionVersion(ctx context.Context, solutionversion stri
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "solutionversions/"+url.QueryEscape(solutionversion)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "solutionversions/"+url.QueryEscape(solutionversion)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -384,7 +391,7 @@ func (a *apiClient) CreateSolutionVersion(ctx context.Context, solutionversion s
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "solutionversions/"+url.QueryEscape(solutionversion)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "solutionversions/"+url.QueryEscape(solutionversion)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -398,7 +405,7 @@ func (a *apiClient) DeleteSolutionVersion(ctx context.Context, solutionversion s
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "solutionversions/"+url.QueryEscape(solutionversion)+"?namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "solutionversions/"+url.QueryEscape(solutionversion)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -413,7 +420,7 @@ func (a *apiClient) GetTarget(ctx context.Context, target string, namespace stri
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -433,7 +440,7 @@ func (a *apiClient) GetTargets(ctx context.Context, namespace string, user strin
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "targets/registry?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "targets/registry?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -453,7 +460,7 @@ func (a *apiClient) GetParsedCatalogVersionProperties(ctx context.Context, name 
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, fmt.Sprintf("settings/config/%s?namespace=%s", url.QueryEscape(name), url.QueryEscape(namespace)), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, fmt.Sprintf("settings/config/%s?namespace=%s", url.QueryEscape(name), url.QueryEscape(withDefaultNamespace(namespace))), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -492,7 +499,7 @@ func (a *apiClient) CreateTarget(ctx context.Context, target string, payload []b
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "targets/registry/"+url.QueryEscape(target)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -508,7 +515,7 @@ func (a *apiClient) GetSummary(ctx context.Context, id string, name string, name
 	}
 
 	log.DebugfCtx(ctx, "apiClient.GetSummary: id: %s, namespace: %s", id, namespace)
-	ret, err := a.callRestAPI(ctx, "solutionversion/queue?instance="+url.QueryEscape(id)+"&name="+url.QueryEscape(name)+"&namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	ret, err := a.callRestAPI(ctx, "solutionversion/queue?instance="+url.QueryEscape(id)+"&name="+url.QueryEscape(name)+"&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	// callRestApi Does a weird thing where it returns nil if the status code is 404 so we'll recreate the error here
 	if err == nil && ret == nil {
 		log.DebugfCtx(ctx, "apiClient.GetSummary: Not found")
@@ -535,7 +542,7 @@ func (a *apiClient) DeleteSummary(ctx context.Context, id string, namespace stri
 	}
 
 	log.DebugfCtx(ctx, "apiClient.DeleteSummary: id: %s, namespace: %s", id, namespace)
-	_, err = a.callRestAPI(ctx, "solutionversion/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "solutionversion/queue?instance="+url.QueryEscape(id)+"&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 
 	if err != nil {
 		return err
@@ -678,7 +685,7 @@ func (a *apiClient) GetActivation(ctx context.Context, activation string, namesp
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "activations/registry/"+url.QueryEscape(activation)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "activations/registry/"+url.QueryEscape(activation)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -719,10 +726,7 @@ func (a *apiClient) GetCatalogVersion(ctx context.Context, catalogversion string
 		catalogversionName = catalogversionName[1 : len(catalogversionName)-1]
 	}
 
-	path := "catalogversions/registry/" + url.QueryEscape(catalogversionName)
-	if namespace != "" {
-		path = path + "?namespace=" + url.QueryEscape(namespace)
-	}
+	path := "catalogversions/registry/" + url.QueryEscape(catalogversionName) + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
 	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
 	if err != nil {
 		return ret, err
@@ -743,12 +747,9 @@ func (a *apiClient) GetCatalogVersionsWithFilter(ctx context.Context, namespace 
 	}
 	path := "catalogversions/registry"
 	if filterType != "" && filterValue != "" {
-		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue)
-		if namespace != "" {
-			path = path + "&namespace=" + url.QueryEscape(namespace)
-		}
-	} else if namespace != "" {
-		path = path + "?namespace=" + url.QueryEscape(namespace)
+		path = path + "?filterType=" + url.QueryEscape(filterType) + "&filterValue=" + url.QueryEscape(filterValue) + "&namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
+	} else {
+		path = path + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
 	}
 	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
 	if err != nil {
@@ -812,7 +813,7 @@ func (a *apiClient) ReportTargetStatus(ctx context.Context, target string, names
 	if properties == nil {
 		properties = map[string]string{}
 	}
-	path := "targets/status/" + url.QueryEscape(target) + "?namespace=" + url.QueryEscape(namespace)
+	path := "targets/status/" + url.QueryEscape(target) + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
 	payload := map[string]interface{}{
 		"status": map[string]interface{}{
 			"properties": properties,
@@ -832,7 +833,7 @@ func (a *apiClient) UpsertSolutionVersion(ctx context.Context, solutionversion s
 		return err
 	}
 	path := "solutionversions/" + url.QueryEscape(solutionversion)
-	path = path + "?namespace=" + url.QueryEscape(namespace)
+	path = path + "?namespace=" + url.QueryEscape(withDefaultNamespace(namespace))
 	_, err = a.callRestAPI(ctx, path, "POST", payload, token)
 	if err != nil {
 		return err
@@ -1022,7 +1023,7 @@ func (a *apiClient) CreateSolution(ctx context.Context, solutionversionContainer
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solutionversionContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solutionversionContainer)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -1036,7 +1037,7 @@ func (a *apiClient) DeleteSolution(ctx context.Context, solutionversionContainer
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solutionversionContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solutionversionContainer)+"?direct=true&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -1052,7 +1053,7 @@ func (a *apiClient) GetSolution(ctx context.Context, solutionversionContainer st
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solutionversionContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "solutions/"+url.QueryEscape(solutionversionContainer)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -1071,7 +1072,7 @@ func (a *apiClient) CreateCatalog(ctx context.Context, catalog string, payload [
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "catalogs/"+url.QueryEscape(catalog)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "catalogs/"+url.QueryEscape(catalog)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -1085,7 +1086,7 @@ func (a *apiClient) DeleteCatalog(ctx context.Context, catalog string, namespace
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "catalogs/"+url.QueryEscape(catalog)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "catalogs/"+url.QueryEscape(catalog)+"?direct=true&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -1101,7 +1102,7 @@ func (a *apiClient) GetCatalog(ctx context.Context, catalog string, namespace st
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "catalogs/"+url.QueryEscape(catalog)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "catalogs/"+url.QueryEscape(catalog)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}
@@ -1120,7 +1121,7 @@ func (a *apiClient) CreateCampaign(ctx context.Context, campaignversionContainer
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	_, err = a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "POST", payload, token)
 	if err != nil {
 		return err
 	}
@@ -1134,7 +1135,7 @@ func (a *apiClient) DeleteCampaign(ctx context.Context, campaignversionContainer
 		return err
 	}
 
-	_, err = a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?direct=true&namespace="+url.QueryEscape(namespace), "DELETE", nil, token)
+	_, err = a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?direct=true&namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "DELETE", nil, token)
 	if err != nil {
 		return err
 	}
@@ -1150,7 +1151,7 @@ func (a *apiClient) GetCampaign(ctx context.Context, campaignversionContainer st
 		return ret, err
 	}
 
-	response, err := a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?namespace="+url.QueryEscape(namespace), "GET", nil, token)
+	response, err := a.callRestAPI(ctx, "campaigns/"+url.QueryEscape(campaignversionContainer)+"?namespace="+url.QueryEscape(withDefaultNamespace(namespace)), "GET", nil, token)
 	if err != nil {
 		return ret, err
 	}

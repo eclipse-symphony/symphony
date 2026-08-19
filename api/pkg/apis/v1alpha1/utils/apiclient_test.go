@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCallRemoteProcessor(t *testing.T) {
@@ -144,4 +145,30 @@ func TestGetSolutionVersionsForAllNamespaces(t *testing.T) {
 	assert.Equal(t, "", gotRawQuery)
 	assert.Equal(t, 2, len(solutionversions))
 	assert.Equal(t, "solutionversion-v1", solutionversions[0].ObjectMeta.Name)
+}
+
+func TestGetInstancesWithEmptyNamespaceDefaultsToDefault(t *testing.T) {
+	var gotNamespace string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotNamespace = r.URL.Query().Get("namespace")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("[]"))
+	}))
+	defer server.Close()
+
+	client, err := NewApiClient(context.Background(), server.URL+"/v1alpha2/")
+	require.NoError(t, err)
+
+	_, err = client.GetInstances(context.Background(), "", user, password)
+	require.NoError(t, err)
+	require.Equal(t, "default", gotNamespace)
+
+	_, err = client.GetInstances(context.Background(), "my-namespace", user, password)
+	require.NoError(t, err)
+	require.Equal(t, "my-namespace", gotNamespace)
+}
+
+func TestWithDefaultNamespace(t *testing.T) {
+	require.Equal(t, "default", withDefaultNamespace(""))
+	require.Equal(t, "my-namespace", withDefaultNamespace("my-namespace"))
 }
