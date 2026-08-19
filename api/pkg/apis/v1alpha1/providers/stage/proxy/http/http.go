@@ -9,11 +9,15 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net"
+	"net/url"
 	"sync"
 	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/scriptutils"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
@@ -85,6 +89,34 @@ func toProxyStageProviderConfig(config providers.IProviderConfig) (HTTPProxyStag
 	err = json.Unmarshal(data, &ret)
 	return ret, err
 }
+
+// validateProxyBaseUrl checks that the proxy baseUrl is safe to connect to.
+// It enforces an http/https scheme and applies the server-wide SecurityPolicy
+// allow-list/exclusive-mode rules to the resolved host addresses.
+func validateProxyBaseUrl(rawURL string, policy *contexts.SecurityPolicy) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return v1alpha2.NewCOAError(err, "invalid proxy baseUrl", v1alpha2.BadConfig)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return v1alpha2.NewCOAError(nil,
+			fmt.Sprintf("invalid proxy baseUrl scheme %q: only http and https are permitted", u.Scheme),
+			v1alpha2.BadConfig)
+	}
+
+	var allowedNets []*net.IPNet
+	exclusiveMode := false
+	if policy != nil {
+		allowedNets, err = scriptutils.ParseIPRanges(policy.AllowedIPRanges)
+		if err != nil {
+			return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in security policy", v1alpha2.BadConfig)
+		}
+		exclusiveMode = policy.AllowListExclusive
+	}
+
+	return scriptutils.ValidateURLHost(u.Hostname(), allowedNets, exclusiveMode)
+}
+
 func (i *HTTPProxyStageProvider) InitWithMap(properties map[string]string) error {
 	if len(properties) > 0 {
 		return v1alpha2.NewCOAError(nil, "properties are not supported", v1alpha2.BadRequest)
@@ -113,6 +145,12 @@ func (i *HTTPProxyStageProvider) Process(ctx context.Context, mgrContext context
 		coaError := v1alpha2.NewCOAError(err, "error unmarshalling proxy properties", v1alpha2.BadRequest)
 		sLog.Errorf("  P (HTTP Proxy Stage): error unmarshalling proxy properties %s", coaError.Error())
 		return nil, false, coaError
+	}
+
+	err = validateProxyBaseUrl(proxyProperties.BaseUrl, mgrContext.GetSecurityPolicy())
+	if err != nil {
+		sLog.Errorf("  P (HTTP Proxy Stage): invalid proxy baseUrl %s", err.Error())
+		return nil, false, err
 	}
 
 	// the remote site address is only known per activation, so the API client

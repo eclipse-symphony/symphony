@@ -57,7 +57,14 @@ func TestSuccessfulProcess(t *testing.T) {
 	err := provider.Init(HTTPProxyStageProviderConfig{})
 	assert.Nil(t, err)
 
-	result, paused, err := provider.Process(context.TODO(), contexts.ManagerContext{}, v1alpha2.ActivationData{
+	mgrCtx := contexts.ManagerContext{
+		VencorContext: &contexts.VendorContext{
+			SecurityPolicy: &contexts.SecurityPolicy{
+				AllowedIPRanges: []string{"127.0.0.1/8"},
+			},
+		},
+	}
+	result, paused, err := provider.Process(context.TODO(), mgrCtx, v1alpha2.ActivationData{
 		Inputs: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -103,7 +110,14 @@ func TestFailedProcess(t *testing.T) {
 	err := provider.Init(HTTPProxyStageProviderConfig{})
 	assert.Nil(t, err)
 
-	_, _, err = provider.Process(context.TODO(), contexts.ManagerContext{}, v1alpha2.ActivationData{
+	mgrCtx := contexts.ManagerContext{
+		VencorContext: &contexts.VendorContext{
+			SecurityPolicy: &contexts.SecurityPolicy{
+				AllowedIPRanges: []string{"127.0.0.1/8"},
+			},
+		},
+	}
+	_, _, err = provider.Process(context.TODO(), mgrCtx, v1alpha2.ActivationData{
 		Inputs: map[string]interface{}{
 			"foo": "bar",
 		},
@@ -136,4 +150,76 @@ func TestNoServer(t *testing.T) {
 		},
 	})
 	assert.NotNil(t, err)
+}
+
+func TestValidateProxyBaseUrl(t *testing.T) {
+	tests := []struct {
+		name      string
+		rawURL    string
+		policy    *contexts.SecurityPolicy
+		wantError bool
+	}{
+		{
+			name:      "nil policy permits public IP",
+			rawURL:    "http://1.2.3.4/",
+			policy:    nil,
+			wantError: false,
+		},
+		{
+			name:      "nil policy rejects loopback",
+			rawURL:    "http://127.0.0.1:8080/",
+			policy:    nil,
+			wantError: true,
+		},
+		{
+			name:      "nil policy rejects link-local",
+			rawURL:    "http://169.254.169.254/",
+			policy:    nil,
+			wantError: true,
+		},
+		{
+			name:      "non-http scheme is rejected",
+			rawURL:    "file:///etc/passwd",
+			policy:    nil,
+			wantError: true,
+		},
+		{
+			name:   "allowedIPRanges whitelist overrides deny list",
+			rawURL: "http://10.0.0.5/",
+			policy: &contexts.SecurityPolicy{
+				AllowedIPRanges: []string{"10.0.0.0/8"},
+			},
+			wantError: false,
+		},
+		{
+			name:   "exclusive mode rejects non-whitelisted public IP",
+			rawURL: "http://1.2.3.4/",
+			policy: &contexts.SecurityPolicy{
+				AllowedIPRanges:    []string{"10.0.0.0/8"},
+				AllowListExclusive: true,
+			},
+			wantError: true,
+		},
+		{
+			name:   "exclusive mode permits whitelisted IP",
+			rawURL: "http://10.0.0.5/",
+			policy: &contexts.SecurityPolicy{
+				AllowedIPRanges:    []string{"10.0.0.0/8"},
+				AllowListExclusive: true,
+			},
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateProxyBaseUrl(tt.rawURL, tt.policy)
+			if tt.wantError {
+				assert.NotNil(t, err)
+				assert.Equal(t, v1alpha2.BadConfig, err.(v1alpha2.COAError).State)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
 }
