@@ -9,9 +9,12 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -285,4 +288,33 @@ func TestFakeAPIWithSymphonyExpression(t *testing.T) {
 	assert.NotNil(t, outputs)
 	assert.Equal(t, 200, outputs["status"])
 	assert.Equal(t, true, outputs["waitResult"])
+}
+
+func TestWaitCountExceededReturnsError(t *testing.T) {
+	mainServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer mainServer.Close()
+
+	waitServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer waitServer.Close()
+
+	provider := HttpStageProvider{}
+	err := provider.Init(HttpStageProviderConfig{
+		Method:           "GET",
+		Url:              mainServer.URL,
+		WaitStartCodes:   []int{200},
+		WaitUrl:          waitServer.URL,
+		WaitCount:        1,
+		WaitInterval:     0,
+		WaitSuccessCodes: []int{200},
+		WaitFailedCodes:  []int{404},
+	})
+	assert.Nil(t, err)
+
+	_, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, v1alpha2.BadConfig, err.(v1alpha2.COAError).State)
 }
