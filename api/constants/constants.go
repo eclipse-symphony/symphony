@@ -111,6 +111,7 @@ const (
 	TargetUid          = "targetUid"
 	CampaignVersion           = "campaignversion"
 	CampaignVersionUid        = "campaignversionUid"
+	ParentActivation   = "parentActivation"
 	StagedTarget       = "staged_target"
 )
 

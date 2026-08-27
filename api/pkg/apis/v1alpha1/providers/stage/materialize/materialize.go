@@ -257,6 +257,7 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 	createdObjectList := make(map[string]bool, 0)
 	instanceList := make([]utils.ObjectInfo, 0)
 	targetList := make([]utils.ObjectInfo, 0)
+	activationList := make([]string, 0)
 
 	annotation_name := os.Getenv("ANNOTATION_KEY")
 
@@ -366,6 +367,90 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty instance guid: - %s", instanceState.ObjectMeta.Name), v1alpha2.BadRequest)
 			}
 			instanceList = append(instanceList, utils.ObjectInfo{Name: ret.ObjectMeta.Name, SummaryId: summaryId, SummaryJobId: previousJobId})
+			createdObjectList[catalogversion.ObjectMeta.Name] = true
+		case "activation":
+			var activationState model.ActivationState
+			err = utils2.UnmarshalJson(objectData, &activationState)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to unmarshal activation state for catalogversion %s: %s", name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidActivationCatalogVersion.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("invalid embeded activation in catalogversion %s", name), v1alpha2.BadRequest)
+			}
+
+			if activationState.ObjectMeta.Name == "" {
+				mLog.ErrorfCtx(ctx, "Activation name is empty: catalogversion - %s", name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidActivationCatalogVersion.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty activation name: catalogversion - %s", name), v1alpha2.BadRequest)
+			}
+			if activationState.Spec == nil || activationState.Spec.CampaignVersion == "" {
+				mLog.ErrorfCtx(ctx, "Activation campaignversion is empty: catalogversion - %s", name)
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.InvalidActivationCatalogVersion.String(),
+				)
+				return outputs, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("Empty activation campaignversion: catalogversion - %s", name), v1alpha2.BadRequest)
+			}
+
+			// When the stage fans out via `contexts`, each fan-out branch runs with a distinct
+			// `__site` value. Make the activation name unique per branch and pass the branch value
+			// into the child campaign inputs so the parent can activate many children in parallel.
+			contextVal := ""
+			if v, ok := inputs["__site"].(string); ok {
+				contextVal = v
+			}
+			if contextVal != "" && contextVal != mgrContext.SiteInfo.SiteId {
+				activationState.ObjectMeta.Name = fmt.Sprintf("%s-%s", activationState.ObjectMeta.Name, contextVal)
+				if activationState.Spec.Inputs == nil {
+					activationState.Spec.Inputs = make(map[string]interface{})
+				}
+				activationState.Spec.Inputs["context"] = contextVal
+			}
+
+			setLabels(&activationState.ObjectMeta)
+			activationState.ObjectMeta = updateObjectMeta(activationState.ObjectMeta, inputs)
+
+			// Tag the activation so a subsequent list stage can filter the child activations
+			// that belong to this parent activation / campaign.
+			if activationState.ObjectMeta.Labels == nil {
+				activationState.ObjectMeta.Labels = make(map[string]string)
+			}
+			campaignVersionLabel := utils2.ConvertStringToValidLabel(strings.ReplaceAll(activationState.Spec.CampaignVersion, constants.ReferenceSeparator, constants.ResourceSeperator))
+			activationState.ObjectMeta.Labels[constants.CampaignVersion] = campaignVersionLabel
+			if parent, ok := inputs["__activation"].(string); ok && parent != "" {
+				activationState.ObjectMeta.Labels[constants.ParentActivation] = parent
+			}
+
+			objectData, _ := json.Marshal(activationState)
+			mLog.DebugfCtx(ctx, "  P (Materialize Processor): materialize activation %v to namespace %s", activationState.ObjectMeta.Name, activationState.ObjectMeta.Namespace)
+			observ_utils.EmitUserAuditsLogs(ctx, "  P (Materialize Processor): Start to materialize activation %v to namespace %s", activationState.ObjectMeta.Name, activationState.ObjectMeta.Namespace)
+			err = i.ApiClient.CreateActivation(ctx, activationState.ObjectMeta.Name, objectData, activationState.ObjectMeta.Namespace, i.Config.User, i.Config.Password)
+			if err != nil {
+				mLog.ErrorfCtx(ctx, "Failed to create activation %s: %s", activationState.ObjectMeta.Name, err.Error())
+				providerOperationMetrics.ProviderOperationErrors(
+					materialize,
+					functionName,
+					metrics.ProcessOperation,
+					metrics.RunOperationType,
+					v1alpha2.CreateActivationFromCatalogVersionFailed.String(),
+				)
+				return outputs, false, err
+			}
+			activationList = append(activationList, activationState.ObjectMeta.Name)
 			createdObjectList[catalogversion.ObjectMeta.Name] = true
 		case "solutionVersion":
 			var solutionversionState model.SolutionVersionState
@@ -684,6 +769,9 @@ func (i *MaterializeStageProvider) Process(ctx context.Context, mgrContext conte
 		)
 		return outputs, false, err
 	}
+	// Expose the names of the activations created by this stage so that a subsequent
+	// stage (e.g. list/stageSelector) can track their completion.
+	outputs["activations"] = activationList
 	// Wait for deployment to finish
 	if i.Config.WaitForDeployment {
 		outputs["failedDeployment"] = []api_utils.FailedDeployment{}
@@ -741,7 +829,7 @@ func checkCatalogVersion(catalogversion *model.CatalogVersionState) bool {
 	if catalogversion.Spec == nil {
 		return false
 	}
-	if catalogversion.Spec.CatalogType == "instance" || catalogversion.Spec.CatalogType == "solutionVersion" || catalogversion.Spec.CatalogType == "target" || catalogversion.Spec.CatalogType == "catalogVersion" || catalogversion.Spec.CatalogType == "config" {
+	if catalogversion.Spec.CatalogType == "instance" || catalogversion.Spec.CatalogType == "solutionVersion" || catalogversion.Spec.CatalogType == "target" || catalogversion.Spec.CatalogType == "catalogVersion" || catalogversion.Spec.CatalogType == "config" || catalogversion.Spec.CatalogType == "activation" {
 		return true
 	}
 	return false

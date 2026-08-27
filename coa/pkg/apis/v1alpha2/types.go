@@ -135,6 +135,8 @@ const (
 	EnsureARMResourceGroupFailed    State = 10072
 	CreateARMDeploymentFailed       State = 10073
 	CleanUpARMDeploymentFailed      State = 10074
+	InvalidActivationCatalogVersion               State = 10075
+	CreateActivationFromCatalogVersionFailed      State = 10076
 
 	// instance controller errors
 	SolutionVersionGetFailed             State = 11000
@@ -343,6 +345,10 @@ func (s State) String() string {
 		return "Invalid CatalogVersion Object in CatalogVersion"
 	case CreateCatalogVersionFromCatalogVersionFailed:
 		return "Create CatalogVersion Object From CatalogVersion Failed"
+	case InvalidActivationCatalogVersion:
+		return "Invalid Activation Object in CatalogVersion"
+	case CreateActivationFromCatalogVersionFailed:
+		return "Create Activation Object From CatalogVersion Failed"
 	case ParentObjectMissing:
 		return "Parent Object Missing"
 	case ParentObjectCreateFailed:

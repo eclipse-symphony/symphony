@@ -17,6 +17,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/constants"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
+	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/stretchr/testify/assert"
 )
@@ -172,6 +173,119 @@ func TestListProcessUnsupported(t *testing.T) {
 	assert.Nil(t, outputs)
 }
 
+func TestListProcessActivations(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := ListStageProvider{}
+	input := map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	}
+	err := provider.InitWithMap(input)
+	assert.Nil(t, err)
+
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "activations",
+	})
+	assert.Nil(t, err)
+	activations, ok := outputs["items"].([]model.ActivationState)
+	assert.True(t, ok)
+	assert.Equal(t, 3, len(activations))
+	assert.Equal(t, 3, outputs["itemCount"])
+
+	// names only
+	outputs, _, err = provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "activations",
+		"namesOnly":  true,
+	})
+	assert.Nil(t, err)
+	names, ok := outputs["items"].([]string)
+	assert.True(t, ok)
+	assert.Equal(t, []string{"activation1", "activation2", "activation3"}, names)
+}
+
+func TestListProcessActivationsWithSingleFilter(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := ListStageProvider{}
+	err := provider.InitWithMap(map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	})
+	assert.Nil(t, err)
+
+	// keep only completed (Done = 9996) activations using single-filter inputs
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType":     "activations",
+		"filterField":    "status.status",
+		"filterValue":    "9996",
+		"filterOperator": "eq",
+	})
+	assert.Nil(t, err)
+	activations, ok := outputs["items"].([]model.ActivationState)
+	assert.True(t, ok)
+	assert.Equal(t, 2, len(activations))
+	assert.Equal(t, 2, outputs["itemCount"])
+	assert.Equal(t, "activation1", activations[0].ObjectMeta.Name)
+	assert.Equal(t, "activation3", activations[1].ObjectMeta.Name)
+}
+
+func TestListProcessActivationsWithMultipleFilters(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := ListStageProvider{}
+	err := provider.InitWithMap(map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	})
+	assert.Nil(t, err)
+
+	// Combine a label filter (belongs to parent) with a status filter (completed).
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType": "activations",
+		"filter": []interface{}{
+			map[string]interface{}{"field": "metadata.labels.parentActivation", "value": "parent1", "operator": "eq"},
+			map[string]interface{}{"field": "status.status", "value": "9996", "operator": "eq"},
+		},
+	})
+	assert.Nil(t, err)
+	activations, ok := outputs["items"].([]model.ActivationState)
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(activations))
+	assert.Equal(t, "activation1", activations[0].ObjectMeta.Name)
+}
+
+func TestListProcessActivationsWithExistsFilter(t *testing.T) {
+	ts := InitializeMockSymphonyAPI()
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := ListStageProvider{}
+	err := provider.InitWithMap(map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	})
+	assert.Nil(t, err)
+
+	// "ne" against Running (9994) keeps everything that is not running.
+	outputs, _, err := provider.Process(context.Background(), contexts.ManagerContext{}, map[string]interface{}{
+		"objectType":     "activations",
+		"filterField":    "status.status",
+		"filterValue":    "9994",
+		"filterOperator": "ne",
+	})
+	assert.Nil(t, err)
+	activations, ok := outputs["items"].([]model.ActivationState)
+	assert.True(t, ok)
+	assert.Equal(t, 2, len(activations))
+}
+
 func InitializeMockSymphonyAPI() *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var response interface{}
@@ -223,6 +337,32 @@ func InitializeMockSymphonyAPI() *httptest.Server {
 					},
 					Spec:   &model.CatalogVersionSpec{},
 					Status: &model.CatalogVersionStatus{},
+				}}
+		case "/activations/registry":
+			response = []model.ActivationState{
+				{
+					ObjectMeta: model.ObjectMeta{
+						Name:   "activation1",
+						Labels: map[string]string{"parentActivation": "parent1"},
+					},
+					Spec:   &model.ActivationSpec{CampaignVersion: "child:v1"},
+					Status: &model.ActivationStatus{Status: v1alpha2.Done},
+				},
+				{
+					ObjectMeta: model.ObjectMeta{
+						Name:   "activation2",
+						Labels: map[string]string{"parentActivation": "parent1"},
+					},
+					Spec:   &model.ActivationSpec{CampaignVersion: "child:v1"},
+					Status: &model.ActivationStatus{Status: v1alpha2.Running},
+				},
+				{
+					ObjectMeta: model.ObjectMeta{
+						Name:   "activation3",
+						Labels: map[string]string{"parentActivation": "parent2"},
+					},
+					Spec:   &model.ActivationSpec{CampaignVersion: "child:v1"},
+					Status: &model.ActivationStatus{Status: v1alpha2.Done},
 				}}
 		default:
 			response = utils.AuthResponse{

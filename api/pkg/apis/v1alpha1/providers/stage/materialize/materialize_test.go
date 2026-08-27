@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/eclipse-symphony/symphony/api/constants"
@@ -137,6 +138,171 @@ func TestMaterializeProcessFailedCase(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), catalogversionNotFoundMsg)
+}
+
+func TestMaterializeActivations(t *testing.T) {
+	createdActivations := make(map[string][]byte)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		body, _ := io.ReadAll(r.Body)
+		switch r.URL.Path {
+		case "/catalogversions/registry/child-activation1-v-version1":
+			response = model.CatalogVersionState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "child-activation1-v-version1",
+				},
+				Spec: &model.CatalogVersionSpec{
+					CatalogType: "activation",
+					Properties: map[string]interface{}{
+						"spec": &model.ActivationSpec{
+							CampaignVersion: "child-campaign:v1",
+							Stage:           "start",
+						},
+						"metadata": &model.ObjectMeta{
+							Name:      "child-activation1",
+							Namespace: "objNS",
+						},
+					},
+				},
+			}
+		default:
+			if r.Method == "POST" && strings.HasPrefix(r.URL.Path, "/activations/registry/") {
+				name := strings.TrimPrefix(r.URL.Path, "/activations/registry/")
+				createdActivations[name] = body
+				response = model.ActivationState{}
+			} else {
+				response = utils.AuthResponse{
+					AccessToken: "test-token",
+					TokenType:   "Bearer",
+					Username:    "test-user",
+					Roles:       []string{"role1", "role2"},
+				}
+			}
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := MaterializeStageProvider{}
+	err := provider.InitWithMap(map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	})
+	assert.Nil(t, err)
+	provider.SetContext(&contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{
+			SiteId: "fake",
+		},
+	})
+
+	// Simple case: a single activation created from a catalogversion.
+	outputs, paused, err := provider.Process(context.Background(), contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{SiteId: "fake"},
+	}, map[string]interface{}{
+		"names":           []interface{}{"activation1:version1"},
+		"__origin":        "child",
+		"__activation":    "parent-activation",
+		"objectNamespace": "objNS",
+	})
+	assert.Nil(t, err)
+	assert.False(t, paused)
+	activations, ok := outputs["activations"].([]string)
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(activations))
+	assert.Equal(t, "child-activation1", activations[0])
+
+	// Verify the created activation carries the parent label and campaignversion label.
+	created, ok := createdActivations["child-activation1"]
+	assert.True(t, ok)
+	var createdState model.ActivationState
+	err = json.Unmarshal(created, &createdState)
+	assert.Nil(t, err)
+	assert.Equal(t, "parent-activation", createdState.ObjectMeta.Labels[constants.ParentActivation])
+	assert.Equal(t, "child-campaign-v-v1", createdState.ObjectMeta.Labels[constants.CampaignVersion])
+	assert.Equal(t, "child-campaign:v1", createdState.Spec.CampaignVersion)
+}
+
+func TestMaterializeActivationFanout(t *testing.T) {
+	createdActivations := make(map[string][]byte)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var response interface{}
+		body, _ := io.ReadAll(r.Body)
+		switch r.URL.Path {
+		case "/catalogversions/registry/activation1-v-version1":
+			response = model.CatalogVersionState{
+				ObjectMeta: model.ObjectMeta{
+					Name: "activation1-v-version1",
+				},
+				Spec: &model.CatalogVersionSpec{
+					CatalogType: "activation",
+					Properties: map[string]interface{}{
+						"spec": &model.ActivationSpec{
+							CampaignVersion: "child-campaign:v1",
+							Stage:           "start",
+						},
+						"metadata": &model.ObjectMeta{
+							Name:      "child-activation",
+							Namespace: "objNS",
+						},
+					},
+				},
+			}
+		default:
+			if r.Method == "POST" && strings.HasPrefix(r.URL.Path, "/activations/registry/") {
+				name := strings.TrimPrefix(r.URL.Path, "/activations/registry/")
+				createdActivations[name] = body
+				response = model.ActivationState{}
+			} else {
+				response = utils.AuthResponse{
+					AccessToken: "test-token",
+					TokenType:   "Bearer",
+				}
+			}
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer ts.Close()
+
+	os.Setenv(constants.SymphonyAPIUrlEnvName, ts.URL+"/")
+	os.Setenv(constants.UseServiceAccountTokenEnvName, "false")
+	provider := MaterializeStageProvider{}
+	err := provider.InitWithMap(map[string]string{
+		"baseUrl":  ts.URL + "/",
+		"user":     "admin",
+		"password": "",
+	})
+	assert.Nil(t, err)
+	provider.SetContext(&contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{SiteId: "hq"},
+	})
+
+	// Fan-out branch: __site carries the fan-out context value. The activation
+	// name must be suffixed with the context and the context value injected into inputs.
+	outputs, paused, err := provider.Process(context.Background(), contexts.ManagerContext{
+		SiteInfo: v1alpha2.SiteInfo{SiteId: "hq"},
+	}, map[string]interface{}{
+		"names":           []interface{}{"activation1:version1"},
+		"__activation":    "parent-activation",
+		"__site":          "region-a",
+		"objectNamespace": "objNS",
+	})
+	assert.Nil(t, err)
+	assert.False(t, paused)
+	activations, ok := outputs["activations"].([]string)
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(activations))
+	assert.Equal(t, "child-activation-region-a", activations[0])
+
+	created, ok := createdActivations["child-activation-region-a"]
+	assert.True(t, ok)
+	var createdState model.ActivationState
+	err = json.Unmarshal(created, &createdState)
+	assert.Nil(t, err)
+	assert.Equal(t, "region-a", createdState.Spec.Inputs["context"])
+	assert.Equal(t, "parent-activation", createdState.ObjectMeta.Labels[constants.ParentActivation])
 }
 
 func InitializeMockSymphonyAPI(t *testing.T, expectNs string) *httptest.Server {

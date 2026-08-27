@@ -76,6 +76,8 @@ type (
 		CatalogVersionHook(ctx context.Context, payload []byte, user string, password string) error
 		PublishActivationEvent(ctx context.Context, event v1alpha2.ActivationData, user string, password string) error
 		GetActivation(ctx context.Context, activation string, namespace string, user string, password string) (model.ActivationState, error)
+		GetActivations(ctx context.Context, namespace string, user string, password string) ([]model.ActivationState, error)
+		CreateActivation(ctx context.Context, activation string, payload []byte, namespace string, user string, password string) error
 		GetCatalogVersion(ctx context.Context, catalogversion string, namespace string, user string, password string) (model.CatalogVersionState, error)
 		UpsertCatalogVersion(ctx context.Context, catalogversion string, payload []byte, user string, password string) error
 		DeleteCatalogVersion(ctx context.Context, catalogversion string, user string, password string) error
@@ -643,6 +645,44 @@ func (a *apiClient) GetActivation(ctx context.Context, activation string, namesp
 	}
 
 	return ret, nil
+}
+
+func (a *apiClient) GetActivations(ctx context.Context, namespace string, user string, password string) ([]model.ActivationState, error) {
+	ret := make([]model.ActivationState, 0)
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return ret, err
+	}
+
+	path := "activations/registry"
+	if namespace != "" {
+		path = path + "?namespace=" + url.QueryEscape(namespace)
+	}
+	response, err := a.callRestAPI(ctx, path, "GET", nil, token)
+	if err != nil {
+		return ret, err
+	}
+
+	err = json.Unmarshal(response, &ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
+
+func (a *apiClient) CreateActivation(ctx context.Context, activation string, payload []byte, namespace string, user string, password string) error {
+	token, err := a.tokenProvider(ctx, a.baseUrl, a.client, user, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.callRestAPI(ctx, "activations/registry/"+url.QueryEscape(activation)+"?namespace="+url.QueryEscape(namespace), "POST", payload, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *apiClient) GetCatalogVersion(ctx context.Context, catalogversion string, namespace string, user string, password string) (model.CatalogVersionState, error) {

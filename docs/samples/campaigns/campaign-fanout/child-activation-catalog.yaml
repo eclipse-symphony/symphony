@@ -1,0 +1,29 @@
+# A Catalog whose CatalogVersion embeds an Activation spec (catalogType: activation).
+# The parent campaign's `materialize` stage reads this catalog and creates a child
+# Activation object from the embedded spec, which in turn drives the child campaign.
+#
+# When the materialize stage fans out (via the stage `contexts` field), the provider
+# automatically:
+#   * suffixes the created activation name with the fan-out context value
+#     (e.g. child-run -> child-run-region-a), and
+#   * injects that context value into the child activation's spec.inputs.context.
+apiVersion: federation.symphony/v1
+kind: Catalog
+metadata:
+  name: child-activation
+spec: {}
+---
+apiVersion: federation.symphony/v1
+kind: CatalogVersion
+metadata:
+  name: child-activation-v-version1
+spec:
+  rootResource: child-activation
+  catalogType: activation
+  properties:
+    metadata:
+      name: child-run
+    spec:
+      campaignversion: "child-campaign:version1"
+      stage: "run"
+      inputs: {}

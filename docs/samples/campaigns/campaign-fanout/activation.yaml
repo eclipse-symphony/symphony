@@ -1,0 +1,9 @@
+# Kicks off the parent campaign. Applying this object starts the whole fan-out.
+apiVersion: workflow.symphony/v1
+kind: Activation
+metadata:
+  name: parent-run
+spec:
+  campaignversion: "parent-campaign:version1"
+  stage: ""
+  inputs: {}

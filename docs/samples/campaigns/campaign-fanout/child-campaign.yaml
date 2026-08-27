@@ -1,0 +1,25 @@
+# The child campaign that the parent will activate (potentially many times).
+# It is intentionally trivial: a single mock stage that completes immediately,
+# which flips the child Activation status to "Done".
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: child-campaign
+spec: {}
+---
+apiVersion: workflow.symphony/v1
+kind: CampaignVersion
+metadata:
+  name: child-campaign-v-version1
+spec:
+  rootResource: child-campaign
+  firstStage: "run"
+  selfDriving: true
+  stages:
+    run:
+      name: "run"
+      provider: "providers.stage.mock"
+      stageSelector: ""
+      inputs:
+        # echoes the fan-out context value the parent injected (if any)
+        context: "${{$trigger(context, '')}}"

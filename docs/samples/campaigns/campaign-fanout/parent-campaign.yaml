@@ -1,0 +1,90 @@
+# The parent campaign. It fans out to multiple child campaigns (one child
+# Activation per fan-out "context"), waits until every child Activation reaches
+# the Done state, and only then advances to its final stage.
+#
+# Flow:
+#   fanout  -> materialize provider. For each value in `regions` it creates a
+#              child Activation (child-run-<region>) from the `child-activation`
+#              CatalogVersion. Each child Activation drives the child campaign.
+#   check   -> list provider. Lists Activation objects, filtered to the children
+#              of THIS parent activation that are NOT yet Done. `itemCount` is the
+#              number of still-running children. When it reaches 0, all children
+#              have completed.
+#   wait    -> wait provider. Sleeps for a while, then loops back to `check`.
+#   finish  -> final stage (a mock here). Replace it with another `materialize`
+#              stage to activate yet another campaign.
+apiVersion: workflow.symphony/v1
+kind: Campaign
+metadata:
+  name: parent-campaign
+spec: {}
+---
+apiVersion: workflow.symphony/v1
+kind: CampaignVersion
+metadata:
+  name: parent-campaign-v-version1
+spec:
+  rootResource: parent-campaign
+  firstStage: "fanout"
+  selfDriving: true
+  stages:
+    # 1) Fan out: create one child Activation per region.
+    fanout:
+      name: "fanout"
+      provider: "providers.stage.materialize"
+      stageSelector: "check"
+      # The whole-string expression returns the raw list, so the stage fans out
+      # into one branch per region. Each branch materializes the child activation
+      # with the region appended to its name and injected into its inputs.context.
+      contexts: "${{$input(regions)}}"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        regions:
+          - region-a
+          - region-b
+          - region-c
+        names:
+          - child-activation:version1
+    # 2) Check: how many child Activations are still not Done?
+    check:
+      name: "check"
+      provider: "providers.stage.list"
+      # If there are 0 not-Done children left, everything finished -> go to finish.
+      # Otherwise wait and re-check.
+      stageSelector: "${{$if($le($output(check, itemCount), 0), 'finish', 'wait')}}"
+      config:
+        baseUrl: http://symphony-service:8080/v1alpha2/
+        user: admin
+        password: ""
+      inputs:
+        objectType: activations
+        # General filter support: keep only child activations of THIS parent
+        # activation whose status is not Done (9996).
+        filters:
+          - field: metadata.labels.parentActivation
+            value: "${{$input(__activation)}}"
+            operator: eq
+          - field: status.status
+            value: "9996"
+            operator: ne
+    # 3) Wait a bit, then loop back to check.
+    wait:
+      name: "wait"
+      provider: "providers.stage.wait"
+      stageSelector: "check"
+      config:
+        user: admin
+        password: ""
+        wait.count: 60
+        wait.interval: 5
+      inputs: {}
+    # 4) All children done. Do the next thing (activate another campaign, etc.).
+    finish:
+      name: "finish"
+      provider: "providers.stage.mock"
+      stageSelector: ""
+      inputs:
+        foo: "all-children-done"
