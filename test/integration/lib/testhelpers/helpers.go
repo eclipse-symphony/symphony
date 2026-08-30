@@ -89,16 +89,66 @@ func SetupCluster() error {
 		return err
 	}
 
-	// Wait a few secs for symphony cert to be ready;
-	// otherwise we will see error when creating symphony manifests in the cluster
-	// <Error from server (InternalError): error when creating
-	// "/mnt/vss/_work/1/s/test/integration/scenarios/basic/manifest/target.yaml":
-	// Internal error occurred: failed calling webhook "mtarget.kb.io": failed to
-	// call webhook: Post
-	// "https://symphony-webhook-service.default.svc:443/mutate-symphony-microsoft-com-v1-target?timeout=10s":
-	// x509: certificate signed by unknown authority>
-	time.Sleep(time.Second * 10)
-	return nil
+	// Wait until the admission webhooks are actually serving. cert-manager's
+	// cainjector updates the webhook caBundle asynchronously; a fixed sleep is
+	// not enough on a loaded runner (observed as "InternalError: failed calling
+	// webhook" on the first CR apply after deploy).
+	return waitForWebhooksReady()
+}
+
+// waitForWebhooksReady probes the admission webhooks with a server dry-run
+// apply of a minimal Target, capturing combined stdout/stderr (kubectl writes
+// webhook call failures and admission rejections to stderr). The webhooks are
+// considered answering when the dry-run either succeeds or fails with an
+// admission rejection ("admission webhook \"...\" denied the request: ..."),
+// which proves the webhook responded. Any other failure — "failed calling
+// webhook"/"InternalError" (webhook/caBundle not ready), "connection
+// refused" (API server down), or "no matches for kind" (CRDs not installed
+// yet) — keeps polling. The dry-run persists nothing.
+func waitForWebhooksReady() error {
+	probeManifest := `apiVersion: fabric.symphony/v1
+kind: Target
+metadata:
+  name: webhook-readiness-probe
+  namespace: default
+spec:
+  displayName: probe
+`
+	// Unique temp file: a fixed name in os.TempDir() would collide if two
+	// scenario processes ever ran concurrently
+	probeFile, err := os.CreateTemp("", "symphony-webhook-probe-*.yaml")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(probeFile.Name())
+	if _, err := probeFile.WriteString(probeManifest); err != nil {
+		probeFile.Close()
+		return err
+	}
+	if err := probeFile.Close(); err != nil {
+		return err
+	}
+
+	for i := 0; i < 24; i++ {
+		// Note: shellcmd.Command is not used here — it parses the command
+		// without invoking a shell (so `2>&1` would be a literal argument)
+		// and its Output() discards stderr.
+		out, err := exec.Command("kubectl", "apply", "--dry-run=server", "-f", probeFile.Name()).CombinedOutput()
+		if webhookReady(string(out), err) {
+			return nil
+		}
+		fmt.Printf("webhook readiness probe attempt %d/24 failed: %v: %s\n", i+1, err, strings.TrimSpace(string(out)))
+		time.Sleep(5 * time.Second)
+	}
+	return fmt.Errorf("timed out waiting for admission webhooks to become ready")
+}
+
+// webhookReady reports whether a server dry-run probe proves the admission
+// webhooks are answering: the apply either succeeded or failed with an
+// admission rejection ("admission webhook \"...\" denied the request: ..."),
+// which only a responding webhook produces. Any other failure keeps polling.
+func webhookReady(output string, err error) bool {
+	return err == nil || strings.Contains(output, "denied the request")
 }
 
 // Clean up
