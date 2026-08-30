@@ -9,9 +9,7 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
-	"net/url"
 	"sync"
 	"time"
 
@@ -91,22 +89,14 @@ func toProxyStageProviderConfig(config providers.IProviderConfig) (HTTPProxyStag
 }
 
 // validateProxyBaseUrl checks that the proxy baseUrl is safe to connect to.
-// It enforces an http/https scheme and applies the server-wide SecurityPolicy
-// allow-list/exclusive-mode rules to the resolved host addresses.
+// It applies the server-wide SecurityPolicy allow-list/exclusive-mode rules,
+// delegating URL parsing, http/https scheme enforcement and host validation to
+// scriptutils.ValidateScriptFolderURL.
 func validateProxyBaseUrl(rawURL string, policy *contexts.SecurityPolicy) error {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return v1alpha2.NewCOAError(err, "invalid proxy baseUrl", v1alpha2.BadConfig)
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return v1alpha2.NewCOAError(nil,
-			fmt.Sprintf("invalid proxy baseUrl scheme %q: only http and https are permitted", u.Scheme),
-			v1alpha2.BadConfig)
-	}
-
 	var allowedNets []*net.IPNet
 	exclusiveMode := false
 	if policy != nil {
+		var err error
 		allowedNets, err = scriptutils.ParseIPRanges(policy.AllowedIPRanges)
 		if err != nil {
 			return v1alpha2.NewCOAError(err, "invalid allowedIPRanges in security policy", v1alpha2.BadConfig)
@@ -114,7 +104,14 @@ func validateProxyBaseUrl(rawURL string, policy *contexts.SecurityPolicy) error 
 		exclusiveMode = policy.AllowListExclusive
 	}
 
-	return scriptutils.ValidateURLHost(u.Hostname(), allowedNets, exclusiveMode)
+	if err := scriptutils.ValidateScriptFolderURL(rawURL, allowedNets, exclusiveMode); err != nil {
+		// Re-wrap with a proxy-specific message while preserving the COAError state.
+		if coaErr, ok := err.(v1alpha2.COAError); ok {
+			return v1alpha2.NewCOAError(coaErr, "invalid proxy baseUrl", coaErr.State)
+		}
+		return err
+	}
+	return nil
 }
 
 func (i *HTTPProxyStageProvider) InitWithMap(properties map[string]string) error {
