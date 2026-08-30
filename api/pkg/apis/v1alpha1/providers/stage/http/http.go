@@ -477,6 +477,15 @@ func (i *HttpStageProvider) Process(ctx context.Context, mgrContext contexts.Man
 				v1alpha2.HttpBadWaitStatusCode.String(),
 			)
 			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("failed to wait for operation %v", resp.StatusCode), v1alpha2.BadConfig)
+		} else if !succeeded {
+			providerOperationMetrics.ProviderOperationErrors(
+				httpProvider,
+				functionName,
+				metrics.ProcessOperation,
+				metrics.RunOperationType,
+				v1alpha2.HttpBadWaitStatusCode.String(),
+			)
+			return nil, false, v1alpha2.NewCOAError(nil, fmt.Sprintf("wait count exceeded for operation %v: success condition not met", resp.StatusCode), v1alpha2.BadConfig)
 		}
 
 	} else if len(i.Config.SuccessCodes) > 0 {
