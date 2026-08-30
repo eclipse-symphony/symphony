@@ -16,7 +16,7 @@ Add a comment line like example blow. Gofail package will translate it to the fa
 // gofail: var beforeProviders string
 ```
 
-> **Note**: every failpoint referenced by a test case must have a matching marker in the code. A missing marker does not fail the scenario — the injection silently no-ops (`failpoint does not exist` in the logs) and the test passes without testing anything. After adding a case, check the scenario logs for `failpoint does not exist` to confirm the injection is real.
+> **Note**: every failpoint referenced by a test case must have a matching marker in the code. A missing or misspelled marker fails the scenario loudly: the failpoint server answers with an HTTP error status, the injection retries (18 attempts) and then returns an error, failing the test. The retry error only carries the HTTP status (the response body is discarded), so to diagnose, check which failpoints are actually registered in the pod — grep the source for `gofail: var` markers to confirm the name, or port-forward to the pod (`kubectl port-forward <pod> 22381:22381`) and GET the failpoint server's root (`curl localhost:22381`) to list them.
 
 2. Add a new fault test case
 

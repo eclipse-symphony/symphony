@@ -97,10 +97,14 @@ func SetupCluster() error {
 }
 
 // waitForWebhooksReady probes the admission webhooks with a server dry-run
-// apply of a minimal Target. Output containing "failed calling webhook" or
-// "InternalError" means the webhook/caBundle is not ready yet; anything else
-// (including a validation rejection, which proves the webhook answered) is
-// treated as ready. The dry-run persists nothing.
+// apply of a minimal Target, capturing combined stdout/stderr (kubectl writes
+// webhook call failures and admission rejections to stderr). The webhooks are
+// considered answering when the dry-run either succeeds or fails with an
+// admission rejection ("admission webhook \"...\" denied the request: ..."),
+// which proves the webhook responded. Any other failure — "failed calling
+// webhook"/"InternalError" (webhook/caBundle not ready), "connection
+// refused" (API server down), or "no matches for kind" (CRDs not installed
+// yet) — keeps polling. The dry-run persists nothing.
 func waitForWebhooksReady() error {
 	probeManifest := `apiVersion: fabric.symphony/v1
 kind: Target
@@ -110,21 +114,41 @@ metadata:
 spec:
   displayName: probe
 `
-	probeFile := filepath.Join(os.TempDir(), "symphony-webhook-probe.yaml")
-	if err := os.WriteFile(probeFile, []byte(probeManifest), 0644); err != nil {
+	// Unique temp file: a fixed name in os.TempDir() would collide if two
+	// scenario processes ever ran concurrently
+	probeFile, err := os.CreateTemp("", "symphony-webhook-probe-*.yaml")
+	if err != nil {
 		return err
 	}
-	defer os.Remove(probeFile)
+	defer os.Remove(probeFile.Name())
+	if _, err := probeFile.WriteString(probeManifest); err != nil {
+		probeFile.Close()
+		return err
+	}
+	if err := probeFile.Close(); err != nil {
+		return err
+	}
 
-	ctx := context.Background()
 	for i := 0; i < 24; i++ {
-		out, _ := shell.Output(ctx, fmt.Sprintf("kubectl apply --dry-run=server -f %s 2>&1", probeFile))
-		if !strings.Contains(string(out), "failed calling webhook") && !strings.Contains(string(out), "InternalError") {
+		// Note: shellcmd.Command is not used here — it parses the command
+		// without invoking a shell (so `2>&1` would be a literal argument)
+		// and its Output() discards stderr.
+		out, err := exec.Command("kubectl", "apply", "--dry-run=server", "-f", probeFile.Name()).CombinedOutput()
+		if webhookReady(string(out), err) {
 			return nil
 		}
+		fmt.Printf("webhook readiness probe attempt %d/24 failed: %v: %s\n", i+1, err, strings.TrimSpace(string(out)))
 		time.Sleep(5 * time.Second)
 	}
 	return fmt.Errorf("timed out waiting for admission webhooks to become ready")
+}
+
+// webhookReady reports whether a server dry-run probe proves the admission
+// webhooks are answering: the apply either succeeded or failed with an
+// admission rejection ("admission webhook \"...\" denied the request: ..."),
+// which only a responding webhook produces. Any other failure keeps polling.
+func webhookReady(output string, err error) bool {
+	return err == nil || strings.Contains(output, "denied the request")
 }
 
 // Clean up

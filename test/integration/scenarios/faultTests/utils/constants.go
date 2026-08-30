@@ -7,12 +7,11 @@
 package utils
 
 const (
-	TEST_TIMEOUT      = "30m"
-	LocalPortForward  = "22381"
-	DeleteFaultEnvKey = "DeleteFaultCommand"
-	PodEnvKey         = "InjectPodLabel"
-	FaultNameEnvKey   = "InjectFaultName"
-	FaultTypeEnvKey   = "InjectFaultType"
+	TEST_TIMEOUT     = "30m"
+	LocalPortForward = "22381"
+	PodEnvKey        = "InjectPodLabel"
+	FaultNameEnvKey  = "InjectFaultName"
+	FaultTypeEnvKey  = "InjectFaultType"
 )
 
 type FaultTestCase struct {

@@ -124,15 +124,6 @@ func requestFailpoint(podLabel string, method string, path string, body string) 
 	return fmt.Errorf("timeout waiting for failpoint server of %s: %v", podLabel, lastErr)
 }
 
-// WaitFailpointServer waits until the pod's failpoint server answers. GET /
-// lists the registered failpoints, which doubles as a readiness check.
-func WaitFailpointServer(podlabel string) error {
-	if err := testhelpers.WaitPodOnline(podlabel); err != nil {
-		return err
-	}
-	return requestFailpoint(podlabel, http.MethodGet, "", "")
-}
-
 func InjectPodFailure() error {
 	PodLabel := os.Getenv(PodEnvKey)
 	Fault := os.Getenv(FaultNameEnvKey)
@@ -147,22 +138,5 @@ func InjectPodFailure() error {
 		return err
 	}
 	fmt.Println("Injected fault")
-	return nil
-}
-
-func DeletePodFailure() error {
-	DeleteCommand := os.Getenv(DeleteFaultEnvKey)
-	PodLabel := os.Getenv(PodEnvKey)
-	Fault := os.Getenv(FaultNameEnvKey)
-	if DeleteCommand == "" || Fault == "" || PodLabel == "" {
-		fmt.Println("DeleteCommand is ", DeleteCommand, "and InjectPodLabel is ", PodLabel, ", skip error injection")
-		return nil
-	}
-
-	if err := requestFailpoint(PodLabel, http.MethodDelete, Fault, ""); err != nil {
-		fmt.Println("Failed to delete pod failure: " + err.Error())
-		return err
-	}
-	fmt.Println("Deleted fault")
 	return nil
 }
