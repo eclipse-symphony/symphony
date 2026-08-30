@@ -230,8 +230,8 @@ func TestCreateSymphonyDeploymentFromTarget(t *testing.T) {
 				},
 			},
 			Spec: &model.InstanceSpec{
-				Scope:    "targetScope",
-				DisplayName: "target-runtime-someTargetName",
+				Scope:           "targetScope",
+				DisplayName:     "target-runtime-someTargetName",
 				SolutionVersion: "target-runtime-someTargetName",
 				Target: model.TargetSelector{
 					Name: "someTargetName",

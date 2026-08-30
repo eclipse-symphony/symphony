@@ -92,8 +92,8 @@ func CreateSymphonyDeploymentFromTarget(ctx context.Context, target model.Target
 			Namespace: target.ObjectMeta.Namespace,
 		},
 		Spec: &model.InstanceSpec{
-			Scope:    scope,
-			DisplayName: key,
+			Scope:           scope,
+			DisplayName:     key,
 			SolutionVersion: key,
 			Target: model.TargetSelector{
 				Name: target.ObjectMeta.Name,
