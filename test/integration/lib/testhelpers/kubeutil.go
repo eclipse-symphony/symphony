@@ -11,8 +11,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/http"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -23,8 +21,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/transport/spdy"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -102,62 +98,6 @@ func EnsureNamespace(namespace string) error {
 	}
 
 	return nil
-}
-
-func EnablePortForward(podlabel string, port string, stopChan chan struct{}) error {
-	config, err := RestConfig()
-	if err != nil {
-		return err
-	}
-
-	clientset, err := KubeClient()
-	if err != nil {
-		return err
-	}
-	pods := clientset.CoreV1().Pods("default")
-	podList, err := pods.List(context.Background(), metav1.ListOptions{
-		LabelSelector: podlabel,
-	})
-	if err != nil {
-		return err
-	}
-	pod := podList.Items[0]
-
-	// Create a port-forward request
-	url := clientset.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Namespace("default").
-		Name(pod.Name).
-		SubResource("portforward").
-		URL()
-	transport, upgrader, err := spdy.RoundTripperFor(config)
-	if err != nil {
-		return err
-	}
-
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", url)
-	// Set up port-forwarding
-	ports := []string{fmt.Sprintf("%s:%s", port, port)}
-	readyChan := make(chan struct{})
-	forwarder, err := portforward.New(dialer, ports, stopChan, readyChan, os.Stdout, os.Stderr)
-	errCh := make(chan error)
-	go func() {
-		errCh <- forwarder.ForwardPorts()
-		if err != nil {
-			fmt.Printf("Error in port-forwarding: %v\n", err)
-		}
-	}()
-
-	// Wait for the port-forwarding to be ready
-	select {
-	case <-readyChan:
-		fmt.Println("Port-forwarding is ready")
-		return nil
-	case <-time.After(time.Second * 10):
-		return fmt.Errorf("timeout waiting for port-forwarding to be ready")
-	case err = <-errCh:
-		return fmt.Errorf("forwarding ports: %v", err)
-	}
 }
 
 func WaitPodOnline(podlabel string) error {

@@ -15,6 +15,8 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -159,6 +161,10 @@ func (Cluster) Deploy() error {
 	fmt.Printf("Deploying symphony to minikube\n")
 	mg.Deps(ensureMinikubeUp)
 
+	if err := waitForReleaseCleanup(); err != nil {
+		return err
+	}
+
 	if enableTlsOtelSetup() {
 		err := ensureSecureOtelCollectorPrereqs()
 		if err != nil {
@@ -181,6 +187,10 @@ func (Cluster) Deploy() error {
 func (Cluster) DeployWithSettings(values string) error {
 	fmt.Printf("Deploying symphony to minikube with settings, %s\n", values)
 	mg.Deps(ensureMinikubeUp)
+
+	if err := waitForReleaseCleanup(); err != nil {
+		return err
+	}
 
 	if enableTlsOtelSetup() {
 		err := ensureSecureOtelCollectorPrereqs()
@@ -402,7 +412,77 @@ func Destroy(flags string) error {
 		}
 	}
 
-	return nil
+	return waitForReleaseCleanup()
+}
+
+// waitForReleaseCleanup waits until no helm release record in a non-deployed
+// status remains for the chart. A leftover release in "uninstalling" or
+// "failed" state makes the next `helm upgrade --install` fail with
+// "UPGRADE FAILED: <name> has no deployed releases". A healthy "deployed"
+// release is left alone: `helm upgrade --install` updates it in place.
+func waitForReleaseCleanup() error {
+	for i := 0; i < 18; i++ {
+		out, err := shellcmd.Command(fmt.Sprintf("helm list -a -n %s -f '^%s$' -o json", getChartNamespace(), getReleaseName())).Output()
+		if err != nil {
+			if isNamespaceNotFound(err) {
+				// First deploy into a custom CHART_NAMESPACE: the namespace
+				// is created later by helm upgrade --install
+				// --create-namespace, so there is nothing to clean up
+				return nil
+			}
+			// Transient error (e.g. API server briefly flaky right after
+			// destroy all,nowait); consume a retry instead of aborting
+			fmt.Printf("helm list failed (attempt %d/18), retrying: %v\n", i+1, err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		stuck, err := hasStuckRelease(out)
+		if err != nil {
+			fmt.Printf("failed to parse helm list output (attempt %d/18), retrying: %v\n", i+1, err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		if !stuck {
+			return nil
+		}
+		// Nudge a stuck release towards deletion; ignore errors since it may
+		// already be uninstalling
+		_ = shellcmd.Command(fmt.Sprintf("helm uninstall %s -n %s --wait", getReleaseName(), getChartNamespace())).Run()
+		time.Sleep(10 * time.Second)
+	}
+	return fmt.Errorf("timed out waiting for helm release %s to be removed", getReleaseName())
+}
+
+// hasStuckRelease parses helm list JSON output and reports whether any listed
+// release is in a non-deployed status (e.g. uninstalling, failed,
+// pending-install) that blocks the next `helm upgrade --install`. A healthy
+// "deployed" release — or no release at all — needs no cleanup.
+func hasStuckRelease(helmListJSON []byte) (bool, error) {
+	var releases []struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(helmListJSON, &releases); err != nil {
+		return false, err
+	}
+	for _, release := range releases {
+		if release.Status != "deployed" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// isNamespaceNotFound reports whether a failed helm list exited because the
+// chart namespace does not exist yet (first deploy with a custom
+// CHART_NAMESPACE): helm prints `Error: namespaces "<ns>" not found` to
+// stderr, which exec.Cmd.Output() captures into ExitError.Stderr.
+func isNamespaceNotFound(err error) bool {
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) {
+		return false
+	}
+	return strings.Contains(string(exitErr.Stderr), "namespaces \"") &&
+		strings.Contains(string(exitErr.Stderr), "\" not found")
 }
 
 // Build builds all containers

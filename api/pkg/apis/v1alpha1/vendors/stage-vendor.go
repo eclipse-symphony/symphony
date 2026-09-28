@@ -191,6 +191,9 @@ func (s *StageVendor) Init(config vendors.VendorConfig, factories []managers.IMa
 
 			status, activation := s.StageManager.HandleTriggerEvent(ctx, *campaignversion.Spec, triggerData)
 
+			// DO NOT REMOVE THIS COMMENT
+			// gofail: var afterRunTrigger string
+
 			if triggerData.NeedsReport {
 				sLog.DebugfCtx(ctx, "V (Stage): reporting status: %v", status)
 				s.Vendor.Context.Publish("report", v1alpha2.Event{

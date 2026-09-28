@@ -41,17 +41,12 @@ func FaultTestHelper(test utils.FaultTestCase) error {
 	if err != nil {
 		return err
 	}
-	// Step 2.2: enable port forward on specific pod
-	stopChan := make(chan struct{}, 1)
-	defer close(stopChan)
-	err = testhelpers.EnablePortForward(test.PodLabel, utils.LocalPortForward, stopChan)
-	if err != nil {
-		return err
-	}
-
-	InjectCommand := fmt.Sprintf("curl localhost:%s/%s -XPUT -d'%s'", utils.LocalPortForward, test.Fault, test.FaultType)
-	os.Setenv(utils.InjectFaultEnvKey, InjectCommand)
+	// Step 2.2: pass the fault info to the test process. Each injection dials
+	// a fresh port-forward to the live pod; a long-lived port-forward set up
+	// here does not survive the pod restarting after a panic fault.
 	os.Setenv(utils.PodEnvKey, test.PodLabel)
+	os.Setenv(utils.FaultNameEnvKey, test.Fault)
+	os.Setenv(utils.FaultTypeEnvKey, test.FaultType)
 
 	err = Verify(test.TestCase)
 	return err
