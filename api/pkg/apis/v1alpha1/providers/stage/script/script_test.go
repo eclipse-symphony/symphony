@@ -8,6 +8,8 @@ package script
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -68,19 +70,35 @@ func TestShellScriptOnline(t *testing.T) {
 }
 
 func TestShellScriptNotFoundOnline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	t.Cleanup(server.Close)
+
+	vc := &contexts.VendorContext{
+		SecurityPolicy: &contexts.SecurityPolicy{
+			AllowedIPRanges: []string{"127.0.0.1/32"},
+		},
+	}
+	mc := &contexts.ManagerContext{}
+	require.NoError(t, mc.Init(vc, nil))
+
 	provider := ScriptStageProvider{}
-	err := provider.Init(ScriptStageProviderConfig{
+	require.NoError(t, provider.Init(ScriptStageProviderConfig{
 		Name:          "test",
 		Script:        "test.ps1",
 		ScriptEngine:  "powershell",
-		ScriptFolder:  "https://bing.com",
-		StagingFolder: "staging",
-	})
-	// Init no longer downloads; error surfaces on first use.
-	assert.Nil(t, err)
-	err = provider.ensureScriptReady(context.Background())
-	assert.NotNil(t, err)
-	assert.IsType(t, v1alpha2.COAError{}, err)
+		ScriptFolder:  server.URL,
+		StagingFolder: t.TempDir(),
+	}))
+	provider.SetContext(mc)
+
+	err := provider.ensureScriptReady(context.Background())
+
+	require.Error(t, err)
+	var coaErr v1alpha2.COAError
+	require.ErrorAs(t, err, &coaErr)
+	assert.Equal(t, v1alpha2.NotFound, coaErr.State)
 }
 
 // TestShellScriptNotFoundOnline is the last test in this file that references provider behaviour.
