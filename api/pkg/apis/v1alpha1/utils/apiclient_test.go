@@ -159,11 +159,11 @@ func TestGetInstancesWithEmptyNamespaceDefaultsToDefault(t *testing.T) {
 	client, err := NewApiClient(context.Background(), server.URL+"/v1alpha2/")
 	require.NoError(t, err)
 
-	_, err = client.GetInstances(context.Background(), "", user, password)
+	_, err = client.GetInstances(context.Background(), "", "", "")
 	require.NoError(t, err)
 	require.Equal(t, "default", gotNamespace)
 
-	_, err = client.GetInstances(context.Background(), "my-namespace", user, password)
+	_, err = client.GetInstances(context.Background(), "my-namespace", "", "")
 	require.NoError(t, err)
 	require.Equal(t, "my-namespace", gotNamespace)
 }
