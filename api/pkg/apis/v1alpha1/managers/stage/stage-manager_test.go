@@ -1662,6 +1662,9 @@ func prepareManager() *StageManager {
 		SiteInfo: v1alpha2.SiteInfo{
 			SiteId: "fake",
 		},
+		SecurityPolicy: &contexts.SecurityPolicy{
+			AllowedIPRanges: []string{"127.0.0.1/8"},
+		},
 	}
 	manager.Context = &contexts.ManagerContext{
 		VencorContext: manager.VendorContext,
