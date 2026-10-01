@@ -137,6 +137,17 @@ jobs:
           echo $new_version > .github/version/versions.txt
           echo "version=$new_version" >> $GITHUB_OUTPUT
 
+      - name: Align symphony crate version
+        id: increment_crate_version
+        run: |
+          version=$(cat .github/version/versions.txt)
+          crate_manifest=api/pkg/apis/v1alpha1/providers/target/rust/symphony/Cargo.toml
+          # Align the crate version with the system version, replacing only the
+          # first (package) version line and leaving workspace deps untouched
+          sed -i "0,/^version = \".*\"/s//version = \"$version\"/" "$crate_manifest"
+          echo "Set symphony crate version to $version"
+          echo "crate_version=$version" >> $GITHUB_OUTPUT
+
       - name: Replace version in cli/cmd/up.go
         run: |
           version=$(cat .github/version/versions.txt)
@@ -147,6 +158,24 @@ jobs:
           cd cli
           mage generatePackages /home/runner/maestro
           cd ..
+
+      - name: Publish symphony crate to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CRATE_VERSION: ${{ steps.increment_crate_version.outputs.crate_version }}
+        run: |
+          cd api/pkg/apis/v1alpha1/providers/target/rust
+          # Skip if this version is already published (e.g. on a pipeline re-run),
+          # since crates.io rejects re-publishing an existing version. crates.io
+          # requires a descriptive User-Agent for automated index access.
+          published=$(curl -s -H "User-Agent: symphony-release-ci (${BOT_EMAIL_ID})" \
+            "https://index.crates.io/sy/mp/symphony" | grep -o "\"vers\":\"${CRATE_VERSION}\"" || true)
+          if [ -n "$published" ]; then
+            echo "symphony ${CRATE_VERSION} is already published on crates.io, skipping."
+          else
+            # --allow-dirty: the version bump and other release edits are not committed yet
+            cargo publish -p symphony --allow-dirty
+          fi
 
       - name: Clean Rust artifacts
         run: |
@@ -216,6 +245,7 @@ jobs:
           git add .github/version/versions.txt
           git add packages/helm/symphony/Chart.yaml
           git add cli/cmd/up.go
+          git add api/pkg/apis/v1alpha1/providers/target/rust/symphony/Cargo.toml
           git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}"  
 
       - name: Push changes
