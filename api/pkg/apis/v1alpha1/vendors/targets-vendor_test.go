@@ -30,7 +30,7 @@ func TestTargetsEndpoints(t *testing.T) {
 	vendor := createTargetsVendor()
 	vendor.Route = "targets"
 	endpoints := vendor.GetEndpoints()
-	assert.Equal(t, 5, len(endpoints))
+	assert.Equal(t, 6, len(endpoints))
 }
 
 func TestTargetsInfo(t *testing.T) {

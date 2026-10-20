@@ -7,11 +7,9 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -36,6 +34,9 @@ var (
 	withMqttBroker      bool
 	helmChartPath       string
 	apiConfigFile       string
+	apiBinary           string
+	mqttBinary          string
+	mqttPort            int
 	storageRP           string
 	storageAccount      string
 	storageContainer    string
@@ -51,7 +52,7 @@ var (
 var UpCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Install Symphony on a Kubernetes cluster, or run Symphony locally",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// if portalType == "list" {
 		// 	fmt.Println("NAME\t\tDESCRIPTION")
 		// 	fmt.Println("OSS\t\tPercept Open Source Portal")
@@ -59,56 +60,34 @@ var UpCmd = &cobra.Command{
 		// 	fmt.Println("Playground\tSymphony Playground")
 		// 	return
 		// }
-		u, err := user.Current()
-		if err != nil {
-			fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-			return
-		}
 		if noK8s {
-			configPath := filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json")
-			if apiConfigFile != "" {
-				configPath = apiConfigFile
-			}
-
-			port, err := extractPortFromConfig(configPath)
-			if err != nil {
-				fmt.Printf("\n%s  Failed to extract port from config: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-				return
-			}
-
-			if !updateSymphonyContext("no-k8s", "localhost", port, configPath, config.MaestroMqttConfig{}) {
-				return
-			}
-			os.Setenv("SYMPHONY_API_URL", fmt.Sprintf("http://localhost:%d/v1alpha2/", port))
-			os.Setenv("USE_SERVICE_ACCOUNT_TOKENS", "false")
-			_, launchErr := utils.RunCommandNoCapture("Launching Symphony in standalone mode", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", filepath.Join(u.HomeDir, ".symphony/symphony-api-no-k8s.json"), "-l", "Debug")
-			if launchErr != nil {
-				fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), launchErr.Error(), utils.ColorReset())
-				return
-			}
+			return runLocalControlPlane(cmd)
 		} else {
+			if apiBinary != "" || apiConfigFile != "" || cmd.Flags().Changed("mqtt-binary") || cmd.Flags().Changed("mqtt-port") {
+				return fmt.Errorf("--api-binary, --api-config, --mqtt-binary and --mqtt-port require --no-k8s")
+			}
 			// we don't need to check for Docker, as we are not using it
 			// if !handleDocker() {
 			//	return
 			// }
 			if !handleKubectl() {
-				return
+				return fmt.Errorf("kubectl setup failed")
 			}
 			k8sContext, ret := handleK8sConnection()
 			if !ret {
-				return
+				return fmt.Errorf("Kubernetes connection failed")
 			}
 			_, errOutput, err := utils.RunCommand("Installing cert manager", "done", verbose, "kubectl", "apply", "-f", "https://github.com/jetstack/cert-manager/releases/download/v1.4.0/cert-manager.yaml")
 			if err != nil {
 				fmt.Printf("\n%s  Failed.%s\n\n", utils.ColorRed(), utils.ColorReset())
 				fmt.Printf("\n%s  Detailed Messages: %s%s\n\n", utils.ColorRed(), errOutput, utils.ColorReset())
-				return
+				return fmt.Errorf("install cert manager: %w", err)
 			}
 			if !handleHelm() {
-				return
+				return fmt.Errorf("Helm setup failed")
 			}
 			if !handleSymphony(noRestApi) {
-				return
+				return fmt.Errorf("Symphony installation failed")
 			}
 			var tunnelCMD *exec.Cmd
 			if !noRestApi {
@@ -116,13 +95,13 @@ var UpCmd = &cobra.Command{
 				if k8sContext == "minikube" {
 					tunnelCMD, err = handleMinikubeTunnel()
 					if err != nil {
-						return
+						return err
 					}
 				}
 
 				ret, apiAddress := checkSymphonyAddress()
 				if !ret {
-					return
+					return fmt.Errorf("could not determine Symphony API address")
 				}
 
 				mqttConfig := config.MaestroMqttConfig{}
@@ -136,7 +115,7 @@ var UpCmd = &cobra.Command{
 				}
 
 				if !updateSymphonyContext(k8sContext, apiAddress, 0, "", mqttConfig) {
-					return
+					return fmt.Errorf("could not save Symphony context")
 				}
 
 				fmt.Printf("  %sSymphony API:%s %s%s\n", utils.ColorGreen(), utils.ColorWhite(), "http://"+apiAddress+":8080/v1alpha2/greetings", utils.ColorReset())
@@ -145,7 +124,9 @@ var UpCmd = &cobra.Command{
 				if k8sContext == "minikube" {
 					fmt.Printf("  %sKeeping minikube tunnel for API use. Press CTRL + C to stop the tunnel and quit.%s\n", utils.ColorGreen(), utils.ColorReset())
 					fmt.Println()
-					tunnelCMD.Wait()
+					if err := tunnelCMD.Wait(); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -174,6 +155,7 @@ var UpCmd = &cobra.Command{
 			fmt.Println()
 
 		}
+		return nil
 	},
 }
 
@@ -184,32 +166,11 @@ func extractPortFromConfig(configPath string) (int, error) {
 		return 0, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var cfg map[string]interface{}
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	cfg, err := parseRuntimeConfig(data)
+	if err != nil {
 		return 0, fmt.Errorf("failed to parse config file: %w", err)
 	}
-
-	bindings, ok := cfg["bindings"].([]interface{})
-	if !ok || len(bindings) == 0 {
-		return 0, fmt.Errorf("no bindings found in config")
-	}
-
-	binding, ok := bindings[0].(map[string]interface{})
-	if !ok {
-		return 0, fmt.Errorf("invalid binding format")
-	}
-
-	bindingConfig, ok := binding["config"].(map[string]interface{})
-	if !ok {
-		return 0, fmt.Errorf("no config in binding")
-	}
-
-	port, ok := bindingConfig["port"].(float64)
-	if !ok {
-		return 0, fmt.Errorf("port not found or invalid in binding config")
-	}
-
-	return int(port), nil
+	return runtimeHTTPPort(cfg)
 }
 
 func init() {
@@ -220,6 +181,9 @@ func init() {
 	UpCmd.Flags().BoolVar(&withMqttBroker, "with-mqtt-broker", false, "Install Mosquitto MQTT broker alongside Symphony API")
 	UpCmd.Flags().StringVar(&helmChartPath, "helm-chart-path", "", "Use a local Helm chart path instead of OCI chart (e.g. ./packages/helm/symphony)")
 	UpCmd.Flags().StringVar(&apiConfigFile, "api-config", "", "Custom Symphony API config file for no-k8s mode (default: ~/.symphony/symphony-api-no-k8s.json)")
+	UpCmd.Flags().StringVar(&apiBinary, "api-binary", "", "Local Symphony API executable (default: ~/.symphony/symphony-api)")
+	UpCmd.Flags().StringVar(&mqttBinary, "mqtt-binary", "mosquitto", "Mosquitto executable for the local test broker")
+	UpCmd.Flags().IntVar(&mqttPort, "mqtt-port", 1883, "Loopback port for the local test MQTT broker")
 	//UpCmd.Flags().StringVarP(&portalVersion, "portal-version", "p", KANPortalVersion, "Symphony Portal version")
 	//UpCmd.Flags().StringVarP(&portalType, "with-portal", "", "", "Install Symphony Portal")
 	// UpCmd.Flags().StringVarP(&storageRP, "storage-resource-group", "", "", "Azure Storage account resource group")
@@ -418,6 +382,7 @@ func updateSymphonyContext(context string, apiAddress string, port int, configFi
 	err := config.UpdateMaestroConfig(context, apiAddress, port, configFile, mqtt)
 	if err != nil {
 		fmt.Printf("\n%s  Failed to update maestro config file.%s\n\n", utils.ColorRed(), utils.ColorReset())
+		return false
 	}
 	return true
 }
