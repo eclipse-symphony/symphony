@@ -75,10 +75,13 @@ type MaestroContext struct {
 }
 
 type MaestroMqttConfig struct {
-	BrokerAddress string `json:"brokerAddress,omitempty"`
-	RequestTopic  string `json:"requestTopic,omitempty"`
-	ResponseTopic string `json:"responseTopic,omitempty"`
-	ClientID      string `json:"clientID,omitempty"`
+	BrokerAddress       string `json:"brokerAddress,omitempty"`
+	RequestTopic        string `json:"requestTopic,omitempty"`
+	ResponseTopic       string `json:"responseTopic,omitempty"`
+	ClientID            string `json:"clientID,omitempty"`
+	StatusRequestTopic  string `json:"statusRequestTopic,omitempty"`
+	StatusResponseTopic string `json:"statusResponseTopic,omitempty"`
+	StatusRoute         string `json:"statusRoute,omitempty"`
 }
 type MaestroConfig struct {
 	DefaultContext string                    `json:"default,omitempty"`
@@ -112,7 +115,13 @@ func SaveMaestroConfig(config MaestroConfig) error {
 		return err
 	}
 	configFile := filepath.Join(dirname, ".symphony", ".config.json")
-	file, err := os.OpenFile(configFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 064)
+	if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
+		return err
+	}
+	if err := os.Chmod(configFile, 0600); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	file, err := os.OpenFile(configFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
