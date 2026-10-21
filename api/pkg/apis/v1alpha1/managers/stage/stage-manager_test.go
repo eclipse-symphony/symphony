@@ -2045,7 +2045,7 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 			SiteId: "fake",
 		},
 	}
-	campaignversion := model.CampaignVersionSpec{
+	campaign := model.CampaignSpec{
 		SelfDriving: true,
 		FirstStage:  "test",
 		Stages: map[string]model.StageSpec{
@@ -2060,13 +2060,13 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 
 	// A self-referencing input must fail the stage with an error
 	// instead of recursing until the process runs out of stack.
-	status, _ := manager.HandleTriggerEvent(context.Background(), campaignversion, v1alpha2.ActivationData{
-		CampaignVersion:             "test-campaignversion",
+	status, _ := manager.HandleTriggerEvent(context.Background(), campaign, v1alpha2.ActivationData{
+		Campaign:             "test-campaign",
 		Activation:           "test-activation",
 		Stage:                "test",
 		ActivationGeneration: "1",
-		Provider:  "providers.stage.mock",
-		Namespace: "fakens",
+		Provider:             "providers.stage.mock",
+		Namespace:            "fakens",
 	})
 	assert.Equal(t, v1alpha2.InternalError, status.Status)
 	assert.True(t, v1alpha2.InternalError.EqualsWithString(status.StatusMessage))
@@ -2074,12 +2074,12 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 	assert.False(t, status.IsActive)
 
 	// The manager survives and keeps processing later activations.
-	campaignversion.Stages["test"] = model.StageSpec{
+	campaign.Stages["test"] = model.StageSpec{
 		Provider: "providers.stage.mock",
 	}
 	var status2 model.StageStatus
 	activation2 := &v1alpha2.ActivationData{
-		CampaignVersion:             "test-campaignversion",
+		Campaign:             "test-campaign",
 		Activation:           "test-activation-2",
 		Stage:                "test",
 		ActivationGeneration: "2",
@@ -2090,7 +2090,7 @@ func TestActivationSelfReferencingInput_FailsButSurvives(t *testing.T) {
 		Namespace: "fakens",
 	}
 	for {
-		status2, activation2 = manager.HandleTriggerEvent(context.Background(), campaignversion, *activation2)
+		status2, activation2 = manager.HandleTriggerEvent(context.Background(), campaign, *activation2)
 		if activation2 == nil {
 			break
 		}

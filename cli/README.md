@@ -122,7 +122,7 @@ client ID is distinct from the agent's client ID.
 `--agent-config` selects an input template. Maestro preserves arbitrary vendors,
 providers, expression strings, and binding options, including TLS settings; it
 does not require the vendors or bindings to appear at fixed array indexes.
-It configures solutionversion managers for the selected Target and updates the
+It configures solution managers for the selected Target and updates the
 first MQTT deployment binding, preserving other bindings. Custom deployment
 provider definitions are not replaced.
 

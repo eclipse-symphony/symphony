@@ -69,19 +69,19 @@ func configureAgentRuntime(cfg map[string]interface{}, ctx config.MaestroContext
 		if !ok {
 			return fmt.Errorf("vendor must be an object")
 		}
-		if vendor["type"] != "vendors.solutionversion" {
+		if vendor["type"] != "vendors.solution" {
 			continue
 		}
 		managers, ok := vendor["managers"].([]interface{})
 		if !ok {
-			return fmt.Errorf("solutionversion vendor requires managers")
+			return fmt.Errorf("solution vendor requires managers")
 		}
 		for _, entry := range managers {
 			manager, ok := entry.(map[string]interface{})
 			if !ok {
 				return fmt.Errorf("manager must be an object")
 			}
-			if manager["type"] != "managers.symphony.solutionversion" {
+			if manager["type"] != "managers.symphony.solution" {
 				continue
 			}
 			properties, err := configObject(manager, "properties")
@@ -106,7 +106,7 @@ func configureAgentRuntime(cfg map[string]interface{}, ctx config.MaestroContext
 		}
 	}
 	if !hasDeployment && !reportStatus {
-		return fmt.Errorf("agent template requires a solutionversion manager or --report-status")
+		return fmt.Errorf("agent template requires a solution manager or --report-status")
 	}
 	if hasDeployment {
 		bindings, exists := cfg["bindings"]

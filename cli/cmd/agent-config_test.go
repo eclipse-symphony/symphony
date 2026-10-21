@@ -49,8 +49,8 @@ func TestAgentRuntimePreservesCustomConfiguration(t *testing.T) {
 	  "custom":{"preserve":true},
 	  "api":{"vendors":[
 	    {"type":"vendors.echo","extra":"keep"},
-	    {"type":"vendors.solutionversion","managers":[
-	      {"type":"managers.symphony.solutionversion","properties":{"custom":"keep"},
+	    {"type":"vendors.solution","managers":[
+	      {"type":"managers.symphony.solution","properties":{"custom":"keep"},
 	       "providers":{"instance":{"type":"providers.target.script","config":{"getScript":"keep.sh"}}}}
 	    ]}]},
 	  "bindings":[
@@ -96,6 +96,33 @@ func TestAgentRuntimePreservesCustomConfiguration(t *testing.T) {
 	if len(cfg["api"].(map[string]interface{})["vendors"].([]interface{})) != 3 {
 		t.Fatal("status vendor duplicated")
 	}
+}
+
+func TestAgentRuntimeUsesReleaseTemplate(t *testing.T) {
+	ctx := agentTestOptions(t)
+	reportStatus = false
+	data, err := os.ReadFile("../../api/symphony-agent.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := testRuntimeConfig(t, string(data))
+	if err := configureAgentRuntime(cfg, ctx); err != nil {
+		t.Fatal(err)
+	}
+	vendors := cfg["api"].(map[string]interface{})["vendors"].([]interface{})
+	for _, entry := range vendors {
+		vendor := entry.(map[string]interface{})
+		if vendor["type"] != "vendors.solution" {
+			continue
+		}
+		manager := vendor["managers"].([]interface{})[0].(map[string]interface{})
+		properties := manager["properties"].(map[string]interface{})
+		if properties["targetNames"] != targetName || properties["targetNamespace"] != targetNamespace {
+			t.Fatal("release template deployment identity was not updated")
+		}
+		return
+	}
+	t.Fatal("release template has no solution vendor")
 }
 
 func TestAgentConfigurationOutputAndValidation(t *testing.T) {
