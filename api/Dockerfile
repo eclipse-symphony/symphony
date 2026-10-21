@@ -5,7 +5,8 @@
 ##
 
 ARG BUILD_BASE_IMAGE=ubuntu:22.04
-ARG TARGET_BASE_IMAGE=ubuntu:latest
+# Match the build stage and avoid Ubuntu 26.04 env failures under QEMU.
+ARG TARGET_BASE_IMAGE=ubuntu:22.04
 
 FROM --platform=$BUILDPLATFORM ${BUILD_BASE_IMAGE} AS build
 

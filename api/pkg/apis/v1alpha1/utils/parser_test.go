@@ -3143,3 +3143,67 @@ func TestRecursiveUnsupported(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 }
+func TestMambaOut_SelfReferenceReturnsError(t *testing.T) {
+	// A self-referencing input must fail with an error instead of
+	// recursing until the process runs out of stack.
+	inputs := map[string]interface{}{
+		"jersey24": "${{$input(jersey24)}}",
+	}
+	_, err := NewParser("${{$input(jersey24)}}").Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs:  inputs,
+	})
+	assert.NotNil(t, err)
+	cErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadConfig, cErr.State)
+	assert.Contains(t, err.Error(), "circular dependency")
+}
+func TestTreadmill_MutualReferenceReturnsError(t *testing.T) {
+	// Mutually referencing inputs would chase each other on a treadmill
+	// forever; the circular dependency check must reject them.
+	inputs := map[string]interface{}{
+		"sprite":   "${{$input(qiaolezi)}}",
+		"qiaolezi": "${{$input(sprite)}}",
+	}
+	_, err := NewParser("${{$input(sprite)}}").Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs:  inputs,
+	})
+	assert.NotNil(t, err)
+	cErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadConfig, cErr.State)
+}
+func TestLegitimateNestingNoCycle(t *testing.T) {
+	// Nested references without cycles still evaluate normally.
+	inputs := map[string]interface{}{
+		"mamba8":  "${{$input(mamba24)}}",
+		"mamba24": "Man! What can I say? Mamba out.",
+	}
+	res, err := NewParser("${{$input(mamba8)}}").Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs:  inputs,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "Man! What can I say? Mamba out.", res)
+}
+func TestCircularErrorIsBadConfig(t *testing.T) {
+	// A key already on the resolution path is rejected on first access.
+	inputs := map[string]interface{}{
+		"sprite": "qiaolezi",
+	}
+	_, err := NewParser("${{$input(sprite)}}").Eval(utils.EvaluationContext{
+		Context: ctx,
+		Inputs:  inputs,
+		ParentConfigs: map[string]map[string]bool{
+			"input": {
+				"sprite": true,
+			},
+		},
+	})
+	assert.NotNil(t, err)
+	cErr, ok := err.(v1alpha2.COAError)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha2.BadConfig, cErr.State)
+}

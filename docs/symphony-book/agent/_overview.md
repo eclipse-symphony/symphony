@@ -44,3 +44,4 @@ You can link multiple Symphony control planes together into a cascaded control p
 * [Polling agent](./polling-agent.md)
 * [Lightweight polling agent (Piccolo)](./piccolo-agent.md)
 * [Symphony agent](./symphony-agent.md)
+* [Agent status reporting](./status-reporting.md)
