@@ -7,19 +7,26 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"os"
+	"os/exec"
+	"os/signal"
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/cli/config"
 	"github.com/eclipse-symphony/symphony/cli/utils"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 var (
@@ -31,29 +38,35 @@ var (
 	targetNamespace   string
 	upsertTarget      bool
 	configOnly        bool
+	agentBinary       string
+	agentConfigFile   string
+	reportStatus      bool
+	reportInterval    time.Duration
+	statusProperties  []string
+	statusBagFile     string
 )
 
 var AgentCmd = &cobra.Command{
 	Use:   "agent",
 	Short: "Manage Symphony agent process and service",
-	Run: func(cmd *cobra.Command, args []string) {
-		runAgentWorkflow("run")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runAgentWorkflow(cmd, "run")
 	},
 }
 
 var AgentRunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Symphony agent in foreground",
-	Run: func(cmd *cobra.Command, args []string) {
-		runAgentWorkflow("run")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runAgentWorkflow(cmd, "run")
 	},
 }
 
 var AgentInstallCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Install Symphony agent as a service",
-	Run: func(cmd *cobra.Command, args []string) {
-		runAgentWorkflow("install")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runAgentWorkflow(cmd, "install")
 	},
 }
 
@@ -74,58 +87,71 @@ var AgentUninstallCmd = &cobra.Command{
 	},
 }
 
-func runAgentWorkflow(mode string) {
+func runAgentWorkflow(cmd *cobra.Command, mode string) (result error) {
 	ctx, err := resolveCurrentContext()
 	if err != nil {
-		fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-		return
+		return err
 	}
 
 	err = resolveMqttSettingsFromContext(ctx)
 	if err != nil {
-		fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-		return
+		return err
 	}
-
+	if !reportStatus && (len(statusProperties) > 0 || statusBagFile != "" || cmd.Flags().Changed("report-interval")) {
+		return fmt.Errorf("--status-property, --status-properties and --report-interval require --report-status")
+	}
 	agentFile, err := updateAgentConfig(ctx)
 	if err != nil {
-		fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-		return
+		return err
 	}
 	if configOnly {
 		fmt.Printf("\n%s  Agent configuration file updated: %s%s\n\n", utils.ColorGreen(), agentFile, utils.ColorReset())
-		return
+		return nil
 	}
-
+	binary, err := resolveLocalBinary(agentBinary)
+	if err != nil {
+		return err
+	}
 	if upsertTarget {
 		err = createTarget(ctx)
 		if err != nil {
-			fmt.Printf("\n%s%s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-			return
+			return err
 		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Registered Target %s/%s\n", targetNamespace, targetName)
 	}
 
 	switch mode {
 	case "run":
-		u, err := user.Current()
-		if err != nil {
-			fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-			return
+		runCtx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+		command := exec.Command(binary, "-c", agentFile, "-l", "Debug")
+		command.Env = append(os.Environ(), "SYMPHONY_TARGET_NAME="+targetName, "SYMPHONY_API_URL="+strings.TrimRight(ctx.Url, "/")+"/")
+		if ctx.Port > 0 {
+			command.Env = append(command.Env, "USE_SERVICE_ACCOUNT_TOKENS=false")
 		}
-		_, err = utils.RunCommandNoCapture("Launching Symphony agent", "done", filepath.Join(u.HomeDir, ".symphony/symphony-api"), "-c", agentFile, "-l", "Debug")
+		command.Stdin, command.Stdout, command.Stderr = cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()
+		process, err := startLocalProcess(command)
 		if err != nil {
-			fmt.Printf("\n%s  Failed: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
+			return err
+		}
+		defer func() { result = errors.Join(result, process.stop()) }()
+		fmt.Fprintf(cmd.OutOrStdout(), "Agent configuration: %s\nPress Ctrl+C to stop.\n", agentFile)
+		select {
+		case <-runCtx.Done():
+			return process.stop()
+		case <-process.done:
+			return process.err
 		}
 	case "install":
-		err = installAgentService(targetName, agentFile)
+		err = installAgentService(targetName, agentFile, binary)
 		if err != nil {
-			fmt.Printf("\n%s  Failed to install agent service: %s%s\n\n", utils.ColorRed(), err.Error(), utils.ColorReset())
-			return
+			return fmt.Errorf("install agent service: %w", err)
 		}
 		fmt.Printf("\n%s  Agent service installed for target: %s%s\n\n", utils.ColorGreen(), targetName, utils.ColorReset())
 	default:
-		fmt.Printf("\n%s  Unsupported agent mode: %s%s\n\n", utils.ColorRed(), mode, utils.ColorReset())
+		return fmt.Errorf("unsupported agent mode: %s", mode)
 	}
+	return nil
 }
 
 func resolveCurrentContext() (config.MaestroContext, error) {
@@ -146,10 +172,9 @@ func resolveCurrentContext() (config.MaestroContext, error) {
 }
 
 func resolveMqttSettingsFromContext(ctx config.MaestroContext) error {
-	if strings.TrimSpace(targetName) == "" {
-		return fmt.Errorf("--target is required")
+	if err := validateAgentTarget(); err != nil {
+		return err
 	}
-
 	if mqttBrokerAddress == "" {
 		mqttBrokerAddress = ctx.Mqtt.BrokerAddress
 	}
@@ -173,9 +198,21 @@ func resolveMqttSettingsFromContext(ctx config.MaestroContext) error {
 	if mqttClientId == "" {
 		mqttClientId = "symphony-agent-" + targetName
 	}
-
 	if mqttBrokerAddress == "" {
 		return fmt.Errorf("MQTT broker is not configured. Use --mqtt-broker or run maestro up --with-mqtt-broker to persist broker info in context")
+	}
+	return nil
+}
+
+func validateAgentTarget() error {
+	if strings.TrimSpace(targetName) == "" {
+		return fmt.Errorf("--target is required")
+	}
+	if errors := validation.IsDNS1123Subdomain(targetName); len(errors) != 0 {
+		return fmt.Errorf("invalid Target name %q: %s", targetName, strings.Join(errors, "; "))
+	}
+	if errors := validation.IsDNS1123Label(targetNamespace); len(errors) != 0 {
+		return fmt.Errorf("invalid Target namespace %q: %s", targetNamespace, strings.Join(errors, "; "))
 	}
 
 	return nil
@@ -196,7 +233,7 @@ func createTarget(ctx config.MaestroContext) error {
 							Provider: "providers.target.mqtt",
 							Config: map[string]string{
 								"brokerAddress": mqttBrokerAddress,
-								"clientId":      mqttClientId,
+								"clientID":      "symphony-control-plane-" + targetName,
 								"requestTopic":  mqttRequestTopic,
 								"responseTopic": mqttResponseTopic,
 							},
@@ -206,8 +243,13 @@ func createTarget(ctx config.MaestroContext) error {
 			},
 		},
 	}
-	targetData, _ := json.Marshal(target)
-	return utils.Upsert(ctx.Url, ctx.User, ctx.Secret, "target", targetName, targetData)
+	targetData, err := json.Marshal(target)
+	if err != nil {
+		return err
+	}
+	requestCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return utils.UpsertInNamespace(requestCtx, ctx.Url, ctx.User, ctx.Secret, "target", targetName, targetData, targetNamespace)
 }
 
 func updateAgentConfig(ctx config.MaestroContext) (string, error) {
@@ -216,86 +258,51 @@ func updateAgentConfig(ctx config.MaestroContext) (string, error) {
 		return "", fmt.Errorf("failed to get user home directory: %s", err.Error())
 	}
 	agentConfigTemplatePath := filepath.Join(dirname, ".symphony", "symphony-agent.json")
-	agentConfigTemplateFile, err := os.Open(agentConfigTemplatePath)
+	if agentConfigFile != "" {
+		agentConfigTemplatePath = agentConfigFile
+	}
+	configData, err := os.ReadFile(agentConfigTemplatePath)
+	if err != nil {
+		return "", fmt.Errorf("read agent template (use --agent-config): %w", err)
+	}
+	agentConfig, err := parseRuntimeConfig(configData)
 	if err != nil {
 		return "", err
 	}
-	defer agentConfigTemplateFile.Close()
-	configData, err := io.ReadAll(agentConfigTemplateFile)
+	if err := configureAgentRuntime(agentConfig, ctx); err != nil {
+		return "", err
+	}
+	agentConfigPath := filepath.Join(dirname, ".symphony", "symphony-agent-"+targetNamespace+"-"+targetName+".json")
+	source, err := os.Stat(agentConfigTemplatePath)
 	if err != nil {
 		return "", err
 	}
-	var agentConfig config.SymphonyAgentConfig
-	err = json.Unmarshal(configData, &agentConfig)
-	if err != nil {
+	destination, err := os.Stat(agentConfigPath)
+	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
-	ensureAgentConfigDefaults(&agentConfig)
-
-	agentConfig.SiteInfo.CurrentSite.BaseURL = ctx.Url
-	agentConfig.SiteInfo.CurrentSite.Username = ctx.User
-	agentConfig.SiteInfo.CurrentSite.Password = ctx.Secret
-
-	agentConfig.API.Vendors[1].Managers[0].Properties.TargetNames = targetName
-	agentConfig.API.Vendors[1].Managers[0].Properties.TargetNamespace = targetNamespace
-	agentConfig.API.Vendors[1].Managers[0].Providers[targetName] = config.TargetProviderConfig{
-		Type:   "providers.target.mock",
-		Config: map[string]interface{}{},
+	if destination != nil && os.SameFile(source, destination) {
+		file, err := os.CreateTemp(filepath.Dir(agentConfigPath), "symphony-agent-effective-*.json")
+		if err != nil {
+			return "", err
+		}
+		agentConfigPath = file.Name()
+		if err := file.Close(); err != nil {
+			return "", err
+		}
 	}
-	agentConfig.Bindings[0].Config.BrokerAddress = mqttBrokerAddress
-	agentConfig.Bindings[0].Config.ClientID = mqttClientId
-	agentConfig.Bindings[0].Config.RequestTopic = mqttRequestTopic
-	agentConfig.Bindings[0].Config.ResponseTopic = mqttResponseTopic
-
-	agentConfigPath := filepath.Join(dirname, ".symphony", "symphony-agent-"+targetName+".json")
-	agentConfigStr, err := json.MarshalIndent(agentConfig, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	// Write the updated JSON to a new file
-	err = os.WriteFile(agentConfigPath, agentConfigStr, 0644)
-	if err != nil {
+	if err := writeRuntimeConfig(agentConfigPath, agentConfig); err != nil {
 		return "", err
 	}
 	return agentConfigPath, nil
 }
 
-func ensureAgentConfigDefaults(agentConfig *config.SymphonyAgentConfig) {
-	if strings.TrimSpace(agentConfig.ShutdownGracePeriod) == "" {
-		agentConfig.ShutdownGracePeriod = "30s"
-	}
-	if len(agentConfig.API.Pubsub) == 0 {
-		agentConfig.API.Pubsub = map[string]interface{}{
-			"shared": true,
-			"provider": map[string]interface{}{
-				"type":   "providers.pubsub.memory",
-				"config": map[string]interface{}{},
-			},
-		}
-	}
-	if len(agentConfig.API.Keylock) == 0 {
-		agentConfig.API.Keylock = map[string]interface{}{
-			"shared": true,
-			"provider": map[string]interface{}{
-				"type": "providers.keylock.memory",
-				"config": map[string]interface{}{
-					"mode":          "Global",
-					"cleanInterval": 30,
-					"purgeDuration": 43200,
-				},
-			},
-		}
-	}
-}
-
-func installAgentService(target string, agentConfigPath string) error {
+func installAgentService(target string, agentConfigPath string, binaryPath string) error {
 	u, err := user.Current()
 	if err != nil {
 		return err
 	}
 
-	binaryPath := filepath.Join(u.HomeDir, ".symphony", "symphony-api")
 	serviceName := "symphony-agent-" + target
 
 	switch runtime.GOOS {
@@ -317,7 +324,7 @@ RestartSec=5
 
 [Install]
 WantedBy=default.target
-`, target, binaryPath, agentConfigPath)
+`, target, strconv.Quote(binaryPath), strconv.Quote(agentConfigPath))
 		if err = os.WriteFile(serviceFile, []byte(serviceContent), 0644); err != nil {
 			return err
 		}
@@ -376,6 +383,12 @@ func init() {
 	AgentCmd.PersistentFlags().StringVarP(&mqttClientId, "mqtt-client-id", "e", "", "MQTT client id (default: context or symphony-agent-<target>)")
 	AgentCmd.PersistentFlags().BoolVar(&upsertTarget, "upsert-target", false, "Upsert target")
 	AgentCmd.PersistentFlags().BoolVar(&configOnly, "config-only", false, "Only update the agent configuration file")
+	AgentCmd.PersistentFlags().StringVar(&agentBinary, "agent-binary", "", "Symphony agent executable (default: ~/.symphony/symphony-api)")
+	AgentCmd.PersistentFlags().StringVar(&agentConfigFile, "agent-config", "", "Agent template override (default: ~/.symphony/symphony-agent.json)")
+	AgentCmd.PersistentFlags().BoolVar(&reportStatus, "report-status", false, "Configure the periodic status vendor and MQTT reporter")
+	AgentCmd.PersistentFlags().DurationVar(&reportInterval, "report-interval", 5*time.Second, "Status reporting interval (whole seconds)")
+	AgentCmd.PersistentFlags().StringArrayVar(&statusProperties, "status-property", nil, "Reported key=value, literal, $env:NAME, or Symphony expression (repeatable)")
+	AgentCmd.PersistentFlags().StringVar(&statusBagFile, "status-properties", "", "JSON file containing the local status property bag")
 	AgentCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Maestro CLI config file")
 	AgentCmd.PersistentFlags().StringVarP(&configContext, "context", "", "", "Maestro CLI configuration context")
 

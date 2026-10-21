@@ -26,6 +26,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/solutions"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/stage"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/staging"
+	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/status"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/sync"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/target"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/managers/targets"
@@ -55,6 +56,8 @@ func (c *SymphonyManagerFactory) CreateManager(config cm.ManagerConfig) (cm.IMan
 		manager = &reference.ReferenceManager{}
 	case "managers.symphony.target":
 		manager = &target.TargetManager{}
+	case "managers.symphony.status":
+		manager = &status.StatusManager{}
 	case "managers.symphony.targets":
 		manager = &targets.TargetsManager{}
 	case "managers.symphony.devices":

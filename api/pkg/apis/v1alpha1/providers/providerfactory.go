@@ -59,6 +59,7 @@ import (
 	k8sref "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reference/k8s"
 	httpreporter "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/http"
 	k8sreporter "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/k8s"
+	mqttreporter "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/reporter/mqtt"
 	mocksecret "github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/secret/mock"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/httpstate"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/providers/states/memorystate"
@@ -147,6 +148,12 @@ func (s SymphonyProviderFactory) CreateProvider(providerType string, config cp.I
 		}
 	case "providers.reporter.http":
 		mProvider := &httpreporter.HTTPReporter{}
+		err = mProvider.Init(config)
+		if err == nil {
+			return mProvider, nil
+		}
+	case "providers.reporter.mqtt":
+		mProvider := &mqttreporter.MQTTReporter{}
 		err = mProvider.Init(config)
 		if err == nil {
 			return mProvider, nil
@@ -614,6 +621,13 @@ func CreateProviderForTargetRole(context *contexts.ManagerContext, role string, 
 					provider := &httpreporter.HTTPReporter{}
 					err := provider.InitWithMap(binding.Config)
 					if err != nil {
+						return nil, err
+					}
+					provider.Context = context
+					return provider, nil
+				case "providers.reporter.mqtt":
+					provider := &mqttreporter.MQTTReporter{}
+					if err := provider.InitWithMap(binding.Config); err != nil {
 						return nil, err
 					}
 					provider.Context = context

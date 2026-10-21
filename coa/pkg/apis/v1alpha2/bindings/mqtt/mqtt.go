@@ -183,6 +183,11 @@ func (m *MQTTBinding) Launch(config MQTTBindingConfig, endpoints []v1alpha2.Endp
 
 // createTLSConfig creates a TLS configuration for MQTT client authentication
 func (m *MQTTBinding) createTLSConfig(config MQTTBindingConfig) (*tls.Config, error) {
+	return CreateTLSConfig(config)
+}
+
+// CreateTLSConfig shares MQTT certificate handling between bindings and reporters.
+func CreateTLSConfig(config MQTTBindingConfig) (*tls.Config, error) {
 	insecureSkipVerify := config.InsecureSkipVerify == "true"
 	
 	tlsConfig := &tls.Config{

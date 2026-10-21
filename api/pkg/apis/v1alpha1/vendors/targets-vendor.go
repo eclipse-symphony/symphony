@@ -94,6 +94,12 @@ func (o *TargetsVendor) GetEndpoints() []v1alpha2.Endpoint {
 			Parameters: []string{"name", "component?"},
 		},
 		{
+			Methods: []string{fasthttp.MethodPost},
+			Route:   route + "/report",
+			Version: o.Version,
+			Handler: o.onReport,
+		},
+		{
 			Methods:    []string{fasthttp.MethodGet},
 			Route:      route + "/download",
 			Version:    o.Version,
@@ -332,6 +338,49 @@ func (c *TargetsVendor) onBootstrap(request v1alpha2.COARequest) v1alpha2.COARes
 	}
 	observ_utils.UpdateSpanStatusFromCOAResponse(span, resp)
 	return resp
+}
+
+func (c *TargetsVendor) onReport(request v1alpha2.COARequest) v1alpha2.COAResponse {
+	if request.Method != fasthttp.MethodPost {
+		return v1alpha2.COAResponse{State: v1alpha2.MethodNotAllowed}
+	}
+	if request.Parameters["group"] != model.FabricGroup || request.Parameters["kind"] != "targets" || request.Parameters["version"] != "v1" || request.Parameters["id"] == "" {
+		return v1alpha2.COAResponse{State: v1alpha2.BadRequest, Body: []byte("a fabric.symphony/v1 Target identity is required")}
+	}
+	if overwrite := request.Parameters["overwrite"]; overwrite != "" && overwrite != "false" {
+		return v1alpha2.COAResponse{State: v1alpha2.BadRequest, Body: []byte("Target reports support merging only (overwrite=false)")}
+	}
+	var raw map[string]interface{}
+	if err := json.Unmarshal(request.Body, &raw); err != nil || raw == nil {
+		return v1alpha2.COAResponse{State: v1alpha2.BadRequest, Body: []byte("report body must be an object of string properties")}
+	}
+	properties := make(map[string]string, len(raw))
+	for key, value := range raw {
+		text, ok := value.(string)
+		if !ok || strings.TrimSpace(key) == "" {
+			return v1alpha2.COAResponse{State: v1alpha2.BadRequest, Body: []byte("report body must contain nonempty keys and string values")}
+		}
+		properties[key] = text
+	}
+	namespace := request.Parameters["namespace"]
+	if namespace == "" {
+		namespace = constants.DefaultScope
+	}
+	state, err := c.TargetsManager.ReportState(request.Context, model.TargetState{
+		ObjectMeta: model.ObjectMeta{Name: request.Parameters["id"], Namespace: namespace},
+		Status: model.TargetStatus{
+			Properties: properties, LastModified: time.Now().UTC(),
+		},
+	})
+	if err != nil {
+		tLog.ErrorfCtx(request.Context, "V (Targets): failed to report Target status: %v", err)
+		return v1alpha2.COAResponse{State: v1alpha2.GetErrorState(err), Body: []byte(err.Error())}
+	}
+	data, err := json.Marshal(state)
+	if err != nil {
+		return v1alpha2.COAResponse{State: v1alpha2.InternalError, Body: []byte(err.Error())}
+	}
+	return v1alpha2.COAResponse{State: v1alpha2.OK, Body: data, ContentType: "application/json"}
 }
 
 func (c *TargetsVendor) onStatus(request v1alpha2.COARequest) v1alpha2.COAResponse {

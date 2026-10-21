@@ -8,6 +8,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -55,7 +56,11 @@ func Remove(url string, username string, password string, objType string, objNam
 	return nil
 }
 func Upsert(url string, username string, password string, objType string, objName string, payload []byte) error {
-	token, err := Login(url, username, password)
+	return UpsertInNamespace(context.Background(), url, username, password, objType, objName, payload, "")
+}
+
+func UpsertInNamespace(ctx context.Context, url string, username string, password string, objType string, objName string, payload []byte, namespace string) error {
+	token, err := loginWithContext(ctx, url, username, password)
 	if err != nil {
 		return err
 	}
@@ -78,7 +83,11 @@ func Upsert(url string, username string, password string, objType string, objNam
 	if err != nil {
 		return err
 	}
-	_, err = callRestAPI(url, route, "POST", payload, token, nil)
+	params := make(map[string]string)
+	if namespace != "" {
+		params["namespace"] = namespace
+	}
+	_, err = callRestAPIWithContext(ctx, url, route, "POST", payload, token, params)
 	if err != nil {
 		return err
 	}
@@ -96,7 +105,11 @@ func yamlToJson(payload []byte) ([]byte, error) {
 }
 
 func Get(url string, username string, password string, objType string, path string, docType string, objName string) ([]interface{}, error) {
-	token, err := Login(url, username, password)
+	return GetInNamespace(context.Background(), url, username, password, objType, path, docType, objName, "")
+}
+
+func GetInNamespace(ctx context.Context, url string, username string, password string, objType string, path string, docType string, objName string, namespace string) ([]interface{}, error) {
+	token, err := loginWithContext(ctx, url, username, password)
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +132,16 @@ func Get(url string, username string, password string, objType string, path stri
 		route += "/" + objName
 	}
 	params := make(map[string]string)
+	if namespace != "" {
+		params["namespace"] = namespace
+	}
 	if path != "" {
 		params["path"] = path
 	}
 	if docType != "" {
 		params["doc-type"] = docType
 	}
-	resp, err := callRestAPI(url, route, "GET", nil, token, params)
+	resp, err := callRestAPIWithContext(ctx, url, route, "GET", nil, token, params)
 	if err != nil {
 		return nil, err
 	}
@@ -147,11 +163,15 @@ func Get(url string, username string, password string, objType string, path stri
 }
 
 func Login(url string, username string, password string) (string, error) {
+	return loginWithContext(context.Background(), url, username, password)
+}
+
+func loginWithContext(ctx context.Context, url string, username string, password string) (string, error) {
 	data, _ := json.Marshal(authRequest{
 		UserName: username,
 		Password: password,
 	})
-	resp, err := callRestAPI(url, "/users/auth", "POST", data, "", nil)
+	resp, err := callRestAPIWithContext(ctx, url, "/users/auth", "POST", data, "", nil)
 	if err != nil {
 		return "", err
 	}
@@ -164,9 +184,13 @@ func Login(url string, username string, password string) (string, error) {
 }
 
 func callRestAPI(url string, route string, method string, payload []byte, token string, parameters map[string]string) ([]byte, error) {
+	return callRestAPIWithContext(context.Background(), url, route, method, payload, token, parameters)
+}
+
+func callRestAPIWithContext(ctx context.Context, url string, route string, method string, payload []byte, token string, parameters map[string]string) ([]byte, error) {
 	client := &http.Client{}
 	rUrl := url + route
-	req, err := http.NewRequest(method, rUrl, bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, method, rUrl, bytes.NewBuffer(payload))
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +218,7 @@ func callRestAPI(url string, route string, method string, payload []byte, token 
 		return nil, err
 	}
 	if resp.StatusCode >= 300 {
-		if resp.StatusCode == 404 { // API service is already gone
+		if resp.StatusCode == 404 && method == http.MethodDelete {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to invoke Symphony API: [%d] - %v", resp.StatusCode, string(bodyBytes))
