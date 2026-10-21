@@ -20,8 +20,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// The version is auto updated by the release pipeline, do not change it manually
-const SymphonyAPIVersion = "0.48.47"
+// This branch uses an explicit custom-release version instead of auto-incrementing.
+const SymphonyAPIVersion = "0.48.48-reporter"
 const KANPortalVersion = "0.39.0-main-603f4b9-amd64"
 
 var (

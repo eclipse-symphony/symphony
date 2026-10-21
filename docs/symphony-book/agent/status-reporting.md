@@ -1,5 +1,61 @@
 # Agent status reporting
 
+## Custom 0.48.48 reporter release
+
+The `release/0.48.48-reporter` branch backports #865 onto the original `0.48.48`
+tag. It also includes the expression cycle-detection prerequisite from #851 and
+the Ubuntu 22.04 runtime-image pin from #866. It retains the 0.48.48 resource
+names rather than adopting the later object-model renames.
+
+The explicit version is `0.48.48-reporter` for Maestro, the rebuilt API/agent
+and Kubernetes controller images, and both Helm charts. This is a SemVer
+prerelease; select it explicitly when installing:
+
+```bash
+helm upgrade --install symphony oci://ghcr.io/eclipse-symphony/helm/symphony \
+  --version 0.48.48-reporter --namespace default
+```
+
+Use the matching custom Maestro package and agent binary/image. The version
+alone does not enable reporting: configure the reporting vendor and the
+control-plane MQTT receiver as described below.
+
+### Building and publishing
+
+Use [Reporter custom release](../../../.github/workflows/release-reporter.yaml),
+not the normal release workflow. The normal workflow is disabled for this
+branch to prevent numeric version increments and updates to `latest`.
+
+1. Merge the workflow-only PR into the repository's default branch. GitHub
+   requires a `workflow_dispatch` workflow to exist there before it can be
+   dispatched. Review the backport PR against the `release/0.48.48` baseline.
+2. Configure the `reporter-release` GitHub environment with required reviewers.
+   Merely naming an environment in YAML does not configure approval protection.
+3. Dispatch **Reporter custom release** from `main`, with `source_sha` set to
+   the full, reviewed backport commit and `publish` set to `false`. It runs
+   broker-backed tests, builds all three image architectures, builds Maestro
+   packages, and lints/renders/packages the charts without registry writes.
+   Inspect the run and its artifacts before approving publication.
+4. After explicit approval, dispatch with the same `source_sha` and `publish`
+   set to `true`, and approve the `reporter-release` environment. This run
+   validates and builds first, then promotes its exact image archives,
+   publishes only custom-version chart/image tags, and creates a **draft
+   prerelease** at that source commit with packages and checksums.
+5. Verify the published image manifests, chart installation, and MQTT reporting
+   using the release artifacts, then publish the draft as a prerelease without
+   marking it as the latest release.
+
+No custom-release run modifies `main`, the existing `0.48.48` tag, normal
+`latest` tags, or shared `*-multi:latest` staging tags. The publishing job
+rejects an already-used release version. If publication partially succeeds,
+do not overwrite those artifacts: inspect the failure and prepare a new,
+consistently versioned revision such as `0.48.48-reporter.1`.
+
+The existing packaging helper includes API binaries in Linux packages only;
+Windows and macOS packages retain the original release's CLI-only limitation.
+
+## Reporting configuration
+
 An agent can load `vendors.status` alongside its deployment vendors to periodically
 report local observations to a Target. Reporting does not depend on deployment
 reconciliation, `Get()`, or `forceRedeploy`.

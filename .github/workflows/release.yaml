@@ -17,7 +17,7 @@ env:
 # github.repository_owner / secrets.GITHUB_TOKEN is used to login to the docker registry and helm registry and to create the release
 jobs:
   build:
-    if: github.repository == 'eclipse-symphony/symphony' && github.event_name != 'pull_request' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian') 
+    if: github.repository == 'eclipse-symphony/symphony' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (github.actor == 'chgennar' || github.actor == 'juancooldude' || github.actor == 'Haishi2016' || github.actor == 'nonsocode' || github.actor == 'msftcoderdjw' || github.actor == 'TonyXiaofeng' || github.actor == 'iwangjintian')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
