@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Reviewed full commit SHA from release/0.48.48-reporter
+        description: Full merged commit SHA on release/0.48.48 (not the pre-squash PR SHA)
         required: true
         type: string
       publish:
@@ -52,8 +52,21 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           test "$(git rev-parse '0.48.48^{commit}')" = 89a8f20f0e86637d1ed71d4ebdacf3111d8d045a
-          git merge-base --is-ancestor 0.48.48 HEAD
-          git merge-base --is-ancestor HEAD origin/release/0.48.48-reporter
+          # PR branches may be deleted and squash merges replace their commit IDs.
+          # Fetch the permanent release branch explicitly, even for SHA checkouts.
+          if ! git fetch --no-tags origin \
+            +refs/heads/release/0.48.48:refs/remotes/origin/release/0.48.48; then
+            echo "::error::Cannot fetch the approved release/0.48.48 branch"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor 0.48.48 HEAD; then
+            echo "::error::source_sha must descend from the original 0.48.48 tag"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/release/0.48.48; then
+            echo "::error::source_sha must be merged into release/0.48.48; use its post-merge SHA, not a pre-squash PR commit"
+            exit 1
+          fi
           test "$(cat .github/version/versions.txt)" = "$RELEASE_VERSION"
           grep -Fx "const SymphonyAPIVersion = \"$RELEASE_VERSION\"" cli/cmd/up.go
           for chart in symphony symphony-poll-agent; do
