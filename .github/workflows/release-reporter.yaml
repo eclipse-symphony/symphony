@@ -91,8 +91,15 @@ jobs:
             api/go.sum
             coa/go.sum
             cli/go.sum
-      - name: Install integration-test broker
-        run: sudo apt-get update && sudo apt-get install -y mosquitto
+      - name: Install integration-test prerequisites
+        run: sudo apt-get update && sudo apt-get install -y mosquitto build-essential
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build native Rust binding for Go tests
+        working-directory: api/pkg/apis/v1alpha1/providers/target/rust
+        run: |
+          cargo build --release --package symphony
+          test -f target/release/libsymphony.so
+          echo "LD_LIBRARY_PATH=$PWD/target/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
       - name: Test reporter backport and compatibility
         run: |
           command -v mosquitto
