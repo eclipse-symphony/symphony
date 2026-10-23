@@ -75,9 +75,13 @@ jobs:
       - name: Publish existing multi-platform images without rebuilding
         run: |
           for image in symphony-api symphony-target-agent symphony-poll-agent symphony-k8s; do
-            skopeo copy --all --preserve-digests --authfile "$HOME/.docker/config.json" \
+            skopeo copy --all --authfile "$HOME/.docker/config.json" \
               "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" \
               "docker://$REGISTRY/$image:$RELEASE_VERSION"
+            skopeo inspect --raw "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" > "$RUNNER_TEMP/source-manifest"
+            skopeo inspect --raw --authfile "$HOME/.docker/config.json" \
+              "docker://$REGISTRY/$image:$RELEASE_VERSION" > "$RUNNER_TEMP/published-manifest"
+            cmp "$RUNNER_TEMP/source-manifest" "$RUNNER_TEMP/published-manifest"
           done
       - name: Publish existing custom-version charts
         run: |
