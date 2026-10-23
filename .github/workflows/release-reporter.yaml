@@ -75,8 +75,13 @@ jobs:
       - name: Publish existing multi-platform images without rebuilding
         run: |
           for image in symphony-api symphony-target-agent symphony-poll-agent symphony-k8s; do
-            skopeo copy --all --authfile "$HOME/.docker/config.json" \
-              "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" \
+            # Ubuntu 22.04's Skopeo cannot copy BuildKit's in-toto attestations.
+            docker run --rm \
+              -v "$HOME/.docker/config.json:/auth.json:ro" \
+              -v "$RUNNER_TEMP/reporter-artifacts:/artifacts:ro" \
+              quay.io/skopeo/stable@sha256:a585e4a3b8a045baa87c7f1b2f940d6d299ebede85ab3f2419d52d2264eefc93 \
+              copy --all --preserve-digests --authfile /auth.json \
+              "oci-archive:/artifacts/$image/$image.tar" \
               "docker://$REGISTRY/$image:$RELEASE_VERSION"
             skopeo inspect --raw "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" > "$RUNNER_TEMP/source-manifest"
             skopeo inspect --raw --authfile "$HOME/.docker/config.json" \
