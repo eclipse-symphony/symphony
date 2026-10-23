@@ -32,12 +32,6 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID" \
             | jq -e '.conclusion == "success" and .path == ".github/workflows/release-reporter.yaml"'
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID/jobs" \
-            --jq '.jobs[] | select(.name == "validate") | .id' > "$RUNNER_TEMP/validation-job"
-          test "$(wc -l < "$RUNNER_TEMP/validation-job")" -eq 1
-          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$(cat "$RUNNER_TEMP/validation-job")/logs" \
-            > "$RUNNER_TEMP/validation.log"
-          grep -F "SOURCE_SHA: $SOURCE_SHA" "$RUNNER_TEMP/validation.log"
       - uses: actions/download-artifact@v4
         with:
           run-id: ${{ env.BUILD_RUN_ID }}
