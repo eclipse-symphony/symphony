@@ -105,7 +105,8 @@ jobs:
       - name: Publish customer-downloadable custom prerelease
         run: |
           cd "$RUNNER_TEMP/reporter-artifacts"
-          sha256sum reporter-packages/maestro_* reporter-charts/*.tgz > SHA256SUMS
+          (cd reporter-packages && sha256sum maestro_*) > SHA256SUMS
+          (cd reporter-charts && sha256sum *.tgz) >> SHA256SUMS
           notes="Custom release based on Symphony 0.48.48 with MQTT agent status reporting (#865), expression cycle detection (#851), and Ubuntu 22.04 runtime pin (#866).
 
           Source: $SOURCE_SHA
