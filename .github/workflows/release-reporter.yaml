@@ -36,6 +36,7 @@ jobs:
         with:
           run-id: ${{ env.BUILD_RUN_ID }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: "@(reporter-packages|reporter-charts|symphony-api|symphony-target-agent|symphony-poll-agent|symphony-k8s)"
           path: ${{ runner.temp }}/reporter-artifacts
       - name: Install registry publishing tools
         run: |
