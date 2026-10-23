@@ -1,247 +1,49 @@
-name: Reporter custom release
+name: Publish built reporter custom release
 
 on:
   workflow_dispatch:
-    inputs:
-      source_sha:
-        description: Full merged commit SHA on release/0.48.48 (not the pre-squash PR SHA)
-        required: true
-        type: string
-      publish:
-        description: Publish versioned images/charts and create a draft prerelease
-        required: true
-        default: false
-        type: boolean
 
 permissions:
-  contents: read
-
-defaults:
-  run:
-    shell: bash
+  actions: read
+  contents: write
+  packages: write
 
 concurrency:
   group: reporter-custom-release
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 env:
   RELEASE_VERSION: 0.48.48-reporter
+  SOURCE_SHA: 5fa05eb33b2e6e350b1955db0390a6ee19f70f73
+  BUILD_RUN_ID: "39860478248"
   REGISTRY: ghcr.io/eclipse-symphony
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  validate:
+  publish:
     if: github.repository == 'eclipse-symphony/symphony'
     runs-on: ubuntu-22.04
     steps:
-      - name: Require an immutable source commit
-        env:
-          SOURCE_SHA: ${{ inputs.source_sha }}
+      - name: Verify successful source build
         run: |
-          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "::error::source_sha must be a full lowercase commit SHA"
-            exit 1
-          }
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Verify backport ancestry and versions
-        env:
-          SOURCE_SHA: ${{ inputs.source_sha }}
-        run: |
-          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-          test "$(git rev-parse '0.48.48^{commit}')" = 89a8f20f0e86637d1ed71d4ebdacf3111d8d045a
-          # PR branches may be deleted and squash merges replace their commit IDs.
-          # Fetch the permanent release branch explicitly, even for SHA checkouts.
-          if ! git fetch --no-tags origin \
-            +refs/heads/release/0.48.48:refs/remotes/origin/release/0.48.48; then
-            echo "::error::Cannot fetch the approved release/0.48.48 branch"
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor 0.48.48 HEAD; then
-            echo "::error::source_sha must descend from the original 0.48.48 tag"
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/release/0.48.48; then
-            echo "::error::source_sha must be merged into release/0.48.48; use its post-merge SHA, not a pre-squash PR commit"
-            exit 1
-          fi
-          test "$(cat .github/version/versions.txt)" = "$RELEASE_VERSION"
-          grep -Fx "const SymphonyAPIVersion = \"$RELEASE_VERSION\"" cli/cmd/up.go
-          for chart in symphony symphony-poll-agent; do
-            grep -Fx "version: \"$RELEASE_VERSION\"" "packages/helm/$chart/Chart.yaml"
-            grep -Fx "appVersion: \"$RELEASE_VERSION\"" "packages/helm/$chart/Chart.yaml"
-            grep -Fx "  tag: \"$RELEASE_VERSION\"" "packages/helm/$chart/values.yaml"
-          done
-          for file in api/Dockerfile api/Dockerfile.target-agent api/Dockerfile.poll-agent api/Dockerfile.sidecar; do
-            grep -Fx 'ARG TARGET_BASE_IMAGE=ubuntu:22.04' "$file"
-          done
-      - name: Require configured publishing approval protection
-        if: inputs.publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/environments/reporter-release" \
-            | jq -e 'any(.protection_rules[]; .type == "required_reviewers" and (.reviewers | length) > 0)'
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 1.24.4
-          cache-dependency-path: |
-            api/go.sum
-            coa/go.sum
-            cli/go.sum
-      - name: Install integration-test prerequisites
-        run: sudo apt-get update && sudo apt-get install -y mosquitto build-essential
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build native Rust binding for Go tests
-        working-directory: api/pkg/apis/v1alpha1/providers/target/rust
-        run: |
-          cargo build --release --package symphony
-          test -f target/release/libsymphony.so
-          echo "LD_LIBRARY_PATH=$PWD/target/release${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
-      - name: Test reporter backport and compatibility
-        run: |
-          command -v mosquitto
-          (cd coa && go test ./pkg/apis/v1alpha2/providers/reporter/mqtt ./pkg/apis/v1alpha2/bindings/mqtt)
-          (cd api && go test ./pkg/apis/v1alpha1/managers/status ./pkg/apis/v1alpha1/vendors ./pkg/apis/v1alpha1/utils ./pkg/apis/v1alpha1/managers/stage)
-          (cd cli && go test ./cmd ./config ./utils)
-
-  images:
-    needs: validate
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: symphony-api
-            dockerfile: api/Dockerfile
-          - image: symphony-target-agent
-            dockerfile: api/Dockerfile.target-agent
-          - image: symphony-poll-agent
-            dockerfile: api/Dockerfile.poll-agent
-          - image: symphony-k8s
-            dockerfile: k8s/Dockerfile
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_sha }}
-          persist-credentials: false
-      - name: Free runner disk space
-        run: |
-          sudo apt-get clean
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/share/swift /opt/ghc
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - name: Build versioned multi-platform image without publishing
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
-          push: false
-          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.RELEASE_VERSION }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ inputs.source_sha }}
-            org.opencontainers.image.version=${{ env.RELEASE_VERSION }}
-          outputs: type=oci,dest=${{ runner.temp }}/${{ matrix.image }}.tar
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.image }}
-          path: ${{ runner.temp }}/${{ matrix.image }}.tar
-          compression-level: 0
-          retention-days: 7
-          if-no-files-found: error
-
-  packages:
-    needs: validate
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_sha }}
-          persist-credentials: false
-      - name: Free runner disk space
-        run: |
-          sudo apt-get clean
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/share/swift /opt/ghc
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 1.24.4
-          cache-dependency-path: |
-            api/go.sum
-            coa/go.sum
-            cli/go.sum
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc g++ make cmake curl wget git protobuf-compiler \
-            llvm clang zlib1g-dev libcurl4-openssl-dev libxml2-dev uuid-dev \
-            gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu libssl-dev pkg-config \
-            mingw-w64 mingw-w64-tools g++-mingw-w64-x86-64
-          if [ -f /usr/x86_64-w64-mingw32/lib/libuser32.a ] && [ ! -e /usr/x86_64-w64-mingw32/lib/libUser32.a ]; then
-            sudo ln -s /usr/x86_64-w64-mingw32/lib/libuser32.a /usr/x86_64-w64-mingw32/lib/libUser32.a
-          fi
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-unknown-linux-gnu,armv7-unknown-linux-gnueabihf,x86_64-pc-windows-gnu
-      - name: Install Mage and Helm
-        run: |
-          go install github.com/magefile/mage@v1.15.0
-          curl -fsSL https://raw.githubusercontent.com/helm/helm/v3.16.2/scripts/get-helm-3 -o "$RUNNER_TEMP/get-helm.sh"
-          bash "$RUNNER_TEMP/get-helm.sh" --version v3.16.2
-      - name: Build Maestro packages from the backport source
-        working-directory: cli
-        run: mage generatePackages "$RUNNER_TEMP/reporter-packages"
-      - name: Package and render versioned charts
-        run: |
-          mkdir -p "$RUNNER_TEMP/reporter-charts"
-          for chart in symphony symphony-poll-agent; do
-            render_args=()
-            if [ "$chart" = symphony ]; then
-              render_args+=(--set redis.persistentVolume.enabled=false)
-            fi
-            helm lint "packages/helm/$chart" "${render_args[@]}"
-            helm template "$chart" "packages/helm/$chart" "${render_args[@]}" > "$RUNNER_TEMP/$chart.yaml"
-            if grep -F '{VERSION}' "$RUNNER_TEMP/$chart.yaml"; then
-              echo "::error::Unresolved image version in $chart"
-              exit 1
-            fi
-            helm package "packages/helm/$chart" --destination "$RUNNER_TEMP/reporter-charts"
-          done
-      - uses: actions/upload-artifact@v4
-        with:
-          name: reporter-packages
-          path: |
-            ${{ runner.temp }}/reporter-packages/maestro_*.tar.gz
-            ${{ runner.temp }}/reporter-packages/maestro_*.zip
-          retention-days: 7
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: reporter-charts
-          path: ${{ runner.temp }}/reporter-charts/*.tgz
-          retention-days: 7
-          if-no-files-found: error
-
-  publish:
-    if: inputs.publish
-    needs: [images, packages]
-    runs-on: ubuntu-22.04
-    environment: reporter-release
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_sha }}
-          persist-credentials: false
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID" \
+            | jq -e '.conclusion == "success" and .path == ".github/workflows/release-reporter.yaml"'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID/jobs" \
+            --jq '.jobs[] | select(.name == "validate") | .id' > "$RUNNER_TEMP/validation-job"
+          test "$(wc -l < "$RUNNER_TEMP/validation-job")" -eq 1
+          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$(cat "$RUNNER_TEMP/validation-job")/logs" \
+            > "$RUNNER_TEMP/validation.log"
+          grep -F "SOURCE_SHA: $SOURCE_SHA" "$RUNNER_TEMP/validation.log"
       - uses: actions/download-artifact@v4
         with:
+          run-id: ${{ env.BUILD_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ${{ runner.temp }}/reporter-artifacts
-      - name: Install publishing tools
+      - name: Install registry publishing tools
         run: |
           sudo apt-get update
           sudo apt-get install -y skopeo
@@ -252,46 +54,74 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Refuse to replace existing release artifacts
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify artifact versions and refuse existing custom tags
         run: |
-          test -z "$(git ls-remote --tags origin "refs/tags/$RELEASE_VERSION")"
-          # Listing must succeed; a registry/authentication failure is not an absent tag.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags"
+          if grep -Fx "$RELEASE_VERSION" "$RUNNER_TEMP/release-tags"; then
+            echo "::error::Custom release already exists"
+            exit 1
+          fi
           for image in symphony-api symphony-target-agent symphony-poll-agent symphony-k8s helm/symphony helm/symphony-poll-agent; do
             skopeo list-tags --authfile "$HOME/.docker/config.json" "docker://$REGISTRY/$image" \
               | jq -e --arg tag "$RELEASE_VERSION" '.Tags | index($tag) == null'
           done
-          # An orphan draft may exist even if its Git tag has not been created yet.
-          gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags"
-          if grep -Fx "$RELEASE_VERSION" "$RUNNER_TEMP/release-tags"; then
-            echo "::error::Release already exists; use a new version for another build"
-            exit 1
-          fi
-      - name: Publish only the validated versioned image archives
+          for image in symphony-api symphony-target-agent symphony-poll-agent symphony-k8s; do
+            skopeo inspect --raw "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" \
+              | jq -e '[.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64","arm","arm64"]'
+            skopeo inspect --config --override-os linux --override-arch amd64 \
+              "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" \
+              | jq -e --arg sha "$SOURCE_SHA" --arg version "$RELEASE_VERSION" \
+                '.config.Labels["org.opencontainers.image.revision"] == $sha and .config.Labels["org.opencontainers.image.version"] == $version'
+          done
+          for chart in symphony symphony-poll-agent; do
+            helm show chart "$RUNNER_TEMP/reporter-artifacts/reporter-charts/$chart-$RELEASE_VERSION.tgz" \
+              | grep -Fx "version: $RELEASE_VERSION"
+          done
+      - name: Publish existing multi-platform images without rebuilding
         run: |
           for image in symphony-api symphony-target-agent symphony-poll-agent symphony-k8s; do
             skopeo copy --all --preserve-digests --authfile "$HOME/.docker/config.json" \
               "oci-archive:$RUNNER_TEMP/reporter-artifacts/$image/$image.tar" \
               "docker://$REGISTRY/$image:$RELEASE_VERSION"
           done
-      - name: Publish only the custom-version charts
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish existing custom-version charts
         run: |
           printf '%s' "$GH_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           for chart in symphony symphony-poll-agent; do
             helm push "$RUNNER_TEMP/reporter-artifacts/reporter-charts/$chart-$RELEASE_VERSION.tgz" "oci://$REGISTRY/helm"
+            helm show chart "oci://$REGISTRY/helm/$chart" --version "$RELEASE_VERSION"
           done
-      - name: Create a draft prerelease at the reviewed source commit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE_SHA: ${{ inputs.source_sha }}
+      - name: Verify published images are anonymously accessible
+        run: |
+          printf '{"auths":{}}\n' > "$RUNNER_TEMP/anonymous-auth.json"
+          for image in symphony-api symphony-target-agent symphony-poll-agent symphony-k8s; do
+            skopeo inspect --raw --authfile "$RUNNER_TEMP/anonymous-auth.json" "docker://$REGISTRY/$image:$RELEASE_VERSION" \
+              | jq -e '[.manifests[].platform | select(.os == "linux") | .architecture] | sort == ["amd64","arm","arm64"]'
+          done
+      - name: Publish customer-downloadable custom prerelease
         run: |
           cd "$RUNNER_TEMP/reporter-artifacts"
           sha256sum reporter-packages/maestro_* reporter-charts/*.tgz > SHA256SUMS
+          notes="Custom release based on Symphony 0.48.48 with MQTT agent status reporting (#865), expression cycle detection (#851), and Ubuntu 22.04 runtime pin (#866).
+
+          Source: $SOURCE_SHA
+          Build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID
+
+          Download the Maestro package for your platform below. Linux packages include the API/agent executable; Windows and macOS packages include the CLI only.
+
+          Container images (AMD64, ARM64, ARMv7):
+          - $REGISTRY/symphony-api:$RELEASE_VERSION
+          - $REGISTRY/symphony-target-agent:$RELEASE_VERSION
+          - $REGISTRY/symphony-poll-agent:$RELEASE_VERSION
+          - $REGISTRY/symphony-k8s:$RELEASE_VERSION
+
+          Install the control plane:
+          helm upgrade --install symphony oci://$REGISTRY/helm/symphony --version $RELEASE_VERSION --namespace default
+
+          MQTT reporting requires configuring the status vendor and matching receiver. Normal latest tags and existing releases are unchanged."
           gh release create "$RELEASE_VERSION" \
             --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" \
-            --title "Symphony $RELEASE_VERSION" --draft --prerelease --latest=false \
-            --notes "Custom backport of MQTT agent status reporting (#865) onto 0.48.48, with expression cycle detection (#851) and the Ubuntu 22.04 runtime pin (#866). Source commit: $SOURCE_SHA. Explicitly select this version; normal release tags are unchanged." \
-            reporter-packages/maestro_* reporter-charts/*.tgz SHA256SUMS
+            --title "Symphony $RELEASE_VERSION" --prerelease --latest=false \
+            --notes "$notes" reporter-packages/maestro_* reporter-charts/*.tgz SHA256SUMS
+          gh release view "$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" \
+            --json url,isDraft,assets --jq '{url,isDraft,assets:[.assets[].name]}'
