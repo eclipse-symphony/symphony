@@ -149,6 +149,9 @@ jobs:
         export REPOPATH="${{ github.workspace }}"
         echo "REPOPATH=$REPOPATH"
         export DOCKER_API_VERSION=1.45
+        # Ubuntu's Mosquitto AppArmor profile permits configs and certificates here, not in /tmp.
+        export TMPDIR=/etc/mosquitto/conf.d/symphony-tests
+        sudo install -d -m 0700 -o "$(id -u)" -g "$(id -g)" "$TMPDIR"
         cd api && mage cleanTest
 
     - name: K8S Test
