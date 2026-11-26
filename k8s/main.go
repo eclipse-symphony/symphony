@@ -24,6 +24,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientfeatures "k8s.io/client-go/features"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -104,7 +105,20 @@ var (
 	apiCertPath = os.Getenv(constants.ApiCertEnvName)
 )
 
+type controllerFeatureGates struct {
+	clientfeatures.Gates
+}
+
+func (g controllerFeatureGates) Enabled(feature clientfeatures.Feature) bool {
+	// controller-runtime v0.19 overwrites the bookmark option required by WatchList.
+	if feature == clientfeatures.WatchListClient {
+		return false
+	}
+	return g.Gates.Enabled(feature)
+}
+
 func init() {
+	clientfeatures.ReplaceFeatureGates(controllerFeatureGates{clientfeatures.FeatureGates()})
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(solutionversionv1.AddToScheme(scheme))
 	utilruntime.Must(fabricv1.AddToScheme(scheme))

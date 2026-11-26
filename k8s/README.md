@@ -7,6 +7,8 @@ SPDX-License-Identifier: MIT
 
 Subject to Change as better practices are discovered
 
+The controller disables client-go's `WatchListClient` feature while using controller-runtime v0.19, whose informer wrapper overwrites the watch bookmark option required for initial synchronization. It retains the traditional list-then-watch behavior so cached webhook lookups do not block. Revisit this compatibility setting when upgrading controller-runtime.
+
 There are a few routes to take when developing in Symphony-K8s
 * Route 1 - Only Updating Operator code (controllers, makefile, things outside of the CRDs)
 * Route 2 - Updating CRDs
