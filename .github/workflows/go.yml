@@ -152,6 +152,10 @@ jobs:
         # Ubuntu's Mosquitto AppArmor profile permits configs and certificates here, not in /tmp.
         export TMPDIR=/etc/mosquitto/conf.d/symphony-tests
         sudo install -d -m 0700 -o "$(id -u)" -g "$(id -g)" "$TMPDIR"
+        # Embed trusted minikube credentials for providers that reject host-file references.
+        embedded_config=$(mktemp "$HOME/.kube/config.embedded.XXXXXX")
+        kubectl --context minikube config view --minify --flatten --raw > "$embedded_config"
+        mv "$embedded_config" "$HOME/.kube/config"
         cd api && mage cleanTest
 
     - name: K8S Test

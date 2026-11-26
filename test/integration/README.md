@@ -38,6 +38,8 @@ The `00.unit` scenario runs provider tests from their directories in the API mod
 
 The scenario also creates a private temporary home and a flattened kubeconfig for the current context, embedding the local certificate/key/CA data before running the provider tests. Only the test subprocesses use this home and kubeconfig; your original kubeconfig and Go caches are unchanged, and the temporary credentials are removed afterward. This lets minikube's file-based credentials work with the providers' kubeconfig validation without relaxing that validation.
 
+The Go CI workflow similarly flattens the trusted minikube kubeconfig before API tests. On that disposable runner, it replaces the default kubeconfig atomically with a private file containing embedded credentials.
+
 ## Running a single test
 
 To run a single test you can provide the path a test folder.
