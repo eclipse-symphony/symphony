@@ -7,7 +7,6 @@
 package mqtt
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -16,12 +15,14 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -75,15 +76,51 @@ use_identity_as_username true
 	}
 
 	cmd := exec.Command("mosquitto", "-c", configPath, "-v")
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = &output
+	logPath := filepath.Join(dir, "mosquitto.log")
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := logFile.Close(); err != nil {
+			t.Errorf("close mosquitto log: %v", err)
+		}
+	})
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("failed to start mosquitto: %v", err)
 	}
+	done := make(chan struct{})
+	go func() {
+		_ = cmd.Wait()
+		close(done)
+	}()
+	var cleanupOnce sync.Once
+	cleanup := func() {
+		cleanupOnce.Do(func() {
+			select {
+			case <-done:
+				return
+			default:
+			}
+			if err := cmd.Process.Signal(os.Interrupt); err != nil && !errors.Is(err, os.ErrProcessDone) {
+				t.Errorf("stop mosquitto: %v", err)
+			}
+			select {
+			case <-time.After(3 * time.Second):
+				if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+					t.Errorf("kill mosquitto: %v", err)
+				}
+				<-done
+			case <-done:
+			}
+		})
+	}
+	t.Cleanup(cleanup)
 
 	address := fmt.Sprintf("127.0.0.1:%d", port)
-	waitForTCP(t, address, 5*time.Second)
+	waitForTCP(t, address, 5*time.Second, done, logPath)
 
 	caCertPEM, err := os.ReadFile(caCertPath)
 	if err != nil {
@@ -96,22 +133,6 @@ use_identity_as_username true
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(caCertPEM) {
 		t.Fatalf("failed to append CA cert to pool")
-	}
-
-	cleanup := func() {
-		if cmd.Process == nil {
-			return
-		}
-		_ = cmd.Process.Signal(os.Interrupt)
-		done := make(chan error, 1)
-		go func() {
-			done <- cmd.Wait()
-		}()
-		select {
-		case <-time.After(3 * time.Second):
-			_ = cmd.Process.Kill()
-		case <-done:
-		}
 	}
 
 	return &mtlsBroker{
@@ -134,10 +155,19 @@ func allocateFreePort(t *testing.T) int {
 	return listener.Addr().(*net.TCPAddr).Port
 }
 
-func waitForTCP(t *testing.T, address string, timeout time.Duration) {
+func waitForTCP(t *testing.T, address string, timeout time.Duration, done <-chan struct{}, logPath string) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
+		select {
+		case <-done:
+			output, err := os.ReadFile(logPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Fatalf("mosquitto exited before listening on %s\n%s", address, output)
+		default:
+		}
 		conn, err := net.DialTimeout("tcp", address, 200*time.Millisecond)
 		if err == nil {
 			_ = conn.Close()
@@ -145,7 +175,11 @@ func waitForTCP(t *testing.T, address string, timeout time.Duration) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	t.Fatalf("timed out waiting for mosquitto to listen on %s", address)
+	output, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Fatalf("timed out waiting for mosquitto to listen on %s\n%s", address, output)
 }
 
 func generateMTLSCerts(t *testing.T, dir string) (string, string, string, string, string) {
@@ -597,8 +631,8 @@ func TestApplyMTLS(t *testing.T) {
 				Name: "test-instance",
 			},
 			Spec: &model.InstanceSpec{
-				DisplayName: "test-instance",
-				SolutionVersion:    "test-solutionversion",
+				DisplayName:     "test-instance",
+				SolutionVersion: "test-solutionversion",
 				Target: model.TargetSelector{
 					Name: "test-target",
 				},
@@ -621,13 +655,13 @@ func TestApplyMTLS(t *testing.T) {
 									Role:     "test-target",
 									Provider: "providers.target.mqtt",
 									Config: map[string]string{
-										"name":          MQTTName,
-										"brokerAddress": broker.address,
-										"clientID":      MQTTClientID,
-										"requestTopic":  MQTTRequestTopic,
-										"responseTopic": MQTTResponseTopic,
-										"useTLS":        "true",
-										"caCertPath":    broker.caCertPath,
+										"name":           MQTTName,
+										"brokerAddress":  broker.address,
+										"clientID":       MQTTClientID,
+										"requestTopic":   MQTTRequestTopic,
+										"responseTopic":  MQTTResponseTopic,
+										"useTLS":         "true",
+										"caCertPath":     broker.caCertPath,
 										"clientCertPath": broker.clientCertPath,
 										"clientKeyPath":  broker.clientKeyPath,
 									},
@@ -783,8 +817,8 @@ func TestApply(t *testing.T) {
 				Name: "test-instance",
 			},
 			Spec: &model.InstanceSpec{
-				DisplayName: "test-instance",
-				SolutionVersion:    "test-solutionversion",
+				DisplayName:     "test-instance",
+				SolutionVersion: "test-solutionversion",
 				Target: model.TargetSelector{
 					Name: "test-target",
 				},

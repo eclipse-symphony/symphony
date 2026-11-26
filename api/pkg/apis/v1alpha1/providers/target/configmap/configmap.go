@@ -16,6 +16,7 @@ import (
 
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/metrics"
+	apiutils "github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/utils"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/contexts"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/observability"
@@ -33,7 +34,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -148,10 +148,10 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 					return err
 				}
 			}
-			kConfig, err = clientcmd.BuildConfigFromFlags("", i.Config.ConfigData)
+			kConfig, err = apiutils.RESTConfigFromKubeConfigFile(i.Config.ConfigData)
 		case "inline":
 			if i.Config.ConfigData != "" {
-				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
+				kConfig, err = apiutils.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to read kube config: %+v", err)
 					return err
@@ -172,6 +172,7 @@ func (i *ConfigMapTargetProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 
+	apiutils.DenyExecCredentialPlugins(kConfig)
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (ConfigMap Target): failed to create a new clientset: %+v", err)

@@ -16,7 +16,7 @@ on:
 env:
     ContainerRegistry: "ghcr.io"
     ContainerRegistryRepo: "ghcr.io/eclipse-symphony"
-    GO_VERSION: "1.24.0"
+    GO_VERSION: "1.25.14"
 
 jobs:
   test:

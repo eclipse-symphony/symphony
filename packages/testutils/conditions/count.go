@@ -14,7 +14,7 @@ func CountComparator(fn func(int) bool, failMessage string) basic {
 		switch reflect.TypeOf(i).Kind() {
 		case reflect.Slice, reflect.Array, reflect.Map, reflect.String:
 			if !fn(reflect.ValueOf(i).Len()) {
-				return fmt.Errorf(failMessage)
+				return fmt.Errorf("%s", failMessage)
 			}
 		default:
 			return fmt.Errorf("expected countable, got %T", i)

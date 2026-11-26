@@ -9,6 +9,7 @@ package vendors
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -89,23 +90,66 @@ func startStatusTestBroker(t *testing.T) string {
 	configPath := filepath.Join(t.TempDir(), "mosquitto.conf")
 	require.NoError(t, os.WriteFile(configPath, []byte(fmt.Sprintf("listener %d 127.0.0.1\nallow_anonymous true\npersistence false\n", port)), 0600))
 	command := exec.Command(binary, "-c", configPath)
+	logPath := filepath.Join(t.TempDir(), "mosquitto.log")
+	logFile, err := os.Create(logPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, logFile.Close()) })
+	command.Stdout = logFile
+	command.Stderr = logFile
 	require.NoError(t, command.Start())
+	done := make(chan struct{})
+	var brokerErr error
+	go func() {
+		brokerErr = command.Wait()
+		close(done)
+	}()
 	t.Cleanup(func() {
-		if err := command.Process.Kill(); err != nil {
+		select {
+		case <-done:
+			return
+		default:
+		}
+		if err := command.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
 			t.Errorf("stop test MQTT broker: %v", err)
 		}
-		_ = command.Wait()
+		<-done
 	})
 	address := fmt.Sprintf("127.0.0.1:%d", port)
-	require.Eventually(t, func() bool {
-		connection, err := net.DialTimeout("tcp", address, 50*time.Millisecond)
-		if err != nil {
-			return false
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		select {
+		case <-done:
+			output, err := os.ReadFile(logPath)
+			require.NoError(t, err)
+			t.Fatalf("test MQTT broker exited before becoming ready: %v\n%s", brokerErr, output)
+		default:
 		}
-		_ = connection.Close()
-		return true
-	}, 5*time.Second, 20*time.Millisecond, "test MQTT broker did not become ready")
-	return "tcp://" + address
+		connection, err := net.DialTimeout("tcp", address, 50*time.Millisecond)
+		if err == nil {
+			require.NoError(t, connection.Close())
+			return "tcp://" + address
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	output, err := os.ReadFile(logPath)
+	require.NoError(t, err)
+	t.Fatalf("test MQTT broker did not become ready at %s\n%s", address, output)
+	return ""
+}
+
+func TestStatusTestBrokerReportsStartupFailure(t *testing.T) {
+	bin := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(bin, "mosquitto"), []byte("#!/bin/sh\necho 'broker config access denied' >&2\nexit 23\n"), 0700))
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	executable, err := os.Executable()
+	require.NoError(t, err)
+	start := time.Now()
+	output, err := exec.Command(executable, "-test.run=^TestTargetsReportMQTTStandalone$", "-test.timeout=10s").CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "broker config access denied")
+	require.Contains(t, string(output), "exit status 23")
+	require.NotContains(t, string(output), "stop test MQTT broker:")
+	require.Less(t, time.Since(start), 4*time.Second)
 }
 
 func statusTestKubernetesClient(t *testing.T, target *unstructured.Unstructured) dynamic.Interface {

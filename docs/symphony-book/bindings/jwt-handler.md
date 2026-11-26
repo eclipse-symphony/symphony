@@ -9,12 +9,14 @@ JWT handler is plugged into an [HTTP binding](../bindings/http-binding.md) via t
   {
     "type": "middleware.http.jwt",                   
     "properties": {
-      "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solutionversion/instances"],
+      "ignorePaths": ["/v1alpha2/users/auth"],
       "verifyKey": "SymphonyKey"
     }
   }
 ]
 ```
+
+The `/v1alpha2/solutionversion/instances` endpoint requires authentication and must not be included in `ignorePaths`. HTTP proxy callers must authenticate when calling this endpoint on a JWT-protected listener.
 
 ## Handler configuration
 

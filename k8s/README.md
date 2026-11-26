@@ -7,6 +7,8 @@ SPDX-License-Identifier: MIT
 
 Subject to Change as better practices are discovered
 
+The controller disables client-go's `WatchListClient` feature while using controller-runtime v0.19, whose informer wrapper overwrites the watch bookmark option required for initial synchronization. It retains the traditional list-then-watch behavior so cached webhook lookups do not block. Revisit this compatibility setting when upgrading controller-runtime.
+
 There are a few routes to take when developing in Symphony-K8s
 * Route 1 - Only Updating Operator code (controllers, makefile, things outside of the CRDs)
 * Route 2 - Updating CRDs
@@ -66,6 +68,7 @@ This route will be very similar to the previous but with some additional steps.
 If you're interested in updating the CRDs directly that will have to be done through updating the types under `k8s/apis/*`, since the CRDs are auto generated with kubebuilder.
 ### 2.2 Generate the CRDs
 This step will convert the types defined inside `k8s/apis/*` into CRDs and insert them into the directory `k8s/config/crd/bases`
+The Mage tasks install controller-gen v0.20.1, which supports the Go 1.25 toolchain used by Symphony. Older controller-gen versions may fail to install because their `golang.org/x/tools` dependency is incompatible with Go 1.25.
 ```bash 
 mage manifests
 ```

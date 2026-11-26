@@ -41,16 +41,14 @@ func TestBasic_TargetStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	for {
-		resources, err := dyn.Resource(schema.GroupVersionResource{
+		resource, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "fabric.symphony",
 			Version:  "v1",
 			Resource: "targets",
-		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		}).Namespace(testNamespace()).Get(context.Background(), "configmap-target", metav1.GetOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 1, "there should be only one target")
-
-		status := getStatus(resources.Items[0])
+		status := getStatus(*resource)
 		fmt.Printf("Current target status: %s\n", status)
 		require.NotEqual(t, "Failed", status, "target should not be in failed state")
 		if status == "Succeeded" {
@@ -72,16 +70,14 @@ func TestBasic_InstanceStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	for {
-		resources, err := dyn.Resource(schema.GroupVersionResource{
+		resource, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "solution.symphony",
 			Version:  "v1",
 			Resource: "instances",
-		}).Namespace("default").List(context.Background(), metav1.ListOptions{})
+		}).Namespace(testNamespace()).Get(context.Background(), "instanceforconfigmap", metav1.GetOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 1, "there should be only one instance")
-
-		status := getStatus(resources.Items[0])
+		status := getStatus(*resource)
 		fmt.Printf("Current instance status: %s\n", status)
 		if status == "Succeeded" {
 			break
@@ -110,10 +106,7 @@ func TestBasic_ConfigmapStatus(t *testing.T) {
 
 func TestBasic_ReadNamespaceActivation(t *testing.T) {
 	fmt.Printf("Checking activation\n")
-	namespace := os.Getenv("NAMESPACE")
-	if namespace == "" {
-		namespace = "default"
-	}
+	namespace := testNamespace()
 	crd := &unstructured.Unstructured{}
 	crd.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "workflow.symphony",
@@ -128,16 +121,15 @@ func TestBasic_ReadNamespaceActivation(t *testing.T) {
 	require.NoError(t, err)
 
 	for {
-		resources, err := dyn.Resource(schema.GroupVersionResource{
+		resource, err := dyn.Resource(schema.GroupVersionResource{
 			Group:    "workflow.symphony",
 			Version:  "v1",
 			Resource: "activations",
-		}).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+		}).Namespace(namespace).Get(context.Background(), "05activation", metav1.GetOptions{})
 		require.NoError(t, err)
 
-		require.Len(t, resources.Items, 1, "there should be only one activation")
-
-		bytes, _ := json.Marshal(resources.Items[0].Object)
+		bytes, err := json.Marshal(resource.Object)
+		require.NoError(t, err)
 		var state model.ActivationState
 		err = json.Unmarshal(bytes, &state)
 		require.NoError(t, err)
@@ -160,6 +152,13 @@ func TestBasic_ReadNamespaceActivation(t *testing.T) {
 		sleepDuration, _ := time.ParseDuration("5s")
 		time.Sleep(sleepDuration)
 	}
+}
+
+func testNamespace() string {
+	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
+		return namespace
+	}
+	return "default"
 }
 
 // Helper for finding the status

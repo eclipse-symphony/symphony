@@ -86,7 +86,7 @@ jobs:
             | jq -e 'any(.protection_rules[]; .type == "required_reviewers" and (.reviewers | length) > 0)'
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.25.14
           cache-dependency-path: |
             api/go.sum
             coa/go.sum
@@ -168,7 +168,7 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/share/swift /opt/ghc
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.24.4
+          go-version: 1.25.14
           cache-dependency-path: |
             api/go.sum
             coa/go.sum

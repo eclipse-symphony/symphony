@@ -16,6 +16,7 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/model"
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 	dfake "k8s.io/client-go/dynamic/fake"
 	kfake "k8s.io/client-go/kubernetes/fake"
@@ -156,7 +157,7 @@ func TestKubectlTargetProviderPathApplyAndDelete(t *testing.T) {
 	}
 	provider := KubectlTargetProvider{}
 	err := provider.Init(config)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	component := model.ComponentSpec{
 		Name: "nginx",
 		Type: "yaml.k8s",

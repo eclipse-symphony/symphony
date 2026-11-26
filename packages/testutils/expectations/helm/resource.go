@@ -137,7 +137,7 @@ func (he *HelmExpectation) Verify(c context.Context) error {
 	he.level = ctx.Level()
 
 	return helpers.Eventually(ctx, func(ctx context.Context) (err error) {
-		he.log(strings.Repeat("-", 80))
+		he.log("%s", strings.Repeat("-", 80))
 		he.log("Verifying helm release")
 		defer func() {
 			if err != nil {

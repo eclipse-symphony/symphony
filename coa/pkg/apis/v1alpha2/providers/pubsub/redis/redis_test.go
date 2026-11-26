@@ -19,7 +19,54 @@ import (
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2/host"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestWaitForRedisRecoversFromStartupFailure(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	attempts := 0
+	err := waitForRedis(ctx, func(context.Context) error {
+		attempts++
+		if attempts < 3 {
+			return errors.New("connection refused")
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 3, attempts)
+}
+
+func TestWaitForRedisDeadlinePreservesConnectionError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+	connectionErr := errors.New("connection refused")
+	attempts := 0
+	start := time.Now()
+	err := waitForRedis(ctx, func(context.Context) error {
+		attempts++
+		return connectionErr
+	})
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	require.ErrorIs(t, err, connectionErr)
+	require.GreaterOrEqual(t, attempts, 2)
+	require.Less(t, time.Since(start), time.Second)
+}
+
+func TestWaitForRedisCancellationStopsRetries(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	connectionErr := errors.New("connection refused")
+	attempts := 0
+	err := waitForRedis(ctx, func(context.Context) error {
+		attempts++
+		cancel()
+		return connectionErr
+	})
+	require.ErrorIs(t, err, context.Canceled)
+	require.ErrorIs(t, err, connectionErr)
+	require.Equal(t, 1, attempts)
+}
 
 func TestWithEmptyConfig(t *testing.T) {
 	provider := RedisPubSubProvider{}

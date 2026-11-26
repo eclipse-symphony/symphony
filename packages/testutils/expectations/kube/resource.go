@@ -147,7 +147,7 @@ func (re *KubeExpectation) Verify(c context.Context) error {
 	re.level = ctx.Level()
 
 	return helpers.Eventually(ctx, func(ctx context.Context) error {
-		re.log(strings.Repeat("-", 80))
+		re.log("%s", strings.Repeat("-", 80))
 		re.log(`Verifying resource`)
 		err := re.verify(ctx, re.condition)
 		if err != nil {
