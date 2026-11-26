@@ -84,7 +84,9 @@ func Test() error {
 // Prepare the cluster
 // Run this manually to prepare your local environment for testing/debugging
 func Setup() error {
-	testhelpers.SetupCluster()
+	if err := testhelpers.SetupCluster(); err != nil {
+		return err
+	}
 	err := shellcmd.Command(fmt.Sprintf("kubectl get secret container")).Run()
 	if err != nil {
 		err := shellcmd.Command("kubectl apply -f manifest/oss/secret.yaml").Run()

@@ -46,7 +46,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -174,6 +173,7 @@ func (i *KubectlTargetProvider) Init(config providers.IProviderConfig) error {
 		return err
 	}
 
+	apiutils.DenyExecCredentialPlugins(kConfig)
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Kubectl Target): failed to create a new clientset: %+v", err)
@@ -244,7 +244,7 @@ func (i *KubectlTargetProvider) getConfigFromPath(ctx context.Context) (*rest.Co
 		}
 		i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 	}
-	return clientcmd.BuildConfigFromFlags("", i.Config.ConfigData)
+	return apiutils.RESTConfigFromKubeConfigFile(i.Config.ConfigData)
 }
 
 func (i *KubectlTargetProvider) getConfigFromInline(ctx context.Context) (*rest.Config, error) {
@@ -253,7 +253,7 @@ func (i *KubectlTargetProvider) getConfigFromInline(ctx context.Context) (*rest.
 		sLog.ErrorfCtx(ctx, "  P (Kubectl Target): %+v", err)
 		return nil, err
 	}
-	return clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
+	return apiutils.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 }
 
 // toKubectlTargetProviderConfig converts a generic IProviderConfig to a KubectlTargetProviderConfig

@@ -40,7 +40,7 @@ func TestSolutionVersion_WithEmptyComponentProperties(t *testing.T) {
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 
 	// validating metadata.generation
-	output, err = exec.Command("kubectl", "get", "solutionversion", "empty-solutionversion-v-version1", "-o=jsonpath='{.metadata.generation}'").CombinedOutput()
+	output, err = exec.Command("kubectl", "get", "solutionversion", "empty-solution-v-version1", "-o=jsonpath='{.metadata.generation}'").CombinedOutput()
 	assert.Nil(t, err, fmt.Sprintf("No error expected, got %s", string(output)))
 	assert.Equal(t, "'1'", string(output), fmt.Sprintf("Expected generation '1', got %s", string(output)))
 }

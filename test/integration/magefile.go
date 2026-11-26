@@ -72,7 +72,11 @@ func RunTest(testDir string) error {
 
 	fmt.Printf("Starting test folder: %s\n", absPath)
 
-	err = shellExec(fmt.Sprintf("cd %s && mage test", absPath))
+	command := fmt.Sprintf("cd %s && mage test", absPath)
+	if filepath.Base(absPath) == "04.workflow" {
+		command += " false"
+	}
+	err = shellExec(command)
 	if err != nil {
 		return err
 	}

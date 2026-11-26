@@ -35,7 +35,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -200,6 +199,7 @@ func (i *K8sTargetProvider) Init(config providers.IProviderConfig) error {
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get kubernetes config", componentName), v1alpha2.InitFailed)
 	}
 
+	utils.DenyExecCredentialPlugins(kConfig)
 	i.Client, err = kubernetes.NewForConfig(kConfig)
 	if err != nil {
 		log.ErrorfCtx(ctx, "  P (K8s Target): failed to create a new clientset: %+v", err)
@@ -247,14 +247,14 @@ func (i *K8sTargetProvider) getConfigFromPath() (*rest.Config, error) {
 		}
 		i.Config.ConfigData = filepath.Join(home, ".kube", "config")
 	}
-	return clientcmd.BuildConfigFromFlags("", i.Config.ConfigData)
+	return utils.RESTConfigFromKubeConfigFile(i.Config.ConfigData)
 }
 
 func (i *K8sTargetProvider) getConfigFromBytes() (*rest.Config, error) {
 	if i.Config.ConfigData == "" {
 		return nil, v1alpha2.NewCOAError(nil, "config data is not supplied", v1alpha2.BadConfig)
 	}
-	return clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
+	return utils.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 }
 
 func toK8sTargetProviderConfig(config providers.IProviderConfig) (K8sTargetProviderConfig, error) {

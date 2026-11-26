@@ -632,7 +632,7 @@
           {
             "type": "middleware.http.jwt",
             "properties": {
-              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/solutionversion/instances", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
+              "ignorePaths": ["/v1alpha2/users/auth", "/v1alpha2/agent/references", "/v1alpha2/greetings"],
               "verifyKey": "SymphonyKey",
               "enableRBAC": true,
               "roles": [

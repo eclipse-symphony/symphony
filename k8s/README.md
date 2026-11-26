@@ -66,6 +66,7 @@ This route will be very similar to the previous but with some additional steps.
 If you're interested in updating the CRDs directly that will have to be done through updating the types under `k8s/apis/*`, since the CRDs are auto generated with kubebuilder.
 ### 2.2 Generate the CRDs
 This step will convert the types defined inside `k8s/apis/*` into CRDs and insert them into the directory `k8s/config/crd/bases`
+The Mage tasks install controller-gen v0.20.1, which supports the Go 1.25 toolchain used by Symphony. Older controller-gen versions may fail to install because their `golang.org/x/tools` dependency is incompatible with Go 1.25.
 ```bash 
 mage manifests
 ```

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -20,10 +21,13 @@ import (
 	"github.com/eclipse-symphony/symphony/api/pkg/apis/v1alpha1/providers/target/conformance"
 	"github.com/eclipse-symphony/symphony/coa/pkg/apis/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/postrender"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 const (
@@ -860,10 +864,55 @@ func TestGetActionConfig(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestEnvironmentKubeconfigValidationSnapshot(t *testing.T) {
+	config := clientcmdapi.Config{
+		Clusters:       map[string]*clientcmdapi.Cluster{"test": {Server: "https://127.0.0.1"}},
+		AuthInfos:      map[string]*clientcmdapi.AuthInfo{"test": {Token: "safe-token"}},
+		Contexts:       map[string]*clientcmdapi.Context{"test": {Cluster: "test", AuthInfo: "test"}},
+		CurrentContext: "test",
+	}
+	data, err := clientcmd.Write(config)
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "config")
+	require.NoError(t, os.WriteFile(path, data, 0600))
+	t.Setenv("KUBECONFIG", path)
+	provider := &HelmTargetProvider{Config: HelmTargetProviderConfig{InCluster: true}}
+	actionConfig, err := provider.createActionConfig(context.Background(), "example")
+	require.NoError(t, err)
+
+	config.AuthInfos["test"] = &clientcmdapi.AuthInfo{TokenFile: "must-not-be-read"}
+	data, err = clientcmd.Write(config)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+	restConfig, err := actionConfig.RESTClientGetter.ToRESTConfig()
+	require.NoError(t, err)
+	require.Equal(t, "safe-token", restConfig.BearerToken)
+	getter, ok := actionConfig.RESTClientGetter.(*kubeRESTClientGetter)
+	require.True(t, ok)
+	namespace, _, err := getter.ToRawKubeConfigLoader().Namespace()
+	require.NoError(t, err)
+	require.Equal(t, "example", namespace)
+
+	config.AuthInfos["test"] = &clientcmdapi.AuthInfo{Token: "safe-token"}
+	data, err = clientcmd.Write(config)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+	t.Setenv("HELM_KUBECAFILE", "must-not-be-read")
+	_, err = provider.createActionConfig(context.Background(), "example")
+	require.ErrorContains(t, err, `field "certificate-authority" is not allowed`)
+}
+
 // TestConformanceSuite tests the HelmTargetProvider for conformance
 func TestConformanceSuite(t *testing.T) {
+	data, err := clientcmd.Write(clientcmdapi.Config{
+		Clusters:       map[string]*clientcmdapi.Cluster{"test": {Server: "https://127.0.0.1"}},
+		AuthInfos:      map[string]*clientcmdapi.AuthInfo{"test": {Token: "test-token"}},
+		Contexts:       map[string]*clientcmdapi.Context{"test": {Cluster: "test", AuthInfo: "test"}},
+		CurrentContext: "test",
+	})
+	require.NoError(t, err)
 	provider := &HelmTargetProvider{}
-	err := provider.Init(HelmTargetProviderConfig{InCluster: true})
+	err = provider.Init(HelmTargetProviderConfig{ConfigType: "bytes", ConfigData: string(data)})
 	assert.Nil(t, err)
 	conformance.ConformanceSuite(t, provider)
 }
@@ -1084,17 +1133,12 @@ func TestHelmTargetProviderGetWithCustomReleaseName(t *testing.T) {
 }
 
 func TestHelmTargetProviderPullChartUnauthorizedError(t *testing.T) {
-	config := HelmTargetProviderConfig{InCluster: true}
-	provider := HelmTargetProvider{}
-	err := provider.Init(config)
-	assert.Nil(t, err)
-
 	chart := &HelmChartProperty{
 		Repo:    "oci://symphonyprivate.azurecr.io/helm/simple-chart-secure",
 		Version: "0.1.0",
 	}
 
-	_, err = pullOCIChart(context.Background(), chart.Repo, chart.Version)
+	_, err := pullOCIChart(context.Background(), chart.Repo, chart.Version)
 	assert.NotNil(t, err)
 	assert.True(t, isUnauthorized(err))
 }

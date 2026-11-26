@@ -26,6 +26,19 @@ A target provider interacts with a specific system to carry out state seeking ac
 
 2: The staging provider stages solutionversion components onto the selected target object instead of doing any actual deployments. The scenario is to allow an external poll-based agent to pick up components to be deployed from the target object.
 
+## Kubernetes credential plugins
+
+The `kubectl`, `helm`, `k8s`, `configmap`, and `ingress` target providers validate every kubeconfig user and cluster before client-go resolves credentials. Validation applies to inline/bytes kubeconfigs, path-loaded kubeconfigs, and the kubeconfigs loaded by Helm from its environment, including entries outside the current context.
+
+The following fields are rejected:
+
+* User fields: `exec`, `tokenFile`, `auth-provider`, `client-certificate`, and `client-key`.
+* Cluster field: `certificate-authority`.
+
+Use embedded bearer tokens, basic authentication, `client-certificate-data`/`client-key-data`, and `certificate-authority-data`, or administrator-controlled in-cluster credentials instead. File references are rejected even when embedded data is also present. Helm's `HELM_KUBECAFILE` override is also rejected.
+
+The providers retain client-go's `DenyAll` credential plugin policy as defense in depth. This validation does not restrict cluster endpoints or replace authentication and authorization; `configType: path` still reads the specified kubeconfig file.
+
 ## Related topics
 
 * [Target provider conformance](conformance.md)

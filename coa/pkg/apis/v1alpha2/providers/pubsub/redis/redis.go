@@ -68,6 +68,8 @@ const (
 	DefaultNumberOfWorkers = 20
 
 	MessageExpireDuration = 30 * time.Minute
+
+	redisStartupTimeout = 30 * time.Second
 )
 
 func RedisPubSubProviderConfigFromMap(properties map[string]string) (RedisPubSubProviderConfig, error) {
@@ -151,11 +153,12 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 
 	i.Subscribers = make(map[string][]v1alpha2.EventHandler)
 	options := &redis.Options{
-		Addr:            i.Config.Host,
-		Password:        i.Config.Password,
-		DB:              0,
-		MaxRetries:      3,
-		MaxRetryBackoff: time.Second * 2,
+		Addr:                  i.Config.Host,
+		Password:              i.Config.Password,
+		DB:                    0,
+		MaxRetries:            3,
+		MaxRetryBackoff:       time.Second * 2,
+		ContextTimeoutEnabled: true,
 	}
 	if i.Config.RequiresTLS {
 		options.TLSConfig = &tls.Config{
@@ -165,13 +168,42 @@ func (i *RedisPubSubProvider) Init(config providers.IProviderConfig) error {
 	i.IdleWorkers = i.Config.NumberOfWorkers
 	i.WorkerLock = &sync.Mutex{}
 	client := redis.NewClient(options)
-	if _, err := client.Ping(i.Ctx).Result(); err != nil {
+	startupCtx, cancel := context.WithTimeout(i.Ctx, redisStartupTimeout)
+	defer cancel()
+	if err := waitForRedis(startupCtx, func(ctx context.Context) error {
+		return client.Ping(ctx).Err()
+	}); err != nil {
+		i.ContextCancel()
+		err = errors.Join(err, client.Close())
 		mLog.Errorf("  P (Redis PubSub): failed to connect to redis %+v", err)
 		return v1alpha2.NewCOAError(err, fmt.Sprintf("redis stream: error connecting to redis at %s", i.Config.Host), v1alpha2.InternalError)
 	}
 	i.Client = client
 
 	return nil
+}
+
+func waitForRedis(ctx context.Context, ping func(context.Context) error) error {
+	delay := 100 * time.Millisecond
+	var lastErr error
+	for {
+		if err := ctx.Err(); err != nil {
+			return errors.Join(err, lastErr)
+		}
+		lastErr = ping(ctx)
+		if lastErr == nil {
+			return ctx.Err()
+		}
+		mLog.Warnf("  P (Redis PubSub): redis not ready, retrying in %s: %v", delay, lastErr)
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return errors.Join(ctx.Err(), lastErr)
+		case <-timer.C:
+		}
+		delay = min(delay*2, 2*time.Second)
+	}
 }
 
 func (i *RedisPubSubProvider) Publish(topic string, event v1alpha2.Event) error {

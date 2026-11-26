@@ -41,9 +41,14 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 var (
@@ -210,9 +215,46 @@ func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace s
 	if i.Config.InCluster {
 		settings := cli.New()
 		settings.SetNamespace(namespace)
+		cliConfig, ok := settings.RESTClientGetter().(*genericclioptions.ConfigFlags)
+		if !ok {
+			err = v1alpha2.NewCOAError(nil, fmt.Sprintf("%s: unsupported Helm REST client configuration", providerName), v1alpha2.CreateActionConfigFailed)
+			sLog.ErrorCtx(ctx, err)
+			return nil, err
+		}
+		loader := cliConfig.ToRawKubeConfigLoader()
+		rawConfig, loadErr := loader.RawConfig()
+		if loadErr != nil {
+			err = v1alpha2.NewCOAError(loadErr, fmt.Sprintf("%s: failed to load kubeconfig", providerName), v1alpha2.CreateActionConfigFailed)
+			sLog.ErrorCtx(ctx, err)
+			return nil, err
+		}
+		if err = apiutils.ValidateKubeconfig(rawConfig); err != nil {
+			sLog.ErrorCtx(ctx, err)
+			return nil, err
+		}
+		if err = apiutils.ValidateKubeconfig(clientcmdapi.Config{
+			Clusters: map[string]*clientcmdapi.Cluster{"Helm environment": {CertificateAuthority: settings.KubeCaFile}},
+		}); err != nil {
+			sLog.ErrorCtx(ctx, err)
+			return nil, err
+		}
+		// Reuse the loader's validated snapshot instead of reopening the kubeconfig.
+		getter := &kubeRESTClientGetter{
+			loader: loader,
+			config: func() (*rest.Config, error) {
+				config, err := apiutils.RESTConfigFromClientConfig(loader)
+				if err != nil {
+					return nil, err
+				}
+				if cliConfig.WrapConfigFn != nil {
+					config = cliConfig.WrapConfigFn(config)
+				}
+				return apiutils.DenyExecCredentialPlugins(config), nil
+			},
+		}
 		actionConfig = new(action.Configuration)
 		// TODO: $HELM_DRIVER	set the backend storage driver. Values are: configmap, secret, memory, sql. Do we need to handle this differently?
-		if err = actionConfig.Init(settings.RESTClientGetter(), namespace, helmDriver, sLog.Debugf); err != nil {
+		if err = actionConfig.Init(getter, namespace, helmDriver, sLog.Debugf); err != nil {
 			sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to init: %+v", err)
 			err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to init action config", providerName), v1alpha2.CreateActionConfigFailed)
 			return nil, err
@@ -222,7 +264,7 @@ func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace s
 		case "bytes":
 			if i.Config.ConfigData != "" {
 				var kConfig *rest.Config
-				kConfig, err = clientcmd.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
+				kConfig, err = apiutils.RESTConfigFromKubeConfig([]byte(i.Config.ConfigData))
 				if err != nil {
 					sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to get RestConfig: %+v", err)
 					err = v1alpha2.NewCOAError(err, fmt.Sprintf("%s: failed to get RestConfig", providerName), v1alpha2.CreateActionConfigFailed)
@@ -253,21 +295,55 @@ func (i *HelmTargetProvider) createActionConfig(ctx context.Context, namespace s
 // getActionConfig returns an action configuration
 func getActionConfig(ctx context.Context, namespace string, config *rest.Config) (*action.Configuration, error) {
 	actionConfig := new(action.Configuration)
-	cliConfig := genericclioptions.NewConfigFlags(false)
-	cliConfig.APIServer = &config.Host
-	cliConfig.BearerToken = &config.BearerToken
-	cliConfig.Namespace = &namespace
-	// Drop their rest.Config and just return inject own
-	cliConfig.WithWrapConfigFn(func(*rest.Config) *rest.Config {
-		return config
-	})
+	getter := &kubeRESTClientGetter{
+		loader: clientcmd.NewDefaultClientConfig(clientcmdapi.Config{}, &clientcmd.ConfigOverrides{
+			Context: clientcmdapi.Context{Namespace: namespace},
+		}),
+		config: func() (*rest.Config, error) {
+			return apiutils.DenyExecCredentialPlugins(config), nil
+		},
+	}
 
-	if err := actionConfig.Init(cliConfig, namespace, helmDriver, sLog.Debugf); err != nil {
+	if err := actionConfig.Init(getter, namespace, helmDriver, sLog.Debugf); err != nil {
 		sLog.ErrorfCtx(ctx, "  P (Helm Target): failed to init: %+v", err)
 		return nil, err
 	}
 
 	return actionConfig, nil
+}
+
+type kubeRESTClientGetter struct {
+	loader clientcmd.ClientConfig
+	config func() (*rest.Config, error)
+}
+
+func (g *kubeRESTClientGetter) ToRESTConfig() (*rest.Config, error) {
+	return g.config()
+}
+
+func (g *kubeRESTClientGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig {
+	return g.loader
+}
+
+func (g *kubeRESTClientGetter) ToDiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
+	config, err := g.ToRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return memory.NewMemCacheClient(client), nil
+}
+
+func (g *kubeRESTClientGetter) ToRESTMapper() (meta.RESTMapper, error) {
+	client, err := g.ToDiscoveryClient()
+	if err != nil {
+		return nil, err
+	}
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(client)
+	return restmapper.NewShortcutExpander(mapper, client, func(message string) { sLog.Debugf("%s", message) }), nil
 }
 
 // toHelmTargetProviderConfig converts a generic IProviderConfig to a HelmTargetProviderConfig
