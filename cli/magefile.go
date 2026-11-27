@@ -156,6 +156,10 @@ func BuildApi() error {
 			env:  []string{"CC=arm-linux-gnueabihf-gcc", "CGO_ENABLED=1", "GOARCH=arm", "GOARM=7"},
 			args: []string{"go", "build", "-o", "symphony-api-arm"},
 		},
+		{ // Windows x86_64 (MinGW cross-compile)
+			env:  []string{"CC=x86_64-w64-mingw32-gcc", "CXX=x86_64-w64-mingw32-g++", "CGO_ENABLED=1", "GOOS=windows", "GOARCH=amd64"},
+			args: []string{"go", "build", "-o", "symphony-api.exe"},
+		},
 		{ // Linux x86_64
 			env: []string{
 				"CGO_ENABLED=1",
@@ -292,8 +296,8 @@ func GeneratePackages(des string) error {
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm64 %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-arm %s", symphonyPath, des)),
-		// TODO: Re-enable Mac and Windows cross build
-		// shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api.exe %s", symphonyPath, des)),
+		// TODO: Re-enable Mac cross build
 		// shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-mac %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-agent.json %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/api/symphony-api-no-k8s.json %s", symphonyPath, des)),
@@ -301,7 +305,7 @@ func GeneratePackages(des string) error {
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-arm64 %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-arm %s", symphonyPath, des)),
 		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro.exe %s", symphonyPath, des)),
-		shellcmd.Command(fmt.Sprintf("cp %s//cli/maestro-mac %s", symphonyPath, des)),
+		shellcmd.Command(fmt.Sprintf("cp %s/cli/maestro-mac %s", symphonyPath, des)),
 	); err != nil {
 		return err
 	}
@@ -354,9 +358,7 @@ func GeneratePackages(des string) error {
 	}
 
 	// package windows
-	// windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
-	// TODO: re-enable windows package
-	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
+	windowsCommand := fmt.Sprintf("zip -r maestro_windows_amd64.zip maestro.exe symphony-api.exe symphony-api-no-k8s.json samples.json %s", sampleRootArgs)
 	if err := shellcmd.RunAll(
 		shellcmd.Command(windowsCommand),
 	); err != nil {
